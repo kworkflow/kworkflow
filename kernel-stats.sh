@@ -39,7 +39,7 @@ git shortlog -ns $1  --author=$AUTHOR | cat
 echo ""
 
 echo "=== Authors total commits ==="
-git shortlog -ns $1  --author=$AUTHOR | sed -e  "s/^ *\([0-9][0-9]\?\).*/+ \1/g" | tr -d '\n' | cut -c 2- | bc
+git shortlog -ns $1  --author=$AUTHOR | sed -e  "s/^ *\([0-9]\+\).*/+ \1/g" | tr -d '\n' | cut -c 2- | bc
 echo ""
 
 echo "=== Reviewed-by names ==="
