@@ -8,7 +8,18 @@ function get_names {
 	COMMITS=$(git log --grep="$2.*$AUTHOR" --format=%H $1)
 	NAMES=""
 	for c in $COMMITS ; do
-		NAMES+=$(git show $c | grep "$2.*$AUTHOR" | sed -e "s/^[ ]\+$2: \(.*\) <[a-z\.]*@[a-z\.]*>/\1\\\n/g" | tr -d "\n")
+		NAME=$(git show $c | grep "$2.*$AUTHOR" | sed -e "s/^[ ]\+$2: \(.*\) <[a-z\.]*@[a-z\.]*>/\1/g" | tr -d "\n")
+		if [ "$2" = "Signed-off-by" ] ; then
+			if git show $c | grep -q "Author: $NAME.*" ; then
+				NAME=""
+			fi
+		fi
+
+		if [ "$NAME" != "" ] ; then
+			NAME="$NAME\n"
+		fi
+
+		NAMES+=$NAME
 	done
 
 	echo -e $NAMES | sort | uniq | grep "[A-Z]"
@@ -34,6 +45,28 @@ function find_commits {
 	done
 }
 
+function find_commits_sob {
+
+	get_names $1 $2 | while read NAME ; do
+		if [ "$NAME" = "" ] ; then
+			continue
+		fi
+
+		COMMITS=$(git log --perl-regexp --author="^((?!$NAME).*)$" \
+			--grep "Signed-off-by: $NAME.*" --format=%H $1)
+		echo -n "$NAME ("
+		git log --perl-regexp --author="^((?!$NAME).*)$" \
+			--grep "Signed-off-by: $NAME.*" --format=%H $1 | wc -l | tr -d "\n"
+		echo "):"
+
+		for c in $COMMITS ; do
+			git show --no-patch --format="$FORMAT" $c | cat
+		done
+
+		echo ""
+	done
+}
+
 echo "=== Authors summary ==="
 git shortlog -ns $1  --author=$AUTHOR | cat
 echo ""
@@ -48,6 +81,14 @@ echo ""
 
 echo "=== Reviewed-by total tags ==="
 git log --grep="Reviewed-by.*$AUTHOR" --oneline $1 | wc -l
+echo ""
+
+echo "=== Signed-off-by names ==="
+get_names $1 "Signed-off-by"
+echo ""
+
+echo "=== Signed-off-by total tags ==="
+git log --grep="Signed-off-by.*$AUTHOR" --oneline $1 | wc -l
 echo ""
 
 echo "=== Tested-by names ==="
@@ -68,6 +109,11 @@ echo ""
 echo "<br />"
 echo "<h4>Reviewed-by:</h4>"
 find_commits $1 "Reviewed-by"
+echo ""
+
+echo "<br />"
+echo "<h4>Signed-off-by:</h4>"
+find_commits_sob $1 "Signed-off-by"
 echo ""
 
 echo "<br />"
