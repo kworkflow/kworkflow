@@ -5,7 +5,7 @@ TREE=$BASE/linux
 BUILD_DIR=$BASE/build-linux
 
 QEMU_ARCH="x86_64"
-QEMU="/home/padovan/p/qemu/${QEMU_ARCH}-softmmu/qemu-system-${QEMU_ARCH}"
+QEMU="qemu-system-${QEMU_ARCH}"
 QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
 VDISK="/home/padovan/p/vdisk3.qcow2"
 QEMU_MNT="/mnt/qemu"
