@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# TODO:
+# - issue when there 2 signed-off-by from the same company
+# - SOB count should ignore authors
+#
+
 AUTHOR="collabora"
 
 FORMAT="<li><a href=\"https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=%H\">%s</a></li>"
@@ -8,7 +13,7 @@ function get_names {
 	COMMITS=$(git log --grep="$2.*$AUTHOR" --format=%H $1)
 	NAMES=""
 	for c in $COMMITS ; do
-		NAME=$(git show $c | grep "$2.*$AUTHOR" | sed -e "s/^[ ]\+$2: \(.*\) <[a-z\.]*@[a-z\.]*>/\1/g" | tr -d "\n")
+		NAME=$(git show $c | grep "$2.*$AUTHOR" | sed -e "s/^[ ]\+$2: \(.*\) <[a-z\.]*@[a-z\.]*>.*$/\1/g" | tr -d "\n")
 		if [ "$2" = "Signed-off-by" ] ; then
 			if git show $c | grep -q "Author: $NAME.*" ; then
 				NAME=""
