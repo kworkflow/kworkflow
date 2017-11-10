@@ -10,7 +10,7 @@ QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
 VDISK="/home/padovan/p/vdisk3.qcow2"
 QEMU_MNT="/mnt/qemu"
 
-arch="qemu"
+TARGET="qemu"
 
 set -e
 
@@ -45,7 +45,7 @@ function vm_modules_install {
 function mk_kvm {
 $QEMU -hda $VDISK \
 	${QEMU_OPTS} \
-	-kernel $BUILD_DIR/qemu/arch/x86/boot/bzImage \
+	-kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
 	-append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1 drm.debug=0xff" \
 	-net nic -net user,hostfwd=tcp::5555-:22 \
 	-serial stdio \
@@ -57,7 +57,7 @@ function mk_build {
 }
 
 function mk_install {
-	case "$arch" in
+	case "$TARGET" in
 		qemu)
 			vm_modules_install
 			;;
@@ -86,7 +86,7 @@ function mk_help {
 }
 
 if [ "$#" -eq 2 ] ; then
-	arch=$1
+	TARGET=$1
 	action=$2
 elif [ "$#" -eq 1 ] ; then
 	action=$1
@@ -98,15 +98,15 @@ fi
 
 # FIXME: validate arch and action
 
-if [ $arch == "arm" ] ; then
+if [ $TARGET == "arm" ] ; then
 	export ARCH=arm CROSS_COMPILE="ccache arm-linux-gnu-"
 fi
 
-export KBUILD_OUTPUT=$BUILD_DIR/$arch
+export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
 
 case "$action" in
 	export)
-		echo "export KBUILD_OUTPUT=$BUILD_DIR/$arch"
+		echo "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
 		;;
 	build|b)
 		mk_build
