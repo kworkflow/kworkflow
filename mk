@@ -68,6 +68,16 @@ function mk_install {
 	esac
 }
 
+function mk_send_mail {
+	SENDLINE="git send-email --dry-run "
+	while read line
+	do
+		SENDLINE+="$line "
+	done < emails
+
+	echo $SENDLINE
+}
+
 function mk_help {
 	echo -e "Usage: $0 [target] cmd"
 
@@ -120,6 +130,9 @@ case "$action" in
 		;;
 	boot)
 		mk_kvm
+		;;
+	mail)
+		mk_send_mail
 		;;
 	help)
 		mk_help
