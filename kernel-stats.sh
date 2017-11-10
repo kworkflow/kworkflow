@@ -104,6 +104,14 @@ echo "=== Tested-by total tags ==="
 git log --grep="Tested-by.*$AUTHOR" --oneline $1 | wc -l
 echo ""
 
+echo "=== Suggested-by names ==="
+get_names $1 "Suggested-by"
+echo ""
+
+echo "=== Suggested-by total tags ==="
+git log --grep="Suggested-by.*$AUTHOR" --oneline $1 | wc -l
+echo ""
+
 echo " === HTML report ==="
 echo ""
 
@@ -124,4 +132,9 @@ echo ""
 echo "<br />"
 echo "<h4>Tested-by:</h4>"
 find_commits $1 "Tested-by"
+echo ""
+
+echo "<br />"
+echo "<h4>Suggested-by:</h4>"
+find_commits $1 "Suggested-by"
 echo ""
