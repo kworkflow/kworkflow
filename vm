@@ -1,0 +1,91 @@
+#!/bin/bash
+
+BASE=$HOME/p/linux-trees
+TREE=$BASE/linux
+BUILD_DIR=$BASE/build-linux
+
+QEMU_ARCH="x86_64"
+QEMU="qemu-system-${QEMU_ARCH}"
+QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
+VDISK="/home/padovan/p/vdisk3.qcow2"
+QEMU_MNT="/mnt/qemu"
+
+TARGET="qemu"
+
+set -e
+
+function vm_mount_old {
+	sudo mount -o loop,offset=32256 $VDISK $QEMU_MNT
+}
+
+function vm_mount {
+	sudo modprobe nbd max_part=63
+	sudo qemu-nbd -c /dev/nbd0 $VDISK
+	sudo partprobe /dev/nbd0
+	sudo mount /dev/nbd0p1 $QEMU_MNT
+}
+function vm_umount {
+	sudo umount $QEMU_MNT
+	sudo qemu-nbd -d /dev/nbd0
+	sudo killall -q qemu-nbd
+}
+
+function vm_ospack_install {
+
+	set +e
+	sudo modprobe nbd max_part=63
+	sudo qemu-nbd -c /dev/nbd0 $VDISK
+	sudo partprobe /dev/nbd0
+	sudo mkfs.ext4 -q /dev/nbd0p1
+	sudo mount /dev/nbd0p1 $QEMU_MNT
+	pushd $QEMU_MNT
+	echo "unpacking... $1"
+	sudo tar xpf $1
+	popd
+	vm_umount
+}
+
+function vm_boot {
+$QEMU -hda $VDISK \
+	${QEMU_OPTS} \
+	-kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
+	-append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1 drm.debug=0xff" \
+	-net nic -net user,hostfwd=tcp::5555-:22 \
+	-serial stdio \
+	-device virtio-gpu-pci,virgl -display gtk,gl=on 2> /dev/null
+}
+
+function mk_help {
+	echo -e "Usage: $0 [target] cmd"
+
+	echo -e "\nCommands:\n" \
+		"\tmount\n" \
+		"\tumount\n" \
+		"\tospack <pack>\n" \
+		"\tboot\n" \
+		"\thelp"
+}
+
+case "$1" in
+	mount)
+		vm_mount
+		;;
+	umount)
+		vm_umount
+		;;
+	ospack)
+		vm_ospack_install $2
+		;;
+	boot)
+		vm_boot
+		;;
+	help)
+		mk_help
+		;;
+	*)
+		mk_help
+		exit 1
+esac
+
+exit 0
+

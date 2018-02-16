@@ -14,42 +14,15 @@ TARGET="qemu"
 
 set -e
 
-function vm_mount_old {
-	sudo mount -o loop,offset=32256 $VDISK $QEMU_MNT
-}
-
-function vm_mount {
-	sudo modprobe nbd max_part=63
-	sudo qemu-nbd -c /dev/nbd0 $VDISK
-	sudo partprobe /dev/nbd0
-	sudo mount /dev/nbd0p1 $QEMU_MNT
-}
-function vm_umount {
-	sudo umount $QEMU_MNT &
-	sleep 3
-	sudo qemu-nbd -d /dev/nbd0
-	sudo killall -q qemu-nbd
-}
-
 function vm_modules_install {
 
-	vm_mount
+	vm mount
 	set +e
 	sudo -E make INSTALL_MOD_PATH=$QEMU_MNT modules_install
 	release=$(make kernelrelease)
 	echo $release
-	sudo -E chroot $QEMU_MNT depmod -a $release
-	vm_umount
-}
-
-function mk_kvm {
-$QEMU -hda $VDISK \
-	${QEMU_OPTS} \
-	-kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
-	-append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1 drm.debug=0xff" \
-	-net nic -net user,hostfwd=tcp::5555-:22 \
-	-serial stdio \
-	-device virtio-gpu-pci,virgl -display gtk,gl=on 2> /dev/null
+	sudo -E chroot $QEMU_MNT  depmod -a $release
+	vm umount
 }
 
 function mk_build {
@@ -69,6 +42,26 @@ function mk_install {
 }
 
 function mk_send_mail {
+
+	echo -e " * checking git diff...\n"
+	git diff
+	git diff --cached
+
+	echo -e " * Does it build? Did you test it?\n"
+	read
+	echo -e " * Are you using the correct subject prefix?\n"
+	read
+	echo -e " * Did you need/review the cover letter?\n"
+	read
+	echo -e " * Did you annotate version changes?\n"
+	read
+	echo -e " * Is git format-patch -M needed?\n"
+	read
+	echo -e " * Did you review --to --cc?\n"
+	read
+	echo -e " * dry-run it first!\n"
+
+
 	SENDLINE="git send-email --dry-run "
 	while read line
 	do
@@ -91,15 +84,16 @@ function mk_help {
 		"\tbuild,b\n" \
 		"\tinstall,i\n" \
 		"\tbi\n" \
-		"\tboot\n" \
+		"\tmail - create the git send-email line from the 'emails'"\
+			  "in the current dir\n" \
 		"\thelp"
 }
 
-if [ "$#" -eq 2 ] ; then
+if [ "$#" -eq 1 ] ; then
+	action=$1
+elif [ "$#" -eq 2 ] ; then
 	TARGET=$1
 	action=$2
-elif [ "$#" -eq 1 ] ; then
-	action=$1
 else
 	#FIXME: improve msg
 	echo "invalid args"
@@ -127,9 +121,6 @@ case "$action" in
 	bi)
 		mk_build
 		mk_install
-		;;
-	boot)
-		mk_kvm
 		;;
 	mail)
 		mk_send_mail
