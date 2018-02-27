@@ -107,6 +107,7 @@ if [ $TARGET == "arm" ] ; then
 fi
 
 export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
+mkdir -p $KBUILD_OUTPUT
 
 case "$action" in
 	export)
