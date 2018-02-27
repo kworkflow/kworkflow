@@ -72,69 +72,104 @@ function find_commits_sob {
 	done
 }
 
-echo "=== Authors summary ==="
-git shortlog -ns $1  --author=$AUTHOR | cat
-echo ""
+function ks_report {
+	echo "=== Authors summary ==="
+	git shortlog -ns $1  --author=$AUTHOR | cat
+	echo ""
 
-echo "=== Authors total commits ==="
-git shortlog -ns $1  --author=$AUTHOR | sed -e  "s/^ *\([0-9]\+\).*/+ \1/g" | tr -d '\n' | cut -c 2- | bc
-echo ""
+	echo "=== Authors total commits ==="
+	git shortlog -ns $1  --author=$AUTHOR | sed -e  "s/^ *\([0-9]\+\).*/+ \1/g" | tr -d '\n' | cut -c 2- | bc
+	echo ""
 
-echo "=== Reviewed-by names ==="
-get_names $1 "Reviewed-by"
-echo ""
+	echo "=== Reviewed-by names ==="
+	get_names $1 "Reviewed-by"
+	echo ""
 
-echo "=== Reviewed-by total tags ==="
-git log --grep="Reviewed-by.*$AUTHOR" --oneline $1 | wc -l
-echo ""
+	echo "=== Reviewed-by total tags ==="
+	git log --grep="Reviewed-by.*$AUTHOR" --oneline $1 | wc -l
+	echo ""
 
-echo "=== Signed-off-by names ==="
-get_names $1 "Signed-off-by"
-echo ""
+	echo "=== Signed-off-by names ==="
+	get_names $1 "Signed-off-by"
+	echo ""
 
-echo "=== Signed-off-by total tags ==="
-git log --grep="Signed-off-by.*$AUTHOR" --oneline $1 | wc -l
-echo ""
+	echo "=== Signed-off-by total tags ==="
+	git log --grep="Signed-off-by.*$AUTHOR" --oneline $1 | wc -l
+	echo ""
 
-echo "=== Tested-by names ==="
-get_names $1 "Tested-by"
-echo ""
+	echo "=== Tested-by names ==="
+	get_names $1 "Tested-by"
+	echo ""
 
-echo "=== Tested-by total tags ==="
-git log --grep="Tested-by.*$AUTHOR" --oneline $1 | wc -l
-echo ""
+	echo "=== Tested-by total tags ==="
+	git log --grep="Tested-by.*$AUTHOR" --oneline $1 | wc -l
+	echo ""
 
-echo "=== Suggested-by names ==="
-get_names $1 "Suggested-by"
-echo ""
+	echo "=== Suggested-by names ==="
+	get_names $1 "Suggested-by"
+	echo ""
 
-echo "=== Suggested-by total tags ==="
-git log --grep="Suggested-by.*$AUTHOR" --oneline $1 | wc -l
-echo ""
+	echo "=== Suggested-by total tags ==="
+	git log --grep="Suggested-by.*$AUTHOR" --oneline $1 | wc -l
+	echo ""
 
-echo " === HTML report ==="
-echo ""
+	echo " === HTML report ==="
+	echo ""
 
-echo "<h4>Here is the complete list of Collabora contributions:</h4>"
-git shortlog $1  --author=$AUTHOR --format="$FORMAT" | cat
-echo ""
+	echo "<h4>Here is the complete list of Collabora contributions:</h4>"
+	git shortlog $1  --author=$AUTHOR --format="$FORMAT" | cat
+	echo ""
 
-echo "<br />"
-echo "<h4>Reviewed-by:</h4>"
-find_commits $1 "Reviewed-by"
-echo ""
+	echo "<br />"
+	echo "<h4>Reviewed-by:</h4>"
+	find_commits $1 "Reviewed-by"
+	echo ""
 
-echo "<br />"
-echo "<h4>Signed-off-by:</h4>"
-find_commits_sob $1 "Signed-off-by"
-echo ""
+	echo "<br />"
+	echo "<h4>Signed-off-by:</h4>"
+	find_commits_sob $1 "Signed-off-by"
+	echo ""
 
-echo "<br />"
-echo "<h4>Tested-by:</h4>"
-find_commits $1 "Tested-by"
-echo ""
+	echo "<br />"
+	echo "<h4>Tested-by:</h4>"
+	find_commits $1 "Tested-by"
+	echo ""
 
-echo "<br />"
-echo "<h4>Suggested-by:</h4>"
-find_commits $1 "Suggested-by"
-echo ""
+	echo "<br />"
+	echo "<h4>Suggested-by:</h4>"
+	find_commits $1 "Suggested-by"
+	echo ""
+}
+
+function per_year {
+	YEAR=$(date +%Y)
+	for i in $(seq 13) ; do
+		git shortlog -ns \
+			--after=31,Dec,$(expr $YEAR - 1) \
+			--before=1,Jan,$(expr $YEAR + 1) --author=$1 | \
+			sed -e  "s/^ *\([0-9]\+\).*/+ \1/g" | tr -d '\n' | \
+			cut -c 2- | bc
+		let YEAR--
+	done
+}
+
+function help {
+i	echo "no help yet"
+}
+
+case "$1" in
+	report)
+		ks_report $2
+		;;
+	yearly)
+		per_year $2
+		;;
+	help)
+		ks_help
+		;;
+	*)
+		ks_help
+		exit 1
+esac
+
+exit 0
