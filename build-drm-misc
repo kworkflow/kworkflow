@@ -1,0 +1,21 @@
+#!/bin/bash
+
+BASE=$HOME/p/linux-trees
+BUILD_DIR=$BASE/build-linux
+
+function build_arch {
+	echo "building $1..."
+	export KBUILD_OUTPUT=$BUILD_DIR/drm-misc/$1
+	mkdir -p $KBUILD_OUTPUT
+	cp $BASE/drm-rerere/drm-misc-$1_defconfig $KBUILD_OUTPUT/.config
+	make oldconfig
+	make $MAKE_OPTS > /dev/null
+	echo "Done."
+	echo "=============="
+}
+
+cd $BASE/drm-misc
+
+build_arch x86
+ARCH="arm" CROSS_COMPILE="arm-linux-gnu-" build_arch arm
+ARCH="arm64" CROSS_COMPILE="aarch64-linux-gnu-" build_arch arm64
