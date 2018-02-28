@@ -30,26 +30,11 @@ function vm_umount {
 	sudo killall -q qemu-nbd
 }
 
-function vm_ospack_install {
-
-	set +e
-	sudo modprobe nbd max_part=63
-	sudo qemu-nbd -c /dev/nbd0 $VDISK
-	sudo partprobe /dev/nbd0
-	sudo mkfs.ext4 -q /dev/nbd0p1
-	sudo mount /dev/nbd0p1 $QEMU_MNT
-	pushd $QEMU_MNT
-	echo "unpacking... $1"
-	sudo tar xpf $1
-	popd
-	vm_umount
-}
-
 function vm_boot {
 $QEMU -hda $VDISK \
 	${QEMU_OPTS} \
 	-kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
-	-append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1 drm.debug=0xff" \
+	-append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1" \
 	-net nic -net user,hostfwd=tcp::5555-:22 \
 	-serial stdio \
 	-device virtio-gpu-pci,virgl -display gtk,gl=on 2> /dev/null
@@ -72,9 +57,6 @@ case "$1" in
 		;;
 	umount)
 		vm_umount
-		;;
-	ospack)
-		vm_ospack_install $2
 		;;
 	boot)
 		vm_boot

@@ -1,7 +1,6 @@
 #!/bin/bash
 
 BASE=$HOME/p/linux-trees
-TREE=$BASE/linux
 BUILD_DIR=$BASE/build-linux
 
 QEMU_ARCH="x86_64"
