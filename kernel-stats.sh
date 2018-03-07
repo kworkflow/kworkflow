@@ -9,9 +9,15 @@ AUTHOR="collabora"
 
 FORMAT="<li><a href=\"https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=%H\">%s</a></li>"
 
-SUBDIRS="arch block crypto  Documentation drivers firmware fs include init ipc  kernel  lib  mm net  samples scripts security sound tools usr  virt" 
+SUBDIRS="arch block crypto  Documentation drivers firmware fs include init ipc  kernel  lib  mm net  samples scripts security sound tools usr  virt"
 
 DRMDIRS="amd arc arm armada ast bochs bridge cirrus drm_*.c etnaviv exynos fsl-dcu gma500 hisilicon i2c i810 i915 imx lib mediatek meson mga mgag200 msm mxsfb nouveau omapdrm panel pl111 qxl r128 radeon rcar-du rockchip savage scheduler selftests shmobile sis sti stm sun4i tdfx tegra tilcdc tinydrm ttm tve200 udl vc4 vgem via virtio vmwgfx zte"
+
+DRVDIRS="accessibility acpi amba android ata atm auxdisplay base bcma block bluetooth bus cdrom char clk clocksource connector cpufreq cpuidle crypto dax dca devfreq dio dma dma-buf edac eisa extcon firewire firmware fmc fpga fsi gpio gpu hid hsi hv hwmon hwspinlock hwtracing i2c ide idle iio infiniband input iommu ipack irqchip isdn leds lightnvm macintosh mailbox mcb md media memory memstick message mfd misc mmc mtd mux net nfc ntb nubus nvdimm nvme nvmem of opp oprofile parisc parport pci pcmcia perf phy pinctrl platform pnp power powercap pps ps3 ptp pwm rapidio ras regulator remoteproc reset rpmsg rtc s390 sbus scsi sfi sh siox slimbus sn soc soundwire spi spmi ssb staging target tc tee thermal thunderbolt tty uio usb uwb vfio vhost video virt virtio visorbus vlynq vme w1 watchdog xen zorro"
+
+ARMDIRS="boot common configs crypto firmware include kernel kvm lib mach-actions mach-alpine mach-artpec mach-asm9260 mach-aspeed mach-at91 mach-axxia mach-bcm mach-berlin mach-clps711x mach-cns3xxx mach-davinci mach-digicolor mach-dove mach-ebsa110 mach-efm32 mach-ep93xx mach-exynos mach-footbridge mach-gemini mach-highbank mach-hisi mach-imx mach-integrator mach-iop13xx mach-iop32x mach-iop33x mach-ixp4xx mach-keystone mach-ks8695 mach-lpc18xx mach-lpc32xx mach-mediatek mach-meson mach-mmp mach-moxart mach-mv78xx0 mach-mvebu mach-mxs mach-netx mach-nomadik mach-nspire mach-omap1 mach-omap2 mach-orion5x mach-oxnas mach-picoxcell mach-prima2 mach-pxa mach-qcom mach-realview mach-rockchip mach-rpc mach-s3c24xx mach-s3c64xx mach-s5pv210 mach-sa1100 mach-shmobile mach-socfpga mach-spear mach-sti mach-stm32 mach-sunxi mach-tango mach-tegra mach-u300 mach-uniphier mach-ux500 mach-versatile mach-vexpress mach-vt8500 mach-w90x900 mach-zx mach-zynq mm net nwfpe oprofile plat-iop plat-omap plat-orion plat-pxa plat-samsung plat-versatile probes tools vdso vfp xen"
+
+ARM64DIRS="boot configs crypto include kernel kvm lib mm net xen"
 
 function sum_commits {
 	s=$(sed -e  "s/^ *\([0-9]\+\).*/+ \1/g" | tr -d '\n' | cut -c 2-)
@@ -165,10 +171,10 @@ function per_year {
 }
 
 function for_each_dir {
-	RANGE="$1"
-	AUTHOR="$2"
-	DIRS="$3"
-	PREFIX="$4"
+	local RANGE="$1"
+	local AUTHOR="$2"
+	local DIRS="$3"
+	local PREFIX="$4"
 
 	for d in $DIRS ; do
 		num=$(git shortlog -ns "$RANGE" --author="$AUTHOR" -- $PREFIX$d | sum_commits)
@@ -179,8 +185,19 @@ function for_each_dir {
 }
 
 function per_dir {
+	echo "** $2 **"
+	echo "total: $(git shortlog -ns --author=$2 "$1" | sum_commits)"
+	echo " == subdirs: =="
 	for_each_dir "$1" "$2" "$SUBDIRS" ""
+	echo "== drivers/ =="
+	for_each_dir "$1" "$2" "$DRVDIRS" "drivers/"
+	echo "== drivers/gpu/drm/ =="
 	for_each_dir "$1" "$2" "$DRMDIRS" "drivers/gpu/drm/"
+	echo "== arch/arm/ =="
+	for_each_dir "$1" "$2" "$ARMDIRS" "arch/arm/"
+	echo "== arch/arm64/ =="
+	for_each_dir "$1" "$2" "$ARM64DIRS" "arch/arm64/"
+	echo ""
 }
 
 function help {
@@ -206,4 +223,3 @@ case "$1" in
 esac
 
 exit 0
-
