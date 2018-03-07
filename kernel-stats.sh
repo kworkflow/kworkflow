@@ -9,6 +9,19 @@ AUTHOR="collabora"
 
 FORMAT="<li><a href=\"https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/commit/?id=%H\">%s</a></li>"
 
+SUBDIRS="arch block crypto  Documentation drivers firmware fs include init ipc  kernel  lib  mm net  samples scripts security sound tools usr  virt" 
+
+DRMDIRS="amd arc arm armada ast bochs bridge cirrus drm_*.c etnaviv exynos fsl-dcu gma500 hisilicon i2c i810 i915 imx lib mediatek meson mga mgag200 msm mxsfb nouveau omapdrm panel pl111 qxl r128 radeon rcar-du rockchip savage scheduler selftests shmobile sis sti stm sun4i tdfx tegra tilcdc tinydrm ttm tve200 udl vc4 vgem via virtio vmwgfx zte"
+
+function sum_commits {
+	s=$(sed -e  "s/^ *\([0-9]\+\).*/+ \1/g" | tr -d '\n' | cut -c 2-)
+	if [ "$s" == "" ] ; then
+		echo 0
+	else
+		echo "$s" | bc
+	fi
+}
+
 function get_names {
 	COMMITS=$(git log --grep="$2.*$AUTHOR" --format=%H $1)
 	NAMES=""
@@ -78,7 +91,7 @@ function ks_report {
 	echo ""
 
 	echo "=== Authors total commits ==="
-	git shortlog -ns $1  --author=$AUTHOR | sed -e  "s/^ *\([0-9]\+\).*/+ \1/g" | tr -d '\n' | cut -c 2- | bc
+	git shortlog -ns $1  --author=$AUTHOR | sum_commits
 	echo ""
 
 	echo "=== Reviewed-by names ==="
@@ -146,11 +159,28 @@ function per_year {
 	for i in $(seq 13) ; do
 		git shortlog -ns \
 			--after=31,Dec,$(expr $YEAR - 1) \
-			--before=1,Jan,$(expr $YEAR + 1) --author=$1 | \
-			sed -e  "s/^ *\([0-9]\+\).*/+ \1/g" | tr -d '\n' | \
-			cut -c 2- | bc
+			--before=1,Jan,$(expr $YEAR + 1) --author=$1 | sum_commits
 		let YEAR--
 	done
+}
+
+function for_each_dir {
+	RANGE="$1"
+	AUTHOR="$2"
+	DIRS="$3"
+	PREFIX="$4"
+
+	for d in $DIRS ; do
+		num=$(git shortlog -ns "$RANGE" --author="$AUTHOR" -- $PREFIX$d | sum_commits)
+		if [ $num -ge 10 ] ; then 
+			echo "$PREFIX$d;$num"
+		fi
+	done
+}
+
+function per_dir {
+	for_each_dir "$1" "$2" "$SUBDIRS" ""
+	for_each_dir "$1" "$2" "$DRMDIRS" "drivers/gpu/drm/"
 }
 
 function help {
@@ -159,10 +189,13 @@ i	echo "no help yet"
 
 case "$1" in
 	report)
-		ks_report $2
+		ks_report "$2"
 		;;
 	yearly)
-		per_year $2
+		per_year "$2"
+		;;
+	dir)
+		per_dir "$2" "$3"
 		;;
 	help)
 		ks_help
@@ -173,3 +206,4 @@ case "$1" in
 esac
 
 exit 0
+
