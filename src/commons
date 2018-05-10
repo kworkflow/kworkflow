@@ -1,0 +1,12 @@
+BASE=$HOME/p/linux-trees
+BUILD_DIR=$BASE/build-linux
+
+QEMU_ARCH="x86_64"
+QEMU="qemu-system-${QEMU_ARCH}"
+QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
+VDISK="$HOME/p/virty.qcow2"
+QEMU_MNT="/mnt/qemu"
+
+TARGET="qemu"
+
+BASHPATH=/bin/bash
