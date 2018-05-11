@@ -10,3 +10,15 @@ QEMU_MNT="/mnt/qemu"
 TARGET="qemu"
 
 BASHPATH=/bin/bash
+
+function show_variables()
+{
+  echo -e "\tBASE: $BASE"
+  echo -e "\tBUILD_DIR: $BUILD_DIR"
+  echo -e "\tQEMU ARCH: $QEMU_ARCH"
+  echo -e "\tQEMU COMMAND: $QEMU"
+  echo -e "\tQEMU OPTIONS: $QEMU_OPTS"
+  echo -e "\tVDISK: $VDISK"
+  echo -e "\tQEMU MOUNT POINT: $QEMU_MNT"
+  echo -e "\tTARGET: $TARGET"
+}

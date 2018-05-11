@@ -33,6 +33,7 @@ function easy-kernel-workflow-help()
     "\tmount - Mount partition with qemu-nbd\n" \
     "\tumount - Umount partition created with qemu-nbd\n" \
     "\tboot\n" \
+    "\tvars - Show variables\n" \
     "\thelp"
 }
 
@@ -70,6 +71,9 @@ function easy-kernel-workflow()
       ;;
     mail)
       mk_send_mail
+      ;;
+    vars)
+      show_variables
       ;;
     help)
       easy-kernel-workflow-help
