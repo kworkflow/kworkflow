@@ -70,22 +70,3 @@ function mk_export_kbuild
   export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
   mkdir -p $KBUILD_OUTPUT
 }
-
-function mk_help
-{
-  echo -e "Usage: $0 [target] cmd"
-
-  echo -e "\nThe current supported targets are:\n" \
-       "\t host - this machine\n" \
-       "\t qemu - qemu machine\n" \
-       "\t arm - arm machine"
-
-  echo -e "\nCommands:\n" \
-    "\texport\n" \
-    "\tbuild,b\n" \
-    "\tinstall,i\n" \
-    "\tbi\n" \
-    "\tmail - create the git send-email line from the 'emails'"\
-        "in the current dir\n" \
-    "\thelp"
-}

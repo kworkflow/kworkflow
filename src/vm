@@ -28,15 +28,3 @@ $QEMU -hda $VDISK \
   -serial stdio \
   -device virtio-gpu-pci,virgl -display gtk,gl=on 2> /dev/null
 }
-
-function vm_help
-{
-  echo -e "Usage: $0 [target] cmd"
-
-  echo -e "\nCommands:\n" \
-    "\tmount\n" \
-    "\tumount\n" \
-    "\tospack <pack>\n" \
-    "\tboot\n" \
-    "\thelp"
-}

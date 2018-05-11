@@ -14,6 +14,28 @@ set -e
 # Export external variables required by easy-kernel-workflow
 export EASY_KERNEL_WORKFLOW
 
+function easy-kernel-workflow-help()
+{
+  echo -e "Usage: easy-kernel-workflow [target] cmd"
+
+  echo -e "\nThe current supported targets are:\n" \
+       "\t host - this machine\n" \
+       "\t qemu - qemu machine\n" \
+       "\t arm - arm machine"
+
+  echo -e "\nCommands:\n" \
+    "\texport\n" \
+    "\tbuild,b - Build Kernel and modules\n" \
+    "\tinstall,i - Install modules\n" \
+    "\tbi - Build and install modules\n" \
+    "\tmail - create the git send-email line from the 'emails'"\
+        "in the current dir\n" \
+    "\tmount - Mount partition with qemu-nbd\n" \
+    "\tumount - Umount partition created with qemu-nbd\n" \
+    "\tboot\n" \
+    "\thelp"
+}
+
 function easy-kernel-workflow()
 {
   if [ "$#" -eq 1 ] ; then
@@ -50,15 +72,10 @@ function easy-kernel-workflow()
       mk_send_mail
       ;;
     help)
-      # TODO: Unify help
-      echo "--- mk ---"
-      mk_help
-      echo "--- vm ---"
-      vm_help
+      easy-kernel-workflow-help
       ;;
     *)
-      mk_help
-      vm_help
+      easy-kernel-workflow-help
       ;;
   esac
 }
