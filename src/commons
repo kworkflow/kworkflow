@@ -11,6 +11,9 @@ TARGET="qemu"
 
 BASHPATH=/bin/bash
 
+# Default configuration
+declare -A configurations
+
 function show_variables()
 {
   echo -e "\tBASE: $BASE"
@@ -21,4 +24,28 @@ function show_variables()
   echo -e "\tVDISK: $VDISK"
   echo -e "\tQEMU MOUNT POINT: $QEMU_MNT"
   echo -e "\tTARGET: $TARGET"
+}
+
+function check_local_configuration()
+{
+  local config_path=$PWD/easy-kernel-workflow.config
+
+  # File does not exist, use default configuration
+  if [ ! -f $config_path ] ; then
+    configurations=(
+      [qemu_path_image]=$VDISK
+      [qemu_hw_options]=$QEMU_OPT
+      [qemu_net_options]=""
+    )
+    return 1
+  fi
+
+  while read line
+  do
+    if echo $line | grep -F = &>/dev/null
+    then
+      varname=$(echo $line | cut -d '=' -f 1 | tr -d '[:space:]')
+      configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
+    fi
+  done < $config_path
 }
