@@ -34,7 +34,7 @@ function vm_up
 
   check_local_configuration
 
-  echo "Starting Qemu with: "
+  say "Starting Qemu with: "
   echo "$QEMU ${configurations[qemu_hw_options]}" \
        "${configurations[qemu_net_options]}" \
        "${configurations[qemu_path_image]}"

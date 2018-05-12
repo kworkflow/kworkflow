@@ -6,7 +6,7 @@ function vm_modules_install
   set +e
   sudo -E make INSTALL_MOD_PATH=$QEMU_MNT modules_install
   release=$(make kernelrelease)
-  echo $release
+  say $release
   sudo -E chroot $QEMU_MNT  depmod -a $release
   vm_umount
 }
@@ -66,7 +66,7 @@ function mk_send_mail
 
 function mk_export_kbuild
 {
-  echo "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
+  say "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
   export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
   mkdir -p $KBUILD_OUTPUT
 }

@@ -8,6 +8,7 @@ set -e
 
 # Load code (take care with the order)
 . $src_script_path/commons --source-only
+. $src_script_path/miscellaneous --source-only
 . $src_script_path/vm --source-only
 . $src_script_path/mk --source-only
 
@@ -83,6 +84,7 @@ function easy-kernel-workflow()
       easy-kernel-workflow-help
       ;;
     *)
+      complain "Invalid option"
       easy-kernel-workflow-help
       ;;
   esac
