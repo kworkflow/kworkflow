@@ -34,6 +34,7 @@ function easy-kernel-workflow-help()
     "\tumount - Umount partition created with qemu-nbd\n" \
     "\tboot\n" \
     "\tvars - Show variables\n" \
+    "\tup - Wake up vm\n" \
     "\thelp"
 }
 
@@ -55,6 +56,9 @@ function easy-kernel-workflow()
       ;;
     boot)
       vm_boot
+      ;;
+    up)
+      vm_up
       ;;
     export)
       mk_export_kbuild $@

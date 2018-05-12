@@ -20,11 +20,26 @@ function vm_umount
 
 function vm_boot
 {
-$QEMU -hda $VDISK \
-  ${QEMU_OPTS} \
-  -kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
-  -append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1" \
-  -net nic -net user,hostfwd=tcp::5555-:22 \
-  -serial stdio \
-  -device virtio-gpu-pci,virgl -display gtk,gl=on 2> /dev/null
+  $QEMU -hda $VDISK \
+    ${QEMU_OPTS} \
+    -kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
+    -append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1" \
+    -net nic -net user,hostfwd=tcp::5555-:22 \
+    -serial stdio \
+    -device virtio-gpu-pci,virgl -display gtk,gl=on 2> /dev/null
+}
+
+function vm_up
+{
+
+  check_local_configuration
+
+  echo "Starting Qemu with: "
+  echo "$QEMU ${configurations[qemu_hw_options]}" \
+       "${configurations[qemu_net_options]}" \
+       "${configurations[qemu_path_image]}"
+
+  $QEMU ${configurations[qemu_hw_options]} \
+        ${configurations[qemu_net_options]} \
+        ${configurations[qemu_path_image]}
 }
