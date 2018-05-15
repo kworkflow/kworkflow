@@ -4,8 +4,6 @@
 EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"easy-kernel-workflow"}
 src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
 
-set -e
-
 # Load code (take care with the order)
 . $src_script_path/commons --source-only
 . $src_script_path/miscellaneous --source-only
