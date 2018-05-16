@@ -1,4 +1,4 @@
-# easy-kernel-workflow
+# Kworkflow
 
 # About
 
@@ -6,6 +6,8 @@
 infrastructure setup for Linux development. We export all the scripts
 functionality via bashrc, to make the commands available in any place you want
 to work.
+
+> Kworkflow stands for Kernel Workflow.
 
 # Prerequisites:
 
@@ -23,7 +25,7 @@ If you want to use Qemu, we recommend the following steps:
 3) After you have your image, we recommend you to setup basic stuff (this
    can vary depends on the distribution you choose - kernel setup, ssh, etc);
 
-# Install easy-kernel-workflow
+# Install kworkflow
 
 > In the main directory, type:
 
@@ -32,22 +34,22 @@ If you want to use Qemu, we recommend the following steps:
 bash --login
 ```
 
-> This command will install `easy-kernel-workflow` in
-`~/.config/easy-kernel-workflow`, and add the following lines at the end of
+> This command will install `kworkflow` in
+`~/.config/kworkflow`, and add the following lines at the end of
 your `.bashrc`:
 
 ```
-# easy-kernel-workflow
-source /home/<user>/.config/easy-kernel-workflow/easy-kernel-workflow.sh
+# kworkflow
+source /home/<user>/.config/kworkflow/kworkflow.sh
 ```
 
 > To check if the installations was ok, type:
 
 ```
-easy-kernel-workflow help
+kworkflow help
 ```
 
-> Finally, everytime that you want to update your `easy-kernel-workflow` just
+> Finally, everytime that you want to update your `kworkflow` just
 pull from this repository and install again (`./setup -i` remove legacy files
 and intall new one).
 
@@ -58,12 +60,12 @@ of configuration per directory. For example, if you have a particular kernel
 tree named 'drm-work' and want a different configuration from the default you
 can follow these steps:
 
-1) Copy `easy-kernel-workflow.config.example` as follows:
+1) Copy `kworkflow.config.example` as follows:
 
 ```
-cp easy-kernel-workflow.config.example /path/to/your/kernel/tree/drm-work/easy-kernel-workflow.config
+cp kworkflow.config.example /path/to/your/kernel/tree/drm-work/kworkflow.config
 ```
-Note: the default name must be `easy-kernel-workflow.config`
+Note: the default name must be `kworkflow.config`
 
 2) Change the options inside:
 
@@ -82,41 +84,41 @@ will be used.
 > Help commands:
 
 ```
-easy-kernel-workflow help
+kworkflow help
 ```
 
 > Build a Kernel and install in the Qemu image:
 
 ```
-easy-kernel-workflow bi
+kworkflow bi
 ```
 
 > Mount Qemu image to transfer data:
 
 ```
-easy-kernel-workflow mount
+kworkflow mount
 ```
 
 > Umount Qemu image:
 
 ```
-easy-kernel-workflow umount
+kworkflow umount
 ```
 
 > If you want to use KBUILD_OUTPUT:
 
 ```
-easy-kernel-workflow export
+kworkflow export
 ```
 
-> Show variable status used by `easy-kernel-workflow`:
+> Show variable status used by `kworkflow`:
 
 ```
-easy-kernel-workflow vars
+kworkflow vars
 ```
 
 > Turn on vm:
 
 ```
-easy-kernel-workflow up
+kworkflow up
 ```

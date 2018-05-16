@@ -28,7 +28,7 @@ function show_variables()
 
 function check_local_configuration()
 {
-  local config_path=$PWD/easy-kernel-workflow.config
+  local config_path=$PWD/kworkflow.config
 
   # File does not exist, use default configuration
   if [ ! -f $config_path ] ; then

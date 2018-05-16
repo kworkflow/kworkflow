@@ -1,7 +1,7 @@
 function vm_modules_install
 {
   # Attention: The vm code have to be loaded before this function.
-  # Take a look at the beginning of easy-kernel-workflow.sh.
+  # Take a look at the beginning of kworkflow.sh.
   vm_mount
   set +e
   sudo -E make INSTALL_MOD_PATH=$QEMU_MNT modules_install

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set required variables
-EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"easy-kernel-workflow"}
+EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kworkflow"}
 src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
 
 # Load code (take care with the order)
@@ -10,12 +10,12 @@ src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
 . $src_script_path/vm --source-only
 . $src_script_path/mk --source-only
 
-# Export external variables required by easy-kernel-workflow
+# Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
 
-function easy-kernel-workflow-help()
+function kworkflow-help()
 {
-  echo -e "Usage: easy-kernel-workflow [target] cmd"
+  echo -e "Usage: kworkflow [target] cmd"
 
   echo -e "\nThe current supported targets are:\n" \
        "\t host - this machine\n" \
@@ -37,7 +37,7 @@ function easy-kernel-workflow-help()
     "\thelp"
 }
 
-function easy-kernel-workflow()
+function kworkflow()
 {
   if [ "$#" -eq 1 ] ; then
     action=$1
@@ -79,11 +79,11 @@ function easy-kernel-workflow()
       show_variables
       ;;
     help)
-      easy-kernel-workflow-help
+      kworkflow-help
       ;;
     *)
       complain "Invalid option"
-      easy-kernel-workflow-help
+      kworkflow-help
       ;;
   esac
 }

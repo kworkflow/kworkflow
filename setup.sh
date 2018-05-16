@@ -2,7 +2,7 @@
 
 set -e
 
-declare -r APPLICATIONNAME="easy-kernel-workflow"
+declare -r APPLICATIONNAME="kworkflow"
 declare -r APPLICATIONNAME_1="vm"
 declare -r APPLICATIONNAME_2="mk"
 declare -r SRCDIR="src"
