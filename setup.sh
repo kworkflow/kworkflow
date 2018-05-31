@@ -8,6 +8,9 @@ declare -r APPLICATIONNAME_2="mk"
 declare -r SRCDIR="src"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
+declare -r EXTERNAL_SCRIPTS="external"
+declare -r CHECKPATCH_URL="https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl"
+
 . src/miscellaneous --source-only
 
 function usage()
@@ -50,10 +53,29 @@ function synchronize_files()
   say $SEPARATOR
 }
 
+function get_external_scripts()
+{
+  local ret
+
+  say "Download and install external scripts..."
+  echo
+
+  mkdir -p $INSTALLTO/$EXTERNAL_SCRIPTS
+  ret=$(wget $CHECKPATCH_URL -P $INSTALLTO/$EXTERNAL_SCRIPTS)
+  if [ $ret != 0 ] ; then
+    warning "Problem to download checkpatch, verify your connection"
+    warning "kworkflow not full installed"
+  fi
+
+  echo
+}
+
 function install_home()
 {
   # First clean old installation
   clean_legacy
+  # Download external scripts
+  get_external_scripts
   # Synchronize of vimfiles
   synchronize_files
 }

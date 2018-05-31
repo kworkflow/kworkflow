@@ -3,12 +3,14 @@
 # Set required variables
 EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kworkflow"}
 src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
+external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
 
 # Load code (take care with the order)
 . $src_script_path/commons --source-only
 . $src_script_path/miscellaneous --source-only
 . $src_script_path/vm --source-only
 . $src_script_path/mk --source-only
+. $src_script_path/checkpatch_wrapper --source-only
 
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
@@ -34,17 +36,14 @@ function kworkflow-help()
     "\tboot\n" \
     "\tvars - Show variables\n" \
     "\tup - Wake up vm\n" \
+    "\tcodestyle - Apply checkpatch on directory or file\n" \
     "\thelp"
 }
 
 function kworkflow()
 {
-  if [ "$#" -eq 1 ] ; then
-    action=$1
-  elif [ "$#" -eq 2 ] ; then
-    TARGET=$1
-    action=$2
-  fi
+  action=$1
+  shift
 
   case "$action" in
     mount)
@@ -77,6 +76,9 @@ function kworkflow()
       ;;
     vars)
       show_variables
+      ;;
+    codestyle)
+      execute_checkpatch $@
       ;;
     help)
       kworkflow-help
