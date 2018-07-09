@@ -122,3 +122,15 @@ kworkflow vars
 ```
 kworkflow up
 ```
+
+> Run checkpatch in a target (directory of file):
+
+```
+kworkflow codestyle <DIRECTORY_PATH | FILE_PATH>
+```
+
+> Get maintainers (directory or file):
+
+```
+kworkflow maintainers <DIRECTORY_PATH | FILE_PATH>
+```
