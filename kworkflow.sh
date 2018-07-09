@@ -11,6 +11,7 @@ external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLO
 . $src_script_path/vm --source-only
 . $src_script_path/mk --source-only
 . $src_script_path/checkpatch_wrapper --source-only
+. $src_script_path/get_maintainer_wrapper --source-only
 
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
@@ -37,6 +38,7 @@ function kworkflow-help()
     "\tvars - Show variables\n" \
     "\tup - Wake up vm\n" \
     "\tcodestyle - Apply checkpatch on directory or file\n" \
+    "\tmaintainers - Return the maintainers and the mailing list\n" \
     "\thelp"
 }
 
@@ -79,6 +81,9 @@ function kworkflow()
       ;;
     codestyle)
       execute_checkpatch $@
+      ;;
+    maintainers)
+      execute_get_maintainer $@
       ;;
     help)
       kworkflow-help
