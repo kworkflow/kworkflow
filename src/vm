@@ -43,3 +43,9 @@ function vm_up
         ${configurations[qemu_net_options]} \
         ${configurations[qemu_path_image]}
 }
+
+function vm_ssh
+{
+  say "SSH to: port: " ${configurations[port]} " ip: " ${configurations[ip]}
+  ssh -p ${configurations[port]} ${configurations[ip]}
+}

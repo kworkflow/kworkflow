@@ -30,6 +30,7 @@ function kworkflow-help()
     "\tbuild,b - Build Kernel and modules\n" \
     "\tinstall,i - Install modules\n" \
     "\tbi - Build and install modules\n" \
+    "\tssh,s - Enter in the vm\n" \
     "\tmail - create the git send-email line from the 'emails'"\
         "in the current dir\n" \
     "\tmount - Mount partition with qemu-nbd\n" \
@@ -72,6 +73,9 @@ function kw()
     bi)
       mk_build
       mk_install
+      ;;
+    ssh|s)
+      vm_ssh
       ;;
     mail)
       mk_send_mail

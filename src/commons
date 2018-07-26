@@ -6,13 +6,15 @@ QEMU="qemu-system-${QEMU_ARCH}"
 QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
 VDISK="$HOME/p/virty.qcow2"
 QEMU_MNT="/mnt/qemu"
+DEFAULT_PORT="2222"
+DEFAULT_IP="127.0.0.1"
 
 TARGET="qemu"
 
 BASHPATH=/bin/bash
 
 # Default configuration
-declare -A configurations
+declare -A configurations=( ["ip"]="127.0.0.1" ["port"]="2222" )
 
 function show_variables()
 {
@@ -36,6 +38,8 @@ function check_local_configuration()
       [qemu_path_image]=$VDISK
       [qemu_hw_options]=$QEMU_OPT
       [qemu_net_options]=""
+      [port]=$DEFAULT_PORT
+      [ip]=$DEFAULT_IP
     )
     return 1
   fi
