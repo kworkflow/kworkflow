@@ -2,7 +2,7 @@
 
 set -e
 
-declare -r APPLICATIONNAME="kworkflow"
+declare -r APPLICATIONNAME="kw"
 declare -r APPLICATIONNAME_1="vm"
 declare -r APPLICATIONNAME_2="mk"
 declare -r SRCDIR="src"
@@ -59,7 +59,7 @@ function download_stuff()
   ret=$(wget $URL -P $PATH_TO)
   if [ $ret != 0 ] ; then
     warning "Problem to download, verify your connection"
-    warning "kworkflow is not full installed"
+    warning "kw is not full installed"
   fi
 }
 

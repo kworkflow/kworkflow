@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Set required variables
-EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kworkflow"}
+EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kw"}
 src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
 external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
 
@@ -36,13 +36,13 @@ function kworkflow-help()
     "\tumount - Umount partition created with qemu-nbd\n" \
     "\tboot\n" \
     "\tvars - Show variables\n" \
-    "\tup - Wake up vm\n" \
+    "\tup,u - Wake up vm\n" \
     "\tcodestyle - Apply checkpatch on directory or file\n" \
     "\tmaintainers - Return the maintainers and the mailing list\n" \
     "\thelp"
 }
 
-function kworkflow()
+function kw()
 {
   action=$1
   shift
@@ -57,7 +57,7 @@ function kworkflow()
     boot)
       vm_boot
       ;;
-    up)
+    up|u)
       vm_up
       ;;
     export)
