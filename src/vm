@@ -49,3 +49,13 @@ function vm_ssh
   say "SSH to: port: " ${configurations[port]} " ip: " ${configurations[ip]}
   ssh -p ${configurations[port]} ${configurations[ip]}
 }
+
+function vm_prepare
+{
+  local path_ansible=$HOME/.config/kw/deploy_rules/
+  local current_path=$PWD
+  say "Deploying with Ansible, this will take some time"
+  cd $path_ansible
+  ansible-playbook kworkflow.yml --extra-vars "user=$USER" || cd $current_path
+  cd $current_path
+}

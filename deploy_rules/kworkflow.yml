@@ -1,0 +1,11 @@
+---
+- hosts: kworkflow_local
+  user: root
+  become: yes
+  vars:
+    users:
+      - name: kworkflow
+  roles:
+    - common
+    - users
+    - shared_config

@@ -30,6 +30,7 @@ function kworkflow-help()
     "\tbuild,b - Build Kernel and modules\n" \
     "\tinstall,i - Install modules\n" \
     "\tbi - Build and install modules\n" \
+    "\tprepare,p - Deploy basic environment in the VM\n" \
     "\tssh,s - Enter in the vm\n" \
     "\tmail - create the git send-email line from the 'emails'"\
         "in the current dir\n" \
@@ -61,6 +62,9 @@ function kw()
     up|u)
       vm_up
       ;;
+    prepare|p)
+      vm_prepare
+      ;;
     export)
       mk_export_kbuild $@
       ;;
@@ -71,8 +75,7 @@ function kw()
       mk_install
       ;;
     bi)
-      mk_build
-      mk_install
+      mk_build && mk_install
       ;;
     ssh|s)
       vm_ssh

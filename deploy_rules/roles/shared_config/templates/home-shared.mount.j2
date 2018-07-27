@@ -1,0 +1,15 @@
+[Unit]
+Description=Mount Share at boot
+Requires=systemd-networkd.service
+After=network-online.target
+Wants=network-online.target
+
+[Mount]
+What=//10.0.2.4/qemu
+Where=/home/{{ user }}/shared
+Options=x-systemd.automount,_netdev,x-systemd.device-timeout=10,uid=1000,noperm,credentials=/root/.cifs
+Type=cifs
+TimeoutSec=30
+
+[Install]
+WantedBy=multi-user.target

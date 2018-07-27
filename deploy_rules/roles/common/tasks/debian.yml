@@ -1,0 +1,32 @@
+---
+- name: Update system
+  apt: update_cache=yes upgrade=yes
+
+- name: Install required packages
+  apt:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+      - libncurses5-dev
+      - gcc
+      - libssl-dev
+      - grub2
+      - bc
+      - libxmlrpc-c++8-dev
+      - rsync
+      - curl
+      - wget
+      - screen
+      - build-essential
+      - kmod
+      - inetutils-tools
+      - bc
+      - git
+      - vim
+      - make
+      - patch
+      - zlib1g-dev
+      - liblzma-dev
+      - libxml2
+      - sudo

@@ -6,6 +6,7 @@ declare -r APPLICATIONNAME="kw"
 declare -r APPLICATIONNAME_1="vm"
 declare -r APPLICATIONNAME_2="mk"
 declare -r SRCDIR="src"
+declare -r DEPLOY_DIR="deploy_rules"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
 declare -r EXTERNAL_SCRIPTS="external"
@@ -42,6 +43,7 @@ function synchronize_files()
   # Copy the script
   cp $APPLICATIONNAME.sh $INSTALLTO
   rsync -vr $SRCDIR $INSTALLTO
+  rsync -vr $DEPLOY_DIR $INSTALLTO
 
   # Add to bashrc
   echo "# $APPLICATIONNAME" >> $HOME/.bashrc
