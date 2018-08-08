@@ -11,6 +11,21 @@ function vm_modules_install
   vm_umount
 }
 
+function vm_kernel_install
+{
+  vm_mount
+  set +e
+  sudo -E make INSTALL_PATH=$QEMU_MNT/boot
+  release=$(make kernelrelease)
+  vm_umount
+}
+
+function vm_new_release_deploy
+{
+  vm_modules_install
+  vm_kernel_install
+}
+
 function mk_build
 {
   make $MAKE_OPTS

@@ -8,7 +8,13 @@
     state: latest
   vars:
     packages:
+      - bison
+      - flex
+      - libelf-dev
+      - grub-common
       - libncurses5-dev
+      - autofs
+      - libssl-dev
       - gcc
       - libssl-dev
       - grub2

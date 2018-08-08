@@ -18,7 +18,7 @@ export EASY_KERNEL_WORKFLOW
 
 function kworkflow-help()
 {
-  echo -e "Usage: kworkflow [target] cmd"
+  echo -e "Usage: kw [target] cmd"
 
   echo -e "\nThe current supported targets are:\n" \
        "\t host - this machine\n" \
@@ -31,6 +31,7 @@ function kworkflow-help()
     "\tinstall,i - Install modules\n" \
     "\tbi - Build and install modules\n" \
     "\tprepare,p - Deploy basic environment in the VM\n" \
+    "\tnew,n - Install new Kernel image\n" \
     "\tssh,s - Enter in the vm\n" \
     "\tmail - create the git send-email line from the 'emails'"\
         "in the current dir\n" \
@@ -73,6 +74,9 @@ function kw()
       ;;
     install|i)
       mk_install
+      ;;
+    new|n)
+      vm_new_release_deploy
       ;;
     bi)
       mk_build && mk_install
