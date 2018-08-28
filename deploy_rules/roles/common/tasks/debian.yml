@@ -1,8 +1,8 @@
 ---
-- name: Update system
+- name: Update Debian system
   apt: update_cache=yes upgrade=yes
 
-- name: Install required packages
+- name: Install required Debian packages
   apt:
     name: "{{ packages }}"
     state: latest

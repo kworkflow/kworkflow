@@ -1,3 +1,6 @@
 ---
 - include: debian.yml
   when: ansible_os_family == 'Debian'
+
+- include: arch.yml
+  when: ansible_os_family == 'Archlinux'

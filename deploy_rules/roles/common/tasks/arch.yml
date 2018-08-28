@@ -1,0 +1,38 @@
+---
+- name: Update Arch system
+  pacman: update_cache=yes upgrade=yes
+
+- name: Install required Arch packages
+  pacman:
+    name: "{{ packages }}"
+    state: latest
+  vars:
+    packages:
+      - bison
+      - flex
+      - libelf
+      - grub-common
+      - ncurses
+      - autofs
+      - gcc
+      - openssl
+      - bc
+      - kxmlrpcclient
+      - rsync
+      - curl
+      - wget
+      - screen
+      - base-devel
+      - kmod
+      - inetutils
+      - bc
+      - git
+      - vim
+      - make
+      - patch
+      - zlib
+      - xz
+      - libxml2
+      - sudo
+      - gsl
+      - xmlrpc-c
