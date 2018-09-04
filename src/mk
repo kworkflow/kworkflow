@@ -28,7 +28,18 @@ function vm_new_release_deploy
 
 function mk_build
 {
-  make $MAKE_OPTS
+  local PARALLEL_CORES=1
+
+  if [ -x "$(command -v nproc)" ] ; then
+    PARALLEL_CORES=$(nproc --all)
+  else
+    PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
+  fi
+
+  PARALLEL_CORES=$(( $PARALLEL_CORES * 2 ))
+
+  say "make -j$PARALLEL_CORES $MAKE_OPTS"
+  make -j$PARALLEL_CORES $MAKE_OPTS
 }
 
 function mk_install
