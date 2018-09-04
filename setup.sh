@@ -59,7 +59,8 @@ function download_stuff()
   URL=$1
   PATH_TO=$2
   ret=$(wget $URL -P $PATH_TO)
-  if [ $ret != 0 ] ; then
+
+  if [ "$?" != 0 ] ; then
     warning "Problem to download, verify your connection"
     warning "kw is not full installed"
   fi
