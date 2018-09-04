@@ -6,12 +6,12 @@ src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
 external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
 
 # Load code (take care with the order)
-. $src_script_path/commons --source-only
-. $src_script_path/miscellaneous --source-only
-. $src_script_path/vm --source-only
-. $src_script_path/mk --source-only
-. $src_script_path/checkpatch_wrapper --source-only
-. $src_script_path/get_maintainer_wrapper --source-only
+. $src_script_path/commons.sh --source-only
+. $src_script_path/miscellaneous.sh --source-only
+. $src_script_path/vm.sh --source-only
+. $src_script_path/mk.sh --source-only
+. $src_script_path/checkpatch_wrapper.sh --source-only
+. $src_script_path/get_maintainer_wrapper.sh --source-only
 
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW

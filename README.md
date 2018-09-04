@@ -9,13 +9,14 @@ to work.
 
 > Kworkflow stands for Kernel Workflow.
 
-# Prerequisites:
+# Package Dependencies
 
-* We only support Qemu and local workflow;
-* Install nbd module and qemu-nbd;
-* Install ansible;
-* If you want to use Qemu, you have to create a Qemu image as a qcow2 and save
-  it in `$HOME/p/virty.qcow2`.
+> You have to figure out the correct package name in your distro for the
+following dependencies:
+
+* libguestfs
+* Qemu
+* Ansible
 
 ## Recommendations
 

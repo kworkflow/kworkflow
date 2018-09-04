@@ -11,7 +11,7 @@ declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
 declare -r EXTERNAL_SCRIPTS="external"
 
-. src/miscellaneous --source-only
+. src/miscellaneous.sh --source-only
 
 function usage()
 {

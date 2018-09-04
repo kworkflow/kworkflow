@@ -5,17 +5,21 @@ function vm_mount_old
 
 function vm_mount
 {
-  sudo modprobe nbd max_part=63
-  sudo qemu-nbd -c /dev/nbd0 $VDISK
-  sudo partprobe /dev/nbd0
-  sudo mount /dev/nbd0p1 $QEMU_MNT
+  mkdir -p $MOUNT_POINT
+  say "Mount $VDISK in $MOUNT_POINT"
+  guestmount -a $VDISK -i $MOUNT_POINT
+  if [ "$?" != 0 ] ; then
+    complain "Something went wrong when tried to mount $VDISK in $MOUNT_POINT"
+  fi
 }
 
 function vm_umount
 {
-  sudo umount $QEMU_MNT
-  sudo qemu-nbd -d /dev/nbd0
-  sudo killall -q qemu-nbd
+  say "Unmount $MOUNT_POINT"
+  guestunmount $MOUNT_POINT
+  if [ "$?" != 0 ] ; then
+    complain "Something went wrong when tried to unmount $VDISK in $MOUNT_POINT"
+  fi
 }
 
 function vm_boot

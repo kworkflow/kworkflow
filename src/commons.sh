@@ -1,4 +1,5 @@
 BASE=$HOME/p/linux-trees
+MOUNT_POINT=$HOME/p/mount
 BUILD_DIR=$BASE/build-linux
 
 QEMU_ARCH="x86_64"

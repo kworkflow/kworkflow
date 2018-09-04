@@ -4,10 +4,9 @@ function vm_modules_install
   # Take a look at the beginning of kworkflow.sh.
   vm_mount
   set +e
-  sudo -E make INSTALL_MOD_PATH=$QEMU_MNT modules_install
+  make INSTALL_MOD_PATH=$MOUNT_POINT modules_install
   release=$(make kernelrelease)
   say $release
-  sudo -E chroot $QEMU_MNT  depmod -a $release
   vm_umount
 }
 
