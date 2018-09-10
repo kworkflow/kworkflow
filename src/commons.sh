@@ -17,7 +17,7 @@ BASHPATH=/bin/bash
 # Default configuration
 declare -A configurations=( ["ip"]="127.0.0.1" ["port"]="2222" )
 
-function show_variables()
+function kw::show_variables()
 {
   echo -e "\tBASE: $BASE"
   echo -e "\tBUILD_DIR: $BUILD_DIR"
@@ -29,7 +29,7 @@ function show_variables()
   echo -e "\tTARGET: $TARGET"
 }
 
-function check_local_configuration()
+function kw::check_local_configuration()
 {
   local config_path=$PWD/kworkflow.config
 

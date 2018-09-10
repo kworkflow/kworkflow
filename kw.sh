@@ -16,7 +16,7 @@ external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLO
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
 
-function kworkflow-help()
+function kw::help()
 {
   echo -e "Usage: kw [target] cmd"
 
@@ -52,56 +52,56 @@ function kw()
 
   case "$action" in
     mount)
-      vm_mount
+      kw::vm_mount
       ;;
     umount)
-      vm_umount
+      kw::vm_umount
       ;;
     boot)
-      vm_boot
+      kw::vm_boot
       ;;
     up|u)
-      vm_up
+      kw::vm_up
       ;;
     prepare|p)
-      vm_prepare
+      kw::vm_prepare
       ;;
     export)
-      mk_export_kbuild $@
+      kw::mk_export_kbuild $@
       ;;
     build|b)
-      mk_build
+      kw::mk_build
       ;;
     install|i)
-      mk_install
+      kw::mk_install
       ;;
     new|n)
-      vm_new_release_deploy
+      kw::vm_new_release_deploy
       ;;
     bi)
-      mk_build && mk_install
+      kw::mk_build && kw::mk_install
       ;;
     ssh|s)
-      vm_ssh
+      kw::vm_ssh
       ;;
     mail)
-      mk_send_mail
+      kw::mk_send_mail
       ;;
     vars)
-      show_variables
+      kw::show_variables
       ;;
     codestyle)
-      execute_checkpatch $@
+      kw::execute_checkpatch $@
       ;;
     maintainers)
-      execute_get_maintainer $@
+      kw::execute_get_maintainer $@
       ;;
     help)
-      kworkflow-help
+      kw::help
       ;;
     *)
-      complain "Invalid option"
-      kworkflow-help
+      kw::complain "Invalid option"
+      kw::help
       ;;
   esac
 }

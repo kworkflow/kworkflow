@@ -1,4 +1,4 @@
-function vm_modules_install
+function kw::vm_modules_install
 {
   # Attention: The vm code have to be loaded before this function.
   # Take a look at the beginning of kworkflow.sh.
@@ -6,26 +6,26 @@ function vm_modules_install
   set +e
   make INSTALL_MOD_PATH=$MOUNT_POINT modules_install
   release=$(make kernelrelease)
-  say $release
-  vm_umount
+  kw::say $release
+  kw::vm_umount
 }
 
-function vm_kernel_install
+function kw::vm_kernel_install
 {
-  vm_mount
+  kw::vm_mount
   set +e
   sudo -E make INSTALL_PATH=$QEMU_MNT/boot
   release=$(make kernelrelease)
-  vm_umount
+  kw::vm_umount
 }
 
-function vm_new_release_deploy
+function kw::vm_new_release_deploy
 {
-  vm_modules_install
-  vm_kernel_install
+  kw::vm_modules_install
+  kw::vm_kernel_install
 }
 
-function mk_build
+function kw::mk_build
 {
   local PARALLEL_CORES=1
 
@@ -37,7 +37,7 @@ function mk_build
 
   PARALLEL_CORES=$(( $PARALLEL_CORES * 2 ))
 
-  say "make -j$PARALLEL_CORES $MAKE_OPTS"
+  kw::say "make -j$PARALLEL_CORES $MAKE_OPTS"
   make -j$PARALLEL_CORES $MAKE_OPTS
 }
 
@@ -50,7 +50,7 @@ function mk_install
 
   case "$TARGET" in
     qemu)
-      vm_modules_install
+      kw::vm_modules_install
       ;;
     host)
       sudo -E make modules_install
@@ -89,9 +89,9 @@ function mk_send_mail
   echo $SENDLINE
 }
 
-function mk_export_kbuild
+function kw::mk_export_kbuild
 {
-  say "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
+  kw::say "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
   export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
   mkdir -p $KBUILD_OUTPUT
 }

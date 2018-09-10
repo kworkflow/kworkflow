@@ -15,13 +15,13 @@ declare -r EXTERNAL_SCRIPTS="external"
 
 function usage()
 {
-  say "--install   | -i   Install $APPLICATIONNAME"
-  say "--uninstall | -u   Uninstall $APPLICATIONNAME"
+  kw::say "--install   | -i   Install $APPLICATIONNAME"
+  kw::say "--uninstall | -u   Uninstall $APPLICATIONNAME"
 }
 
 function clean_legacy()
 {
-  say "Removing ..."
+  kw::say "Removing ..."
   local trash=$(mktemp -d)
 
   # Remove files
@@ -36,7 +36,7 @@ function clean_legacy()
 # Synchronize .vim and .vimrc with repository.
 function synchronize_files()
 {
-  say "Installing ..."
+  kw::say "Installing ..."
 
   mkdir -p $INSTALLTO
 
@@ -49,9 +49,9 @@ function synchronize_files()
   echo "# $APPLICATIONNAME" >> $HOME/.bashrc
   echo "source $INSTALLTO/$APPLICATIONNAME.sh" >> $HOME/.bashrc
 
-  say $SEPARATOR
-  say "$APPLICATIONNAME installed into $INSTALLTO"
-  say $SEPARATOR
+  kw::say $SEPARATOR
+  kw::say "$APPLICATIONNAME installed into $INSTALLTO"
+  kw::say $SEPARATOR
 }
 
 function download_stuff()
@@ -61,8 +61,8 @@ function download_stuff()
   ret=$(wget $URL -P $PATH_TO)
 
   if [ "$?" != 0 ] ; then
-    warning "Problem to download, verify your connection"
-    warning "kw is not full installed"
+    kw::warning "Problem to download, verify your connection"
+    kw::warning "kw is not full installed"
   fi
 }
 
@@ -74,7 +74,7 @@ function get_external_scripts()
   local -r CHECKPATCH_CONST_STRUCTS="https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch"
   local -r CHECKPATCH_SPELLING="https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt"
 
-  say "Download and install external scripts..."
+  kw::say "Download and install external scripts..."
   echo
 
   mkdir -p $INSTALLTO/$EXTERNAL_SCRIPTS
@@ -105,7 +105,7 @@ case $1 in
     clean_legacy
     ;;
   *)
-    complain "Invalid number of arguments"
+    kw::complain "Invalid number of arguments"
     exit 1
     ;;
 esac

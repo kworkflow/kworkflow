@@ -6,7 +6,7 @@ declare -r SEPARATOR="========================================================="
 # Print normal message (e.g info messages). This function verifies if stdout
 # is open and print it with color, otherwise print it without color.
 # @param $@ it receives text message to be printed.
-function say()
+function kw::say()
 {
   message="$@"
   if [ -t 1 ]; then
@@ -19,7 +19,7 @@ function say()
 # Print error message. This function verifies if stdout is open and print it
 # with color, otherwise print it without color.
 # @param $@ it receives text message to be printed.
-function complain()
+function kw::complain()
 {
   message="$@"
   if [ -t 1 ]; then
@@ -32,7 +32,7 @@ function complain()
 # Warning error message. This function verifies if stdout is open and print it
 # with color, otherwise print it without color.
 # @param $@ it receives text message to be printed.
-function warning()
+function kw::warning()
 {
   message="$@"
   if [ -t 1 ]; then
