@@ -153,3 +153,11 @@ If you have everything set, just execute the command:
 ```
 kw prepare
 ```
+
+# Tests
+
+> To run kw's unit tests, you have to install [shunit](https://github.com/kward/shunit2) at the `tests` folder. Then just run:
+
+```
+run_tests.sh
+```
