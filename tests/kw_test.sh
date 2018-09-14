@@ -6,6 +6,7 @@ function suite
 {
   suite_addTest "testHelp"
   suite_addTest "testVariables"
+  suite_addTest "testExported"
 }
 
 function testHelp
@@ -16,9 +17,19 @@ function testHelp
 
 function testVariables
 {
-  test -z ${EASY_KERNEL_WORKFLOW+x}; assertEquals "Variable EASY_KERNEL_WORKFLOW does not exist." $? 1
-  test -z ${src_script_path+x}; assertEquals "Variable src_script_path does not exist." $? 1
-  test -z ${external_script_path+x}; assertEquals "Variable external_script_path does not exist." $? 1
+  VARS=( EASY_KERNEL_WORKFLOW src_script_path external_script_path )
+  for v in "${VARS[@]}"; do
+    test -z ${!v+x}; assertEquals "Variable $v does not exist." $? 1
+  done
+}
+
+function testExported
+{
+  VARS=( EASY_KERNEL_WORKFLOW )
+  for v in "${VARS[@]}"; do
+    [[ $(declare -p $v)  =~ ^declare\ -[aAilrtu]*x[aAilrtu]*\  ]] ||
+      fail "Variable $v was not exported"
+  done
 }
 
 . ./tests/shunit2
