@@ -1,5 +1,9 @@
+. $src_script_path/vm.sh --source-only
+
 function vm_modules_install
 {
+  check_local_configuration
+
   # Attention: The vm code have to be loaded before this function.
   # Take a look at the beginning of kworkflow.sh.
   vm_mount
@@ -12,6 +16,8 @@ function vm_modules_install
 
 function vm_kernel_install
 {
+  check_local_configuration
+
   vm_mount
   set +e
   sudo -E make INSTALL_PATH=$QEMU_MNT/boot
@@ -43,6 +49,8 @@ function mk_build
 
 function mk_install
 {
+  check_local_configuration
+
   # FIXME: validate arch and action
   if [ $TARGET == "arm" ] ; then
     export ARCH=arm CROSS_COMPILE="ccache arm-linux-gnu-"
@@ -59,6 +67,7 @@ function mk_install
   esac
 }
 
+# FIXME: Here is a legacy code, however it could be really nice if we fix it
 function mk_send_mail
 {
   echo -e " * checking git diff...\n"
@@ -89,8 +98,11 @@ function mk_send_mail
   echo $SENDLINE
 }
 
+# FIXME: Here we have a legacy code, check if we can remove it
 function mk_export_kbuild
 {
+  check_local_configuration
+
   say "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
   export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
   mkdir -p $KBUILD_OUTPUT

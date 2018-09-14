@@ -1,3 +1,5 @@
+. $src_script_path/miscellaneous.sh --source-only
+
 function execute_get_maintainer()
 {
   local FILE_OR_DIR_CHECK=$1

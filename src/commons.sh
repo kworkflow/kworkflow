@@ -1,3 +1,5 @@
+. $src_script_path/miscellaneous.sh --source-only
+
 BASE=$HOME/p/linux-trees
 MOUNT_POINT=$HOME/p/mount
 BUILD_DIR=$BASE/build-linux
