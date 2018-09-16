@@ -1,6 +1,7 @@
 #!/bin/bash
 
 for test_entry in tests/*.sh; do
-  . ./$test_entry
+  echo "Running test file $test_entry"
+  ./$test_entry
 done
 
