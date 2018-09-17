@@ -9,15 +9,25 @@ QEMU="qemu-system-${QEMU_ARCH}"
 QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
 VDISK="$HOME/p/virty.qcow2"
 QEMU_MNT="/mnt/qemu"
-DEFAULT_PORT="2222"
-DEFAULT_IP="127.0.0.1"
+DEFAULT_PORT="22"
+DEFAULT_IP="192.168.122.2"
+VIRT_INSTALL="virt-install"
+VIRT_VIEWER="virt-viewer"
+VIRT_NET_DEFINE="virsh net-create --file"
+VIRT_NET_NAME="kworkflow-network"
+VIRT_NET_START="virsh net-start"
+VIRT_NET_DESTROY="virsh net-destroy"
+VIRT_START="virsh start"
+VIRT_DESTROY="virsh destroy"
+VIRT_SHUTDOWN="virsh shutdown"
+VIRT_VM_NAME="kworkflow-vm"
 
 TARGET="qemu"
 
 BASHPATH=/bin/bash
 
 # Default configuration
-declare -A configurations=( ["ip"]="127.0.0.1" ["port"]="2222" )
+declare -A configurations=( ["ip"]="$DEFAULT_IP" ["port"]="$DEFAULT_PORT" )
 
 function show_variables()
 {

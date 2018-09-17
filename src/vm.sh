@@ -25,6 +25,7 @@ function vm_umount
 
 function vm_boot
 {
+  #seems broken
   check_local_configuration
 
   $QEMU -hda $VDISK \
@@ -38,17 +39,32 @@ function vm_boot
 
 function vm_up
 {
-
   check_local_configuration
 
-  say "Starting Qemu with: "
-  echo "$QEMU ${configurations[qemu_hw_options]}" \
-       "${configurations[qemu_net_options]}" \
-       "${configurations[qemu_path_image]}"
+  say "Starting kw libvirt network with: "
+  echo "$VIRT_NET_START $VIRT_NET_NAME"
+  $VIRT_NET_START $VIRT_NET_NAME
+  
+  say "Starting VM with: "
+  echo "$VIRT_START $VIRT_VM_NAME"
+  $VIRT_START $VIRT_VM_NAME
+  
+  say "Connecting to VM with:"
+  echo "$VIRT_VIEWER $VIRT_VM_NAME"
+  $VIRT_VIEWER $VIRT_VM_NAME
+}
 
-  $QEMU ${configurations[qemu_hw_options]} \
-        ${configurations[qemu_net_options]} \
-        ${configurations[qemu_path_image]}
+function vm_down
+{
+  check_local_configuration
+
+  say "Killing the VM with: "
+  echo "$VIRT_DESTROY $VIRT_VM_NAME"
+  $VIRT_DESTROY $VIRT_VM_NAME
+  
+  say "Stopping the kw libvirt networ with: "
+  echo "$VIRT_NET_DESTROY $VIRT_VM_NAME"
+  $VIRT_NET_DESTROY $VIRT_VM_NAME
 }
 
 function vm_ssh
@@ -63,8 +79,31 @@ function vm_prepare
 {
   local path_ansible=$HOME/.config/kw/deploy_rules/
   local current_path=$PWD
+  local image_path=${configurations[qemu_path_image]}
+
+  say "VM installation process."
+  say "Creating libvirt network..."
+  sudo $VIRT_NET_DEFINE $HOME/.config/kw/virt-network.xml
+  $VIRT_NET_START $VIRT_NET_NAME
+  say "Creating libvirt vm..."
+  $VIRT_INSTALL -n $VIRT_VM_NAME \
+                --ram 1024 \
+                --boot hd \
+                --vcpus=2 \
+                --cpu=host \
+                --os-type=linux \
+                --os-variant=virtio26 \
+                --disk=$image_path,format=qcow2 \
+                --filesystem $HOME,kw_share \
+                --network network=$VIRT_NET_NAME \
+
+  #TODO: Set static IP address on virt-network.xml
+
   say "Deploying with Ansible, this will take some time"
   cd $path_ansible
   ansible-playbook kworkflow.yml --extra-vars "user=$USER" || cd $current_path
   cd $current_path
+
+  $VIRT_SHUTDOWN $VIRT_VM_NAME
+  $VIRT_NET_DESTROY $VIRT_NET_NAME
 }

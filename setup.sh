@@ -45,6 +45,9 @@ function synchronize_files()
   rsync -vr $SRCDIR $INSTALLTO
   rsync -vr $DEPLOY_DIR $INSTALLTO
 
+  #gambi
+  cp virt-network.xml $INSTALLTO
+
   # Add to bashrc
   echo "# $APPLICATIONNAME" >> $HOME/.bashrc
   echo "source $INSTALLTO/$APPLICATIONNAME.sh" >> $HOME/.bashrc

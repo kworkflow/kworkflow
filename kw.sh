@@ -42,6 +42,13 @@ function kw()
         vm_up
       )
       ;;
+    down|d)
+      (
+        . $src_script_path/vm.sh --source-only
+
+        vm_down
+      )
+      ;;
     prepare|p)
       (
         . $src_script_path/vm.sh --source-only
