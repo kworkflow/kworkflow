@@ -1,1 +1,4 @@
+# Tests
 tests/shunit2
+.checkpatch-camelcase.git.
+.checkpatch-camelcase.date.*
