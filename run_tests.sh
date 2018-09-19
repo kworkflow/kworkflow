@@ -17,14 +17,19 @@ function run_tests
 {
   local rc=0
   for current_test in "${TESTS[@]}"; do
-    echo "Running test [${current_test}]"
+    say "Running test [${current_test}]"
+    say $SEPARATOR
     ./tests/${current_test}.sh
     if [[ "$?" -eq 1 ]]; then
       rc=1
     fi
   done
   if [[ "$rc" -ne 0 ]]; then
+    complain $SEPARATOR
     complain "Some test(s) FAILED"
+  else
+    success $SEPARATOR
+    success "Test(s) SUCCEEDED"
   fi
 }
 
@@ -44,7 +49,7 @@ if [[ "$#" -eq 0 ]]; then
 elif [[ "$1" == "list" ]]; then
   strip_path tests/*.sh
   for test_name in "${TESTS[@]}"; do
-    echo "${test_name}"
+    say "  ${test_name}"
   done
 elif [[ "$1" == "test" ]]; then
   strip_path ${@:2}
