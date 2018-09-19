@@ -5,5 +5,4 @@
     state: latest
   vars:
     packages:
-      - smbclient
       - cifs-utils
