@@ -49,6 +49,20 @@ function kw()
         vm_down
       )
       ;;
+    register|r)
+      (
+        . $src_script_path/vm.sh --source-only
+
+        vm_register
+      )
+      ;;
+    clean|c)
+      (
+        . $src_script_path/vm.sh --source-only
+
+        vm_clean
+      )
+      ;;
     prepare|p)
       (
         . $src_script_path/vm.sh --source-only

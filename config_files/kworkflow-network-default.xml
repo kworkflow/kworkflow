@@ -7,7 +7,7 @@ or other application using the libvirt API.
 
 <network>
   <name>kworkflow-network</name>
-  <uuid>3f94494f-356f-4d9d-893e-4acd18d40a98</uuid>
+  <uuid>7d167334-7e36-475b-a0ae-9889b87848d7</uuid>
   <forward mode='nat'/>
   <bridge name='virbr-kworkflow' stp='on' delay='0'/>
   <mac address='52:54:00:8a:da:00'/>

@@ -1,5 +1,23 @@
 . $src_script_path/commons.sh --source-only
 
+function vm_status
+{
+  local tmp=$($VIRT_LIST | grep " $1 " | awk '{ print $3}')
+  if [ ! -n "$tmp" ]; then
+    tmp="inexistent"
+  fi
+  echo $tmp
+}
+
+function net_status
+{
+  local tmp=$($VIRT_NET_LIST | grep " $1 " | awk '{ print $2}')
+  if [ ! -n "$tmp" ]; then
+    tmp="inexistent"
+  fi
+  echo $tmp
+}
+
 function vm_mount
 {
   check_local_configuration
@@ -23,32 +41,29 @@ function vm_umount
   fi
 }
 
-function vm_boot
-{
-  #seems broken
-  check_local_configuration
-
-  $QEMU -hda $VDISK \
-    ${QEMU_OPTS} \
-    -kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
-    -append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1" \
-    -net nic -net user,hostfwd=tcp::5555-:22 \
-    -serial stdio \
-    -device virtio-gpu-pci,virgl -display gtk,gl=on 2> /dev/null
-}
-
 function vm_up
 {
-  check_local_configuration
+  check_local_configuration 
 
-  say "Starting kw libvirt network with: "
-  echo "$VIRT_NET_START $VIRT_NET_NAME"
-  $VIRT_NET_START $VIRT_NET_NAME
-  
-  say "Starting VM with: "
-  echo "$VIRT_START $VIRT_VM_NAME"
-  $VIRT_START $VIRT_VM_NAME
-  
+  if [ $(net_status $VIRT_NET_NAME) == "inexistent" ] || \
+     [ $(vm_status $VIRT_VM_NAME) == "inexistent" ]; then
+    complain "Error, either the VM or the Network is not defined." 
+    complain "Please register them using 'kw register'"
+    return
+  fi
+
+  if [ $(net_status $VIRT_NET_NAME) == "inactive" ]; then
+    say "Starting kw libvirt network with: "
+    echo "$VIRT_NET_START $VIRT_NET_NAME"
+    $VIRT_NET_START $VIRT_NET_NAME
+  fi
+
+  if [ $(vm_status $VIRT_VM_NAME) == "shut" ]; then
+    say "Starting VM with: "
+    echo "$VIRT_START $VIRT_VM_NAME"
+    $VIRT_START $VIRT_VM_NAME
+  fi  
+
   say "Connecting to VM with:"
   echo "$VIRT_VIEWER $VIRT_VM_NAME"
   $VIRT_VIEWER $VIRT_VM_NAME
@@ -58,13 +73,17 @@ function vm_down
 {
   check_local_configuration
 
-  say "Killing the VM with: "
-  echo "$VIRT_DESTROY $VIRT_VM_NAME"
-  $VIRT_DESTROY $VIRT_VM_NAME
-  
-  say "Stopping the kw libvirt networ with: "
-  echo "$VIRT_NET_DESTROY $VIRT_VM_NAME"
-  $VIRT_NET_DESTROY $VIRT_VM_NAME
+  if [ $(vm_status $VIRT_VM_NAME) == "running" ]; then
+    say "Killing the VM with: "
+    echo "$VIRT_DESTROY $VIRT_VM_NAME"
+    $VIRT_DESTROY $VIRT_VM_NAME
+  fi  
+ 
+  if [ $(net_status $VIRT_NET_NAME) == "active" ]; then
+    say "Stopping the kw libvirt network with: "
+    echo "$VIRT_NET_DESTROY $VIRT_NET_NAME"
+    $VIRT_NET_DESTROY $VIRT_NET_NAME
+  fi 
 }
 
 function vm_ssh
@@ -75,15 +94,45 @@ function vm_ssh
   ssh -p ${configurations[port]} ${configurations[ip]}
 }
 
-function vm_prepare
+function vm_clean
 {
-  local path_ansible=$HOME/.config/kw/deploy_rules/
+  say "Cleaning kw-related libvirt entries..."
+  vm_down
+
+  
+  if [ $(net_status $VIRT_NET_NAME) == "inactive" ]; then
+    say "Undefining kw libvirt network with: $VIRT_NET_UNDEFINE $VIRT_NET_NAME"
+    $VIRT_NET_UNDEFINE $VIRT_NET_NAME
+  fi
+  if [ $(vm_status $VIRT_VM_NAME) == "shut" ]; then
+    say "Undefining kw vm with: $VIRT_UNDEFINE $VIRT_VM_NAME"
+    $VIRT_UNDEFINE $VIRT_VM_NAME
+  fi
+}
+
+function vm_register
+{
+
+  check_local_configuration
+  
   local current_path=$PWD
-  local image_path=${configurations[qemu_path_image]}
+  local virt_net_config_path=$PWD/kworkflow-network.xml
+
+  #set network config to default if inexistent
+  if [ ! -f $virt_net_config_path ]; then
+    virt_net_config_path=$DEFAULT_CONFIG_PATH/kworkflow-network-default.xml
+  fi
+
+  if [ $(vm_status $VIRT_VM_NAME) != "inexistent" ] || \
+     [ $(net_status $VIRT_NET_NAME) != "inexistent" ]; then
+    complain "It seems that either the VM or the Network is already registered."
+    complain "Please run 'kw clean' to unregister both VM and Network."
+    return
+  fi
 
   say "VM installation process."
-  say "Creating libvirt network..."
-  sudo $VIRT_NET_DEFINE $HOME/.config/kw/virt-network.xml
+  say "Creating libvirt network. Sudo is required here."
+  sudo $VIRT_NET_DEFINE --file $virt_net_config_path  
   $VIRT_NET_START $VIRT_NET_NAME
   say "Creating libvirt vm..."
   $VIRT_INSTALL -n $VIRT_VM_NAME \
@@ -93,12 +142,20 @@ function vm_prepare
                 --cpu=host \
                 --os-type=linux \
                 --os-variant=virtio26 \
-                --disk=$image_path,format=qcow2 \
+                --disk=${configurations[virt_path_image]},format=qcow2 \
                 --filesystem $HOME,kw_share \
                 --network network=$VIRT_NET_NAME \
 
   #TODO: Set static IP address on virt-network.xml
 
+}
+
+function vm_prepare
+{
+  check_local_configuration
+  
+  local path_ansible=$HOME/.config/kw/deploy_rules/
+  
   say "Deploying with Ansible, this will take some time"
   cd $path_ansible
   ansible-playbook kworkflow.yml --extra-vars "user=$USER" || cd $current_path

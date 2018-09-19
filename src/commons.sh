@@ -4,25 +4,14 @@ BASE=$HOME/p/linux-trees
 MOUNT_POINT=$HOME/p/mount
 BUILD_DIR=$BASE/build-linux
 
-QEMU_ARCH="x86_64"
-QEMU="qemu-system-${QEMU_ARCH}"
-QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
 VDISK="$HOME/p/virty.qcow2"
-QEMU_MNT="/mnt/qemu"
 DEFAULT_PORT="22"
 DEFAULT_IP="192.168.122.2"
-VIRT_INSTALL="virt-install"
-VIRT_VIEWER="virt-viewer"
-VIRT_NET_DEFINE="virsh net-create --file"
+DEFAULT_CONFIG_PATH=$HOME/.config/kw/config_files
 VIRT_NET_NAME="kworkflow-network"
-VIRT_NET_START="virsh net-start"
-VIRT_NET_DESTROY="virsh net-destroy"
-VIRT_START="virsh start"
-VIRT_DESTROY="virsh destroy"
-VIRT_SHUTDOWN="virsh shutdown"
 VIRT_VM_NAME="kworkflow-vm"
 
-TARGET="qemu"
+TARGET="libvirt"
 
 BASHPATH=/bin/bash
 
@@ -35,39 +24,27 @@ function show_variables()
 
   echo -e "\tBASE: $BASE"
   echo -e "\tBUILD_DIR: $BUILD_DIR"
-  echo -e "\tQEMU ARCH: $QEMU_ARCH"
-  echo -e "\tQEMU COMMAND: $QEMU"
-  echo -e "\tQEMU MOUNT POINT: $QEMU_MNT"
   echo -e "\tTARGET: $TARGET"
 
   check_local_configuration
 
   if [ $? -eq 1 ] ; then
     say "There is no kworkflow.conf, adopt default values for:"
-    echo -e "\tQEMU OPTIONS: $QEMU_OPTS"
     echo -e "\tVDISK: $VDISK"
   else
     say "kw found a kworkflow.conf file. Read options:"
-    echo -en "\tQEMU OPTIONS: ${configurations[qemu_hw_options]}"
-    echo     "${configurations[qemu_net_options]}"
-    echo -e "\tVDISK: ${configurations[qemu_path_image]}"
+    echo -e "\tVDISK: ${configurations[virt_path_image]}"
+    echo -e "\tVIRT_DRIVER: ${configurations[virt_driver]}"
   fi
 }
 
 function check_local_configuration()
 {
   local config_path=$PWD/kworkflow.config
-
+  
   # File does not exist, use default configuration
   if [ ! -f $config_path ] ; then
-    configurations=(
-      [qemu_path_image]=$VDISK
-      [qemu_hw_options]=$QEMU_OPT
-      [qemu_net_options]=""
-      [port]=$DEFAULT_PORT
-      [ip]=$DEFAULT_IP
-    )
-    return 1
+    config_path=$DEFAULT_CONFIG_PATH/kworkflow-default.config
   fi
 
   while read line
@@ -77,5 +54,21 @@ function check_local_configuration()
       varname=$(echo $line | cut -d '=' -f 1 | tr -d '[:space:]')
       configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
     fi
-  done < $config_path
+  done < $config_path 
+
+  local connect="--connect=${configurations[virt_driver]}"
+
+  export VIRT_INSTALL="virt-install $connect"
+  export VIRT_VIEWER="virt-viewer $connect"
+  export VIRT_NET_DEFINE="virsh $connect net-define"
+  export VIRT_NET_START="virsh $connect net-start"
+  export VIRT_NET_DESTROY="virsh $connect net-destroy"
+  export VIRT_NET_UNDEFINE="virsh $connect net-undefine"
+  export VIRT_NET_LIST="virsh $connect net-list --all"
+  export VIRT_START="virsh $connect start"
+  export VIRT_DESTROY="virsh $connect destroy"
+  export VIRT_SHUTDOWN="virsh $connect shutdown"
+  export VIRT_UNDEFINE="virsh $connect undefine"
+  export VIRT_LIST="virsh $connect list --all"
+
 }

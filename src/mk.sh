@@ -57,7 +57,7 @@ function mk_install
   fi
 
   case "$TARGET" in
-    qemu)
+    libvirt)
       vm_modules_install
       ;;
     host)
