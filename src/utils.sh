@@ -3,9 +3,8 @@ function kworkflow-help()
   echo -e "Usage: kw [target] cmd"
 
   echo -e "\nThe current supported targets are:\n" \
-       "\t host - this machine\n" \
-       "\t qemu - qemu machine\n" \
-       "\t arm - arm machine"
+       "\t -l - this machine\n" \
+       "\t -v - qemu machine\n"
 
   echo -e "\nCommands:\n" \
     "\tbuild,b - Build Kernel and modules\n" \
