@@ -1,16 +1,5 @@
 #!/bin/bash
 
-function complain
-{
-  message="$@"
-  echo ""
-  if [ -t 1 ]; then
-    printf $REDCOLOR "$message"
-  else
-    echo "$message"
-  fi
-}
-
 function invoke_shunit
 {
   command -v shunit2 > /dev/null
