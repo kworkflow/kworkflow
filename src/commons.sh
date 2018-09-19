@@ -52,7 +52,7 @@ function check_local_configuration()
     if echo $line | grep -F = &>/dev/null
     then
       varname=$(echo $line | cut -d '=' -f 1 | tr -d '[:space:]')
-      configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
+      eval configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
     fi
   done < $config_path 
 

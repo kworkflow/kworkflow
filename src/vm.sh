@@ -117,7 +117,6 @@ function vm_register
   
   local current_path=$PWD
   local virt_net_config_path=$PWD/kworkflow-network.xml
-  eval local vm_disk_image=${configurations[virt_path_image]}
 
   #set network config to default if inexistent
   if [ ! -f $virt_net_config_path ]; then
@@ -143,7 +142,7 @@ function vm_register
                 --cpu=host \
                 --os-type=linux \
                 --os-variant=virtio26 \
-                --disk=$vm_disk_image,format=qcow2 \
+                --disk=${configurations[virt_path_image]},format=qcow2 \
                 --network network=$VIRT_NET_NAME \
                 --filesystem $HOME/linux,kw_share
 
