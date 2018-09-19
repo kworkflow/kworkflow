@@ -1,43 +1,43 @@
 declare -r BLUECOLOR="\033[1;34;49m%s\033[m\n"
 declare -r REDCOLOR="\033[1;31;49m%s\033[m\n"
 declare -r YELLOWCOLOR="\033[1;33;49m%s\033[m\n"
+declare -r GREENCOLOR="\033[1;32;49m%s\033[m\n"
 declare -r SEPARATOR="========================================================="
 
-# Print normal message (e.g info messages). This function verifies if stdout
+# Print colored message. This function verifies if stdout
 # is open and print it with color, otherwise print it without color.
-# @param $@ it receives text message to be printed.
+# @param $1 ${@:2} it receives the variable defining the color
+# to be used and text message to be printed.
+function colored_print()
+{
+    message="${@:2}"
+    if [ -t 1 ]; then
+      printf ${!1} "$message"
+    else
+      echo "$message"
+    fi
+}
+
+# Print normal message (e.g info messages).
 function say()
 {
-  message="$@"
-  if [ -t 1 ]; then
-    printf $BLUECOLOR "$message"
-  else
-    echo "$message"
-  fi
+    colored_print BLUECOLOR "$@"
 }
 
-# Print error message. This function verifies if stdout is open and print it
-# with color, otherwise print it without color.
-# @param $@ it receives text message to be printed.
+# Print error message.
 function complain()
 {
-  message="$@"
-  if [ -t 1 ]; then
-    printf $REDCOLOR "$message"
-  else
-    echo "$message"
-  fi
+    colored_print REDCOLOR "$@"
 }
 
-# Warning error message. This function verifies if stdout is open and print it
-# with color, otherwise print it without color.
-# @param $@ it receives text message to be printed.
+# Warning error message.
 function warning()
 {
-  message="$@"
-  if [ -t 1 ]; then
-    printf $YELLOWCOLOR "$message"
-  else
-    echo "$message"
-  fi
+    colored_print YELLOWCOLOR "$@"
+}
+
+# Print success message.
+function success()
+{
+    colored_print GREENCOLOR "$@"
 }
