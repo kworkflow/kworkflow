@@ -6,7 +6,7 @@ BUILD_DIR=$BASE/build-linux
 
 VDISK="$HOME/p/virty.qcow2"
 DEFAULT_PORT="22"
-DEFAULT_IP="192.168.122.2"
+DEFAULT_IP="10.0.1.2"
 DEFAULT_CONFIG_PATH=$HOME/.config/kw/config_files
 VIRT_NET_NAME="kworkflow-network"
 VIRT_VM_NAME="kworkflow-vm"
