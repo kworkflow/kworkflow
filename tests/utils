@@ -1,0 +1,11 @@
+#!/bin/bash
+
+function invoke_shunit
+{
+  command -v shunit2 > /dev/null
+  if [[ "$?" -eq 0 ]]; then
+    . shunit2
+  else
+    . ./tests/shunit2
+  fi
+}

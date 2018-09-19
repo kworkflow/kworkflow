@@ -1,8 +1,15 @@
+. $src_script_path/miscellaneous.sh --source-only
+
 function execute_checkpatch()
 {
   local FILE_OR_DIR_CHECK=$1
 
-  local -r options="--terse --no-tree --color=always --codespell -strict --file "
+  #TODO: Note that codespell file is not specified yet because of the poluted
+  # output. It could be nice if we can add another option just for this sort
+  # of check. Follow the line that makes the magic:
+  # --codespell $external_script_path/spelling.txt
+
+  local -r options="--terse --no-tree --color=always -strict --file "
   local -r checkpatch="perl $external_script_path/checkpatch.pl $options"
 
   # Check if is a valid path

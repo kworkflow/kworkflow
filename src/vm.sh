@@ -1,10 +1,9 @@
-function vm_mount_old
-{
-  sudo mount -o loop,offset=32256 $VDISK $QEMU_MNT
-}
+. $src_script_path/commons.sh --source-only
 
 function vm_mount
 {
+  check_local_configuration
+
   mkdir -p $MOUNT_POINT
   say "Mount $VDISK in $MOUNT_POINT"
   guestmount -a $VDISK -i $MOUNT_POINT
@@ -15,6 +14,8 @@ function vm_mount
 
 function vm_umount
 {
+  check_local_configuration
+
   say "Unmount $MOUNT_POINT"
   guestunmount $MOUNT_POINT
   if [ "$?" != 0 ] ; then
@@ -24,6 +25,8 @@ function vm_umount
 
 function vm_boot
 {
+  check_local_configuration
+
   $QEMU -hda $VDISK \
     ${QEMU_OPTS} \
     -kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
@@ -50,6 +53,8 @@ function vm_up
 
 function vm_ssh
 {
+  check_local_configuration
+
   say "SSH to: port: " ${configurations[port]} " ip: " ${configurations[ip]}
   ssh -p ${configurations[port]} ${configurations[ip]}
 }
