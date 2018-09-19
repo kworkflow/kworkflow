@@ -10,6 +10,11 @@
 
 #include <stdio.h>
 
+void camel_case(void)
+{
+	puts("One should avoid camel case.");
+}
+
 int main(int argc, char *args[]) {
 	int i;
 
