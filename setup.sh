@@ -33,6 +33,21 @@ function clean_legacy()
   eval "sed -i '/$toDelete/d' $HOME/.bashrc"
 }
 
+function add_to_bashrc () {
+  read -p "Add to your to your PATH in .bashrc? [Y/n]" -n 1 -r
+  echo ""
+  if [[ $REPLY =~ ^[Nn]$ ]]; then
+    say $SEPARATOR
+    say "Make what you wan't..."
+    say "The executable are in $INSTALLTO/$APPLICATIONNAME"
+  else
+    # Add to bashrc
+    echo "# $APPLICATIONNAME" >> $HOME/.bashrc
+    ADDPATH="alias kw=\"$INSTALLTO/$APPLICATIONNAME.sh\""
+    echo $ADDPATH >> $HOME/.bashrc
+  fi
+}
+
 # Synchronize .vim and .vimrc with repository.
 function synchronize_files()
 {
@@ -46,8 +61,7 @@ function synchronize_files()
   rsync -vr $DEPLOY_DIR $INSTALLTO
 
   # Add to bashrc
-  echo "# $APPLICATIONNAME" >> $HOME/.bashrc
-  echo "source $INSTALLTO/$APPLICATIONNAME.sh" >> $HOME/.bashrc
+  add_to_bashrc
 
   say $SEPARATOR
   say "$APPLICATIONNAME installed into $INSTALLTO"

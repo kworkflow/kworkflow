@@ -133,3 +133,6 @@ function kw()
   esac
 }
 
+kw $@
+
+
