@@ -1,28 +1,50 @@
 #!/bin/bash
 
-. ./kw.sh --source only
-. ./src/checkpatch_wrapper.sh --source only
+. ./tests/utils --source-only
+
+. ./kw.sh --source-only
+. ./src/checkpatch_wrapper.sh --source-only
 
 function suite
 {
-  suite_addTest "testCheckpatch"
+  suite_addTest "testWarning"
+  suite_addTest "testError"
+  suite_addTest "testChecks"
 }
 
-function testCheckpatch
+declare -A MSG=( ["correct"]=CORRECT_MSG ["warning"]=WARNING_MSG ["error"]=ERROR_MSG \
+  ["check"]=CHECK_MSG )
+
+CORRECT_MSG="========================================================="
+WARNING_MSG="total: 0 errors, 1 warnings, 0 checks, 20 lines checked"
+ERROR_MSG="total: 1 errors, 0 warnings, 0 checks, 20 lines checked"
+CHECK_MSG="total: 0 errors, 0 warnings, 1 checks, 26 lines checked"
+
+function checkpatch
 {
-  test -e $external_script_path/checkpatch.pl; assertEquals "File checkpatch.pl does not exist" $? 0
-  tmp_path="/tmp/kw_test"
-  mkdir -p $tmp_path && wget \
-    "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/plain/kernel/exit.c" \
-    -q -O "${tmp_path}/exit.c"
-  [[ "$?" -ne 0 ]] && fail "Could not download test file from https://git.kernel.org/ to $tmp_path"
-  res=$(execute_checkpatch "${tmp_path}/exit.c" 2>&1 | tail -n 1);\
-    [[ "$?" -ne 0 ]] && fail "Could not execute first codestyle run on ${tmp_path}/exit.c"
-  printf ' %.0s' {1..100} >> "${tmp_path}/exit.c"
-  nres=$(execute_checkpath "${tmp_path}/exit.c" 2>&1 | tail -n 1);\
-    [[ "$?" -ne 0 ]] && fail "Could not execute second codestyle run on ${tmp_path}/exit.c"
-  [ "$res" == "$nres" ] && fail "Codestyle did not capture warnings"
+  res=$(execute_checkpatch "tests/samples/codestyle_$1.c" 2>&1 | tail -n 1 )
+  [[ "$res" != "${!MSG[$1]}" ]] && fail "Checkpatch should output:\n${!MSG[$1]}"
   true # Reset return value
 }
 
-. ./tests/shunit2
+function testWarning
+{
+  checkpatch "warning"
+}
+
+function testError
+{
+  checkpatch "error"
+}
+
+function testChecks
+{
+  checkpatch "check"
+}
+
+function testCorrect
+{
+  checkpatch "correct"
+}
+
+invoke_shunit
