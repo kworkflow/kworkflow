@@ -1,6 +1,6 @@
 function kworkflow-help()
 {
-  echo -e "Usage: kw [target] cmd"
+  echo -e "Usage: kw [-l|-v] cmd"
 
   echo -e "\nThe current supported targets are:\n" \
        "\t -l - this machine\n" \
