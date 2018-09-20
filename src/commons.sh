@@ -1,4 +1,7 @@
+. $src_script_path/cfg.sfh --source-only
 . $src_script_path/miscellaneous.sh --source-only
+
+KWORKFLOW_CONFIG_PATH=$PWD/kworkflow.config
 
 BASE=$HOME/p/linux-trees
 MOUNT_POINT=$HOME/p/mount
@@ -11,6 +14,7 @@ VDISK="$HOME/p/virty.qcow2"
 QEMU_MNT="/mnt/qemu"
 DEFAULT_PORT="2222"
 DEFAULT_IP="127.0.0.1"
+DEFAULT_DEPLOY_TARGET="guest"
 
 TARGET="qemu"
 
@@ -36,26 +40,27 @@ function show_variables()
     say "There is no kworkflow.conf, adopt default values for:"
     echo -e "\tQEMU OPTIONS: $QEMU_OPTS"
     echo -e "\tVDISK: $VDISK"
+    echo -e "\tDEPLOY TARGET: $DEFAULT_DEPLOY_TARGET"
   else
     say "kw found a kworkflow.conf file. Read options:"
     echo -en "\tQEMU OPTIONS: ${configurations[qemu_hw_options]}"
     echo     "${configurations[qemu_net_options]}"
     echo -e "\tVDISK: ${configurations[qemu_path_image]}"
+    echo -e "\tDEPLOY TARGET: ${configurations[deploy_target]}"
   fi
 }
 
 function check_local_configuration()
 {
-  local config_path=$PWD/kworkflow.config
-
   # File does not exist, use default configuration
-  if [ ! -f $config_path ] ; then
+  if [ ! -f $KWORKFLOW_CONFIG_PATH ] ; then
     configurations=(
       [qemu_path_image]=$VDISK
       [qemu_hw_options]=$QEMU_OPT
       [qemu_net_options]=""
       [port]=$DEFAULT_PORT
       [ip]=$DEFAULT_IP
+      [deploy_target]=$DEFAULT_DEPLOY_TARGET
     )
     return 1
   fi
@@ -68,4 +73,17 @@ function check_local_configuration()
       configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
     fi
   done < $config_path
+}
+
+function set_deploy_target()
+{
+  # Check if value is acceptable
+  if [ "$1" != "host" ] && [ "$1" != "guest" ]; then
+    complain "Invalid deploy target"
+    return
+  fi
+
+  # Set file and loaded configurations
+  set_configuration_variable "deploy_target" "$1"
+  configurations[deploy_target]=$1
 }

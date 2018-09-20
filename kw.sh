@@ -121,6 +121,13 @@ function kw()
         kworkflow-help
       )
       ;;
+    set-deploy-target)
+      (
+
+      
+        set_deploy_target $1
+      )
+      ;;
     *)
       (
         . $src_script_path/utils.sh --source-only
