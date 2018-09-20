@@ -7,6 +7,20 @@ KWORKFLOW_CONFIG_DEFAULT_PATH="$HOME/.config/kw/etc/kworkflow.config"
 # Default configuration
 declare -A configurations=( )
 
+function get_deploy_target()
+{
+  check_local_configuration
+  TARGET=${configurations[deploy_target]}
+  while getopts 'hg' c
+  do
+    case $c in
+      h) TARGET="host" ;;
+      g) TARGET="guest" ;;
+    esac
+  done
+  echo $TARGET
+} 
+
 function show_variables()
 {
   check_local_configuration

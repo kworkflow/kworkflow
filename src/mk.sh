@@ -37,6 +37,17 @@ function host_new_release_deploy
   host_kernel_install
 }
 
+function new_release_deploy
+{  
+  target=$(get_deploy_target $@)
+
+  if [ "$target" == "host" ]; then
+    host_new_release_deploy
+  else
+    vm_new_release_deploy
+  fi
+}
+
 function host_kernel_install
 {
   if [ -e "/etc/arch-release" ]
