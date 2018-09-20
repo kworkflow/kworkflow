@@ -123,7 +123,7 @@ function kw()
       ;;
     set-deploy-target)
       (
-
+        . $src_script_path/commons.sh --source-only
       
         set_deploy_target $1
       )

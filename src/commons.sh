@@ -1,7 +1,8 @@
-. $src_script_path/cfg.sfh --source-only
+. $src_script_path/cfg.sh --source-only
 . $src_script_path/miscellaneous.sh --source-only
 
 KWORKFLOW_CONFIG_PATH=$PWD/kworkflow.config
+KWORKFLOW_CONFIG_DEFAULT="$HOME/.config/kw/kworkflow.config"
 
 BASE=$HOME/p/linux-trees
 MOUNT_POINT=$HOME/p/mount
@@ -38,31 +39,22 @@ function show_variables()
 
   if [ $? -eq 1 ] ; then
     say "There is no kworkflow.conf, adopt default values for:"
-    echo -e "\tQEMU OPTIONS: $QEMU_OPTS"
-    echo -e "\tVDISK: $VDISK"
-    echo -e "\tDEPLOY TARGET: $DEFAULT_DEPLOY_TARGET"
   else
     say "kw found a kworkflow.conf file. Read options:"
-    echo -en "\tQEMU OPTIONS: ${configurations[qemu_hw_options]}"
-    echo     "${configurations[qemu_net_options]}"
-    echo -e "\tVDISK: ${configurations[qemu_path_image]}"
-    echo -e "\tDEPLOY TARGET: ${configurations[deploy_target]}"
   fi
+  echo -en "\tQEMU OPTIONS: ${configurations[qemu_hw_options]}"
+  echo     "${configurations[qemu_net_options]}"
+  echo -e "\tVDISK: ${configurations[qemu_path_image]}"
+  echo -e "\tDEPLOY TARGET: ${configurations[deploy_target]}"
 }
 
 function check_local_configuration()
 {
+  local result=0
   # File does not exist, use default configuration
-  if [ ! -f $KWORKFLOW_CONFIG_PATH ] ; then
-    configurations=(
-      [qemu_path_image]=$VDISK
-      [qemu_hw_options]=$QEMU_OPT
-      [qemu_net_options]=""
-      [port]=$DEFAULT_PORT
-      [ip]=$DEFAULT_IP
-      [deploy_target]=$DEFAULT_DEPLOY_TARGET
-    )
-    return 1
+  if [ ! -f "$CONFIG_PATH" ]; then
+    CONFIG_PATH=$KWORKFLOW_CONFIG_DEFAULT
+    result=1
   fi
 
   while read line
@@ -72,7 +64,8 @@ function check_local_configuration()
       varname=$(echo $line | cut -d '=' -f 1 | tr -d '[:space:]')
       configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
     fi
-  done < $config_path
+  done < $CONFIG_PATH
+  return $result
 }
 
 function set_deploy_target()
@@ -86,4 +79,10 @@ function set_deploy_target()
   # Set file and loaded configurations
   set_configuration_variable "deploy_target" "$1"
   configurations[deploy_target]=$1
+}
+
+function set_configuration_variable()
+{
+  local file=$KWORKFLOW_CONFIG_DEFAULT
+  sed -i "s/$1=\w*/$1=$2/g" "$file"
 }

@@ -57,6 +57,7 @@ function synchronize_files()
 
   # Copy the script
   cp $APPLICATIONNAME.sh $INSTALLTO
+  cp kworkflow.config.example $INSTALLTO/kworkflow.config
   rsync -vr $SRCDIR $INSTALLTO
   rsync -vr $DEPLOY_DIR $INSTALLTO
 
