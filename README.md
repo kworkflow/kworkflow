@@ -32,7 +32,7 @@ If you want to use Qemu, we recommend the following steps:
 > In the main directory, type:
 
 ```
-./setup -i
+./setup.sh -i
 bash --login
 ```
 
@@ -156,8 +156,26 @@ kw prepare
 
 # Tests
 
-> To run kw's unit tests, you have to install [shunit](https://github.com/kward/shunit2) at the `tests` folder. Then just run:
+> Tests rely on `shunit2`. `run_tests.sh` automatically uses a
+> `shunit2` executable if detected in `$PATH` (as is the case for
+> package distributions).  Otherwise, a `shunit2` script is expected to
+> be present at `tests/` (downloadable from
+> https://github.com/kward/shunit2).
+
+> You can either run all tests with:
 
 ```
 run_tests.sh
+```
+
+> List all available test files:
+
+```
+run_tests.sh list
+```
+
+> Or run individual test files:
+
+```
+run_tests.sh test tfile1 tfile2 tfile3
 ```
