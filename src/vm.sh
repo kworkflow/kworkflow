@@ -143,11 +143,9 @@ function vm_register
                 --os-type=linux \
                 --os-variant=virtio26 \
                 --disk=${configurations[virt_path_image]},format=qcow2 \
-                --network network=$VIRT_NET_NAME \
+                --network network=$VIRT_NET_NAME,mac=52:54:00:21:23:52 \
                 --filesystem $HOME/linux,kw_share
-
-  #TODO: Set static IP address on virt-network.xml
-
+  
 }
 
 function vm_prepare

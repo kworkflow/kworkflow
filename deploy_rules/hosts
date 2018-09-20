@@ -1,2 +1,2 @@
 [local]
-kworkflow_local ansible_host=127.0.0.1 ansible_port=2222 ansible_user=root
+kworkflow_local ansible_host=10.0.1.2 ansible_port=22 ansible_user=root

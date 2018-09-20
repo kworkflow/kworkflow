@@ -14,6 +14,7 @@ or other application using the libvirt API.
   <ip address='10.0.1.1' netmask='255.255.255.0'>
     <dhcp>
       <range start='10.0.1.2' end='10.0.1.2'/>
+      <host mac='52:54:00:21:23:52' name='kworflow-vm' ip='10.0.1.2'/>
     </dhcp>
   </ip>
 </network>
