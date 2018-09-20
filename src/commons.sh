@@ -50,6 +50,7 @@ function show_variables()
 
 function check_local_configuration()
 {
+  local CONFIG_PATH=$KWORKFLOW_CONFIG_PATH
   local result=0
   # File does not exist, use default configuration
   if [ ! -f "$CONFIG_PATH" ]; then
