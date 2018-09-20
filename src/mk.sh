@@ -31,6 +31,27 @@ function vm_new_release_deploy
   vm_kernel_install
 }
 
+function host_new_release_deploy
+{
+  host_modules_install
+  host_kernel_install
+}
+
+function host_kernel_install
+{
+  if [ -e "/etc/arch-release" ]
+  then
+    sudo bash $src_script_path/deploy/arch.sh linuxkw
+  else
+    echo "Only Arch Linux is supported. You should install the kernel manually."
+  fi
+}
+
+function host_modules_install
+{
+  sudo make modules_install
+}
+
 function mk_build
 {
   local PARALLEL_CORES=1
