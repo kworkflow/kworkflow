@@ -2,40 +2,22 @@
 . $src_script_path/miscellaneous.sh --source-only
 
 KWORKFLOW_CONFIG_PATH=$PWD/kworkflow.config
-KWORKFLOW_CONFIG_DEFAULT="$HOME/.config/kw/kworkflow.config"
-
-BASE=$HOME/p/linux-trees
-MOUNT_POINT=$HOME/p/mount
-BUILD_DIR=$BASE/build-linux
-
-QEMU_ARCH="x86_64"
-QEMU="qemu-system-${QEMU_ARCH}"
-QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
-VDISK="$HOME/p/virty.qcow2"
-QEMU_MNT="/mnt/qemu"
-DEFAULT_PORT="2222"
-DEFAULT_IP="127.0.0.1"
-DEFAULT_DEPLOY_TARGET="guest"
-
-TARGET="qemu"
-
-BASHPATH=/bin/bash
+KWORKFLOW_CONFIG_DEFAULT_PATH="$HOME/.config/kw/etc/kworkflow.config"
 
 # Default configuration
-declare -A configurations=( ["ip"]="127.0.0.1" ["port"]="2222" )
+declare -A configurations=( )
 
 function show_variables()
 {
+  check_local_configuration
+
   say "Global values:"
 
-  echo -e "\tBASE: $BASE"
-  echo -e "\tBUILD_DIR: $BUILD_DIR"
-  echo -e "\tQEMU ARCH: $QEMU_ARCH"
-  echo -e "\tQEMU COMMAND: $QEMU"
-  echo -e "\tQEMU MOUNT POINT: $QEMU_MNT"
-  echo -e "\tTARGET: $TARGET"
-
-  check_local_configuration
+  echo -e "\tBASE: ${configurations[base]}"
+  echo -e "\tBUILD_DIR: ${configurations[build_dir]}"
+  echo -e "\tQEMU ARCH: ${configurations[qemu_arch]}"
+  echo -e "\tQEMU COMMAND: ${configurations[qemu]}"
+  echo -e "\tQEMU MOUNT POINT: ${configurations[qemu_mnt]}"
 
   if [ $? -eq 1 ] ; then
     say "There is no kworkflow.conf, adopt default values for:"
@@ -50,14 +32,19 @@ function show_variables()
 
 function check_local_configuration()
 {
-  local CONFIG_PATH=$KWORKFLOW_CONFIG_PATH
-  local result=0
-  # File does not exist, use default configuration
-  if [ ! -f "$CONFIG_PATH" ]; then
-    CONFIG_PATH=$KWORKFLOW_CONFIG_DEFAULT
-    result=1
-  fi
+  load_configuration $KWORKFLOW_CONFIG_DEFAULT_PATH
+  local result=1
 
+  # Check if local config exist and use it
+  if [ -f "$CONFIG_PATH" ]; then
+    load_configuration $KWORKFLOW_CONFIG_PATH
+    result=0
+  fi
+  return $result
+}
+
+function load_configuration()
+{
   while read line
   do
     if echo $line | grep -F = &>/dev/null
@@ -65,8 +52,7 @@ function check_local_configuration()
       varname=$(echo $line | cut -d '=' -f 1 | tr -d '[:space:]')
       configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
     fi
-  done < $CONFIG_PATH
-  return $result
+  done < $1
 }
 
 function set_deploy_target()
@@ -84,6 +70,5 @@ function set_deploy_target()
 
 function set_configuration_variable()
 {
-  local file=$KWORKFLOW_CONFIG_DEFAULT
-  sed -i "s/$1=\w*/$1=$2/g" "$file"
+  cfg_write $KWORKFLOW_CONFIG_DEFAULT_PATH $1 $2
 }

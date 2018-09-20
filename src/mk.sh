@@ -8,7 +8,7 @@ function vm_modules_install
   # Take a look at the beginning of kworkflow.sh.
   vm_mount
   set +e
-  make INSTALL_MOD_PATH=$MOUNT_POINT modules_install
+  make INSTALL_MOD_PATH=${configurations[mount_point]} modules_install
   release=$(make kernelrelease)
   say $release
   vm_umount
@@ -20,7 +20,7 @@ function vm_kernel_install
 
   vm_mount
   set +e
-  sudo -E make INSTALL_PATH=$QEMU_MNT/boot
+  sudo -E make INSTALL_PATH=${configurations[qemu_mnt]}/boot
   release=$(make kernelrelease)
   vm_umount
 }
@@ -52,11 +52,11 @@ function mk_install
   check_local_configuration
 
   # FIXME: validate arch and action
-  if [ $TARGET == "arm" ] ; then
+  if [ ${configurations[target]} == "arm" ] ; then
     export ARCH=arm CROSS_COMPILE="ccache arm-linux-gnu-"
   fi
 
-  case "$TARGET" in
+  case "${configurations[target]}" in
     qemu)
       vm_modules_install
       ;;
@@ -103,7 +103,7 @@ function mk_export_kbuild
 {
   check_local_configuration
 
-  say "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
-  export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
+  say "export KBUILD_OUTPUT=${configurations[build_dir]}/$TARGET"
+  export KBUILD_OUTPUT=${configurations[build_dir]}/$TARGET
   mkdir -p $KBUILD_OUTPUT
 }

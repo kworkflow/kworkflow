@@ -4,11 +4,11 @@ function vm_mount
 {
   check_local_configuration
 
-  mkdir -p $MOUNT_POINT
-  say "Mount $VDISK in $MOUNT_POINT"
-  guestmount -a $VDISK -i $MOUNT_POINT
+  mkdir -p ${configurations[mount_point]}
+  say "Mount ${configurations[vdisk]} in ${configurations[mount_point]}"
+  guestmount -a ${configurations[vdisk]} -i ${configurations[mount_point]}
   if [ "$?" != 0 ] ; then
-    complain "Something went wrong when tried to mount $VDISK in $MOUNT_POINT"
+    complain "Something went wrong when tried to mount ${configurations[vdisk]} in ${configurations[mount_point]}"
   fi
 }
 
@@ -16,10 +16,10 @@ function vm_umount
 {
   check_local_configuration
 
-  say "Unmount $MOUNT_POINT"
-  guestunmount $MOUNT_POINT
+  say "Unmount ${configurations[mount_point]}"
+  guestunmount ${configurations[mount_point]}
   if [ "$?" != 0 ] ; then
-    complain "Something went wrong when tried to unmount $VDISK in $MOUNT_POINT"
+    complain "Something went wrong when tried to unmount ${configurations[vdisk]} in ${configurations[mount_point]}"
   fi
 }
 
@@ -27,9 +27,9 @@ function vm_boot
 {
   check_local_configuration
 
-  $QEMU -hda $VDISK \
-    ${QEMU_OPTS} \
-    -kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
+  ${configurations[qemu]} -hda ${configurations[vdisk]} \
+    ${configurations[qemu_opts]}\
+    -kernel ${configurations[build_dir]}/$TARGET/arch/x86/boot/bzImage \
     -append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1" \
     -net nic -net user,hostfwd=tcp::5555-:22 \
     -serial stdio \
@@ -42,11 +42,11 @@ function vm_up
   check_local_configuration
 
   say "Starting Qemu with: "
-  echo "$QEMU ${configurations[qemu_hw_options]}" \
+  echo "${configurations[qemu]} ${configurations[qemu_hw_options]}" \
        "${configurations[qemu_net_options]}" \
        "${configurations[qemu_path_image]}"
 
-  $QEMU ${configurations[qemu_hw_options]} \
+  ${configurations[qemu]} ${configurations[qemu_hw_options]} \
         ${configurations[qemu_net_options]} \
         ${configurations[qemu_path_image]}
 }

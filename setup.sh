@@ -54,10 +54,11 @@ function synchronize_files()
   say "Installing ..."
 
   mkdir -p $INSTALLTO
+  mkdir -p $INSTALLTO/etc
 
   # Copy the script
   cp $APPLICATIONNAME.sh $INSTALLTO
-  cp kworkflow.config.example $INSTALLTO/kworkflow.config
+  cp kworkflow.config.example $INSTALLTO/etc/kworkflow.config
   rsync -vr $SRCDIR $INSTALLTO
   rsync -vr $DEPLOY_DIR $INSTALLTO
 
