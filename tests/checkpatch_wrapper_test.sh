@@ -1,9 +1,7 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
-
-. ./kw.sh --source-only
 . ./src/checkpatch_wrapper.sh --source-only
+. ./tests/utils --source-only
 
 function suite
 {

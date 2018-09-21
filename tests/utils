@@ -1,5 +1,13 @@
 #!/bin/bash
 
+function init_env
+{
+  unset -v src_script_path external_script_path EASY_KERNEL_WORKFLOW
+  external_script_path="tests/external"
+  src_script_path="./src"
+  export src_script_path external_script_path EASY_KERNEL_WORKFLOW
+}
+
 function invoke_shunit
 {
   command -v shunit2 > /dev/null

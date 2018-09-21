@@ -19,7 +19,10 @@ function run_tests
   for current_test in "${TESTS[@]}"; do
     say "Running test [${current_test}]"
     say $SEPARATOR
-    ./tests/${current_test}.sh
+    (
+      init_env
+      ./tests/${current_test}.sh --source-only
+    )
     if [[ "$?" -eq 1 ]]; then
       rc=1
     fi
