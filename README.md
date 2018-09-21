@@ -179,3 +179,18 @@ run_tests.sh list
 ```
 run_tests.sh test tfile1 tfile2 tfile3
 ```
+
+> Tests rely on some external files, that are downloaded automatically when you first
+> try to run a test. You can, however, explicit instruct run_tests.sh to prepare the enviroment for
+> running tests, downloading these files, with:
+
+```
+run_tests.sh prepare
+```
+
+> Also, if you already have the tests enviroment prepared but wants to update the external files,
+> there's an option to update the enviroment:
+
+```
+run_tests.sh prepare -f|--force-update
+```
