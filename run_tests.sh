@@ -86,27 +86,60 @@ function check_required_files()
 	fi
 }
 
+# Reports tests results.
+# Arguments are: $1: # of tests, $2: # of succeeded tests, $3: # of notfound tests and
+# $4: # of failed tests
+function report_results
+{
+    local -i total=$1
+    local -i success=$2
+    local -i notfound=$3
+    local -i fail=$4
+
+    if [[ $total -eq 0 ]]; then
+        echo 'No test files.'
+    elif [[ $success -eq $total ]]; then
+      success $SEPARATOR
+      success "Total: $total test file(s)"
+      success "Test(s) SUCCEEDED"
+    else
+      complain $SEPARATOR
+      complain "Total: $total test file(s)"
+      if [[ $fail -gt 0 ]]; then
+        complain "$fail test(s) FAILED"
+      fi
+      if [[ $notfound -gt 0 ]]; then
+        complain "$notfound test(s) NOT FOUND"
+      fi
+    fi
+}
+
 function run_tests
 {
-  local rc=0
+  local -i total=${#TESTS[@]}
+  local -i success=0
+  local -i notfound=0
+  local -i fail=0
+
   for current_test in "${TESTS[@]}"; do
-    say "Running test [${current_test}]"
-    say $SEPARATOR
-    (
-      init_env
-      ./tests/${current_test}.sh --source-only
-    )
-    if [[ "$?" -eq 1 ]]; then
-      rc=1
+    if [ -f ./tests/${current_test}.sh ]; then
+        say "Running test [${current_test}]"
+        say $SEPARATOR
+        (
+        init_env
+        ./tests/${current_test}.sh
+        )
+        if [[ "$?" -eq 1 ]]; then
+            fail+=1
+        else
+            success+=1
+        fi
+    else
+        complain "Test file ./tests/${current_test}.sh not found."
+        notfound+=1
     fi
   done
-  if [[ "$rc" -ne 0 ]]; then
-    complain $SEPARATOR
-    complain "Some test(s) FAILED"
-  else
-    success $SEPARATOR
-    success "Test(s) SUCCEEDED"
-  fi
+  report_results $total $success $notfound $fail
 }
 
 declare -a TESTS
