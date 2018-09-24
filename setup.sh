@@ -34,7 +34,7 @@ function clean_legacy()
 }
 
 function add_to_bashrc () {
-  read -p "Add to your to your PATH in .bashrc? [Y/n]" -n 1 -r
+  read -p "Add to your PATH in .bashrc? [Y/n]" -n 1 -r
   echo ""
   if [[ $REPLY =~ ^[Nn]$ ]]; then
     say $SEPARATOR
