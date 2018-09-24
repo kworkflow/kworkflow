@@ -50,7 +50,7 @@ function check_local_configuration()
   local result=1
 
   # Check if local config exist and use it
-  if [ -f "$CONFIG_PATH" ]; then
+  if [ -f "$KWORKFLOW_CONFIG_PATH" ]; then
     load_configuration $KWORKFLOW_CONFIG_PATH
     result=0
   fi
