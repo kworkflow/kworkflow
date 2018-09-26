@@ -58,6 +58,10 @@ function mk_install
 
   case "$TARGET" in
     libvirt)
+      if [ $(vm_status $VIRT_VM_NAME) == 'running' ] ; then
+        warning 'Kernel module instalation does not work while vm is running.'
+        return
+      fi
       vm_modules_install
       ;;
     host)
