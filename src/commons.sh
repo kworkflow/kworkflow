@@ -7,6 +7,7 @@ QEMU="qemu-system-${QEMU_ARCH}"
 QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
 VDISK="$HOME/p/virty.qcow2"
 QEMU_MNT="/mnt/qemu"
+DEFAULT_CONFIG_PATH=$HOME/.config/kw/config_files
 DEFAULT_PORT="2222"
 DEFAULT_IP="127.0.0.1"
 

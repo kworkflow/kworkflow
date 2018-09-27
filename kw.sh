@@ -12,6 +12,7 @@ external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLO
 . $src_script_path/mk.sh --source-only
 . $src_script_path/checkpatch_wrapper.sh --source-only
 . $src_script_path/get_maintainer_wrapper.sh --source-only
+. $src_script_path/config_manager.sh
 
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
@@ -42,6 +43,9 @@ function kworkflow-help()
     "\tup,u - Wake up vm\n" \
     "\tcodestyle - Apply checkpatch on directory or file\n" \
     "\tmaintainers - Return the maintainers and the mailing list\n" \
+    "\tregister_config <PATH> <COMMENT> - Save a config file in kw database\n"\
+    "\tshow_configs - Show all configuration files saved in kw database\n"\
+    "\tget_config <INDEX> - copy a '.config' in the current path\n"\
     "\thelp"
 }
 
@@ -95,6 +99,15 @@ function kw()
       ;;
     maintainers)
       execute_get_maintainer $@
+      ;;
+    register_config|rc)
+      register_config $@
+      ;;
+    show_configs|sc)
+      show_configs $@
+      ;;
+    get_config|gc)
+      get_config $@
       ;;
     help)
       kworkflow-help
