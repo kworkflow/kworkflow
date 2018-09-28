@@ -32,7 +32,7 @@ If you want to use Qemu, we recommend the following steps:
 > In the main directory, type:
 
 ```
-./setup -i
+./setup.sh -i
 bash --login
 ```
 
@@ -152,4 +152,45 @@ If you have everything set, just execute the command:
 
 ```
 kw prepare
+```
+
+# Tests
+
+> Tests rely on `shunit2`. `run_tests.sh` automatically uses a
+> `shunit2` executable if detected in `$PATH` (as is the case for
+> package distributions).  Otherwise, a `shunit2` script is expected to
+> be present at `tests/` (downloadable from
+> https://github.com/kward/shunit2).
+
+> You can either run all tests with:
+
+```
+run_tests.sh
+```
+
+> List all available test files:
+
+```
+run_tests.sh list
+```
+
+> Or run individual test files:
+
+```
+run_tests.sh test tfile1 tfile2 tfile3
+```
+
+> Tests rely on some external files, that are downloaded automatically when you first
+> try to run a test. You can, however, explicit instruct run_tests.sh to prepare the enviroment for
+> running tests, downloading these files, with:
+
+```
+run_tests.sh prepare
+```
+
+> Also, if you already have the tests enviroment prepared but wants to update the external files,
+> there's an option to update the enviroment:
+
+```
+run_tests.sh prepare -f|--force-update
 ```
