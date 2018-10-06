@@ -19,6 +19,8 @@ function kworkflow-help()
     "\tvars - Show variables\n" \
     "\tup,u - Wake up vm\n" \
     "\tcodestyle - Apply checkpatch on directory or file\n" \
-    "\tmaintainers - Return the maintainers and the mailing list\n" \
-    "\thelp"
+    "\tmaintainers [-a|--authors] - Return the maintainers and\n" \
+    "\t                             the mailing list. \"-a\" also\n" \
+    "\t                             prints files authors\n" \
+    "\thelp - displays this help mesage"
 }

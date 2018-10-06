@@ -132,9 +132,13 @@ kw codestyle <DIRECTORY_PATH | FILE_PATH>
 ```
 
 > Get maintainers (directory or file):
-
+> The option [-a|--authors] will print the file author of FILE_PATH or
+> the authors of the files under DIRECTORY_PATH (non-recursively). Files
+> with more than one author will have their authors separated by ",".
+> Use with care, because sometimes, authors include also "," in their
+> names (e.g. "Company X, Inc.").
 ```
-kw maintainers <DIRECTORY_PATH | FILE_PATH>
+kw maintainers [-a|--authors] <DIRECTORY_PATH | FILE_PATH>
 ```
 
 > You can put your VM in a status that is ready for work with the prepare
