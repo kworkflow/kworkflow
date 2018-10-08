@@ -101,15 +101,15 @@ function report_results
     elif [[ $success -eq $total ]]; then
       success $SEPARATOR
       success "Total: $total test file(s)"
-      success "Test(s) SUCCEEDED"
+      success "Test file(s) SUCCEEDED"
     else
       complain $SEPARATOR
       complain "Total: $total test file(s)"
       if [[ $fail -gt 0 ]]; then
-        complain "$fail test(s) FAILED"
+        complain "$fail test file(s) FAILED"
       fi
       if [[ $notfound -gt 0 ]]; then
-        complain "$notfound test(s) NOT FOUND"
+        complain "$notfound test file(s) NOT FOUND"
       fi
     fi
 }
@@ -129,10 +129,10 @@ function run_tests
         init_env
         ./tests/${current_test}.sh
         )
-        if [[ "$?" -eq 1 ]]; then
-            fail+=1
-        else
+        if [[ "$?" -eq 0 ]]; then
             success+=1
+        else
+            fail+=1
         fi
     else
         complain "Test file ./tests/${current_test}.sh not found."
