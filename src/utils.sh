@@ -14,13 +14,13 @@ function kworkflow-help()
     "\tprepare,p - Deploy basic environment in the VM\n" \
     "\tnew,n - Install new Kernel image\n" \
     "\tssh,s - Enter in the vm\n" \
-    "\tmount - Mount partition with qemu-nbd\n" \
-    "\tumount - Umount partition created with qemu-nbd\n" \
-    "\tvars - Show variables\n" \
+    "\tmount,mo - Mount partition with qemu-nbd\n" \
+    "\tumount,um - Umount partition created with qemu-nbd\n" \
+    "\tvars,v - Show variables\n" \
     "\tup,u - Wake up vm\n" \
-    "\tcodestyle - Apply checkpatch on directory or file\n" \
-    "\tmaintainers [-a|--authors] - Return the maintainers and\n" \
+    "\tcodestyle,c - Apply checkpatch on directory or file\n" \
+    "\tmaintainers,m [-a|--authors] - Return the maintainers and\n" \
     "\t                             the mailing list. \"-a\" also\n" \
     "\t                             prints files authors\n" \
-    "\thelp - displays this help mesage"
+    "\thelp,h - displays this help mesage"
 }

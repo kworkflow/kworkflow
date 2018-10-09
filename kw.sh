@@ -14,21 +14,21 @@ function kw()
   shift
 
   case "$action" in
-    mount)
+    mount|mo)
       (
         . $src_script_path/vm.sh --source-only
 
         vm_mount
       )
       ;;
-    umount)
+    umount|um)
       (
         . $src_script_path/vm.sh --source-only
 
         vm_umount
       )
       ;;
-    boot)
+    boot|bo)
       (
         . $src_script_path/vm.sh --source-only
 
@@ -84,28 +84,28 @@ function kw()
         vm_ssh
       )
       ;;
-    vars)
+    vars|v)
       (
         . $src_script_path/commons.sh --source-only
 
         show_variables
       )
       ;;
-    codestyle)
+    codestyle|c)
       (
       . $src_script_path/checkpatch_wrapper.sh --source-only
 
         execute_checkpatch $@
       )
       ;;
-    maintainers)
+    maintainers|m)
       (
         . $src_script_path/get_maintainer_wrapper.sh --source-only
 
         execute_get_maintainer $@
       )
       ;;
-    help)
+    help|h)
       (
         . $src_script_path/utils.sh --source-only
 

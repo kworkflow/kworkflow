@@ -86,7 +86,7 @@ will be used.
 > Help commands:
 
 ```
-kw help
+kw help|h
 ```
 
 > Build a Kernel and install in the Qemu image:
@@ -98,37 +98,31 @@ kw bi
 > Mount Qemu image to transfer data:
 
 ```
-kw mount
+kw mount|mo
 ```
 
 > Umount Qemu image:
 
 ```
-kw umount
-```
-
-> If you want to use KBUILD_OUTPUT:
-
-```
-kw export
+kw umount|um
 ```
 
 > Show variable status used by `kw`:
 
 ```
-kw vars
+kw vars|v
 ```
 
 > Turn on vm:
 
 ```
-kw up
+kw up|u
 ```
 
 > Run checkpatch in a target (directory of file):
 
 ```
-kw codestyle <DIRECTORY_PATH | FILE_PATH>
+kw codestyle|c <DIRECTORY_PATH | FILE_PATH>
 ```
 
 > Get maintainers (directory or file):
@@ -138,7 +132,7 @@ kw codestyle <DIRECTORY_PATH | FILE_PATH>
 > Use with care, because sometimes, authors include also "," in their
 > names (e.g. "Company X, Inc.").
 ```
-kw maintainers [-a|--authors] <DIRECTORY_PATH | FILE_PATH>
+kw maintainers|m [-a|--authors] <DIRECTORY_PATH | FILE_PATH>
 ```
 
 > You can put your VM in a status that is ready for work with the prepare
@@ -155,7 +149,7 @@ user ALL=(ALL) NOPASSWD: ALL
 If you have everything set, just execute the command:
 
 ```
-kw prepare
+kw prepare|p
 ```
 
 # Tests
