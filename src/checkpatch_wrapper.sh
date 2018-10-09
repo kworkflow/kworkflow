@@ -15,7 +15,7 @@ function execute_checkpatch()
   # Check if is a valid path
   if [ ! -d $FILE_OR_DIR_CHECK -a ! -f $FILE_OR_DIR_CHECK ]; then
     complain "Invalid path"
-    return
+    return 1
   fi
 
   # Build a list of file to apply check patch

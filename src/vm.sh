@@ -9,6 +9,7 @@ function vm_mount
   guestmount -a $VDISK -i $MOUNT_POINT
   if [ "$?" != 0 ] ; then
     complain "Something went wrong when tried to mount $VDISK in $MOUNT_POINT"
+    return 1
   fi
 }
 
@@ -20,6 +21,7 @@ function vm_umount
   guestunmount $MOUNT_POINT
   if [ "$?" != 0 ] ; then
     complain "Something went wrong when tried to unmount $VDISK in $MOUNT_POINT"
+    return 1
   fi
 }
 
@@ -63,8 +65,11 @@ function vm_prepare
 {
   local path_ansible=$HOME/.config/kw/deploy_rules/
   local current_path=$PWD
+  local ret=0
   say "Deploying with Ansible, this will take some time"
   cd $path_ansible
-  ansible-playbook kworkflow.yml --extra-vars "user=$USER" || cd $current_path
+  ansible-playbook kworkflow.yml --extra-vars "user=$USER"
+  ret=$?
   cd $current_path
+  return $ret
 }
