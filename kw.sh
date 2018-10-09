@@ -119,6 +119,7 @@ function kw()
 
         complain "Invalid option"
         kworkflow-help
+        return 1
       )
       ;;
   esac

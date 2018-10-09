@@ -111,6 +111,7 @@ function report_results
       if [[ $notfound -gt 0 ]]; then
         complain "$notfound test(s) NOT FOUND"
       fi
+      return 1
     fi
 }
 
