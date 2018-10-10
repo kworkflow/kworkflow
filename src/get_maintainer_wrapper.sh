@@ -59,7 +59,7 @@ function execute_get_maintainer()
   # Check if the command was invoked from the kernel root tree
   if [ ! -f $script ]; then
     complain "You have to execute this command from the linux tree"
-    return
+    return 1
   fi
 
   if [[ $# -ge 1 && ( $1  = "--authors" || $1 = "-a" ) ]]; then
@@ -73,7 +73,7 @@ function execute_get_maintainer()
   # Check if is a valid path
   if [ ! -d $FILE_OR_DIR_CHECK -a ! -f $FILE_OR_DIR_CHECK ]; then
     complain "Invalid path"
-    return
+    return 1
   fi
 
   say $SEPARATOR
