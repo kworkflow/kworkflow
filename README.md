@@ -135,6 +135,18 @@ kw codestyle|c <DIRECTORY_PATH | FILE_PATH>
 kw maintainers|m [-a|--authors] <DIRECTORY_PATH | FILE_PATH>
 ```
 
+> Search for a regex in a directory or file:
+
+```
+kw explore <EXPRESSION> <DIRECTORY_PATH | FILE_PATH>
+```
+
+> Search for a word added in a git commit:
+
+```
+kw explore log <EXRESSION> [-p] <DIRECTORY_PATH | FILE PATH>
+```
+
 > You can put your VM in a status that is ready for work with the prepare
 command. However, there is some basic steps for it work well:
 
