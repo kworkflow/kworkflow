@@ -1,3 +1,5 @@
+. $src_script_path/miscellaneous.sh --source-only
+
 function kworkflow-help()
 {
   echo -e "Usage: kw [target] cmd"
@@ -23,4 +25,32 @@ function kworkflow-help()
     "\t                             the mailing list. \"-a\" also\n" \
     "\t                             prints files authors\n" \
     "\thelp,h - displays this help mesage"
+    "\tcodestyle - Apply checkpatch on directory or file\n" \
+    "\tmaintainers - Return the maintainers and the mailing list\n" \
+    "\texplore,e - Search for expression on git log or directory\n" \
+    "\thelp"
+}
+
+function explore()
+{
+  if [[ "$#" -eq 0 ]]; then
+    complain "Expected path or 'log'"
+    exit 1
+  fi
+  case "$1" in
+    log)
+      (
+        git log -S"$2" "${@:3}"
+      );;
+    *)
+      (
+        local path=${@:2}
+        local regex=$1
+        if [[ $# -eq 1 ]]; then
+          path="."
+          regex=$1
+        fi
+        git grep -e $regex -nI $path
+      );;
+  esac
 }
