@@ -8,6 +8,13 @@ function init_env
   export src_script_path external_script_path EASY_KERNEL_WORKFLOW
 }
 
+# Receives a string with one or more lines and print each of
+# then prefixed by "> "
+function prefix_multiline
+{
+  echo "$@" | sed -E "s/^/> /g"
+}
+
 function invoke_shunit
 {
   command -v shunit2 > /dev/null
