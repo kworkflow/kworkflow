@@ -38,12 +38,14 @@ function get_external_scripts()
   local ret
 
   local -r CHECKPATCH_URL="https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl"
+  local -r MAINTAINER_URL="https://raw.githubusercontent.com/torvalds/linux/master/scripts/get_maintainer.pl"
   local -r CHECKPATCH_CONST_STRUCTS="https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch"
   local -r CHECKPATCH_SPELLING="https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt"
   local DOWNLOAD_URLS=( \
         CHECKPATCH_URL \
         CHECKPATCH_CONST_STRUCTS \
-        CHECKPATCH_SPELLING )
+        CHECKPATCH_SPELLING \
+        MAINTAINER_URL )
 
   say "Downloading external scripts..."
   echo
@@ -72,7 +74,8 @@ function check_required_files()
   if [[ "$force_update" = false &&
            -f "$PATH_TO_TESTS_EXTERNALS/checkpatch.pl" &&
            -f "$PATH_TO_TESTS_EXTERNALS/const_structs.checkpatch" &&
-           -f "$PATH_TO_TESTS_EXTERNALS/spelling.txt" ]] ; then
+           -f "$PATH_TO_TESTS_EXTERNALS/spelling.txt" &&
+           -f "$PATH_TO_TESTS_EXTERNALS/get_maintainer.pl" ]] ; then
        # Errno code for File exist
        return 17
   else

@@ -1,90 +1,231 @@
 . $src_script_path/kwio.sh --source-only
 
-
+# Prints the authors of a given file or files inside a given dir.
+#
+# @FILE_OR_DIR The argument is a file or directory path
 function print_files_authors()
 {
-    # TODO: currently only authors found in a single line MODULE_AUTHOR
-    # statement are captured and printed. In the future, it would be
-    # nice to look for multiline MODULE_AUTHOR statatements such as:
-    #
-    # MODULE_AUTHOR ("a_long_email@xx.com" \
-    #                "another_long@yy.com" )
-    # and:
-    #
-    # MODULE_AUTHOR ("a_long_email@xx.com"
-    #                "another_long@yy.com" )
-    #
-    # which are, both, valid C statements. In the currently
-    # implementation neither of these four emails will be printed.
-
-    local FILE_OR_DIR=$1
-    local files=( )
-    if [[ -d $FILE_OR_DIR ]]; then
-        for file in $FILE_OR_DIR/*; do
-            if [[ -f $file ]]; then
-                files+=($file)
-            fi
-        done
-    elif [[ -f $FILE_OR_DIR ]]; then
-        files+=($FILE_OR_DIR)
-    fi
-
-    local printed_authors_separator=false
-
-    for file in ${files[@]}; do
-        authors=$(grep -oE "MODULE_AUTHOR *\(.*\)" $file |
-                  sed -E "s/(MODULE_AUTHOR *\( *\"|\" *\))//g" |
-                  sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g' )
-        if [[ ! -z $authors ]]; then
-            if [ $printed_authors_separator = false ]; then
-                say $SEPARATOR
-                say "MODULE AUTHORS:"
-                printed_authors_separator=true
-            fi
-            say -n "$(basename $file): "
-            echo "$authors"
-        fi
+  local FILE_OR_DIR=$1
+  local files=( )
+  if [[ -d $FILE_OR_DIR ]]; then
+    for file in $FILE_OR_DIR/*; do
+      if [[ -f $file ]]; then
+        files+=($file)
+      fi
     done
+  elif [[ -f $FILE_OR_DIR ]]; then
+    files+=($FILE_OR_DIR)
+  fi
+
+  local printed_authors_separator=false
+
+  for file in ${files[@]}; do
+    authors=$(grep -oE "MODULE_AUTHOR *\(.*\)" $file |
+              sed -E "s/(MODULE_AUTHOR *\( *\"|\" *\))//g" |
+              sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g' )
+    if [[ ! -z $authors ]]; then
+      if [[ $printed_authors_separator = false ]]; then
+        say $SEPARATOR
+        say "MODULE AUTHORS:"
+        printed_authors_separator=true
+      fi
+      say -n "$(basename $file): "
+      echo "$authors"
+    fi
+  done
 }
 
-function execute_get_maintainer()
+# Checks if a directory is a kernel tree root
+#
+# @DIR A directory path
+#
+# Returns:
+# True if given dir is a kernel tree root and false otherwise.
+function is_kernel_root()
 {
-  local FILE_OR_DIR_CHECK
-  local print_authors
+  local -r DIR="$@"
+  # The following files are some of the files expected to be at a linux
+  # tree root and not expected to change. Their presence (or abscense)
+  # is used to tell if a directory is a linux tree root or not. (They
+  # are the same ones used by get_maintainer.pl)
+  if [[ -f "${DIR}/COPYING" &&
+        -f "${DIR}/CREDITS" &&
+        -f "${DIR}/Kbuild" &&
+        -e "${DIR}/MAINTAINERS" &&
+        -f "${DIR}/Makefile" &&
+        -f "${DIR}/README" &&
+        -d "${DIR}/Documentation" &&
+        -d "${DIR}/arch" &&
+        -d "${DIR}/include" &&
+        -d "${DIR}/drivers" &&
+        -d "${DIR}/fs" &&
+        -d "${DIR}/init" &&
+        -d "${DIR}/ipc" &&
+        -d "${DIR}/kernel" &&
+        -d "${DIR}/lib" &&
+        -d "${DIR}/scripts" ]]; then
+    return 0
+  fi
+  return 1
+}
 
-  local -r script="scripts/get_maintainer.pl"
-  local -r options="--separator , --nokeywords --nogit --nogit-fallback --norolestats "
-  local -r getmaintainers="perl $script $options"
+# Finds the root of the linux kernel repo containing the given file
+#
+# @FILE_OR_DIR The argument is a directory of file path
+#
+# Returns:
+# The path of the kernel tree root (string) which the file or dir belongs to, or
+# an empty string if no root was found.
+function find_kernel_root
+{
+  local -r FILE_OR_DIR="$@"
+  local current_dir
+  local kernel_root=""
 
-  # Check if the command was invoked from the kernel root tree
-  if [ ! -f $script ]; then
-    complain "You have to execute this command from the linux tree"
+  if [[ -f "$FILE_OR_DIR" ]]; then
+    current_dir="$(dirname $FILE_OR_DIR)"
+  else
+    current_dir="$FILE_OR_DIR"
+  fi
+
+  # Find the kernel tree root
+  if is_kernel_root "$current_dir"; then
+    kernel_root="$current_dir"
+  else
+    while [[ "$current_dir" != "/" ]]; do
+      current_dir="$(dirname $current_dir)"
+      if is_kernel_root "$current_dir"; then
+        kernel_root="$current_dir"
+        break
+      fi
+    done
+  fi
+
+  echo "$kernel_root"
+}
+
+# Checks if the given path is a patch file
+#
+# @FILE_PATH The argument is the path
+#
+# Returns:
+# True if given path is a patch file and false otherwise.
+function is_a_patch
+{
+  local -r FILE_PATH="$@"
+
+  if [[ ! -f "$FILE_PATH" ]]; then
     return 1
   fi
 
+  local file_content=`cat "$FILE_PATH"`
+
+  # The following array stores strings that are expected to be present
+  # in a patch file. The absence of any of these strings makes the
+  # given file be considered NOT a patch
+  local -ar PATCH_EXPECTED_STRINGS=(
+    "diff --git"
+    "Subject:"
+    "Date:"
+    "From:"
+    "---"
+    "@@"
+  )
+
+  for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
+    if [[ ! "$file_content" =~ "$expected_str" ]]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# Executes get_maintainer with the given file or dir
+#
+# @1 First argument can be "--authors" or "a" to enable authors
+#    printing. It is optional.
+# @2 Second argument is the given file/dir. It is optional and, if not
+#    given, the current working directory will be used.
+#
+# Returns:
+# False uppon error and true otherwise.
+#
+# This function also handle the cases where:
+# - A patch file is given
+# - The working dir and/or given path is not the root of a linux kernel repo
+# - The working dir and/or given path is not inside a linux kernel repo
+function execute_get_maintainer()
+{
+  local FILE_OR_DIR
+  local print_authors
+  local is_file_a_patch=true
+  local is_file_inside_kernel_tree=true
+
+  local -r script="scripts/get_maintainer.pl"
+  local options="--separator , --nokeywords --nogit --nogit-fallback --norolestats "
+
+  local -r original_working_dir=$PWD
+  local kernel_root=""
+  local path_from_kernel_root=""
+
+  # Check function options
   if [[ $# -ge 1 && ( $1  = "--authors" || $1 = "-a" ) ]]; then
-      FILE_OR_DIR_CHECK=$2
-      print_authors=true
+    FILE_OR_DIR=$2
+    print_authors=true
   else
-      FILE_OR_DIR_CHECK=$1
-      print_authors=false
+    FILE_OR_DIR=$1
+    print_authors=false
+  fi
+
+  # If no file is given, assume "."
+  if [[ -z $FILE_OR_DIR ]]; then
+    FILE_OR_DIR="."
   fi
 
   # Check if is a valid path
-  if [ ! -d $FILE_OR_DIR_CHECK -a ! -f $FILE_OR_DIR_CHECK ]; then
+  if [[ ! -d $FILE_OR_DIR && ! -f $FILE_OR_DIR ]]; then
     complain "Invalid path"
+    return 1
+  fi
+
+  FILE_OR_DIR="$(realpath $FILE_OR_DIR)"
+
+  # if given path is not a patchfile, add -f to get_maintainer.pl options
+  if ! is_a_patch "$FILE_OR_DIR"; then
+    is_file_a_patch=false
+    options="$options -f "
+  fi
+
+  # try to find kernel root at given path
+  kernel_root="$(find_kernel_root $FILE_OR_DIR)"
+  if [[ -z "$kernel_root" ]]; then
+    is_file_inside_kernel_tree=false
+    # fallback: try to find kernel root at working path
+    kernel_root="$(find_kernel_root $original_working_dir)"
+  fi
+
+  # Check if kernel root was found.
+  if [[ -z "$kernel_root" ]]; then
+    complain "Neither the given path nor the working path is in a kernel tree."
+    return 1
+  fi
+
+  # If file is not a patch and outside a kernel tree, it must be an user's
+  # mistake. Although get_maintainer.pl can handle this, it's better to abort
+  # because it is most likely a user's mistake. So better let the user know.
+  if ! $is_file_a_patch && ! $is_file_inside_kernel_tree; then
+    complain "The given file is not a patch and is outside a kernel tree."
     return 1
   fi
 
   say $SEPARATOR
   say "HERE:"
-  $getmaintainers $FILE_OR_DIR_CHECK
+  cd $kernel_root
+  eval perl $script $options "$FILE_OR_DIR"
+  cd $original_working_dir
 
-  if [ $? -ne 0 ]; then
-    return $?
-  fi
-
-  if [ $print_authors = true ]; then
-      print_files_authors $FILE_OR_DIR_CHECK
+  if $print_authors; then
+    print_files_authors $FILE_OR_DIR
   fi
 }
