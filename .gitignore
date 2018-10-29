@@ -3,3 +3,4 @@ tests/shunit2
 .checkpatch-camelcase.git.
 .checkpatch-camelcase.date.*
 tests/external
+tests/.tmp_commons_test
