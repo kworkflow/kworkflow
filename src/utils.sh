@@ -32,7 +32,7 @@ function explore()
 {
   if [[ "$#" -eq 0 ]]; then
     complain "Expected path or 'log'"
-    exit 1
+    return 1
   fi
   case "$1" in
     log)
