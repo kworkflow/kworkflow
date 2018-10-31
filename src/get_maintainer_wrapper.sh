@@ -80,6 +80,10 @@ function execute_get_maintainer()
   say "HERE:"
   $getmaintainers $FILE_OR_DIR_CHECK
 
+  if [ $? -ne 0 ]; then
+    return $?
+  fi
+
   if [ $print_authors = true ]; then
       print_files_authors $FILE_OR_DIR_CHECK
   fi
