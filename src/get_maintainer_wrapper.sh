@@ -1,4 +1,4 @@
-. $src_script_path/miscellaneous.sh --source-only
+. $src_script_path/kwio.sh --source-only
 
 
 function print_files_authors()

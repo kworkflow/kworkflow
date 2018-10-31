@@ -122,7 +122,7 @@ function kw()
     *)
       (
         . $src_script_path/utils.sh --source-only
-        . $src_script_path/miscellaneous.sh --source-only
+        . $src_script_path/kwio.sh --source-only
 
         complain "Invalid option"
         kworkflow-help
