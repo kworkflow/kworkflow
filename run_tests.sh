@@ -1,7 +1,7 @@
 #!/bin/bash
 
 . ./tests/utils --source-only
-. ./src/miscellaneous.sh --source-only
+. ./src/kwio.sh --source-only
 
 declare -r PATH_TO_TESTS_EXTERNALS="tests/external"
 

@@ -11,7 +11,7 @@ declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
 declare -r EXTERNAL_SCRIPTS="external"
 
-. src/miscellaneous.sh --source-only
+. src/kwio.sh --source-only
 
 function usage()
 {
