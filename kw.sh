@@ -107,21 +107,21 @@ function kw()
       ;;
     help|h)
       (
-        . $src_script_path/utils.sh --source-only
+        . $src_script_path/help.sh --source-only
 
         kworkflow-help
       )
       ;;
     explore|e)
       (
-        . $src_script_path/utils.sh --source-only
+        . $src_script_path/explore.sh --source-only
 
         explore "$@"
       )
       ;;
     *)
       (
-        . $src_script_path/utils.sh --source-only
+        . $src_script_path/help.sh --source-only
         . $src_script_path/kwio.sh --source-only
 
         complain "Invalid option"
