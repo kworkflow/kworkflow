@@ -1,3 +1,17 @@
+base=$HOME/p/linux-trees
+mount_point=$HOME/p/mount
+build_dir=$base/build-linux
+
+qemu_arch=x86_64
+qemu=qemu-system-${qemu_arch}
+qemu_mnt=/mnt/qemu
+
+port=2222
+ip=127.0.0.1
+
+target=qemu
+bashpath=/bin/bash
+
 qemu_hw_options=-enable-kvm -daemonize -m 3G -smp cores=4,cpus=4
-qemu_net_options=-net nic -net user,hostfwd=tcp::2222-:22,smb=$HOME 
+qemu_net_options=-net nic -net user,hostfwd=tcp::$port-:22,smb=$HOME
 qemu_path_image=$HOME/p/virty.qcow2

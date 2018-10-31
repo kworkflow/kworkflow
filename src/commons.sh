@@ -1,41 +1,44 @@
 . $src_script_path/miscellaneous.sh --source-only
 
-BASE=$HOME/p/linux-trees
-MOUNT_POINT=$HOME/p/mount
-BUILD_DIR=$BASE/build-linux
-
-QEMU_ARCH="x86_64"
-QEMU="qemu-system-${QEMU_ARCH}"
 QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
-VDISK="$HOME/p/virty.qcow2"
-QEMU_MNT="/mnt/qemu"
-DEFAULT_PORT="2222"
-DEFAULT_IP="127.0.0.1"
 
-TARGET="qemu"
+CFG_PATH="$HOME/.config/$EASY_KERNEL_WORKFLOW"
 
-BASHPATH=/bin/bash
-
-# Default configuration
-declare -A configurations=( ["ip"]="127.0.0.1" ["port"]="2222" )
-
-function show_variables()
-{
-  say "Global values:"
-
-  echo -e "\tBASE: $BASE"
-  echo -e "\tBUILD_DIR: $BUILD_DIR"
-  echo -e "\tQEMU ARCH: $QEMU_ARCH"
-  echo -e "\tQEMU COMMAND: $QEMU"
-  echo -e "\tQEMU MOUNT POINT: $QEMU_MNT"
-  echo -e "\tTARGET: $TARGET"
-
+# If configurations is not set, retrieve from either local or default config.
+if [ -z ${configurations+x} ]; then
+  declare -A configurations=()
   check_local_configuration
+fi
+
+function show_variables
+{
+  check_local_configuration
+
+  say "Global variables"
+
+  echo -e "\tMOUNT_POINT: ${configurations[mount_point]}"
+  echo -e "\tBASE: ${configurations[base]}"
+  echo -e "\tBUILD_DIR: ${configurations[build_dir]}"
+  echo -e "\tQEMU ARCH: ${configurations[qemu_arch]}"
+  echo -e "\tQEMU COMMAND: ${configurations[qemu]}"
+  echo -e "\tQEMU MOUNT POINT: ${configurations[qemu_mnt]}"
+  echo -e "\tPORT: ${configurations[port]}"
+  echo -e "\tIP: ${configurations[ip]}"
+  echo -e "\tBASHPATH: ${configurations[bashpath]}"
+  echo -e "\tTARGET: ${configurations[target]}"
+
+  # Set as global variables for other modules.
+  MOUNT_POINT=${configurations[mount_point]}
+  BASE=${configurations[base]}
+  BUILD_DIR=${configurations[build_dir]}
+  QEMU=${configurations[qemu]}
+  VDISK=${configurations[qemu_path_image]}
+  QEMU_MNT=${configurations[qemu_mnt]}
 
   if [ $? -eq 1 ] ; then
     say "There is no kworkflow.conf, adopt default values for:"
-    echo -e "\tQEMU OPTIONS: $QEMU_OPTS"
-    echo -e "\tVDISK: $VDISK"
+    echo -e "\tQEMU OPTIONS: ${configurations[qemu_hw_options]}"
+    echo -e "\tVDISK: ${configurations[qemu_path_image]}"
   else
     say "kw found a kworkflow.conf file. Read options:"
     echo -en "\tQEMU OPTIONS: ${configurations[qemu_hw_options]}"
@@ -44,28 +47,37 @@ function show_variables()
   fi
 }
 
+function read_config
+{
+  local config_path=$1
+  while read line; do
+    if echo $line | grep -F = &>/dev/null; then
+      varname=$(echo $line | cut -d '=' -f 1 | tr -d '[:space:]')
+      value=$(echo "$line" | cut -d '=' -f 2-)
+      vars=$(echo "$value" | grep -o -P '\$\{*[a-zA-Z0-9_]*\}*')
+      if [ ! -z "$vars" ]; then
+        for v in "${vars[@]}"; do
+          if [ "$v" != '$HOME' ]; then
+            u=$(echo "$v" | grep -o -P '[a-zA-Z0-9_]*')
+            value="${value//$v/${configurations[$u]}}"
+          fi
+        done
+      fi
+      configurations[$varname]=$value
+    fi
+  done < $config_path
+}
+
 function check_local_configuration()
 {
   local config_path=$PWD/kworkflow.config
 
-  # File does not exist, use default configuration
+  # Retrieve default values.
+  read_config $CFG_PATH/kworkflow.config.example
+  # File does not exist, use default configuration and warn through exit code.
   if [ ! -f $config_path ] ; then
-    configurations=(
-      [qemu_path_image]=$VDISK
-      [qemu_hw_options]=$QEMU_OPT
-      [qemu_net_options]=""
-      [port]=$DEFAULT_PORT
-      [ip]=$DEFAULT_IP
-    )
     return 1
   fi
-
-  while read line
-  do
-    if echo $line | grep -F = &>/dev/null
-    then
-      varname=$(echo $line | cut -d '=' -f 1 | tr -d '[:space:]')
-      configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
-    fi
-  done < $config_path
+  # Set custom values.
+  read_config $config_path
 }
