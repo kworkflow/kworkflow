@@ -1,18 +1,11 @@
 #!/bin/bash
 
 . ./tests/utils --source-only
-. ./src/utils.sh --source-only
+. ./src/explore.sh --source-only
 
 function suite
 {
-  suite_addTest "testHelp"
   suite_addTest "testExplore"
-}
-
-function testHelp
-{
-  HELP_OUTPUT=$(kworkflow-help | head -n 1)
-  [[ $HELP_OUTPUT =~ Usage:\ kw.* ]]; assertTrue "Help text not displaying correctly." $?
 }
 
 function testExplore
