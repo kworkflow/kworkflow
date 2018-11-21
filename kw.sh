@@ -8,6 +8,9 @@ external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLO
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
 
+complete -W "export e build b bi install i prepare p new n ssh s mail mount mo 
+             umount um boot bo vars v up u codestyle c maintainers m help h" kw
+
 function kw()
 {
   action=$1

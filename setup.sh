@@ -42,14 +42,12 @@ function synchronize_files()
 
   # Copy the script
   cp $APPLICATIONNAME.sh $INSTALLTO
-  cp $APPLICATIONNAME-completion.sh $INSTALLTO
   rsync -vr $SRCDIR $INSTALLTO
   rsync -vr $DEPLOY_DIR $INSTALLTO
 
   # Add to bashrc
   echo "# $APPLICATIONNAME" >> $HOME/.bashrc
   echo "source $INSTALLTO/$APPLICATIONNAME.sh" >> $HOME/.bashrc
-  echo "source $INSTALLTO/$APPLICATIONNAME-completion.sh" >> $HOME/.bashrc
 
   say $SEPARATOR
   say "$APPLICATIONNAME installed into $INSTALLTO"
