@@ -1,63 +1,45 @@
 . $src_script_path/kwio.sh --source-only
 
 BASE=$HOME/p/linux-trees
-MOUNT_POINT=$HOME/p/mount
 BUILD_DIR=$BASE/build-linux
-
-QEMU_ARCH="x86_64"
-QEMU="qemu-system-${QEMU_ARCH}"
-QEMU_OPTS="-enable-kvm -smp 2 -m 1024"
-VDISK="$HOME/p/virty.qcow2"
-QEMU_MNT="/mnt/qemu"
-DEFAULT_PORT="2222"
-DEFAULT_IP="127.0.0.1"
 
 TARGET="qemu"
 
-BASHPATH=/bin/bash
-
 # Default configuration
-declare -A configurations=( ["ip"]="127.0.0.1" ["port"]="2222" )
+declare -A configurations
 
+# This function is used to show the current set up used by kworkflow.
 function show_variables()
 {
-  say "Global values:"
+  local has_local_config_path="No"
 
-  echo -e "\tBASE: $BASE"
-  echo -e "\tBUILD_DIR: $BUILD_DIR"
-  echo -e "\tQEMU ARCH: $QEMU_ARCH"
-  echo -e "\tQEMU COMMAND: $QEMU"
-  echo -e "\tQEMU MOUNT POINT: $QEMU_MNT"
-  echo -e "\tTARGET: $TARGET"
-
-  check_local_configuration
-
-  if [ $? -eq 1 ] ; then
-    say "There is no kworkflow.conf, adopt default values for:"
-    echo -e "\tQEMU OPTIONS: $QEMU_OPTS"
-    echo -e "\tVDISK: $VDISK"
+  if [ -f "$PWD/kworkflow.config" ] ; then
+    has_local_config_path="Yes"
   else
-    say "kw found a kworkflow.conf file. Read options:"
-    echo -en "\tQEMU OPTIONS: ${configurations[qemu_hw_options]}"
-    echo     "${configurations[qemu_net_options]}"
-    echo -e "\tVDISK: ${configurations[qemu_path_image]}"
+    has_local_config_path="No"
   fi
+
+  say "Variables:"
+  echo -e "\tLocal config file: $has_local_config_path"
+  echo -e "\tTarget arch: ${configurations[arch]}"
+  echo -e "\tMount point: ${configurations[mount_point]}"
+  echo -e "\tVirtualization tool: ${configurations[virtualizer]}"
+  echo -e "\tQEMU options: ${configurations[qemu_hw_options]}"
+  echo -e "\tQEMU Net options: ${configurations[qemu_net_options]}"
+  echo -e "\tVdisk: ${configurations[qemu_path_image]}"
 }
 
-function check_local_configuration()
+# This function read the configuration file and make the parser of the data on
+# it. For more information about the configuration file, take a look at
+# "etc/kworkflow.config" in the kworkflow directory.
+# @parameter: This function expects a path to the configuration file.
+function parse_configuration()
 {
-  local config_path=$PWD/kworkflow.config
+  local config_path=$1
+  local filename=$(basename $config_path)
 
-  # File does not exist, use default configuration
-  if [ ! -f $config_path ] ; then
-    configurations=(
-      [qemu_path_image]=$VDISK
-      [qemu_hw_options]=$QEMU_OPT
-      [qemu_net_options]=""
-      [port]=$DEFAULT_PORT
-      [ip]=$DEFAULT_IP
-    )
-    return 1
+  if [ ! -f $1 ] || [ "$filename" != "kworkflow.config" ] ; then
+    return 22 # 22 means Invalid argument - EINVAL
   fi
 
   while read line
@@ -69,3 +51,22 @@ function check_local_configuration()
     fi
   done < $config_path
 }
+
+# This function check if the current directory has a configuration file, if so,
+# just use it. Otherwise, use the global configuration file.
+function load_configuration()
+{
+  local local_config_path=$PWD/kworkflow.config
+
+  # First, load the global configuration
+  parse_configuration $config_files_path/kworkflow.config
+
+  # Second, check if has a local file and override values
+  if [ -f $local_config_path ] ; then
+    parse_configuration $local_config_path
+  fi
+}
+
+# Every time that "commons.sh" is included, the configuration file has to be
+# loaded
+load_configuration

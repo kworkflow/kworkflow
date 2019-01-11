@@ -2,13 +2,11 @@
 
 function vm_modules_install
 {
-  check_local_configuration
-
   # Attention: The vm code have to be loaded before this function.
   # Take a look at the beginning of kworkflow.sh.
   vm_mount
   set +e
-  make INSTALL_MOD_PATH=$MOUNT_POINT modules_install
+  make INSTALL_MOD_PATH=${configurations[mount_point]} modules_install
   release=$(make kernelrelease)
   say $release
   vm_umount
@@ -16,11 +14,9 @@ function vm_modules_install
 
 function vm_kernel_install
 {
-  check_local_configuration
-
   vm_mount
   set +e
-  sudo -E make INSTALL_PATH=$QEMU_MNT/boot
+  sudo -E make INSTALL_PATH=${configurations[mount_point]}/boot
   release=$(make kernelrelease)
   vm_umount
 }
@@ -49,8 +45,6 @@ function mk_build
 
 function mk_install
 {
-  check_local_configuration
-
   # FIXME: validate arch and action
   if [ $TARGET == "arm" ] ; then
     export ARCH=arm CROSS_COMPILE="ccache arm-linux-gnu-"
@@ -101,8 +95,6 @@ function mk_send_mail
 # FIXME: Here we have a legacy code, check if we can remove it
 function mk_export_kbuild
 {
-  check_local_configuration
-
   say "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
   export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
   mkdir -p $KBUILD_OUTPUT

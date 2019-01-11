@@ -55,6 +55,15 @@ kw help
 pull from this repository and install again (`./setup -i` remove legacy files
 and intall new one).
 
+# Global configuration file
+
+> All the default configurations used by kworflow can be seen at
+"~/.config/kw/etc/kworkflow.config"; this config file has a comment on each
+configuration option. Finally, it is important to highlight that kw loads de
+default configurations; next, it tries to find a local configuration file
+(detailed ahead) and overwrite the global option by the ones read from the
+local config file.
+
 # Local configuration file
 
 > One of the features of this project, it is the ability to set a specific set

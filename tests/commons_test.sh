@@ -4,8 +4,10 @@
 
 function suite
 {
-  suite_addTest "testConfigFileNotFound"
-  suite_addTest "testConfigFileFound"
+  suite_addTest "testParseRegularConfig"
+  suite_addTest "testParseUnsupportedFile"
+  suite_addTest "testDefaultConfigFile"
+  suite_addTest "testLocalConfigFile"
 }
 
 function setUp
@@ -18,21 +20,40 @@ function tearDown
     rm -rf tests/.tmp_commons_test
 }
 
-function testConfigFileNotFound
+function testParseRegularConfig
 {
     . ./src/commons.sh --source-only
 
+    parse_configuration tests/samples/kworkflow.config
+    assertTrue "Kw failed to load a regular config file" "[ 0 -eq $? ]"
+}
+
+function testParseUnsupportedFile
+{
+    . ./src/commons.sh --source-only
+
+    parse_configuration tests/commons_test.sh
+    assertTrue "kw loaded an unsopported file" "[ 22 -eq $? ]"
+}
+
+function testDefaultConfigFile
+{
+    local path_repo=$PWD
+
+    . ./src/commons.sh --source-only
+
     declare -A expected_configurations=(
-      [qemu_path_image]=$VDISK
-      [qemu_hw_options]=$QEMU_OPT
-      [qemu_net_options]=""
-      [port]=$DEFAULT_PORT
-      [ip]=$DEFAULT_IP
+      [arch]="x86_64"
+      [virtualizer]="qemu-system-x86_64"
+      [qemu_path_image]="/home/USERKW/p/virty.qcow2"
+      [qemu_hw_options]="-enable-kvm -daemonize -smp 2 -m 1024"
+      [qemu_net_options]="-net nic -net user,hostfwd=tcp::2222-:22,smb=/home/USERKW"
+      [ssh_ip]="localhost"
+      [ssh_port]="2222"
+      [mount_point]="/home/USERKW/p/mount"
     )
 
-    pushd tests/.tmp_commons_test
-    check_local_configuration
-    popd
+    parse_configuration $path_repo/etc/kworkflow.config
 
     # check if configurations is contained in expected_configurations
     for k in "${!configurations[@]}"; do
@@ -51,23 +72,24 @@ function testConfigFileNotFound
     true # Reset return value
 }
 
-function testConfigFileFound
+function testLocalConfigFile
 {
     . ./src/commons.sh --source-only
 
     declare -A expected_configurations=(
-      [key1]="value1"
-      [key2]="value2"
-      [key3]="value3"
-      [ip]="127.0.0.1"
-      [port]="2222"
+      [arch]="arm"
+      [virtualizer]="libvirt"
+      [qemu_path_image]="/home/xpto/p/virty.qcow2"
+      [ssh_ip]="127.0.0.1"
+      [ssh_port]="3333"
+      [mount_point]="/home/lala"
     )
 
     cp tests/samples/kworkflow.config tests/.tmp_commons_test/
 
-    pushd tests/.tmp_commons_test
-    check_local_configuration
-    popd
+    pushd tests/.tmp_commons_test > /dev/null
+    parse_configuration $PWD/kworkflow.config
+    popd > /dev/null
 
     # check if configurations is contained in expected_configurations
     for k in "${!configurations[@]}"; do

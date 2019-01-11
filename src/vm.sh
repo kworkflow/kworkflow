@@ -2,35 +2,36 @@
 
 function vm_mount
 {
-  check_local_configuration
+  mkdir -p ${configurations[mount_point]}
 
-  mkdir -p $MOUNT_POINT
-  say "Mount $VDISK in $MOUNT_POINT"
-  guestmount -a $VDISK -i $MOUNT_POINT
+  say "Mount ${configurations[qemu_path_image]}" \
+      "in ${configurations[mount_point]}"
+
+  guestmount -a ${configurations[qemu_path_image]} \
+             -i ${configurations[mount_point]}
+
   if [ "$?" != 0 ] ; then
-    complain "Something went wrong when tried to mount $VDISK in $MOUNT_POINT"
+    complain "Something went wrong when tried to mount" \
+        "${configurations[qemu_path_image]} in ${configurations[mount_point]}"
     return 1
   fi
 }
 
 function vm_umount
 {
-  check_local_configuration
-
-  say "Unmount $MOUNT_POINT"
-  guestunmount $MOUNT_POINT
+  say "Unmount ${configurations[mount_point]}"
+  guestunmount ${configurations[mount_point]}
   if [ "$?" != 0 ] ; then
-    complain "Something went wrong when tried to unmount $VDISK in $MOUNT_POINT"
+    complain "Something went wrong when tried to unmount" \
+        "${configurations[qemu_path_image]} in ${configurations[mount_point]}"
     return 1
   fi
 }
 
 function vm_boot
 {
-  check_local_configuration
-
-  $QEMU -hda $VDISK \
-    ${QEMU_OPTS} \
+  ${configurations[virtualizer]} -hda ${configurations[qemu_path_image]} \
+    ${configurations[qemu_hw_options]} \
     -kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
     -append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1" \
     -net nic -net user,hostfwd=tcp::5555-:22 \
@@ -40,25 +41,21 @@ function vm_boot
 
 function vm_up
 {
-
-  check_local_configuration
-
   say "Starting Qemu with: "
-  echo "$QEMU ${configurations[qemu_hw_options]}" \
+  echo "${configurations[virtualizer]} ${configurations[qemu_hw_options]}" \
        "${configurations[qemu_net_options]}" \
        "${configurations[qemu_path_image]}"
 
-  $QEMU ${configurations[qemu_hw_options]} \
+  ${configurations[virtualizer]} ${configurations[qemu_hw_options]} \
         ${configurations[qemu_net_options]} \
         ${configurations[qemu_path_image]}
 }
 
 function vm_ssh
 {
-  check_local_configuration
-
-  say "SSH to: port: " ${configurations[port]} " ip: " ${configurations[ip]}
-  ssh -p ${configurations[port]} ${configurations[ip]}
+  say "SSH"
+  say "-> Port: " ${configurations[ssh_port]} " IP: " ${configurations[ssh_ip]}
+  ssh -p ${configurations[ssh_port]} ${configurations[ssh_ip]}
 }
 
 function vm_prepare
