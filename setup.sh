@@ -11,6 +11,7 @@ declare -r CONFIG_DIR="etc"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
 declare -r EXTERNAL_SCRIPTS="external"
+declare -r SOUNDS="sounds"
 
 . src/kwio.sh --source-only
 
@@ -57,6 +58,7 @@ function synchronize_files()
   cp $APPLICATIONNAME.sh $INSTALLTO
   rsync -vr $SRCDIR $INSTALLTO
   rsync -vr $DEPLOY_DIR $INSTALLTO
+  rsync -vr $SOUNDS $INSTALLTO
 
   # Configuration
   rsync -vr $CONFIG_DIR $INSTALLTO

@@ -51,6 +51,9 @@ function testDefaultConfigFile
       [ssh_ip]="localhost"
       [ssh_port]="2222"
       [mount_point]="/home/USERKW/p/mount"
+      [alert]="n"
+      [sound_alert_command]="paplay INSTALLPATH/sounds/complete.wav &"
+      [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\\\"\$COMMAND\\\\\" completed!\""
     )
 
     parse_configuration $path_repo/etc/kworkflow.config
