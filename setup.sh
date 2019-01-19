@@ -36,9 +36,14 @@ function clean_legacy()
 
 function setup_config_file()
 {
-  say "Customizing configurations"
-  local match_rule="s/USERKW/$USER/g"
-  sed -i $match_rule $INSTALLTO/$CONFIG_DIR/*.config
+  say "Setting up global configuration file"
+  local config_files="$INSTALLTO/$CONFIG_DIR/*.config"
+  sed -i "s/USERKW/$USER/g" $config_files
+  # FIXME: The following sed command assumes users won't
+  # have files containing ",".
+  sed -i "s,INSTALLPATH,$INSTALLTO,g" $config_files
+  sed -i "/^#?.*/d" $config_files
+
 }
 
 # Synchronize .vim and .vimrc with repository.
