@@ -1,0 +1,13 @@
+# This is a sample MAINTAINERS file. It is used by the
+# get_maintainer_wrapper_test.sh
+
+FILESYSTEMS
+M:	John Doe <john@email.com>
+L:	fs@list.org
+F:	fs/*
+
+THE REST
+M:	Jane Doe <jane@email.com>
+L:	kernel@list.org
+F:	*
+F:	*/

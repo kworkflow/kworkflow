@@ -18,6 +18,12 @@ following dependencies:
 * Qemu
 * Ansible
 
+> If you want to use the default alert system (for commands that may take longer
+to run), you will also need to install:
+
+* paplay
+* notify-send
+
 ## Recommendations
 
 If you want to use Qemu, we recommend the following steps:
@@ -173,6 +179,25 @@ If you have everything set, just execute the command:
 kw prepare|p
 ```
 
+> Some commands take considerable time to execute. So kw gives you an option to
+> be notified when they finish. That way, you can do something else while they
+> run. The commands with this feature available are: prepare, build, install,
+> mount, umount, new and bi. To enable the notification, use the option
+> "--alert=vs", e.g.:
+
+```
+kw prepare --alert=vs
+```
+
+> There are four options to --alert=, which are vs|sv, v, s, n.
+- v enables visual notification
+- s enables sound notification
+- vs or sv enables both
+- n (or any other option) disable notifications
+
+> The default option, when --alert= is not given is n. It can be configured at
+> the kworflow.config file.
+
 # Tests
 
 > Tests rely on `shunit2`. The `run_tests.sh` automatically uses a
@@ -212,3 +237,6 @@ run_tests.sh prepare
 ```
 run_tests.sh prepare -f|--force-update
 ```
+
+> Please note that run_tests.sh must be run from the directory it is in, i.e.
+the root of the repository. Otherwise, it may not execute properly.

@@ -9,8 +9,35 @@ config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
 
-complete -W "export e build b bi install i prepare p new n ssh s mail mount mo
-             umount um boot bo vars v up u codestyle c maintainers m help h" kw
+_kw_autocomplete()
+{
+    local current_command previous_command kw_options
+    COMPREPLY=()
+    current_command="${COMP_WORDS[COMP_CWORD]}"
+    previous_command="${COMP_WORDS[COMP_CWORD-1]}"
+    kw_options="export e build b bi install i prepare p new n ssh s
+                mail mount mo umount um boot bo vars v up u codestyle c
+                maintainers m help h"
+
+    # By default, autocomplete with kw_options
+    if [[ ${previous_command} == kw ]] ; then
+        COMPREPLY=( $(compgen -W "${kw_options}" -- ${current_command}) )
+        return 0
+    fi
+
+    # TODO:
+    # Autocomplete in the bash terminal is a powerful tool which allows us to
+    # make many interesting things. In the future, we could add an
+    # autocompletion for subcommands, the code below illustrates an example
+    # that tries to add this feature for the ‘maintainers’ options.
+    #
+    # For maintainers and m options, autocomplete with folder
+    # if [ ${previous_command} == maintainers ] || [ ${previous_command} == m ] ; then
+    #   COMPREPLY=( $(compgen -d -- ${current_command}) )
+    #   return 0
+    # fi
+}
+complete -o default -F _kw_autocomplete kw
 
 function kw()
 {
@@ -23,6 +50,9 @@ function kw()
         . $src_script_path/vm.sh --source-only
 
         vm_mount
+        local ret=$?
+        alert_completion "kw build" "$1"
+        return $ret
       )
       ;;
     umount|um)
@@ -30,6 +60,9 @@ function kw()
         . $src_script_path/vm.sh --source-only
 
         vm_umount
+        local ret=$?
+        alert_completion "kw build" "$1"
+        return $ret
       )
       ;;
     boot|bo)
@@ -51,6 +84,9 @@ function kw()
         . $src_script_path/vm.sh --source-only
 
         vm_prepare
+        local ret=$?
+        alert_completion "kw prepare" "$1"
+        return $ret
       )
       ;;
     build|b)
@@ -58,6 +94,9 @@ function kw()
         . $src_script_path/mk.sh --source-only
 
         mk_build
+        local ret=$?
+        alert_completion "kw build" "$1"
+        return $ret
       )
       ;;
     install|i)
@@ -65,6 +104,9 @@ function kw()
         . $src_script_path/mk.sh --source-only
 
         mk_install
+        local ret=$?
+        alert_completion "kw install" "$1"
+        return $ret
       )
       ;;
     new|n)
@@ -72,6 +114,9 @@ function kw()
         . $src_script_path/mk.sh --source-only
 
         vm_new_release_deploy
+        local ret=$?
+        alert_completion "kw new" "$1"
+        return $ret
       )
       ;;
     bi)
@@ -79,6 +124,9 @@ function kw()
         . $src_script_path/mk.sh --source-only
 
         mk_build && mk_install
+        local ret=$?
+        alert_completion "kw bi" "$1"
+        return $ret
       )
       ;;
     ssh|s)
