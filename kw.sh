@@ -50,6 +50,9 @@ function kw()
         . $src_script_path/vm.sh --source-only
 
         vm_mount
+        local ret=$?
+        alert_completion "kw build" "$1"
+        return $ret
       )
       ;;
     umount|um)
@@ -57,6 +60,9 @@ function kw()
         . $src_script_path/vm.sh --source-only
 
         vm_umount
+        local ret=$?
+        alert_completion "kw build" "$1"
+        return $ret
       )
       ;;
     boot|bo)
@@ -78,6 +84,9 @@ function kw()
         . $src_script_path/vm.sh --source-only
 
         vm_prepare
+        local ret=$?
+        alert_completion "kw prepare" "$1"
+        return $ret
       )
       ;;
     build|b)
@@ -85,6 +94,9 @@ function kw()
         . $src_script_path/mk.sh --source-only
 
         mk_build
+        local ret=$?
+        alert_completion "kw build" "$1"
+        return $ret
       )
       ;;
     install|i)
@@ -92,6 +104,9 @@ function kw()
         . $src_script_path/mk.sh --source-only
 
         mk_install
+        local ret=$?
+        alert_completion "kw install" "$1"
+        return $ret
       )
       ;;
     new|n)
@@ -99,6 +114,9 @@ function kw()
         . $src_script_path/mk.sh --source-only
 
         vm_new_release_deploy
+        local ret=$?
+        alert_completion "kw new" "$1"
+        return $ret
       )
       ;;
     bi)
@@ -106,6 +124,9 @@ function kw()
         . $src_script_path/mk.sh --source-only
 
         mk_build && mk_install
+        local ret=$?
+        alert_completion "kw bi" "$1"
+        return $ret
       )
       ;;
     ssh|s)
