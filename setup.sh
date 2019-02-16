@@ -14,26 +14,44 @@ declare -r EXTERNAL_SCRIPTS="external"
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
 
+declare -r CONFIGS_PATH="configs"
+
 . src/kwio.sh --source-only
 
 function usage()
 {
   say "--install   | -i   Install $APPLICATIONNAME"
   say "--uninstall | -u   Uninstall $APPLICATIONNAME"
+  say "--completely-remove Remove $APPLICATIONNAME and all files under its responsibility"
 }
 
 function clean_legacy()
 {
   say "Removing ..."
   local trash=$(mktemp -d)
-
-  # Remove files
-  if [ -d $INSTALLTO ]; then
-    mv $INSTALLTO $trash
-  fi
+  local completely_remove=$1
 
   local toDelete="$APPLICATIONNAME"
   eval "sed -i '/$toDelete/d' $HOME/.bashrc"
+  if [[ $completely_remove =~ "-d" ]]; then
+    mv $INSTALLTO $trash
+    return 0
+  fi
+
+  # Remove files
+  if [ -d $INSTALLTO ]; then
+    # If we have configs, we should keep it
+    if [ -d $INSTALLTO/$CONFIGS_PATH ]; then
+        for content in $INSTALLTO/*; do
+          if [[ $content =~ "configs" ]]; then
+            continue
+          fi
+          mv $content $trash
+        done
+    else
+      mv $INSTALLTO $trash
+    fi
+  fi
 }
 
 function setup_config_file()
@@ -128,6 +146,16 @@ case $1 in
     ;;
   --uninstall | -u)
     clean_legacy
+    ;;
+    # ATTENTION: This option is dangerous because it completely removes all files
+    # related to kw, e.g., '.config' file under kw controls. For this reason, we do
+    # not want to add a short version, and the user has to be sure about this
+    # operation.
+  --completely-remove)
+    clean_legacy "-d"
+    ;;
+  --help)
+    usage
     ;;
   *)
     complain "Invalid number of arguments"

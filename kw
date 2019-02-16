@@ -4,7 +4,8 @@
 EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kw"}
 src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
 external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
-config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"}
+etc_files_path=${etc_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"}
+config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW"}
 
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
@@ -125,6 +126,13 @@ function kw()
         . $src_script_path/get_maintainer_wrapper.sh --source-only
 
         execute_get_maintainer $@
+      )
+      ;;
+    configm|g)
+      (
+        . $src_script_path/config_manager.sh --source-only
+
+        execute_config_manager $@
       )
       ;;
     help|h)
