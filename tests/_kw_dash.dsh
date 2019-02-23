@@ -1,0 +1,3 @@
+#!/bin/dash
+
+./kw h > /dev/null
