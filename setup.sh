@@ -12,6 +12,7 @@ declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
 declare -r EXTERNAL_SCRIPTS="external"
 declare -r SOUNDS="sounds"
+declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
 
 . src/kwio.sh --source-only
 
@@ -55,7 +56,7 @@ function synchronize_files()
   mkdir -p $INSTALLTO
 
   # Copy the script
-  cp $APPLICATIONNAME.sh $INSTALLTO
+  cp $APPLICATIONNAME $INSTALLTO
   rsync -vr $SRCDIR $INSTALLTO
   rsync -vr $DEPLOY_DIR $INSTALLTO
   rsync -vr $SOUNDS $INSTALLTO
@@ -64,9 +65,14 @@ function synchronize_files()
   rsync -vr $CONFIG_DIR $INSTALLTO
   setup_config_file
 
-  # Add to bashrc
-  echo "# $APPLICATIONNAME" >> $HOME/.bashrc
-  echo "source $INSTALLTO/$APPLICATIONNAME.sh" >> $HOME/.bashrc
+  if [ -f "$HOME/.bashrc" ]; then
+      # Add to bashrc
+      echo "# $APPLICATIONNAME" >> $HOME/.bashrc
+      echo "PATH=\$PATH:$INSTALLTO" >> $HOME/.bashrc
+      echo "source $INSTALLTO/$SRCDIR/$BASH_AUTOCOMPLETE.sh" >> $HOME/.bashrc
+  else
+      warning "Unable to find a shell."
+  fi
 
   say $SEPARATOR
   say "$APPLICATIONNAME installed into $INSTALLTO"
