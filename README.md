@@ -250,3 +250,7 @@ run_tests.sh prepare -f|--force-update
 
 > Please note that run_tests.sh must be run from the directory it is in, i.e.
 the root of the repository. Otherwise, it may not execute properly.
+
+# License
+
+Kworkflow is under GPL-2.0+
