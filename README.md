@@ -18,6 +18,7 @@ following dependencies:
 * Qemu
 * Ansible
 * Bash
+* git
 
 > If you want to use the default alert system (for commands that may take longer
 to run), you will also need to install:
@@ -207,6 +208,25 @@ kw prepare --alert=vs
 
 > The default option, when --alert= is not given is n. It can be configured at
 > the kworflow.config file.
+
+```
+kw configm
+```
+
+> The 'configm' option represents the main application that manages the
+> '.config' files for users. In summary, it provides operations for save, load,
+> removes, and list '.config' files previously saved by the user. See the
+> current options:
+
+- `--save NAME [-d DESCRIPTION] [-f]` The save option seeks in the current
+  directory for a '.config' file to be to be added under the management of kw.
+  The save option expects a name to be used as a alias for the target config
+  file. If we have a local '.config' and a valid name, kw saves the
+  configuration file. Additionally, users can add a description by using '-d'
+  flag. Finally, if the user tries to add the same name twice kw will warn
+  about it; the '-f' will suppress this message.
+
+- `--ls` list all the config files available.
 
 # Tests
 
