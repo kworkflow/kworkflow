@@ -22,11 +22,11 @@ function execute_checkpatch()
   FLIST=`find $FILE_OR_DIR_CHECK -type f ! -name '*\.mod\.c' | grep "\.[ch]$" `
 
   say "Running checkpatch.pl on: $FILE_OR_DIR_CHECK"
+  say $SEPARATOR
 
   for current_file in $FLIST
   do
     file=$current_file
-    echo
 
     if [ ! -e "$file" ]
     then
@@ -34,7 +34,11 @@ function execute_checkpatch()
       continue
     fi
 
-    say $SEPARATOR
     $checkpatch $file
+
+    if [ $? != 0 ]; then
+      say $SEPARATOR
+    fi
+
   done
 }

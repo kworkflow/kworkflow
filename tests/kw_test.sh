@@ -1,7 +1,7 @@
 #!/bin/bash
 
 . ./tests/utils --source-only
-. ./kw.sh --source-only
+. ./kw --source-only > /dev/null
 
 function suite
 {

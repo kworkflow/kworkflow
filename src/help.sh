@@ -24,4 +24,8 @@ function kworkflow-help()
     "\t                             prints files authors\n" \
     "\texplore,e - Search for expression on git log or directory\n" \
     "\thelp,h - displays this help mesage"
+
+  echo -e "\nkw config manager:\n" \
+    "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
+    "\tconfigm,g --ls - List config files under kw management\n"
 }

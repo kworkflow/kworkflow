@@ -17,6 +17,8 @@ following dependencies:
 * libguestfs
 * Qemu
 * Ansible
+* Bash
+* git
 
 > If you want to use the default alert system (for commands that may take longer
 to run), you will also need to install:
@@ -24,14 +26,19 @@ to run), you will also need to install:
 * paplay
 * notify-send
 
+> For development, you will need the additional packages:
+
+* dash
+* shunit2
+
 ## Recommendations
 
 If you want to use Qemu, we recommend the following steps:
 
-1) Create an Qemu image as a qcow2;
+1) Create a Qemu image in the qcow2 format;
 2) Create a working directory: `/mnt/qemu`;
 3) After you have your image, we recommend you to setup basic stuff (this
-   can vary depends on the distribution you choose - kernel setup, ssh, etc);
+   can vary depending on the distribution you choose - kernel setup, ssh, etc);
 
 # Install kw
 
@@ -48,8 +55,12 @@ your `.bashrc`:
 
 ```
 # kw
-source /home/<user>/.config/kw/kw.sh
+PATH=$PATH:/home/<user>/.config/kw
+source /home/<user>/.config/kw/src/bash_autocomplete.sh
 ```
+
+> If you use another shell (`ksh`, for example), you will need to manually add
+the path to `kw` to `PATH` environment variable.
 
 > To check if the installations was ok, type:
 
@@ -57,22 +68,22 @@ source /home/<user>/.config/kw/kw.sh
 kw help
 ```
 
-> Finally, everytime that you want to update your `kw` just
-pull from this repository and install again (`./setup -i` remove legacy files
-and intall new one).
+> Finally, everytime that you want to update your `kw`, just
+pull from this repository and install again (`./setup -i` removes legacy files
+and installs new ones).
 
 # Global configuration file
 
 > All the default configurations used by kworflow can be seen at
 "~/.config/kw/etc/kworkflow.config"; this config file has a comment on each
-configuration option. Finally, it is important to highlight that kw loads de
+configuration option. Finally, it is important to highlight that kw loads the
 default configurations; next, it tries to find a local configuration file
-(detailed ahead) and overwrite the global option by the ones read from the
+(detailed ahead) and overwrites the global options with the ones read from the
 local config file.
 
 # Local configuration file
 
-> One of the features of this project, it is the ability to set a specific set
+> One of the features of this project is the ability to set a specific set
 of configuration per directory. For example, if you have a particular kernel
 tree named 'drm-work' and want a different configuration from the default you
 can follow these steps:
@@ -93,30 +104,30 @@ qemu_path_image=$HOME/p/virty.qcow2
 ```
 
 3) Done, every time you execute any command in the root dir of drm-work the
-configuration file will be read. If file does not exists, the default operation
+configuration file will be read. If the file does not exist, the default operation
 will be used.
 
 # How to
 
-> Help commands:
+> Get help or list existing commands:
 
 ```
 kw help|h
 ```
 
-> Build a Kernel and install in the Qemu image:
+> Build a Kernel and install it in the Qemu image:
 
 ```
 kw bi
 ```
 
-> Mount Qemu image to transfer data:
+> Mount the Qemu image to transfer data:
 
 ```
 kw mount|mo
 ```
 
-> Umount Qemu image:
+> Umount the Qemu image:
 
 ```
 kw umount|um
@@ -128,7 +139,7 @@ kw umount|um
 kw vars|v
 ```
 
-> Turn on vm:
+> Turn on the VM:
 
 ```
 kw up|u
@@ -163,9 +174,9 @@ kw explore log <EXRESSION> [-p] <DIRECTORY_PATH | FILE PATH>
 ```
 
 > You can put your VM in a status that is ready for work with the prepare
-command. However, there is some basic steps for it work well:
+command. However, there are some basic steps for it to work well:
 
-1. Add your public key in the VM on the authorized_keys file;
+1. Add your public key in the VM in the authorized_keys file;
 2. Remove the requirement for password in the VM to became root. Something like
   that:
 
@@ -193,17 +204,36 @@ kw prepare --alert=vs
 - v enables visual notification
 - s enables sound notification
 - vs or sv enables both
-- n (or any other option) disable notifications
+- n (or any other option) disables notifications
 
-> The default option, when --alert= is not given is n. It can be configured at
+> The default option, when --alert= is not given is n. It can be configured in
 > the kworflow.config file.
+
+```
+kw configm
+```
+
+> The 'configm' option represents the main application that manages the
+> '.config' files for users. In summary, it provides operations for save, load,
+> removes, and list '.config' files previously saved by the user. See the
+> current options:
+
+- `--save NAME [-d DESCRIPTION] [-f]` The save option seeks in the current
+  directory for a '.config' file to be to be added under the management of kw.
+  The save option expects a name to be used as a alias for the target config
+  file. If we have a local '.config' and a valid name, kw saves the
+  configuration file. Additionally, users can add a description by using '-d'
+  flag. Finally, if the user tries to add the same name twice kw will warn
+  about it; the '-f' will suppress this message.
+
+- `--ls` list all the config files available.
 
 # Tests
 
 > Tests rely on `shunit2`. The `run_tests.sh` automatically uses a
 > `shunit2` executable if detected in `$PATH` (as is the case for
 > package distributions).  Otherwise, a `shunit2` script is expected to
-> be present at `tests/` (downloadable from https://github.com/kward/shunit2).
+> be present in `tests/` (downloadable from https://github.com/kward/shunit2).
 
 > You can either run all tests with:
 
@@ -231,7 +261,7 @@ run_tests.sh test tfile1 tfile2 tfile3
 run_tests.sh prepare
 ```
 
-> Also, if you already have the test's environment prepared but wants to update
+> Also, if you already have the test's environment prepared but want to update
 > the external files, there's an option to upgrade the environment:
 
 ```
@@ -240,3 +270,7 @@ run_tests.sh prepare -f|--force-update
 
 > Please note that run_tests.sh must be run from the directory it is in, i.e.
 the root of the repository. Otherwise, it may not execute properly.
+
+# License
+
+Kworkflow is under GPL-2.0+
