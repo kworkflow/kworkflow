@@ -30,6 +30,7 @@ to run), you will also need to install:
 
 * dash
 * shunit2
+* fish
 
 ## Recommendations
 
