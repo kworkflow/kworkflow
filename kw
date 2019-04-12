@@ -104,7 +104,7 @@ function kw()
       (
         . $src_script_path/vm.sh --source-only
 
-        vm_ssh
+        vm_ssh $@
       )
       ;;
     vars|v)

@@ -13,7 +13,6 @@ function kworkflow-help()
     "\tbi - Build and install modules\n" \
     "\tprepare,p - Deploy basic environment in the VM\n" \
     "\tnew,n - Install new Kernel image\n" \
-    "\tssh,s - Enter in the vm\n" \
     "\tmount,mo - Mount partition with qemu-nbd\n" \
     "\tumount,um - Umount partition created with qemu-nbd\n" \
     "\tvars,v - Show variables\n" \
@@ -28,4 +27,8 @@ function kworkflow-help()
   echo -e "\nkw config manager:\n" \
     "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
     "\tconfigm,g --ls - List config files under kw management\n"
+
+  echo -e "kw ssh|s options:\n" \
+    "\tssh|s [--script|-s="SCRIPT PATH"]\n" \
+    "\tssh|s [--command|-c="COMMAND"]\n"
 }

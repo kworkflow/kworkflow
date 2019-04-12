@@ -144,6 +144,14 @@ kw vars|v
 ```
 kw up|u
 ```
+> Based on the kworkflow.config file tries to perform ssh operation such as
+> login into the VM or execute a host script in the VM.
+> Note: The `--script` parameter, only evaluate bash scripts
+
+```
+kw ssh|s [--script|-s="SCRIPT PATH"]
+kw ssh|s [--command|-c="COMMAND"]
+```
 
 > Run checkpatch in a target (directory of file):
 
