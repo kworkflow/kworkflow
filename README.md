@@ -1,27 +1,3 @@
-# Kworkflow
-
-# About
-
-> This set of scripts have a simple mission: reduce the overhead with
-infrastructure setup for Linux development. We export all the scripts
-functionality via bashrc, to make the commands available in any place you want
-to work.
-
-> Kworkflow stands for Kernel Workflow.
-
-# Package Dependencies
-
-> You have to figure out the correct package name in your distro for the
-following dependencies:
-
-* libguestfs
-* Qemu
-* Ansible
-* Bash
-* git
-* python-docutils
-
-> If you want to use the default alert system (for commands that may take longer
 to run), you will also need to install:
 
 * paplay

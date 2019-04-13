@@ -127,8 +127,8 @@ This section describes a tool available in **kw** to help developers keep track
 of configuration files and other features provided by **kw** that do not fit in
 the previous sections.
 
-g, configm [*--save NAME* [*-d DESCRIPTION*][-f]]|[*--ls*]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+g, configm [--save *NAME* [-d *DESCRIPTION*][-f]]|[--ls]|[--get *NAME* [-f]]|[--rm *NAME* [-f]]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 'configm' command manages different versions of the project's '.config'
 file.  It provides the save, load, remove, and list operations of such files.
@@ -141,6 +141,14 @@ same name twice, **kw** will issue a warning; the '-f' will suppress this
 message.
 
 2. --ls lists all the .config file versions available.
+
+3. --get *NAME* [-f]: Get a config file based on the *NAME* and paste it in the
+current directory. It pop-up a warning message because this operation override
+the current .config file. The user can suppress this warning by using -f flag.
+
+4. --rm *NAME* [-f]: Remove config labeled with *NAME*. It pop-up a warning
+message because it will remove the config file from kw management. The user can
+suppress this warning by using -f.
 
 v, vars
 ~~~~~~~
