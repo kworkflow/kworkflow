@@ -228,6 +228,15 @@ kw configm
 
 - `--ls` list all the config files available.
 
+- `--get NAME [-f]` Get a config file based on the NAME and paste it in the
+   current directory.  It pop-up a warning message because this operation
+   override the current `.config` file. The user can suppress this warning
+   by using `-f` flag.
+
+- `--rm NAME [-f]` Remove config labeled with NAME. It pop-up a warning
+   message because it will remove the config file from kw management. The
+   user can suppress this warning by using `-f`.
+
 # Tests
 
 > Tests rely on `shunit2`. The `run_tests.sh` automatically uses a
