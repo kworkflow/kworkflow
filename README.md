@@ -19,6 +19,7 @@ following dependencies:
 * Ansible
 * Bash
 * git
+* python-docutils
 
 > If you want to use the default alert system (for commands that may take longer
 to run), you will also need to install:
@@ -109,132 +110,8 @@ will be used.
 
 # How to
 
-> Get help or list existing commands:
-
-```
-kw help|h
-```
-
-> Build a Kernel and install it in the Qemu image:
-
-```
-kw bi
-```
-
-> Mount the Qemu image to transfer data:
-
-```
-kw mount|mo
-```
-
-> Umount the Qemu image:
-
-```
-kw umount|um
-```
-
-> Show variable status used by `kw`:
-
-```
-kw vars|v
-```
-
-> Turn on the VM:
-
-```
-kw up|u
-```
-> Based on the kworkflow.config file tries to perform ssh operation such as
-> login into the VM or execute a host script in the VM.
-> Note: The `--script` parameter, only evaluate bash scripts
-
-```
-kw ssh|s [--script|-s="SCRIPT PATH"]
-kw ssh|s [--command|-c="COMMAND"]
-```
-
-> Run checkpatch in a target (directory of file):
-
-```
-kw codestyle|c <DIRECTORY_PATH | FILE_PATH>
-```
-
-> Get maintainers (directory or file):
-> The option [-a|--authors] will print the file author of FILE_PATH or
-> the authors of the files under DIRECTORY_PATH (non-recursively). Files
-> with more than one author will have their authors separated by ",".
-> Use with care, because sometimes, authors include also "," in their
-> names (e.g. "Company X, Inc.").
-```
-kw maintainers|m [-a|--authors] <DIRECTORY_PATH | FILE_PATH>
-```
-
-> Search for a regex in a directory or file:
-
-```
-kw explore <EXPRESSION> <DIRECTORY_PATH | FILE_PATH>
-```
-
-> Search for a word added in a git commit:
-
-```
-kw explore log <EXRESSION> [-p] <DIRECTORY_PATH | FILE PATH>
-```
-
-> You can put your VM in a status that is ready for work with the prepare
-command. However, there are some basic steps for it to work well:
-
-1. Add your public key in the VM in the authorized_keys file;
-2. Remove the requirement for password in the VM to became root. Something like
-  that:
-
-```
-user ALL=(ALL) NOPASSWD: ALL
-```
-
-If you have everything set, just execute the command:
-
-```
-kw prepare|p
-```
-
-> Some commands take considerable time to execute. So kw gives you an option to
-> be notified when they finish. That way, you can do something else while they
-> run. The commands with this feature available are: prepare, build, install,
-> mount, umount, new and bi. To enable the notification, use the option
-> "--alert=vs", e.g.:
-
-```
-kw prepare --alert=vs
-```
-
-> There are four options to --alert=, which are vs|sv, v, s, n.
-- v enables visual notification
-- s enables sound notification
-- vs or sv enables both
-- n (or any other option) disables notifications
-
-> The default option, when --alert= is not given is n. It can be configured in
-> the kworflow.config file.
-
-```
-kw configm
-```
-
-> The 'configm' option represents the main application that manages the
-> '.config' files for users. In summary, it provides operations for save, load,
-> removes, and list '.config' files previously saved by the user. See the
-> current options:
-
-- `--save NAME [-d DESCRIPTION] [-f]` The save option seeks in the current
-  directory for a '.config' file to be to be added under the management of kw.
-  The save option expects a name to be used as a alias for the target config
-  file. If we have a local '.config' and a valid name, kw saves the
-  configuration file. Additionally, users can add a description by using '-d'
-  flag. Finally, if the user tries to add the same name twice kw will warn
-  about it; the '-f' will suppress this message.
-
-- `--ls` list all the config files available.
+> If you want to know more about kw's usage and its commands, take a look at
+> `documentation/man/kw.rst` or, with kw installed, run `kw man`.
 
 # Tests
 

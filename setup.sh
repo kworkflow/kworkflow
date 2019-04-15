@@ -13,6 +13,7 @@ declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 declare -r EXTERNAL_SCRIPTS="external"
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
+declare -r DOCUMENTATION="documentation"
 
 declare -r CONFIGS_PATH="configs"
 
@@ -78,6 +79,7 @@ function synchronize_files()
   rsync -vr $SRCDIR $INSTALLTO
   rsync -vr $DEPLOY_DIR $INSTALLTO
   rsync -vr $SOUNDS $INSTALLTO
+  rsync -vr $DOCUMENTATION $INSTALLTO
 
   # Configuration
   rsync -vr $CONFIG_DIR $INSTALLTO

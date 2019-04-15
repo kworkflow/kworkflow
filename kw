@@ -149,10 +149,16 @@ function kw()
         explore "$@"
       )
       ;;
+    man)
+      (
+        . $src_script_path/help.sh --source-only
+
+        kworkflow-man
+      )
+      ;;
     *)
       (
         . $src_script_path/help.sh --source-only
-        . $src_script_path/kwio.sh --source-only
 
         complain "Invalid option"
         kworkflow-help
