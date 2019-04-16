@@ -11,7 +11,7 @@ function getSortedCompletions()
 {
     local env_path=".:/bin"
     local env_fish_complete_path=""
-    local completion="./etc/fish_completion/kw.fish"
+    local completion="./src/kw.fish"
     local cmd=$1
     local fish_cmd="set PATH $env_path;
                     set fish_complete_path $env_fish_complete_path;
