@@ -4,7 +4,7 @@
 function __fish_kw_no_commands
     set cmd (commandline -opc)
     if [ "$cmd" = "kw" ]
-    	return 0
+        return 0
     end
 
     return 1

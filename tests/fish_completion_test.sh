@@ -2,7 +2,8 @@
 
 . ./tests/utils --source-only
 
-function suite() {
+function suite()
+{
     suite_addTest "testKwCompletion"
 }
 
