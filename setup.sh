@@ -179,6 +179,9 @@ case $1 in
   --help)
     usage
     ;;
+  --html)
+    sphinx-build -b html documentation/ build
+    ;;
   *)
     complain "Invalid number of arguments"
     exit 1
