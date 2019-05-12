@@ -15,6 +15,9 @@ declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
 declare -r DOCUMENTATION="documentation"
 
+declare -r FISH_CONFIG_PATH="$HOME/.config/fish"
+declare -r FISH_COMPLETION_PATH="$FISH_CONFIG_PATH/completions"
+
 declare -r CONFIGS_PATH="configs"
 
 . src/kwio.sh --source-only
@@ -67,6 +70,19 @@ function setup_config_file()
 
 }
 
+function synchronize_fish()
+{
+    local kw_fish_path='set -gx PATH $PATH:/home/lso/.config/kw'
+
+    say "Fish detected. Setting up fish support."
+    mkdir -p $FISH_COMPLETION_PATH
+    rsync -vr $SRCDIR/kw.fish $FISH_COMPLETION_PATH/kw.fish
+
+    if ! grep -F "$kw_fish_path" $FISH_CONFIG_PATH/config.fish; then
+       echo $kw_fish_path >> $FISH_CONFIG_PATH/config.fish
+    fi
+}
+
 # Synchronize .vim and .vimrc with repository.
 function synchronize_files()
 {
@@ -92,6 +108,10 @@ function synchronize_files()
       echo "source $INSTALLTO/$SRCDIR/$BASH_AUTOCOMPLETE.sh" >> $HOME/.bashrc
   else
       warning "Unable to find a shell."
+  fi
+
+  if command -v fish &> /dev/null; then
+      synchronize_fish
   fi
 
   say $SEPARATOR

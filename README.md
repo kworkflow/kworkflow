@@ -31,6 +31,7 @@ to run), you will also need to install:
 
 * dash
 * shunit2
+* fish
 
 ## Recommendations
 
@@ -58,6 +59,14 @@ your `.bashrc`:
 # kw
 PATH=$PATH:/home/<user>/.config/kw
 source /home/<user>/.config/kw/src/bash_autocomplete.sh
+```
+
+> If you use `fish`, this command will move `src/kw.fish` to
+`~/.config/fish/completions`, and will add the following line at the end of your
+`config.fish`, in order to add `kw` to `PATH`:
+
+```
+set -gx PATH $PATH:/home/lso/.config/kw
 ```
 
 > If you use another shell (`ksh`, for example), you will need to manually add
