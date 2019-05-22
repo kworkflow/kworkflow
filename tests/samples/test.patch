@@ -1,0 +1,112 @@
+From 9cfd2e8fb9f420ea900ca4cf54ce84139970429e Mon Sep 17 00:00:00 2001
+From: Lala Xpto <lalaXpto@lulu.com>
+Date: Sun, 24 Feb 2019 12:16:25 -0300
+Subject: [PATCH 41/54] Fix the extra '=*' in the codestyle command
+
+Currently, if we use 'kw c' in a source file without any warning, it
+displays something like this:
+
+$ kw c drivers/gpu/drm/vkms/
+Running checkpatch.pl on: drivers/gpu/drm/vkms/
+
+=========================================================
+PATH:70: ANY OUTPUT
+total: 0 errors, 0 warnings, 1 checks, 144 lines checked
+
+=========================================================
+
+=========================================================
+
+=========================================================
+
+=========================================================
+
+This patch, fix this problem by removing the extra "=*". Additionally,
+this commit updates the test to better fit this new output and add a new
+check for the case that does not have any issue in the code.
+
+---
+ src/checkpatch_wrapper.sh        |  8 ++++++--
+ tests/checkpatch_wrapper_test.sh | 14 +++++++++-----
+ 2 files changed, 15 insertions(+), 7 deletions(-)
+
+diff --git a/src/checkpatch_wrapper.sh b/src/checkpatch_wrapper.sh
+index 63949fc..cb38f78 100755
+--- a/src/checkpatch_wrapper.sh
++++ b/src/checkpatch_wrapper.sh
+@@ -22,11 +22,11 @@ function execute_checkpatch()
+   FLIST=`find $FILE_OR_DIR_CHECK -type f ! -name '*\.mod\.c' | grep "\.[ch]$" `
+ 
+   say "Running checkpatch.pl on: $FILE_OR_DIR_CHECK"
++  say $SEPARATOR
+ 
+   for current_file in $FLIST
+   do
+     file=$current_file
+-    echo
+ 
+     if [ ! -e "$file" ]
+     then
+@@ -34,7 +34,11 @@ function execute_checkpatch()
+       continue
+     fi
+ 
+-    say $SEPARATOR
+     $checkpatch $file
++
++    if [ $? != 0 ]; then
++      say $SEPARATOR
++    fi
++
+   done
+ }
+diff --git a/tests/checkpatch_wrapper_test.sh b/tests/checkpatch_wrapper_test.sh
+index c079b32..cc60012 100755
+--- a/tests/checkpatch_wrapper_test.sh
++++ b/tests/checkpatch_wrapper_test.sh
+@@ -8,18 +8,17 @@ function suite
+   suite_addTest "testWarning"
+   suite_addTest "testError"
+   suite_addTest "testChecks"
++  suite_addTest "testNothing"
+ }
+ 
+ # Those variables hold the last line execute_checkpatch prints in a code that is correct, has
+ # 1 warning, has 1 erros and has 1 check, respectively. The sample codes used in this test are
+ # in tests/samples/
+-CORRECT_MSG="========================================================="
+ WARNING_MSG="total: 0 errors, 1 warnings, 0 checks, 25 lines checked"
+ ERROR_MSG="total: 1 errors, 0 warnings, 0 checks, 25 lines checked"
+ CHECK_MSG="total: 0 errors, 0 warnings, 1 checks, 26 lines checked"
+ 
+ declare -A MSG=( \
+-    ["correct"]=CORRECT_MSG \
+     ["warning"]=WARNING_MSG \
+     ["error"]=ERROR_MSG \
+     ["check"]=CHECK_MSG \
+@@ -27,9 +26,8 @@ declare -A MSG=( \
+ 
+ function checkpatch
+ {
+-  res=$(execute_checkpatch "tests/samples/codestyle_$1.c" 2>&1 | tail -n 1 )
+-  [[ "$res" != "${!MSG[$1]}" ]] && fail "Checkpatch should output:\n${!MSG[$1]}"
+-  true # Reset return value
++  res=$(execute_checkpatch "tests/samples/codestyle_$1.c" 2>&1)
++  assertTrue "Checkpatch should output:\n${!MSG[$1]}" '[[ $res =~ ${!MSG[$1]} ]]'
+ }
+ 
+ function testWarning
+@@ -52,4 +50,10 @@ function testCorrect
+   checkpatch "correct"
+ }
+ 
++function testNothing
++{
++  res=$(execute_checkpatch "tests/samples/codestyle_nothing.c" 2>&1)
++  assertFail "Checkpatch should not show anything" '[[ $res =~ total ]]'
++}
++
+ invoke_shunit
+-- 
+2.21.0
+

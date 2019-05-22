@@ -1,4 +1,5 @@
-. $src_script_path/kwio.sh --source-only
+. $src_script_path/commons.sh --source-only
+. $src_script_path/kwlib.sh --source-only
 
 # Prints the authors of a given file or files inside a given dir.
 #
@@ -33,112 +34,6 @@ function print_files_authors()
       echo "$authors"
     fi
   done
-}
-
-# Checks if a directory is a kernel tree root
-#
-# @DIR A directory path
-#
-# Returns:
-# True if given dir is a kernel tree root and false otherwise.
-function is_kernel_root()
-{
-  local -r DIR="$@"
-  # The following files are some of the files expected to be at a linux
-  # tree root and not expected to change. Their presence (or abscense)
-  # is used to tell if a directory is a linux tree root or not. (They
-  # are the same ones used by get_maintainer.pl)
-  if [[ -f "${DIR}/COPYING" &&
-        -f "${DIR}/CREDITS" &&
-        -f "${DIR}/Kbuild" &&
-        -e "${DIR}/MAINTAINERS" &&
-        -f "${DIR}/Makefile" &&
-        -f "${DIR}/README" &&
-        -d "${DIR}/Documentation" &&
-        -d "${DIR}/arch" &&
-        -d "${DIR}/include" &&
-        -d "${DIR}/drivers" &&
-        -d "${DIR}/fs" &&
-        -d "${DIR}/init" &&
-        -d "${DIR}/ipc" &&
-        -d "${DIR}/kernel" &&
-        -d "${DIR}/lib" &&
-        -d "${DIR}/scripts" ]]; then
-    return 0
-  fi
-  return 1
-}
-
-# Finds the root of the linux kernel repo containing the given file
-#
-# @FILE_OR_DIR The argument is a directory of file path
-#
-# Returns:
-# The path of the kernel tree root (string) which the file or dir belongs to, or
-# an empty string if no root was found.
-function find_kernel_root
-{
-  local -r FILE_OR_DIR="$@"
-  local current_dir
-  local kernel_root=""
-
-  if [[ -f "$FILE_OR_DIR" ]]; then
-    current_dir="$(dirname $FILE_OR_DIR)"
-  else
-    current_dir="$FILE_OR_DIR"
-  fi
-
-  # Find the kernel tree root
-  if is_kernel_root "$current_dir"; then
-    kernel_root="$current_dir"
-  else
-    while [[ "$current_dir" != "/" ]]; do
-      current_dir="$(dirname $current_dir)"
-      if is_kernel_root "$current_dir"; then
-        kernel_root="$current_dir"
-        break
-      fi
-    done
-  fi
-
-  echo "$kernel_root"
-}
-
-# Checks if the given path is a patch file
-#
-# @FILE_PATH The argument is the path
-#
-# Returns:
-# True if given path is a patch file and false otherwise.
-function is_a_patch
-{
-  local -r FILE_PATH="$@"
-
-  if [[ ! -f "$FILE_PATH" ]]; then
-    return 1
-  fi
-
-  local file_content=`cat "$FILE_PATH"`
-
-  # The following array stores strings that are expected to be present
-  # in a patch file. The absence of any of these strings makes the
-  # given file be considered NOT a patch
-  local -ar PATCH_EXPECTED_STRINGS=(
-    "diff --git"
-    "Subject:"
-    "Date:"
-    "From:"
-    "---"
-    "@@"
-  )
-
-  for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
-    if [[ ! "$file_content" =~ "$expected_str" ]]; then
-      return 1
-    fi
-  done
-
-  return 0
 }
 
 # Executes get_maintainer with the given file or dir
