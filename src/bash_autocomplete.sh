@@ -7,7 +7,7 @@ _kw_autocomplete()
     current_command="${COMP_WORDS[COMP_CWORD]}"
     previous_command="${COMP_WORDS[COMP_CWORD-1]}"
     kw_options="explore e build b bi install i prepare p new n ssh s
-                mount mo umount um vars v up u codestyle c
+                mount mo umount um vars v up u codestyle c configm g
                 maintainers m help h"
 
     # By default, autocomplete with kw_options

@@ -73,13 +73,12 @@ function list_configs()
     exit 0
   fi
 
-  echo -e "Name\t\tDescription"
-  echo -e "----\t\t------------"
+  printf "%-30s | %-30s\n" "Name" "Description"
+  echo
   for filename in $dot_configs_dir/$metadata_dir/*; do
     local name=$(basename $filename)
     local content=$(cat $filename)
-    echo -n $name
-    echo -e "\t\t$content"
+    printf "%-30s | %-30s\n" "$name" "$content"
   done
 }
 
@@ -201,7 +200,7 @@ function execute_config_manager()
         exit 22 # EINVAL
       fi
       # Shift name and get '-d'
-      shift && description_config=$@
+      shift 2 && description_config=$@
       save_config_file $force $name_config "$description_config"
       ;;
     --ls)
