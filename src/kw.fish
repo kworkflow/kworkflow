@@ -28,3 +28,45 @@ complete -c kw -n "__fish_kw_no_commands" -a "codestyle c" -d "Apply checkpatch 
 complete -c kw -n "__fish_kw_no_commands" -a "maintainers m" -d "Return the maintainers and the mailing list"
 complete -c kw -n "__fish_kw_no_commands" -a "explore e" -d "Search for expression on git log or directory"
 complete -c kw -n "__fish_kw_no_commands" -a "help h" -d "Display this help mesage"
+complete -c kw -n "__fish_kw_no_commands" -a "man" -d "Display this help mesage"
+complete -c kw -n "__fish_kw_no_commands" -a "configm g" -d "Config manager"
+
+# disable file completion for commands that doesn't need them
+complete -c kw -n "__fish_seen_subcommand_from build" -f
+complete -c kw -n "__fish_seen_subcommand_from b" -f
+complete -c kw -n "__fish_seen_subcommand_from install" -f
+complete -c kw -n "__fish_seen_subcommand_from i" -f
+complete -c kw -n "__fish_seen_subcommand_from bi" -f
+complete -c kw -n "__fish_seen_subcommand_from prepare" -f
+complete -c kw -n "__fish_seen_subcommand_from p" -f
+complete -c kw -n "__fish_seen_subcommand_from new" -f
+complete -c kw -n "__fish_seen_subcommand_from n" -f
+complete -c kw -n "__fish_seen_subcommand_from mount" -f
+complete -c kw -n "__fish_seen_subcommand_from mo" -f
+complete -c kw -n "__fish_seen_subcommand_from umount" -f
+complete -c kw -n "__fish_seen_subcommand_from um" -f
+complete -c kw -n "__fish_seen_subcommand_from vars" -f
+complete -c kw -n "__fish_seen_subcommand_from v" -f
+complete -c kw -n "__fish_seen_subcommand_from up" -f
+complete -c kw -n "__fish_seen_subcommand_from u" -f
+complete -c kw -n "__fish_seen_subcommand_from help" -f
+complete -c kw -n "__fish_seen_subcommand_from h" -f
+complete -c kw -n "__fish_seen_subcommand_from man" -f
+complete -c kw -n "__fish_seen_subcommand_from g" -f
+complete -c kw -n "__fish_seen_subcommand_from configm" -f
+
+# kw maintainers flags
+complete -c kw -n "__fish_seen_subcommand_from maintainers" -s a -l authors -d "Print file authors"
+complete -c kw -n "__fish_seen_subcommand_from m" -s a -l authors -d "Print file authors"
+
+# kw configm flags
+complete -c kw -n "__fish_seen_subcommand_from configm" -l save -d "Save config file"
+complete -c kw -n "__fish_seen_subcommand_from configm" -l ls -d "List config files under kw management"
+complete -c kw -n "__fish_seen_subcommand_from g" -l save -d "Save config file"
+complete -c kw -n "__fish_seen_subcommand_from g" -l ls -d "List config files under kw management"
+
+# kw ssh flags
+complete -c kw -n "__fish_seen_subcommand_from ssh" -l script -d "List config files under kw management"
+complete -c kw -n "__fish_seen_subcommand_from ssh" -l 'command' -d "List config files under kw management"
+complete -c kw -n "__fish_seen_subcommand_from s" -l script -d "List config files under kw management"
+complete -c kw -n "__fish_seen_subcommand_from s" -l 'command' -d "List config files under kw management"
