@@ -10,7 +10,6 @@ declare -r DEPLOY_DIR="deploy_rules"
 declare -r CONFIG_DIR="etc"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
-declare -r EXTERNAL_SCRIPTS="external"
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
 declare -r DOCUMENTATION="documentation"
@@ -119,44 +118,12 @@ function synchronize_files()
   say $SEPARATOR
 }
 
-function download_stuff()
-{
-  URL=$1
-  PATH_TO=$2
-  ret=$(wget $URL -P $PATH_TO)
 
-  if [ "$?" != 0 ] ; then
-    warning "Problem to download, verify your connection"
-    warning "kw is not full installed"
-  fi
-}
-
-function get_external_scripts()
-{
-  local ret
-
-  local -r CHECKPATCH_URL="https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl"
-  local -r CHECKPATCH_CONST_STRUCTS="https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch"
-  local -r CHECKPATCH_SPELLING="https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt"
-
-  say "Download and install external scripts..."
-  echo
-
-  mkdir -p $INSTALLTO/$EXTERNAL_SCRIPTS
-  CHECKPATCH_TARGET_PATH=$INSTALLTO/$EXTERNAL_SCRIPTS
-  download_stuff $CHECKPATCH_URL $CHECKPATCH_TARGET_PATH
-  download_stuff $CHECKPATCH_CONST_STRUCTS $CHECKPATCH_TARGET_PATH
-  download_stuff $CHECKPATCH_SPELLING $CHECKPATCH_TARGET_PATH
-
-  echo
-}
 
 function install_home()
 {
   # First clean old installation
   clean_legacy
-  # Download external scripts
-  get_external_scripts
   # Synchronize of vimfiles
   synchronize_files
 }
