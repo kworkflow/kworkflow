@@ -38,8 +38,8 @@ function get_from_colon()
 # displays the commands, and it is useful for implementing unit tests.
 #
 # @flag: Expecting a flag, that could be SILENT, COMPLAIN, WARNING, SUCCESS,
-#   and TEST_MODE. By default, cmd_manager does not expects flags and always
-#   show the command.
+#        TEST_MODE, and HIGHLIGHT_CMD. By default, cmd_manager does not expects
+#        flags and always show the command.
 # @@: Target command
 #
 # Returns:
@@ -47,7 +47,7 @@ function get_from_colon()
 # of TEST_MODE
 function cmd_manager()
 {
-  local flag=$1
+  local flag="$1"
 
   case "$flag" in
     SILENT)
@@ -65,6 +65,10 @@ function cmd_manager()
       shift 1
       success "$@"
       ;;
+    HIGHLIGHT_CMD)
+      shift 1
+      warning "$@"
+      ;;
     TEST_MODE)
       shift 1
       say "$@"
@@ -75,7 +79,7 @@ function cmd_manager()
       ;;
   esac
 
-  eval $@
+  eval "$@"
 }
 
 # Checks if a directory is a kernel tree root
