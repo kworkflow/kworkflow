@@ -6,6 +6,7 @@ src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
 external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
 etc_files_path=${etc_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"}
 config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW"}
+kw_dir=${kw_dir:-"$HOME/kw"}
 
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW

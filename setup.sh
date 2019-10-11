@@ -6,6 +6,7 @@ declare -r APPLICATIONNAME="kw"
 declare -r SRCDIR="src"
 declare -r CONFIG_DIR="etc"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
+declare -r KW_DIR="$HOME/$APPLICATIONNAME"
 
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
@@ -128,6 +129,8 @@ function synchronize_files()
   fi
 
   say "$SEPARATOR"
+  # Create ~/kw for support some of the operations
+  mkdir -p "$KW_DIR"
   say "$APPLICATIONNAME installed into $INSTALLTO"
   say "$SEPARATOR"
 }
