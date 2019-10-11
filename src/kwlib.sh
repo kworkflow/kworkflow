@@ -1,5 +1,38 @@
 # NOTE: src/commons.sh must be included before this file
 
+# In the kw code, we use the pattern "<STRING1>:<STRING2>" for handling IP and
+# port, this function is a helper that expects a string with ':' and positional
+# value. It returns the value represented by position.
+#
+# @string: String formated as <STRING1>:<STRING2>
+# @position: We use 1 for specifying the string before ':' and 2 for the string
+#            after ':'
+#
+# Returns:
+# Return a "string" corresponding to the position number and a code value that
+# specify the result (useful for checking if something went wrong). Probably,
+# you want to execute this function is a subshell and save the output in a
+# variable.
+function get_from_colon()
+{
+  local string="$1"
+  local position="$2"
+  local output=""
+  local ret=0
+
+  output=$(echo "$string" | grep -i ":")
+  if [[ "$?" != 0 ]]; then
+    return 22 # EINNVAL
+  fi
+
+  output=$(echo "$string" | cut -d : -f"$position")
+  if [[ -z "$output" ]]; then
+    ret=22 # EINNVAL
+  fi
+  echo "$output"
+  return "$ret"
+}
+
 # This function executes any command and provides a mechanism to display the
 # command in the terminal. Additionally, there's a test mode which only
 # displays the commands, and it is useful for implementing unit tests.

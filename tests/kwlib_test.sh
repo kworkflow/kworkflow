@@ -14,6 +14,7 @@ function suite
   suite_addTest "joinPathTest"
   suite_addTest "findKernelRootTest"
   suite_addTest "isAPatchTest"
+  suite_addTest "get_from_colon_Test"
 }
 
 function setupFakeOSInfo
@@ -198,6 +199,34 @@ function isAPatchTest
   [[ "$?" != 0 ]] && fail "Failed to check if a file is a patch."
   tearDownSetup
   true # Reset return value
+}
+
+function get_from_colon_Test
+{
+  local correct_str="IP:PORT"
+  local incorrect_str="IPPORT"
+
+  output=$(get_from_colon "$correct_str" 1)
+  ret="$?"
+
+  assertEquals "We should find IP" "IP" "$output"
+  assertEquals "We expected 0 as a return" 0 "$ret"
+
+  output=$(get_from_colon "$correct_str" 2)
+  ret="$?"
+
+  assertEquals "We should find PORT" "PORT" "$output"
+  assertEquals "We expected 0 as a return" 0 "$ret"
+
+  output=$(get_from_colon "$correct_str" 3)
+  ret="$?"
+  assertEquals "We expected an empty string" "" "$output"
+  assertEquals "We expected 22 as a return" 22 "$ret"
+
+  output=$(get_from_colon "$incorrect_str" 1)
+  ret="$?"
+  assertEquals "We expected an empty string" "" "$output"
+  assertEquals "We expected 22 as a return" 22 "$ret"
 }
 
 invoke_shunit
