@@ -18,6 +18,7 @@ following dependencies:
 * Qemu
 * Bash
 * git
+* tar
 * python-docutils
 * rsync
 

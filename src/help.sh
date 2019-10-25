@@ -40,6 +40,11 @@ function kworkflow-help()
   echo -e "kw ssh|s options:\n" \
     "\tssh|s [--script|-s="SCRIPT PATH"]\n" \
     "\tssh|s [--command|-c="COMMAND"]\n"
+
+  echo -e "kw deploy|d installs kernel and modules:\n" \
+    "\tdeploy,d --remote [REMOTE:PORT] [--reboot]\n" \
+    "\tdeploy,d --local [--reboot]\n" \
+    "\tdeploy,d --vm [--reboot]\n"
 }
 
 # Display the man documentation using rst2man, or man kw if it is already

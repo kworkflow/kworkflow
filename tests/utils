@@ -1,5 +1,16 @@
 #!/bin/bash
 
+TEST_DIR="tests"
+SAMPLES_DIR="$TEST_DIR/samples"
+EXTERNAL_DIR="$TEST_DIR/external"
+
+# Samples
+MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
+KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
+
+# External files
+CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
+
 function init_env
 {
   unset -v src_script_path external_script_path EASY_KERNEL_WORKFLOW
@@ -37,6 +48,20 @@ function mk_fake_kernel_root
   mkdir -p "$path/kernel"
   mkdir -p "$path/lib"
   mkdir -p "$path/scripts"
+}
+
+function mk_fake_remote
+{
+	local -r FAKE_KW="$1"
+	local -r modules_path="$2"
+	local -r modules_name="test"
+  local -r kernel_install_path="kernel_install"
+
+  mkdir -p "$FAKE_KW"/{$LOCAL_TO_DEPLOY_DIR,$LOCAL_REMOTE_DIR,$kernel_install_path}
+  mkdir -p "$modules_path/$modules_name"
+
+  touch "$modules_path/$modules_name"/file{1,2}
+  touch "$FAKE_KW/$kernel_install_path"/{debian.sh,deploy.sh}
 }
 
 function invoke_shunit

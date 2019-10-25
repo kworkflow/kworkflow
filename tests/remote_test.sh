@@ -10,16 +10,41 @@ function suite
   suite_addTest "cmd_remote_Test"
   suite_addTest "cp_host2remote_Test"
   suite_addTest "which_distro_Test"
+  suite_addTest "preapre_host_deploy_dir_Test"
+  suite_addTest "prepare_remote_dir_Test"
+  suite_addTest "generate_tarball_Test"
+}
+
+function which_distro_mock()
+{
+  echo "debian"
+}
+
+function setupMockFunctions()
+{
+  shopt -s expand_aliases
+  alias which_distro='which_distro_mock'
+}
+
+function tearDownMockFunctions()
+{
+  unalias which_distro
 }
 
 FAKE_KW="tests/.tmp"
 
 function oneTimeSetUp
 {
+  local -r modules_name="test"
+  local -r kernel_install_path="kernel_install"
+
   export kw_dir="$FAKE_KW"
+  export plugins_path=$FAKE_KW
+  export DEPLOY_SCRIPT=$FAKE_KW/$kernel_install_path/deploy.sh
+  export modules_path="$FAKE_KW/$kernel_install_path/lib/modules"
   rm -rf "$FAKE_KW"
 
-  mkdir -p "$FAKE_KW/$LOCAL_TO_DEPLOY_DIR"
+  mk_fake_remote "$FAKE_KW" "$modules_path"
 }
 
 function oneTimeTearDown
@@ -141,6 +166,92 @@ function which_distro_Test
   output=$(which_distro "" "" "" "$flag")
   expected_command="ssh -p 22 root@localhost \"$cmd\""
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
+}
+
+function preapre_host_deploy_dir_Test
+{
+  local ID
+
+  prepare_host_deploy_dir
+
+  ID=1
+  assertTrue "$ID - Check if kw dir was created" '[[ -d $kw_dir ]]'
+
+  ID=2
+  assertTrue "$ID - Check if kw dir was created" '[[ -d $kw_dir/$LOCAL_REMOTE_DIR ]]'
+
+  ID=3
+  assertTrue "$ID - Check if kw dir was created" '[[ -d $kw_dir/$LOCAL_TO_DEPLOY_DIR ]]'
+
+  ID=4
+  oneTimeTearDown
+
+  output=$(prepare_host_deploy_dir)
+  ret=$?
+  assertEquals "$ID - Expected an error" "22" "$ret"
+
+  oneTimeSetUp
+}
+
+function prepare_remote_dir_Test()
+{
+  local cmd="cat /etc/os-release | grep -w ID | cut -d = -f 2"
+  local remote="172.16.224.1"
+  local user="root"
+  local port="2222"
+  local flag="TEST_MODE"
+  local count=0
+  local ID
+
+  declare -a expected_cmd_sequence=(
+      "ssh -p 2222 root@172.16.224.1 \"mkdir -p /root/kw_deploy\""
+      "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh"
+      "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/"
+    )
+
+  setupMockFunctions
+  output=$(prepare_remote_dir "$remote" "$port" "$user" "$flag")
+  while read cmd; do
+    if [[ ${expected_cmd_sequence[$count]} != ${cmd} ]]; then
+      fail "Expected command \"${expected_cmd_sequence[$count]}\" to be \"${cmd}\")"
+    fi
+    ((count++))
+  done <<< "$output"
+
+  tearDownMockFunctions
+}
+
+function generate_tarball_Test()
+{
+  local kernel_release="test"
+  local tarball_name="$kernel_release.tar"
+  local count=0
+  local ID
+
+  declare -a expected_files=(
+    "test/"
+    "test/file1"
+    "test/file2"
+    )
+
+  expected_cmd="tar -C $FAKE_KW/kernel_install/lib/modules -cf $FAKE_KW/$LOCAL_TO_DEPLOY_DIR/$tarball_name $kernel_release"
+  ID=1
+  output=$(generate_tarball "$kernel_release" "$modules_path")
+
+  assertTrue "$ID - We expected a tarball" '[[ -f $kw_dir/$LOCAL_TO_DEPLOY_DIR/$tarball_name ]]'
+
+  ID=2
+  output=$(tar -taf "$FAKE_KW/$LOCAL_TO_DEPLOY_DIR/$tarball_name" | sort -d)
+  while read f; do
+    if [[ ${expected_files[$count]} != ${f} ]]; then
+      fail "$ID - Expected file \"${expected_files[$count]}\" to be \"${f}\""
+    fi
+    ((count++))
+  done <<< "$output"
+
+  ID=3
+  output=$(generate_tarball "$kernel_release" "$modules_path" "TEST_MODE")
+  assertEquals "Command did not match ($ID)" "$expected_cmd" "$output"
 }
 
 invoke_shunit

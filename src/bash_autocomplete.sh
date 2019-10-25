@@ -8,7 +8,7 @@ _kw_autocomplete()
     previous_command="${COMP_WORDS[COMP_CWORD-1]}"
     kw_options="explore e build b bi install i new n ssh s
                 mount mo umount um vars v up u codestyle c configm g
-                maintainers m help h"
+                maintainers m deploy d help h"
 
     # By default, autocomplete with kw_options
     if [[ ${previous_command} == kw ]] ; then

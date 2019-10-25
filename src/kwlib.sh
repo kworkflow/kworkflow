@@ -220,18 +220,23 @@ function join_path()
 # It returns the distro name in lowercase, otherwise return none.
 function detect_distro()
 {
-  local root_path=$1
+  local root_path="$1"
+  local str_check="$2"
   local etc_path=$(join_path $root_path /etc)
   local distro="none"
 
-  if [[ -d $etc_path ]]; then
+  if [[ ! -z "$str_check" ]]; then
+    distro="$str_check"
+  elif [[ -d $etc_path ]]; then
     distro=$(cat $etc_path/*-release | grep -w ID | cut -d = -f 2)
   fi
 
-  if [[ $distro =~ "arch" ]]; then
+  if [[ "$distro" =~ "arch" ]]; then
     echo "arch"
-  elif [[ $distro =~ "debian" ]]; then
+  elif [[ "$distro" =~ "debian" ]]; then
     echo "debian"
+  elif [[ "$distro" =~ "ubuntu" ]]; then
+    echo "ubuntu"
   else
     echo "none"
   fi

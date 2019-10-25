@@ -69,6 +69,32 @@ specific target, and finally umounts the QEMU image.
 .. note::
   **Only run this command after you turn off your VM**.
 
+d, deploy [--remote [REMOTE:PORT] [--reboot]]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you are in a kernel directory, this command will try to install the current
+kernel version that you have based on the following steps:
+
+1. Prepare a local directory with all the required files;
+
+2. Send all the files to the target machine; and
+
+3. Execute the script that will update the target machine.
+
+You can specify the deploy target via command line by using the flag *--remote
+[REMOTE:PORT]* (e.g., *--remote 172.16.254.1:22*); however, if you do it
+frequently you probably will prefer to add this information in your local
+*kworkflow.config*. See the example below::
+
+  default_deploy_target=remote
+  ssh_ip=172.16.254.1
+  ssh_port=22
+
+Another typical operation when deploying a new kernel to a test machine, it is
+the reboot after the update. You can explicitly say it for *kw* by adding the
+flag *--reboot*, or again, add this to the *kworkflow.config* with::
+
+  reboot_after_deploy=yes
+
 COMMANDS FOR WORKING WITH CODE
 ------------------------------
 Projects that have a similar workflow to the Linux Kernel usually have a set of
