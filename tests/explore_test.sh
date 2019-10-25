@@ -15,8 +15,10 @@ function testExplore
 
   assertEquals "Expected an error message." "Expected path or 'log'" "$(explore)"
   MSG_OUT="camel_case(void)"
-  assertEquals "$MSG_OUT" "$(explore "camel_case" tests/samples | cut -d ' ' -f2 | head -n 1)"
+  assertEquals "$MSG_OUT" "$(explore "camel_case" tests/samples | cut -d ' ' -f2 | sed -n -e 2p)"
   assertEquals "$LOG_OUT" "$(explore log LICENSE | grep "Initial commit" | awk '{print $1, $2}')"
+  MSG_OUT="Free Software Foundation"
+  assertEquals "$MSG_OUT" "$(explore "$MSG_OUT" ./LICENSE | grep "$MSG_OUT" -o | head -n 1)"
   true
 }
 

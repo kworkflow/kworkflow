@@ -105,9 +105,11 @@ e, explore [log] [*EXPRESSION*] [-p] [*DIRECTORY|FILE*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The *explore* command is based on git grep. It can search for string matches in
 either the git repository contents or in the git log messages. For example, you
-can use **kw e functionName** to find *functionName* in the source directory.
-You can also search the git log history by using *log* after the *e*; for
-instance, **kw e log STRING_MATCH**.  Additionally, you can use *-p* to see the
+can use **kw e functionName** to find *functionName* in the source directory;
+If you want to search for a composed string, you have to quote your search
+(e.g., **kw e "str1 str2"**). You can also search the git log history by using
+*log* after the *e*; for instance, **kw e log STRING_MATCH**.  Additionally,
+you can use *-p* to see the
 diff in the search.
 
 m, maintainers [*-a|--authors*] [*DIRECTORY|FILE*]
