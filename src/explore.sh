@@ -1,4 +1,5 @@
 . $src_script_path/kwio.sh --source-only
+. $src_script_path/kwlib.sh --source-only
 
 function explore()
 {
@@ -15,11 +16,12 @@ function explore()
       (
         local path=${@:2}
         local regex=$1
+	# If user only set regex value
         if [[ $# -eq 1 ]]; then
           path="."
           regex=$1
         fi
-        git grep -e $regex -nI $path
+        cmd_manager "git grep -e \"$regex\" -nI $path"
       );;
   esac
 }
