@@ -43,8 +43,6 @@ function mk_build
     PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
   fi
 
-  PARALLEL_CORES=$(( $PARALLEL_CORES * 2 ))
-
   say "make -j$PARALLEL_CORES $MAKE_OPTS"
   make -j$PARALLEL_CORES $MAKE_OPTS
 }
