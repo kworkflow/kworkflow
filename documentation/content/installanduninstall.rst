@@ -48,6 +48,9 @@ If you want to use Qemu, we suggest the following steps:
 
 Install
 -------
+
+Manual install
+~~~~~~~~~~~~~~
 In the kw's directory, type::
 
     ./setup.sh -i
@@ -66,6 +69,12 @@ the path to `kw` to `PATH` environment variable.
 To check if the installations was ok, open another terminal and type::
 
     kw help
+
+Package install
+~~~~~~~~~~~~~~~
+
+- Arch Linux:
+   Available at AUR: https://aur.archlinux.org/packages/kworkflow-git/
 
 Update
 ------
