@@ -9,7 +9,6 @@ function suite
 {
   suite_addTest "testPrintFileAuthorForFile"
   suite_addTest "testPrintFileAuthorForDir"
-  suite_addTest "testLinuxRootCheck"
   suite_addTest "testGetMaintainers"
 }
 
@@ -87,15 +86,6 @@ function testPrintFileAuthorForDir
     local -r got_prefixed=$(prefix_multiline "$ret")
     fail "Expecting return:\n$expected_prefixed\nBut got:\n$got_prefixed"
   fi
-  true # Reset return value
-}
-
-function testLinuxRootCheck
-{
-  setupGetMaintainers
-  is_kernel_root "tests/.tmp"
-  [[ "$?" != 0 ]] && fail "Failed to check if a directory is a kernel root."
-  tearDownGetMainteiners
   true # Reset return value
 }
 

@@ -5,6 +5,12 @@ function vm_modules_install
   # Attention: The vm code have to be loaded before this function.
   # Take a look at the beginning of kworkflow.sh.
   vm_mount
+
+  if [ "$?" != 0 ] ; then
+    complain "Did you check if your VM is running?"
+    return 125 # ECANCELED
+  fi
+
   set +e
   make INSTALL_MOD_PATH=${configurations[mount_point]} modules_install
   release=$(make kernelrelease)
@@ -36,8 +42,6 @@ function mk_build
   else
     PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
   fi
-
-  PARALLEL_CORES=$(( $PARALLEL_CORES * 2 ))
 
   say "make -j$PARALLEL_CORES $MAKE_OPTS"
   make -j$PARALLEL_CORES $MAKE_OPTS

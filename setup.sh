@@ -10,9 +10,12 @@ declare -r DEPLOY_DIR="deploy_rules"
 declare -r CONFIG_DIR="etc"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
-declare -r EXTERNAL_SCRIPTS="external"
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
+declare -r DOCUMENTATION="documentation"
+
+declare -r FISH_CONFIG_PATH="$HOME/.config/fish"
+declare -r FISH_COMPLETION_PATH="$FISH_CONFIG_PATH/completions"
 
 declare -r CONFIGS_PATH="configs"
 
@@ -66,6 +69,19 @@ function setup_config_file()
 
 }
 
+function synchronize_fish()
+{
+    local kw_fish_path='set -gx PATH $PATH:/home/lso/.config/kw'
+
+    say "Fish detected. Setting up fish support."
+    mkdir -p $FISH_COMPLETION_PATH
+    rsync -vr $SRCDIR/kw.fish $FISH_COMPLETION_PATH/kw.fish
+
+    if ! grep -F "$kw_fish_path" $FISH_CONFIG_PATH/config.fish; then
+       echo $kw_fish_path >> $FISH_CONFIG_PATH/config.fish
+    fi
+}
+
 # Synchronize .vim and .vimrc with repository.
 function synchronize_files()
 {
@@ -78,6 +94,7 @@ function synchronize_files()
   rsync -vr $SRCDIR $INSTALLTO
   rsync -vr $DEPLOY_DIR $INSTALLTO
   rsync -vr $SOUNDS $INSTALLTO
+  rsync -vr $DOCUMENTATION $INSTALLTO
 
   # Configuration
   rsync -vr $CONFIG_DIR $INSTALLTO
@@ -92,49 +109,21 @@ function synchronize_files()
       warning "Unable to find a shell."
   fi
 
+  if command -v fish &> /dev/null; then
+      synchronize_fish
+  fi
+
   say $SEPARATOR
   say "$APPLICATIONNAME installed into $INSTALLTO"
   say $SEPARATOR
 }
 
-function download_stuff()
-{
-  URL=$1
-  PATH_TO=$2
-  ret=$(wget $URL -P $PATH_TO)
 
-  if [ "$?" != 0 ] ; then
-    warning "Problem to download, verify your connection"
-    warning "kw is not full installed"
-  fi
-}
-
-function get_external_scripts()
-{
-  local ret
-
-  local -r CHECKPATCH_URL="https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl"
-  local -r CHECKPATCH_CONST_STRUCTS="https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch"
-  local -r CHECKPATCH_SPELLING="https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt"
-
-  say "Download and install external scripts..."
-  echo
-
-  mkdir -p $INSTALLTO/$EXTERNAL_SCRIPTS
-  CHECKPATCH_TARGET_PATH=$INSTALLTO/$EXTERNAL_SCRIPTS
-  download_stuff $CHECKPATCH_URL $CHECKPATCH_TARGET_PATH
-  download_stuff $CHECKPATCH_CONST_STRUCTS $CHECKPATCH_TARGET_PATH
-  download_stuff $CHECKPATCH_SPELLING $CHECKPATCH_TARGET_PATH
-
-  echo
-}
 
 function install_home()
 {
   # First clean old installation
   clean_legacy
-  # Download external scripts
-  get_external_scripts
   # Synchronize of vimfiles
   synchronize_files
 }
@@ -156,6 +145,9 @@ case $1 in
     ;;
   --help)
     usage
+    ;;
+  --html)
+    sphinx-build -b html documentation/ build
     ;;
   *)
     complain "Invalid number of arguments"

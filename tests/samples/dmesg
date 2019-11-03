@@ -1,0 +1,5 @@
+if [ "$#" -gt 0 ]; then
+  dmesg $@;
+else
+  dmesg -wH --color='always';
+fi

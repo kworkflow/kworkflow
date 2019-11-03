@@ -51,11 +51,52 @@ function vm_up
         ${configurations[qemu_path_image]}
 }
 
+# This function manages ssh operations. Currently, we have three basic actions:
+# connect to the VM, execute a command in the VM, and perform a local script
+# inside the VM.
+#
+# @opts Expects a parameter to be passed for the ssh command (it could be
+#       --command, -c, --script, -s). If this parameter receives a null value
+#       this function will make a simple ssh operation; otherwise, a command or
+#       script will be attempted to execute.
 function vm_ssh
 {
-  say "SSH"
-  say "-> Port: " ${configurations[ssh_port]} " IP: " ${configurations[ssh_ip]}
-  ssh -p ${configurations[ssh_port]} ${configurations[ssh_ip]}
+  local opts=$@
+  local port=${configurations[ssh_port]}
+  local target=${configurations[ssh_ip]}
+
+  # Mandatory parameter
+  if [ -z "$target" ]; then
+    complain "Invalid argument: $@"
+    complain "Take a look at the config file, something is wrong in the ssh_ip"
+    exit 22 # EINVAL
+  fi
+
+  if [[ $# -gt 0 ]]; then
+    if [[ "$opts" =~ ^(--command|-c)= ]]; then
+      opts="$(echo $opts | cut -d = -f2)"
+    elif [[ "$opts" =~ ^(--script|-s)= ]]; then
+      local script_path=$(echo $opts | cut -d = -f2)
+
+      if [[ ! -f $script_path ]]; then
+        complain "No such file: \"$script_path\""
+        exit 2 # ENOENT
+      fi
+
+      opts="\"bash -s\" -- < $script_path"
+    else
+      complain "Invalid arguments: $@"
+      exit 22 # EINVAL
+    fi
+  fi
+
+  # Add port
+  if [ ! -z "$port" ]; then
+    port="-p $port"
+  fi
+
+  say "ssh $port $target $opts"
+  eval "ssh $port $target $opts"
 }
 
 function vm_prepare

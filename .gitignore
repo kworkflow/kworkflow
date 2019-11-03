@@ -5,3 +5,4 @@ tests/shunit2
 tests/external
 tests/.tmp_commons_test
 tests/.tmp
+build/
