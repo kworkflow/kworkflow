@@ -37,6 +37,13 @@ Finally, you can use your browser to look the index.html page. For example:
 ```
 firefox build/index.html
 ```
+# Contributing
+
+We are happy that you want to help us! If you are looking for a good starting
+point, check
+[those issues](https://github.com/rodrigosiqueira/kworkflow/blob/master/documentation/content/howtocontribute.rst)
+and don't forget to read our
+[Contribuitor's Guide](documentation/content/howtocontribute.rst).
 
 # License
 
