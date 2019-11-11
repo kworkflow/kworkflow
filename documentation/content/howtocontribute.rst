@@ -134,3 +134,21 @@ so.
   Also notice that a real name is used in the Signed-off-by: line. Please don't
   hide your real name.
 
+If you like, you can put extra tags at the end:
+
+    1. Reported-by: is used to credit someone who found the bug that the patch
+    attempts to fix.
+
+    2. Acked-by: says that the person who is more familiar with the area the
+    patch attempts to modify liked the patch.
+
+    3. Reviewed-by:, unlike the other tags, can only be offered by the reviewer
+    and means that she is completely satisfied that the patch is ready for
+    application. It is usually offered only after a detailed review.
+
+    4. Tested-by: is used to indicate that the person applied the patch and
+    found it to have the desired effect.
+
+You can also create your own tag or use one that’s in common usage such as
+`Co-authored-by` or `Helped-by`.
+
