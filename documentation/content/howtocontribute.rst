@@ -95,8 +95,7 @@ command with the `-s` option.
 
 Notice that you can place your own Signed-off-by: line when forwarding somebody
 else's patch with the above rules for D-C-O.  Indeed you are encouraged to do
-so.  Do not forget to place an in-body "From: " line at the beginning to
-properly attribute the change to its true author (see (2) above).
+so.
 
 .. note::
   Also notice that a real name is used in the Signed-off-by: line. Please don't
