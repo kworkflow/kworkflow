@@ -23,9 +23,14 @@ declare -r CONFIGS_PATH="configs"
 
 function usage()
 {
-  say "--install   | -i   Install $APPLICATIONNAME"
-  say "--uninstall | -u   Uninstall $APPLICATIONNAME"
-  say "--completely-remove Remove $APPLICATIONNAME and all files under its responsibility"
+  say "usage: ./setup.sh option"
+  say ""
+  say "Where option may be one of the following:"
+  say "--help      | -h     Display this usage message"
+  say "--install   | -i     Install $APPLICATIONNAME"
+  say "--uninstall | -u     Uninstall $APPLICATIONNAME"
+  say "--completely-remove  Remove $APPLICATIONNAME and all files under its responsibility"
+  say "--html               Build $APPLICATIONNAME's documentation as HTML pages into ./build"
 }
 
 function clean_legacy()
@@ -141,7 +146,7 @@ case $1 in
   --completely-remove)
     clean_legacy "-d"
     ;;
-  --help)
+  --help | -h)
     usage
     ;;
   --html)
