@@ -31,6 +31,15 @@ function usage()
   say "--html               Build $APPLICATIONNAME's documentation as HTML pages into ./build"
 }
 
+function confirm_complete_removal()
+{
+  warning "This operation will completely remove all files related to kw,"
+  warning "including the kernel '.config' files under its controls."
+  if [[ $(ask_yN "Do you want to proceed?") =~ "0" ]]; then
+    exit 0
+  fi
+}
+
 function clean_legacy()
 {
   say "Removing ..."
@@ -142,6 +151,7 @@ case $1 in
     # not want to add a short version, and the user has to be sure about this
     # operation.
   --completely-remove)
+    confirm_complete_removal
     clean_legacy "-d"
     ;;
   --help | -h)
