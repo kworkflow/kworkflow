@@ -20,6 +20,7 @@ following dependencies:
 * Bash
 * git
 * python-docutils
+* rsync
 
 If you want to use the default alert system (for commands that may take longer
 to run), you also have to install:
@@ -31,6 +32,7 @@ For development, you will need:
 
 * dash
 * shunit2
+* fish
 
 For getting the Sphinx Documentation:
 
