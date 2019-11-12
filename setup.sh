@@ -83,7 +83,7 @@ function setup_config_file()
 
 function synchronize_fish()
 {
-    local kw_fish_path="set -gx PATH $PATH:/home/lso/.config/kw"
+    local kw_fish_path="set -gx PATH $PATH:$HOME/.config/kw"
 
     say "Fish detected. Setting up fish support."
     mkdir -p "$FISH_COMPLETION_PATH"
