@@ -27,7 +27,8 @@ declare -A MSG=( \
 function checkpatch
 {
   res=$(execute_checkpatch "tests/samples/codestyle_$1.c" 2>&1)
-  assertTrue "Checkpatch should output:\n${!MSG[$1]}" '[[ $res =~ ${!MSG[$1]} ]]'
+  [[ "$res" == *"${!MSG[$1]}" ]]
+  assertTrue "Checkpatch should output: ${!MSG[$1]}" $?
 }
 
 function testWarning
