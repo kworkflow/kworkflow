@@ -33,38 +33,23 @@ CORRECT_TMP_FS_MSG="=========================================================
 HERE:
 John Doe <john@email.com>,Jane Doe <jane@email.com>,fs@list.org,kernel@list.org"
 
+FAKE_KERNEL="tests/.tmp"
+
 function setupGetMaintainers
 {
   # This creates tests/.tmp which should mock a kernel tree root. A .git
   # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
   # it is a git repo. This is done in order to avoid some warnings that
   # get_maintainer.pl prints when no .git is found.
-  mkdir -p "tests/.tmp"
-  cd "tests/.tmp"
-  touch "COPYING"
-  touch "CREDITS"
-  touch "Kbuild"
-  touch "Makefile"
-  touch "README"
-  mkdir -p "Documentation"
-  mkdir -p "arch"
-  mkdir -p "include"
-  mkdir -p "drivers"
-  mkdir -p "fs"
-  mkdir -p "init"
-  mkdir -p "ipc"
-  mkdir -p "kernel"
-  mkdir -p "lib"
-  mkdir -p "scripts"
-  mkdir -p ".git"
-  cd ../../
-  cp -f tests/samples/MAINTAINERS tests/.tmp/MAINTAINERS
-  cp -f tests/external/get_maintainer.pl tests/.tmp/scripts/
+  mk_fake_kernel_root "$FAKE_KERNEL"
+  mkdir -p "$FAKE_KERNEL/.git"
+  cp -f tests/samples/MAINTAINERS "$FAKE_KERNEL"/MAINTAINERS
+  cp -f tests/external/get_maintainer.pl "$FAKE_KERNEL"/scripts/
 }
 
 function tearDownGetMainteiners
 {
-  rm -rf "tests/.tmp"
+  rm -rf "$FAKE_KERNEL"
 }
 
 function testPrintFileAuthorForFile
