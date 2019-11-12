@@ -24,9 +24,25 @@ declare -A MSG=( \
     ["check"]=CHECK_MSG \
 )
 
+FAKE_KERNEL="tests/.tmp"
+
+function oneTimeSetUp
+{
+  mk_fake_kernel_root "$FAKE_KERNEL"
+  cp -f tests/external/checkpatch.pl "$FAKE_KERNEL"/scripts/
+  cp -f tests/external/const_structs.checkpatch "$FAKE_KERNEL"/scripts/
+  cp -f tests/external/spelling.txt "$FAKE_KERNEL"/scripts/
+  cp -r tests/samples "$FAKE_KERNEL"
+}
+
+function oneTimeTearDown
+{
+  rm -rf "$FAKE_KERNEL"
+}
+
 function checkpatch
 {
-  res=$(execute_checkpatch "tests/samples/codestyle_$1.c" 2>&1)
+  res=$(execute_checkpatch "$FAKE_KERNEL/samples/codestyle_$1.c" 2>&1)
   [[ "$res" == *"${!MSG[$1]}" ]]
   assertTrue "Checkpatch should output: ${!MSG[$1]}" $?
 }
