@@ -15,6 +15,30 @@ function prefix_multiline
   echo "$@" | sed -E "s/^/> /g"
 }
 
+# Receives a path and creates a fake kernel root in it. The goal is to make this
+# path recognizable by src/kwlib.sh:is_kernel_root().
+function mk_fake_kernel_root
+{
+  local -r path="$1"
+  mkdir -p "$path"
+  touch "$path/COPYING"
+  touch "$path/CREDITS"
+  touch "$path/Kbuild"
+  touch "$path/Makefile"
+  touch "$path/README"
+  touch "$path/MAINTAINERS"
+  mkdir -p "$path/Documentation"
+  mkdir -p "$path/arch"
+  mkdir -p "$path/include"
+  mkdir -p "$path/drivers"
+  mkdir -p "$path/fs"
+  mkdir -p "$path/init"
+  mkdir -p "$path/ipc"
+  mkdir -p "$path/kernel"
+  mkdir -p "$path/lib"
+  mkdir -p "$path/scripts"
+}
+
 function invoke_shunit
 {
   command -v shunit2 > /dev/null

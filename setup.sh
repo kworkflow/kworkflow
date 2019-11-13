@@ -3,8 +3,6 @@
 set -e
 
 declare -r APPLICATIONNAME="kw"
-declare -r APPLICATIONNAME_1="vm"
-declare -r APPLICATIONNAME_2="mk"
 declare -r SRCDIR="src"
 declare -r DEPLOY_DIR="deploy_rules"
 declare -r CONFIG_DIR="etc"
@@ -23,9 +21,23 @@ declare -r CONFIGS_PATH="configs"
 
 function usage()
 {
-  say "--install   | -i   Install $APPLICATIONNAME"
-  say "--uninstall | -u   Uninstall $APPLICATIONNAME"
-  say "--completely-remove Remove $APPLICATIONNAME and all files under its responsibility"
+  say "usage: ./setup.sh option"
+  say ""
+  say "Where option may be one of the following:"
+  say "--help      | -h     Display this usage message"
+  say "--install   | -i     Install $APPLICATIONNAME"
+  say "--uninstall | -u     Uninstall $APPLICATIONNAME"
+  say "--completely-remove  Remove $APPLICATIONNAME and all files under its responsibility"
+  say "--html               Build $APPLICATIONNAME's documentation as HTML pages into ./build"
+}
+
+function confirm_complete_removal()
+{
+  warning "This operation will completely remove all files related to kw,"
+  warning "including the kernel '.config' files under its controls."
+  if [[ $(ask_yN "Do you want to proceed?") =~ "0" ]]; then
+    exit 0
+  fi
 }
 
 function clean_legacy()
@@ -37,22 +49,22 @@ function clean_legacy()
   local toDelete="$APPLICATIONNAME"
   eval "sed -i '/$toDelete/d' $HOME/.bashrc"
   if [[ $completely_remove =~ "-d" ]]; then
-    mv $INSTALLTO $trash
+    mv "$INSTALLTO" "$trash"
     return 0
   fi
 
   # Remove files
-  if [ -d $INSTALLTO ]; then
+  if [ -d "$INSTALLTO" ]; then
     # If we have configs, we should keep it
-    if [ -d $INSTALLTO/$CONFIGS_PATH ]; then
-        for content in $INSTALLTO/*; do
+    if [ -d "$INSTALLTO/$CONFIGS_PATH" ]; then
+        for content in "$INSTALLTO"/*; do
           if [[ $content =~ "configs" ]]; then
             continue
           fi
-          mv $content $trash
+          mv "$content" "$trash"
         done
     else
-      mv $INSTALLTO $trash
+      mv "$INSTALLTO" "$trash"
     fi
   fi
 }
@@ -60,25 +72,26 @@ function clean_legacy()
 function setup_config_file()
 {
   say "Setting up global configuration file"
-  local config_files="$INSTALLTO/$CONFIG_DIR/*.config"
-  sed -i "s/USERKW/$USER/g" $config_files
-  # FIXME: The following sed command assumes users won't
-  # have files containing ",".
-  sed -i "s,INSTALLPATH,$INSTALLTO,g" $config_files
-  sed -i "/^#?.*/d" $config_files
+  local config_files_path="$INSTALLTO/$CONFIG_DIR"
+  for file in "$config_files_path"/*.config; do
+    # FIXME: The following sed command assumes users won't
+    # have files containing ",".
+    sed -i -e "s/USERKW/$USER/g" -e "s,INSTALLPATH,$INSTALLTO,g" \
+           -e "/^#?.*/d" "$file"
+  done
 
 }
 
 function synchronize_fish()
 {
-    local kw_fish_path='set -gx PATH $PATH:/home/lso/.config/kw'
+    local kw_fish_path="set -gx PATH $PATH:$HOME/.config/kw"
 
     say "Fish detected. Setting up fish support."
-    mkdir -p $FISH_COMPLETION_PATH
-    rsync -vr $SRCDIR/kw.fish $FISH_COMPLETION_PATH/kw.fish
+    mkdir -p "$FISH_COMPLETION_PATH"
+    rsync -vr $SRCDIR/kw.fish "$FISH_COMPLETION_PATH"/kw.fish
 
-    if ! grep -F "$kw_fish_path" $FISH_CONFIG_PATH/config.fish; then
-       echo $kw_fish_path >> $FISH_CONFIG_PATH/config.fish
+    if ! grep -F "$kw_fish_path" "$FISH_CONFIG_PATH"/config.fish; then
+       echo "$kw_fish_path" >> "$FISH_CONFIG_PATH"/config.fish
     fi
 }
 
@@ -87,24 +100,24 @@ function synchronize_files()
 {
   say "Installing ..."
 
-  mkdir -p $INSTALLTO
+  mkdir -p "$INSTALLTO"
 
   # Copy the script
-  cp $APPLICATIONNAME $INSTALLTO
-  rsync -vr $SRCDIR $INSTALLTO
-  rsync -vr $DEPLOY_DIR $INSTALLTO
-  rsync -vr $SOUNDS $INSTALLTO
-  rsync -vr $DOCUMENTATION $INSTALLTO
+  cp $APPLICATIONNAME "$INSTALLTO"
+  rsync -vr $SRCDIR "$INSTALLTO"
+  rsync -vr $DEPLOY_DIR "$INSTALLTO"
+  rsync -vr $SOUNDS "$INSTALLTO"
+  rsync -vr $DOCUMENTATION "$INSTALLTO"
 
   # Configuration
-  rsync -vr $CONFIG_DIR $INSTALLTO
+  rsync -vr $CONFIG_DIR "$INSTALLTO"
   setup_config_file
 
   if [ -f "$HOME/.bashrc" ]; then
       # Add to bashrc
-      echo "# $APPLICATIONNAME" >> $HOME/.bashrc
-      echo "PATH=\$PATH:$INSTALLTO" >> $HOME/.bashrc
-      echo "source $INSTALLTO/$SRCDIR/$BASH_AUTOCOMPLETE.sh" >> $HOME/.bashrc
+      echo "# $APPLICATIONNAME" >> "$HOME/.bashrc"
+      echo "PATH=\$PATH:$INSTALLTO" >> "$HOME/.bashrc"
+      echo "source $INSTALLTO/$SRCDIR/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.bashrc"
   else
       warning "Unable to find a shell."
   fi
@@ -113,12 +126,10 @@ function synchronize_files()
       synchronize_fish
   fi
 
-  say $SEPARATOR
+  say "$SEPARATOR"
   say "$APPLICATIONNAME installed into $INSTALLTO"
-  say $SEPARATOR
+  say "$SEPARATOR"
 }
-
-
 
 function install_home()
 {
@@ -141,9 +152,10 @@ case $1 in
     # not want to add a short version, and the user has to be sure about this
     # operation.
   --completely-remove)
+    confirm_complete_removal
     clean_legacy "-d"
     ;;
-  --help)
+  --help | -h)
     usage
     ;;
   --html)

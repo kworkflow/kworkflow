@@ -11,11 +11,12 @@
 
 Overview
 --------
-The Linux Kernel and Git community inspired our contribution process. For
-example, we copied-pasted part of the `Git documentation`__ related to the
-“Signed-off-by” and modified it a little bit.
-
-__ https://git-scm.com/docs/SubmittingPatches/2.3.5
+The Linux Kernel and Git community inspired our contribution process. As a
+result, this document is directly based on their contribution documentation.
+In particular, the text under 'Commit Messages' and 'Certify Your Work by Adding
+Your "Signed-off-by: " Line' are directly copied-and-pasted from Git's
+SubmittingPatches doc (with some modifications). For the original document,
+please check https://git-scm.com/docs/SubmittingPatches/
 
 Development Cycle and Branches
 ------------------------------
@@ -46,13 +47,45 @@ development cycle.
     new patch do not forget to add tests**. If you want to know more about
     tests, take a look at `About Tests` page.
 
+Commit Messages
+---------------
+
+The first line of the commit message should be a short description (50
+characters is the soft limit), and should skip the full stop. It is also
+conventional in most cases to prefix the first line with "area: " where the
+area is a filename or identifier for the general area of the code being
+modified, e.g.
+
+* setup: disable unnecessary download of checkpatch script
+* src: mk: remove unnecessary multiplication of PARALLEL_CORES
+
+If in doubt which identifier to use, run `git log --no-merges` on the files you
+are modifying to see the current conventions.
+
+It's customary to start the remainder of the first line after "area: " with a
+lower-case letter. E.g. "doc: clarify...", not "doc: Clarify...". (But as you
+might see in our log, that's a soft rule in kw.)
+
+The body should provide a meaningful commit message, which:
+
+* explains the problem the change tries to solve, i.e. what is wrong
+  with the current code without the change.
+
+* justifies the way the change solves the problem, i.e. why the
+  result with the change is better.
+
+* alternate solutions considered but discarded, if any.
+
+Describe your changes in imperative mood, e.g. "make xyzzy do frotz" instead of
+"[This patch] makes xyzzy do frotz" or "[I] changed xyzzy to do frotz", as if
+you are giving orders to the codebase to change its behavior. Try to make sure
+your explanation can be understood without external resources. At the bottom of
+the message body, you might include references to the issues that the said
+commit solves. This can be something like "Solves #30", "Fixes: #28" or
+"Closes #10".
+
 Certify Your Work by Adding Your "Signed-off-by: " Line
 -------------------------------------------------------
-.. seealso::
-   The following text came from `git documentation`__, and it reflects the kw's
-   view certify your work.
-
-   __ https://git-scm.com/docs/SubmittingPatches/2.3.5
 
 To improve tracking of who did what, we've borrowed the "sign-off" procedure
 from the Linux kernel project on patches that are being emailed around.
@@ -95,10 +128,27 @@ command with the `-s` option.
 
 Notice that you can place your own Signed-off-by: line when forwarding somebody
 else's patch with the above rules for D-C-O.  Indeed you are encouraged to do
-so.  Do not forget to place an in-body "From: " line at the beginning to
-properly attribute the change to its true author (see (2) above).
+so.
 
 .. note::
   Also notice that a real name is used in the Signed-off-by: line. Please don't
   hide your real name.
+
+If you like, you can put extra tags at the end:
+
+    1. Reported-by: is used to credit someone who found the bug that the patch
+    attempts to fix.
+
+    2. Acked-by: says that the person who is more familiar with the area the
+    patch attempts to modify liked the patch.
+
+    3. Reviewed-by:, unlike the other tags, can only be offered by the reviewer
+    and means that she is completely satisfied that the patch is ready for
+    application. It is usually offered only after a detailed review.
+
+    4. Tested-by: is used to indicate that the person applied the patch and
+    found it to have the desired effect.
+
+You can also create your own tag or use one that’s in common usage such as
+`Co-authored-by` or `Helped-by`.
 

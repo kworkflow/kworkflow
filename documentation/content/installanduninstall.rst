@@ -20,6 +20,7 @@ following dependencies:
 * Bash
 * git
 * python-docutils
+* rsync
 
 If you want to use the default alert system (for commands that may take longer
 to run), you also have to install:
@@ -31,6 +32,7 @@ For development, you will need:
 
 * dash
 * shunit2
+* fish
 
 For getting the Sphinx Documentation:
 
@@ -48,6 +50,9 @@ If you want to use Qemu, we suggest the following steps:
 
 Install
 -------
+
+Manual install
+~~~~~~~~~~~~~~
 In the kw's directory, type::
 
     ./setup.sh -i
@@ -66,6 +71,12 @@ the path to `kw` to `PATH` environment variable.
 To check if the installations was ok, open another terminal and type::
 
     kw help
+
+Package install
+~~~~~~~~~~~~~~~
+
+- Arch Linux:
+   Available at AUR: https://aur.archlinux.org/packages/kworkflow-git/
 
 Update
 ------
