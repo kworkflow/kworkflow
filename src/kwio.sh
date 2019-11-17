@@ -28,9 +28,9 @@ function alert_completion()
 
   grep -o . <<< "$opts" | while read option;  do
     if [ "$option" == "v" ]; then
-      eval "${configurations[visual_alert_command]}"
+      eval "${configurations[visual_alert_command]} &"
     elif [ "$option" == "s" ]; then
-      eval "${configurations[sound_alert_command]}"
+      eval "${configurations[sound_alert_command]} &"
     fi
   done
 }
