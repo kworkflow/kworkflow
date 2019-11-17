@@ -17,6 +17,8 @@ function testExplore
   MSG_OUT="camel_case(void)"
   assertEquals "$MSG_OUT" "$(explore "camel_case" tests/samples | cut -d ' ' -f2 | sed -n -e 2p)"
   assertEquals "$LOG_OUT" "$(explore log LICENSE | grep "Initial commit" | awk '{print $1, $2}')"
+  MSG_OUT="Free Software Foundation"  
+  assertEquals "$MSG_OUT" "$(explore "Free Software Foundation" ./LICENSE | grep "Free Software Foundation" -o | head -n 1)"
   true
 }
 
