@@ -3,6 +3,11 @@
 . ./tests/utils --source-only
 . ./src/kwio.sh --source-only
 
+# NOTE: All executions off 'alert_completion' in this test file must be done
+# inside a subshell (i.e. "$(alert_completion ...)"), because this function
+# invokes other commands in the background. So if not done inside a subshell,
+# the function will return before the background commands finish.
+
 declare -A configurations
 sound_file="$PWD/tests/.kwio_test_aux/sound.file"
 visual_file="$PWD/tests/.kwio_test_aux/visual.file"
@@ -32,27 +37,27 @@ function testAlertOptions
   configurations["alert"]="n"
 
   rm -f "$sound_file" "$visual_file"
-  alert_completion "" "--alert=vs"
+  $(alert_completion "" "--alert=vs")
   [[ -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's vs option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
-  alert_completion "" "--alert=sv"
+  $(alert_completion "" "--alert=sv")
   [[ -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's sv option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
-  alert_completion "" "--alert=s"
+  $(alert_completion "" "--alert=s")
   [[ -f "$sound_file" && ! -f "$visual_file" ]]
   assertTrue "Alert's s option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
-  alert_completion "" "--alert=v"
+  $(alert_completion "" "--alert=v")
   [[ ! -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's v option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
-  alert_completion "" "--alert=n"
+  $(alert_completion "" "--alert=n")
   [[ ! -f "$sound_file" && ! -f "$visual_file" ]]
   assertTrue "Alert's n option didn't work." $?
 
@@ -65,31 +70,31 @@ function testAlertDefaultOptions
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="vs"
-  alert_completion "" ""
+  $(alert_completion "" "")
   [[ -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's vs option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="sv"
-  alert_completion "" ""
+  $(alert_completion "" "")
   [[ -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's sv option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="s"
-  alert_completion "" ""
+  $(alert_completion "" "")
   [[ -f "$sound_file" && ! -f "$visual_file" ]]
   assertTrue "Alert's s option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="v"
-  alert_completion "" ""
+  $(alert_completion "" "")
   [[ ! -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's v option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="n"
-  alert_completion "" ""
+  $(alert_completion "" "")
   [[ ! -f "$sound_file" && ! -f "$visual_file" ]]
   assertTrue "Alert's n option didn't work." $?
 
