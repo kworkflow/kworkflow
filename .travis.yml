@@ -1,0 +1,30 @@
+language: bash
+os: linux
+dist: xenial
+
+# Prepare for dependencies installation
+before_install:
+  - sudo apt-get -y update
+
+# Install dependencies
+install:
+  - >
+    sudo apt-get -y install libguestfs-tools qemu ansible bash git
+    python-docutils dash shunit2 fish python-sphinx
+
+# Prepare to execute tests
+before_script:
+  - ./run_tests.sh prepare
+
+# Execute tests, docs build and kw installation to check for errors
+script:
+  - ./run_tests.sh
+  - ./setup.sh --html
+  - ./setup.sh -i
+
+# Disable notifications by email for now are there're some issues to be solved
+# (#126 and #127) that still makes the tests fail at travis-ci (and we don't
+# want emails for them). TODO: remove this once the issues are solved.
+notifications:
+  email: false
+
