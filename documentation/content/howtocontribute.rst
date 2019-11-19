@@ -43,9 +43,12 @@ development cycle.
    :align: center
 
 .. note::
-    One of our main goals it keeps kw stable, in this sense, **if you send a
-    new patch do not forget to add tests**. If you want to know more about
-    tests, take a look at `About Tests` page.
+    One of our main goals is to keep kw stable. In this sense, **if you send a
+    new patch do not forget to add tests**. You might also want to fork `kw at
+    github <https://github.com/rodrigosiqueira/kworkflow/>`_ and allow
+    `travis-ci <https://travis-ci.org/>`_ builds for it, to automatically run
+    the test in the cloud. If you want to know more about tests, take a look at
+    `About Tests` page.
 
 Commit Messages
 ---------------
