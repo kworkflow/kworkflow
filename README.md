@@ -44,7 +44,7 @@ We are happy that you want to help us! If you are looking for a good starting
 point, check
 [those issues](https://github.com/kworkflow/kworkflow/labels/good%20first%20issue)
 and don't forget to read our
-[Contribuitor's Guide](https://siqueira.tech/doc/kw/content/howtocontribute.html)
+[Contribuitor's Guide](https://flusp.ime.usp.br/doc/kw/content/howtocontribute.html)
 (or [howtocontribute file](documentation/content/howtocontribute.rst)).
 
 # License
