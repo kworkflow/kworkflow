@@ -20,7 +20,9 @@ please check https://git-scm.com/docs/SubmittingPatches/
 
 Development Cycle and Branches
 ------------------------------
-Our development cycle relies on two different branches:
+Kw's development happens in GitHub. The official repository can be found at
+https://github.com/kworkflow/kworkflow/. Our development cycle relies on two
+different branches:
 
 1. **master**: We maintain the kw stable version in the master branch, and we
 try our best to keep master working well for final users. If you only want to
@@ -45,7 +47,7 @@ development cycle.
 .. note::
     One of our main goals is to keep kw stable. In this sense, **if you send a
     new patch do not forget to add tests**. You might also want to fork `kw at
-    github <https://github.com/rodrigosiqueira/kworkflow/>`_ and allow
+    github <https://github.com/kworkflow/kworkflow/>`_ and allow
     `travis-ci <https://travis-ci.org/>`_ builds for it, to automatically run
     the test in the cloud. If you want to know more about tests, take a look at
     `About Tests` page.
