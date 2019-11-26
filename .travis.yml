@@ -1,6 +1,6 @@
 language: bash
 os: linux
-dist: xenial
+dist: bionic
 
 # Prepare for dependencies installation
 before_install:
