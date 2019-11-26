@@ -29,7 +29,7 @@ function kworkflow-help()
   echo -e "kw explore:\n" \
     "\texplore,e STRING [PATH] - Search for STRING based in PATH (./ by default) \n" \
     "\texplore,e \"STR SRT\" [PATH] - Search for strings\n" \
-    "\texplore,e log STRING - Search for STRING on git log\n" \
+    "\texplore,e --log STRING - Search for STRING on git log\n" \
 
   echo -e "kw config manager:\n" \
     "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
