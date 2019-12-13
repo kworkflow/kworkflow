@@ -101,7 +101,7 @@ function vm_ssh
 
 function vm_prepare
 {
-  local path_ansible=$HOME/.config/kw/deploy_rules/
+  local path_ansible=$CURDIR/deploy_rules/
   local current_path=$PWD
   local ret=0
   say "Deploying with Ansible, this will take some time"

@@ -59,7 +59,7 @@ function load_configuration()
   local local_config_path=$PWD/kworkflow.config
 
   # First, load the global configuration
-  parse_configuration $etc_files_path/kworkflow.config
+  parse_configuration $config_files_path/kworkflow.config
 
   # Second, check if has a local file and override values
   if [ -f $local_config_path ] ; then

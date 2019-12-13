@@ -1,10 +1,14 @@
 #!/bin/bash
 
 # Set required variables
+CURDIR=$(dirname $(realpath "$0"))
+
+export CURDIR
+
 EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kw"}
-src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
+src_script_path=${src_script_path:-"$CURDIR/src"}
 external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
-etc_files_path=${etc_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"}
+etc_files_path=${etc_files_path:-"$CURDIR/etc"}
 config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW"}
 
 # Export external variables required by kworkflow
@@ -167,5 +171,12 @@ function kw()
       ;;
   esac
 }
+
+# If user home doesn't contain config files
+if [ ! -d "$HOME/.config/kw" ]; then
+    install -d "$HOME/.config/kw"
+    cp -a "${CURDIR}/etc/." "${config_files_path}"
+    sed -i "s/USERKW/$USER/g" "${config_files_path}/kworkflow.config"
+fi
 
 kw "$@"
