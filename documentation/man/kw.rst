@@ -302,5 +302,5 @@ After you start your VM you can ssh into it with::
   kw s
 
 .. note::
-   You have to wait for the sshd become ready.
+   You have to wait for the sshd to become ready.
 
