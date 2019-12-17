@@ -19,6 +19,19 @@ declare -r CONFIGS_PATH="configs"
 
 . src/kwio.sh --source-only
 
+function echo_n_run()
+{
+  echo "$@"
+  eval "$@ >/dev/null"
+}
+
+function report_completed()
+{
+	success "$SEPARATOR"
+	success "$@"
+	success "$SEPARATOR"
+}
+
 function usage()
 {
   say "usage: ./setup.sh option"
@@ -47,9 +60,9 @@ function clean_legacy()
   local completely_remove=$1
 
   local toDelete="$APPLICATIONNAME"
-  eval "sed -i '/$toDelete/d' $HOME/.bashrc"
+  echo_n_run eval "sed -i '/$toDelete/d' $HOME/.bashrc"
   if [[ $completely_remove =~ "-d" ]]; then
-    mv "$INSTALLTO" "$trash"
+    echo_n_run mv "$INSTALLTO" "$trash"
     return 0
   fi
 
@@ -61,10 +74,10 @@ function clean_legacy()
           if [[ $content =~ "configs" ]]; then
             continue
           fi
-          mv "$content" "$trash"
+          echo_n_run mv "$content" "$trash"
         done
     else
-      mv "$INSTALLTO" "$trash"
+      echo_n_run mv "$INSTALLTO" "$trash"
     fi
   fi
 }
@@ -90,8 +103,8 @@ function synchronize_fish()
     local kw_fish_path="set -gx PATH $PATH:$HOME/.config/kw"
 
     say "Fish detected. Setting up fish support."
-    mkdir -p "$FISH_COMPLETION_PATH"
-    rsync -vr $SRCDIR/kw.fish "$FISH_COMPLETION_PATH"/kw.fish
+    echo_n_run mkdir -p "$FISH_COMPLETION_PATH"
+    echo_n_run rsync -vr $SRCDIR/kw.fish "$FISH_COMPLETION_PATH"/kw.fish
 
     if ! grep -F "$kw_fish_path" "$FISH_CONFIG_PATH"/config.fish; then
        echo "$kw_fish_path" >> "$FISH_CONFIG_PATH"/config.fish
@@ -103,16 +116,16 @@ function synchronize_files()
 {
   say "Installing ..."
 
-  mkdir -p "$INSTALLTO"
+  echo_n_run mkdir -p "$INSTALLTO"
 
   # Copy the script
-  cp $APPLICATIONNAME "$INSTALLTO"
-  rsync -vr $SRCDIR "$INSTALLTO"
-  rsync -vr $SOUNDS "$INSTALLTO"
-  rsync -vr $DOCUMENTATION "$INSTALLTO"
+  echo_n_run cp "$APPLICATIONNAME" "$INSTALLTO"
+  echo_n_run rsync -vr "$SRCDIR" "$INSTALLTO"
+  echo_n_run rsync -vr "$SOUNDS" "$INSTALLTO"
+  echo_n_run rsync -vr "$DOCUMENTATION" "$INSTALLTO"
 
   # Configuration
-  rsync -vr $CONFIG_DIR "$INSTALLTO"
+  echo_n_run rsync -vr "$CONFIG_DIR" "$INSTALLTO"
   setup_config_file
 
   if [ -f "$HOME/.bashrc" ]; then
@@ -128,11 +141,8 @@ function synchronize_files()
       synchronize_fish
   fi
 
-  say "$SEPARATOR"
   # Create ~/kw for support some of the operations
   mkdir -p "$KW_DIR"
-  say "$APPLICATIONNAME installed into $INSTALLTO"
-  say "$SEPARATOR"
 }
 
 function install_home()
@@ -147,9 +157,11 @@ function install_home()
 case $1 in
   --install | -i)
     install_home
+    report_completed "$APPLICATIONNAME installed into $INSTALLTO"
     ;;
   --uninstall | -u)
     clean_legacy
+    report_completed "Removal completed"
     ;;
     # ATTENTION: This option is dangerous because it completely removes all files
     # related to kw, e.g., '.config' file under kw controls. For this reason, we do
@@ -158,15 +170,19 @@ case $1 in
   --completely-remove)
     confirm_complete_removal
     clean_legacy "-d"
+    report_completed "Removal completed"
     ;;
   --help | -h)
     usage
     ;;
   --docs)
-    sphinx-build -b html documentation/ build
+    say "Building HTML docs..."
+    echo_n_run sphinx-build -b html documentation/ build
+    report_completed "HTML docs generated at ./build"
     ;;
   *)
     complain "Invalid number of arguments"
+    usage
     exit 1
     ;;
 esac
