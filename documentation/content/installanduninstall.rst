@@ -117,20 +117,17 @@ Kw allows you to have a specific set of configuration per project. For example,
 if you have a particular kernel tree named ‘drm-work’ and want a different
 configuration from the default you can follow these steps:
 
-1. Copy `kw.config.example` as follows::
-
-    cp kworkflow.config.example /PATH/KERNEL/SOURCE/kworkflow.config
+1. `~/.config/kw/etc/kworkflow.config` to
+   `/path/to/your/kernel/tree/drm-work/kworkflow.config`
 
 .. note::
    The default name **must be** `kworkflow.config`
 
-2. Change the options inside::
-
-    qemu_hw_options=-enable-kvm -daemonize -m 3G -smp cores=4,cpus=4
-    qemu_net_options=-net nic -net user,hostfwd=tcp::2222-:22,smb=$HOME
-    qemu_path_image=$HOME/p/virty.qcow2
+2. Change the options inside as you want. You can also remove settings you do
+   not want to customize; In this case, kw will read them from the global
+   configuration file.
 
 3. Done! Every time you execute any command in the root dir of drm-work the
-configuration file will be read. If the file does not exist, the default
-operation will be used.
+   local configuration file will be read. And if the file does not exist, the
+   default settings will be used.
 

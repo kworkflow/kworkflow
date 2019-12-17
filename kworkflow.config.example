@@ -1,3 +1,0 @@
-qemu_hw_options=-enable-kvm -daemonize -m 3G -smp cores=4,cpus=4
-qemu_net_options=-net nic -net user,hostfwd=tcp::2222-:22,smb=$HOME 
-qemu_path_image=$HOME/p/virty.qcow2
