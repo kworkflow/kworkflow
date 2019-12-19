@@ -69,10 +69,12 @@ specific target, and finally umounts the QEMU image.
 .. note::
   **Only run this command after you turn off your VM**.
 
-d, deploy [--remote [REMOTE:PORT] [--reboot]]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+d, deploy [--remote [REMOTE:PORT]][--local] [--reboot]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you are in a kernel directory, this command will try to install the current
-kernel version that you have based on the following steps:
+kernel version in your target machine (remote, host, and VM). If you want to
+install a kernel version in a remote machine, the following steps will be
+executed:
 
 1. Prepare a local directory with all the required files;
 
@@ -88,6 +90,9 @@ frequently you probably will prefer to add this information in your local
   default_deploy_target=remote
   ssh_ip=172.16.254.1
   ssh_port=22
+
+If you want to install a new kernel version in your host machine, you can use
+the flag *--local*; you will need to use your root password.
 
 Another typical operation when deploying a new kernel to a test machine, it is
 the reboot after the update. You can explicitly say it for *kw* by adding the

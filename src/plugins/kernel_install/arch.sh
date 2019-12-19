@@ -26,6 +26,17 @@ function install_kernel()
 {
   local name="$1"
   local reboot="$2"
+  local local="$3"
+  local architecture="$4"
+  local flag="$5"
+  local sudo_cmd=""
+  local LOCAL_KW_ETC="$etc_files_path/template_mkinitcpio.preset"
+
+  flag=${flag:-"SILENT"}
+
+  if [[ ! -z "$local" ]]; then
+    sudo_cmd="sudo -E "
+  fi
 
   if [[ -z "$name" ]]; then
     name="kw"
@@ -33,19 +44,39 @@ function install_kernel()
 
   # Copy kernel image
   if [[ -f "/boot/vmlinuz-$name" ]]; then
-    cp "/boot/vmlinuz-$name" "/boot/vmlinuz-$name.old"
+    cmd="$sudo_cmd cp /boot/vmlinuz-$name /boot/vmlinuz-$name.old"
+    cmd_manager "$flag" "$cmd"
   fi
 
-  cp -v "vmlinuz-$name" "/boot/vmlinuz-$name"
+  if [[ ! -z "$local" ]]; then
+    [[ -z "$architecture" ]] && architecture="x86_64"
+    cmd="$sudo_cmd cp -v arch/$architecture/boot/bzImage /boot/vmlinuz-$name"
+    cmd_manager "$flag" "$cmd"
+  else
+    cmd="$sudo_cmd cp -v vmlinuz-$name /boot/vmlinuz-$name"
+    cmd_manager "$flag" "$cmd"
+  fi
+
   # Update mkinitcpio
-  cp -v "$name.preset" /etc/mkinitcpio.d/
-  mkinitcpio -p "$name"
+  if [[ ! -z "$local" ]]; then
+    cmd="$sudo_cmd cp -v $LOCAL_KW_ETC /etc/mkinitcpio.d/$name.preset"
+    cmd_manager "$flag" "$cmd"
+    cmd="$sudo_cmd sed -i -e \"s/NAME/$name/g\" \"/etc/mkinitcpio.d/$name.preset\""
+    cmd_manager "$flag" "$cmd"
+  else
+    cp -v "$name.preset" /etc/mkinitcpio.d/
+  fi
+
+  cmd="$sudo_cmd mkinitcpio -p $name"
+  cmd_manager "$flag" "$cmd"
 
   # Update grub
-  grub-mkconfig -o /boot/grub/grub.cfg
+  cmd="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
+  cmd_manager "$flag" "$cmd"
 
   # Reboot
   if [[ "$reboot" = "1" ]]; then
-    reboot
+    cmd="$sudo_cmd reboot"
+    cmd_manager "$flag" "$cmd"
   fi
 }

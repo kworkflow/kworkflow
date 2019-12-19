@@ -10,6 +10,8 @@ function suite
   suite_addTest "modules_install_to_Test"
   suite_addTest "kernel_install_Test"
   suite_addTest "kernel_modules_Test"
+  suite_addTest "kernel_modules_local_Test"
+  suite_addTest "kernel_install_local_Test"
 }
 
 FAKE_KERNEL="tests/.tmp"
@@ -44,8 +46,11 @@ function setUp
 
   export preset_name="template_mkinitcpio.preset"
   export test_path="$PWD/$FAKE_KERNEL"
+  export plugins_path="$test_path"
   export kw_dir="$test_path"
   export etc_files_path="$PWD/$SAMPLES_DIR/etc"
+  export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
+  export modules_path="$test_path/$kernel_install_path/lib/modules"
 
   mkdir "$test_path/$LOCAL_TO_DEPLOY_DIR"
   if [[ -z "$create_mkinitcpio" ]]; then
@@ -57,6 +62,7 @@ function setUp
   # Mock functions
   shopt -s expand_aliases
   alias which_distro='which_distro_mock'
+  alias detect_distro='which_distro_mock'
   alias get_kernel_release='get_kernel_release_mock'
 }
 
@@ -340,6 +346,55 @@ function kernel_modules_Test
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$ID - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
     fi
+    ((count++))
+  done <<< "$output"
+
+  cd "$original"
+}
+
+function kernel_modules_local_Test
+{
+  local ID
+  local original="$PWD"
+  local cmd="sudo -E make modules_install"
+
+  cd "$FAKE_KERNEL"
+  ID=1
+  output=$(modules_install "TEST_MODE" "--local")
+  assertFalse "$ID - Expected $output to be $cmd" '[[ "$cmd" != "$output" ]]'
+  cd "$original"
+}
+
+function kernel_install_local_Test
+{
+  local ID
+  local original="$PWD"
+  local cmd_deploy_image="$ssh_cmd $remote_access \"$deploy_cmd\""
+
+  # We force Debian files in the setup; for this reason, we are using the
+  # commands used to deploy a new kernel image on debian.
+  local cmd_cp_kernel_img="sudo -E cp -v arch/x86_64/boot/bzImage /boot/vmlinuz-test"
+  local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
+  local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
+
+  declare -a expected_cmd=(
+    "$cmd_cp_kernel_img"
+    "$cmd_update_initramfs"
+    "$cmd_update_grub"
+  )
+
+  # ATTENTION: $FAKE_KERNEL got two levels deep (tests/.tmp); for this reason,
+  # we have to update plugins_path for this test for making sure that we use a
+  # real plugin.
+  export plugins_path="../../src/plugins"
+  cd "$FAKE_KERNEL"
+
+  ID=1
+  output=$(kernel_install "--reboot" "test" "TEST_MODE" "--local")
+
+  while read f; do
+    assertFalse "$ID (cmd: $count) - Expected \"${expected_cmd[$count]}\" to be \"${f}\"" \
+                '[[ ${expected_cmd[$count]} != ${f} ]]'
     ((count++))
   done <<< "$output"
 

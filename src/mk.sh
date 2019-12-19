@@ -99,8 +99,8 @@ function modules_install
       vm_modules_install
       ;;
     2) # LOCAL_TARGET
-      # TODO
-      echo "TODO"
+      cmd="sudo -E make modules_install"
+      cmd_manager "$flag" "$cmd"
       ;;
     3) # REMOTE_TARGET
       # 1. Preparation steps
@@ -181,7 +181,16 @@ function kernel_install
            "option."
     ;;
     2) # LOCAL_TARGET
-      echo "TODO"
+      local distro=$(detect_distro "/")
+
+      if [[ "$distro" =~ "none" ]]; then
+        complain "Unfortunately, there's no support for the target distro"
+        exit 95 # ENOTSUP
+      fi
+
+      # Local Deploy
+      . "$plugins_path/kernel_install/$distro.sh" --source-only
+      install_kernel "$name" "$reboot" 'local' "${configurations[arch]}" "$flag"
     ;;
     3) # REMOTE_TARGET
       local preset_file="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
