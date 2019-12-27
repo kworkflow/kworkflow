@@ -43,8 +43,8 @@ function mk_build
     PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
   fi
 
-  say "make -j$PARALLEL_CORES $MAKE_OPTS"
-  make -j$PARALLEL_CORES $MAKE_OPTS
+  say "make ARCH="${configurations[arch]}" -j$PARALLEL_CORES"
+  make ARCH="${configurations[arch]}" -j$PARALLEL_CORES
 }
 
 function mk_install

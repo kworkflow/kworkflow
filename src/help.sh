@@ -23,11 +23,15 @@ function kworkflow-help()
     "\tmaintainers,m [-a|--authors] - Return the maintainers and\n" \
     "\t                             the mailing list. \"-a\" also\n" \
     "\t                             prints files authors\n" \
-    "\texplore,e - Search for expression on git log or directory\n" \
     "\thelp,h - displays this help mesage\n" \
-    "\tman - Show manual"
+    "\tman - Show manual\n"
 
-  echo -e "\nkw config manager:\n" \
+  echo -e "kw explore:\n" \
+    "\texplore,e STRING [PATH] - Search for STRING based in PATH (./ by default) \n" \
+    "\texplore,e \"STR SRT\" [PATH] - Search for strings\n" \
+    "\texplore,e --log STRING - Search for STRING on git log\n" \
+
+  echo -e "kw config manager:\n" \
     "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
     "\tconfigm,g --ls - List config files under kw management\n" \
     "\tconfigm,g --get NAME - Get a config file based named *NAME*\n" \

@@ -168,4 +168,4 @@ function kw()
   esac
 }
 
-kw $@
+kw "$@"
