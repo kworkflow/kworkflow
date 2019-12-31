@@ -233,6 +233,7 @@ function kernel_deploy
 {
   local reboot=0
   local name="kw"
+  local modules=0
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -246,6 +247,7 @@ function kernel_deploy
     shift
     [[ "$arg" =~ ^(--reboot|-r) ]] && reboot=1 && continue
     [[ "$arg" =~ ^(--name|-n)= ]] && name=$(echo $arg | cut -d = -f2) && continue
+    [[ "$arg" =~ ^(--modules|-m) ]] && modules=1 && continue
     set -- "$@" "$arg"
   done
 
@@ -254,7 +256,10 @@ function kernel_deploy
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
   modules_install "" "$@"
-  kernel_install "$reboot" "$name" "" "$@"
+
+  if [[ "$modules" == 0 ]]; then
+    kernel_install "$reboot" "$name" "" "$@"
+  fi
 }
 
 function mk_build
