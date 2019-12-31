@@ -54,23 +54,26 @@ u, up
 ~~~~~
 Start the QEMU VM based on parameters in the **kworkflow.config** file.
 
-s, ssh [--script|-s="PATH"]|[--command|-c="COMMAND"]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Ssh into the QEMU VM. The *--script* parameter expects a bash script as a
-parameter to evaluate it in the VM. The *--command* parameter expects a command
-to be executed inside the QEMU VM.
-
-i, install
-~~~~~~~~~~
-Installs or updates the Linux kernel modules on the QEMU VM. Under the hood, it
-executes the mount operation, followed by **make modules_install** with a
-specific target, and finally umounts the QEMU image.
+COMMANDS FOR DEPLOY NEW KERNEL IMAGE AND MODULE
+-----------------------------------------------
+When we develop for Linux Kernel, we continuously want to install/update the
+current version of the Kernel image or modules, and this tasks may require
+several steps to be accomplished. For this reason, **kw** provides an option
+named **deploy** that handles attempts to handle all the complexity related to
+the new Kernel installation. It is essential to highlight that we try to
+support three different types of deploy: *local*, *vm*, and *remote*. When you
+want to update your host machine, you can use the *local* option; if you're
+going to deploy your new kernel in the VM, you can use *vm* option. Finally, we
+provide the *remote* option, which is much more flexible since it uses network;
+notice that this approach is the most generic one because you can use it for
+*vm* and *local*.
 
 .. note::
-  **Only run this command after you turn off your VM**.
+  **Currently, we don't support the Kernel image update in the --vm option.
+  However, you can use the remote option for a workaround this issue**.
 
-d, deploy [--remote [REMOTE:PORT]][--local] [--reboot]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+d, deploy [--remote [REMOTE:PORT]][--local][--vm] [--modules] [--reboot]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you are in a kernel directory, this command will try to install the current
 kernel version in your target machine (remote, host, and VM). If you want to
 install a kernel version in a remote machine, the following steps will be
@@ -100,6 +103,25 @@ flag *--reboot*, or again, add this to the *kworkflow.config* with::
 
   reboot_after_deploy=yes
 
+Follows the summary of the options:
+
+1. --remote [REMOTE:PORT]: Deploy the Kernel image and modules to a machine in
+the network.
+
+2. --local: Deploy the Kernel image and modules in the host machine, you will
+need root access.
+
+3. --vm: Deploy the Kernel image and modules to QEMU vm.
+
+4. --reboot: Reboot machine after deploy.
+
+5. --modules: Only install/update modules.
+
+.. note::
+  **Only run commands related to VM after you turn it off**. Under the hood, it
+  executes the mount operation, followed by **make modules_install** with a
+  specific target, and finally umounts the QEMU image.
+
 COMMANDS FOR WORKING WITH CODE
 ------------------------------
 Projects that have a similar workflow to the Linux Kernel usually have a set of
@@ -121,7 +143,7 @@ use of this tool; notice that you can specify a single file or an entire
 directory.
 
 e, explore [--log] [*EXPRESSION*] [-p] [*DIRECTORY|FILE*]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The *explore* command is a wrapper to git grep. It can search for string
 matches in either the git repository contents or in the git log messages. For
 example, you can use **kw e functionName** to find *functionName* in the source
@@ -146,6 +168,13 @@ OTHER COMMANDS
 This section describes a tool available in **kw** to help developers keep track
 of configuration files and other features provided by **kw** that do not fit in
 the previous sections.
+
+s, ssh [--script|-s="PATH"]|[--command|-c="COMMAND"]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Ssh into any machine reachable via the network. The *--script* parameter
+expects a bash script as a parameter to evaluate it in the target machine. The
+*--command* parameter expects a command to be executed inside of target
+machine.
 
 g, configm [--save *NAME* [-d *DESCRIPTION*][-f]]|[--ls]|[--get *NAME* [-f]]|[--rm *NAME* [-f]]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -175,7 +204,7 @@ v, vars
 Shows configurations being used by **kw** in the current working directory. To
 do that, it examines both global and local *kworkflow.config* files.
 
-bi
+bd
 ~~
 Build and install a new module version. It is a combination of the **build**
 and **install** commands.
@@ -183,8 +212,8 @@ and **install** commands.
 alert=[*vs|sv,v,s,n*]
 ~~~~~~~~~~~~~~~~~~~~~
 Some commands take considerable time to execute. **kw** gives you an option to
-be notified when they finish. The commands *build*, *install*, *mount*,
-*umount*, new and *bi* offer this feature.
+be notified when they finish. The commands *build*, *deploy*, *mount*,
+*umount*, and *bd* offer this feature.
 
 1. *v* enables visual notification.
 
@@ -276,6 +305,15 @@ notify-send -i checkbox -t 10000 "kw" "Command: \\"$COMMAND\\" completed!"
 (Note: You may use COMMAND, which will be replaced by the kw command
 whose conclusion the user wished to be alerted.)
 
+default_deploy_target
+---------------------
+By default, **kw** deploys in the VM; however, you can change this behavior
+with this variable. The available options are: vm, local, and remote.
+
+reboot_remote_by_default
+------------------------
+Reboot machine after the deploy finish
+
 EXAMPLE
 =======
 For these examples, we suppose the fields in your *kworkflow.config* file is
@@ -285,7 +323,7 @@ First, if you are working in a specific kernel module, and if you want to
 install your recent changes in your VM you can use::
 
     cd /KERNEL/PATH
-    kw i
+    kw d --vm --modules
 
 .. note::
    Turn off your VM before use the *intall* command.
@@ -294,7 +332,7 @@ For building and installing a new module version based on the current kernel
 version, you can use::
 
   cd /KERNEL/PATH
-  kw bi
+  kw bd
 
 For checking the code style::
 

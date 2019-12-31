@@ -80,13 +80,13 @@ function kw()
         return "$ret"
       )
       ;;
-    bi)
+    bd)
       (
         . "$src_script_path"/mk.sh --source-only
 
-        mk_build && modules_install "$@"
+        mk_build && kernel_deploy "$@"
         local ret="$?"
-        alert_completion "kw bi" "$1"
+        alert_completion "kw db" "$1"
         return "$ret"
       )
       ;;
