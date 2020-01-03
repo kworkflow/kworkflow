@@ -4,7 +4,6 @@ set -e
 
 declare -r APPLICATIONNAME="kw"
 declare -r SRCDIR="src"
-declare -r DEPLOY_DIR="deploy_rules"
 declare -r CONFIG_DIR="etc"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
 
@@ -105,7 +104,6 @@ function synchronize_files()
   # Copy the script
   cp $APPLICATIONNAME "$INSTALLTO"
   rsync -vr $SRCDIR "$INSTALLTO"
-  rsync -vr $DEPLOY_DIR "$INSTALLTO"
   rsync -vr $SOUNDS "$INSTALLTO"
   rsync -vr $DOCUMENTATION "$INSTALLTO"
 

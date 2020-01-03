@@ -13,7 +13,6 @@ function kworkflow-help()
     "\tbuild,b - Build Kernel and modules\n" \
     "\tinstall,i - Install modules\n" \
     "\tbi - Build and install modules\n" \
-    "\tprepare,p - Deploy basic environment in the VM\n" \
     "\tnew,n - Install new Kernel image\n" \
     "\tmount,mo - Mount partition with qemu-nbd\n" \
     "\tumount,um - Umount partition created with qemu-nbd\n" \

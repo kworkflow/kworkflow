@@ -50,16 +50,6 @@ function kw()
         vm_up
       )
       ;;
-    prepare|p)
-      (
-        . "$src_script_path"/vm.sh --source-only
-
-        vm_prepare
-        local ret=$?
-        alert_completion "kw prepare" "$1"
-        return $ret
-      )
-      ;;
     build|b)
       (
         . "$src_script_path"/mk.sh --source-only

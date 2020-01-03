@@ -1,9 +1,0 @@
----
-- name: Installing required packages for share data
-  apt:
-    name: "{{ packages }}"
-    state: latest
-  vars:
-    packages:
-      - smbclient
-      - cifs-utils
