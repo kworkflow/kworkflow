@@ -23,7 +23,7 @@ function getSortedCompletions()
 
 function testKwCompletion()
 {
-    local kw_options="explore e build b bi install i prepare p new n ssh s
+    local kw_options="explore e build b bi install i new n ssh s
                       mount mo umount um vars v up u codestyle c
                       maintainers m help h"
 
