@@ -17,7 +17,6 @@ complete -c kw -n __fish_kw_no_commands -f
 complete -c kw -n "__fish_kw_no_commands" -a "build b" -d "Build Kernel and modules"
 complete -c kw -n "__fish_kw_no_commands" -a "install i" -d "Install modules"
 complete -c kw -n "__fish_kw_no_commands" -a "bi" -d "Build and install modules"
-complete -c kw -n "__fish_kw_no_commands" -a "prepare p" -d "Deploy basic environment in the VM"
 complete -c kw -n "__fish_kw_no_commands" -a "new n" -d "Install new Kernel image"
 complete -c kw -n "__fish_kw_no_commands" -a "ssh s" -d "Enter in the vm"
 complete -c kw -n "__fish_kw_no_commands" -a "mount mo" -d "Mount partition with qemu-nbd"

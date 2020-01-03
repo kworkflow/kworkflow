@@ -69,18 +69,6 @@ specific target, and finally umounts the QEMU image.
 .. note::
   **Only run this command after you turn off your VM**.
 
-p, prepare
-~~~~~~~~~~
-**(EXPERIMENTAL)** Starting from a generic image, *prepare* sets up the
-necessary packages, files, etc. inside the QEMU image so that it is ready for
-development work. For this to work, you have to:
-
-1. Add your public key in the VM in the authorized_keys file.
-
-2. Remove the requirement for password in the VM to become root.
-
-This command (currently) uses Ansible playbooks.
-
 COMMANDS FOR WORKING WITH CODE
 ------------------------------
 Projects that have a similar workflow to the Linux Kernel usually have a set of
@@ -164,8 +152,8 @@ and **install** commands.
 alert=[*vs|sv,v,s,n*]
 ~~~~~~~~~~~~~~~~~~~~~
 Some commands take considerable time to execute. **kw** gives you an option to
-be notified when they finish. The commands *prepare*, *build*, *install*,
-*mount*, *umount*, new and *bi* offer this feature.
+be notified when they finish. The commands *build*, *install*, *mount*,
+*umount*, new and *bi* offer this feature.
 
 1. *v* enables visual notification.
 
