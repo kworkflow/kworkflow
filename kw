@@ -16,6 +16,14 @@ function kw()
   shift
 
   case "$action" in
+    init)
+      (
+        . "$src_script_path/init.sh" --source-only
+
+        init_kw
+        return "$ret"
+      )
+      ;;
     mount|mo)
       (
         . "$src_script_path"/vm.sh --source-only

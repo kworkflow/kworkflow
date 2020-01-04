@@ -10,6 +10,7 @@ function kworkflow-help()
        "\t arm - arm machine"
 
   echo -e "\nCommands:\n" \
+    "\tinit - Initialize kworkflow config file\n" \
     "\tbuild,b - Build Kernel and modules\n" \
     "\tinstall,i - Install modules\n" \
     "\tbi - Build and install modules\n" \

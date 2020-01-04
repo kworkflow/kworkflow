@@ -163,6 +163,11 @@ be notified when they finish. The commands *build*, *install*, *mount*,
 
 4. *n* (or any other option) disables notifications (this is the default).
 
+init
+~~~~
+This command creates a kworkflow.config file in the current directory. The
+primary reason for rerunning kw init is to pick up newly config file.
+
 h, help
 ~~~~~~~
 Show basic help.
