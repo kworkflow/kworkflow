@@ -13,6 +13,7 @@ function suite
 function setUp
 {
     mkdir -p tests/.tmp_commons_test
+    cp "$PWD/etc/kworkflow_template.config" tests/.tmp_commons_test/kworkflow.config
 }
 
 function tearDown
@@ -56,7 +57,7 @@ function testDefaultConfigFile
       [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\\\"\$COMMAND\\\\\" completed!\""
     )
 
-    parse_configuration $path_repo/etc/kworkflow.config
+    parse_configuration tests/.tmp_commons_test/kworkflow.config
 
     # check if configurations is contained in expected_configurations
     for k in "${!configurations[@]}"; do

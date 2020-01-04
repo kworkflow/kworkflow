@@ -72,13 +72,16 @@ function setup_config_file()
 {
   say "Setting up global configuration file"
   local config_files_path="$INSTALLTO/$CONFIG_DIR"
-  for file in "$config_files_path"/*.config; do
-    # FIXME: The following sed command assumes users won't
-    # have files containing ",".
-    sed -i -e "s/USERKW/$USER/g" -e "s,INSTALLPATH,$INSTALLTO,g" \
-           -e "/^#?.*/d" "$file"
-  done
+  local config_file_template="$config_files_path/kworkflow_template.config"
+  local global_config_name="kworkflow.config"
 
+  if [[ -f "$config_file_template" ]]; then
+    cp "$config_file_template" "$config_files_path/$global_config_name"
+    sed -i -e "s/USERKW/$USER/g" -e "s,INSTALLPATH,$INSTALLTO,g" \
+           -e "/^#?.*/d" "$config_files_path/$global_config_name"
+  else
+    warning "setup could not find $config_file_template"
+  fi
 }
 
 function synchronize_fish()
