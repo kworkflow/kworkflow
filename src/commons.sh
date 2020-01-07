@@ -3,7 +3,13 @@
 BASE=$HOME/p/linux-trees
 BUILD_DIR=$BASE/build-linux
 
-TARGET="qemu"
+# Basic targets
+VM_TARGET=1
+LOCAL_TARGET=2
+REMOTE_TARGET=3
+
+# VM should be the default
+TARGET="$VM_TARGET"
 
 # Default configuration
 declare -A configurations

@@ -16,9 +16,9 @@ following dependencies:
 
 * libguestfs
 * Qemu
-* Ansible
 * Bash
 * git
+* tar
 * python-docutils
 * rsync
 

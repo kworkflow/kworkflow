@@ -1,12 +1,45 @@
 # NOTE: src/commons.sh must be included before this file
 
+# In the kw code, we use the pattern "<STRING1>:<STRING2>" for handling IP and
+# port, this function is a helper that expects a string with ':' and positional
+# value. It returns the value represented by position.
+#
+# @string: String formated as <STRING1>:<STRING2>
+# @position: We use 1 for specifying the string before ':' and 2 for the string
+#            after ':'
+#
+# Returns:
+# Return a "string" corresponding to the position number and a code value that
+# specify the result (useful for checking if something went wrong). Probably,
+# you want to execute this function is a subshell and save the output in a
+# variable.
+function get_from_colon()
+{
+  local string="$1"
+  local position="$2"
+  local output=""
+  local ret=0
+
+  output=$(echo "$string" | grep -i ":")
+  if [[ "$?" != 0 ]]; then
+    return 22 # EINNVAL
+  fi
+
+  output=$(echo "$string" | cut -d : -f"$position")
+  if [[ -z "$output" ]]; then
+    ret=22 # EINNVAL
+  fi
+  echo "$output"
+  return "$ret"
+}
+
 # This function executes any command and provides a mechanism to display the
 # command in the terminal. Additionally, there's a test mode which only
 # displays the commands, and it is useful for implementing unit tests.
 #
 # @flag: Expecting a flag, that could be SILENT, COMPLAIN, WARNING, SUCCESS,
-#   and TEST_MODE. By default, cmd_manager does not expects flags and always
-#   show the command.
+#        TEST_MODE, and HIGHLIGHT_CMD. By default, cmd_manager does not expects
+#        flags and always show the command.
 # @@: Target command
 #
 # Returns:
@@ -14,7 +47,7 @@
 # of TEST_MODE
 function cmd_manager()
 {
-  local flag=$1
+  local flag="$1"
 
   case "$flag" in
     SILENT)
@@ -32,6 +65,10 @@ function cmd_manager()
       shift 1
       success "$@"
       ;;
+    HIGHLIGHT_CMD)
+      shift 1
+      warning "$@"
+      ;;
     TEST_MODE)
       shift 1
       say "$@"
@@ -42,7 +79,7 @@ function cmd_manager()
       ;;
   esac
 
-  eval $@
+  eval "$@"
 }
 
 # Checks if a directory is a kernel tree root
@@ -183,18 +220,23 @@ function join_path()
 # It returns the distro name in lowercase, otherwise return none.
 function detect_distro()
 {
-  local root_path=$1
+  local root_path="$1"
+  local str_check="$2"
   local etc_path=$(join_path $root_path /etc)
   local distro="none"
 
-  if [[ -d $etc_path ]]; then
+  if [[ ! -z "$str_check" ]]; then
+    distro="$str_check"
+  elif [[ -d $etc_path ]]; then
     distro=$(cat $etc_path/*-release | grep -w ID | cut -d = -f 2)
   fi
 
-  if [[ $distro =~ "arch" ]]; then
+  if [[ "$distro" =~ "arch" ]]; then
     echo "arch"
-  elif [[ $distro =~ "debian" ]]; then
+  elif [[ "$distro" =~ "debian" ]]; then
     echo "debian"
+  elif [[ "$distro" =~ "ubuntu" ]]; then
+    echo "ubuntu"
   else
     echo "none"
   fi

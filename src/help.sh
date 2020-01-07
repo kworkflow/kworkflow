@@ -2,19 +2,17 @@
 
 function kworkflow-help()
 {
-  echo -e "Usage: kw [target] cmd"
+  echo -e "Usage: kw [options]"
 
   echo -e "\nThe current supported targets are:\n" \
-       "\t host - this machine\n" \
-       "\t qemu - qemu machine\n" \
-       "\t arm - arm machine"
+       "\t Host - this machine\n" \
+       "\t Qemu - qemu machine\n" \
+       "\t Remote - machine reachable via the network"
 
   echo -e "\nCommands:\n" \
+    "\tinit - Initialize kworkflow config file\n" \
     "\tbuild,b - Build Kernel and modules\n" \
-    "\tinstall,i - Install modules\n" \
-    "\tbi - Build and install modules\n" \
-    "\tprepare,p - Deploy basic environment in the VM\n" \
-    "\tnew,n - Install new Kernel image\n" \
+    "\tbd - Build and install modules\n" \
     "\tmount,mo - Mount partition with qemu-nbd\n" \
     "\tumount,um - Umount partition created with qemu-nbd\n" \
     "\tvars,v - Show variables\n" \
@@ -40,6 +38,11 @@ function kworkflow-help()
   echo -e "kw ssh|s options:\n" \
     "\tssh|s [--script|-s="SCRIPT PATH"]\n" \
     "\tssh|s [--command|-c="COMMAND"]\n"
+
+  echo -e "kw deploy|d installs kernel and modules:\n" \
+    "\tdeploy,d --remote [REMOTE:PORT] [--reboot|-r] [--modules|-m]\n" \
+    "\tdeploy,d --local [--reboot|-r] [--modules|-m]\n" \
+    "\tdeploy,d --vm [--reboot|-r] [--modules|-m]\n"
 }
 
 # Display the man documentation using rst2man, or man kw if it is already

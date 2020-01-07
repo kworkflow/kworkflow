@@ -13,6 +13,7 @@ function suite
 function setUp
 {
     mkdir -p tests/.tmp_commons_test
+    cp "$PWD/etc/kworkflow_template.config" tests/.tmp_commons_test/kworkflow.config
 }
 
 function tearDown
@@ -54,9 +55,11 @@ function testDefaultConfigFile
       [alert]="n"
       [sound_alert_command]="paplay INSTALLPATH/sounds/complete.wav"
       [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\\\"\$COMMAND\\\\\" completed!\""
+      [default_deploy_target]="vm"
+      [reboot_after_deploy]="no"
     )
 
-    parse_configuration $path_repo/etc/kworkflow.config
+    parse_configuration tests/.tmp_commons_test/kworkflow.config
 
     # check if configurations is contained in expected_configurations
     for k in "${!configurations[@]}"; do
@@ -86,6 +89,7 @@ function testLocalConfigFile
       [ssh_ip]="127.0.0.1"
       [ssh_port]="3333"
       [mount_point]="/home/lala"
+      [default_deploy_target]="vm"
     )
 
     cp tests/samples/kworkflow.config tests/.tmp_commons_test/

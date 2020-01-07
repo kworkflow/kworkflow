@@ -1,9 +1,0 @@
----
-- name: Installing required packages for share data
-  pacman:
-    name: "{{ packages }}"
-    state: latest
-  vars:
-    packages:
-      - smbclient
-      - cifs-utils
