@@ -50,7 +50,7 @@ function testDefaultConfigFile
       [qemu_hw_options]="-enable-kvm -daemonize -smp 2 -m 1024"
       [qemu_net_options]="-net nic -net user,hostfwd=tcp::2222-:22,smb=/home/USERKW"
       [ssh_ip]="localhost"
-      [ssh_port]="2222"
+      [ssh_port]="22"
       [mount_point]="/home/USERKW/p/mount"
       [alert]="n"
       [sound_alert_command]="paplay INSTALLPATH/sounds/complete.wav"
