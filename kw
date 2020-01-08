@@ -23,7 +23,7 @@ function kw()
         . "$src_script_path/init.sh" --source-only
 
         init_kw
-        return "$ret"
+        return "$?"
       )
       ;;
     mount|mo)
