@@ -1,4 +1,4 @@
-# Kworkflow
+<img src="images/kw_logo.png" width="600" alt="kworkflow">
 
 # About
 
