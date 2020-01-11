@@ -114,6 +114,7 @@ function default_config_file_Test
 function config_files_loading_order_Test
 {
   expected="$etc_files_path/$CONFIG_FILENAME
+$HOME/.kw/$CONFIG_FILENAME
 $PWD/$CONFIG_FILENAME"
 
   output="$(

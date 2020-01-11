@@ -60,11 +60,13 @@ function parse_configuration()
   done < "$config_path"
 }
 
-# This function check if the current directory has a configuration file, if so,
-# just use it. Otherwise, use the global configuration file.
+# This function loads the kw configuration files into memory, populating the
+# $configurations hashtable. The files are parsed in a specific order, allowing
+# higher level setting definitions to overwrite lower level ones.
 function load_configuration()
 {
   parse_configuration "$etc_files_path/$CONFIG_FILENAME"
+  parse_configuration "$HOME/.kw/$CONFIG_FILENAME"
   parse_configuration "$PWD/$CONFIG_FILENAME"
 }
 
