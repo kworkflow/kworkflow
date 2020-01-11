@@ -11,6 +11,7 @@ function suite
   suite_addTest "parser_failed_exit_code_Test"
   suite_addTest "parser_output_Test"
   suite_addTest "default_config_file_Test"
+  suite_addTest "config_files_loading_order_Test"
 }
 
 function setUp
@@ -108,6 +109,22 @@ function default_config_file_Test
     assertConfigurations configurations expected_configurations
 
     true # Reset return value
+}
+
+function config_files_loading_order_Test
+{
+  expected="$etc_files_path/$CONFIG_FILENAME
+$PWD/$CONFIG_FILENAME"
+
+  output="$(
+    function parse_configuration { echo "$@"; }
+    load_configuration
+  )"
+
+  expected_vs_got="Expected:\n>>>$expected<<<\nGot:\n>>>$output<<<"
+
+  [[ "$output" == "$expected" ]]
+  assertTrue "Wrong config file reading order.\n$expected_vs_got" $?
 }
 
 invoke_shunit
