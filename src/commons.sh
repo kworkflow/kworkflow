@@ -3,6 +3,8 @@
 BASE="$HOME/p/linux-trees"
 BUILD_DIR="$BASE/build-linux"
 
+CONFIG_FILENAME=kworkflow.config
+
 # Basic targets
 VM_TARGET=1
 LOCAL_TARGET=2
@@ -62,15 +64,8 @@ function parse_configuration()
 # just use it. Otherwise, use the global configuration file.
 function load_configuration()
 {
-  local local_config_path="$PWD/kworkflow.config"
-
-  # First, load the global configuration
-  parse_configuration "$etc_files_path/kworkflow.config"
-
-  # Second, check if has a local file and override values
-  if [ -f "$local_config_path" ] ; then
-    parse_configuration "$local_config_path"
-  fi
+  parse_configuration "$etc_files_path/$CONFIG_FILENAME"
+  parse_configuration "$PWD/$CONFIG_FILENAME"
 }
 
 # Every time that "commons.sh" is included, the configuration file has to be
