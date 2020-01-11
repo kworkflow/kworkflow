@@ -1,5 +1,7 @@
 <img src="images/kw_logo.png" width="600" alt="kworkflow">
 
+[![Build Status](https://travis-ci.org/kworkflow/kworkflow.svg?branch=master)](https://travis-ci.org/kworkflow/kworkflow)
+
 # About
 
 This set of scripts have a simple mission: reduces the environment and setup
