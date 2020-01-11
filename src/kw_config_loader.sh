@@ -68,6 +68,6 @@ function load_configuration()
   parse_configuration "$PWD/$CONFIG_FILENAME"
 }
 
-# Every time that "commons.sh" is included, the configuration file has to be
-# loaded
+# Every time that "kw_config_loader.sh" is included, the configuration file has
+# to be loaded
 load_configuration

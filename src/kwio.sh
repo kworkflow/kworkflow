@@ -1,4 +1,4 @@
-# NOTE: src/commons.sh must be included before this file
+# NOTE: src/kw_config_loader.sh must be included before this file
 
 declare -r BLUECOLOR="\033[1;34;49m%s\033[m"
 declare -r REDCOLOR="\033[1;31;49m%s\033[m"

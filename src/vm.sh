@@ -1,4 +1,4 @@
-. $src_script_path/commons.sh --source-only
+. $src_script_path/kw_config_loader.sh --source-only
 
 function vm_mount
 {

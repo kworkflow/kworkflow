@@ -2,6 +2,8 @@
 
 . ./tests/utils --source-only
 
+TMP_DIR=tests/.tmp_kw_config_loader_test
+
 function suite
 {
   suite_addTest "testParseRegularConfig"
@@ -12,18 +14,18 @@ function suite
 
 function setUp
 {
-    mkdir -p tests/.tmp_commons_test
-    cp "$PWD/etc/kworkflow_template.config" tests/.tmp_commons_test/kworkflow.config
+    mkdir -p "$TMP_DIR"
+    cp "$PWD/etc/kworkflow_template.config" "$TMP_DIR/kworkflow.config"
 }
 
 function tearDown
 {
-    rm -rf tests/.tmp_commons_test
+    rm -rf "$TMP_DIR"
 }
 
 function testParseRegularConfig
 {
-    . ./src/commons.sh --source-only
+    . ./src/kw_config_loader.sh --source-only
 
     parse_configuration tests/samples/kworkflow.config
     assertTrue "Kw failed to load a regular config file" "[ 0 -eq $? ]"
@@ -31,9 +33,9 @@ function testParseRegularConfig
 
 function testParseUnsupportedFile
 {
-    . ./src/commons.sh --source-only
+    . ./src/kw_config_loader.sh --source-only
 
-    parse_configuration tests/commons_test.sh
+    parse_configuration tests/kw_config_loader_test.sh
     assertTrue "kw loaded an unsopported file" "[ 22 -eq $? ]"
 }
 
@@ -41,7 +43,7 @@ function testDefaultConfigFile
 {
     local path_repo=$PWD
 
-    . ./src/commons.sh --source-only
+    . ./src/kw_config_loader.sh --source-only
 
     declare -A expected_configurations=(
       [arch]="x86_64"
@@ -59,7 +61,7 @@ function testDefaultConfigFile
       [reboot_after_deploy]="no"
     )
 
-    parse_configuration tests/.tmp_commons_test/kworkflow.config
+    parse_configuration "$TMP_DIR/kworkflow.config"
 
     # check if configurations is contained in expected_configurations
     for k in "${!configurations[@]}"; do
@@ -80,7 +82,7 @@ function testDefaultConfigFile
 
 function testLocalConfigFile
 {
-    . ./src/commons.sh --source-only
+    . ./src/kw_config_loader.sh --source-only
 
     declare -A expected_configurations=(
       [arch]="arm"
@@ -92,9 +94,9 @@ function testLocalConfigFile
       [default_deploy_target]="vm"
     )
 
-    cp tests/samples/kworkflow.config tests/.tmp_commons_test/
+    cp tests/samples/kworkflow.config "$TMP_DIR/"
 
-    pushd tests/.tmp_commons_test > /dev/null
+    pushd "$TMP_DIR" > /dev/null
     parse_configuration $PWD/kworkflow.config
     popd > /dev/null
 

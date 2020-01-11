@@ -2,7 +2,7 @@
 
 . ./src/remote.sh --source-only
 . ./src/kwlib.sh --source-only
-. ./src/commons.sh --source-only
+. ./src/kw_config_loader.sh --source-only
 . ./tests/utils --source-only
 
 function suite

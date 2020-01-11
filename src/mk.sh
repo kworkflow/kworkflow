@@ -17,7 +17,7 @@
 # root password.
 #
 
-. $src_script_path/vm.sh --source-only # It includes commons.sh
+. $src_script_path/vm.sh --source-only # It includes kw_config_loader.sh
 . $src_script_path/kwlib.sh --source-only
 . $src_script_path/remote.sh --source-only
 

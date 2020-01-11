@@ -99,7 +99,7 @@ function kw()
       ;;
     vars|v)
       (
-        . "$src_script_path"/commons.sh --source-only
+        . "$src_script_path"/kw_config_loader.sh --source-only
 
         show_variables
       )

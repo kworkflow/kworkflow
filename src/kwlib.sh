@@ -1,4 +1,4 @@
-# NOTE: src/commons.sh must be included before this file
+# NOTE: src/kw_config_loader.sh must be included before this file
 
 # In the kw code, we use the pattern "<STRING1>:<STRING2>" for handling IP and
 # port, this function is a helper that expects a string with ':' and positional
