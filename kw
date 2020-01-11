@@ -4,7 +4,6 @@
 EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kw"}
 src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
 plugins_path=${plugins_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src/plugins"}
-external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
 etc_files_path=${etc_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"}
 config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW"}
 kw_dir=${kw_dir:-"$HOME/kw"}

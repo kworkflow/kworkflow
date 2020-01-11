@@ -15,7 +15,7 @@ function execute_checkpatch()
   #TODO: Note that codespell file is not specified yet because of the poluted
   # output. It could be nice if we can add another option just for this sort
   # of check. Follow the line that makes the magic:
-  # --codespell $external_script_path/spelling.txt
+  # --codespell <path_to_kernel_scripts>/spelling.txt
 
   local -r options="--terse --no-tree --color=always -strict --file "
   local -r script="scripts/checkpatch.pl $options"
