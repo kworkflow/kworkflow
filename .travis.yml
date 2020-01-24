@@ -19,7 +19,7 @@ before_script:
 # Execute tests, docs build and kw installation to check for errors
 script:
   - ./run_tests.sh
-  - ./setup.sh --html
+  - ./setup.sh --docs
   - ./setup.sh -i
 
 notifications:
