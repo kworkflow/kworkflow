@@ -28,7 +28,7 @@ function usage()
   say "--install   | -i     Install $APPLICATIONNAME"
   say "--uninstall | -u     Uninstall $APPLICATIONNAME"
   say "--completely-remove  Remove $APPLICATIONNAME and all files under its responsibility"
-  say "--html               Build $APPLICATIONNAME's documentation as HTML pages into ./build"
+  say "--docs               Build $APPLICATIONNAME's documentation as HTML pages into ./build"
 }
 
 function confirm_complete_removal()
@@ -162,7 +162,7 @@ case $1 in
   --help | -h)
     usage
     ;;
-  --html)
+  --docs)
     sphinx-build -b html documentation/ build
     ;;
   *)
