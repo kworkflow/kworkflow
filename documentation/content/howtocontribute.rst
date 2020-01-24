@@ -157,3 +157,43 @@ If you like, you can put extra tags at the end:
 You can also create your own tag or use one that’s in common usage such as
 `Co-authored-by` or `Helped-by`.
 
+About Issue Labels
+------------------
+We use GitHub's issue and milestone trackers to help managing the kw project.
+We use issues for keeping track of different things, as a result, we categorize
+all of them with labels; most of the available labels are self-explanatory.
+However, few of them deserve a brief explanation:
+
+* **done: wait for stable**: In the section *Development Cycle and Branches* we
+  explained how our branch management works, recall that we have an unstable
+  branch that soon or later will be merged into the master branch (stable).
+  This label is used for identifying issues already solved on the unstable, but
+  not landed in the master yet. If you see this label, feel free to test the
+  feature/bugfix in the unstable branch.
+* **new feature request**: If you want to request or see a possible new
+  feature, you should use this label.
+* **good first issue**: If you started to use kw, and after that, you
+  desire to contribute to it but you don't know where you could start, this
+  label is the answer to your aspiration.
+* **optimization**: Issues that require optimization in kw.
+* **help wanted**: We don't know how to solve this or we don't have the time
+  right now. Any help solving the issue will be highly appreciated.
+* **question**: We map user questions with this label.
+* **test**: Issues related to kw's test, e suite. Any kind of test or even the
+  `run_tests` script itself.
+
+How we incorporate PRs
+----------------------
+In kw project, we avoid the addition of extra commits per PRs. For this reason,
+after we accept a contribution, we take it and apply it on top of the unstable
+branch. We only add a merge commit when we merge the unstable branch into the
+master branch, and usually, this commit has a summary of the new features
+brought by the unstable branch.
+
+Releases
+--------
+We have a simple rule for making a release: It'll be Done when it's done. If
+you want to follow our release plans, just take a look at the milestones_ since
+we use it for self-organization.
+
+.. _milestones: https://github.com/kworkflow/kworkflow/milestones
