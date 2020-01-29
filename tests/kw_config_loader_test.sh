@@ -1,6 +1,7 @@
 #!/bin/bash
 
 . ./tests/utils --source-only
+. ./src/kw_config_loader.sh --source-only
 
 TMP_DIR=tests/.tmp_kw_config_loader_test
 
@@ -16,6 +17,7 @@ function setUp
 {
     mkdir -p "$TMP_DIR"
     cp "$PWD/etc/kworkflow_template.config" "$TMP_DIR/kworkflow.config"
+    configurations=()
 }
 
 function tearDown
@@ -25,16 +27,12 @@ function tearDown
 
 function testParseRegularConfig
 {
-    . ./src/kw_config_loader.sh --source-only
-
     parse_configuration tests/samples/kworkflow.config
     assertTrue "Kw failed to load a regular config file" "[ 0 -eq $? ]"
 }
 
 function testParseUnsupportedFile
 {
-    . ./src/kw_config_loader.sh --source-only
-
     parse_configuration tests/kw_config_loader_test.sh
     assertTrue "kw loaded an unsopported file" "[ 22 -eq $? ]"
 }
@@ -42,8 +40,6 @@ function testParseUnsupportedFile
 function testDefaultConfigFile
 {
     local path_repo=$PWD
-
-    . ./src/kw_config_loader.sh --source-only
 
     declare -A expected_configurations=(
       [arch]="x86_64"
@@ -82,8 +78,6 @@ function testDefaultConfigFile
 
 function testLocalConfigFile
 {
-    . ./src/kw_config_loader.sh --source-only
-
     declare -A expected_configurations=(
       [arch]="arm"
       [virtualizer]="libvirt"
