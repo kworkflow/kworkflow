@@ -7,10 +7,10 @@ TMP_DIR=tests/.tmp_kw_config_loader_test
 
 function suite
 {
-  suite_addTest "testParseRegularConfig"
-  suite_addTest "testParseUnsupportedFile"
-  suite_addTest "testDefaultConfigFile"
-  suite_addTest "testLocalConfigFile"
+  suite_addTest "parser_success_exit_code_Test"
+  suite_addTest "parser_failed_exit_code_Test"
+  suite_addTest "parser_output_Test"
+  suite_addTest "default_config_file_Test"
 }
 
 function setUp
@@ -25,19 +25,56 @@ function tearDown
     rm -rf "$TMP_DIR"
 }
 
-function testParseRegularConfig
+function parser_success_exit_code_Test
 {
     parse_configuration tests/samples/kworkflow.config
     assertTrue "Kw failed to load a regular config file" "[ 0 -eq $? ]"
 }
 
-function testParseUnsupportedFile
+function parser_failed_exit_code_Test
 {
     parse_configuration tests/kw_config_loader_test.sh
-    assertTrue "kw loaded an unsopported file" "[ 22 -eq $? ]"
+    assertTrue "kw loaded an unsupported file" "[ 22 -eq $? ]"
 }
 
-function testDefaultConfigFile
+# Test if parse_configuration correctly parses all settings in a file
+function parser_output_Test
+{
+    declare -A expected_configurations=(
+      [arch]="arm"
+      [virtualizer]="libvirt"
+      [qemu_path_image]="/home/xpto/p/virty.qcow2"
+      [ssh_ip]="127.0.0.1"
+      [ssh_port]="3333"
+      [mount_point]="/home/lala"
+      [default_deploy_target]="vm"
+    )
+
+    cp tests/samples/kworkflow.config "$TMP_DIR/"
+
+    pushd "$TMP_DIR" > /dev/null
+    parse_configuration $PWD/kworkflow.config
+    popd > /dev/null
+
+    # check if configurations is contained in expected_configurations
+    for k in "${!configurations[@]}"; do
+        if [[ ${configurations[$k]} != ${expected_configurations[$k]} ]]; then
+            fail "Expected configuration \"${k}\" to be \"${expected_configurations[$k]}\" (found \"${configurations[$k]}\")"
+        fi
+    done
+
+    # check if expected_configurations is contained in configurations
+    for k in "${!expected_configurations[@]}"; do
+        if [[ ${configurations[$k]} != ${expected_configurations[$k]} ]]; then
+            fail "Did not expected \"${k}\" to be in configurations"
+        fi
+    done
+
+    true # Reset return value
+}
+
+# Test if etc/kworkflow_template.config contains all the expected settings
+function default_config_file_Test
 {
     local path_repo=$PWD
 
@@ -58,41 +95,6 @@ function testDefaultConfigFile
     )
 
     parse_configuration "$TMP_DIR/kworkflow.config"
-
-    # check if configurations is contained in expected_configurations
-    for k in "${!configurations[@]}"; do
-        if [[ ${configurations[$k]} != ${expected_configurations[$k]} ]]; then
-            fail "Expected configuration \"${k}\" to be \"${expected_configurations[$k]}\" (found \"${configurations[$k]}\")"
-        fi
-    done
-
-    # check if expected_configurations is contained in configurations
-    for k in "${!expected_configurations[@]}"; do
-        if [[ ${configurations[$k]} != ${expected_configurations[$k]} ]]; then
-            fail "Did not expected \"${k}\" to be in configurations"
-        fi
-    done
-
-    true # Reset return value
-}
-
-function testLocalConfigFile
-{
-    declare -A expected_configurations=(
-      [arch]="arm"
-      [virtualizer]="libvirt"
-      [qemu_path_image]="/home/xpto/p/virty.qcow2"
-      [ssh_ip]="127.0.0.1"
-      [ssh_port]="3333"
-      [mount_point]="/home/lala"
-      [default_deploy_target]="vm"
-    )
-
-    cp tests/samples/kworkflow.config "$TMP_DIR/"
-
-    pushd "$TMP_DIR" > /dev/null
-    parse_configuration $PWD/kworkflow.config
-    popd > /dev/null
 
     # check if configurations is contained in expected_configurations
     for k in "${!configurations[@]}"; do
