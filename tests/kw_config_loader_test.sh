@@ -37,6 +37,28 @@ function parser_failed_exit_code_Test
     assertTrue "kw loaded an unsupported file" "[ 22 -eq $? ]"
 }
 
+function assertConfigurations
+{
+    declare -n configurations_ref=$1
+    declare -n expected_configurations_ref=$2
+
+    # check if configurations is contained in expected_configurations
+    for k in "${!configurations_ref[@]}"; do
+	if [[ ${expected_configurations_ref[$k]+token} != token ]]; then
+	    fail "Did not expect setting \"$k\"."
+	elif [[ ${configurations_ref[$k]} != ${expected_configurations_ref[$k]} ]]; then
+            fail "Expected setting \"${k}\" to be \"${expected_configurations_ref[$k]}\" (found \"${configurations_ref[$k]}\")."
+        fi
+    done
+
+    # check if configurations has all expected_configurations keys
+    for k in "${!expected_configurations_ref[@]}"; do
+	if [[ ${configurations_ref[$k]+token} != token ]]; then
+	    fail "Expected setting \"$k\" to be present."
+        fi
+    done
+}
+
 # Test if parse_configuration correctly parses all settings in a file
 function parser_output_Test
 {
@@ -56,19 +78,7 @@ function parser_output_Test
     parse_configuration $PWD/kworkflow.config
     popd > /dev/null
 
-    # check if configurations is contained in expected_configurations
-    for k in "${!configurations[@]}"; do
-        if [[ ${configurations[$k]} != ${expected_configurations[$k]} ]]; then
-            fail "Expected configuration \"${k}\" to be \"${expected_configurations[$k]}\" (found \"${configurations[$k]}\")"
-        fi
-    done
-
-    # check if expected_configurations is contained in configurations
-    for k in "${!expected_configurations[@]}"; do
-        if [[ ${configurations[$k]} != ${expected_configurations[$k]} ]]; then
-            fail "Did not expected \"${k}\" to be in configurations"
-        fi
-    done
+    assertConfigurations configurations expected_configurations
 
     true # Reset return value
 }
@@ -95,20 +105,7 @@ function default_config_file_Test
     )
 
     parse_configuration "$TMP_DIR/kworkflow.config"
-
-    # check if configurations is contained in expected_configurations
-    for k in "${!configurations[@]}"; do
-        if [[ ${configurations[$k]} != ${expected_configurations[$k]} ]]; then
-            fail "Expected configuration \"${k}\" to be \"${expected_configurations[$k]}\" (found \"${configurations[$k]}\")"
-        fi
-    done
-
-    # check if expected_configurations is contained in configurations
-    for k in "${!expected_configurations[@]}"; do
-        if [[ ${configurations[$k]} != ${expected_configurations[$k]} ]]; then
-            fail "Did not expected \"${k}\" to be in configurations"
-        fi
-    done
+    assertConfigurations configurations expected_configurations
 
     true # Reset return value
 }
