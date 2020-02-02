@@ -13,6 +13,7 @@ available in the command line interface.
    content/installanduninstall
    content/howtocontribute
    content/tests
+   content/codingstyle
 
 kw Man
 ======
