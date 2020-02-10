@@ -1,4 +1,4 @@
-. $src_script_path/kw_config_loader.sh --source-only
+. $KW_LIB_DIR/kw_config_loader.sh --source-only
 
 function vm_mount
 {

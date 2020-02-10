@@ -2,8 +2,8 @@
 # in this file is to handle this script in a way to make this tool easier for
 # users.
 
-. $src_script_path/kw_config_loader.sh --source-only
-. $src_script_path/kwlib.sh --source-only
+. $KW_LIB_DIR/kw_config_loader.sh --source-only
+. $KW_LIB_DIR/kwlib.sh --source-only
 
 # Runs checkpatch in the given path, which might be a file or directory.
 #

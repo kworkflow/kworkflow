@@ -1,4 +1,4 @@
-. $src_script_path/kwio.sh --source-only
+. $KW_LIB_DIR/kwio.sh --source-only
 
 declare -r metadata_dir="metadata"
 declare -r configs_dir="configs"
@@ -20,7 +20,7 @@ function save_config_file()
   local -r name=$2
   local -r description=$3
   local -r original_path=$PWD
-  local -r dot_configs_dir="$config_files_path/configs"
+  local -r dot_configs_dir="$KW_DATA_DIR/configs"
 
   if [[ ! -f $original_path/.config ]]; then
     complain "There's no .config file in the current directory"
@@ -66,7 +66,7 @@ function save_config_file()
 
 function list_configs()
 {
-  local -r dot_configs_dir="$config_files_path/configs"
+  local -r dot_configs_dir="$KW_DATA_DIR/configs"
 
   if [[ ! -d $dot_configs_dir ]]; then
     say "There's no tracked .config file"
@@ -99,7 +99,7 @@ function basic_config_validations()
   local force=$2
   local operation=$3 && shift 3
   local message=$@
-  local -r dot_configs_dir="$config_files_path/configs/configs"
+  local -r dot_configs_dir="$KW_DATA_DIR/configs/configs"
 
   if [[ ! -f $dot_configs_dir/$target ]]; then
     complain "No such file or directory: $target"
@@ -131,7 +131,7 @@ function get_config()
 {
   local target=$1
   local force=$2
-  local -r dot_configs_dir="$config_files_path/configs/configs"
+  local -r dot_configs_dir="$KW_DATA_DIR/configs/configs"
   local -r msg="This operation will override the current .config file"
 
   # If we does not have a local config, there's no reason to warn the user
@@ -157,7 +157,7 @@ function remove_config()
   local target=$1
   local force=$2
   local original_path=$PWD
-  local -r dot_configs_dir="$config_files_path/configs"
+  local -r dot_configs_dir="$KW_DATA_DIR/configs"
   local -r msg="This operation will remove $target from kw management"
 
   basic_config_validations $target $force "Remove" $msg

@@ -30,7 +30,7 @@ function install_kernel()
   local architecture="$4"
   local flag="$5"
   local sudo_cmd=""
-  local LOCAL_KW_ETC="$etc_files_path/template_mkinitcpio.preset"
+  local LOCAL_KW_ETC="$KW_SHARE_DIR/template_mkinitcpio.preset"
 
   flag=${flag:-"SILENT"}
 

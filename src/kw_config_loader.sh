@@ -1,7 +1,4 @@
-. $src_script_path/kwio.sh --source-only
-
-BASE="$HOME/p/linux-trees"
-BUILD_DIR="$BASE/build-linux"
+. $KW_LIB_DIR/kwio.sh --source-only
 
 CONFIG_FILENAME=kworkflow.config
 
@@ -65,8 +62,8 @@ function parse_configuration()
 # higher level setting definitions to overwrite lower level ones.
 function load_configuration()
 {
-  parse_configuration "$etc_files_path/$CONFIG_FILENAME"
-  parse_configuration "$HOME/.kw/$CONFIG_FILENAME"
+  parse_configuration "$KW_GLOBAL_CONFIG_DIR/$CONFIG_FILENAME"
+  parse_configuration "$KW_DATA_DIR/$CONFIG_FILENAME"
   parse_configuration "$PWD/$CONFIG_FILENAME"
 }
 

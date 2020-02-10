@@ -1,4 +1,4 @@
-. $src_script_path/kwio.sh --source-only
+. $KW_LIB_DIR/kwio.sh --source-only
 
 function kworkflow-help()
 {
@@ -49,7 +49,7 @@ function kworkflow-help()
 # installed to the system
 function kworkflow-man()
 {
-    doc="$config_files_path/documentation/man"
+    doc="$KW_SHARE_DIR/documentation/man"
     ret=0
 
     if ! man kw > /dev/null 2>&1; then

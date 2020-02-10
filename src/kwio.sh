@@ -1,4 +1,5 @@
-# NOTE: src/kw_config_loader.sh must be included before this file
+# NOTE: src/kw_config_loader.sh must be included before this file if
+# alert_completion() is going to be used.
 
 declare -r BLUECOLOR="\033[1;34;49m%s\033[m"
 declare -r REDCOLOR="\033[1;31;49m%s\033[m"

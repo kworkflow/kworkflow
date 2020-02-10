@@ -17,9 +17,9 @@
 # root password.
 #
 
-. $src_script_path/vm.sh --source-only # It includes kw_config_loader.sh
-. $src_script_path/kwlib.sh --source-only
-. $src_script_path/remote.sh --source-only
+. $KW_LIB_DIR/vm.sh --source-only # It includes kw_config_loader.sh
+. $KW_LIB_DIR/kwlib.sh --source-only
+. $KW_LIB_DIR/remote.sh --source-only
 
 # This function is responsible for handling the command to
 # `make install_modules`, and it expects a target path for saving the modules
@@ -112,13 +112,13 @@ function modules_install
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
       # 2. Send files modules
-      modules_install_to "$kw_dir/$LOCAL_REMOTE_DIR/" "$flag"
+      modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
 
       release=$(get_kernel_release "$flag")
       success "Kernel: $release"
       generate_tarball "$release" "" "$flag"
 
-      local tarball_for_deploy_path="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$release.tar"
+      local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
       cp_host2remote "$tarball_for_deploy_path" \
                      "$REMOTE_KW_DEPLOY" "$remote" "$port" "" "$flag"
 
@@ -189,13 +189,13 @@ function kernel_install
       fi
 
       # Local Deploy
-      . "$plugins_path/kernel_install/$distro.sh" --source-only
+      . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
       install_kernel "$name" "$reboot" 'local' "${configurations[arch]}" "$flag"
     ;;
     3) # REMOTE_TARGET
-      local preset_file="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
+      local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
       if [[ ! -f "$preset_file" ]]; then
-        template_mkinit="$etc_files_path/template_mkinitcpio.preset"
+        template_mkinit="$KW_SHARE_DIR/template_mkinitcpio.preset"
         cp "$template_mkinit" "$preset_file"
         sed -i "s/NAME/$name/g" "$preset_file"
       fi
@@ -203,7 +203,7 @@ function kernel_install
       ip=$(get_from_colon $ret 1)
       port=$(get_from_colon $ret 2)
 
-      cp_host2remote "$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
+      cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
                      "$REMOTE_KW_DEPLOY" \
                      "$ip" "$port" "$user" "$flag"
       cp_host2remote "arch/x86_64/boot/bzImage" \
