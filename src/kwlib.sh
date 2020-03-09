@@ -212,8 +212,14 @@ function join_path()
 
 # This function tries to identify the OS distribution. In order to make it work
 # as expected, it is required to inform the root path. This function is useful
-# for plugins; because of this, we limited here the supported distributions
+# for plugins; because of this, we limited here the supported distributions.
 #
+# Note: We handle OS family instead of a specific distro, for example, Ubuntu
+# and Mint are Debian based distro. Currently, this approach works well and
+# avoids code duplication, in the future, if the distros families changes in
+# the way that they handle Linux Kernel we probably have to change our
+# approach.
+
 # @root_path Expects the root path wherein we can find the /etc
 #
 # Returns:
@@ -231,12 +237,12 @@ function detect_distro()
     distro=$(cat $etc_path/*-release | grep -w ID | cut -d = -f 2)
   fi
 
-  if [[ "$distro" =~ "arch" ]]; then
+  # ArchLinux family
+  if [[ "$distro" =~ "arch" ]] || [[ "$distro" =~ "manjaro" ]]; then
     echo "arch"
-  elif [[ "$distro" =~ "debian" ]]; then
+  # Debian family
+  elif [[ "$distro" =~ "debian" ]] || [[ "$distro" =~ "ubuntu" ]]; then
     echo "debian"
-  elif [[ "$distro" =~ "ubuntu" ]]; then
-    echo "ubuntu"
   else
     echo "none"
   fi

@@ -10,7 +10,7 @@ function suite
   suite_addTest "cmdManagerTESTMODETest"
   suite_addTest "cmdManagerSILENTTest"
   suite_addTest "cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test"
-  suite_addTest "detectDistroTest"
+  suite_addTest "detect_distro_family_test"
   suite_addTest "joinPathTest"
   suite_addTest "findKernelRootTest"
   suite_addTest "isAPatchTest"
@@ -19,9 +19,11 @@ function suite
 
 function setupFakeOSInfo
 {
-  mkdir -p tests/.tmp/detect_distro/{arch,debian}/etc
+  mkdir -p tests/.tmp/detect_distro/{arch,manjaro,debian,ubuntu}/etc
   cp -f tests/samples/os/arch/* tests/.tmp/detect_distro/arch/etc
   cp -f tests/samples/os/debian/* tests/.tmp/detect_distro/debian/etc
+  cp -f tests/samples/os/manjaro/* tests/.tmp/detect_distro/manjaro/etc
+  cp -f tests/samples/os/ubuntu/* tests/.tmp/detect_distro/ubuntu/etc
 }
 
 function setupPatch
@@ -139,7 +141,7 @@ function cmdManagerTESTMODETest
   assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
 }
 
-function detectDistroTest
+function detect_distro_family_test
 {
   setupFakeOSInfo
   local root_path="tests/.tmp/detect_distro/arch"
@@ -148,6 +150,14 @@ function detectDistroTest
   assertEquals "We got $ret." "$ret" "arch"
 
   root_path="tests/.tmp/detect_distro/debian"
+  ret=$(detect_distro $root_path)
+  assertEquals "We got $ret." "$ret" "debian"
+
+  root_path="tests/.tmp/detect_distro/manjaro"
+  ret=$(detect_distro $root_path)
+  assertEquals "We got $ret." "$ret" "arch"
+
+  root_path="tests/.tmp/detect_distro/ubuntu"
   ret=$(detect_distro $root_path)
   assertEquals "We got $ret." "$ret" "debian"
 
