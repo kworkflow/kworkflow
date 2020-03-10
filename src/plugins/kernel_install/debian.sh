@@ -2,6 +2,8 @@
 # module on ArchLinux. It is essential to highlight that this file follows an
 # API that can be seen in the "deploy.sh" file, if you make any change here,
 # you have to do it inside the install_modules() and install_kernel().
+#
+# Note: We use this script for Debian and Ubuntu
 
 # Install modules
 function install_modules()
