@@ -106,8 +106,10 @@ function modules_install
       # 1. Preparation steps
       prepare_host_deploy_dir
 
-      local remote=$(get_from_colon $ret 1)
-      local port=$(get_from_colon $ret 2)
+      local remote=$(get_based_on_delimiter "$ret" ":" 1)
+      local port=$(get_based_on_delimiter "$ret" ":" 2)
+      # User may specify a hostname instead of bare IP
+      remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
@@ -200,19 +202,20 @@ function kernel_install
         sed -i "s/NAME/$name/g" "$preset_file"
       fi
 
-      ip=$(get_from_colon $ret 1)
-      port=$(get_from_colon $ret 2)
+      local remote=$(get_based_on_delimiter "$ret" ":" 1)
+      local port=$(get_based_on_delimiter "$ret" ":" 2)
+      remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       cp_host2remote "$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
                      "$REMOTE_KW_DEPLOY" \
-                     "$ip" "$port" "$user" "$flag"
+                     "$remote" "$port" "$user" "$flag"
       cp_host2remote "arch/x86_64/boot/bzImage" \
                      "$REMOTE_KW_DEPLOY/vmlinuz-$name" \
-                     "$ip" "$port" "$user" "$flag"
+                     "$remote" "$port" "$user" "$flag"
 
       # Deploy
       local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $name $reboot"
-      cmd_remotely "$cmd" "$flag" "$ip" "$port"
+      cmd_remotely "$cmd" "$flag" "$remote" "$port"
     ;;
   esac
 }
@@ -350,12 +353,12 @@ function parser_command()
         port=${configurations[ssh_port]}
         ip="$ip:$port"
       else
-        temp_ip=$(get_from_colon "$ip" 1)
+        temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
         # 22 in the conditon refers to EINVAL
         if [[ "$?" == 22 ]]; then
           ip="$ip:22"
         else
-          port=$(get_from_colon "$ip" 2)
+          port=$(get_based_on_delimiter "$ip" ":" 2)
           ip="$temp_ip:$port"
         fi
       fi

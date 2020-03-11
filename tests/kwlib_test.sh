@@ -14,7 +14,7 @@ function suite
   suite_addTest "joinPathTest"
   suite_addTest "findKernelRootTest"
   suite_addTest "isAPatchTest"
-  suite_addTest "get_from_colon_Test"
+  suite_addTest "get_based_on_delimiter_Test"
 }
 
 function setupFakeOSInfo
@@ -211,32 +211,63 @@ function isAPatchTest
   true # Reset return value
 }
 
-function get_from_colon_Test
+function get_based_on_delimiter_Test
 {
-  local correct_str="IP:PORT"
+  local ID
+  local ip_port_str="IP:PORT"
+  local hostname="kw@remote-machine"
+  local a_weird_pattern="IP:PORT:kw@remote-machine"
   local incorrect_str="IPPORT"
 
-  output=$(get_from_colon "$correct_str" 1)
+  ID=1
+  output=$(get_based_on_delimiter "$ip_port_str" ":" 1)
   ret="$?"
 
-  assertEquals "We should find IP" "IP" "$output"
-  assertEquals "We expected 0 as a return" 0 "$ret"
+  assertEquals "$ID - We should find IP" "IP" "$output"
+  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
 
-  output=$(get_from_colon "$correct_str" 2)
+  ID=2
+  output=$(get_based_on_delimiter "$ip_port_str" ":" 2)
   ret="$?"
 
-  assertEquals "We should find PORT" "PORT" "$output"
-  assertEquals "We expected 0 as a return" 0 "$ret"
+  assertEquals "$ID - We should find PORT" "PORT" "$output"
+  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
 
-  output=$(get_from_colon "$correct_str" 3)
+  ID=3
+  output=$(get_based_on_delimiter "$ip_port_str" ":" 3)
   ret="$?"
-  assertEquals "We expected an empty string" "" "$output"
-  assertEquals "We expected 22 as a return" 22 "$ret"
+  assertEquals "$ID - We expected the same string" "$ip_port_str" "$output"
+  assertEquals "$ID - We expected 22 as a return" 22 "$ret"
 
-  output=$(get_from_colon "$incorrect_str" 1)
+  ID=4
+  output=$(get_based_on_delimiter "$incorrect_str" ":" 1)
   ret="$?"
-  assertEquals "We expected an empty string" "" "$output"
-  assertEquals "We expected 22 as a return" 22 "$ret"
+  assertEquals "$ID - We expected the same string" "$incorrect_str" "$output"
+  assertEquals "$ID - We expected 22 as a return" 22 "$ret"
+
+  ID=5
+  output=$(get_based_on_delimiter "$hostname" "@" 1)
+  ret="$?"
+  assertEquals "$ID - We used $hostname, @, and 1 args; we should see kw" "kw" "$output"
+  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+
+  ID=6
+  output=$(get_based_on_delimiter "$hostname" "@" 2)
+  ret="$?"
+  assertEquals "$ID - We used $hostname, @, and 2 args; we should see remote-machine" "remote-machine" "$output"
+  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+
+  ID=7
+  output=$(get_based_on_delimiter "$a_weird_pattern" "@" 2)
+  ret="$?"
+  assertEquals "$ID - We used $a_weird_pattern, @, and 2 args; we should see remote-machine" "remote-machine" "$output"
+  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+
+  output=$(get_based_on_delimiter "$a_weird_pattern" ":" 2)
+  ret="$?"
+  assertEquals "$ID - We used $a_weird_pattern, :, and 2 args; we should see PORT" "PORT" "$output"
+  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+
 }
 
 invoke_shunit
