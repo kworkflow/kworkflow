@@ -1,33 +1,44 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
 
+# A common task used inside kw is a string separation based on a delimiter, for
+# this reason, this function tries to handle this scenario by getting a
+# delimiter character followed by the position that the users want to retrieve.
+# For example:
 # In the kw code, we use the pattern "<STRING1>:<STRING2>" for handling IP and
-# port, this function is a helper that expects a string with ':' and positional
-# value. It returns the value represented by position.
+# port, we can use get_based_on_delimiter() helper to handle the ':' delimiter
+# and based on the positional value the user can get the <STRING1> or
+# <STRING2>.
 #
 # @string: String formated as <STRING1>:<STRING2>
-# @position: We use 1 for specifying the string before ':' and 2 for the string
-#            after ':'
+# @delimiter: A delimiter character
+# @position: The string position we want after @delimiter
 #
 # Returns:
 # Return a "string" corresponding to the position number and a code value that
-# specify the result (useful for checking if something went wrong). Probably,
-# you want to execute this function is a subshell and save the output in a
-# variable.
-function get_from_colon()
+# specify the result (useful for checking if something went wrong). In case of
+# error, "string" is displayed in the echo command and EINVAL code is
+# returned.Probably, you want to execute this function is a subshell and save
+# the output in a variable.
+function get_based_on_delimiter()
 {
   local string="$1"
-  local position="$2"
+  local delimiter="$2"
+  local position="$3"
   local output=""
   local ret=0
 
-  output=$(echo "$string" | grep -i ":")
+  delimiter=${delimiter:-":"}
+
+  output=$(echo "$string" | grep -i "$delimiter")
   if [[ "$?" != 0 ]]; then
-    return 22 # EINNVAL
+    echo "$string"
+    return 22 # EINVAL
   fi
 
-  output=$(echo "$string" | cut -d : -f"$position")
+  output=$(echo "$string" | cut -d "$delimiter" -f"$position")
   if [[ -z "$output" ]]; then
-    ret=22 # EINNVAL
+    output="$string"
+    ret=22 # EINVAL
   fi
   echo "$output"
   return "$ret"
