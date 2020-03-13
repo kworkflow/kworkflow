@@ -41,7 +41,8 @@ function kworkflow-help()
     "\tssh|s [--command|-c="COMMAND"]\n"
 
   echo -e "kw deploy|d installs kernel and modules:\n" \
-    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m]\n"
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m]\n" \
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--ls|-l]"
 }
 
 # Display the man documentation using rst2man, or man kw if it is already

@@ -13,6 +13,7 @@ REMOTE_KW_DEPLOY="/root/kw_deploy"
 # for work as expected
 DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
 DEPLOY_SCRIPT="$plugins_path/kernel_install/deploy.sh"
+DEPLOY_SCRIPT_SUPPORT="$plugins_path/kernel_install/utils.sh"
 
 # This function is responsible for executing a command in a remote machine.
 #
@@ -169,6 +170,8 @@ function prepare_remote_dir()
                  "$DISTRO_DEPLOY_SCRIPT" "$remote" "$port" "$user" "$flag"
   cp_host2remote "$DEPLOY_SCRIPT" "$REMOTE_KW_DEPLOY/" "$remote" "$port" \
                  "$user" "$flag"
+  cp_host2remote "$DEPLOY_SCRIPT_SUPPORT" "$REMOTE_KW_DEPLOY/" "$remote" \
+                 "$port" "$user" "$flag"
 }
 
 # This function generates a tarball file to be sent to the target machine.
