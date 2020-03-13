@@ -52,9 +52,9 @@ function mk_fake_kernel_root
 
 function mk_fake_remote
 {
-	local -r FAKE_KW="$1"
-	local -r modules_path="$2"
-	local -r modules_name="test"
+  local -r FAKE_KW="$1"
+  local -r modules_path="$2"
+  local -r modules_name="test"
   local -r kernel_install_path="kernel_install"
 
   mkdir -p "$FAKE_KW"/{$LOCAL_TO_DEPLOY_DIR,$LOCAL_REMOTE_DIR,$kernel_install_path}
@@ -62,6 +62,14 @@ function mk_fake_remote
 
   touch "$modules_path/$modules_name"/file{1,2}
   touch "$FAKE_KW/$kernel_install_path"/{debian.sh,deploy.sh}
+}
+
+function mk_fake_boot
+{
+  local -r FAKE_BOOT_DIR="$1"
+
+  mkdir -p "$FAKE_BOOT_DIR"
+  cp -r "$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
 }
 
 function invoke_shunit

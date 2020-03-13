@@ -41,6 +41,7 @@ function oneTimeSetUp
   export kw_dir="$FAKE_KW"
   export plugins_path=$FAKE_KW
   export DEPLOY_SCRIPT=$FAKE_KW/$kernel_install_path/deploy.sh
+  export DEPLOY_SCRIPT_SUPPORT="$FAKE_KW/$kernel_install_path/utils.sh"
   export modules_path="$FAKE_KW/$kernel_install_path/lib/modules"
   rm -rf "$FAKE_KW"
 
@@ -207,6 +208,7 @@ function prepare_remote_dir_Test()
       "ssh -p 2222 root@172.16.224.1 \"mkdir -p /root/kw_deploy\""
       "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh"
       "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/"
+      "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/"
     )
 
   setupMockFunctions

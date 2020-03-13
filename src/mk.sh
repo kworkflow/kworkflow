@@ -131,6 +131,60 @@ function modules_install
   esac
 }
 
+# This function list all the available kernels in a VM, local, and remote
+# machine. This code relies on `kernel_install` plugin, more precisely on
+# `utils.sh` file which comprises all the required operations for listing new
+# Kernels.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @single_line If this option is set to 1 this function will display all
+#   available kernels in a single line separated by commas. If it gets 0 it
+#   will display each kernel name by line.
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @unformatted_remote We expect the REMOTE:PORT string
+function mk_list_installed_kernels
+{
+  local flag="$1"
+  local single_line="$2"
+  local target="$3"
+  local unformatted_remote="$4"
+
+  flag=${flag:-"SILENT"}
+
+  case "$target" in
+    1) # VM_TARGET
+      vm_mount
+
+      if [ "$?" != 0 ] ; then
+        complain "Did you check if your VM is running?"
+        return 125 # ECANCELED
+      fi
+
+      . "$plugins_path/kernel_install/utils.sh" --source-only
+      list_installed_kernels "$single_line" "${configurations[mount_point]}"
+
+      vm_umount
+    ;;
+    2) # LOCAL_TARGET
+      . "$plugins_path/kernel_install/utils.sh" --source-only
+      list_installed_kernels "$single_line"
+    ;;
+    3) # REMOTE_TARGET
+      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels $single_line"
+      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$remote" "@" 2)
+
+      prepare_remote_dir "$remote" "$port" "" "$flag"
+
+      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+    ;;
+  esac
+
+  return 0
+}
+
 # This function behaves like a kernel installation manager. It handles some
 # parameters, and it also prepares to deploy the new kernel in the target
 # machine.
@@ -239,11 +293,8 @@ function kernel_deploy
   local modules=0
   local target=0
   local test_mode=""
-
-  if ! is_kernel_root "$PWD"; then
-    complain "Execute this command in a kernel tree."
-    exit 125 # ECANCELED
-  fi
+  local list=0
+  local single_line=0
 
   for arg do
     shift
@@ -252,6 +303,8 @@ function kernel_deploy
     [[ "$arg" =~ ^--remote ]] && target="$REMOTE_TARGET" && continue
     [[ "$arg" =~ ^(--reboot|-r) ]] && reboot=1 && continue
     [[ "$arg" =~ ^(--modules|-m) ]] && modules=1 && continue
+    [[ "$arg" =~ ^(--ls-line|-s) ]] && single_line=1 && continue
+    [[ "$arg" =~ ^(--ls|-l) ]] && list=1 && continue
     [[ "$arg" =~ ^(test_mode) ]] && test_mode="TEST_MODE" && continue
     set -- "$@" "$arg"
   done
@@ -288,6 +341,17 @@ function kernel_deploy
   if [[ "$test_mode" == "TEST_MODE" ]]; then
     echo "$reboot $modules $target $remote"
     return 0
+  fi
+
+  if [[ "$list" == 1 || "$single_line" == 1 ]]; then
+    say "Available kernels:"
+    mk_list_installed_kernels "" "$single_line" "$target" "$remote"
+    return "$?"
+  fi
+
+  if ! is_kernel_root "$PWD"; then
+    complain "Execute this command in a kernel tree."
+    exit 125 # ECANCELED
   fi
 
   # NOTE: If we deploy a new kernel image that does not match with the modules,

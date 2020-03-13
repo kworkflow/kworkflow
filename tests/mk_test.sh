@@ -12,6 +12,7 @@ function suite
   suite_addTest "kernel_modules_Test"
   suite_addTest "kernel_modules_local_Test"
   suite_addTest "kernel_install_local_Test"
+  suite_addTest "mk_list_remote_kernels_Test"
 }
 
 FAKE_KERNEL="tests/.tmp"
@@ -75,6 +76,7 @@ function setupRemote()
   export kw_dir="$test_path"
   export plugins_path="$test_path"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
+  export DEPLOY_SCRIPT_SUPPORT="$test_path/$kernel_install_path/utils.sh"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
   rm -rf "$test_path"
 
@@ -83,7 +85,7 @@ function setupRemote()
   mkdir -p "$modules_path/$modules_name"
 
   touch "$modules_path/$modules_name/file{1,2}"
-  touch "$test_path/$kernel_install_path/{debian.sh,deploy.sh}"
+  touch "$test_path/$kernel_install_path/{debian.sh,deploy.sh,utils.sh}"
 }
 
 function tearDown()
@@ -301,7 +303,6 @@ function kernel_install_Test
 
 function kernel_modules_Test
 {
-  local ID
   local count=0
   local original="$PWD"
   local remote_access="root@127.0.0.1"
@@ -321,6 +322,7 @@ function kernel_modules_Test
   # Rsync script command
   local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh"
   local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/"
+  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/"
 
   # Install modules
   local make_install_cmd="make INSTALL_MOD_PATH=$local_remote_path/ modules_install"
@@ -341,6 +343,7 @@ function kernel_modules_Test
     "$dir_kw_deploy"
     "$rsync_debian"
     "$rsync_deploy"
+    "$rsync_utils"
     "$make_install_cmd"
     "$expected_output"
     "$compress_cmd"
@@ -356,7 +359,7 @@ function kernel_modules_Test
   output=$(modules_install "TEST_MODE" "3" "127.0.0.1:3333")
   while read f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
-      fail "$ID - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
+      fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
     fi
     ((count++))
   done <<< "$output"
@@ -410,6 +413,53 @@ function kernel_install_local_Test
   while read f; do
     assertFalse "$ID (cmd: $count) - Expected \"${expected_cmd[$count]}\" to be \"${f}\"" \
                 '[[ ${expected_cmd[$count]} != ${f} ]]'
+    ((count++))
+  done <<< "$output"
+
+  cd "$original"
+}
+
+# This test validates the correct behavior of list kernel on a remote machine
+# by checking the expected command sequence; It is important to highlight that
+# we are not testing the actual kernel list code, this part is validated on
+# another test file.
+function mk_list_remote_kernels_Test
+{
+  local count=0
+  local original="$PWD"
+  local remote_access="root@127.0.0.1"
+  local remote_path="/root/kw_deploy"
+  local ssh_cmd="ssh -p 3333"
+  local rsync_cmd="rsync -e '$ssh_cmd' -La"
+
+  local kernel_install_path="tests/.tmp/kernel_install"
+
+  # Create remote directory
+  local dir_kw_deploy="$ssh_cmd $remote_access \"mkdir -p $remote_path\""
+
+  # Rsync script command
+  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh"
+  local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/"
+  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/"
+  local remote_list_cmd="ssh -p 3333 root@127.0.0.1 \"bash /root/kw_deploy/deploy.sh --list_kernels 0\""
+
+  declare -a expected_cmd=(
+    "$dir_kw_deploy"
+    "$rsync_debian"
+    "$rsync_deploy"
+    "$rsync_utils"
+    "$remote_list_cmd"
+  )
+
+  cd "$FAKE_KERNEL"
+
+  setupRemote
+
+  output=$(mk_list_installed_kernels "TEST_MODE" "0" "3" "127.0.0.1:3333")
+  while read f; do
+    if [[ ${expected_cmd[$count]} != ${f} ]]; then
+      fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
+    fi
     ((count++))
   done <<< "$output"
 

@@ -16,6 +16,7 @@ cd "$HOME/kw_deploy"
 
 # Load specific distro script
 . distro_deploy.sh --source-only
+. utils.sh --source-only
 
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
@@ -53,6 +54,18 @@ function cmd_manager()
   eval "$@"
 }
 
+function ask_yN()
+{
+  local message=$@
+
+  read -r -p "$message [y/N] " response
+  if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
+    echo "1"
+  else
+    echo "0"
+  fi
+}
+
 case "$1" in
   --modules)
     shift # Get rid of --modules
@@ -61,6 +74,10 @@ case "$1" in
   --kernel_update)
     shift # Get rid of --kernel_update
     install_kernel "$@"
+    ;;
+  --list_kernels)
+    shift # Get rid of --list_kernels
+    list_installed_kernels "$@"
     ;;
   *)
     echo "Unknown operation"
