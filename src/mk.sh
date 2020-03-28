@@ -84,6 +84,8 @@ function modules_install
 {
   local ret
   local flag="$1"
+  local target="$2"
+  local formatted_remote="$3"
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -92,9 +94,7 @@ function modules_install
 
   flag=${flag:-""}
 
-  shift 1 # We have to get rid of flag
-  ret=$(parser_command "$@")
-  case "$?" in
+  case "$target" in
     1) # VM_TARGET
       vm_modules_install
       ;;
@@ -106,8 +106,8 @@ function modules_install
       # 1. Preparation steps
       prepare_host_deploy_dir
 
-      local remote=$(get_based_on_delimiter "$ret" ":" 1)
-      local port=$(get_based_on_delimiter "$ret" ":" 2)
+      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       # User may specify a hostname instead of bare IP
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
@@ -154,6 +154,8 @@ function kernel_install
   local reboot="$1"
   local name="$2"
   local flag="$3"
+  local target="$4"
+  local formatted_remote="$5"
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -173,9 +175,7 @@ function kernel_install
     fi
   fi
 
-  shift 3 # We have to get rid of reboot, name and flag
-  ret=$(parser_command "$@")
-  case "$?" in
+  case "$target" in
     1) # VM_TARGET
       # TODO: See issue #139
       echo "Unfortunately, we don't support kernel image deploy in a VM with" \
@@ -202,8 +202,8 @@ function kernel_install
         sed -i "s/NAME/$name/g" "$preset_file"
       fi
 
-      local remote=$(get_based_on_delimiter "$ret" ":" 1)
-      local port=$(get_based_on_delimiter "$ret" ":" 2)
+      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       cp_host2remote "$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
@@ -224,7 +224,8 @@ function kernel_install
 # modules and update kernel image. I chose this approach for reducing the
 # chances of break the system due to modules and kernel mismatch. This function
 # is responsible for handling some of the userspace options and calls the
-# required functions to update the kernel.
+# required functions to update the kernel. This function handles a different
+# set of parameters for the distinct set of target machines.
 #
 # Note: I know that developer know what they are doing (usually) and in the
 # future, it will be nice if we support single kernel update (patches are
@@ -235,33 +236,71 @@ function kernel_install
 function kernel_deploy
 {
   local reboot=0
-  local name="kw"
   local modules=0
+  local target=0
+  local test_mode=""
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
     exit 125 # ECANCELED
   fi
 
-  # Update name: release + alias
-  name=$(make kernelrelease)
-
   for arg do
     shift
+    [[ "$arg" =~ ^--vm ]] && target="$VM_TARGET" && continue
+    [[ "$arg" =~ ^--local ]] && target="$LOCAL_TARGET" && continue
+    [[ "$arg" =~ ^--remote ]] && target="$REMOTE_TARGET" && continue
     [[ "$arg" =~ ^(--reboot|-r) ]] && reboot=1 && continue
-    [[ "$arg" =~ ^(--name|-n)= ]] && name=$(echo $arg | cut -d = -f2) && continue
     [[ "$arg" =~ ^(--modules|-m) ]] && modules=1 && continue
+    [[ "$arg" =~ ^(test_mode) ]] && test_mode="TEST_MODE" && continue
     set -- "$@" "$arg"
   done
+
+  if [[ "$target" == 0 ]]; then
+    deploy_target="${configurations[default_deploy_target]}"
+    case "$deploy_target" in
+      vm)
+        target="$VM_TARGET"
+        ;;
+      local)
+        target="$LOCAL_TARGET"
+        ;;
+      remote)
+        target="$REMOTE_TARGET"
+        ;;
+      *)
+        warning "We could not determine your deploy target, set it to VM." \
+                "Please, check your local kworkflow.conf"
+        target="$VM_TARGET"
+        ;;
+    esac
+  fi
+
+  # Handle the case of --remote [REMOTE:PORT]
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    remote=$(get_remote_info "$@")
+    if [[ "$?" == 22 ]]; then
+      complain "$remote"
+      exit 22
+    fi
+  fi
+
+  if [[ "$test_mode" == "TEST_MODE" ]]; then
+    echo "$reboot $modules $target $remote"
+    return 0
+  fi
 
   # NOTE: If we deploy a new kernel image that does not match with the modules,
   # we can break the boot. For security reason, every time we want to deploy a
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
-  modules_install "" "$@"
+  modules_install "" "$target" "$remote"
 
   if [[ "$modules" == 0 ]]; then
-    kernel_install "$reboot" "$name" "" "$@"
+    # Update name: release + alias
+    name=$(make kernelrelease)
+
+    kernel_install "$reboot" "$name" "" "$target" "$remote"
   fi
 }
 
@@ -318,63 +357,39 @@ function mk_export_kbuild
   mkdir -p $KBUILD_OUTPUT
 }
 
-# This function handles a different set of parameters for the distinct set of
-# target machines. We basically support the following parameters: VM, local,
-# and remote deploy; if we get an unsupported option, we abort the operation
-# with EINVAL code.
+# Handles the remote info
 #
 # @parameters String to be parsed
 #
 # Returns:
 # This function has two returns, and we make the second return by using
-# capturing the "echo" output. The standard return ("$?") can be VM_TARGET (1),
-# LOCAL_TARGET (2), and REMOTE_TARGET (3).
-function parser_command()
+# capturing the "echo" output. The standard return ("$?") can be 22 if
+# something is wrong or 0 if everything finished as expected; the second
+# output is the remote info as IP:PORT
+function get_remote_info()
 {
-  local parameters="$1"
+  ip="$@"
 
-  if [[ -z "$parameters" ]]; then
-    parameters="--${configurations[default_deploy_target]}"
+  if [[ -z "$ip" ]]; then
+    ip=${configurations[ssh_ip]}
+    port=${configurations[ssh_port]}
+    ip="$ip:$port"
+  else
+    temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
+    # 22 in the conditon refers to EINVAL
+    if [[ "$?" == 22 ]]; then
+      ip="$ip:22"
+    else
+      port=$(get_based_on_delimiter "$ip" ":" 2)
+      ip="$temp_ip:$port"
+    fi
   fi
 
-  case "$parameters" in
-    --vm)
-      return "$VM_TARGET"
-      ;;
-    --local)
-      return "$LOCAL_TARGET"
-      ;;
-    --remote)
-      shift # Skip '--remote' option
-      ip="$@"
+  if [[ "$ip" =~ ^: ]]; then
+    complain "Something went wrong with the remote option"
+    return 22 # EINVAL
+  fi
 
-      if [[ -z "$ip" ]]; then
-        ip=${configurations[ssh_ip]}
-        port=${configurations[ssh_port]}
-        ip="$ip:$port"
-      else
-        temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
-        # 22 in the conditon refers to EINVAL
-        if [[ "$?" == 22 ]]; then
-          ip="$ip:22"
-        else
-          port=$(get_based_on_delimiter "$ip" ":" 2)
-          ip="$temp_ip:$port"
-        fi
-      fi
-
-      if [[ "$ip" =~ ^: ]]; then
-        complain "Something went wrong in the configuration file load"
-        return 22 # EINVAL
-      fi
-
-      echo "$ip"
-      return "$REMOTE_TARGET"
-      ;;
-    *)
-      complain "Invalid option, maybe something went wrong during the load of" \
-               "the configuration file."
-      exit 22 # EINVAL
-      ;;
-  esac
+  echo "$ip"
+  return 0
 }

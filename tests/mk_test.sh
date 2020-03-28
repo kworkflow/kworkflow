@@ -5,8 +5,8 @@
 
 function suite
 {
-  suite_addTest "valid_parser_command_Test"
-  suite_addTest "invalid_parser_command_Test"
+  suite_addTest "get_remote_info_Test"
+  suite_addTest "kernel_deploy_Test"
   suite_addTest "modules_install_to_Test"
   suite_addTest "kernel_install_Test"
   suite_addTest "kernel_modules_Test"
@@ -103,80 +103,92 @@ function test_expected_string()
   assertEquals "$msg" "$target" "$expected"
 }
 
-function valid_parser_command_Test
+function get_remote_info_Test
 {
   local ID
 
   # Force an unspected error
   tearDown
   ID=0
-  output=$(parser_command --remote)
+  output=$(get_remote_info)
   ret="$?"
   assertEquals "($ID) We did not load kworkflow.config, we expect an error" "22" "$ret"
   setUp
 
   ID=1
-  parser_command --vm
+  output=$(get_remote_info "localhost:6789")
   ret="$?"
-  assertEquals "($ID) Expected 1, which means VM" "1" "$ret"
-
-  ID=2
-  parser_command --local
-  ret="$?"
-  assertEquals "($ID) Expected 2, which means local" "2" "$ret"
-
-  ID=3
-  output=$(parser_command --remote)
-  ret="$?"
-  assertEquals "($ID) Expected 3, which means local" "3" "$ret"
-  assertEquals "($ID) Expected 127.0.0.1:3333" "127.0.0.1:3333" "$output"
-
-  ID=4
-  output=$(parser_command --remote "localhost:6789")
-  ret="$?"
-  assertEquals "($ID) Expected 3, which means local" "3" "$ret"
+  assertEquals "($ID) Expected 0" "0" "$ret"
   assertEquals "($ID) Expected localhost:6789" "localhost:6789" "$output"
 
-  ID=5
-  output=$(parser_command --remote "localhost")
+  ID=2
+  output=$(get_remote_info "localhost")
   ret="$?"
-  assertEquals "($ID) Expected 3, which means local" "3" "$ret"
+  assertEquals "($ID) Expected 0" "0" "$ret"
   assertEquals "($ID) Expected localhost:22" "localhost:22" "$output"
 
-  ID=6
-  output=$(parser_command)
+  ID=3
+  output=$(get_remote_info)
   ret="$?"
-  assertEquals "($ID) Expected 1, default is vm" "1" "$ret"
+  assertEquals "($ID) Expected 0" "0" "$ret"
+  assertEquals "($ID) Expected 127.0.0.1:3333" "127.0.0.1:3333" "$output"
 }
 
-function invalid_parser_command_Test
+function kernel_deploy_Test
 {
   local ID
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL"
 
   ID=1
-  output=$(parser_command --vmm)
-  ret="$?"
-  assertEquals "($ID) Expected 22, invalid argument" "22" "$ret"
+  output=$(kernel_deploy test_mode)
+  expected_result="0 0 1 "
+  assertEquals "($ID) Expected 0 0 1 " "$expected_result" "$output"
 
   ID=2
-  output=$(parser_command -vm)
-  ret="$?"
-  assertEquals "($ID) Expected 22, invalid argument" "22" "$ret"
+  output=$(kernel_deploy test_mode --modules)
+  expected_result="0 1 1 "
+  assertEquals "($ID) Expected --modules" "$expected_result" "$output"
 
   ID=3
-  output=$(parser_command -local)
-  ret="$?"
-  assertEquals "($ID) Expected 22, invalid argument" "22" "$ret"
+  output=$(kernel_deploy test_mode --reboot)
+  expected_result="1 0 1 "
+  assertEquals "($ID) Expected --reboot" "$expected_result" "$output"
 
   ID=4
-  output=$(parser_command -remote)
-  ret="$?"
-  assertEquals "($ID) Expected 22, invalid argument" "22" "$ret"
+  output=$(kernel_deploy test_mode --reboot --modules)
+  expected_result="1 1 1 "
+  assertEquals "($ID) Expected --reboot --modules" "$expected_result" "$output"
 
   ID=5
-  output=$(parser_command remote)
-  ret="$?"
-  assertEquals "($ID) Expected 22, invalid argument" "22" "$ret"
+  output=$(kernel_deploy test_mode --local --reboot --modules)
+  expected_result="1 1 2 "
+  assertEquals "($ID) Expected --local --reboot --modules" "$expected_result" "$output"
+
+  ID=6
+  output=$(kernel_deploy test_mode --remote --reboot)
+  expected_result="1 0 3 127.0.0.1:3333"
+  assertEquals "($ID) Expected --remote --reboot" "$expected_result" "$output"
+
+  ID=7
+  output=$(kernel_deploy test_mode --remote 192.168.0.10 --reboot)
+  expected_result="1 0 3 192.168.0.10:22"
+  assertEquals "($ID) Expected --remote 192.168.0.10 --reboot" "$expected_result" "$output"
+
+  ID=8
+  output=$(kernel_deploy test_mode --remote 192.168.0.10:1287)
+  expected_result="0 0 3 192.168.0.10:1287"
+  assertEquals "($ID) Expected --remote 192.168.0.10:1287" "$expected_result" "$output"
+
+  # Test some invalid case
+  tearDown
+  ID=9
+  output=$(kernel_deploy test_mode)
+  expected_result="We could not determine your deploy"
+  assertTrue "We expected a substring \"$expected_result\", but we got \"$output\"" '[[ "$expected_result" != "${output/$expected_result/}" ]]'
+
+  cd "$original"
 }
 
 function modules_install_to_Test
@@ -205,7 +217,7 @@ function kernel_install_Test
   local count=0
   local name="test"
   local original="$PWD"
-  local reboot="--reboot"
+  local reboot="1"
   local remote_access="root@127.0.0.1"
   local remote_path="/root/kw_deploy"
   local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
@@ -240,7 +252,7 @@ function kernel_install_Test
   cd "$FAKE_KERNEL"
 
   ID=1
-  output=$(kernel_install "--reboot" "test" "TEST_MODE" "--remote")
+  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   while read f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$ID - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
@@ -254,7 +266,7 @@ function kernel_install_Test
   # NOTICE: I added one extra space in the below line for match what we
   # expect since I believe it is not worth to change the kernel_install
   # function just for it.
-  deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $name "
+  deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $name 0"
   cmd_deploy_image="$ssh_cmd $remote_access \"$deploy_cmd\""
 
   declare -a expected_cmd=(
@@ -263,7 +275,7 @@ function kernel_install_Test
     "$cmd_deploy_image"
   )
 
-  output=$(kernel_install "" "test" "TEST_MODE" "--remote")
+  output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   while read f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$ID - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
@@ -278,7 +290,7 @@ function kernel_install_Test
   setUp "no_mkinitcpio"
   ID=3
   cd "$FAKE_KERNEL"
-  output=$(kernel_install "" "test" "TEST_MODE" "--remote")
+  output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   cd "$original"
 
   local preset_file="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
@@ -341,7 +353,7 @@ function kernel_modules_Test
   setupRemote
 
   ID=1
-  output=$(modules_install "TEST_MODE" "--remote")
+  output=$(modules_install "TEST_MODE" "3" "127.0.0.1:3333")
   while read f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$ID - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
@@ -360,7 +372,7 @@ function kernel_modules_local_Test
 
   cd "$FAKE_KERNEL"
   ID=1
-  output=$(modules_install "TEST_MODE" "--local")
+  output=$(modules_install "TEST_MODE" "2")
   assertFalse "$ID - Expected $output to be $cmd" '[[ "$cmd" != "$output" ]]'
   cd "$original"
 }
@@ -368,6 +380,7 @@ function kernel_modules_local_Test
 function kernel_install_local_Test
 {
   local ID
+  local count=0
   local original="$PWD"
   local cmd_deploy_image="$ssh_cmd $remote_access \"$deploy_cmd\""
 
@@ -376,11 +389,13 @@ function kernel_install_local_Test
   local cmd_cp_kernel_img="sudo -E cp -v arch/x86_64/boot/bzImage /boot/vmlinuz-test"
   local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
   local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
+  local cmd_reboot="sudo -E reboot"
 
   declare -a expected_cmd=(
     "$cmd_cp_kernel_img"
     "$cmd_update_initramfs"
     "$cmd_update_grub"
+    "$cmd_reboot"
   )
 
   # ATTENTION: $FAKE_KERNEL got two levels deep (tests/.tmp); for this reason,
@@ -390,7 +405,7 @@ function kernel_install_local_Test
   cd "$FAKE_KERNEL"
 
   ID=1
-  output=$(kernel_install "--reboot" "test" "TEST_MODE" "--local")
+  output=$(kernel_install "1" "test" "TEST_MODE" "2")
 
   while read f; do
     assertFalse "$ID (cmd: $count) - Expected \"${expected_cmd[$count]}\" to be \"${f}\"" \
