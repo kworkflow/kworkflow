@@ -135,12 +135,27 @@ function synchronize_files()
   say "$SEPARATOR"
 }
 
+function update_version()
+{
+  local head_hash=$(git rev-parse --short HEAD)
+  local branch_name=$(git rev-parse --short --abbrev-ref HEAD)
+  local base_version=$(cat "$INSTALLTO/$SRCDIR/VERSION" | head -n 1)
+
+  cat > "$INSTALLTO/$SRCDIR/VERSION" <<EOF
+$base_version
+Branch: $branch_name
+Commit: $head_hash
+EOF
+}
+
 function install_home()
 {
   # First clean old installation
   clean_legacy
-  # Synchronize of vimfiles
+  # Synchronize source files
   synchronize_files
+  # Update version based on the current branch
+  update_version
 }
 
 # Options

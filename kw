@@ -97,7 +97,7 @@ function kw()
         vm_ssh $@
       )
       ;;
-    vars|v)
+    vars)
       (
         . "$src_script_path"/kw_config_loader.sh --source-only
 
@@ -144,6 +144,13 @@ function kw()
         . $src_script_path/help.sh --source-only
 
         kworkflow-man
+      )
+      ;;
+    version|--version|-v)
+      (
+        . "$src_script_path"/help.sh --source-only
+
+        kworkflow_version
       )
       ;;
     *)

@@ -232,6 +232,10 @@ h, help
 ~~~~~~~
 Show basic help.
 
+version, --version, -v
+~~~~~~~~~~~~~~~~~~~~~~
+Show kworkflow version.
+
 ABOUT kworflow.config
 =====================
 

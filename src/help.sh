@@ -22,6 +22,7 @@ function kworkflow-help()
     "\t                             the mailing list. \"-a\" also\n" \
     "\t                             prints files authors\n" \
     "\thelp,h - displays this help mesage\n" \
+    "\tversion,--version,-v - show kw version\n" \
     "\tman - Show manual\n"
 
   echo -e "kw explore:\n" \
@@ -64,4 +65,11 @@ function kworkflow-man()
     fi
 
     man kw
+}
+
+function kworkflow_version()
+{
+  local version_path="$src_script_path/VERSION"
+
+  cat "$version_path"
 }
