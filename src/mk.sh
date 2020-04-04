@@ -318,45 +318,6 @@ function mk_build
   make ARCH="${configurations[arch]}" -j$PARALLEL_CORES
 }
 
-# FIXME: Here is a legacy code, however it could be really nice if we fix it
-function mk_send_mail
-{
-  echo -e " * checking git diff...\n"
-  git diff
-  git diff --cached
-
-  echo -e " * Does it build? Did you test it?\n"
-  read
-  echo -e " * Are you using the correct subject prefix?\n"
-  read
-  echo -e " * Did you need/review the cover letter?\n"
-  read
-  echo -e " * Did you annotate version changes?\n"
-  read
-  echo -e " * Is git format-patch -M needed?\n"
-  read
-  echo -e " * Did you review --to --cc?\n"
-  read
-  echo -e " * dry-run it first!\n"
-
-
-  SENDLINE="git send-email --dry-run "
-  while read line
-  do
-    SENDLINE+="$line "
-  done < emails
-
-  echo $SENDLINE
-}
-
-# FIXME: Here we have a legacy code, check if we can remove it
-function mk_export_kbuild
-{
-  say "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
-  export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
-  mkdir -p $KBUILD_OUTPUT
-}
-
 # Handles the remote info
 #
 # @parameters String to be parsed
