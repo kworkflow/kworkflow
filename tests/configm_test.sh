@@ -23,40 +23,40 @@ readonly LS_NO_FILES="There's no tracked .config file"
 
 function suite
 {
-  suite_addTest "testExecuteConfigManagerSAVEfails"
-  suite_addTest "testSaveConfigFileCHECK_CONFIGfails"
-  suite_addTest "testSaveConfigFileCHECK_CONFIGS_DIRECTORY"
-  suite_addTest "testSaveConfigFileCHECK_SAVED_CONFIG_FILE"
-  suite_addTest "testSaveConfigFileCHECK_DESCRIPTION"
-  suite_addTest "testSaveConfigFileCHECK_GIT_SAVE_SCHEMA"
-  suite_addTest "testSaveConfigFileCHECK_FORCE"
-  suite_addTest "testListConfigsCHECK_NO_CONFIGS"
-  suite_addTest "testListConfigsOUTPUT"
-  suite_addTest "testGetOperationWithForce"
-  suite_addTest "testGetOperationThatShouldFail"
-  suite_addTest "testRemoveOperationThatShouldFail"
-  suite_addTest "testRemoveOperation"
+  suite_addTest "execute_config_manager_SAVE_fails_Test"
+  suite_addTest "save_config_file_CHECK_CONFIG_fails_Test"
+  suite_addTest "save_config_file_CHECK_CONFIGS_DIRECTORY_Test"
+  suite_addTest "save_config_file_CHECK_SAVED_CONFIG_FILE_Test"
+  suite_addTest "save_config_file_CHECK_DESCRIPTION_Test"
+  suite_addTest "save_config_file_CHECK_GIT_SAVE_SCHEMA_Test"
+  suite_addTest "save_config_file_CHECK_FORCE_Test"
+  suite_addTest "list_config_CHECK_NO_CONFIGS_Test"
+  suite_addTest "list_config_OUTPUT_Test"
+  suite_addTest "get_operation_with_force_Test"
+  suite_addTest "get_operation_that_should_fail_Test"
+  suite_addTest "remove_operation_that_should_fail_Test"
+  suite_addTest "remove_operation"
 }
 
-function setupConfigm()
+function setUp()
 {
   local -r test_path="tests/.tmp"
-  local -r current_path=$PWD
+  local -r current_path="$PWD"
 
-  rm -rf $test_path
+  rm -rf "$test_path"
 
-  mkdir -p $test_path
-  cd $test_path
+  mkdir -p "$test_path"
+  cd "$test_path"
   touch .config
-  echo $CONTENT > .config
-  cd $current_path
+  echo "$CONTENT" > .config
+  cd "$current_path"
 }
 
-function tearDownConfigm()
+function tearDown()
 {
   local -r test_path="tests/.tmp"
 
-  rm -rf $test_path
+  rm -rf "$test_path"
 }
 
 function test_expected_string()
@@ -68,7 +68,7 @@ function test_expected_string()
   assertEquals "$msg" "$target" "$expected"
 }
 
-function testExecuteConfigManagerSAVEfails
+function execute_config_manager_SAVE_fails_Test
 {
   local msg_prefix=" --save"
 
@@ -100,182 +100,152 @@ function testExecuteConfigManagerSAVEfails
   test_expected_string "$msg_prefix -f" "$COMMAND_MSG_INVALID_ARG" "$ret"
 }
 
-function testSaveConfigFileCHECK_CONFIGfails()
+function save_config_file_CHECK_CONFIG_fails_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local force=0
   local ret=0
 
-  # Prepare teste
-  setupConfigm
-
   # Test without config file -> should fail
-  cd $test_path
+  cd "$test_path"
   rm -f .config
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
+  ret=$(save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1")
   assertEquals "No .config file should return ENOENT" "$?" "2"
 
   # Test with different name
   touch .configuration
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
+  ret=$(save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1")
   assertEquals "Should return ENOENT, because '.config' != '.configuration'" "$?" "2"
   rm .configuration
 
-  cd $current_path
-  tearDownConfigm
+  cd "$current_path"
 }
 
-function testSaveConfigFileCHECK_CONFIGS_DIRECTORY()
+function save_config_file_CHECK_CONFIGS_DIRECTORY_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
-  config_files_path=$current_path/$test_path
-
-  setupConfigm
+  local current_path="$PWD"
+  config_files_path="$current_path/$test_path"
 
   # There's no configs yet, initialize it
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd $current_path
+  cd "$current_path"
 
   # Check if all the expected files were created
   assertTrue "The configs dir was not created" '[[ -d $config_files_path/configs ]]'
   assertTrue "The repository configs does not have .git" '[[ -d $config_files_path/configs/.git ]]'
   assertTrue "The metadata dir is not available" '[[ -d $config_files_path/configs/metadata ]]'
   assertTrue "The configs dir is not available" '[[ -d $config_files_path/configs/configs ]]'
-
-  tearDownConfigm
 }
 
-function testSaveConfigFileCHECK_SAVED_CONFIG_FILE()
+function save_config_file_CHECK_SAVED_CONFIG_FILE_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local ret=0
-  config_files_path=$current_path/$test_path
-
-  setupConfigm
+  config_files_path="$current_path/$test_path"
 
   # There's no configs yet, initialize it
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd $current_path
+  cd "$current_path"
 
   assertTrue "Failed to find $NAME_1" '[[ -f $config_files_path/configs/configs/$NAME_1 ]]'
   assertTrue "Failed the metadata related to $NAME_1" '[[ -f $config_files_path/configs/metadata/$NAME_1 ]]'
 
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $NO_FORCE $NAME_2)
-  cd $current_path
+  cd "$current_path"
 
   assertTrue "Failed to find $NAME_2" '[[ -f $config_files_path/configs/configs/$NAME_2 ]]'
   assertTrue "Failed the metadata related to $NAME_2" '[[ -f $config_files_path/configs/metadata/$NAME_2 ]]'
 
   local tmp=$(cat $config_files_path/configs/configs/$NAME_2)
   assertTrue "Content in the file does not match" '[[ $tmp = $CONTENT ]]'
-
-  tearDownConfigm
 }
 
-function testSaveConfigFileCHECK_DESCRIPTION()
+function save_config_file_CHECK_DESCRIPTION_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local ret=0
-  config_files_path=$current_path/$test_path
-
-  setupConfigm
+  config_files_path="$current_path/$test_path"
 
   # There's no configs yet, initialize it
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd $current_path
+  cd "$current_path"
 
   local tmp=$(cat $config_files_path/configs/metadata/$NAME_1)
   assertTrue "The description content for $NAME_1 does not match" '[[ $tmp = $DESCRIPTION_1 ]]'
 
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd $current_path
+  cd "$current_path"
 
   tmp=$(cat $config_files_path/configs/metadata/$NAME_2)
   assertTrue "The description content for $NAME_2 does not match" '[[ $tmp = $DESCRIPTION_2 ]]'
-
-  tearDownConfigm
 }
 
-function testSaveConfigFileCHECK_GIT_SAVE_SCHEMA()
+function save_config_file_CHECK_GIT_SAVE_SCHEMA_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local ret=0
-  config_files_path=$current_path/$test_path
-
-  setupConfigm
+  config_files_path="$current_path/$test_path"
 
   # There's no configs yet, initialize it
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   cd "configs"
   ret=$(git rev-list --all --count)
-  cd $current_path
+  cd "$current_path"
 
   assertTrue "We expected 2 commits, but we got $ret" '[[ $ret = "2" ]]'
-
-  tearDownConfigm
 }
 
-function testSaveConfigFileCHECK_FORCE()
+function save_config_file_CHECK_FORCE_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local ret=0
-  config_files_path=$current_path/$test_path
-
-  setupConfigm
+  config_files_path="$current_path/$test_path"
 
   # There's no configs yet, initialize it
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd $current_path
+  cd "$current_path"
   assertTrue "We expected no changes" '[[ $ret =~ Warning ]]'
-
-  tearDownConfigm
 }
 
-function testListConfigsCHECK_NO_CONFIGS()
+function list_config_CHECK_NO_CONFIGS_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local ret=0
-  config_files_path=$current_path/$test_path
-
-  setupConfigm
+  config_files_path="$current_path/$test_path"
 
   # There's no configs yet, initialize it
   ret=$(list_configs)
   assertTrue "We expected no changes" '[[ $ret =~ $LS_NO_FILES ]]'
-
-  tearDownConfigm
 }
 
-function testListConfigsOUTPUT()
+function list_config_OUTPUT_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local ret=0
-  config_files_path=$current_path/$test_path
-
-  setupConfigm
+  config_files_path="$current_path/$test_path"
 
   # There's no configs yet, initialize it
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $YES_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd $current_path
+  cd "$current_path"
 
   # There's no configs yet, initialize it
   ret=$(list_configs)
@@ -285,11 +255,9 @@ function testListConfigsOUTPUT()
   assertTrue "We expected $DESCRIPTION_1 in the output, but we got $ret" '[[ $ret =~ $DESCRIPTION_1 ]]'
   assertTrue "We expected $NAME_2 in the output, but we got $ret" '[[ $ret =~ $NAME_2 ]]'
   assertTrue "We expected $DESCRIPTION_2 in the output, but we got $ret" '[[ $ret =~ $DESCRIPTION_2 ]]'
-
-  tearDownConfigm
 }
 
-function testGetOperationThatShouldFail()
+function get_operation_that_should_fail_Test()
 {
   local msg_prefix=" --get"
 
@@ -303,42 +271,38 @@ function testGetOperationThatShouldFail()
   test_expected_string "$msg_prefix" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function testGetOperationWithForce()
+function get_operation_with_force_Test()
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local ret=0
-  config_files_path=$current_path/$test_path
-
-  setupConfigm
+  config_files_path="$current_path/$test_path"
 
   # There's no configs yet, initialize it
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd $current_path
+  cd "$current_path"
 
   # Case 1: There's no local .config file
-  cd $test_path
+  cd "$test_path"
   rm -f .config
-  get_config $NAME_1 1 > /dev/null 2>&1
+  get_config "$NAME_1" 1 > /dev/null 2>&1
   ret=$(cat .config)
-  cd $current_path
+  cd "$current_path"
 
   assertTrue "We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 
   # Case 2: There's a .config file
-  cd $test_path
-  get_config $NAME_2 1 > /dev/null 2>&1
+  cd "$test_path"
+  get_config "$NAME_2" 1 > /dev/null 2>&1
   ret=$(cat .config)
-  cd $current_path
+  cd "$current_path"
 
   assertTrue "We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
-
-  tearDownConfigm
 }
 
-function testRemoveOperationThatShouldFail()
+function remove_operation_that_should_fail_Test()
 {
   local msg_prefix=" --rm"
 
@@ -352,16 +316,14 @@ function testRemoveOperationThatShouldFail()
   test_expected_string "$msg_prefix" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function testRemoveOperation()
+function remove_operation
 {
   local -r test_path="tests/.tmp"
-  local current_path=$PWD
+  local current_path="$PWD"
   local ret=0
-  config_files_path=$current_path/$test_path
+  config_files_path="$current_path/$test_path"
 
-  setupConfigm
-
-  cd $test_path
+  cd "$test_path"
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   ret=$(ls configs/configs -1 | wc -l)
@@ -369,15 +331,15 @@ function testRemoveOperation()
   assertTrue "We expected , 2 files but got $ret" '[[ $ret = "2" ]]'
 
   # Case 2: Remove one config file
-  remove_config $NAME_1 1  > /dev/null 2>&1
+  remove_config "$NAME_1" 1  > /dev/null 2>&1
   ret=$(ls configs/configs -1 | wc -l)
   assertTrue "We expected , 1 files but got $ret" '[[ $ret = "1" ]]'
 
   # Case 2: Remove all config files
-  remove_config $NAME_2 1  > /dev/null 2>&1
+  remove_config "$NAME_2" 1  > /dev/null 2>&1
   assertTrue "We expected no file related to config" '[[ ! -f configs/configs ]]'
 
-  cd $current_path
+  cd "$current_path"
 }
 
 invoke_shunit
