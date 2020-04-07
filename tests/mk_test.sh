@@ -14,6 +14,7 @@ function suite
   suite_addTest "kernel_install_local_Test"
   suite_addTest "mk_list_remote_kernels_Test"
   suite_addTest "mk_kernel_uninstall_Test"
+  suite_addTest "cleanup_after_deploy_Test"
 }
 
 FAKE_KERNEL="tests/.tmp"
@@ -49,12 +50,13 @@ function setUp
   export preset_name="template_mkinitcpio.preset"
   export test_path="$PWD/$FAKE_KERNEL"
   export plugins_path="$test_path"
-  export kw_dir="$test_path"
+  export kw_cache_dir="$test_path"
   export etc_files_path="$PWD/$SAMPLES_DIR/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
 
   mkdir "$test_path/$LOCAL_TO_DEPLOY_DIR"
+  mkdir "$test_path/$LOCAL_REMOTE_DIR"
   if [[ -z "$create_mkinitcpio" ]]; then
     cp -f "$SAMPLES_DIR/$preset_name" "$FAKE_KERNEL/$LOCAL_TO_DEPLOY_DIR/test.preset"
   fi
@@ -74,7 +76,7 @@ function setupRemote()
   local -r kernel_install_path="kernel_install"
 
   export test_path="$FAKE_KERNEL"
-  export kw_dir="$test_path"
+  export kw_cache_dir="$test_path"
   export plugins_path="$test_path"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export DEPLOY_SCRIPT_SUPPORT="$test_path/$kernel_install_path/utils.sh"
@@ -91,7 +93,7 @@ function setupRemote()
 
 function tearDown()
 {
-  unset kw_dir
+  unset kw_cache_dir
   configurations=()
 
   rm -rf "$FAKE_KERNEL"
@@ -338,7 +340,7 @@ function kernel_install_Test
   output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   cd "$original"
 
-  local preset_file="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
+  local preset_file="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
   assertTrue "The mkinit file was not created" '[[ -f "$preset_file" ]]'
 
   tearDown
@@ -566,6 +568,25 @@ function mk_kernel_uninstall_Test
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   cd "$original"
+}
+
+function cleanup_after_deploy_Test
+{
+  local output=""
+  local cmd_remote="rm -rf $test_path/$LOCAL_TO_DEPLOY_DIR/*"
+  local cmd_to_deploy="rm -rf $test_path/$LOCAL_REMOTE_DIR/*"
+
+  declare -a expected_cmd=(
+    "$cmd_to_deploy"
+    "$cmd_remote"
+  )
+
+  output=$(cleanup_after_deploy "TEST_MODE")
+  while read f; do
+    assertFalse "$ID (cmd: $count) - Expected \"${expected_cmd[$count]}\" to be \"${f}\"" \
+                '[[ ${expected_cmd[$count]} != ${f} ]]'
+    ((count++))
+  done <<< "$output"
 }
 
 invoke_shunit

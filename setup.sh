@@ -6,7 +6,7 @@ declare -r APPLICATIONNAME="kw"
 declare -r SRCDIR="src"
 declare -r CONFIG_DIR="etc"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
-declare -r KW_DIR="$HOME/$APPLICATIONNAME"
+declare -r KW_CACHE_DIR="$HOME/.cache/$APPLICATIONNAME"
 
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
@@ -66,6 +66,14 @@ function clean_legacy()
     else
       mv "$INSTALLTO" "$trash"
     fi
+  fi
+
+  # TODO: Remove me one day
+  # Some old version of kw relies on a directory name `kw` at ~/, we changed
+  # this behaviour but we added the below code to clean up those legacy system.
+  # One day we could get rid of this code
+  if [[ -d "$HOME/kw" ]]; then
+    rm -rf "$HOME/kw/"
   fi
 }
 
@@ -129,8 +137,8 @@ function synchronize_files()
   fi
 
   say "$SEPARATOR"
-  # Create ~/kw for support some of the operations
-  mkdir -p "$KW_DIR"
+  # Create ~/.cache/kw for support some of the operations
+  mkdir -p "$KW_CACHE_DIR"
   say "$APPLICATIONNAME installed into $INSTALLTO"
   say "$SEPARATOR"
 }

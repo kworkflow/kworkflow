@@ -71,7 +71,7 @@ function cp_host2remote()
   local user="$5"
   local flag="$6"
 
-  src=${src:-"$kw_dir/$LOCAL_TO_DEPLOY_DIR/*"}
+  src=${src:-"$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"}
 
   dst=${dst:-"$REMOTE_KW_DEPLOY"}
   remote=${remote:-"localhost"}
@@ -114,23 +114,23 @@ function which_distro()
 # prepares such a directory.
 function prepare_host_deploy_dir()
 {
-  if [[ -z "$kw_dir" ]]; then
-    complain "\$kw_dir isn't set. The kw directory at home may not exist"
+  if [[ -z "$kw_cache_dir" ]]; then
+    complain "\$kw_cache_dir isn't set. The kw directory at home may not exist"
     return 22
   fi
 
   # We should expect the setup.sh script create the directory $HOME/kw.
   # However, does not hurt check for it and create in any case
-  if [[ ! -d "$kw_dir" ]]; then
-    mkdir "$kw_dir"
+  if [[ ! -d "$kw_cache_dir" ]]; then
+    mkdir -p "$kw_cache_dir"
   fi
 
-  if [[ ! -d "$kw_dir/$LOCAL_REMOTE_DIR" ]]; then
-    mkdir "$kw_dir/$LOCAL_REMOTE_DIR"
+  if [[ ! -d "$kw_cache_dir/$LOCAL_REMOTE_DIR" ]]; then
+    mkdir -p "$kw_cache_dir/$LOCAL_REMOTE_DIR"
   fi
 
-  if [[ ! -d "$kw_dir/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    mkdir "$kw_dir/$LOCAL_TO_DEPLOY_DIR"
+  if [[ ! -d "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR" ]]; then
+    mkdir -p "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR"
   fi
 }
 
@@ -191,7 +191,7 @@ function generate_tarball()
   local ret
   local tarball_name=""
   local compress_cmd=""
-  local kw_remote_dir="$kw_dir/$LOCAL_REMOTE_DIR"
+  local kw_remote_dir="$kw_cache_dir/$LOCAL_REMOTE_DIR"
 
   files_path=${files_path:-"$kw_remote_dir/lib/modules/"}
   kernel_release=${kernel_release:-"no_release"}
@@ -203,7 +203,7 @@ function generate_tarball()
   # -C: Go to $files_path directory
   # -cf: Compress the directory named $kernel_release (inside $files_path) to
   #      $kw_remote_dir/$tarball_name
-  compress_cmd="tar -C $files_path -cf $kw_dir/$LOCAL_TO_DEPLOY_DIR/$tarball_name $kernel_release"
+  compress_cmd="tar -C $files_path -cf $kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$tarball_name $kernel_release"
 
   cmd_manager "$flag" "$compress_cmd"
   ret=$?
