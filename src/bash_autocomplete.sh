@@ -6,7 +6,7 @@ _kw_autocomplete()
     COMPREPLY=()
     current_command="${COMP_WORDS[COMP_CWORD]}"
     previous_command="${COMP_WORDS[COMP_CWORD-1]}"
-    kw_options="explore e build b bi init new n ssh s
+    kw_options="explore e build b bi init new n ssh s clear-cache
                 mount mo umount um vars up u codestyle c configm g
                 maintainers m deploy d help h version --version -v"
 

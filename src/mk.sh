@@ -78,6 +78,34 @@ function get_kernel_release
   cmd_manager "$flag" "$cmd"
 }
 
+# This function goal is to perform a global clean up, it basically calls other
+# specialized cleanup functions.
+function cleanup
+{
+  say "Cleanup deploy files"
+  cleanup_after_deploy
+}
+
+# When kw deploy a new kernel it creates temporary files to be used for moving
+# to the target machine. There is no need to keep those files in the user
+# machine, for this reason, this function is in charge of cleanup the temporary
+# files at the end.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function cleanup_after_deploy
+{
+  local flag="$1"
+
+  if [[ -d "$kw_cache_dir/$LOCAL_REMOTE_DIR" ]]; then
+    cmd_manager "$flag"  "rm -rf $kw_cache_dir/$LOCAL_REMOTE_DIR/*"
+  fi
+
+  if [[ -d "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR" ]]; then
+    cmd_manager "$flag" "rm -rf $kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"
+  fi
+}
+
 # This function expects a parameter that specifies the target machine;
 # in the first case, the host machine is the target, and otherwise the virtual
 # machine.
@@ -117,13 +145,13 @@ function modules_install
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
       # 2. Send files modules
-      modules_install_to "$kw_dir/$LOCAL_REMOTE_DIR/" "$flag"
+      modules_install_to "$kw_cache_dir/$LOCAL_REMOTE_DIR/" "$flag"
 
       release=$(get_kernel_release "$flag")
       success "Kernel: $release"
       generate_tarball "$release" "" "$flag"
 
-      local tarball_for_deploy_path="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$release.tar"
+      local tarball_for_deploy_path="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$release.tar"
       cp_host2remote "$tarball_for_deploy_path" \
                      "$REMOTE_KW_DEPLOY" "$remote" "$port" "" "$flag"
 
@@ -252,7 +280,7 @@ function kernel_install
       install_kernel "$name" "$reboot" 'local' "${configurations[arch]}" "$flag"
     ;;
     3) # REMOTE_TARGET
-      local preset_file="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
+      local preset_file="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
       if [[ ! -f "$preset_file" ]]; then
         template_mkinit="$etc_files_path/template_mkinitcpio.preset"
         cp "$template_mkinit" "$preset_file"
@@ -263,7 +291,7 @@ function kernel_install
       local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
-      cp_host2remote "$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
+      cp_host2remote "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
                      "$REMOTE_KW_DEPLOY" \
                      "$remote" "$port" "$user" "$flag"
       cp_host2remote "arch/x86_64/boot/bzImage" \
@@ -404,6 +432,11 @@ function kernel_deploy
     name=$(make kernelrelease)
 
     kernel_install "$reboot" "$name" "" "$target" "$remote"
+  fi
+
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    say "Cleanup temporary files"
+    cleanup_after_deploy
   fi
 }
 
