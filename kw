@@ -93,6 +93,11 @@ function kw()
         return "$ret"
       )
       ;;
+    diff|df)
+        . "$src_script_path"/diff.sh --source-only
+
+        diff_manager "$@"
+      ;;
     ssh|s)
       (
         . "$src_script_path"/vm.sh --source-only

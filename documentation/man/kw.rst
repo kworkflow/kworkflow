@@ -286,6 +286,16 @@ displays the current month data.
 4. *--year [YEAR]*: exhibits the current year summary if the user does not
 specify a specific year.
 
+df, diff [OPTIONS] FILE1 FILE2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This is a wrapper to some useful usage of diff command, by default, it shows
+diff files side-by-side in an interactive way. This command provides the
+following set of options:
+
+1. --no-interactive: This option displays all diff in two columns at once.
+
+2. --help: Show the help options.
+
 h, help
 ~~~~~~~
 Show basic help.
