@@ -71,6 +71,7 @@ function parser_output_Test
     [ssh_port]="3333"
     [mount_point]="/home/lala"
     [default_deploy_target]="vm"
+    [reboot_after_deploy]="no"
   )
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"

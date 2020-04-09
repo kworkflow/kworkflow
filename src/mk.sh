@@ -21,6 +21,9 @@
 . $src_script_path/kwlib.sh --source-only
 . $src_script_path/remote.sh --source-only
 
+# Hash containing user options
+declare -A options_values
+
 # This function is responsible for handling the command to
 # `make install_modules`, and it expects a target path for saving the modules
 # files.
@@ -296,50 +299,22 @@ function kernel_deploy
   local list=0
   local single_line=0
 
-  for arg do
-    shift
-    [[ "$arg" =~ ^--vm ]] && target="$VM_TARGET" && continue
-    [[ "$arg" =~ ^--local ]] && target="$LOCAL_TARGET" && continue
-    [[ "$arg" =~ ^--remote ]] && target="$REMOTE_TARGET" && continue
-    [[ "$arg" =~ ^(--reboot|-r) ]] && reboot=1 && continue
-    [[ "$arg" =~ ^(--modules|-m) ]] && modules=1 && continue
-    [[ "$arg" =~ ^(--ls-line|-s) ]] && single_line=1 && continue
-    [[ "$arg" =~ ^(--ls|-l) ]] && list=1 && continue
-    [[ "$arg" =~ ^(test_mode) ]] && test_mode="TEST_MODE" && continue
-    set -- "$@" "$arg"
-  done
-
-  if [[ "$target" == 0 ]]; then
-    deploy_target="${configurations[default_deploy_target]}"
-    case "$deploy_target" in
-      vm)
-        target="$VM_TARGET"
-        ;;
-      local)
-        target="$LOCAL_TARGET"
-        ;;
-      remote)
-        target="$REMOTE_TARGET"
-        ;;
-      *)
-        warning "We could not determine your deploy target, set it to VM." \
-                "Please, check your local kworkflow.conf"
-        target="$VM_TARGET"
-        ;;
-    esac
+  deploy_parser_options "$@"
+  if [[ "$?" -gt 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    return 22
   fi
 
-  # Handle the case of --remote [REMOTE:PORT]
-  if [[ "$target" == "$REMOTE_TARGET" ]]; then
-    remote=$(get_remote_info "$@")
-    if [[ "$?" == 22 ]]; then
-      complain "$remote"
-      exit 22
-    fi
-  fi
+  target="${options_values['TARGET']}"
+  reboot="${options_values['REBOOT']}"
+  modules="${options_values['MODULES']}"
+  single_line="${options_values['LS_LINE']}"
+  list="${options_values['LS']}"
+  test_mode="${options_values['TEST_MODE']}"
+  remote="${options_values['REMOTE']}"
 
   if [[ "$test_mode" == "TEST_MODE" ]]; then
-    echo "$reboot $modules $target $remote"
+    echo "$reboot $modules $target $remote $single_line $list"
     return 0
   fi
 
@@ -417,4 +392,130 @@ function get_remote_info()
 
   echo "$ip"
   return 0
+}
+
+# This function gets raw data and based on that fill out the options values to
+# be used in another function.
+#
+# @raw_options String with all user options
+#
+# Return:
+# In case of successful return 0, otherwise, return 22.
+#
+function deploy_parser_options()
+{
+  local raw_options="$@"
+  local uninstall=0
+  local enable_collect_param=0
+  local remote
+
+  options_values["UNINSTALL"]=""
+  options_values["MODULES"]=0
+  options_values["LS_LINE"]=0
+  options_values["LS"]=0
+  options_values["REBOOT"]=0
+
+  # Set basic default values
+  if [[ ! -z ${configurations[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${configurations[default_deploy_target]}
+    options_values["TARGET"]=${deploy_target_opt[$config_file_deploy_target]}
+  else
+    options_values["TARGET"]="$VM_TARGET"
+  fi
+
+  remote=$(get_remote_info)
+  if [[ "$?" == 22 ]]; then
+    options_values["ERROR"]="$remote"
+    return 22 # EINVAL
+  fi
+
+  options_values["REMOTE"]="$remote"
+
+  if [[ ${configurations[reboot_after_deploy]} == "yes" ]]; then
+    options_values["REBOOT"]=1
+  fi
+
+  IFS=' ' read -r -a options <<< "$raw_options"
+  for option in "${options[@]}"; do
+    if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
+      if [[ "$enable_collect_param" == 1 ]]; then
+        options_values["ERROR"]="expected paramater"
+        return 22
+      fi
+
+      case "$option" in
+        --remote)
+          options_values["TARGET"]="$REMOTE_TARGET"
+          continue
+          ;;
+        --local)
+          options_values["TARGET"]="$LOCAL_TARGET"
+          continue
+          ;;
+        --vm)
+          options_values["TARGET"]="$VM_TARGET"
+          continue
+          ;;
+        --reboot|-r)
+          options_values["REBOOT"]=1
+          continue
+          ;;
+        --modules|-m)
+          options_values["MODULES"]=1
+          continue
+          ;;
+        --ls|-l)
+          options_values["LS"]=1
+          continue
+          ;;
+        --ls-line|-s)
+          options_values["LS_LINE"]=1
+          continue
+          ;;
+        --uninstall|-u)
+          enable_collect_param=1
+          uninstall=1
+          continue
+          ;;
+        test_mode)
+          options_values["TEST_MODE"]="TEST_MODE"
+          ;;
+        *)
+          options_values["ERROR"]="$option"
+          return 22 # EINVAL
+          ;;
+      esac
+    else # Handle potential parameters
+      if [[ "$uninstall" != 1 &&
+            ${options_values["TARGET"]} == "$REMOTE_TARGET" ]]; then
+        options_values["REMOTE"]=$(get_remote_info "$option")
+        if [[ "$?" == 22 ]]; then
+          options_values["ERROR"]="$option"
+          return 22
+        fi
+      elif [[ "$uninstall" == 1 ]]; then
+        options_values["UNINSTALL"]+="$option"
+        enable_collect_param=0
+      else
+        # Invalind option
+        options_values["ERROR"]="$option"
+        return 22
+      fi
+    fi
+  done
+
+  # Uninstall requires an option
+  if [[ "$uninstall" == 1 && -z "${options_values["UNINSTALL"]}" ]]; then
+    options_values["ERROR"]="uninstall requires a kernel name"
+    return 22
+  fi
+
+  case "${options_values["TARGET"]}" in
+    1|2|3)
+      ;;
+    *)
+      options_values["ERROR"]="remote option"
+      return 22
+      ;;
+  esac
 }

@@ -136,6 +136,10 @@ function get_remote_info_Test
   assertEquals "($ID) Expected 127.0.0.1:3333" "127.0.0.1:3333" "$output"
 }
 
+# This test relies on kworkflow.config loaded during the setUp
+#
+# Output sequence of kernel_deploy in the TEST_MODE:
+#   $reboot $modules $target $remote $single_line $list"
 function kernel_deploy_Test
 {
   local ID
@@ -143,52 +147,90 @@ function kernel_deploy_Test
 
   cd "$FAKE_KERNEL"
 
+  # From kworkflow.config file we expect 0 0 1 127.0.0.1:3333 0 0
   ID=1
   output=$(kernel_deploy test_mode)
-  expected_result="0 0 1 "
-  assertEquals "($ID) Expected 0 0 1 " "$expected_result" "$output"
+  expected_result="0 0 1 127.0.0.1:3333 0 0"
+  assertEquals "($ID) Pure config:" "$expected_result" "$output"
 
   ID=2
   output=$(kernel_deploy test_mode --modules)
-  expected_result="0 1 1 "
-  assertEquals "($ID) Expected --modules" "$expected_result" "$output"
+  expected_result="0 1 1 127.0.0.1:3333 0 0"
+  assertEquals "($ID) Modules:" "$expected_result" "$output"
 
   ID=3
   output=$(kernel_deploy test_mode --reboot)
-  expected_result="1 0 1 "
-  assertEquals "($ID) Expected --reboot" "$expected_result" "$output"
+  expected_result="1 0 1 127.0.0.1:3333 0 0"
+  assertEquals "($ID) Reboot: " "$expected_result" "$output"
 
   ID=4
   output=$(kernel_deploy test_mode --reboot --modules)
-  expected_result="1 1 1 "
-  assertEquals "($ID) Expected --reboot --modules" "$expected_result" "$output"
+  expected_result="1 1 1 127.0.0.1:3333 0 0"
+  assertEquals "($ID) Reboot, Modules:" "$expected_result" "$output"
 
   ID=5
   output=$(kernel_deploy test_mode --local --reboot --modules)
-  expected_result="1 1 2 "
-  assertEquals "($ID) Expected --local --reboot --modules" "$expected_result" "$output"
+  expected_result="1 1 2 127.0.0.1:3333 0 0"
+  assertEquals "($ID) Local, Reboot, Modules" "$expected_result" "$output"
 
   ID=6
   output=$(kernel_deploy test_mode --remote --reboot)
-  expected_result="1 0 3 127.0.0.1:3333"
-  assertEquals "($ID) Expected --remote --reboot" "$expected_result" "$output"
+  expected_result="1 0 3 127.0.0.1:3333 0 0"
+  assertEquals "($ID) Remote, Reboot" "$expected_result" "$output"
 
   ID=7
   output=$(kernel_deploy test_mode --remote 192.168.0.10 --reboot)
-  expected_result="1 0 3 192.168.0.10:22"
-  assertEquals "($ID) Expected --remote 192.168.0.10 --reboot" "$expected_result" "$output"
+  expected_result="1 0 3 192.168.0.10:22 0 0"
+  assertEquals "($ID) Remote: 192.168.0.10, Reboot" "$expected_result" "$output"
 
   ID=8
   output=$(kernel_deploy test_mode --remote 192.168.0.10:1287)
-  expected_result="0 0 3 192.168.0.10:1287"
-  assertEquals "($ID) Expected --remote 192.168.0.10:1287" "$expected_result" "$output"
+  expected_result="0 0 3 192.168.0.10:1287 0 0"
+  assertEquals "($ID) Remote: 192.168.0.10:1287" "$expected_result" "$output"
+
+  # Test some invalid parameters
+  ID=9
+  output=$(kernel_deploy test_mode --rem 192.168.0.10:1287)
+  ret="$?"
+  expected_return="22"
+  assertEquals "($ID) Invalid parameter: --rem" "$expected_return" "$ret"
+
+  ID=10
+  output=$(kernel_deploy test_mode --lalala)
+  ret="$?"
+  expected_return="22"
+  assertEquals "($ID) Invalid parameter: --lalala" "$expected_return" "$ret"
+
+  ID=11
+  output=$(kernel_deploy test_mode --uninstall)
+  ret="$?"
+  expected_return="22"
+  assertEquals "($ID) Uninstall without parameter should fail" "$expected_return" "$ret"
+
+  ID=12
+  output=$(kernel_deploy test_mode --uninstall --remote lala)
+  ret="$?"
+  expected_return="22"
+  assertEquals "($ID) Uninstall requires parameter" "$expected_return" "$ret"
+
+  ID=13
+  output=$(kernel_deploy test_mode --remote --uninstall)
+  ret="$?"
+  expected_return="22"
+  assertEquals "($ID) Uninstall requires parameter without --" "$expected_return" "$ret"
+
+  ID=14
+  output=$(kernel_deploy test_mode --remote lala --uninstall)
+  ret="$?"
+  expected_return="22"
+  assertEquals "($ID) Uninstall requires parameter" "$expected_return" "$ret"
 
   # Test some invalid case
   tearDown
-  ID=9
+  ID=14
   output=$(kernel_deploy test_mode)
-  expected_result="We could not determine your deploy"
-  assertTrue "We expected a substring \"$expected_result\", but we got \"$output\"" '[[ "$expected_result" != "${output/$expected_result/}" ]]'
+  expected_result="$?"
+  assertEquals "($ID) No config:" "$expected_result" "22"
 
   cd "$original"
 }
