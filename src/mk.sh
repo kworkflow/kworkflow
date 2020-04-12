@@ -277,6 +277,63 @@ function kernel_install
   esac
 }
 
+# This function handles the kernel uninstall process for different targets.
+#
+# @target Target machine Target machine Target machine Target machine
+# @reboot If this value is equal 1, it means reboot machine after kernel
+#         installation.
+# @formatted_remote Remote formatted as IP:PORT or USE@MACHINE:PORT
+# @kernels_target List containing kernels to be uninstalled
+# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Return 0 if everything is correct or an error in case of failure
+function mk_kernel_uninstall()
+{
+  local target="$1"
+  local reboot="$2"
+  local formatted_remote="$3"
+  local kernels_target="$4"
+  local flag="$5"
+  local distro
+
+  flag=${flag:-""}
+
+  case "$target" in
+    1) # VM_TARGET
+      echo "UNINSTALL VM"
+    ;;
+    2) # LOCAL_TARGET
+      distro=$(detect_distro "/")
+
+      if [[ "$distro" =~ "none" ]]; then
+        complain "Unfortunately, there's no support for the target distro"
+        exit 95 # ENOTSUP
+      fi
+
+      # Local Deploy
+      # We need to update grub, for this reason we to load specific scripts.
+      . "$plugins_path/kernel_install/$distro.sh" --source-only
+      . "$plugins_path/kernel_install/utils.sh" --source-only
+      kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
+    ;;
+    3) # REMOTE_TARGET
+      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$remote" "@" 2)
+
+      prepare_remote_dir "$remote" "$port" "" "$flag"
+
+      # Deploy
+      # TODO
+      # It would be better if `cmd_remotely` handle the extra space added by
+      # line break with `\`; this may allow us to break a huge line like this.
+      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --uninstall_kernel $reboot remote $kernels_target $flag"
+      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+    ;;
+  esac
+}
+
 # From kw perspective, deploy a new kernel is composed of two steps: install
 # modules and update kernel image. I chose this approach for reducing the
 # chances of break the system due to modules and kernel mismatch. This function
@@ -298,6 +355,7 @@ function kernel_deploy
   local test_mode=""
   local list=0
   local single_line=0
+  local uninstall=""
 
   deploy_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -312,6 +370,7 @@ function kernel_deploy
   list="${options_values['LS']}"
   test_mode="${options_values['TEST_MODE']}"
   remote="${options_values['REMOTE']}"
+  uninstall="${options_values["UNINSTALL"]}"
 
   if [[ "$test_mode" == "TEST_MODE" ]]; then
     echo "$reboot $modules $target $remote $single_line $list"
@@ -321,6 +380,11 @@ function kernel_deploy
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
     say "Available kernels:"
     mk_list_installed_kernels "" "$single_line" "$target" "$remote"
+    return "$?"
+  fi
+
+  if [[ ! -z "$uninstall" ]]; then
+    mk_kernel_uninstall "$target" "$reboot" "$remote" "$uninstall" "$flag"
     return "$?"
   fi
 

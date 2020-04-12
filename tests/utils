@@ -72,6 +72,29 @@ function mk_fake_boot
   cp -r "$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
 }
 
+# This function expects an array of string with the command sequence and a
+# string containing the output.
+#
+# @expected Command sequence as an array
+# @result_to_compare A raw output from the string
+# @ID An ID identification
+function compare_command_sequence
+{
+  declare -a expected=("${!1}")
+  local result_to_compare="$2"
+  local ID="$3"
+  local count=0
+
+  ID=${ID:-0}
+
+  while read f; do
+    if [[ ${expected[$count]} != ${f} ]]; then
+      fail "($ID) $count - Expected cmd \"${expected[$count]}\" to be \"${f}\""
+    fi
+    ((count++))
+  done <<< "$result_to_compare"
+}
+
 function invoke_shunit
 {
   command -v shunit2 > /dev/null

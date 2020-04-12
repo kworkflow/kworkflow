@@ -57,3 +57,96 @@ function list_installed_kernels()
   return 0
 }
 
+function reboot_machine()
+{
+  local reboot="$1"
+  local local="$2"
+
+  if [[ "$local" == 'local' ]]; then
+    sudo_cmd="sudo -E"
+  fi
+
+  if [[ "$reboot" == "1" ]]; then
+    cmd="$sudo_cmd reboot"
+    cmd_manager "$flag" "$cmd"
+  fi
+}
+
+function do_uninstall()
+{
+  local target="$1"
+  local kernelpath="/boot/vmlinuz-$target"
+  local initrdpath="/boot/initrd.img-$target"
+  local modulespath="/lib/modules/$target"
+  local libpath="/var/lib/initramfs-tools/$target"
+
+  if [ -z "$target" ]; then
+    echo "No parameter, nothing to do"
+    exit 0
+  fi
+
+  local today=$(date +%Y_%m_%d-%H_%M_%S)
+  local temp_rm="/tmp/$today"
+  mkdir -p "$temp_rm/{lib,modules}"
+
+  if [ -f "$kernelpath" ]; then
+    echo "Removing: $kernelpath"
+    rm "$kernelpath"
+  else
+    echo "Can't find $kernelpath"
+  fi
+
+  if [ -f "$kernelpath.old" ]; then
+    echo "Removing: $kernelpath.old"
+    rm "$kernelpath.old"
+  else
+    echo "Can't find $kernelpath.old"
+  fi
+
+  if [ -f "$initrdpath" ]; then
+    echo "Removing: $initrdpath"
+    rm -rf "$initrdpath"
+  else
+    echo "Can't find: $initrdpath"
+  fi
+
+  if [[ -d "$modulespath" && "$modulespath" != "/lib/modules" ]]; then
+    echo "Removing: $modulespath"
+    rm -rf "$modulespath"
+  else
+    echo "Can't find $modulespath"
+  fi
+
+  if [ -f "$libpath" ]; then
+    echo "Removing: $libpath"
+    rm -rf "$libpath"
+  else
+    echo "Cant't find $libpath"
+  fi
+}
+
+function kernel_uninstall()
+{
+  local reboot="$1"
+  local local_deploy="$2"
+  local kernel="$3"
+  local flag="$4"
+
+  if [[ -z "$kernel" ]];then
+    echo "Invalid argument"
+    exit 22 #EINVAL
+  fi
+
+  IFS=', ' read -r -a kernel_names <<< "$kernel"
+  for kernel in "${kernel_names[@]}"; do
+    echo "Removing: $kernel"
+    do_uninstall "$kernel"
+  done
+
+  # Each distro script should implement update_boot_loader
+  echo "update_boot_loader $kernel $local_deploy $flag"
+  update_boot_loader "$kernel" "$local_deploy" "$flag"
+
+  # Reboot
+  reboot_machine "$reboot" "$local_deploy"
+}

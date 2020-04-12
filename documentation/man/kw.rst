@@ -72,8 +72,8 @@ notice that this approach is the most generic one because you can use it for
   **Currently, we don't support the Kernel image update in the --vm option.
   However, you can use the remote option for a workaround this issue**.
 
-d, deploy [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m] [--ls-line|-s] [--ls|-l]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+d, deploy [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m] [--ls-line|-s] [--ls|-l] [--uninstall|-u KERNEL_NAME]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you are in a kernel directory, this command will try to install the current
 kernel version in your target machine (remote, host, and VM). If you want to
 install a kernel version in a remote machine, the following steps will be
@@ -120,6 +120,9 @@ need root access.
 6. --ls: List available kernels in a single column the target.
 
 7. --ls-line: List available kernels separated by comma.
+
+8. --uninstall|-u: Remove a single kernel or multiple kernels; for removing
+   multiple kernels it is necessary to separate them with comma.
 
 .. note::
   **Only run commands related to VM after you turn it off**. Under the hood, it

@@ -96,6 +96,10 @@ case "$1" in
     shift # Get rid of --list_kernels
     list_installed_kernels "$@"
     ;;
+  --uninstall_kernel)
+    shift # Get rid of --list_kernels
+    kernel_uninstall "$@"
+    ;;
   *)
     echo "Unknown operation"
     ;;

@@ -13,6 +13,7 @@ function suite
   suite_addTest "kernel_modules_local_Test"
   suite_addTest "kernel_install_local_Test"
   suite_addTest "mk_list_remote_kernels_Test"
+  suite_addTest "mk_kernel_uninstall_Test"
 }
 
 FAKE_KERNEL="tests/.tmp"
@@ -504,6 +505,65 @@ function mk_list_remote_kernels_Test
     fi
     ((count++))
   done <<< "$output"
+
+  cd "$original"
+}
+
+function mk_kernel_uninstall_Test
+{
+  local count=0
+  local original="$PWD"
+  local remote_access="root@127.0.0.1"
+  local remote_path="/root/kw_deploy"
+  local ssh_cmd="ssh -p 3333"
+  local rsync_cmd="rsync -e '$ssh_cmd' -La"
+  local kernel_install_path="tests/.tmp/kernel_install"
+  local kernel_list="5.5.0-rc7,5.6.0-rc8,5.7.0-rc2"
+  local single_kernel="5.7.0-rc2"
+  # Create remote directory
+  local dir_kw_deploy="$ssh_cmd $remote_access \"mkdir -p $remote_path\""
+
+  # Rsync script command
+  local cmd="bash $remote_path/deploy.sh --uninstall_kernel 0 remote $kernel_list TEST_MODE"
+  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh"
+  local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/"
+  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/"
+  local kernel_uninstall_cmd="ssh -p 3333 root@127.0.0.1 \"$cmd\""
+
+  declare -a expected_cmd=(
+    "$dir_kw_deploy"
+    "$rsync_debian"
+    "$rsync_deploy"
+    "$rsync_utils"
+    "$kernel_uninstall_cmd"
+  )
+
+  cd "$FAKE_KERNEL"
+
+  setupRemote
+
+  # List of kernels
+  ID=1
+  output=$(mk_kernel_uninstall "3" "0" "127.0.0.1:3333" "$kernel_list" "TEST_MODE")
+  compare_command_sequence expected_cmd[@] "$output" "$ID"
+
+  # Reboot
+  ID=2
+  output=$(mk_kernel_uninstall "3" "1" "127.0.0.1:3333" "$kernel_list" "TEST_MODE")
+  cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
+  kernel_uninstall_cmd="ssh -p 3333 root@127.0.0.1 \"$cmd\""
+  expected_cmd[4]="$kernel_uninstall_cmd"
+
+  compare_command_sequence expected_cmd[@] "$output" "$ID"
+
+  # Single kernel
+  ID=3
+  output=$(mk_kernel_uninstall "3" "1" "127.0.0.1:3333" "$single_kernel" "TEST_MODE")
+  cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
+  kernel_uninstall_cmd="ssh -p 3333 root@127.0.0.1 \"$cmd\""
+  expected_cmd[4]="$kernel_uninstall_cmd"
+
+  compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   cd "$original"
 }
