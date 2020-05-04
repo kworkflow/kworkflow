@@ -34,7 +34,7 @@ function kw()
 
         vm_mount
         local ret=$?
-        alert_completion "kw build" "$1"
+        alert_completion "kw mount" "$1"
         return $ret
       )
       ;;
@@ -44,7 +44,7 @@ function kw()
 
         vm_umount
         local ret=$?
-        alert_completion "kw build" "$1"
+        alert_completion "kw umount" "$1"
         return $ret
       )
       ;;
