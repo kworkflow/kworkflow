@@ -103,3 +103,13 @@ function vm_ssh
   say "ssh $port $target $opts"
   eval "ssh $port $target $opts"
 }
+
+function vm_update_grub
+{
+  guestfish --rw -a ${configurations[qemu_path_image]} run \
+  : mount /dev/sda1 / \
+  : mkdir-p /boot/grub \
+  : write /boot/grub/device.map "(hd0) /dev/sda" \
+  : command "grub-install --root-directory=/ --target=i386-pc --force /dev/sda1" \
+  : command "grub-mkconfig -o /boot/grub/grub.cfg"
+}
