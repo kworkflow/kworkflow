@@ -7,7 +7,7 @@ plugins_path=${plugins_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src/plugins"}
 external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
 etc_files_path=${etc_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"}
 config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW"}
-kw_dir=${kw_dir:-"$HOME/kw"}
+kw_cache_dir=${kw_cache_dir:-"$HOME/.cache/kw"}
 
 # Export external variables required by kworkflow
 export EASY_KERNEL_WORKFLOW
@@ -16,6 +16,8 @@ function kw()
 {
   action=$1
   shift
+
+  mkdir -p "$kw_cache_dir"
 
   case "$action" in
     init)
@@ -32,7 +34,7 @@ function kw()
 
         vm_mount
         local ret=$?
-        alert_completion "kw build" "$1"
+        alert_completion "kw mount" "$1"
         return $ret
       )
       ;;
@@ -42,7 +44,7 @@ function kw()
 
         vm_umount
         local ret=$?
-        alert_completion "kw build" "$1"
+        alert_completion "kw umount" "$1"
         return $ret
       )
       ;;
@@ -97,9 +99,9 @@ function kw()
         vm_ssh $@
       )
       ;;
-    vars|v)
+    vars)
       (
-        . "$src_script_path"/commons.sh --source-only
+        . "$src_script_path"/kw_config_loader.sh --source-only
 
         show_variables
       )
@@ -145,6 +147,18 @@ function kw()
 
         kworkflow-man
       )
+      ;;
+    version|--version|-v)
+      (
+        . "$src_script_path"/help.sh --source-only
+
+        kworkflow_version
+      )
+      ;;
+    clear-cache)
+        . "$src_script_path"/mk.sh --source-only
+
+        cleanup
       ;;
     *)
       (

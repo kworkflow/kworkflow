@@ -1,7 +1,9 @@
 . $src_script_path/kwio.sh --source-only
 
-BASE=$HOME/p/linux-trees
-BUILD_DIR=$BASE/build-linux
+BASE="$HOME/p/linux-trees"
+BUILD_DIR="$BASE/build-linux"
+
+CONFIG_FILENAME=kworkflow.config
 
 # Basic targets
 VM_TARGET=1
@@ -13,6 +15,9 @@ TARGET="$VM_TARGET"
 
 # Default configuration
 declare -A configurations
+
+# Default target option from kworkflow.config
+declare -A deploy_target_opt=( ["vm"]=1 ["local"]=2 ["remote"]=3 )
 
 # This function is used to show the current set up used by kworkflow.
 function show_variables()
@@ -41,38 +46,33 @@ function show_variables()
 # @parameter: This function expects a path to the configuration file.
 function parse_configuration()
 {
-  local config_path=$1
-  local filename=$(basename $config_path)
+  local config_path="$1"
+  local filename="$(basename "$config_path")"
 
-  if [ ! -f $1 ] || [ "$filename" != "kworkflow.config" ] ; then
+  if [ ! -f "$config_path" ] || [ "$filename" != kworkflow.config ] ; then
     return 22 # 22 means Invalid argument - EINVAL
   fi
 
   while read line
   do
-    if echo $line | grep -F = &>/dev/null
+    if echo "$line" | grep -F = &>/dev/null
     then
-      varname=$(echo $line | cut -d '=' -f 1 | tr -d '[:space:]')
-      configurations[$varname]=$(echo "$line" | cut -d '=' -f 2-)
+      varname="$(echo "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
+      configurations["$varname"]="$(echo "$line" | cut -d '=' -f 2-)"
     fi
-  done < $config_path
+  done < "$config_path"
 }
 
-# This function check if the current directory has a configuration file, if so,
-# just use it. Otherwise, use the global configuration file.
+# This function loads the kw configuration files into memory, populating the
+# $configurations hashtable. The files are parsed in a specific order, allowing
+# higher level setting definitions to overwrite lower level ones.
 function load_configuration()
 {
-  local local_config_path=$PWD/kworkflow.config
-
-  # First, load the global configuration
-  parse_configuration $etc_files_path/kworkflow.config
-
-  # Second, check if has a local file and override values
-  if [ -f $local_config_path ] ; then
-    parse_configuration $local_config_path
-  fi
+  parse_configuration "$etc_files_path/$CONFIG_FILENAME"
+  parse_configuration "$HOME/.kw/$CONFIG_FILENAME"
+  parse_configuration "$PWD/$CONFIG_FILENAME"
 }
 
-# Every time that "commons.sh" is included, the configuration file has to be
-# loaded
+# Every time that "kw_config_loader.sh" is included, the configuration file has
+# to be loaded
 load_configuration

@@ -3,6 +3,6 @@ tests/shunit2
 .checkpatch-camelcase.git.
 .checkpatch-camelcase.date.*
 tests/external
-tests/.tmp_commons_test
+tests/.tmp_kw_config_loader_test
 tests/.tmp
 build/

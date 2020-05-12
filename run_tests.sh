@@ -126,12 +126,13 @@ function run_tests
   local -i fail=0
 
   for current_test in "${TESTS[@]}"; do
-    if [ -f ./tests/${current_test}.sh ]; then
+    target=$(find ./tests -name "*$current_test*.sh")
+    if [ -f "$target" ]; then
         say "Running test [${current_test}]"
         say $SEPARATOR
         (
         init_env
-        ./tests/${current_test}.sh
+        "$target"
         )
         if [[ "$?" -eq 0 ]]; then
             success+=1
@@ -139,7 +140,7 @@ function run_tests
             fail+=1
         fi
     else
-        complain "Test file ./tests/${current_test}.sh not found."
+        complain "Test file $target not found."
         notfound+=1
     fi
   done
@@ -158,7 +159,10 @@ function strip_path
 
 if [[ "$#" -eq 0 ]]; then
   check_required_files
-  strip_path tests/*.sh
+  files_list=$(find ./tests -name "*_test.sh")
+  # Note: Usually we want to use double-quotes on bash variables, however,
+  # in this case we want a set of parameters instead of a single one.
+  strip_path $files_list
   run_tests
 elif [[ "$1" == "list" ]]; then
   strip_path tests/*.sh
@@ -170,11 +174,11 @@ elif [[ "$1" == "test" ]]; then
   strip_path ${@:2}
   run_tests
 elif [[ "$1" == "prepare" ]]; then
-    if [[ "$#" -gt  1 && ("$2" == "--force-update" || "$2" == "-f") ]]; then
-        check_required_files true
-    else
-        check_required_files
-    fi
+  if [[ "$#" -gt  1 && ("$2" == "--force-update" || "$2" == "-f") ]]; then
+      check_required_files true
+  else
+      check_required_files
+  fi
   if [[ "$?" -eq 17 ]]; then
     say "You are ready for running the unit test"
   fi

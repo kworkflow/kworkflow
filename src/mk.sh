@@ -17,9 +17,12 @@
 # root password.
 #
 
-. $src_script_path/vm.sh --source-only # It includes commons.sh
+. $src_script_path/vm.sh --source-only # It includes kw_config_loader.sh
 . $src_script_path/kwlib.sh --source-only
 . $src_script_path/remote.sh --source-only
+
+# Hash containing user options
+declare -A options_values
 
 # This function is responsible for handling the command to
 # `make install_modules`, and it expects a target path for saving the modules
@@ -75,6 +78,34 @@ function get_kernel_release
   cmd_manager "$flag" "$cmd"
 }
 
+# This function goal is to perform a global clean up, it basically calls other
+# specialized cleanup functions.
+function cleanup
+{
+  say "Cleanup deploy files"
+  cleanup_after_deploy
+}
+
+# When kw deploy a new kernel it creates temporary files to be used for moving
+# to the target machine. There is no need to keep those files in the user
+# machine, for this reason, this function is in charge of cleanup the temporary
+# files at the end.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function cleanup_after_deploy
+{
+  local flag="$1"
+
+  if [[ -d "$kw_cache_dir/$LOCAL_REMOTE_DIR" ]]; then
+    cmd_manager "$flag"  "rm -rf $kw_cache_dir/$LOCAL_REMOTE_DIR/*"
+  fi
+
+  if [[ -d "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR" ]]; then
+    cmd_manager "$flag" "rm -rf $kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"
+  fi
+}
+
 # This function expects a parameter that specifies the target machine;
 # in the first case, the host machine is the target, and otherwise the virtual
 # machine.
@@ -84,6 +115,8 @@ function modules_install
 {
   local ret
   local flag="$1"
+  local target="$2"
+  local formatted_remote="$3"
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -92,9 +125,7 @@ function modules_install
 
   flag=${flag:-""}
 
-  shift 1 # We have to get rid of flag
-  ret=$(parser_command "$@")
-  case "$?" in
+  case "$target" in
     1) # VM_TARGET
       vm_modules_install
       ;;
@@ -106,19 +137,21 @@ function modules_install
       # 1. Preparation steps
       prepare_host_deploy_dir
 
-      local remote=$(get_from_colon $ret 1)
-      local port=$(get_from_colon $ret 2)
+      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
+      # User may specify a hostname instead of bare IP
+      remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
       # 2. Send files modules
-      modules_install_to "$kw_dir/$LOCAL_REMOTE_DIR/" "$flag"
+      modules_install_to "$kw_cache_dir/$LOCAL_REMOTE_DIR/" "$flag"
 
       release=$(get_kernel_release "$flag")
       success "Kernel: $release"
       generate_tarball "$release" "" "$flag"
 
-      local tarball_for_deploy_path="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$release.tar"
+      local tarball_for_deploy_path="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$release.tar"
       cp_host2remote "$tarball_for_deploy_path" \
                      "$REMOTE_KW_DEPLOY" "$remote" "$port" "" "$flag"
 
@@ -127,6 +160,60 @@ function modules_install
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
+}
+
+# This function list all the available kernels in a VM, local, and remote
+# machine. This code relies on `kernel_install` plugin, more precisely on
+# `utils.sh` file which comprises all the required operations for listing new
+# Kernels.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @single_line If this option is set to 1 this function will display all
+#   available kernels in a single line separated by commas. If it gets 0 it
+#   will display each kernel name by line.
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @unformatted_remote We expect the REMOTE:PORT string
+function mk_list_installed_kernels
+{
+  local flag="$1"
+  local single_line="$2"
+  local target="$3"
+  local unformatted_remote="$4"
+
+  flag=${flag:-"SILENT"}
+
+  case "$target" in
+    1) # VM_TARGET
+      vm_mount
+
+      if [ "$?" != 0 ] ; then
+        complain "Did you check if your VM is running?"
+        return 125 # ECANCELED
+      fi
+
+      . "$plugins_path/kernel_install/utils.sh" --source-only
+      list_installed_kernels "$single_line" "${configurations[mount_point]}"
+
+      vm_umount
+    ;;
+    2) # LOCAL_TARGET
+      . "$plugins_path/kernel_install/utils.sh" --source-only
+      list_installed_kernels "$single_line"
+    ;;
+    3) # REMOTE_TARGET
+      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels $single_line"
+      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$remote" "@" 2)
+
+      prepare_remote_dir "$remote" "$port" "" "$flag"
+
+      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+    ;;
+  esac
+
+  return 0
 }
 
 # This function behaves like a kernel installation manager. It handles some
@@ -152,6 +239,8 @@ function kernel_install
   local reboot="$1"
   local name="$2"
   local flag="$3"
+  local target="$4"
+  local formatted_remote="$5"
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -171,9 +260,7 @@ function kernel_install
     fi
   fi
 
-  shift 3 # We have to get rid of reboot, name and flag
-  ret=$(parser_command "$@")
-  case "$?" in
+  case "$target" in
     1) # VM_TARGET
       # TODO: See issue #139
       echo "Unfortunately, we don't support kernel image deploy in a VM with" \
@@ -193,26 +280,84 @@ function kernel_install
       install_kernel "$name" "$reboot" 'local' "${configurations[arch]}" "$flag"
     ;;
     3) # REMOTE_TARGET
-      local preset_file="$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
+      local preset_file="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
       if [[ ! -f "$preset_file" ]]; then
         template_mkinit="$etc_files_path/template_mkinitcpio.preset"
         cp "$template_mkinit" "$preset_file"
         sed -i "s/NAME/$name/g" "$preset_file"
       fi
 
-      ip=$(get_from_colon $ret 1)
-      port=$(get_from_colon $ret 2)
+      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$remote" "@" 2)
 
-      cp_host2remote "$kw_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
+      cp_host2remote "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
                      "$REMOTE_KW_DEPLOY" \
-                     "$ip" "$port" "$user" "$flag"
+                     "$remote" "$port" "$user" "$flag"
       cp_host2remote "arch/x86_64/boot/bzImage" \
                      "$REMOTE_KW_DEPLOY/vmlinuz-$name" \
-                     "$ip" "$port" "$user" "$flag"
+                     "$remote" "$port" "$user" "$flag"
 
       # Deploy
       local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $name $reboot"
-      cmd_remotely "$cmd" "$flag" "$ip" "$port"
+      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+    ;;
+  esac
+}
+
+# This function handles the kernel uninstall process for different targets.
+#
+# @target Target machine Target machine Target machine Target machine
+# @reboot If this value is equal 1, it means reboot machine after kernel
+#         installation.
+# @formatted_remote Remote formatted as IP:PORT or USE@MACHINE:PORT
+# @kernels_target List containing kernels to be uninstalled
+# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Return 0 if everything is correct or an error in case of failure
+function mk_kernel_uninstall()
+{
+  local target="$1"
+  local reboot="$2"
+  local formatted_remote="$3"
+  local kernels_target="$4"
+  local flag="$5"
+  local distro
+
+  flag=${flag:-""}
+
+  case "$target" in
+    1) # VM_TARGET
+      echo "UNINSTALL VM"
+    ;;
+    2) # LOCAL_TARGET
+      distro=$(detect_distro "/")
+
+      if [[ "$distro" =~ "none" ]]; then
+        complain "Unfortunately, there's no support for the target distro"
+        exit 95 # ENOTSUP
+      fi
+
+      # Local Deploy
+      # We need to update grub, for this reason we to load specific scripts.
+      . "$plugins_path/kernel_install/$distro.sh" --source-only
+      . "$plugins_path/kernel_install/utils.sh" --source-only
+      kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
+    ;;
+    3) # REMOTE_TARGET
+      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$remote" "@" 2)
+
+      prepare_remote_dir "$remote" "$port" "" "$flag"
+
+      # Deploy
+      # TODO
+      # It would be better if `cmd_remotely` handle the extra space added by
+      # line break with `\`; this may allow us to break a huge line like this.
+      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --uninstall_kernel $reboot remote $kernels_target $flag"
+      cmd_remotely "$cmd" "$flag" "$remote" "$port"
     ;;
   esac
 }
@@ -221,7 +366,8 @@ function kernel_install
 # modules and update kernel image. I chose this approach for reducing the
 # chances of break the system due to modules and kernel mismatch. This function
 # is responsible for handling some of the userspace options and calls the
-# required functions to update the kernel.
+# required functions to update the kernel. This function handles a different
+# set of parameters for the distinct set of target machines.
 #
 # Note: I know that developer know what they are doing (usually) and in the
 # future, it will be nice if we support single kernel update (patches are
@@ -232,33 +378,65 @@ function kernel_install
 function kernel_deploy
 {
   local reboot=0
-  local name="kw"
   local modules=0
+  local target=0
+  local test_mode=""
+  local list=0
+  local single_line=0
+  local uninstall=""
+
+  deploy_parser_options "$@"
+  if [[ "$?" -gt 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    return 22
+  fi
+
+  target="${options_values['TARGET']}"
+  reboot="${options_values['REBOOT']}"
+  modules="${options_values['MODULES']}"
+  single_line="${options_values['LS_LINE']}"
+  list="${options_values['LS']}"
+  test_mode="${options_values['TEST_MODE']}"
+  remote="${options_values['REMOTE']}"
+  uninstall="${options_values["UNINSTALL"]}"
+
+  if [[ "$test_mode" == "TEST_MODE" ]]; then
+    echo "$reboot $modules $target $remote $single_line $list"
+    return 0
+  fi
+
+  if [[ "$list" == 1 || "$single_line" == 1 ]]; then
+    say "Available kernels:"
+    mk_list_installed_kernels "" "$single_line" "$target" "$remote"
+    return "$?"
+  fi
+
+  if [[ ! -z "$uninstall" ]]; then
+    mk_kernel_uninstall "$target" "$reboot" "$remote" "$uninstall" "$flag"
+    return "$?"
+  fi
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
     exit 125 # ECANCELED
   fi
 
-  # Update name: release + alias
-  name=$(make kernelrelease)
-
-  for arg do
-    shift
-    [[ "$arg" =~ ^(--reboot|-r) ]] && reboot=1 && continue
-    [[ "$arg" =~ ^(--name|-n)= ]] && name=$(echo $arg | cut -d = -f2) && continue
-    [[ "$arg" =~ ^(--modules|-m) ]] && modules=1 && continue
-    set -- "$@" "$arg"
-  done
-
   # NOTE: If we deploy a new kernel image that does not match with the modules,
   # we can break the boot. For security reason, every time we want to deploy a
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
-  modules_install "" "$@"
+  modules_install "" "$target" "$remote"
 
   if [[ "$modules" == 0 ]]; then
-    kernel_install "$reboot" "$name" "" "$@"
+    # Update name: release + alias
+    name=$(make kernelrelease)
+
+    kernel_install "$reboot" "$name" "" "$target" "$remote"
+  fi
+
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    say "Cleanup temporary files"
+    cleanup_after_deploy
   fi
 }
 
@@ -276,102 +454,165 @@ function mk_build
   make ARCH="${configurations[arch]}" -j$PARALLEL_CORES
 }
 
-# FIXME: Here is a legacy code, however it could be really nice if we fix it
-function mk_send_mail
-{
-  echo -e " * checking git diff...\n"
-  git diff
-  git diff --cached
-
-  echo -e " * Does it build? Did you test it?\n"
-  read
-  echo -e " * Are you using the correct subject prefix?\n"
-  read
-  echo -e " * Did you need/review the cover letter?\n"
-  read
-  echo -e " * Did you annotate version changes?\n"
-  read
-  echo -e " * Is git format-patch -M needed?\n"
-  read
-  echo -e " * Did you review --to --cc?\n"
-  read
-  echo -e " * dry-run it first!\n"
-
-
-  SENDLINE="git send-email --dry-run "
-  while read line
-  do
-    SENDLINE+="$line "
-  done < emails
-
-  echo $SENDLINE
-}
-
-# FIXME: Here we have a legacy code, check if we can remove it
-function mk_export_kbuild
-{
-  say "export KBUILD_OUTPUT=$BUILD_DIR/$TARGET"
-  export KBUILD_OUTPUT=$BUILD_DIR/$TARGET
-  mkdir -p $KBUILD_OUTPUT
-}
-
-# This function handles a different set of parameters for the distinct set of
-# target machines. We basically support the following parameters: VM, local,
-# and remote deploy; if we get an unsupported option, we abort the operation
-# with EINVAL code.
+# Handles the remote info
 #
 # @parameters String to be parsed
 #
 # Returns:
 # This function has two returns, and we make the second return by using
-# capturing the "echo" output. The standard return ("$?") can be VM_TARGET (1),
-# LOCAL_TARGET (2), and REMOTE_TARGET (3).
-function parser_command()
+# capturing the "echo" output. The standard return ("$?") can be 22 if
+# something is wrong or 0 if everything finished as expected; the second
+# output is the remote info as IP:PORT
+function get_remote_info()
 {
-  local parameters="$1"
+  ip="$@"
 
-  if [[ -z "$parameters" ]]; then
-    parameters="--${configurations[default_deploy_target]}"
+  if [[ -z "$ip" ]]; then
+    ip=${configurations[ssh_ip]}
+    port=${configurations[ssh_port]}
+    ip="$ip:$port"
+  else
+    temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
+    # 22 in the conditon refers to EINVAL
+    if [[ "$?" == 22 ]]; then
+      ip="$ip:22"
+    else
+      port=$(get_based_on_delimiter "$ip" ":" 2)
+      ip="$temp_ip:$port"
+    fi
   fi
 
-  case "$parameters" in
-    --vm)
-      return "$VM_TARGET"
-      ;;
-    --local)
-      return "$LOCAL_TARGET"
-      ;;
-    --remote)
-      shift # Skip '--remote' option
-      ip="$@"
+  if [[ "$ip" =~ ^: ]]; then
+    complain "Something went wrong with the remote option"
+    return 22 # EINVAL
+  fi
 
-      if [[ -z "$ip" ]]; then
-        ip=${configurations[ssh_ip]}
-        port=${configurations[ssh_port]}
-        ip="$ip:$port"
-      else
-        temp_ip=$(get_from_colon "$ip" 1)
-        # 22 in the conditon refers to EINVAL
+  echo "$ip"
+  return 0
+}
+
+# This function gets raw data and based on that fill out the options values to
+# be used in another function.
+#
+# @raw_options String with all user options
+#
+# Return:
+# In case of successful return 0, otherwise, return 22.
+#
+function deploy_parser_options()
+{
+  local raw_options="$@"
+  local uninstall=0
+  local enable_collect_param=0
+  local remote
+
+  options_values["UNINSTALL"]=""
+  options_values["MODULES"]=0
+  options_values["LS_LINE"]=0
+  options_values["LS"]=0
+  options_values["REBOOT"]=0
+
+  # Set basic default values
+  if [[ ! -z ${configurations[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${configurations[default_deploy_target]}
+    options_values["TARGET"]=${deploy_target_opt[$config_file_deploy_target]}
+  else
+    options_values["TARGET"]="$VM_TARGET"
+  fi
+
+  remote=$(get_remote_info)
+  if [[ "$?" == 22 ]]; then
+    options_values["ERROR"]="$remote"
+    return 22 # EINVAL
+  fi
+
+  options_values["REMOTE"]="$remote"
+
+  if [[ ${configurations[reboot_after_deploy]} == "yes" ]]; then
+    options_values["REBOOT"]=1
+  fi
+
+  IFS=' ' read -r -a options <<< "$raw_options"
+  for option in "${options[@]}"; do
+    if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
+      if [[ "$enable_collect_param" == 1 ]]; then
+        options_values["ERROR"]="expected paramater"
+        return 22
+      fi
+
+      case "$option" in
+        --remote)
+          options_values["TARGET"]="$REMOTE_TARGET"
+          continue
+          ;;
+        --local)
+          options_values["TARGET"]="$LOCAL_TARGET"
+          continue
+          ;;
+        --vm)
+          options_values["TARGET"]="$VM_TARGET"
+          continue
+          ;;
+        --reboot|-r)
+          options_values["REBOOT"]=1
+          continue
+          ;;
+        --modules|-m)
+          options_values["MODULES"]=1
+          continue
+          ;;
+        --ls|-l)
+          options_values["LS"]=1
+          continue
+          ;;
+        --ls-line|-s)
+          options_values["LS_LINE"]=1
+          continue
+          ;;
+        --uninstall|-u)
+          enable_collect_param=1
+          uninstall=1
+          continue
+          ;;
+        test_mode)
+          options_values["TEST_MODE"]="TEST_MODE"
+          ;;
+        *)
+          options_values["ERROR"]="$option"
+          return 22 # EINVAL
+          ;;
+      esac
+    else # Handle potential parameters
+      if [[ "$uninstall" != 1 &&
+            ${options_values["TARGET"]} == "$REMOTE_TARGET" ]]; then
+        options_values["REMOTE"]=$(get_remote_info "$option")
         if [[ "$?" == 22 ]]; then
-          ip="$ip:22"
-        else
-          port=$(get_from_colon "$ip" 2)
-          ip="$temp_ip:$port"
+          options_values["ERROR"]="$option"
+          return 22
         fi
+      elif [[ "$uninstall" == 1 ]]; then
+        options_values["UNINSTALL"]+="$option"
+        enable_collect_param=0
+      else
+        # Invalind option
+        options_values["ERROR"]="$option"
+        return 22
       fi
+    fi
+  done
 
-      if [[ "$ip" =~ ^: ]]; then
-        complain "Something went wrong in the configuration file load"
-        return 22 # EINVAL
-      fi
+  # Uninstall requires an option
+  if [[ "$uninstall" == 1 && -z "${options_values["UNINSTALL"]}" ]]; then
+    options_values["ERROR"]="uninstall requires a kernel name"
+    return 22
+  fi
 
-      echo "$ip"
-      return "$REMOTE_TARGET"
+  case "${options_values["TARGET"]}" in
+    1|2|3)
       ;;
     *)
-      complain "Invalid option, maybe something went wrong during the load of" \
-               "the configuration file."
-      exit 22 # EINVAL
+      options_values["ERROR"]="remote option"
+      return 22
       ;;
   esac
 }

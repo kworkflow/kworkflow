@@ -11,11 +11,29 @@
 # 2. The script related to the distro deploy can have any function as far it
 #    implements `install_modules` and `install_kernel` (I think the function
 #    names already explain what it does).
-
+#
+# All specific distro script should implement the following functions:
+#
+# install_modules
+#  params:
+#    module_target="$1"
+# update_boot_loader()
+#  params:
+#    name="$1"
+#    local="$2"
+#    flag="$3"
+# install_kernel()
+#  params:
+#    name="$1"
+#    reboot="$2"
+#    local="$3"
+#    architecture="$4"
+#    flag="$5"
 cd "$HOME/kw_deploy"
 
 # Load specific distro script
 . distro_deploy.sh --source-only
+. utils.sh --source-only
 
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
@@ -53,6 +71,18 @@ function cmd_manager()
   eval "$@"
 }
 
+function ask_yN()
+{
+  local message=$@
+
+  read -r -p "$message [y/N] " response
+  if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
+    echo "1"
+  else
+    echo "0"
+  fi
+}
+
 case "$1" in
   --modules)
     shift # Get rid of --modules
@@ -61,6 +91,14 @@ case "$1" in
   --kernel_update)
     shift # Get rid of --kernel_update
     install_kernel "$@"
+    ;;
+  --list_kernels)
+    shift # Get rid of --list_kernels
+    list_installed_kernels "$@"
+    ;;
+  --uninstall_kernel)
+    shift # Get rid of --list_kernels
+    kernel_uninstall "$@"
     ;;
   *)
     echo "Unknown operation"

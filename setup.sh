@@ -6,7 +6,7 @@ declare -r APPLICATIONNAME="kw"
 declare -r SRCDIR="src"
 declare -r CONFIG_DIR="etc"
 declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
-declare -r KW_DIR="$HOME/$APPLICATIONNAME"
+declare -r KW_CACHE_DIR="$HOME/.cache/$APPLICATIONNAME"
 
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
@@ -28,7 +28,7 @@ function usage()
   say "--install   | -i     Install $APPLICATIONNAME"
   say "--uninstall | -u     Uninstall $APPLICATIONNAME"
   say "--completely-remove  Remove $APPLICATIONNAME and all files under its responsibility"
-  say "--html               Build $APPLICATIONNAME's documentation as HTML pages into ./build"
+  say "--docs               Build $APPLICATIONNAME's documentation as HTML pages into ./build"
 }
 
 function confirm_complete_removal()
@@ -66,6 +66,14 @@ function clean_legacy()
     else
       mv "$INSTALLTO" "$trash"
     fi
+  fi
+
+  # TODO: Remove me one day
+  # Some old version of kw relies on a directory name `kw` at ~/, we changed
+  # this behaviour but we added the below code to clean up those legacy system.
+  # One day we could get rid of this code
+  if [[ -d "$HOME/kw" ]]; then
+    rm -rf "$HOME/kw/"
   fi
 }
 
@@ -129,18 +137,33 @@ function synchronize_files()
   fi
 
   say "$SEPARATOR"
-  # Create ~/kw for support some of the operations
-  mkdir -p "$KW_DIR"
+  # Create ~/.cache/kw for support some of the operations
+  mkdir -p "$KW_CACHE_DIR"
   say "$APPLICATIONNAME installed into $INSTALLTO"
   say "$SEPARATOR"
+}
+
+function update_version()
+{
+  local head_hash=$(git rev-parse --short HEAD)
+  local branch_name=$(git rev-parse --short --abbrev-ref HEAD)
+  local base_version=$(cat "$INSTALLTO/$SRCDIR/VERSION" | head -n 1)
+
+  cat > "$INSTALLTO/$SRCDIR/VERSION" <<EOF
+$base_version
+Branch: $branch_name
+Commit: $head_hash
+EOF
 }
 
 function install_home()
 {
   # First clean old installation
   clean_legacy
-  # Synchronize of vimfiles
+  # Synchronize source files
   synchronize_files
+  # Update version based on the current branch
+  update_version
 }
 
 # Options
@@ -162,7 +185,7 @@ case $1 in
   --help | -h)
     usage
     ;;
-  --html)
+  --docs)
     sphinx-build -b html documentation/ build
     ;;
   *)

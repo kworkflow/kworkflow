@@ -2,6 +2,8 @@
 # module on ArchLinux. It is essential to highlight that this file follows an
 # API that can be seen in the "deploy.sh" file, if you make any change here,
 # you have to do it inside the install_modules() or install_kernel().
+#
+# Note: We use this script for ArchLinux and Manjaro
 
 # Install modules
 function install_modules()
@@ -21,6 +23,22 @@ function install_modules()
   fi
 }
 
+# Update boot loader API
+function update_boot_loader()
+{
+  local name="$1"
+  local local="$2"
+  local flag="$3"
+
+  if [[ ! -z "$local" ]]; then
+    sudo_cmd="sudo -E"
+  fi
+
+  # Update grub
+  cmd="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
+  cmd_manager "$flag" "$cmd"
+}
+
 # Install kernel
 function install_kernel()
 {
@@ -34,12 +52,13 @@ function install_kernel()
 
   flag=${flag:-"SILENT"}
 
-  if [[ ! -z "$local" ]]; then
-    sudo_cmd="sudo -E "
+  if [[ "$local" == 'local' ]]; then
+    sudo_cmd="sudo -E"
   fi
 
   if [[ -z "$name" ]]; then
-    name="kw"
+    echo "Invalid name"
+    return 22
   fi
 
   # Copy kernel image
@@ -70,9 +89,7 @@ function install_kernel()
   cmd="$sudo_cmd mkinitcpio -p $name"
   cmd_manager "$flag" "$cmd"
 
-  # Update grub
-  cmd="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
-  cmd_manager "$flag" "$cmd"
+  update_boot_loader "$name" "$local" "$flag"
 
   # Reboot
   if [[ "$reboot" = "1" ]]; then

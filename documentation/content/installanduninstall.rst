@@ -38,6 +38,10 @@ For getting the Sphinx Documentation:
 
 * Sphinx
 
+.. note::
+   Our base support is Ubuntu LTS. I.e., the dependency packages installed in
+   your system should be at least as new as those present in Ubuntu LTS.
+
 Recommendations
 ~~~~~~~~~~~~~~~
 If you want to use Qemu, we suggest the following steps:

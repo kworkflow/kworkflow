@@ -1,7 +1,8 @@
-. $src_script_path/commons.sh --source-only
+. $src_script_path/kw_config_loader.sh --source-only
 
 function vm_mount
 {
+  local ret=0
   mkdir -p ${configurations[mount_point]}
 
   say "Mount ${configurations[qemu_path_image]}" \
@@ -13,19 +14,23 @@ function vm_mount
   if [ "$?" != 0 ] ; then
     complain "Something went wrong when tried to mount" \
         "${configurations[qemu_path_image]} in ${configurations[mount_point]}"
-    return 1
   fi
+
+  return "$ret"
 }
 
 function vm_umount
 {
+  local ret=0
   say "Unmount ${configurations[mount_point]}"
   guestunmount ${configurations[mount_point]}
-  if [ "$?" != 0 ] ; then
+  ret="$?"
+  if [ "$ret" != 0 ] ; then
     complain "Something went wrong when tried to unmount" \
         "${configurations[qemu_path_image]} in ${configurations[mount_point]}"
-    return 1
   fi
+
+  return "$ret"
 }
 
 function vm_boot

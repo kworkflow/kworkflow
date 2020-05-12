@@ -1,4 +1,4 @@
-. $src_script_path/commons.sh --source-only
+. $src_script_path/kw_config_loader.sh --source-only
 . $src_script_path/kwlib.sh --source-only
 
 # Prints the authors of a given file or files inside a given dir.
