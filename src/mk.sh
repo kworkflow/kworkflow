@@ -384,6 +384,9 @@ function kernel_deploy
   local list=0
   local single_line=0
   local uninstall=""
+  local start=0
+  local end=0
+  local runtime=0
 
   deploy_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -407,12 +410,22 @@ function kernel_deploy
 
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
     say "Available kernels:"
+    start=$(date +%s)
     mk_list_installed_kernels "" "$single_line" "$target" "$remote"
+    end=$(date +%s)
+
+    runtime=$((end - start))
+    statistics_manager "list" "$runtime"
     return "$?"
   fi
 
   if [[ ! -z "$uninstall" ]]; then
+    start=$(date +%s)
     mk_kernel_uninstall "$target" "$reboot" "$remote" "$uninstall" "$flag"
+    end=$(date +%s)
+
+    runtime=$((end - start))
+    statistics_manager "uninstall" "$runtime"
     return "$?"
   fi
 
@@ -425,6 +438,7 @@ function kernel_deploy
   # we can break the boot. For security reason, every time we want to deploy a
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
+  start=$(date +%s)
   modules_install "" "$target" "$remote"
 
   if [[ "$modules" == 0 ]]; then
@@ -438,11 +452,16 @@ function kernel_deploy
     say "Cleanup temporary files"
     cleanup_after_deploy
   fi
+  end=$(date +%s)
+  runtime=$((end - start))
+  statistics_manager "deploy" "$runtime"
 }
 
 function mk_build
 {
   local PARALLEL_CORES=1
+  local start
+  local end
 
   if [ -x "$(command -v nproc)" ] ; then
     PARALLEL_CORES=$(nproc --all)
@@ -450,9 +469,15 @@ function mk_build
     PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
   fi
 
-  say "make ARCH="${configurations[arch]}" -j$PARALLEL_CORES"
-  make ARCH="${configurations[arch]}" -j$PARALLEL_CORES
+  say "make ARCH=${configurations[arch]} -j$PARALLEL_CORES"
+
+  start=$(date +%s)
+  make ARCH="${configurations[arch]}" -j"$PARALLEL_CORES"
   ret="$?"
+  end=$(date +%s)
+
+  runtime=$((end - start))
+  statistics_manager "build" "$runtime"
 
   return "$ret"
 }

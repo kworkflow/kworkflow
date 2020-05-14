@@ -258,3 +258,58 @@ function detect_distro()
     echo "none"
   fi
 }
+
+# This function maps a label with a value that is used to store statistics data
+# related to kw. It also manages the database creation, any data that should be
+# handled as a kw statistics should use this function.
+#
+# @label Label name used to identify a value
+# @value Value should be an integer number
+#
+# Return:
+# Print a execution time info
+function statistics_manager
+{
+  local label="$1"
+  local value="$2"
+  local day=$(date +%d)
+  local year_month_dir=$(date +%Y/%b)
+  local day_path="$statistics_path/$year_month_dir/$day"
+
+  update_statistics_database "$year_month_dir" "$day"
+  store_statistics_data "$day_path" "$label" "$value"
+  elapsed_time=$(date -d@$value -u +%H:%M:%S)
+  say "-> Execution time: $elapsed_time"
+}
+
+# This function is part of the statistics feature and it is responsible for
+# managing the database by following the calendar organization.
+#
+# @year_month_dir Current year
+# @day Current day of the week
+function update_statistics_database
+{
+  local year_month_path="$1"
+  local day="$2"
+
+  [[ -z "$day" || -z "$year_month_path" ]] && return 22 # EINVAL
+
+  mkdir -p "$statistics_path/$year_month_path"
+  touch "$statistics_path/$year_month_path/$day"
+}
+
+# This function save the information directly to a file.
+#
+# @day_path Current day
+# @label Label used to identify a value
+# @value An integer number associated to a label
+function store_statistics_data
+{
+  local day_path="$1"
+  local label="$2"
+  local value="$3"
+
+  [[ ! -f "$day_path" || -z "$label" || -z "$value" ]] && return 22 # EINVAL
+
+  echo "$label $value" >> "$day_path"
+}
