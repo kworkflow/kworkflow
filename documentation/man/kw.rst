@@ -149,15 +149,27 @@ This command is a wrapper for **checkpatch**, with the goal of simplifying the
 use of this tool; notice that you can specify a single file or an entire
 directory.
 
-e, explore [--log] [*EXPRESSION*] [-p] [*DIRECTORY|FILE*]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The *explore* command is a wrapper to git grep. It can search for string
-matches in either the git repository contents or in the git log messages. For
-example, you can use **kw e functionName** to find *functionName* in the source
-directory; If you want to search for a composed string, you have to quote your
-search (e.g., **kw e "str1 str2"**). You can also search the git log history by
-using *--log* after the *e*; for instance, **kw e --log STRING_MATCH**.
-Additionally, you can use *-p* to see the diff in the search.
+e, explore [--log, -l | --grep, -g | --all, -a] [*EXPRESSION*] [-p] [*DIRECTORY|FILE*]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The *explore* command is, by default, a wrapper to git grep, searching for
+string matches in files under git control or in the git log messages.
+Additional parameters extended its behavior to cover all files in a directory
+(whether or not controlled by git) and also to replace the search tool with the
+GNU grep utility. Default usage: you can use **kw e functionName** to find
+*functionName* in the source directory; If you want to search for a composed
+string, you have to quote your search (e.g., **kw e "str1 str2"**).
+
+1. --log: Search the git log history by using *--log* after the *e*; for
+   instance, **kw e --log STRING_MATCH**.  Additionally, you can use *-p* to
+   see the diff in the search.
+
+2. --grep | -g: Search for string matches in directory contents using GNU grep
+   tool. For instance, **kw e --grep STRING_MATCH**. It also covers files
+   inside .git directory.
+
+3. --all | -a: Search for string matches in directory contents using Git grep
+   tool. For instance, **kw e --all STRING_MATCH**. With this, the search
+   ignores files inside .git, except if it is called inside .git directory. 
 
 m, maintainers [*-a|--authors*] [*DIRECTORY|FILE*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
