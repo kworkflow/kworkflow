@@ -15,7 +15,15 @@ function suite
   suite_addTest "findKernelRootTest"
   suite_addTest "isAPatchTest"
   suite_addTest "get_based_on_delimiter_Test"
+  suite_addTest "store_statistics_data_Test"
+  suite_addTest "update_statistics_database_Test"
+  suite_addTest "statistics_manager_Test"
 }
+
+TARGET_YEAR_MONTH="2020/05"
+FAKE_STATISTICS_PATH="tests/.tmp"
+FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
+FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
 
 function setupFakeOSInfo
 {
@@ -28,7 +36,10 @@ function setupFakeOSInfo
 
 function setupPatch
 {
-  mkdir -p "tests/.tmp"
+  export statistics_path="$FAKE_STATISTICS_PATH"
+
+  mkdir -p "$FAKE_STATISTICS_MONTH_PATH"
+  touch "$FAKE_STATISTICS_DAY_PATH"
   cp -f tests/samples/test.patch tests/.tmp/
 }
 
@@ -63,7 +74,7 @@ function setupFakeKernelRepo
 
 function tearDownSetup
 {
-  rm -rf "tests/.tmp"
+  rm -rf "$FAKE_STATISTICS_PATH"
 }
 
 function linuxRootCheckTest
@@ -268,6 +279,76 @@ function get_based_on_delimiter_Test
   assertEquals "$ID - We used $a_weird_pattern, :, and 2 args; we should see PORT" "PORT" "$output"
   assertEquals "$ID - We expected 0 as a return" 0 "$ret"
 
+}
+
+function store_statistics_data_Test
+{
+  local ID
+  local fake_day_path="$FAKE_STATISTICS_DAY_PATH"
+
+  setupPatch
+
+  ID=1
+  store_statistics_data "$fake_day_path" "test_value" "33"
+  stored_value=$(cat "$fake_day_path")
+  assertEquals "($ID) - " "test_value 33" "$stored_value"
+
+  ID=2
+  store_statistics_data "/wrong/path" "test_value" "33"
+  ret="$?"
+  assertEquals "($ID) - " "22" "$ret"
+
+  ID=3
+  store_statistics_data "$fake_day_path" "" "33"
+  ret="$?"
+  assertEquals "($ID) - " "22" "$ret"
+
+  ID=4
+  store_statistics_data "$fake_day_path"
+  ret="$?"
+  assertEquals "($ID) - " "22" "$ret"
+
+  tearDownSetup
+}
+
+function update_statistics_database_Test
+{
+  local ID
+
+  setupPatch
+
+  ID=1
+  update_statistics_database "$TARGET_YEAR_MONTH" "19"
+  assertTrue "Statistics update failure" '[[ -f "$FAKE_STATISTICS_MONTH_PATH/19" ]]'
+
+  ID=2
+  update_statistics_database "$TARGET_YEAR_MONTH" ""
+  ret="$?"
+  assertEquals "($ID) - " "22" "$ret"
+
+  tearDownSetup
+}
+
+function statistics_manager_Test
+{
+  local ID
+  local this_year_and_month=$(date +%Y/%m)
+  local today=$(date +%d)
+
+  setupPatch
+
+  ID=1
+  output=$(statistics_manager "values" "33")
+  assertTrue "($ID) Database folders failures" '[[ -d "$statistics_path/$this_year_and_month" ]]'
+
+  ID=2
+  assertTrue "($ID) Database day" '[[ -f "$statistics_path/$this_year_and_month/$today" ]]'
+
+  ID=3
+  stored_value=$(cat "$statistics_path/$this_year_and_month/$today")
+  assertEquals "($ID) - " "values 33" "$stored_value"
+
+  tearDownSetup
 }
 
 invoke_shunit

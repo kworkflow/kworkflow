@@ -58,7 +58,7 @@ function clean_legacy()
     # If we have configs, we should keep it
     if [ -d "$INSTALLTO/$CONFIGS_PATH" ]; then
         for content in "$INSTALLTO"/*; do
-          if [[ $content =~ "configs" ]]; then
+          if [[ $content =~ "configs" || $content =~ "statistics" ]]; then
             continue
           fi
           mv "$content" "$trash"
