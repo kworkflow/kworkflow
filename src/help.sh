@@ -28,8 +28,10 @@ function kworkflow-help()
 
   echo -e "kw explore:\n" \
     "\texplore,e STRING [PATH] - Search for STRING based in PATH (./ by default) \n" \
-    "\texplore,e \"STR SRT\" [PATH] - Search for strings\n" \
-    "\texplore,e --log STRING - Search for STRING on git log\n" \
+    "\texplore,e \"STR SRT\" [PATH] - Search for strings only in files under git control\n" \
+    "\texplore,e --log,-l STRING - Search for STRING on git log\n" \
+    "\texplore,e --grep,-g STRING - Search for STRING using the GNU grep tool\n" \
+    "\texplore,e --all,-a STRING - Search for all STRING match under or not of git management.\n" \
 
   echo -e "kw config manager:\n" \
     "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
