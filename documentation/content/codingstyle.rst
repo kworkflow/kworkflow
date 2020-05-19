@@ -134,15 +134,15 @@ in a single line. For example::
 
 For the function returning we try to respect the errno codes, for example::
 
-    function vm_modules_install()
-    {
-      [..]
+  function mk_list_installed_kernels
+  {
+    [..]
       if [ "$?" != 0 ] ; then
         complain "Did you check if your VM is running?"
         return 125 # ECANCELED
       fi
-      [..]
-    }
+    [..]
+  }
 
 As you can notice from the examples, we use snake case for function
 definitions, this is valid for all the kw code.
