@@ -17,8 +17,7 @@
 # root password.
 #
 
-. "$KW_LIB_DIR/vm.sh" --source-only # It includes kw_config_loader.sh
-. "$KW_LIB_DIR/kwlib.sh" --source-only
+. "$KW_LIB_DIR/vm.sh" --source-only # It includes kw_config_loader.sh and kwlib.sh
 . "$KW_LIB_DIR/remote.sh" --source-only
 
 # Hash containing user options
@@ -46,22 +45,6 @@ function modules_install_to()
   local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   set +e
   cmd_manager "$flag" "$cmd"
-}
-
-function vm_modules_install
-{
-  # Attention: The vm code have to be loaded before this function.
-  # Take a look at the beginning of kworkflow.sh.
-  vm_mount
-
-  if [ "$?" != 0 ] ; then
-    complain "Did you check if your VM is running?"
-    return 125 # ECANCELED
-  fi
-
-  modules_install_to "${configurations[mount_point]}"
-
-  vm_umount
 }
 
 # Get the kernel release based on the command kernel release.
@@ -113,7 +96,6 @@ function cleanup_after_deploy
 # @target Target machine
 function modules_install
 {
-  local ret
   local flag="$1"
   local target="$2"
   local formatted_remote="$3"
@@ -127,7 +109,15 @@ function modules_install
 
   case "$target" in
     1) # VM_TARGET
-      vm_modules_install
+      local distro=$(detect_distro "${configurations[mount_point]}/")
+
+      if [[ "$distro" =~ "none" ]]; then
+        complain "Unfortunately, there's no support for the target distro"
+        vm_umount
+        exit 95 # ENOTSUP
+      fi
+
+      modules_install_to "${configurations[mount_point]}" "$flag"
       ;;
     2) # LOCAL_TARGET
       cmd="sudo -E make modules_install"
@@ -275,10 +265,17 @@ function kernel_install
 
   case "$target" in
     1) # VM_TARGET
-      # TODO: See issue #139
-      echo "Unfortunately, we don't support kernel image deploy in a VM with" \
-           "libguestfs yet; however, an alternative is using the remote" \
-           "option."
+      local distro=$(detect_distro "${configurations[mount_point]}/")
+
+      if [[ "$distro" =~ "none" ]]; then
+        complain "Unfortunately, there's no support for the target distro"
+        vm_umount
+        exit 95 # ENOTSUP
+      fi
+
+      . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
+      install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
+      return "$?"
     ;;
     2) # LOCAL_TARGET
       local distro=$(detect_distro "/")
@@ -291,6 +288,7 @@ function kernel_install
       # Local Deploy
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
       install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
+      return "$?"
     ;;
     3) # REMOTE_TARGET
       local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
@@ -401,6 +399,7 @@ function kernel_deploy
   local start=0
   local end=0
   local runtime=0
+  local ret=0
 
   deploy_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -448,6 +447,15 @@ function kernel_deploy
     exit 125 # ECANCELED
   fi
 
+  if [[ "$target" == "$VM_TARGET" ]] ; then
+    vm_mount
+    ret="$?"
+    if [[ "$ret" != 0 ]] ; then
+      complain "Please shutdown or umount your VM to continue."
+      exit "$ret"
+    fi
+  fi
+
   # NOTE: If we deploy a new kernel image that does not match with the modules,
   # we can break the boot. For security reason, every time we want to deploy a
   # new kernel version we also update all modules; maybe one day we can change
@@ -468,6 +476,11 @@ function kernel_deploy
     statistics_manager "deploy" "$runtime"
   else
     statistics_manager "Modules_deploy" "$runtime"
+  fi
+
+  if [[ "$target" == "$VM_TARGET" ]] ; then
+    # Umount VM if it remains mounted
+    vm_umount
   fi
 
   if [[ "$target" == "$REMOTE_TARGET" ]]; then

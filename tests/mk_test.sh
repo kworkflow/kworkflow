@@ -54,6 +54,7 @@ function setUp
   export KW_CACHE_DIR="$test_path"
   export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
+  export KW_PLUGINS_DIR="$PWD/src/plugins/"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
   if [ -x "$(command -v nproc)" ] ; then
     PARALLEL_CORES=$(nproc --all)
@@ -332,7 +333,6 @@ function kernel_install_Test
 
   ID=3
   # We want to test an corner case described by the absence of mkinitcpio
-
   cd "$original"
   tearDown
   setUp "no_mkinitcpio"
@@ -467,6 +467,17 @@ function kernel_modules_Test
     fi
     ((count++))
   done <<< "$output"
+
+  ID=2
+  output=$(modules_install "TEST_MODE" "1" "")
+  expected_output="make INSTALL_MOD_PATH=/home/lala modules_install"
+  assertEquals "$ID: " "$output" "$expected_output"
+
+  ID=3
+  output=$(modules_install "TEST_MODE" "2" "")
+  expected_output="sudo -E make modules_install"
+  assertEquals "$ID: " "$output" "$expected_output"
+
 
   cd "$original"
 }
