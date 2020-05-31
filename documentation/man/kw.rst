@@ -239,6 +239,39 @@ init
 This command creates a kworkflow.config file in the current directory. The
 primary reason for rerunning kw init is to pick up newly config file.
 
+statistics [--day [YEAR/MONTH/DAY] | --week [YEAR/MONTH/DAY] | --month [YEAR/MONTH] --year [YEAR] ]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kw keep track of metadata regarding features utilization to be later used for
+show kw usage statistics, in summary, kw keep track of:
+
+1. *Build*
+
+2. *Deploy* (included list and uninstall)
+
+
+For all the data tracked by kw, users can retrieve the total amount of time
+that a specific command was executed, the average time consumed by the feature,
+and the shortest and highest time required for executing the feature. All of
+this information can be retrieved by the *statistics* option with the following
+level of granularity:
+
+1. *--day [YEAR/MONTH/DAY]*: display day statistics summary, users have the
+option to search a specific date by passing an argument that follows the
+YEAR/MONTH/DAY format or not passes anything and get today info.
+
+2. *--week [YEAR/MONTH/DAY]*: shows the week summary, if a user does not pass
+any parameter kw will show the current week statistics. However, users can pass
+a random date (YEAR/MONTH/DAY) and let kw take care to provide a summary
+related to the week related to the target date.
+
+3. *--month [YEAR/MONTH]*: this option shows a report regarding a specific
+month, users can search for data related to a specific month by providing a
+parameter in the YEAR/MONTH format. If the user does not pass any parameter, kw
+displays the current month data.
+
+4. *--year [YEAR]*: exhibits the current year summary if the user does not
+specify a specific year.
+
 h, help
 ~~~~~~~
 Show basic help.
@@ -377,6 +410,21 @@ After you start your VM you can ssh into it with::
 
   kw s -c="dmesg -wH"
   kw s
+
+You can see data related to your kw usage by using the statistics option, see
+some examples below::
+
+  kw statistics --day
+  kw statistics --week
+  kw statistics --month
+  kw statistics --year
+
+You can also request a specific day, week, month, or year. For example::
+
+  kw statistics --day 2020/05/12
+  kw statistics --week 2020/02/29
+  kw statistics --month 2020/04
+  kw statistics --year 1984
 
 .. note::
    You have to wait for the sshd to become ready.

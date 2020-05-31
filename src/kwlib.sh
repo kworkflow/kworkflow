@@ -273,7 +273,7 @@ function statistics_manager
   local label="$1"
   local value="$2"
   local day=$(date +%d)
-  local year_month_dir=$(date +%Y/%b)
+  local year_month_dir=$(date +%Y/%m)
   local day_path="$statistics_path/$year_month_dir/$day"
 
   update_statistics_database "$year_month_dir" "$day"
