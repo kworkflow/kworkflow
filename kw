@@ -156,6 +156,13 @@ function kw()
         kworkflow_version
       )
       ;;
+    statistics)
+      (
+        . "$src_script_path"/statistics.sh --source-only
+
+        statistics "$@"
+      )
+      ;;
     clear-cache)
         . "$src_script_path"/mk.sh --source-only
 

@@ -26,6 +26,12 @@ function kworkflow-help()
     "\tversion,--version,-v - show kw version\n" \
     "\tman - Show manual\n"
 
+  echo -e "kw statistics:\n" \
+    "\tstatistics [--day [YEAR/MONTH/DAY]\n" \
+    "\tstatistics [--week [YEAR/MONTH/DAY]\n" \
+    "\tstatistics [--month [YEAR/MONTH]\n" \
+    "\tstatistics [--year [YEAR]] \n" \
+
   echo -e "kw explore:\n" \
     "\texplore,e STRING [PATH] - Search for STRING based in PATH (./ by default) \n" \
     "\texplore,e \"STR SRT\" [PATH] - Search for strings only in files under git control\n" \
