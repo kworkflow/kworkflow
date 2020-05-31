@@ -104,6 +104,7 @@ function default_config_file_Test
     [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\\\"\$COMMAND\\\\\" completed!\""
     [default_deploy_target]="vm"
     [reboot_after_deploy]="no"
+    [disable_statistics_data_track]="no"
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"

@@ -273,13 +273,16 @@ function statistics_manager
   local label="$1"
   local value="$2"
   local day=$(date +%d)
-  local year_month_dir=$(date +%Y/%b)
+  local year_month_dir=$(date +%Y/%m)
   local day_path="$statistics_path/$year_month_dir/$day"
+
+  elapsed_time=$(date -d@$value -u +%H:%M:%S)
+  say "-> Execution time: $elapsed_time"
+
+  [[ ${configurations[disable_statistics_data_track]} == 'yes' ]] && return
 
   update_statistics_database "$year_month_dir" "$day"
   store_statistics_data "$day_path" "$label" "$value"
-  elapsed_time=$(date -d@$value -u +%H:%M:%S)
-  say "-> Execution time: $elapsed_time"
 }
 
 # This function is part of the statistics feature and it is responsible for

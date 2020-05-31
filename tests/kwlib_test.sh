@@ -349,6 +349,10 @@ function statistics_manager_Test
   assertEquals "($ID) - " "values 33" "$stored_value"
 
   tearDownSetup
+
+  ID=4
+  configurations['disable_statistics_data_track']='yes'
+  assertTrue "($ID) Database day" '[[ ! -f "$statistics_path/$this_year_and_month/$today" ]]'
 }
 
 invoke_shunit

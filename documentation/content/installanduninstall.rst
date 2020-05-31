@@ -96,10 +96,11 @@ method) does not remove .config files under kw management and you can type::
   ./setup.sh --uninstall # or just -u
 
 .. warning::
-   Beware: that the following command is dangerous! Use it only if you are
-   entirely aware of what are you doing.
+   Beware that the following command is dangerous! Use it only if you are
+   entirely aware of what are you doing. We do not recommend it!
 
-If you want to remove all files under kw management, you can use::
+If you want to remove all files under kw management (e.g., config files and
+data statistic), you can use::
 
   ./setup.sh --completely-remove
 

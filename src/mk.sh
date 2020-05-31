@@ -440,21 +440,26 @@ function kernel_deploy
   # it, but for now this looks the safe option.
   start=$(date +%s)
   modules_install "" "$target" "$remote"
+  end=$(date +%s)
+  runtime=$((end - start))
 
   if [[ "$modules" == 0 ]]; then
+    start=$(date +%s)
     # Update name: release + alias
     name=$(make kernelrelease)
 
     kernel_install "$reboot" "$name" "" "$target" "$remote"
+    end=$(date +%s)
+    runtime=$(( runtime + (end - start) ))
+    statistics_manager "deploy" "$runtime"
+  else
+    statistics_manager "Modules_deploy" "$runtime"
   fi
 
   if [[ "$target" == "$REMOTE_TARGET" ]]; then
     say "Cleanup temporary files"
     cleanup_after_deploy
   fi
-  end=$(date +%s)
-  runtime=$((end - start))
-  statistics_manager "deploy" "$runtime"
 }
 
 function mk_build
@@ -477,7 +482,12 @@ function mk_build
   end=$(date +%s)
 
   runtime=$((end - start))
-  statistics_manager "build" "$runtime"
+
+  if [[ "$ret" != 0 ]]; then
+    statistics_manager "build_failure" "$runtime"
+  else
+    statistics_manager "build" "$runtime"
+  fi
 
   return "$ret"
 }
