@@ -13,10 +13,10 @@ CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
 
 function init_env
 {
-  unset -v src_script_path external_script_path EASY_KERNEL_WORKFLOW
+  unset -v src_script_path external_script_path KWORKFLOW
   external_script_path="tests/external"
   src_script_path="./src"
-  export src_script_path external_script_path EASY_KERNEL_WORKFLOW
+  export src_script_path external_script_path KWORKFLOW
 }
 
 # Receives a string with one or more lines and print each of
