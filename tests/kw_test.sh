@@ -11,7 +11,7 @@ function suite
 
 function testVariables
 {
-  VARS=( EASY_KERNEL_WORKFLOW src_script_path external_script_path )
+  VARS=( KWORKFLOW src_script_path external_script_path )
   for v in "${VARS[@]}"; do
     test -z ${!v+x}; assertEquals "Variable $v should exist." $? 1
   done
@@ -19,7 +19,7 @@ function testVariables
 
 function testExported
 {
-  VARS=( EASY_KERNEL_WORKFLOW )
+  VARS=( KWORKFLOW )
   for v in "${VARS[@]}"; do
     [[ $(declare -p $v)  =~ ^declare\ -[aAilrtu]*x[aAilrtu]*\  ]] ||
       fail "Variable $v should have been exported"
