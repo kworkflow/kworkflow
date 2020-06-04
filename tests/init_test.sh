@@ -16,10 +16,10 @@ function setUp
   export etc_files_path="tests/samples"
   export HOME="$FAKE_DIR"
   export USER="kw_test"
-  export EASY_KERNEL_WORKFLOW="kw_dir_test"
-  export PWD="$FAKE_CONFIG_PATH/$EASY_KERNEL_WORKFLOW"
+  export KWORKFLOW="kw_dir_test"
+  export PWD="$FAKE_CONFIG_PATH/$KWORKFLOW"
   mkdir -p "$FAKE_DIR"
-  mkdir -p "$FAKE_CONFIG_PATH/$EASY_KERNEL_WORKFLOW"
+  mkdir -p "$FAKE_CONFIG_PATH/$KWORKFLOW"
 }
 
 function tearDown
@@ -32,7 +32,7 @@ function init_kw_Test
   local ID
   local kworkflow_content
   local output=$(init_kw)
-  local path_config="$FAKE_CONFIG_PATH/$EASY_KERNEL_WORKFLOW/kworkflow.config"
+  local path_config="$FAKE_CONFIG_PATH/$KWORKFLOW/kworkflow.config"
 
   kworkflow_content=$(cat "$path_config" | grep "$USER" -o | head -n 1)
 
@@ -40,8 +40,8 @@ function init_kw_Test
   assertEquals "($ID)" "$USER" "$kworkflow_content"
 
   ID=2
-  kworkflow_content=$(cat "$path_config" | grep "$EASY_KERNEL_WORKFLOW" -o | head -n 1)
-  assertEquals "($ID)" "$EASY_KERNEL_WORKFLOW" "$kworkflow_content"
+  kworkflow_content=$(cat "$path_config" | grep "$KWORKFLOW" -o | head -n 1)
+  assertEquals "($ID)" "$KWORKFLOW" "$kworkflow_content"
 
   ID=3
   export etc_files_path="break/on/purpose"

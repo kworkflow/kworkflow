@@ -11,7 +11,7 @@
 function init_kw()
 {
   local config_file_template="$etc_files_path/kworkflow_template.config"
-  local kw_path="$HOME/.config/$EASY_KERNEL_WORKFLOW/"
+  local kw_path="$HOME/.config/$KWORKFLOW/"
   local name="kworkflow.config"
 
   if [[ -f "$config_file_template" && -d "$kw_path" ]]; then

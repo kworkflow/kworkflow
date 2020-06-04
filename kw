@@ -1,16 +1,17 @@
 #!/bin/bash
 
 # Set required variables
-EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kw"}
-src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
-plugins_path=${plugins_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src/plugins"}
-external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
-etc_files_path=${etc_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"}
-config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW"}
+KWORKFLOW=${KWORKFLOW:-"kw"}
+src_script_path=${src_script_path:-"$HOME/.config/$KWORKFLOW/src"}
+plugins_path=${plugins_path:-"$HOME/.config/$KWORKFLOW/src/plugins"}
+external_script_path=${external_script_path:-"$HOME/.config/$KWORKFLOW/external"}
+etc_files_path=${etc_files_path:-"$HOME/.config/$KWORKFLOW/etc"}
+config_files_path=${config_files_path:-"$HOME/.config/$KWORKFLOW"}
+statistics_path=${statistics_path:-"$HOME/.config/$KWORKFLOW/statistics"}
 kw_cache_dir=${kw_cache_dir:-"$HOME/.cache/kw"}
 
 # Export external variables required by kworkflow
-export EASY_KERNEL_WORKFLOW
+export KWORKFLOW
 
 function kw()
 {
