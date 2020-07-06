@@ -452,6 +452,9 @@ function mk_build
 
   say "make ARCH="${configurations[arch]}" -j$PARALLEL_CORES"
   make ARCH="${configurations[arch]}" -j$PARALLEL_CORES
+  ret="$?"
+
+  return "$ret"
 }
 
 # Handles the remote info
