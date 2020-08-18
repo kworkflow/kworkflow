@@ -7,6 +7,7 @@
 
 function suite
 {
+  suite_addTest "get_remote_info_Test"
   suite_addTest "cmd_remote_Test"
   suite_addTest "cp_host2remote_Test"
   suite_addTest "which_distro_Test"
@@ -52,6 +53,40 @@ function oneTimeTearDown
 {
   unset kw_cache_dir
   rm -rf "$FAKE_KW"
+}
+
+function get_remote_info_Test
+{
+  local ID
+
+  # Force an unspected error
+  configurations=()
+
+  ID=0
+  output=$(get_remote_info)
+  ret="$?"
+  assertEquals "($ID) We did not load kworkflow.config, we expect an error" "22" "$ret"
+  setUp
+
+  ID=1
+  output=$(get_remote_info "localhost:6789")
+  ret="$?"
+  assertEquals "($ID) Expected 0" "0" "$ret"
+  assertEquals "($ID) Expected localhost:6789" "localhost:6789" "$output"
+
+  ID=2
+  output=$(get_remote_info "localhost")
+  ret="$?"
+  assertEquals "($ID) Expected 0" "0" "$ret"
+  assertEquals "($ID) Expected localhost:22" "localhost:22" "$output"
+
+  parse_configuration "$KW_CONFIG_SAMPLE"
+
+  ID=3
+  output=$(get_remote_info)
+  ret="$?"
+  assertEquals "($ID) Expected 0" "0" "$ret"
+  assertEquals "($ID) Expected 127.0.0.1:3333" "127.0.0.1:3333" "$output"
 }
 
 function cmd_remote_Test
