@@ -1,3 +1,6 @@
+# NOTE: It is recommended that src/kw_config_loader.sh be included before this
+# file
+
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
 LOCAL_REMOTE_DIR="remote"
@@ -212,4 +215,41 @@ function generate_tarball()
     complain "Error archiving modules."
     exit $ret
   fi
+}
+
+# Handles the remote info
+#
+# @parameters String to be parsed
+#
+# Returns:
+# This function has two returns, and we make the second return by using
+# capturing the "echo" output. The standard return ("$?") can be 22 if
+# something is wrong or 0 if everything finished as expected; the second
+# output is the remote info as IP:PORT
+function get_remote_info()
+{
+  ip="$@"
+
+  if [[ -z "$ip" ]]; then
+    ip=${configurations[ssh_ip]}
+    port=${configurations[ssh_port]}
+    ip="$ip:$port"
+  else
+    temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
+    # 22 in the conditon refers to EINVAL
+    if [[ "$?" == 22 ]]; then
+      ip="$ip:22"
+    else
+      port=$(get_based_on_delimiter "$ip" ":" 2)
+      ip="$temp_ip:$port"
+    fi
+  fi
+
+  if [[ "$ip" =~ ^: ]]; then
+    complain "Something went wrong with the remote option"
+    return 22 # EINVAL
+  fi
+
+  echo "$ip"
+  return 0
 }
