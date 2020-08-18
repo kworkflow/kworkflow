@@ -5,7 +5,6 @@
 
 function suite
 {
-  suite_addTest "get_remote_info_Test"
   suite_addTest "kernel_deploy_Test"
   suite_addTest "modules_install_to_Test"
   suite_addTest "kernel_install_Test"
@@ -106,37 +105,6 @@ function test_expected_string()
   local target="$3"
 
   assertEquals "$msg" "$target" "$expected"
-}
-
-function get_remote_info_Test
-{
-  local ID
-
-  # Force an unspected error
-  tearDown
-  ID=0
-  output=$(get_remote_info)
-  ret="$?"
-  assertEquals "($ID) We did not load kworkflow.config, we expect an error" "22" "$ret"
-  setUp
-
-  ID=1
-  output=$(get_remote_info "localhost:6789")
-  ret="$?"
-  assertEquals "($ID) Expected 0" "0" "$ret"
-  assertEquals "($ID) Expected localhost:6789" "localhost:6789" "$output"
-
-  ID=2
-  output=$(get_remote_info "localhost")
-  ret="$?"
-  assertEquals "($ID) Expected 0" "0" "$ret"
-  assertEquals "($ID) Expected localhost:22" "localhost:22" "$output"
-
-  ID=3
-  output=$(get_remote_info)
-  ret="$?"
-  assertEquals "($ID) Expected 0" "0" "$ret"
-  assertEquals "($ID) Expected 127.0.0.1:3333" "127.0.0.1:3333" "$output"
 }
 
 # This test relies on kworkflow.config loaded during the setUp
