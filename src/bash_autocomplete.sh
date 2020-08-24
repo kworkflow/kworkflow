@@ -9,7 +9,7 @@ _kw_autocomplete()
     kw_options="explore e build b bi init new n ssh s clear-cache
                 mount mo umount um vars up u codestyle c configm g
                 maintainers m deploy d help h version statistics
-                --version -v"
+                drm --version -v"
 
     # By default, autocomplete with kw_options
     if [[ ${previous_command} == kw ]] ; then
