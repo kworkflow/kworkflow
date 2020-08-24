@@ -183,6 +183,39 @@ files (non-recursively). Files with more than one author will have their names
 separated by ",". This output should not be used by scripts because some
 authors include "," in their names (e.g. "Company X, Inc.").
 
+SUBSYSTEM COMMANDS
+------------------
+
+Linux kernel has multiple subsystems that expose operations via sysfs or
+provide mechanisms for userspace to interact with the driver. For this reason,
+kw offers some options that target some specific subsystems for providing
+facilities for users to interact with a particular subsystem. Currently, we
+only support drm.
+
+drm [--remote [REMOTE:PORT]|--local] [--gui-on|--gui-off|--conn-available|--modes|--help]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This option is responsible to deal with DRM features.
+
+1. --remote *[REMOTE:PORT]|--local*: This option specifies the target device
+for the drm action, it can be a remote or local machine. If these options are
+not explicitly passed via command line, kw going to take the target set in the
+variable default_deploy_target (kworkflow.config) for identifying the target.
+It is important to highlight that the drm feature ** does not support VM**.
+
+2. --gui-on: This option provides a mechanism for turn-on the GUI, by default
+it uses systemctl operation; however, users are free to add any specific
+command for activating their preferred GUI in the variable gui_on in the
+kworkflow.config file.
+
+3. --gui-off: Turn off the target GUI in the specified target, by default, it
+uses the systemctl operation but users can change this behavior by set gui_off
+with a specific command in the kworkflow.config file with the specific command.
+
+4. --conn-available: Show all connectors available in the target machine.
+
+5. --modes: Show all available modes per card.
+
 OTHER COMMANDS
 --------------
 
@@ -385,6 +418,16 @@ with this variable. The available options are: vm, local, and remote.
 reboot_remote_by_default
 ------------------------
 Reboot machine after the deploy finish
+
+gui_on=COMMAND
+--------------
+This option is disabled by default, if enabled, it requires a command that
+instructs kw to turn on the GUI.
+
+gui_off=COMMAND
+---------------
+This option is disabled by default, if enabled, it requires a command that
+instructs kw to turn off the GUI.
 
 EXAMPLE
 =======

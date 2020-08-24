@@ -173,6 +173,14 @@ function kw()
 
         cleanup
       ;;
+    # Subsystems support
+    drm)
+      (
+        . "$plugins_path/subsystems/drm/drm.sh" --source-only
+
+        drm_manager "$@"
+      )
+      ;;
     *)
       (
         . "$src_script_path"/help.sh --source-only
