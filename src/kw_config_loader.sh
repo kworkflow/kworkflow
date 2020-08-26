@@ -55,6 +55,9 @@ function parse_configuration()
 
   while read line
   do
+    # Line started with # should be ignored
+    [[ "$line" =~ ^# ]] && continue
+
     if echo "$line" | grep -F = &>/dev/null
     then
       varname="$(echo "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
