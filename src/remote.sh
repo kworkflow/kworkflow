@@ -36,6 +36,7 @@ function cmd_remotely()
   local remote="$3"
   local port="$4"
   local user="$5"
+  local bash_code="$6"
   local composed_cmd=""
 
   if [[ -z "$command" ]]; then
@@ -50,6 +51,9 @@ function cmd_remotely()
   flag=${flag:-"HIGHLIGHT_CMD"}
 
   composed_cmd="ssh -p $port $user@$remote \"$command\""
+  if [[ "$bash_code" == 1 ]]; then
+    composed_cmd="ssh -p $port $user@$remote '$command'"
+  fi
   cmd_manager "$flag" "$composed_cmd"
 }
 
