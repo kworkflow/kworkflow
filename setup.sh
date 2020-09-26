@@ -104,7 +104,7 @@ function clean_legacy()
   local completely_remove="$1"
 
   local toDelete="$APPLICATIONNAME"
-  eval "sed -i '/$toDelete/d' $HOME/.bashrc"
+  eval "sed -i '/\<$toDelete\>/d' $HOME/.bashrc"
   if [[ "$completely_remove" =~ "-d" ]]; then
     mv "$INSTALLTO" "$trash"
     return 0
@@ -273,6 +273,7 @@ case "$1" in
     ;;
   --uninstall | -u)
     clean_legacy
+    say "kw was removed."
     ;;
     # ATTENTION: This option is dangerous because it completely removes all files
     # related to kw, e.g., '.config' file under kw controls. For this reason, we do
