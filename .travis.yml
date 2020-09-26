@@ -9,7 +9,7 @@ before_install:
 # Install dependencies
 install:
   - >
-    sudo apt-get -y install libguestfs-tools qemu ansible bash git
+    sudo apt-get -y install libguestfs-tools qemu bash git
     python-docutils dash shunit2 fish python-sphinx
 
 # Prepare to execute tests
@@ -19,8 +19,8 @@ before_script:
 # Execute tests, docs build and kw installation to check for errors
 script:
   - ./run_tests.sh
-  - ./setup.sh --docs
-  - ./setup.sh -i
+  - ./setup.sh --docs --force
+  - ./setup.sh -i --force
 
 notifications:
   email:
