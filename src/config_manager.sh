@@ -1,4 +1,4 @@
-. $src_script_path/kwio.sh --source-only
+. "$KW_LIB_DIR/kwio.sh" --source-only
 
 declare -r metadata_dir="metadata"
 declare -r configs_dir="configs"
@@ -16,10 +16,10 @@ declare -r configs_dir="configs"
 function save_config_file()
 {
   local ret=0
-  local -r force=$1
-  local -r name=$2
-  local -r description=$3
-  local -r original_path=$PWD
+  local -r force="$1"
+  local -r name="$2"
+  local -r description="$3"
+  local -r original_path="$PWD"
   local -r dot_configs_dir="$config_files_path/configs"
 
   if [[ ! -f $original_path/.config ]]; then
@@ -27,11 +27,11 @@ function save_config_file()
     exit 2 # ENOENT
   fi
 
-  if [[ ! -d $dot_configs_dir ]]; then
-    mkdir $dot_configs_dir
+  if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
+    mkdir -p $dot_configs_dir
     cd $dot_configs_dir
     git init --quiet
-    mkdir $metadata_dir $configs_dir
+    mkdir -p $metadata_dir $configs_dir
   fi
 
   cd $dot_configs_dir
@@ -68,7 +68,7 @@ function list_configs()
 {
   local -r dot_configs_dir="$config_files_path/configs"
 
-  if [[ ! -d $dot_configs_dir ]]; then
+  if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
     say "There's no tracked .config file"
     exit 0
   fi
@@ -76,6 +76,7 @@ function list_configs()
   printf "%-30s | %-30s\n" "Name" "Description"
   echo
   for filename in $dot_configs_dir/$metadata_dir/*; do
+    [[ ! -f "$filename" ]] && continue
     local name=$(basename $filename)
     local content=$(cat $filename)
     printf "%-30s | %-30s\n" "$name" "$content"

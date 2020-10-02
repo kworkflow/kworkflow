@@ -15,8 +15,8 @@ REMOTE_KW_DEPLOY="/root/kw_deploy"
 # operation of installing a new kernel; it depends on "kernel_install" plugin
 # for work as expected
 DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
-DEPLOY_SCRIPT="$plugins_path/kernel_install/deploy.sh"
-DEPLOY_SCRIPT_SUPPORT="$plugins_path/kernel_install/utils.sh"
+DEPLOY_SCRIPT="$KW_PLUGINS_DIR/kernel_install/deploy.sh"
+DEPLOY_SCRIPT_SUPPORT="$KW_PLUGINS_DIR/kernel_install/utils.sh"
 
 # This function is responsible for executing a command in a remote machine.
 #
@@ -78,7 +78,7 @@ function cp_host2remote()
   local user="$5"
   local flag="$6"
 
-  src=${src:-"$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"}
+  src=${src:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
 
   dst=${dst:-"$REMOTE_KW_DEPLOY"}
   remote=${remote:-"localhost"}
@@ -121,23 +121,23 @@ function which_distro()
 # prepares such a directory.
 function prepare_host_deploy_dir()
 {
-  if [[ -z "$kw_cache_dir" ]]; then
-    complain "\$kw_cache_dir isn't set. The kw directory at home may not exist"
+  if [[ -z "$KW_CACHE_DIR" ]]; then
+    complain "\$KW_CACHE_DIR isn't set. The kw directory at home may not exist"
     return 22
   fi
 
   # We should expect the setup.sh script create the directory $HOME/kw.
   # However, does not hurt check for it and create in any case
-  if [[ ! -d "$kw_cache_dir" ]]; then
-    mkdir -p "$kw_cache_dir"
+  if [[ ! -d "$KW_CACHE_DIR" ]]; then
+    mkdir -p "$KW_CACHE_DIR"
   fi
 
-  if [[ ! -d "$kw_cache_dir/$LOCAL_REMOTE_DIR" ]]; then
-    mkdir -p "$kw_cache_dir/$LOCAL_REMOTE_DIR"
+  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
+    mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
   fi
 
-  if [[ ! -d "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    mkdir -p "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR"
+  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
+    mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
   fi
 }
 
@@ -173,7 +173,7 @@ function prepare_remote_dir()
   cmd_remotely "$kw_deploy_cmd" "$flag" "$remote" "$port" "$user"
 
   # Send the specific deploy script as a root
-  cp_host2remote "$plugins_path/kernel_install/$distro.sh" \
+  cp_host2remote "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
                  "$DISTRO_DEPLOY_SCRIPT" "$remote" "$port" "$user" "$flag"
   cp_host2remote "$DEPLOY_SCRIPT" "$REMOTE_KW_DEPLOY/" "$remote" "$port" \
                  "$user" "$flag"
@@ -198,7 +198,7 @@ function generate_tarball()
   local ret
   local tarball_name=""
   local compress_cmd=""
-  local kw_remote_dir="$kw_cache_dir/$LOCAL_REMOTE_DIR"
+  local kw_remote_dir="$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
 
   files_path=${files_path:-"$kw_remote_dir/lib/modules/"}
   kernel_release=${kernel_release:-"no_release"}
@@ -210,7 +210,7 @@ function generate_tarball()
   # -C: Go to $files_path directory
   # -cf: Compress the directory named $kernel_release (inside $files_path) to
   #      $kw_remote_dir/$tarball_name
-  compress_cmd="tar -C $files_path -cf $kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$tarball_name $kernel_release"
+  compress_cmd="tar -C $files_path -cf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$tarball_name $kernel_release"
 
   cmd_manager "$flag" "$compress_cmd"
   ret=$?

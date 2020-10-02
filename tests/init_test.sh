@@ -13,7 +13,8 @@ FAKE_CONFIG_PATH="$FAKE_DIR/.config"
 
 function setUp
 {
-  export etc_files_path="tests/samples"
+  export KW_ETC_DIR="tests/samples"
+  export KW_SHARE_SOUND_DIR="tests/samples/share/sound/kw"
   export HOME="$FAKE_DIR"
   export USER="kw_test"
   export KWORKFLOW="kw_dir_test"
@@ -40,11 +41,11 @@ function init_kw_Test
   assertEquals "($ID)" "$USER" "$kworkflow_content"
 
   ID=2
-  kworkflow_content=$(cat "$path_config" | grep "$KWORKFLOW" -o | head -n 1)
-  assertEquals "($ID)" "$KWORKFLOW" "$kworkflow_content"
+  kworkflow_content=$(cat "$path_config" | grep "$KW_SHARE_SOUND_DIR" -o | head -n 1)
+  assertEquals "($ID)" "$KW_SHARE_SOUND_DIR" "$kworkflow_content"
 
   ID=3
-  export etc_files_path="break/on/purpose"
+  export KW_ETC_DIR="break/on/purpose"
   output=$(init_kw)
   ret="$?"
   assertEquals "($ID) We forced an error and expected to catch it" "2" "$ret"

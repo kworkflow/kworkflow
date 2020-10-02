@@ -2,7 +2,7 @@
 # process all data based on the user request. Here you going to find functions
 # responsible for aggregate and calculate values such as average and total.
 
-. $src_script_path/kw_config_loader.sh --source-only
+. "$KW_LIB_DIR/kw_config_loader.sh" --source-only
 
 # This is a data struct that describes the main type of data collected. We use
 # this in some internal loops.
