@@ -39,8 +39,8 @@ function oneTimeSetUp
   local -r modules_name="test"
   local -r kernel_install_path="kernel_install"
 
-  export kw_cache_dir="$FAKE_KW"
-  export plugins_path=$FAKE_KW
+  export KW_CACHE_DIR="$FAKE_KW"
+  export KW_PLUGINS_DIR=$FAKE_KW
   export DEPLOY_SCRIPT=$FAKE_KW/$kernel_install_path/deploy.sh
   export DEPLOY_SCRIPT_SUPPORT="$FAKE_KW/$kernel_install_path/utils.sh"
   export modules_path="$FAKE_KW/$kernel_install_path/lib/modules"
@@ -51,7 +51,7 @@ function oneTimeSetUp
 
 function oneTimeTearDown
 {
-  unset kw_cache_dir
+  unset KW_CACHE_DIR
   rm -rf "$FAKE_KW"
 }
 
@@ -140,34 +140,34 @@ function cp_host2remote_Test
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 
   ID=2
-  src="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"
+  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   expected_command="rsync -e 'ssh -p $port' -La $src $user@$remote:$dst"
   output=$(cp_host2remote "" "$dst" "$remote" "$port" "$user" "$flag")
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 
   ID=3
-  src="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"
+  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   dst="$REMOTE_KW_DEPLOY"
   expected_command="rsync -e 'ssh -p $port' -La $src $user@$remote:$dst"
   output=$(cp_host2remote "" "" "$remote" "$port" "$user" "$flag")
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 
   ID=4
-  src="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"
+  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   dst="$REMOTE_KW_DEPLOY"
   expected_command="rsync -e 'ssh -p $port' -La $src $user@localhost:$dst"
   output=$(cp_host2remote "" "" "" "$port" "$user" "$flag")
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 
   ID=5
-  src="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"
+  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   dst="$REMOTE_KW_DEPLOY"
   expected_command="rsync -e 'ssh -p 22' -La $src $user@localhost:$dst"
   output=$(cp_host2remote "" "" "" "" "$user" "$flag")
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 
   ID=6
-  src="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"
+  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   dst="$REMOTE_KW_DEPLOY"
   expected_command="rsync -e 'ssh -p 22' -La $src root@localhost:$dst"
   output=$(cp_host2remote "" "" "" "" "" "$flag")
@@ -211,13 +211,13 @@ function preapre_host_deploy_dir_Test
   prepare_host_deploy_dir
 
   ID=1
-  assertTrue "$ID - Check if kw dir was created" '[[ -d $kw_cache_dir ]]'
+  assertTrue "$ID - Check if kw dir was created" '[[ -d $KW_CACHE_DIR ]]'
 
   ID=2
-  assertTrue "$ID - Check if kw dir was created" '[[ -d $kw_cache_dir/$LOCAL_REMOTE_DIR ]]'
+  assertTrue "$ID - Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_REMOTE_DIR ]]'
 
   ID=3
-  assertTrue "$ID - Check if kw dir was created" '[[ -d $kw_cache_dir/$LOCAL_TO_DEPLOY_DIR ]]'
+  assertTrue "$ID - Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR ]]'
 
   ID=4
   oneTimeTearDown
@@ -275,7 +275,7 @@ function generate_tarball_Test()
   ID=1
   output=$(generate_tarball "$kernel_release" "$modules_path")
 
-  assertTrue "$ID - We expected a tarball" '[[ -f $kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$tarball_name ]]'
+  assertTrue "$ID - We expected a tarball" '[[ -f $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$tarball_name ]]'
 
   ID=2
   output=$(tar -taf "$FAKE_KW/$LOCAL_TO_DEPLOY_DIR/$tarball_name" | sort -d)

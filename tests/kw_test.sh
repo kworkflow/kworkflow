@@ -11,7 +11,7 @@ function suite
 
 function testVariables
 {
-  VARS=( KWORKFLOW src_script_path external_script_path )
+  VARS=( KWORKFLOW KW_LIB_DIR )
   for v in "${VARS[@]}"; do
     test -z ${!v+x}; assertEquals "Variable $v should exist." $? 1
   done

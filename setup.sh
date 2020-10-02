@@ -1,10 +1,43 @@
 #!/bin/bash
 
-declare -r APPLICATIONNAME="kw"
+. src/kwio.sh --source-only
+. src/kwlib.sh --source-only
+
+# List of dependences per distro
+arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx)
+debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc)
+
+SILENT=1
+VERBOSE=0
+FORCE=0
+PREFIX="$HOME/.local"
+
+declare -r app_name="kw"
+
+##
+## Following are the install paths
+##
+# Paths used during the installation process
+declare -r kwbinpath="$PREFIX/bin/kw"
+declare -r binpath="$PREFIX/bin"
+declare -r libdir="$PREFIX/lib/$app_name"
+declare -r sharedir="$PREFIX/share/"
+declare -r sharedocdir="$sharedir/doc"
+declare -r sharemandir="$sharedir/man"
+declare -r sharesounddir="$sharedir/sound/kw"
+declare -r etcdir="$PREFIX/etc/kw"
+# User specific data
+declare -r datadir="$HOME/.$app_name"
+declare -r cachedir="$HOME/.cache/$app_name"
+
+##
+## Source code references
+##
 declare -r SRCDIR="src"
+declare -r MAN="documentation/man/"
 declare -r CONFIG_DIR="etc"
-declare -r INSTALLTO="$HOME/.config/$APPLICATIONNAME"
-declare -r KW_CACHE_DIR="$HOME/.cache/$APPLICATIONNAME"
+declare -r INSTALLTO="$PREFIX"
+declare -r KW_CACHE_DIR="$HOME/.cache/$app_name"
 
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
@@ -14,17 +47,6 @@ declare -r FISH_CONFIG_PATH="$HOME/.config/fish"
 declare -r FISH_COMPLETION_PATH="$FISH_CONFIG_PATH/completions"
 
 declare -r CONFIGS_PATH="configs"
-
-. src/kwio.sh --source-only
-. src/kwlib.sh --source-only
-
-# List of dependences per distro
-arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx)
-debian_packages=(qemu git tar python-docutils pulseaudio-utils dunst sphinx-doc)
-
-SILENT=1
-VERBOSE=0
-FORCE=0
 
 function check_dependencies()
 {
@@ -60,6 +82,49 @@ function check_dependencies()
   fi
 }
 
+# TODO
+# Originally, kw get installed in the ~/.config and add the kw binary in the
+# path. We changed it; however, we keep this function for supporting the
+# migration from the old version to the new one.
+function remove_kw_from_PATH_variable()
+{
+  local new_path=""
+  local needs_update=0
+
+  IFS=':' read -ra ALL_PATHS <<< "$PATH"
+  for path in "${ALL_PATHS[@]}"; do
+    if [[ "$path" =~ "/kw" ]]; then
+      needs_update=1
+      continue
+    fi
+    # The first interaction introduce one extra ':'
+    new_path="$new_path:$path"
+  done
+
+  if [[ "$needs_update" != 0 ]]; then
+    # Drop ':' introduced in the above loop
+    PATH="${new_path:1}"
+    export PATH
+  fi
+}
+
+function update_path()
+{
+  local new_path=""
+
+  IFS=':' read -ra ALL_PATHS <<< "$PATH"
+  for path in "${ALL_PATHS[@]}"; do
+    [[ "$path" -ef "$binpath" ]] && return
+  done
+
+  echo "PATH=$HOME/.local/bin:\$PATH # kw" >> "$HOME/.bashrc"
+}
+
+function update_current_bash()
+{
+  exec /bin/bash
+}
+
 function cmd_output_manager()
 {
   local cmd="$1"
@@ -81,12 +146,12 @@ function usage()
   say ""
   say "Where option may be one of the following:"
   say "--help      | -h     Display this usage message"
-  say "--install   | -i     Install $APPLICATIONNAME"
-  say "--uninstall | -u     Uninstall $APPLICATIONNAME"
+  say "--install   | -i     Install $app_name"
+  say "--uninstall | -u     Uninstall $app_name"
   say "--verbose            Explain what is being done"
   say "--force              Never prompt"
-  say "--completely-remove  Remove $APPLICATIONNAME and all files under its responsibility"
-  say "--docs               Build $APPLICATIONNAME's documentation as HTML pages into ./build"
+  say "--completely-remove  Remove $app_name and all files under its responsibility"
+  say "--docs               Build $app_name's documentation as HTML pages into ./build"
 }
 
 function confirm_complete_removal()
@@ -103,26 +168,31 @@ function clean_legacy()
   local trash=$(mktemp -d)
   local completely_remove="$1"
 
-  local toDelete="$APPLICATIONNAME"
+  local toDelete="$app_name"
   eval "sed -i '/\<$toDelete\>/d' $HOME/.bashrc"
-  if [[ "$completely_remove" =~ "-d" ]]; then
-    mv "$INSTALLTO" "$trash"
-    return 0
-  fi
 
-  # Remove files
-  if [ -d "$INSTALLTO" ]; then
-    # If we have configs, we should keep it
-    if [ -d "$INSTALLTO/$CONFIGS_PATH" ]; then
-        for content in "$INSTALLTO"/*; do
-          if [[ "$content" =~ "configs" || "$content" =~ "statistics" ]]; then
-            continue
-          fi
-          mv "$content" "$trash"
-        done
-    else
-      mv "$INSTALLTO" "$trash"
-    fi
+  # Remove kw binary
+  [[ -f "$kwbinpath" ]] && mv "$kwbinpath" "$trash"
+
+  # Remove kw libriary
+  [[ -d "$libdir" ]] && mv "$libdir" "$trash/lib"
+
+  # Remove doc dir
+  [[ -d "$sharedocdir" ]] && mv "$sharedocdir" "$trash"
+
+  # Remove man
+  [[ -d "$sharemandir" ]] && mv "$sharemandir" "$trash"
+
+  # Remove sound files
+  [[ -d "$sharesounddir" ]] && mv "$sharesounddir" "$trash/sound"
+
+  # Remove etc files
+  [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
+
+  # Completely remove user data
+  if [[ "$completely_remove" =~ "-d" ]]; then
+    mv "$datadir" "$trash/userdata"
+    return 0
   fi
 
   # TODO: Remove me one day
@@ -132,17 +202,20 @@ function clean_legacy()
   if [[ -d "$HOME/kw" ]]; then
     rm -rf "$HOME/kw/"
   fi
+
+  # Remove kw from PATH variable
+  remove_kw_from_PATH_variable
 }
 
 function setup_config_file()
 {
-  local config_files_path="$INSTALLTO/$CONFIG_DIR"
+  local config_files_path="$etcdir"
   local config_file_template="$config_files_path/kworkflow_template.config"
   local global_config_name="kworkflow.config"
 
   if [[ -f "$config_file_template" ]]; then
     cp "$config_file_template" "$config_files_path/$global_config_name"
-    sed -i -e "s/USERKW/$USER/g" -e "s,INSTALLPATH,$INSTALLTO,g" \
+    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sharesounddir,g" \
            -e "/^#?.*/d" "$config_files_path/$global_config_name"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
@@ -156,7 +229,7 @@ function setup_config_file()
 
 function synchronize_fish()
 {
-    local kw_fish_path="set -gx PATH $PATH:$HOME/.config/kw"
+    local kw_fish_path="set -gx PATH $PATH:$kwbinpath"
 
     say "Fish detected. Setting up fish support."
     mkdir -p "$FISH_COMPLETION_PATH"
@@ -182,35 +255,54 @@ function synchronize_files()
 {
   verbose=""
 
-  mkdir -p "$INSTALLTO"
-
   [[ "$VERBOSE" == 1 ]] && verbose=1
 
-  # Copy the script
-  cmd_output_manager "cp $APPLICATIONNAME $INSTALLTO" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'cp $APPLICATIONNAME $INSTALLTO' failed" "$?"
+  # Copy kw main file
+  mkdir -p "$binpath"
+  cmd_output_manager "cp $app_name $binpath" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
 
-  cmd_output_manager "rsync -vr $SRCDIR $INSTALLTO" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $INSTALLTO' failed" "$?"
+  sed -i -e "s,##KW_INSTALL_PREFIX_TOKEN##,$PREFIX/,g" "$binpath/$app_name"
 
-  cmd_output_manager "rsync -vr $SOUNDS $INSTALLTO" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $INSTALLTO' failed" "$?"
+  # Lib files
+  mkdir -p "$libdir"
+  cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
 
-  cmd_output_manager "rsync -vr $DOCUMENTATION $INSTALLTO" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $INSTALLTO' failed" "$?"
+  # Sound files
+  mkdir -p "$sharesounddir"
+  cmd_output_manager "rsync -vr $SOUNDS/ $sharesounddir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sharesounddir' failed" "$?"
 
-  # Configuration
-  cmd_output_manager "rsync -vr $CONFIG_DIR $INSTALLTO" "$verbose"
+  # Documentation files
+  mkdir -p "$sharedocdir"
+  cmd_output_manager "rsync -vr $DOCUMENTATION/ $sharedocdir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $sharedocdir' failed" "$?"
+
+  # man file
+  mkdir -p "$sharemandir"
+  cmd_output_manager "rsync -vr $MAN $sharemandir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $sharemandir' failed" "$?"
+
+  # etc files
+  mkdir -p "$etcdir"
+  cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR $INSTALLTO' failed" "$?"
 
+  # User data
+  mkdir -p "$datadir"
+  mkdir -p "$datadir/statistics"
+  mkdir -p "$datadir/configs"
+
+  # Copy and setup global config file
   setup_config_file
   ASSERT_IF_NOT_EQ_ZERO "Config file failed" "$?"
 
   if [ -f "$HOME/.bashrc" ]; then
       # Add to bashrc
-      echo "# $APPLICATIONNAME" >> "$HOME/.bashrc"
-      echo "PATH=\$PATH:$INSTALLTO" >> "$HOME/.bashrc"
-      echo "source $INSTALLTO/$SRCDIR/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.bashrc"
+      echo "# $app_name" >> "$HOME/.bashrc"
+      echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.bashrc"
+      update_path
   else
       warning "Unable to find a shell."
   fi
@@ -221,18 +313,18 @@ function synchronize_files()
 
   say "$SEPARATOR"
   # Create ~/.cache/kw for support some of the operations
-  mkdir -p "$KW_CACHE_DIR"
-  say "$APPLICATIONNAME installed into $INSTALLTO"
-  say "$SEPARATOR"
+  mkdir -p "$cachedir"
+  say "$app_name installed into $PREFIX"
+  warning " -> For a better experience with kw, please, open a new terminal."
 }
 
 function update_version()
 {
   local head_hash=$(git rev-parse --short HEAD)
   local branch_name=$(git rev-parse --short --abbrev-ref HEAD)
-  local base_version=$(cat "$INSTALLTO/$SRCDIR/VERSION" | head -n 1)
+  local base_version=$(cat "$libdir/VERSION" | head -n 1)
 
-  cat > "$INSTALLTO/$SRCDIR/VERSION" <<EOF
+  cat > "$libdir/VERSION" <<EOF
 $base_version
 Branch: $branch_name
 Commit: $head_hash
@@ -264,12 +356,17 @@ for arg do
     FORCE=1
     continue
   fi
+  if [[ "$arg" =~ "--prefix=" ]]; then
+    PREFIX=${arg#*=}
+    continue
+  fi
   set -- "$@" "$arg"
 done
 
 case "$1" in
   --install | -i)
     install_home
+    #update_current_bash
     ;;
   --uninstall | -u)
     clean_legacy

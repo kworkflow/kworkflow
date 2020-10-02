@@ -1,4 +1,4 @@
-. $src_script_path/kwio.sh --source-only
+. "$KW_LIB_DIR/kwio.sh" --source-only
 
 function kworkflow-help()
 {
@@ -59,18 +59,18 @@ function kworkflow-help()
 # installed to the system
 function kworkflow-man()
 {
-    doc="$config_files_path/documentation/man"
+    doc="$KW_SHARE_MAN_DIR"
     ret=0
 
     if ! man kw > /dev/null 2>&1; then
       if [ -x "$(command -v rst2man)" ]; then
-        rst2man < $doc/kw.rst | man -l -
-        ret=$?
+        rst2man < "$doc/kw.rst" | man -l -
+        ret="$?"
       else
         complain "There's no man support"
         ret=1
       fi
-      exit $ret
+      exit "$ret"
     fi
 
     man kw
@@ -78,7 +78,7 @@ function kworkflow-man()
 
 function kworkflow_version()
 {
-  local version_path="$src_script_path/VERSION"
+  local version_path="$KW_LIB_DIR/VERSION"
 
   cat "$version_path"
 }
