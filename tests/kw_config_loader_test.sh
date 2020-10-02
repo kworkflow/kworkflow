@@ -102,7 +102,7 @@ function default_config_file_Test
     [ssh_port]="22"
     [mount_point]="/home/USERKW/p/mount"
     [alert]="n"
-    [sound_alert_command]="paplay INSTALLPATH/sounds/complete.wav"
+    [sound_alert_command]="paplay SOUNDPATH/complete.wav"
     [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\\\"\$COMMAND\\\\\" completed!\""
     [default_deploy_target]="vm"
     [reboot_after_deploy]="no"
@@ -117,7 +117,7 @@ function default_config_file_Test
 
 function config_files_loading_order_Test
 {
-  expected="$etc_files_path/$CONFIG_FILENAME
+  expected="$KW_ETC_DIR/$CONFIG_FILENAME
 $HOME/.kw/$CONFIG_FILENAME
 $PWD/$CONFIG_FILENAME"
 

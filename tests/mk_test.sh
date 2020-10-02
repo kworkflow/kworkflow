@@ -48,9 +48,9 @@ function setUp
 
   export preset_name="template_mkinitcpio.preset"
   export test_path="$PWD/$FAKE_KERNEL"
-  export plugins_path="$test_path"
-  export kw_cache_dir="$test_path"
-  export etc_files_path="$PWD/$SAMPLES_DIR/etc"
+  export KW_PLUGINS_DIR="$test_path"
+  export KW_CACHE_DIR="$test_path"
+  export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
 
@@ -75,8 +75,8 @@ function setupRemote()
   local -r kernel_install_path="kernel_install"
 
   export test_path="$FAKE_KERNEL"
-  export kw_cache_dir="$test_path"
-  export plugins_path="$test_path"
+  export KW_CACHE_DIR="$test_path"
+  export KW_PLUGINS_DIR="$test_path"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export DEPLOY_SCRIPT_SUPPORT="$test_path/$kernel_install_path/utils.sh"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
@@ -92,7 +92,7 @@ function setupRemote()
 
 function tearDown()
 {
-  unset kw_cache_dir
+  unset KW_CACHE_DIR
   configurations=()
 
   rm -rf "$FAKE_KERNEL"
@@ -308,7 +308,7 @@ function kernel_install_Test
   output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   cd "$original"
 
-  local preset_file="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
+  local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
   assertTrue "The mkinit file was not created" '[[ -f "$preset_file" ]]'
 
   tearDown
@@ -415,9 +415,9 @@ function kernel_install_local_Test
   )
 
   # ATTENTION: $FAKE_KERNEL got two levels deep (tests/.tmp); for this reason,
-  # we have to update plugins_path for this test for making sure that we use a
+  # we have to update KW_PLUGINS_DIR for this test for making sure that we use a
   # real plugin.
-  export plugins_path="../../src/plugins"
+  export KW_PLUGINS_DIR="../../src/plugins"
   cd "$FAKE_KERNEL"
 
   ID=1

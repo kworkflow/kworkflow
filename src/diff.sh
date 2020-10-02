@@ -1,5 +1,5 @@
-. $src_script_path/kwio.sh --source-only
-. $src_script_path/kwlib.sh --source-only
+. "$KW_LIB_DIR/kwio.sh" --source-only
+. "$KW_LIB_DIR/kwlib.sh" --source-only
 
 # Hash containing user options
 declare -A diff_options

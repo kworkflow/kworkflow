@@ -62,12 +62,12 @@ In the kw's directory, type::
     ./setup.sh -i
     bash --login
 
-This command will install `kw` in `~/.config/kw`, and append the following
+This command will install `kw` in `~/.local/`, and append the following
 lines at the end of your `.bashrc`.::
 
     # kw
-    PATH=$PATH:/home/$USER/.config/kw
-    source /home/$USER/.config/kw/src/bash_autocomplete.sh
+    PATH=$HOME/.local/bin:$PATH # kw
+    source /home/$USER/.local/lib/kw/bash_autocomplete.sh
 
 If you use another shell (`ksh`, for example), you will need to manually add
 the path to `kw` to `PATH` environment variable.
@@ -91,7 +91,7 @@ new ones).
 Remove
 ------
 There's two way to remove kw: soft and hard way. The soft way (recommended
-method) does not remove .config files under kw management and you can type::
+method) does not remove ~/.kw files under kw management and you can type::
 
   ./setup.sh --uninstall # or just -u
 
@@ -99,7 +99,7 @@ method) does not remove .config files under kw management and you can type::
    Beware that the following command is dangerous! Use it only if you are
    entirely aware of what are you doing. We do not recommend it!
 
-If you want to remove all files under kw management (e.g., config files and
+If you want to remove all files under kw management (e.g., ~/.kw files and
 data statistic), you can use::
 
   ./setup.sh --completely-remove
@@ -108,7 +108,7 @@ Global Configuration File
 -------------------------
 
 All the default configurations adopted by kworflow can be seen at
-`~/.config/kw/etc/kworkflow.config`; this config file has a comment on each
+`~/.local/etc/kw/kworkflow.config`; this config file has a comment on each
 configuration option. Finally, it is essential to highlight that kw loads the
 default configurations; next, it tries to find a local configuration file
 (detailed ahead) and overwrites the global options with the ones read from the
@@ -122,7 +122,7 @@ Kw allows you to have a specific set of configuration per project. For example,
 if you have a particular kernel tree named ‘drm-work’ and want a different
 configuration from the default you can follow these steps:
 
-1. `~/.config/kw/etc/kworkflow.config` to
+1. `~/.local/etc/kw/kworkflow.config` to
    `/path/to/your/kernel/tree/drm-work/kworkflow.config`
 
 .. note::

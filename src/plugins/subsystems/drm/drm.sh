@@ -1,6 +1,6 @@
-. $src_script_path/kw_config_loader.sh --source-only
-. $src_script_path/remote.sh --source-only
-. $src_script_path/kwlib.sh --source-only
+. "$KW_LIB_DIR/kw_config_loader.sh" --source-only
+. "$KW_LIB_DIR/remote.sh" --source-only
+. "$KW_LIB_DIR/kwlib.sh" --source-only
 
 declare -A drm_options_values
 
