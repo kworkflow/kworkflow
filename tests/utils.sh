@@ -265,6 +265,25 @@ function create_invalid_file_path()
   printf '%s\n' "$invalid_path"
 }
 
+function compare_array_values()
+{
+  #shellcheck disable=SC2178
+  local -n expected="$1"
+  local -n result_to_compare="$2"
+  local line="$3"
+
+  line=${line:-0}
+
+  equal=$(printf '%s\n' "${expected[*]} ${result_to_compare[*]}" | tr ' ' '\n' | sort | uniq -u)
+  if [[ -n "$equal" ]]; then
+    assertNull "$line: Arrays are not equal" "$equal"
+    printf '%s\n' 'Diff:' \
+      '-----' \
+      "$equal" \
+      '-----'
+  fi
+}
+
 function invoke_shunit()
 {
   command -v shunit2 > /dev/null

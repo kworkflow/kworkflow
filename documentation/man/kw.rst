@@ -80,6 +80,15 @@ only support drm.
 
   :ref:`kw-drm<drm-doc>`
 
+COMMAND TO DEBUG THE LINUX KERNEL
+---------------------------------
+
+Linux kernel provides multiple mechanisms for debugging; in particular, kw
+tries to simplify the debug process for three of them: events, ftrace, and
+dmesg. All the debug options are intended to support remote and local targets.
+
+  :ref:`kw-debug<debug-doc>`
+
 OTHER COMMANDS
 --------------
 This section describes a tool available in **kw** to help developers keep track
@@ -300,6 +309,17 @@ commands combined with GUI control commands. For example::
 
   kw drm --load-module='amdgpu' --gui-on # Load a driver and trigger the user GUI
   kw drm --unload-module='amdgpu' # Turn off user GUI and unload the driver
+
+If you need to debug an issue based on event values, you can try the debug
+options. For example::
+
+  kw debug --list # Show all events debug available in the target
+  kw debug --list --event="amdgpu_dm" # Show all events available under amdgpu_dm
+  kw debug --event='amdgpu_dm:amdgpu_dm_dce_clocks_state[sclk_khz > 0]' # Enable amdgpu_dm_dce_clocks_state event and filter by sclk_khz > 0
+  kw debug --disable --event='amdgpu_dm:amdgpu_dm_dce_clocks_state' # Disable amdgpu_dm_dce_clocks_state events
+  kw debug --event='amdgpu_dm:amdgpu_dm_dce_clocks_state' --history # Save each debug in a separated set of files
+  kw debug --event='amdgpu_dm:amdgpu_dm_dce_clocks_state' --follow # Wait for new event message
+  kw debug --event='amdgpu_dm:amdgpu_dm_dce_clocks_state' --cmd="export DISPLAY=:0.0 && xrandr --props" # Enable amdgpu_dm_dce_clocks_state, run "export DISPLAY=:0.0 && xrandr --props", collect logs, and disable events
 
 .. note::
    You have to wait for the sshd to become ready.

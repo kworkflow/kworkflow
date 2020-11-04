@@ -231,6 +231,13 @@ function kw()
         backup "$@"
       )
       ;;
+    debug)
+      (
+        include "$KW_LIB_DIR/debug.sh"
+
+        debug_manager "$@"
+      )
+      ;;
     clear-cache)
       include "$KW_LIB_DIR/deploy.sh"
 
