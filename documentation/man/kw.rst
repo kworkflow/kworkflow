@@ -192,8 +192,8 @@ kw offers some options that target some specific subsystems for providing
 facilities for users to interact with a particular subsystem. Currently, we
 only support drm.
 
-drm [--remote [REMOTE:PORT]|--local] [--gui-on|--gui-off|--conn-available|--modes|--help]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+drm [--remote [REMOTE:PORT]|--local] [--load-module='MODULE[:PARAM1,...][;MODULE:...]'|--unload-module='MODULE[;MODULE;...]'|--gui-on|--gui-off|--conn-available|--modes|--help]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This option is responsible to deal with DRM features.
 
@@ -203,18 +203,31 @@ not explicitly passed via command line, kw going to take the target set in the
 variable default_deploy_target (kworkflow.config) for identifying the target.
 It is important to highlight that the drm feature ** does not support VM**.
 
-2. --gui-on: This option provides a mechanism for turn-on the GUI, by default
+2. --load-module|-lm='MODULE[:PARAM1,...][;MODULE:...]': Allow user to specify
+one or more modules to be load with or without parameters. If you want to
+indicate more than one module, you have to separate them using ';'.
+Additionally, if users wish to provide specific parameters for the target
+module, they have to use ':' and separate each parameter with ','. This option
+can be combined with **--gui-on**, kw will make sure that the target module
+will be load first and after that trigger the GUI.
+
+3. --unload-module|-um='MODULE[;MODULE;...]': This option allows users to
+unload one or more DRM drivers. Users can provide a single module to be
+unloaded or a list separated by ';'. This command first disables the user
+interface and, after that, unloads the module.
+
+4. --gui-on: This option provides a mechanism for turn-on the GUI, by default
 it uses systemctl operation; however, users are free to add any specific
 command for activating their preferred GUI in the variable gui_on in the
 kworkflow.config file.
 
-3. --gui-off: Turn off the target GUI in the specified target, by default, it
+5. --gui-off: Turn off the target GUI in the specified target, by default, it
 uses the systemctl operation but users can change this behavior by set gui_off
 with a specific command in the kworkflow.config file with the specific command.
 
-4. --conn-available: Show all connectors available in the target machine.
+6. --conn-available: Show all connectors available in the target machine.
 
-5. --modes: Show all available modes per card.
+7. --modes: Show all available modes per card.
 
 OTHER COMMANDS
 --------------
@@ -492,6 +505,12 @@ You can also request a specific day, week, month, or year. For example::
   kw statistics --week 2020/02/29
   kw statistics --month 2020/04
   kw statistics --year 1984
+
+If you are working with DRM drivers, you can take advantage of load and unload
+commands combined with GUI control commands. For example::
+
+  kw drm --load-module='amdgpu' --gui-on # Load a driver and trigger the user GUI
+  kw drm --unload-module='amdgpu' # Turn off user GUI and unload the driver
 
 .. note::
    You have to wait for the sshd to become ready.
