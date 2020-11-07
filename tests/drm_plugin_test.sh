@@ -10,6 +10,8 @@ function suite
   suite_addTest "drm_manager_Test"
   suite_addTest "get_supported_mode_per_connector_Test"
   #suite_addTest "get_available_connectors_Test"
+  suite_addTest "module_control_Test"
+  suite_addTest "convert_module_info_Test"
 }
 
 function setUp()
@@ -194,6 +196,90 @@ function get_supported_mode_per_connector_Test
   export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
   output=$(get_supported_mode_per_connector 2)
   compare_command_sequence expected_output[@] "$output" "$ID"
+}
+
+function module_control_Test
+{
+  local ID
+  local default_ssh="ssh -p 22 root@localhost"
+
+  ID=1
+  expected="sudo bash -c \"modprobe  amdgpu\""
+  output=$(module_control "LOAD" "2" "" "amdgpu" "TEST_MODE")
+  assertEquals "$ID - Simple module load" "$expected" "$output"
+
+  ID=2
+  expected="sudo bash -c \"modprobe  amdgpu && modprobe  vkms\""
+  output=$(module_control "LOAD" "2" "" "amdgpu;vkms" "TEST_MODE")
+  assertEquals "$ID - Load two different modules" "$expected" "$output"
+
+  ID=3
+  expected="sudo bash -c \"modprobe  amdgpu tmz=1 dc=1  && modprobe  vkms enable_cursor=1 \""
+  output=$(module_control "LOAD" "2" "" "amdgpu:tmz=1,dc=1;vkms:enable_cursor=1" "TEST_MODE")
+  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+
+  ID=4
+  expected="sudo bash -c \"modprobe  amdgpu tmz=1 dc=1  && modprobe  vkms enable_cursor=1 \""
+  output=$(module_control "LOAD" "2" "" "amdgpu:tmz=1,dc=1;vkms:enable_cursor=1" "TEST_MODE")
+  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+
+  ID=5
+  expected="sudo bash -c \"modprobe -r amdgpu\""
+  output=$(module_control "UNLOAD" "2" "" "amdgpu" "TEST_MODE")
+  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+
+  ID=6
+  expected="sudo bash -c \"modprobe -r amdgpu && modprobe -r vkms\""
+  output=$(module_control "UNLOAD" "2" "" "amdgpu;vkms" "TEST_MODE")
+  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+
+  ID=7
+  output=$(module_control "UNLOAD" "2" "" "" "TEST_MODE")
+  assertEquals "$ID - It is required the driver name" "22" "$?"
+
+  ID=8
+  output=$(module_control "LOAD" "2" "" "" "TEST_MODE")
+  assertEquals "$ID - It is required the driver name" "22" "$?"
+
+  ID=9
+  expected="$default_ssh \"modprobe  amdgpu && modprobe  vkms\""
+  output=$(module_control "LOAD" "3" "" "amdgpu;vkms" "TEST_MODE")
+  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+
+  ID=10
+  expected="$default_ssh \"modprobe -r amdgpu && modprobe -r vkms\""
+  output=$(module_control "UNLOAD" "3" "" "amdgpu;vkms" "TEST_MODE")
+  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+}
+#compare_command_sequence expected_cmd[@] "$output" "$ID"
+
+function convert_module_info_Test
+{
+  local ID
+
+  ID=1
+  output=$(convert_module_info "LOAD" "amdgpu;vkms")
+  expected="modprobe  amdgpu && modprobe  vkms"
+  assertEquals "$ID" "$expected" "$output"
+
+  ID=2
+  output=$(convert_module_info "LOAD" "amdgpu;vkms;lala;xpto")
+  expected="modprobe  amdgpu && modprobe  vkms && modprobe  lala && modprobe  xpto"
+  assertEquals "$ID" "$expected" "$output"
+
+  ID=3
+  output=$(convert_module_info "LOAD" "amdgpu:dc=0,emu_mode=1,vm_debug=0;vkms enable_cursor=1")
+  expected="modprobe  amdgpu dc=0 emu_mode=1 vm_debug=0  && modprobe  vkms enable_cursor=1"
+  assertEquals "$ID" "$expected" "$output"
+
+  ID=4
+  output=$(convert_module_info "UNLOAD" "amdgpu;vkms;xpto")
+  expected="modprobe -r amdgpu && modprobe -r vkms && modprobe -r xpto"
+  assertEquals "$ID" "$expected" "$output"
+
+  ID=5
+  output=$(convert_module_info "LOAD" "")
+  assertEquals "$ID" "$?" "22"
 }
 
 invoke_shunit

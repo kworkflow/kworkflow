@@ -2,6 +2,8 @@
 . "$KW_LIB_DIR/remote.sh" --source-only
 . "$KW_LIB_DIR/kwlib.sh" --source-only
 
+declare -r LOAD="LOAD"
+declare -r UNLOAD="UNLOAD"
 declare -A drm_options_values
 
 SYSFS_CLASS_DRM="/sys/class/drm"
@@ -13,11 +15,14 @@ function drm_manager()
   local gui_off
   local conn_available
   local remote
+  local load_module
+  local unload_module
   local test_mode
 
   drm_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${drm_options_values['ERROR']}  $target $gui_on $gui_off $remote"
+    drm_help
     return 22
   fi
 
@@ -29,27 +34,144 @@ function drm_manager()
   help_opt="${drm_options_values['HELP']}"
   remote="${drm_options_values['REMOTE']}"
   test_mode="${drm_options_values['TEST_MODE']}"
+  load_module="${drm_options_values['LOAD_MODULE']}"
+  unload_module="${drm_options_values['UNLOAD_MODULE']}"
 
   if [[ "$test_mode" == "TEST_MODE" ]]; then
     echo "$target $gui_on $gui_off $remote"
     return 0
   fi
 
+  if [[ ! -z "$load_module" ]]; then
+    module_control "LOAD" "$target" "$remote" "$load_module"
+    if [[ "$?" != 0 ]]; then
+      return 22
+    fi
+  fi
+
   if [[ "$gui_on" == 1 ]]; then
     gui_control "ON" "$target" "$remote"
-  elif [[ "$gui_off" == 1 ]]; then
+  fi
+
+  if [[ "$gui_off" == 1 ]]; then
     gui_control "OFF" "$target" "$remote"
-  elif [[ "$conn_available" == 1 ]]; then
+  fi
+
+  if [[ ! -z "$unload_module" ]]; then
+    # For unload DRM drivers, we need to make sure that we turn off user GUI
+    [[ "$gui_off" != 1 ]] && gui_control "OFF" "$target" "$remote"
+    module_control "UNLOAD" "$target" "$remote" "$unload_module"
+  fi
+
+  if [[ "$conn_available" == 1 ]]; then
     get_available_connectors "$target" "$remote"
-  elif [[ "$modes_available" == 1 ]]; then
+  fi
+
+  if [[ "$modes_available" == 1 ]]; then
     get_supported_mode_per_connector "$target" "$remote"
-  elif [[ "$help_opt" == 1 ]]; then
+  fi
+
+  if [[ "$help_opt" == 1 ]]; then
     drm_help
-  else
-    complain "Invalid or incomplete command"
-    drm_help
+  fi
+}
+
+# This function is responsible for handling modules load and unload operations.
+#
+# @operations The operation can be LOAD for loading a module or UNLOAD to
+#             remove it.
+# @target Target can be LOCAL_TARGET, and REMOTE_TARGET.
+# @unformatted_remote It is the remote location formatted as REMOTE:PORT.
+# @parameters String passed via --[un]load-module=
+# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`.
+function module_control()
+{
+  local operation="$1"
+  local target="$2"
+  local unformatted_remote="$3"
+  local parameters="$4"
+  local flag="$5"
+  local module_cmd=""
+
+  module_cmd=$(convert_module_info "$operation" "$parameters")
+  if [[ "$?" != 0 ]]; then
+    complain "Wrong parameter in --[un]load-module="
     return 22
   fi
+
+  case "$target" in
+    2) # LOCAL
+      cmd_manager "$flag" "sudo bash -c \"$module_cmd\""
+    ;;
+    3) # REMOTE
+      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
+      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
+
+      cmd_remotely "$module_cmd" "$flag" "$remote" "$port"
+    ;;
+  esac
+}
+
+# Convert user input (syntax) to a modprobe command
+#
+# @unload Request module removal if it is set to UNLOAD.
+# @raw_modules_str User input string
+#
+# Returns:
+# Return a string with the modprobe command assembled. In case of error return
+# an errno code.
+function convert_module_info()
+{
+  local unload="$1"
+  shift
+  local raw_modules_str="$@"
+  local parameters_str=""
+  local final_command=""
+  local remove_flag=""
+  local module_str=""
+  local first_time=1
+
+  if [[ "$unload" == "$UNLOAD" ]]; then
+    remove_flag="-r"
+  else
+    remove_flag=""
+  fi
+
+  IFS=';' read -r -a modules <<< "$raw_modules_str"
+  # Target event. e.g.: amdgpu_dm or amdgpu
+  for module in "${modules[@]}"; do
+    parameters_str=""
+    module_str="modprobe $remove_flag $module"
+
+    if [[ "$module" =~ .*':'.* ]]; then
+      module_str="modprobe $remove_flag "
+      module_str+=$(cut -d ":" -f1 <<< "$module")
+
+      if [[ "$unload" != "$UNLOAD" ]]; then
+        # Capture module parameters
+        specific_parameters_str=$(cut -d ":" -f2 <<< "$module")
+        IFS=',' read -r -a parameters_array <<< "$specific_parameters_str"
+        for specific_parameter in "${parameters_array[@]}"; do
+          parameters_str+="$specific_parameter "
+        done
+
+        module_str+=" $parameters_str"
+      fi
+    fi
+
+    if [[ "$first_time" == 1 ]]; then
+      final_command="$module_str"
+      first_time=0
+      continue
+    fi
+    final_command+=" && $module_str"
+  done
+
+  if [[ -z "$final_command"  ]]; then
+    return 22 # EINVAL
+  fi
+
+  echo "$final_command"
 }
 
 # This function is responsible for turn on and off the graphic interface based
@@ -246,10 +368,12 @@ function drm_parser_options()
 
   drm_options_values["REMOTE"]="$remote"
 
-  IFS=' ' read -r -a options <<< "$raw_options"
+  IFS=' ' read -r -a options <<< $raw_options
   for option in "${options[@]}"; do
-
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
+      module_parameter=0
+      unmodule_parameter=0
+
       case "$option" in
         --remote)
           drm_options_values["TARGET"]="$REMOTE_TARGET"
@@ -261,15 +385,33 @@ function drm_parser_options()
           ;;
         --gui-on)
           drm_options_values["GUI_ON"]=1
-          break
+          continue
           ;;
         --gui-off)
           drm_options_values["GUI_OFF"]=1
-          break
+          continue
+          ;;
+        --load-module=*|-lm=*)
+          drm_options_values["LOAD_MODULE"]=$(cut -d "=" -f2- <<< "$option")
+          module_parameter=1
+          if [[ -z "${drm_options_values['LOAD_MODULE']}" ]]; then
+            drm_options_values["ERROR"]="You need to specify at least one module name when using --load-module"
+            return 22
+          fi
+          continue
+          ;;
+        --unload-module=*|-um=*)
+          drm_options_values["UNLOAD_MODULE"]=$(cut -d "=" -f2- <<< "$option")
+          unmodule_parameter=1
+          if [[ -z "${drm_options_values['UNLOAD_MODULE']}" ]]; then
+            drm_options_values["ERROR"]="You need to specify a module name when using --unload-module"
+            return 22
+          fi
+          continue
           ;;
         --conn-available)
           drm_options_values["CONN_AVAILABLE"]=1
-          break
+          continue
           ;;
         --modes)
           drm_options_values["MODES_AVAILABLE"]=1
@@ -289,8 +431,17 @@ function drm_parser_options()
       esac
     else
       # Handle other sub-parameters
-      if [[ "${drm_options_values['TARGET']}" == "$REMOTE_TARGET" ]]; then
+      if [[ "${drm_options_values['TARGET']}" == "$REMOTE_TARGET" &&
+            "$module_parameter" != 1 && "$unload_module" != 1 ]]; then
         drm_options_values["REMOTE"]=$(get_remote_info "$option")
+      fi
+
+      if [[ "$module_parameter" == 1 ]]; then
+        drm_options_values["LOAD_MODULE"]+=" $option"
+      fi
+
+      if [[ "$unmodule_parameter" == 1 ]]; then
+        drm_options_values["UNLOAD_MODULE"]+=" $option"
       fi
     fi
   done
@@ -311,6 +462,8 @@ function drm_parser_options()
 function drm_help
 {
   echo -e "Usage: kw drm [options]:\n" \
+    "\tdrm [--remote [REMOTE:PORT]] --load-module=|-lm='MODULE[:PARAM1,PARAM2][;MODULE:...][;...]\n" \
+    "\tdrm [--remote [REMOTE:PORT]] --unload-module=|-um='MODULE[;MODULE;...]\n" \
     "\tdrm [--remote [REMOTE:PORT]] --gui-on\n" \
     "\tdrm [--remote [REMOTE:PORT]] --gui-off\n" \
     "\tdrm [--remote [REMOTE:PORT]] --conn-available\n" \
