@@ -124,6 +124,6 @@ function diff_side_by_side()
 function diff_help()
 {
   echo -e "Usage: kw diff [options] FILES:\n" \
-    "\tdiff FILE1 FILE2"
+    "\tdiff FILE1 FILE2" \
     "\tdiff --no-interactive FILE1 FILE2"
 }
