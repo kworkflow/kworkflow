@@ -80,7 +80,7 @@ function kw()
       (
         . "$KW_LIB_DIR/mk.sh" --source-only
 
-        mk_build
+        mk_build '' "$@"
         local ret="$?"
         alert_completion "kw build" "$1"
         return "$ret"

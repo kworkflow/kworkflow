@@ -135,11 +135,18 @@ Projects that have a similar workflow to the Linux Kernel usually have a set of
 tools that simplify part of the tasks related with the code. This section
 describes some of the key features supported by **kw** to help with code.
 
-b, build
-~~~~~~~~
-This command calls make on a local Makefile to build the project. It tries to
+b, build [--menu|-n]
+~~~~~~~~~~~~~~~~~~~~
+If users invoke this option without parameters, kw will look at the local
+Makefile and, based on that, start to build the project. This option tries to
 take advantage of your hardware by using the *-j* option with the appropriate
 parameter.
+
+Users can use *--menu|-n* for invoking kernel menuconfig. Notice that the
+default menu config can be changed in the kworkflow.config file by setting a
+different option in the menu_config. If the user is working in a
+*cross-compile* environment, it is recommended to use this option to avoid
+messing with the config file.
 
 c, codestyle [*DIRECTORY|FILE*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -373,6 +380,21 @@ arch=ARCHITECTURE
 -----------------
 Allows you to specify the default architecture used by **kw**. By default,
 **kw** uses x86_64.
+
+kernel_img_name=KERNEL_IMAGE_NAME
+---------------------------------
+Use this option as a way to indicate to kw the kernel image name. This is the
+file present in the directory `arch/*/boot/`; keep in mind that the kernel
+image name might change based on the user config file or target architecture.
+
+cross_compile=CROSS_COMPILE_TOOLCHAIN_NAME
+------------------------------------------
+Kw supports cross compile setup, use this option to indicate the target
+toolchain.
+
+menu_config=MENU_OPTION
+-----------------------
+Default kernel menu used by kw.
 
 virtualizer=VIRTUALIZER
 -----------------------

@@ -5,9 +5,11 @@
 
 function suite
 {
+  suite_addTest "mk_build_Test"
   suite_addTest "kernel_deploy_Test"
   suite_addTest "modules_install_to_Test"
   suite_addTest "kernel_install_Test"
+  suite_addTest "kernel_install_x86_64_Test"
   suite_addTest "kernel_modules_Test"
   suite_addTest "kernel_modules_local_Test"
   suite_addTest "kernel_install_local_Test"
@@ -53,6 +55,12 @@ function setUp
   export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
+  if [ -x "$(command -v nproc)" ] ; then
+    PARALLEL_CORES=$(nproc --all)
+  else
+    PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
+  fi
+  export PARALLEL_CORES
 
   mkdir "$test_path/$LOCAL_TO_DEPLOY_DIR"
   mkdir "$test_path/$LOCAL_REMOTE_DIR"
@@ -105,6 +113,47 @@ function test_expected_string()
   local target="$3"
 
   assertEquals "$msg" "$target" "$expected"
+}
+
+function mk_build_Test()
+{
+  local ID
+  local expected_result
+  local original="$PWD"
+
+  ID=1
+  output=$(mk_build 'TEST_MODE')
+  ret="$?"
+  assertEquals "($ID) We expected an error" "125" "$ret"
+
+  cd "$FAKE_KERNEL"
+  ID=2
+  output=$(mk_build 'TEST_MODE' '--menu')
+  expected_result="make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig"
+  assertEquals "($ID)" "$expected_result" "$output"
+
+  ID=3
+  output=$(mk_build 'TEST_MODE' '--notvalid')
+  ret="$?"
+  assertEquals "($ID)" "$ret" "22"
+
+  ID=4
+  output=$(mk_build 'TEST_MODE' | head -1) # Remove statistics output
+  expected_result="make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
+  assertEquals "($ID)" "$expected_result" "${output}"
+
+  ID=5
+  cd "$original"
+  configurations=()
+  cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
+  parse_configuration "$FAKE_KERNEL/kworkflow.config"
+  cd "$FAKE_KERNEL"
+
+  output=$(mk_build 'TEST_MODE' | head -1) # Remove statistics output
+  expected_result="make -j$PARALLEL_CORES ARCH=x86_64 "
+  assertEquals "($ID)" "$expected_result" "${output}"
+
+  cd "$original"
 }
 
 # This test relies on kworkflow.config loaded during the setUp
@@ -229,34 +278,27 @@ function modules_install_to_Test
 function kernel_install_Test
 {
   local ID
-  local count=0
   local name="test"
   local original="$PWD"
   local reboot="1"
-  local remote_access="root@127.0.0.1"
+  local remote="root@127.0.0.1"
   local remote_path="/root/kw_deploy"
   local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
-  local bzImage_path="arch/x86_64/boot/bzImage"
-  local bzImage_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
-
+  local kernel_image_path="arch/arm64/boot/Image"
+  local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
   local ssh_cmd="ssh -p 3333"
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
-  local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $name $reboot"
+  local deploy_params="$name Image $reboot arm64 '' TEST_MODE"
+  local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
 
   # For this test we expected three steps:
-  # 1. Copy preset file
-  # 2. Copy kernel image
-  # 3. Execute deploy command
+  # 1. Copy preset file (cmd_preset_remote)
+  # 2. Copy kernel image (cmd_image_remote)
+  # 3. Execute deploy command (cmd_deploy_image)
   # The following commands represets those steps
-
-  # Copy test.preset to remote
-  local cmd_preset_remote="$rsync_cmd $preset_path $remote_access:$remote_path"
-
-  # Copy bzImage to remote
-  local cmd_image_remote="$rsync_cmd $bzImage_path $remote_access:$bzImage_remote_path"
-
-  # Execute deploy command
-  local cmd_deploy_image="$ssh_cmd $remote_access \"$deploy_cmd\""
+  local cmd_preset_remote="$rsync_cmd $preset_path $remote:$remote_path"
+  local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path"
+  local cmd_deploy_image="$ssh_cmd $remote \"$deploy_cmd\""
 
   declare -a expected_cmd=(
     "$cmd_preset_remote"
@@ -268,21 +310,16 @@ function kernel_install_Test
 
   ID=1
   output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
-  while read f; do
-    if [[ ${expected_cmd[$count]} != ${f} ]]; then
-      fail "$ID - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
-    fi
-    ((count++))
-  done <<< "$output"
+  compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   ID=2
   # Update values
-  count=0
   # NOTICE: I added one extra space in the below line for match what we
   # expect since I believe it is not worth to change the kernel_install
   # function just for it.
-  deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $name 0"
-  cmd_deploy_image="$ssh_cmd $remote_access \"$deploy_cmd\""
+  deploy_params="$name Image 0 arm64 '' TEST_MODE"
+  deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
+  cmd_deploy_image="$ssh_cmd $remote \"$deploy_cmd\""
 
   declare -a expected_cmd=(
     "$cmd_preset_remote"
@@ -291,19 +328,14 @@ function kernel_install_Test
   )
 
   output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
-  while read f; do
-    if [[ ${expected_cmd[$count]} != ${f} ]]; then
-      fail "$ID - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
-    fi
-    ((count++))
-  done <<< "$output"
+  compare_command_sequence expected_cmd[@] "$output" "$ID"
+
+  ID=3
+  # We want to test an corner case described by the absence of mkinitcpio
 
   cd "$original"
   tearDown
-
-  # We want to test an corner case described by the absence of mkinitcpio
   setUp "no_mkinitcpio"
-  ID=3
   cd "$FAKE_KERNEL"
   output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   cd "$original"
@@ -312,6 +344,65 @@ function kernel_install_Test
   assertTrue "The mkinit file was not created" '[[ -f "$preset_file" ]]'
 
   tearDown
+}
+
+function kernel_install_x86_64_Test
+{
+  local ID
+  local name="test"
+  local original="$PWD"
+  local reboot="1"
+  local remote="root@127.0.0.1"
+  local remote_path="/root/kw_deploy"
+  local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
+  local kernel_image_path="arch/x86_64/boot/bzImage"
+  local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
+  local ssh_cmd="ssh -p 3333"
+  local rsync_cmd="rsync -e '$ssh_cmd' -La"
+  local deploy_params="$name bzImage $reboot x86_64 '' TEST_MODE"
+  local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
+
+  cd "$original"
+  configurations=()
+  cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
+  parse_configuration "$FAKE_KERNEL/kworkflow.config"
+  cd "$FAKE_KERNEL"
+
+  ID=1
+
+  # For this test we expected three steps:
+  # 1. Copy preset file (cmd_preset_remote)
+  # 2. Copy kernel image (cmd_image_remote)
+  # 3. Execute deploy command (cmd_deploy_image)
+  # The following commands represets those steps
+  local cmd_preset_remote="$rsync_cmd $preset_path $remote:$remote_path"
+  local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path"
+  local cmd_deploy_image="$ssh_cmd $remote \"$deploy_cmd\""
+
+  declare -a expected_cmd=(
+    "$cmd_preset_remote"
+    "$cmd_image_remote"
+    "$cmd_deploy_image"
+  )
+
+  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  compare_command_sequence expected_cmd[@] "$output" "$ID"
+
+  # Test kernel image infer
+  ID=2
+  configurations['kernel_img_name']=''
+  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
+  expected_msg='kw inferred arch/x86_64/boot/arch/x86_64/boot/bzImage as a kernel image'
+  assertEquals "($ID): " "$output" "$expected_msg"
+
+  # Test failures
+  ID=3
+  rm -rf arch/x86_64/
+  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
+  expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
+  assertEquals "($ID): " "$output" "$expected_msg"
+
+  cd "$original"
 }
 
 function kernel_modules_Test
@@ -398,14 +489,13 @@ function kernel_install_local_Test
   local ID
   local count=0
   local original="$PWD"
-  local cmd_deploy_image="$ssh_cmd $remote_access \"$deploy_cmd\""
-
   # We force Debian files in the setup; for this reason, we are using the
   # commands used to deploy a new kernel image on debian.
-  local cmd_cp_kernel_img="sudo -E cp -v arch/x86_64/boot/bzImage /boot/vmlinuz-test"
+  local cmd_cp_kernel_img="sudo -E cp -v arch/arm64/boot/Image /boot/vmlinuz-test"
   local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
   local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
   local cmd_reboot="sudo -E reboot"
+  local msg=""
 
   declare -a expected_cmd=(
     "$cmd_cp_kernel_img"
@@ -422,12 +512,7 @@ function kernel_install_local_Test
 
   ID=1
   output=$(kernel_install "1" "test" "TEST_MODE" "2")
-
-  while read f; do
-    assertFalse "$ID (cmd: $count) - Expected \"${expected_cmd[$count]}\" to be \"${f}\"" \
-                '[[ ${expected_cmd[$count]} != ${f} ]]'
-    ((count++))
-  done <<< "$output"
+  compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   cd "$original"
 }
