@@ -11,7 +11,6 @@ function kworkflow-help()
 
   echo -e "\nCommands:\n" \
     "\tinit - Initialize kworkflow config file\n" \
-    "\tbuild,b - Build Kernel and modules\n" \
     "\tbd - Build and install modules\n" \
     "\tmount,mo - Mount partition with qemu-nbd\n" \
     "\tumount,um - Umount partition created with qemu-nbd\n" \
@@ -25,6 +24,10 @@ function kworkflow-help()
     "\thelp,h - displays this help mesage\n" \
     "\tversion,--version,-v - show kw version\n" \
     "\tman - Show manual\n"
+
+  echo -e "kw build:\n" \
+    "\tbuild - Build kernel \n" \
+    "\tbuild [--menu|-n] - Open kernel menu config\n" \
 
   echo -e "kw statistics:\n" \
     "\tstatistics [--day [YEAR/MONTH/DAY]\n" \

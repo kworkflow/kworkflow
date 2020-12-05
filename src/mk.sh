@@ -228,6 +228,11 @@ function mk_list_installed_kernels
 # Take a look at the available kernel plugins at: src/plugins/kernel_install
 function kernel_install
 {
+  local reboot="$1"
+  local name="$2"
+  local flag="$3"
+  local target="$4"
+  local formatted_remote="$5"
   local user=""
   local root_path="/"
   local host="--host"
@@ -236,11 +241,8 @@ function kernel_install
   local mkinitcpio_path="/etc/mkinitcpio.d/"
   local kernel_name="${configurations[kernel_name]}"
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
-  local reboot="$1"
-  local name="$2"
-  local flag="$3"
-  local target="$4"
-  local formatted_remote="$5"
+  local arch_target="${configurations[arch]}"
+  local kernel_img_name="${configurations[kernel_img_name]}"
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -260,6 +262,17 @@ function kernel_install
     fi
   fi
 
+  if [[ ! -f "arch/$arch_target/boot/$kernel_img_name" ]]; then
+    # Try to infer the kernel image name
+    kernel_img_name=$(find "arch/$arch_target/boot/" -name "*Image" 2>/dev/null)
+    if [[ -z "$kernel_img_name" ]]; then
+      complain "We could not find a valid kernel image at arch/$arch_target/boot"
+      complain "Please, check your compilation and/or the option kernel_img_name inside kworkflow.config"
+      exit 125 # ECANCELED
+    fi
+    warning "kw inferred arch/$arch_target/boot/$kernel_img_name as a kernel image"
+  fi
+
   case "$target" in
     1) # VM_TARGET
       # TODO: See issue #139
@@ -277,7 +290,7 @@ function kernel_install
 
       # Local Deploy
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
-      install_kernel "$name" "$reboot" 'local' "${configurations[arch]}" "$flag"
+      install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
     ;;
     3) # REMOTE_TARGET
       local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
@@ -294,12 +307,13 @@ function kernel_install
       cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
                      "$REMOTE_KW_DEPLOY" \
                      "$remote" "$port" "$user" "$flag"
-      cp_host2remote "arch/x86_64/boot/bzImage" \
+      cp_host2remote "arch/$arch_target/boot/$kernel_img_name" \
                      "$REMOTE_KW_DEPLOY/vmlinuz-$name" \
                      "$remote" "$port" "$user" "$flag"
 
       # Deploy
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $name $reboot"
+      local cmd_parameters="$name $kernel_img_name $reboot $arch_target '' $flag"
+      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $cmd_parameters"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
     ;;
   esac
@@ -462,11 +476,53 @@ function kernel_deploy
   fi
 }
 
-function mk_build
+# This function is responsible for manipulating kernel build operations such as
+# compile/cross-compile and menuconfig.
+#
+# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @raw_options String with all user options
+#
+# Return:
+# In case of successful return 0, otherwise, return 22 or 125.
+function mk_build()
 {
+  local flag="$1"
+  shift 1
+  local raw_options="$@"
   local PARALLEL_CORES=1
+  local CROSS_COMPILE=""
+  local command=""
   local start
   local end
+  local arch="${configurations[arch]}"
+  local menu_config="${configurations[menu_config]}"
+
+  menu_config=${menu_config:-"nconfig"}
+  arch=${arch:-"x86_64"}
+
+  if ! is_kernel_root "$PWD"; then
+    complain "Execute this command in a kernel tree."
+    exit 125 # ECANCELED
+  fi
+
+  if [[ ! -z "${configurations[cross_compile]}" ]]; then
+    CROSS_COMPILE="CROSS_COMPILE=${configurations[cross_compile]}"
+  fi
+
+  IFS=' ' read -r -a options <<< "$raw_options"
+  for option in "${options[@]}"; do
+    case "$option" in
+      --menu|-n)
+        command="make ARCH=$arch $CROSS_COMPILE $menu_config"
+        cmd_manager "$flag" "$command"
+        exit
+        ;;
+      *)
+        complain "Invalid option: $option"
+        exit 22 # EINVAL
+      ;;
+    esac
+  done
 
   if [ -x "$(command -v nproc)" ] ; then
     PARALLEL_CORES=$(nproc --all)
@@ -474,10 +530,10 @@ function mk_build
     PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
   fi
 
-  say "make ARCH=${configurations[arch]} -j$PARALLEL_CORES"
+  command="make -j$PARALLEL_CORES ARCH=$arch $CROSS_COMPILE"
 
   start=$(date +%s)
-  make ARCH="${configurations[arch]}" -j"$PARALLEL_CORES"
+  cmd_manager "$flag" "$command"
   ret="$?"
   end=$(date +%s)
 
@@ -549,6 +605,7 @@ function deploy_parser_options()
   options_values["LS_LINE"]=0
   options_values["LS"]=0
   options_values["REBOOT"]=0
+  options_values["MENU_CONFIG"]="nconfig"
 
   # Set basic default values
   if [[ ! -z ${configurations[default_deploy_target]} ]]; then

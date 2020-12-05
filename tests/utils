@@ -9,6 +9,7 @@ FAKE_DRM_SYSFS="$TMP_TEST_DIR/sys/class/drm"
 # Samples
 MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
 KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
+KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
 
 # External files
 CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
@@ -49,6 +50,10 @@ function mk_fake_kernel_root
   mkdir -p "$path/kernel"
   mkdir -p "$path/lib"
   mkdir -p "$path/scripts"
+  mkdir -p "$path/arch/x86_64/boot/"
+  mkdir -p "$path/arch/arm64/boot/"
+  touch "$path/arch/x86_64/boot/bzImage"
+  touch "$path/arch/arm64/boot/Image"
 }
 
 function mk_fake_sys_class_drm

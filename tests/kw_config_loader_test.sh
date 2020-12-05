@@ -64,7 +64,9 @@ function assertConfigurations
 function parser_output_Test
 {
   declare -A expected_configurations=(
-    [arch]="arm"
+    [arch]="arm64"
+    [kernel_img_name]="Image"
+    [cross_compile]="aarch64-linux-gnu-"
     [virtualizer]="libvirt"
     [qemu_path_image]="/home/xpto/p/virty.qcow2"
     [ssh_ip]="127.0.0.1"
@@ -94,6 +96,8 @@ function default_config_file_Test
 
   declare -A expected_configurations=(
     [arch]="x86_64"
+    [kernel_img_name]="bzImage"
+    [menu_config]="nconfig"
     [virtualizer]="qemu-system-x86_64"
     [qemu_path_image]="/home/USERKW/p/virty.qcow2"
     [qemu_hw_options]="-enable-kvm -daemonize -smp 2 -m 1024"

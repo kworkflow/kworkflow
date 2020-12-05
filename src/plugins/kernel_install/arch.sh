@@ -43,10 +43,11 @@ function update_boot_loader()
 function install_kernel()
 {
   local name="$1"
-  local reboot="$2"
-  local local="$3"
+  local kernel_image_name="$2"
+  local reboot="$3"
   local architecture="$4"
-  local flag="$5"
+  local local="$5"
+  local flag="$6"
   local sudo_cmd=""
   local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
 
@@ -69,7 +70,7 @@ function install_kernel()
 
   if [[ ! -z "$local" ]]; then
     [[ -z "$architecture" ]] && architecture="x86_64"
-    cmd="$sudo_cmd cp -v arch/$architecture/boot/bzImage /boot/vmlinuz-$name"
+    cmd="$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name /boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   else
     cmd="$sudo_cmd cp -v vmlinuz-$name /boot/vmlinuz-$name"
