@@ -192,8 +192,8 @@ kw offers some options that target some specific subsystems for providing
 facilities for users to interact with a particular subsystem. Currently, we
 only support drm.
 
-drm [--remote [REMOTE:PORT]|--local] [--load-module='MODULE[:PARAM1,...][;MODULE:...]'|--unload-module='MODULE[;MODULE;...]'|--gui-on|--gui-off|--conn-available|--modes|--help]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+drm [--remote [REMOTE:PORT]\|--local] [--load-module='MODULE[:PARAM1,...][;MODULE:...]'\|--unload-module='MODULE[;MODULE;...]'\|--gui-on\|--gui-off\|--conn-available\|--modes\|--help]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This option is responsible to deal with DRM features.
 
