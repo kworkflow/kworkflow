@@ -204,7 +204,7 @@ function execute_config_manager()
       shift 2 && description_config=$@
       save_config_file $force $name_config "$description_config"
       ;;
-    --ls)
+    --list|-l)
       list_configs
       ;;
     --get)
@@ -216,7 +216,7 @@ function execute_config_manager()
 
       get_config $1 $force
       ;;
-    --rm)
+    --remove|-rm)
       shift # Skip '--rm' option
       if [[ -z "$1" ]]; then
         complain "Invalid argument"

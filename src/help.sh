@@ -44,9 +44,9 @@ function kworkflow-help()
 
   echo -e "kw config manager:\n" \
     "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
-    "\tconfigm,g --ls - List config files under kw management\n" \
+    "\tconfigm,g --list|-l - List config files under kw management\n" \
     "\tconfigm,g --get NAME - Get a config file based named *NAME*\n" \
-    "\tconfigm,g --rm - Remove config labeled with *NAME*\n" \
+    "\tconfigm,g --remove|-rm - Remove config labeled with *NAME*\n" \
 
   echo -e "kw ssh|s options:\n" \
     "\tssh|s [--script|-s="SCRIPT PATH"]\n" \
