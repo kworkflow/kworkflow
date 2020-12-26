@@ -304,15 +304,15 @@ function get_config_with_force_Test()
 
 function execute_config_manager_remove_that_should_fail_Test()
 {
-  local msg_prefix=" --rm"
-
-  ret=$(execute_config_manager --rm)
-  test_expected_string "$msg_prefix" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  local msg_prefix=" -rm"
 
   ret=$(execute_config_manager -rm)
+  test_expected_string "$msg_prefix" "$COMMAND_MSG_INVALID_ARG" "$ret"
+
+  ret=$(execute_config_manager --rm)
   test_expected_string "$msg_prefix" "$COMMAND_MSG_UNKNOWN" "$ret"
 
-  ret=$(execute_config_manager --rm something_wrong)
+  ret=$(execute_config_manager -rm something_wrong)
   test_expected_string "$msg_prefix" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 

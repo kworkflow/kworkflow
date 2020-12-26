@@ -250,8 +250,8 @@ expects a bash script as a parameter to evaluate it in the target machine. The
 *--command* parameter expects a command to be executed inside of target
 machine.
 
-g, configm [--save *NAME* [-d *DESCRIPTION*][-f]]|[--ls]|[--get *NAME* [-f]]|[--rm *NAME* [-f]]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+g, configm [--save *NAME* [-d *DESCRIPTION*][-f]]|[--list|-l]|[--get *NAME* [-f]]|[--remove|-rm *NAME* [-f]]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 'configm' command manages different versions of the project's '.config'
 file.  It provides the save, load, remove, and list operations of such files.
@@ -263,15 +263,15 @@ can add a description by using *-d* flag. Finally, if the user tries to add the
 same name twice, **kw** will issue a warning; the '-f' will suppress this
 message.
 
-2. --ls lists all the .config file versions available.
+2. --list|-l lists all the .config file versions available.
 
 3. --get *NAME* [-f]: Get a config file based on the *NAME* and paste it in the
 current directory. It pop-up a warning message because this operation override
 the current .config file. The user can suppress this warning by using -f flag.
 
-4. --rm *NAME* [-f]: Remove config labeled with *NAME*. It pop-up a warning
-message because it will remove the config file from kw management. The user can
-suppress this warning by using -f.
+4. --remove|-rm *NAME* [-f]: Remove config labeled with *NAME*. It pop-up a
+warning message because it will remove the config file from kw management. The
+user can suppress this warning by using -f.
 
 v, vars
 ~~~~~~~
