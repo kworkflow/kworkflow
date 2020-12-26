@@ -3,20 +3,22 @@
 TEST_DIR="tests"
 SAMPLES_DIR="$TEST_DIR/samples"
 EXTERNAL_DIR="$TEST_DIR/external"
+TMP_TEST_DIR="$TEST_DIR/.tmp"
+FAKE_DRM_SYSFS="$TMP_TEST_DIR/sys/class/drm"
 
 # Samples
 MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
 KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
+KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
 
 # External files
 CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
 
 function init_env
 {
-  unset -v src_script_path external_script_path EASY_KERNEL_WORKFLOW
-  external_script_path="tests/external"
-  src_script_path="./src"
-  export src_script_path external_script_path EASY_KERNEL_WORKFLOW
+  unset -v KW_LIB_DIR KWORKFLOW
+  KW_LIB_DIR="./src"
+  export KW_LIB_DIR KWORKFLOW
 }
 
 # Receives a string with one or more lines and print each of
@@ -48,6 +50,66 @@ function mk_fake_kernel_root
   mkdir -p "$path/kernel"
   mkdir -p "$path/lib"
   mkdir -p "$path/scripts"
+  mkdir -p "$path/arch/x86_64/boot/"
+  mkdir -p "$path/arch/arm64/boot/"
+  touch "$path/arch/x86_64/boot/bzImage"
+  touch "$path/arch/arm64/boot/Image"
+}
+
+function mk_fake_sys_class_drm
+{
+  declare -a fake_dirs=(
+    "card0"
+    "card0-DP-1"
+    "card0-DP-2"
+    "card0-DP-3"
+    "card0-DVI-D-1"
+    "card0-HDMI-A-1"
+    "card1"
+    "card1-DP-4"
+    "card1-DP-5"
+    "card1-DP-6"
+    "card1-HDMI-A-2"
+    "renderD128"
+    "renderD129"
+    "ttm")
+
+  for dir in "${fake_dirs[@]}"
+  do
+    mkdir -p "$FAKE_DRM_SYSFS/$dir"
+  done
+
+  touch "$FAKE_DRM_SYSFS/version"
+  touch "$FAKE_DRM_SYSFS/card0-DP-3/modes"
+
+  cat <<END >> "$FAKE_DRM_SYSFS/card0-DP-3/modes"
+1920x2160
+2560x1440
+1920x1080
+1680x1050
+1280x1024
+1440x900
+1280x960
+1152x864
+1280x720
+1440x576
+1024x768
+1440x480
+800x600
+720x576
+720x480
+640x480
+720x400
+END
+
+  cat <<END >> "$FAKE_DRM_SYSFS/card1-HDMI-A-2/modes"
+2560x1440
+1920x1080
+1280x1024
+640x480
+720x400
+END
+
 }
 
 function mk_fake_remote
@@ -88,7 +150,7 @@ function compare_command_sequence
   ID=${ID:-0}
 
   while read f; do
-    if [[ ${expected[$count]} != ${f} ]]; then
+    if [[ "${expected[$count]}" != "${f}" ]]; then
       fail "($ID) $count - Expected cmd \"${expected[$count]}\" to be \"${f}\""
     fi
     ((count++))

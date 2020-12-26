@@ -1,36 +1,62 @@
-. $src_script_path/kw_config_loader.sh --source-only
+. "$KW_LIB_DIR/kw_config_loader.sh" --source-only
+. "$KW_LIB_DIR/kwlib.sh" --source-only
 
 function vm_mount
 {
-  local ret=0
-  mkdir -p ${configurations[mount_point]}
+  local flag="$1"
+  local qemu_img_path="$2"
+  local mount_point_path="$3"
+  local guestmount_cmd
+  local ret
 
-  say "Mount ${configurations[qemu_path_image]}" \
-      "in ${configurations[mount_point]}"
+  flag=${flag:-"SILENT"}
+  qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
+  mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
 
-  guestmount -a ${configurations[qemu_path_image]} \
-             -i ${configurations[mount_point]}
+  [[ $(findmnt "$mount_point_path") ]] && return 125
 
-  if [ "$?" != 0 ] ; then
-    complain "Something went wrong when tried to mount" \
-        "${configurations[qemu_path_image]} in ${configurations[mount_point]}"
+  mkdir -p $mount_point_path
+
+  say "Mount $qemu_img_path in $mount_point_path"
+
+  guestmount_cmd="guestmount -a $qemu_img_path -i $mount_point_path 2>&1"
+  cmd_manager "$flag" "$guestmount_cmd"
+  if [[ "$ret" ]] ; then
+    complain "Something went wrong when tried to mount $qemu_img_path" \
+	     "in $mount_point_path"
+    return "$ret"
   fi
 
-  return "$ret"
+  return 0
 }
 
 function vm_umount
 {
-  local ret=0
-  say "Unmount ${configurations[mount_point]}"
-  guestunmount ${configurations[mount_point]}
-  ret="$?"
-  if [ "$ret" != 0 ] ; then
-    complain "Something went wrong when tried to unmount" \
-        "${configurations[qemu_path_image]} in ${configurations[mount_point]}"
+  local flag="$1"
+  local qemu_img_path="$2"
+  local mount_point_path="$3"
+  local guestumount_cmd
+  local ret
+
+  flag=${flag:-"SILENT"}
+  qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
+  mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
+
+  if [[ $(findmnt "$mount_point_path") ]]; then
+    say "Unmount $mount_point_path"
+
+    guestumount_cmd="guestunmount $mount_point_path"
+    cmd_manager "$flag" "$guestumount_cmd"
+    ret="$?"
+    if [[ "$ret" != 0 ]] ; then
+      complain "Something went wrong when tried to unmount $qemu_img_path" \
+         "in $mount_point_path"
+      return "$ret"
+    fi
+    return 0
   fi
 
-  return "$ret"
+  return 125 #ECANCELED
 }
 
 function vm_boot

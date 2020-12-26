@@ -2,8 +2,8 @@
 # in this file is to handle this script in a way to make this tool easier for
 # users.
 
-. $src_script_path/kw_config_loader.sh --source-only
-. $src_script_path/kwlib.sh --source-only
+. "$KW_LIB_DIR/kw_config_loader.sh" --source-only
+. "$KW_LIB_DIR/kwlib.sh" --source-only
 
 # Runs checkpatch in the given path, which might be a file or directory.
 #
@@ -14,8 +14,7 @@ function execute_checkpatch()
 
   #TODO: Note that codespell file is not specified yet because of the poluted
   # output. It could be nice if we can add another option just for this sort
-  # of check. Follow the line that makes the magic:
-  # --codespell $external_script_path/spelling.txt
+  # of check.
 
   local -r options="--terse --no-tree --color=always -strict --file "
   local -r script="scripts/checkpatch.pl $options"

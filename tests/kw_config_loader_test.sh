@@ -64,7 +64,9 @@ function assertConfigurations
 function parser_output_Test
 {
   declare -A expected_configurations=(
-    [arch]="arm"
+    [arch]="arm64"
+    [kernel_img_name]="Image"
+    [cross_compile]="aarch64-linux-gnu-"
     [virtualizer]="libvirt"
     [qemu_path_image]="/home/xpto/p/virty.qcow2"
     [ssh_ip]="127.0.0.1"
@@ -72,6 +74,8 @@ function parser_output_Test
     [mount_point]="/home/lala"
     [default_deploy_target]="vm"
     [reboot_after_deploy]="no"
+    [gui_on]="turn on"
+    [gui_off]="turn off"
   )
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"
@@ -92,6 +96,8 @@ function default_config_file_Test
 
   declare -A expected_configurations=(
     [arch]="x86_64"
+    [kernel_img_name]="bzImage"
+    [menu_config]="nconfig"
     [virtualizer]="qemu-system-x86_64"
     [qemu_path_image]="/home/USERKW/p/virty.qcow2"
     [qemu_hw_options]="-enable-kvm -daemonize -smp 2 -m 1024"
@@ -100,10 +106,11 @@ function default_config_file_Test
     [ssh_port]="22"
     [mount_point]="/home/USERKW/p/mount"
     [alert]="n"
-    [sound_alert_command]="paplay INSTALLPATH/sounds/complete.wav"
+    [sound_alert_command]="paplay SOUNDPATH/complete.wav"
     [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\\\"\$COMMAND\\\\\" completed!\""
     [default_deploy_target]="vm"
     [reboot_after_deploy]="no"
+    [disable_statistics_data_track]="no"
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"
@@ -114,7 +121,7 @@ function default_config_file_Test
 
 function config_files_loading_order_Test
 {
-  expected="$etc_files_path/$CONFIG_FILENAME
+  expected="$KW_ETC_DIR/$CONFIG_FILENAME
 $HOME/.kw/$CONFIG_FILENAME
 $PWD/$CONFIG_FILENAME"
 

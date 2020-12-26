@@ -1,4 +1,4 @@
-. $src_script_path/kwio.sh --source-only
+. "$KW_LIB_DIR/kwio.sh" --source-only
 
 function kworkflow-help()
 {
@@ -11,7 +11,6 @@ function kworkflow-help()
 
   echo -e "\nCommands:\n" \
     "\tinit - Initialize kworkflow config file\n" \
-    "\tbuild,b - Build Kernel and modules\n" \
     "\tbd - Build and install modules\n" \
     "\tmount,mo - Mount partition with qemu-nbd\n" \
     "\tumount,um - Umount partition created with qemu-nbd\n" \
@@ -26,10 +25,22 @@ function kworkflow-help()
     "\tversion,--version,-v - show kw version\n" \
     "\tman - Show manual\n"
 
+  echo -e "kw build:\n" \
+    "\tbuild - Build kernel \n" \
+    "\tbuild [--menu|-n] - Open kernel menu config\n" \
+
+  echo -e "kw statistics:\n" \
+    "\tstatistics [--day [YEAR/MONTH/DAY]\n" \
+    "\tstatistics [--week [YEAR/MONTH/DAY]\n" \
+    "\tstatistics [--month [YEAR/MONTH]\n" \
+    "\tstatistics [--year [YEAR]] \n" \
+
   echo -e "kw explore:\n" \
     "\texplore,e STRING [PATH] - Search for STRING based in PATH (./ by default) \n" \
-    "\texplore,e \"STR SRT\" [PATH] - Search for strings\n" \
-    "\texplore,e --log STRING - Search for STRING on git log\n" \
+    "\texplore,e \"STR SRT\" [PATH] - Search for strings only in files under git control\n" \
+    "\texplore,e --log,-l STRING - Search for STRING on git log\n" \
+    "\texplore,e --grep,-g STRING - Search for STRING using the GNU grep tool\n" \
+    "\texplore,e --all,-a STRING - Search for all STRING match under or not of git management.\n" \
 
   echo -e "kw config manager:\n" \
     "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
@@ -51,18 +62,18 @@ function kworkflow-help()
 # installed to the system
 function kworkflow-man()
 {
-    doc="$config_files_path/documentation/man"
+    doc="$KW_SHARE_MAN_DIR"
     ret=0
 
     if ! man kw > /dev/null 2>&1; then
       if [ -x "$(command -v rst2man)" ]; then
-        rst2man < $doc/kw.rst | man -l -
-        ret=$?
+        rst2man < "$doc/kw.rst" | man -l -
+        ret="$?"
       else
         complain "There's no man support"
         ret=1
       fi
-      exit $ret
+      exit "$ret"
     fi
 
     man kw
@@ -70,7 +81,7 @@ function kworkflow-man()
 
 function kworkflow_version()
 {
-  local version_path="$src_script_path/VERSION"
+  local version_path="$KW_LIB_DIR/VERSION"
 
   cat "$version_path"
 }

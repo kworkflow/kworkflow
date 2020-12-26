@@ -135,11 +135,18 @@ Projects that have a similar workflow to the Linux Kernel usually have a set of
 tools that simplify part of the tasks related with the code. This section
 describes some of the key features supported by **kw** to help with code.
 
-b, build
-~~~~~~~~
-This command calls make on a local Makefile to build the project. It tries to
+b, build [--menu|-n]
+~~~~~~~~~~~~~~~~~~~~
+If users invoke this option without parameters, kw will look at the local
+Makefile and, based on that, start to build the project. This option tries to
 take advantage of your hardware by using the *-j* option with the appropriate
 parameter.
+
+Users can use *--menu|-n* for invoking kernel menuconfig. Notice that the
+default menu config can be changed in the kworkflow.config file by setting a
+different option in the menu_config. If the user is working in a
+*cross-compile* environment, it is recommended to use this option to avoid
+messing with the config file.
 
 c, codestyle [*DIRECTORY|FILE*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -149,15 +156,29 @@ This command is a wrapper for **checkpatch**, with the goal of simplifying the
 use of this tool; notice that you can specify a single file or an entire
 directory.
 
-e, explore [--log] [*EXPRESSION*] [-p] [*DIRECTORY|FILE*]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The *explore* command is a wrapper to git grep. It can search for string
-matches in either the git repository contents or in the git log messages. For
-example, you can use **kw e functionName** to find *functionName* in the source
-directory; If you want to search for a composed string, you have to quote your
-search (e.g., **kw e "str1 str2"**). You can also search the git log history by
-using *--log* after the *e*; for instance, **kw e --log STRING_MATCH**.
-Additionally, you can use *-p* to see the diff in the search.
+e, explore [--log, -l | --grep, -g | --all, -a] [*EXPRESSION*] [-p] [*DIRECTORY|FILE*]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The *explore* command is, by default, a wrapper to git grep, searching for
+string matches in files under git control or in the git log messages.
+Additional parameters extended its behavior to cover all files in a directory
+(whether or not controlled by git) and also to replace the search tool with the
+GNU grep utility. Default usage: you can use **kw e functionName** to find
+*functionName* in the source directory; If you want to search for a composed
+string, you have to quote your search (e.g., **kw e "str1 str2"**).
+
+1. --log: Search the git log history by using *--log* after the *e*; for
+   instance, **kw e --log STRING_MATCH**.  Additionally, you can use *-p* to
+   see the diff in the search.
+
+2. --grep | -g: Search for string matches in directory contents using GNU grep
+   tool. For instance, **kw e --grep STRING_MATCH**. It also covers files
+   inside .git directory.
+
+3. --all | -a: Search for string matches in directory contents using Git grep
+   tool. For instance, **kw e --all STRING_MATCH**. With this, the search
+   ignores files inside .git, except if it is called inside .git directory. In
+   other words, if you use this option you going feel that `git grep` is first
+   used, and then GNU grep.
 
 m, maintainers [*-a|--authors*] [*DIRECTORY|FILE*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -168,6 +189,52 @@ maintainers of a given Kernel module (a given file or directory).  The
 files (non-recursively). Files with more than one author will have their names
 separated by ",". This output should not be used by scripts because some
 authors include "," in their names (e.g. "Company X, Inc.").
+
+SUBSYSTEM COMMANDS
+------------------
+
+Linux kernel has multiple subsystems that expose operations via sysfs or
+provide mechanisms for userspace to interact with the driver. For this reason,
+kw offers some options that target some specific subsystems for providing
+facilities for users to interact with a particular subsystem. Currently, we
+only support drm.
+
+drm [--remote [REMOTE:PORT]\|--local] [--load-module='MODULE[:PARAM1,...][;MODULE:...]'\|--unload-module='MODULE[;MODULE;...]'\|--gui-on\|--gui-off\|--conn-available\|--modes\|--help]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This option is responsible to deal with DRM features.
+
+1. --remote *[REMOTE:PORT]|--local*: This option specifies the target device
+for the drm action, it can be a remote or local machine. If these options are
+not explicitly passed via command line, kw going to take the target set in the
+variable default_deploy_target (kworkflow.config) for identifying the target.
+It is important to highlight that the drm feature ** does not support VM**.
+
+2. --load-module|-lm='MODULE[:PARAM1,...][;MODULE:...]': Allow user to specify
+one or more modules to be load with or without parameters. If you want to
+indicate more than one module, you have to separate them using ';'.
+Additionally, if users wish to provide specific parameters for the target
+module, they have to use ':' and separate each parameter with ','. This option
+can be combined with **--gui-on**, kw will make sure that the target module
+will be load first and after that trigger the GUI.
+
+3. --unload-module|-um='MODULE[;MODULE;...]': This option allows users to
+unload one or more DRM drivers. Users can provide a single module to be
+unloaded or a list separated by ';'. This command first disables the user
+interface and, after that, unloads the module.
+
+4. --gui-on: This option provides a mechanism for turn-on the GUI, by default
+it uses systemctl operation; however, users are free to add any specific
+command for activating their preferred GUI in the variable gui_on in the
+kworkflow.config file.
+
+5. --gui-off: Turn off the target GUI in the specified target, by default, it
+uses the systemctl operation but users can change this behavior by set gui_off
+with a specific command in the kworkflow.config file with the specific command.
+
+6. --conn-available: Show all connectors available in the target machine.
+
+7. --modes: Show all available modes per card.
 
 OTHER COMMANDS
 --------------
@@ -239,6 +306,49 @@ init
 This command creates a kworkflow.config file in the current directory. The
 primary reason for rerunning kw init is to pick up newly config file.
 
+statistics [--day [YEAR/MONTH/DAY] | --week [YEAR/MONTH/DAY] | --month [YEAR/MONTH] --year [YEAR] ]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+kw keep track of metadata regarding features utilization to be later used for
+show kw usage statistics, in summary, kw keep track of:
+
+1. *Build*
+
+2. *Deploy* (included list and uninstall)
+
+
+For all the data tracked by kw, users can retrieve the total amount of time
+that a specific command was executed, the average time consumed by the feature,
+and the shortest and highest time required for executing the feature. All of
+this information can be retrieved by the *statistics* option with the following
+level of granularity:
+
+1. *--day [YEAR/MONTH/DAY]*: display day statistics summary, users have the
+option to search a specific date by passing an argument that follows the
+YEAR/MONTH/DAY format or not passes anything and get today info.
+
+2. *--week [YEAR/MONTH/DAY]*: shows the week summary, if a user does not pass
+any parameter kw will show the current week statistics. However, users can pass
+a random date (YEAR/MONTH/DAY) and let kw take care to provide a summary
+related to the week related to the target date.
+
+3. *--month [YEAR/MONTH]*: this option shows a report regarding a specific
+month, users can search for data related to a specific month by providing a
+parameter in the YEAR/MONTH format. If the user does not pass any parameter, kw
+displays the current month data.
+
+4. *--year [YEAR]*: exhibits the current year summary if the user does not
+specify a specific year.
+
+df, diff [OPTIONS] FILE1 FILE2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This is a wrapper to some useful usage of diff command, by default, it shows
+diff files side-by-side in an interactive way. This command provides the
+following set of options:
+
+1. --no-interactive: This option displays all diff in two columns at once.
+
+2. --help: Show the help options.
+
 h, help
 ~~~~~~~
 Show basic help.
@@ -270,6 +380,21 @@ arch=ARCHITECTURE
 -----------------
 Allows you to specify the default architecture used by **kw**. By default,
 **kw** uses x86_64.
+
+kernel_img_name=KERNEL_IMAGE_NAME
+---------------------------------
+Use this option as a way to indicate to kw the kernel image name. This is the
+file present in the directory `arch/*/boot/`; keep in mind that the kernel
+image name might change based on the user config file or target architecture.
+
+cross_compile=CROSS_COMPILE_TOOLCHAIN_NAME
+------------------------------------------
+Kw supports cross compile setup, use this option to indicate the target
+toolchain.
+
+menu_config=MENU_OPTION
+-----------------------
+Default kernel menu used by kw.
 
 virtualizer=VIRTUALIZER
 -----------------------
@@ -329,6 +454,16 @@ reboot_remote_by_default
 ------------------------
 Reboot machine after the deploy finish
 
+gui_on=COMMAND
+--------------
+This option is disabled by default, if enabled, it requires a command that
+instructs kw to turn on the GUI.
+
+gui_off=COMMAND
+---------------
+This option is disabled by default, if enabled, it requires a command that
+instructs kw to turn off the GUI.
+
 EXAMPLE
 =======
 For these examples, we suppose the fields in your *kworkflow.config* file is
@@ -377,6 +512,27 @@ After you start your VM you can ssh into it with::
 
   kw s -c="dmesg -wH"
   kw s
+
+You can see data related to your kw usage by using the statistics option, see
+some examples below::
+
+  kw statistics --day
+  kw statistics --week
+  kw statistics --month
+  kw statistics --year
+
+You can also request a specific day, week, month, or year. For example::
+
+  kw statistics --day 2020/05/12
+  kw statistics --week 2020/02/29
+  kw statistics --month 2020/04
+  kw statistics --year 1984
+
+If you are working with DRM drivers, you can take advantage of load and unload
+commands combined with GUI control commands. For example::
+
+  kw drm --load-module='amdgpu' --gui-on # Load a driver and trigger the user GUI
+  kw drm --unload-module='amdgpu' # Turn off user GUI and unload the driver
 
 .. note::
    You have to wait for the sshd to become ready.

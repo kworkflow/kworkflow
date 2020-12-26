@@ -17,9 +17,8 @@
 # root password.
 #
 
-. $src_script_path/vm.sh --source-only # It includes kw_config_loader.sh
-. $src_script_path/kwlib.sh --source-only
-. $src_script_path/remote.sh --source-only
+. "$KW_LIB_DIR/vm.sh" --source-only # It includes kw_config_loader.sh and kwlib.sh
+. "$KW_LIB_DIR/remote.sh" --source-only
 
 # Hash containing user options
 declare -A options_values
@@ -46,22 +45,6 @@ function modules_install_to()
   local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   set +e
   cmd_manager "$flag" "$cmd"
-}
-
-function vm_modules_install
-{
-  # Attention: The vm code have to be loaded before this function.
-  # Take a look at the beginning of kworkflow.sh.
-  vm_mount
-
-  if [ "$?" != 0 ] ; then
-    complain "Did you check if your VM is running?"
-    return 125 # ECANCELED
-  fi
-
-  modules_install_to "${configurations[mount_point]}"
-
-  vm_umount
 }
 
 # Get the kernel release based on the command kernel release.
@@ -97,12 +80,12 @@ function cleanup_after_deploy
 {
   local flag="$1"
 
-  if [[ -d "$kw_cache_dir/$LOCAL_REMOTE_DIR" ]]; then
-    cmd_manager "$flag"  "rm -rf $kw_cache_dir/$LOCAL_REMOTE_DIR/*"
+  if [[ -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
+    cmd_manager "$flag"  "rm -rf $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/*"
   fi
 
-  if [[ -d "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    cmd_manager "$flag" "rm -rf $kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/*"
+  if [[ -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
+    cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   fi
 }
 
@@ -113,7 +96,6 @@ function cleanup_after_deploy
 # @target Target machine
 function modules_install
 {
-  local ret
   local flag="$1"
   local target="$2"
   local formatted_remote="$3"
@@ -127,7 +109,15 @@ function modules_install
 
   case "$target" in
     1) # VM_TARGET
-      vm_modules_install
+      local distro=$(detect_distro "${configurations[mount_point]}/")
+
+      if [[ "$distro" =~ "none" ]]; then
+        complain "Unfortunately, there's no support for the target distro"
+        vm_umount
+        exit 95 # ENOTSUP
+      fi
+
+      modules_install_to "${configurations[mount_point]}" "$flag"
       ;;
     2) # LOCAL_TARGET
       cmd="sudo -E make modules_install"
@@ -145,13 +135,13 @@ function modules_install
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
       # 2. Send files modules
-      modules_install_to "$kw_cache_dir/$LOCAL_REMOTE_DIR/" "$flag"
+      modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
 
       release=$(get_kernel_release "$flag")
       success "Kernel: $release"
       generate_tarball "$release" "" "$flag"
 
-      local tarball_for_deploy_path="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$release.tar"
+      local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
       cp_host2remote "$tarball_for_deploy_path" \
                      "$REMOTE_KW_DEPLOY" "$remote" "$port" "" "$flag"
 
@@ -192,13 +182,13 @@ function mk_list_installed_kernels
         return 125 # ECANCELED
       fi
 
-      . "$plugins_path/kernel_install/utils.sh" --source-only
+      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       list_installed_kernels "$single_line" "${configurations[mount_point]}"
 
       vm_umount
     ;;
     2) # LOCAL_TARGET
-      . "$plugins_path/kernel_install/utils.sh" --source-only
+      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       list_installed_kernels "$single_line"
     ;;
     3) # REMOTE_TARGET
@@ -228,6 +218,11 @@ function mk_list_installed_kernels
 # Take a look at the available kernel plugins at: src/plugins/kernel_install
 function kernel_install
 {
+  local reboot="$1"
+  local name="$2"
+  local flag="$3"
+  local target="$4"
+  local formatted_remote="$5"
   local user=""
   local root_path="/"
   local host="--host"
@@ -236,11 +231,8 @@ function kernel_install
   local mkinitcpio_path="/etc/mkinitcpio.d/"
   local kernel_name="${configurations[kernel_name]}"
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
-  local reboot="$1"
-  local name="$2"
-  local flag="$3"
-  local target="$4"
-  local formatted_remote="$5"
+  local arch_target="${configurations[arch]}"
+  local kernel_img_name="${configurations[kernel_img_name]}"
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -260,12 +252,30 @@ function kernel_install
     fi
   fi
 
+  if [[ ! -f "arch/$arch_target/boot/$kernel_img_name" ]]; then
+    # Try to infer the kernel image name
+    kernel_img_name=$(find "arch/$arch_target/boot/" -name "*Image" 2>/dev/null)
+    if [[ -z "$kernel_img_name" ]]; then
+      complain "We could not find a valid kernel image at arch/$arch_target/boot"
+      complain "Please, check your compilation and/or the option kernel_img_name inside kworkflow.config"
+      exit 125 # ECANCELED
+    fi
+    warning "kw inferred arch/$arch_target/boot/$kernel_img_name as a kernel image"
+  fi
+
   case "$target" in
     1) # VM_TARGET
-      # TODO: See issue #139
-      echo "Unfortunately, we don't support kernel image deploy in a VM with" \
-           "libguestfs yet; however, an alternative is using the remote" \
-           "option."
+      local distro=$(detect_distro "${configurations[mount_point]}/")
+
+      if [[ "$distro" =~ "none" ]]; then
+        complain "Unfortunately, there's no support for the target distro"
+        vm_umount
+        exit 95 # ENOTSUP
+      fi
+
+      . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
+      install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
+      return "$?"
     ;;
     2) # LOCAL_TARGET
       local distro=$(detect_distro "/")
@@ -276,13 +286,14 @@ function kernel_install
       fi
 
       # Local Deploy
-      . "$plugins_path/kernel_install/$distro.sh" --source-only
-      install_kernel "$name" "$reboot" 'local' "${configurations[arch]}" "$flag"
+      . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
+      install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
+      return "$?"
     ;;
     3) # REMOTE_TARGET
-      local preset_file="$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset"
+      local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
       if [[ ! -f "$preset_file" ]]; then
-        template_mkinit="$etc_files_path/template_mkinitcpio.preset"
+        template_mkinit="$KW_ETC_DIR/template_mkinitcpio.preset"
         cp "$template_mkinit" "$preset_file"
         sed -i "s/NAME/$name/g" "$preset_file"
       fi
@@ -291,15 +302,16 @@ function kernel_install
       local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
-      cp_host2remote "$kw_cache_dir/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
+      cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
                      "$REMOTE_KW_DEPLOY" \
                      "$remote" "$port" "$user" "$flag"
-      cp_host2remote "arch/x86_64/boot/bzImage" \
+      cp_host2remote "arch/$arch_target/boot/$kernel_img_name" \
                      "$REMOTE_KW_DEPLOY/vmlinuz-$name" \
                      "$remote" "$port" "$user" "$flag"
 
       # Deploy
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $name $reboot"
+      local cmd_parameters="$name $kernel_img_name $reboot $arch_target '' $flag"
+      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $cmd_parameters"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
     ;;
   esac
@@ -341,8 +353,8 @@ function mk_kernel_uninstall()
 
       # Local Deploy
       # We need to update grub, for this reason we to load specific scripts.
-      . "$plugins_path/kernel_install/$distro.sh" --source-only
-      . "$plugins_path/kernel_install/utils.sh" --source-only
+      . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
+      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
     ;;
     3) # REMOTE_TARGET
@@ -384,6 +396,10 @@ function kernel_deploy
   local list=0
   local single_line=0
   local uninstall=""
+  local start=0
+  local end=0
+  local runtime=0
+  local ret=0
 
   deploy_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -407,12 +423,22 @@ function kernel_deploy
 
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
     say "Available kernels:"
+    start=$(date +%s)
     mk_list_installed_kernels "" "$single_line" "$target" "$remote"
+    end=$(date +%s)
+
+    runtime=$((end - start))
+    statistics_manager "list" "$runtime"
     return "$?"
   fi
 
   if [[ ! -z "$uninstall" ]]; then
+    start=$(date +%s)
     mk_kernel_uninstall "$target" "$reboot" "$remote" "$uninstall" "$flag"
+    end=$(date +%s)
+
+    runtime=$((end - start))
+    statistics_manager "uninstall" "$runtime"
     return "$?"
   fi
 
@@ -421,17 +447,40 @@ function kernel_deploy
     exit 125 # ECANCELED
   fi
 
+  if [[ "$target" == "$VM_TARGET" ]] ; then
+    vm_mount
+    ret="$?"
+    if [[ "$ret" != 0 ]] ; then
+      complain "Please shutdown or umount your VM to continue."
+      exit "$ret"
+    fi
+  fi
+
   # NOTE: If we deploy a new kernel image that does not match with the modules,
   # we can break the boot. For security reason, every time we want to deploy a
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
+  start=$(date +%s)
   modules_install "" "$target" "$remote"
+  end=$(date +%s)
+  runtime=$((end - start))
 
   if [[ "$modules" == 0 ]]; then
+    start=$(date +%s)
     # Update name: release + alias
     name=$(make kernelrelease)
 
     kernel_install "$reboot" "$name" "" "$target" "$remote"
+    end=$(date +%s)
+    runtime=$(( runtime + (end - start) ))
+    statistics_manager "deploy" "$runtime"
+  else
+    statistics_manager "Modules_deploy" "$runtime"
+  fi
+
+  if [[ "$target" == "$VM_TARGET" ]] ; then
+    # Umount VM if it remains mounted
+    vm_umount
   fi
 
   if [[ "$target" == "$REMOTE_TARGET" ]]; then
@@ -440,9 +489,53 @@ function kernel_deploy
   fi
 }
 
-function mk_build
+# This function is responsible for manipulating kernel build operations such as
+# compile/cross-compile and menuconfig.
+#
+# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @raw_options String with all user options
+#
+# Return:
+# In case of successful return 0, otherwise, return 22 or 125.
+function mk_build()
 {
+  local flag="$1"
+  shift 1
+  local raw_options="$@"
   local PARALLEL_CORES=1
+  local CROSS_COMPILE=""
+  local command=""
+  local start
+  local end
+  local arch="${configurations[arch]}"
+  local menu_config="${configurations[menu_config]}"
+
+  menu_config=${menu_config:-"nconfig"}
+  arch=${arch:-"x86_64"}
+
+  if ! is_kernel_root "$PWD"; then
+    complain "Execute this command in a kernel tree."
+    exit 125 # ECANCELED
+  fi
+
+  if [[ ! -z "${configurations[cross_compile]}" ]]; then
+    CROSS_COMPILE="CROSS_COMPILE=${configurations[cross_compile]}"
+  fi
+
+  IFS=' ' read -r -a options <<< "$raw_options"
+  for option in "${options[@]}"; do
+    case "$option" in
+      --menu|-n)
+        command="make ARCH=$arch $CROSS_COMPILE $menu_config"
+        cmd_manager "$flag" "$command"
+        exit
+        ;;
+      *)
+        complain "Invalid option: $option"
+        exit 22 # EINVAL
+      ;;
+    esac
+  done
 
   if [ -x "$(command -v nproc)" ] ; then
     PARALLEL_CORES=$(nproc --all)
@@ -450,8 +543,22 @@ function mk_build
     PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
   fi
 
-  say "make ARCH="${configurations[arch]}" -j$PARALLEL_CORES"
-  make ARCH="${configurations[arch]}" -j$PARALLEL_CORES
+  command="make -j$PARALLEL_CORES ARCH=$arch $CROSS_COMPILE"
+
+  start=$(date +%s)
+  cmd_manager "$flag" "$command"
+  ret="$?"
+  end=$(date +%s)
+
+  runtime=$((end - start))
+
+  if [[ "$ret" != 0 ]]; then
+    statistics_manager "build_failure" "$runtime"
+  else
+    statistics_manager "build" "$runtime"
+  fi
+
+  return "$ret"
 }
 
 # Handles the remote info
@@ -511,6 +618,7 @@ function deploy_parser_options()
   options_values["LS_LINE"]=0
   options_values["LS"]=0
   options_values["REBOOT"]=0
+  options_values["MENU_CONFIG"]="nconfig"
 
   # Set basic default values
   if [[ ! -z ${configurations[default_deploy_target]} ]]; then

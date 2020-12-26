@@ -1,28 +1,42 @@
 #!/bin/bash
 
-# Set required variables
-EASY_KERNEL_WORKFLOW=${EASY_KERNEL_WORKFLOW:-"kw"}
-src_script_path=${src_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src"}
-plugins_path=${plugins_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/src/plugins"}
-external_script_path=${external_script_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/external"}
-etc_files_path=${etc_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW/etc"}
-config_files_path=${config_files_path:-"$HOME/.config/$EASY_KERNEL_WORKFLOW"}
-kw_cache_dir=${kw_cache_dir:-"$HOME/.cache/kw"}
+# Note: the following line should not be modified, and neither the token should
+# be repeated in this file because It will be replaced during installation with
+# the respective installation prefix.
+KW_INSTALL_PREFIX=${KW_INSTALL_PREFIX:-"##KW_INSTALL_PREFIX_TOKEN##"}
+
+KWORKFLOW=${KWORKFLOW:-"kw"}
+
+# Global paths
+KW_LIB_DIR=${KW_LIB_DIR:-"$KW_INSTALL_PREFIX/lib/kw"}
+KW_SHARE_DOC_DIR=${KW_SHARE_DIR:-"$KW_INSTALL_PREFIX/share/doc/kw/"}
+KW_SHARE_MAN_DIR=${KW_SHARE_DIR:-"$KW_INSTALL_PREFIX/share/man"}
+KW_SHARE_SOUND_DIR=${KW_SHARE_DIR:-"$KW_INSTALL_PREFIX/share/sound/kw"}
+KW_ETC_DIR=${KW_ETC_DIR:-"$KW_INSTALL_PREFIX/etc/kw"}
+KW_DATA_DIR=${KW_DATA_DIR:-"$HOME/.kw"}
+KW_PLUGINS_DIR=${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}
+KW_CACHE_DIR="$HOME/.cache/kw"
+
+# User data
+# TODO: These two variables just introduce more complexity, try to get rid of
+# them.
+config_files_path=${config_files_path:-"$KW_DATA_DIR"}
+statistics_path=${statistics_path:-"$KW_DATA_DIR/statistics"}
 
 # Export external variables required by kworkflow
-export EASY_KERNEL_WORKFLOW
+export KWORKFLOW
 
 function kw()
 {
-  action=$1
+  action="$1"
   shift
 
-  mkdir -p "$kw_cache_dir"
+  mkdir -p "$KW_CACHE_DIR"
 
   case "$action" in
     init)
       (
-        . "$src_script_path/init.sh" --source-only
+        . "$KW_LIB_DIR/init.sh" --source-only
 
         init_kw
         return "$?"
@@ -30,51 +44,51 @@ function kw()
       ;;
     mount|mo)
       (
-        . "$src_script_path"/vm.sh --source-only
+        . "$KW_LIB_DIR/vm.sh" --source-only
 
         vm_mount
-        local ret=$?
+        local ret="$?"
         alert_completion "kw mount" "$1"
-        return $ret
+        return "$ret"
       )
       ;;
     umount|um)
       (
-        . "$src_script_path"/vm.sh --source-only
+        . "$KW_LIB_DIR/vm.sh" --source-only
 
         vm_umount
-        local ret=$?
+        local ret="$?"
         alert_completion "kw umount" "$1"
-        return $ret
+        return "$ret"
       )
       ;;
     boot|bo)
       (
-        . "$src_script_path"/vm.sh --source-only
+        . "$KW_LIB_DIR/vm.sh" --source-only
 
         vm_boot
       )
       ;;
     up|u)
       (
-        . "$src_script_path"/vm.sh --source-only
+        . "$KW_LIB_DIR/vm.sh" --source-only
 
         vm_up
       )
       ;;
     build|b)
       (
-        . "$src_script_path"/mk.sh --source-only
+        . "$KW_LIB_DIR/mk.sh" --source-only
 
-        mk_build
-        local ret=$?
+        mk_build '' "$@"
+        local ret="$?"
         alert_completion "kw build" "$1"
-        return $ret
+        return "$ret"
       )
       ;;
     deploy|d)
       (
-        . "$src_script_path"/mk.sh --source-only
+        . "$KW_LIB_DIR/mk.sh" --source-only
 
         kernel_deploy "$@"
         local ret="$?"
@@ -84,7 +98,7 @@ function kw()
       ;;
     bd)
       (
-        . "$src_script_path"/mk.sh --source-only
+        . "$KW_LIB_DIR/mk.sh" --source-only
 
         mk_build && kernel_deploy "$@"
         local ret="$?"
@@ -92,77 +106,97 @@ function kw()
         return "$ret"
       )
       ;;
+    diff|df)
+        . "$KW_LIB_DIR/diff.sh" --source-only
+
+        diff_manager "$@"
+      ;;
     ssh|s)
       (
-        . "$src_script_path"/vm.sh --source-only
+        . "$KW_LIB_DIR/vm.sh" --source-only
 
         vm_ssh $@
       )
       ;;
     vars)
       (
-        . "$src_script_path"/kw_config_loader.sh --source-only
+        . "$KW_LIB_DIR/kw_config_loader.sh" --source-only
 
         show_variables
       )
       ;;
     codestyle|c)
       (
-      . "$src_script_path"/checkpatch_wrapper.sh --source-only
+      . "$KW_LIB_DIR/checkpatch_wrapper.sh" --source-only
 
         execute_checkpatch $@
       )
       ;;
     maintainers|m)
       (
-        . "$src_script_path"/get_maintainer_wrapper.sh --source-only
+        . "$KW_LIB_DIR/get_maintainer_wrapper.sh" --source-only
 
         execute_get_maintainer $@
       )
       ;;
     configm|g)
       (
-        . "$src_script_path"/config_manager.sh --source-only
+        . "$KW_LIB_DIR/config_manager.sh" --source-only
 
         execute_config_manager $@
       )
       ;;
     help|h)
       (
-        . "$src_script_path"/help.sh --source-only
+        . "$KW_LIB_DIR/help.sh" --source-only
 
         kworkflow-help
       )
       ;;
     explore|e)
       (
-        . "$src_script_path"/explore.sh --source-only
+        . "$KW_LIB_DIR/explore.sh" --source-only
 
         explore "$@"
       )
       ;;
     man)
       (
-        . $src_script_path/help.sh --source-only
+        . "$KW_LIB_DIR/help.sh" --source-only
 
         kworkflow-man
       )
       ;;
     version|--version|-v)
       (
-        . "$src_script_path"/help.sh --source-only
+        . "$KW_LIB_DIR/help.sh" --source-only
 
         kworkflow_version
       )
       ;;
+    statistics)
+      (
+        . "$KW_LIB_DIR/statistics.sh" --source-only
+
+        statistics "$@"
+      )
+      ;;
     clear-cache)
-        . "$src_script_path"/mk.sh --source-only
+        . "$KW_LIB_DIR/mk.sh" --source-only
 
         cleanup
       ;;
+    # Subsystems support
+    drm)
+      (
+        . "$KW_PLUGINS_DIR/subsystems/drm/drm.sh" --source-only
+
+        drm_manager "$@"
+      )
+      ;;
     *)
       (
-        . "$src_script_path"/help.sh --source-only
+        . "$KW_LIB_DIR/help.sh" --source-only
 
         complain "Invalid option"
         kworkflow-help
