@@ -669,7 +669,7 @@ function deploy_parser_options()
           options_values["MODULES"]=1
           continue
           ;;
-        --ls|-l)
+        --list|-l)
           options_values["LS"]=1
           continue
           ;;
