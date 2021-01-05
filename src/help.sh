@@ -55,7 +55,7 @@ function kworkflow-help()
   echo -e "kw deploy|d installs kernel and modules:\n" \
     "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m]\n" \
     "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--uninstall|-u KERNEL_NAME]\n" \
-    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--ls|-l]"
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--list|-l]"
 }
 
 # Display the man documentation using rst2man, or man kw if it is already

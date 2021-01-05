@@ -72,8 +72,8 @@ notice that this approach is the most generic one because you can use it for
   **Currently, we don't support the Kernel image update in the --vm option.
   However, you can use the remote option for a workaround this issue**.
 
-d, deploy [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m] [--ls-line|-s] [--ls|-l] [--uninstall|-u KERNEL_NAME]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+d, deploy [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m] [--ls-line|-s] [--list|-l] [--uninstall|-u KERNEL_NAME]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you are in a kernel directory, this command will try to install the current
 kernel version in your target machine (remote, host, and VM). If you want to
 install a kernel version in a remote machine, the following steps will be
@@ -117,7 +117,7 @@ need root access.
 
 5. --modules: Only install/update modules.
 
-6. --ls: List available kernels in a single column the target.
+6. --list: List available kernels in a single column the target.
 
 7. --ls-line: List available kernels separated by comma.
 
@@ -502,7 +502,7 @@ In case you want that kw saves your current .config file, you can use::
 
 You can see the config's file maintained by kw with::
 
-  kw g --ls
+  kw g --list
 
 You can turn on your VM with::
 
