@@ -24,18 +24,18 @@ readonly LS_NO_FILES="There's no tracked .config file"
 function suite
 {
   suite_addTest "execute_config_manager_SAVE_fails_Test"
-  suite_addTest "save_config_file_CHECK_CONFIG_fails_Test"
-  suite_addTest "save_config_file_CHECK_CONFIGS_DIRECTORY_Test"
-  suite_addTest "save_config_file_CHECK_SAVED_CONFIG_FILE_Test"
-  suite_addTest "save_config_file_CHECK_DESCRIPTION_Test"
-  suite_addTest "save_config_file_CHECK_GIT_SAVE_SCHEMA_Test"
-  suite_addTest "save_config_file_CHECK_FORCE_Test"
-  suite_addTest "list_config_CHECK_NO_CONFIGS_Test"
-  suite_addTest "list_config_OUTPUT_Test"
-  suite_addTest "get_operation_with_force_Test"
-  suite_addTest "get_operation_that_should_fail_Test"
-  suite_addTest "remove_operation_that_should_fail_Test"
-  suite_addTest "remove_operation"
+  suite_addTest "save_config_file_check_save_failures_Test"
+  suite_addTest "save_config_file_check_directories_creation_Test"
+  suite_addTest "save_config_file_check_saved_config_Test"
+  suite_addTest "save_config_file_check_description_Test"
+  suite_addTest "save_config_file_check_git_save_schema_Test"
+  suite_addTest "save_config_file_check_force_Test"
+  suite_addTest "list_config_check_when_there_is_no_config_Test"
+  suite_addTest "list_config_normal_output_Test"
+  suite_addTest "get_config_with_force_Test"
+  suite_addTest "execute_config_manager_get_config_invalid_option_Test"
+  suite_addTest "execute_config_manager_remove_that_should_fail_Test"
+  suite_addTest "remove_config_Test"
 }
 
 function setUp()
@@ -100,7 +100,7 @@ function execute_config_manager_SAVE_fails_Test
   test_expected_string "$msg_prefix -f" "$COMMAND_MSG_INVALID_ARG" "$ret"
 }
 
-function save_config_file_CHECK_CONFIG_fails_Test()
+function save_config_file_check_save_failures_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -122,7 +122,7 @@ function save_config_file_CHECK_CONFIG_fails_Test()
   cd "$current_path"
 }
 
-function save_config_file_CHECK_CONFIGS_DIRECTORY_Test()
+function save_config_file_check_directories_creation_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -140,7 +140,7 @@ function save_config_file_CHECK_CONFIGS_DIRECTORY_Test()
   assertTrue "The configs dir is not available" '[[ -d $config_files_path/configs/configs ]]'
 }
 
-function save_config_file_CHECK_SAVED_CONFIG_FILE_Test()
+function save_config_file_check_saved_config_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -166,7 +166,7 @@ function save_config_file_CHECK_SAVED_CONFIG_FILE_Test()
   assertTrue "Content in the file does not match" '[[ $tmp = $CONTENT ]]'
 }
 
-function save_config_file_CHECK_DESCRIPTION_Test()
+function save_config_file_check_description_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -189,7 +189,7 @@ function save_config_file_CHECK_DESCRIPTION_Test()
   assertTrue "The description content for $NAME_2 does not match" '[[ $tmp = $DESCRIPTION_2 ]]'
 }
 
-function save_config_file_CHECK_GIT_SAVE_SCHEMA_Test()
+function save_config_file_check_git_save_schema_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -207,7 +207,7 @@ function save_config_file_CHECK_GIT_SAVE_SCHEMA_Test()
   assertTrue "We expected 2 commits, but we got $ret" '[[ $ret = "2" ]]'
 }
 
-function save_config_file_CHECK_FORCE_Test()
+function save_config_file_check_force_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -222,7 +222,7 @@ function save_config_file_CHECK_FORCE_Test()
   assertTrue "We expected no changes" '[[ $ret =~ Warning ]]'
 }
 
-function list_config_CHECK_NO_CONFIGS_Test()
+function list_config_check_when_there_is_no_config_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -234,7 +234,7 @@ function list_config_CHECK_NO_CONFIGS_Test()
   assertTrue "We expected no changes" '[[ $ret =~ $LS_NO_FILES ]]'
 }
 
-function list_config_OUTPUT_Test()
+function list_config_normal_output_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -257,7 +257,7 @@ function list_config_OUTPUT_Test()
   assertTrue "We expected $DESCRIPTION_2 in the output, but we got $ret" '[[ $ret =~ $DESCRIPTION_2 ]]'
 }
 
-function get_operation_that_should_fail_Test()
+function execute_config_manager_get_config_invalid_option_Test()
 {
   local msg_prefix=" --get"
 
@@ -271,7 +271,7 @@ function get_operation_that_should_fail_Test()
   test_expected_string "$msg_prefix" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function get_operation_with_force_Test()
+function get_config_with_force_Test()
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"
@@ -302,7 +302,7 @@ function get_operation_with_force_Test()
   assertTrue "We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 }
 
-function remove_operation_that_should_fail_Test()
+function execute_config_manager_remove_that_should_fail_Test()
 {
   local msg_prefix=" --rm"
 
@@ -316,7 +316,7 @@ function remove_operation_that_should_fail_Test()
   test_expected_string "$msg_prefix" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function remove_operation
+function remove_config_Test
 {
   local -r test_path="tests/.tmp"
   local current_path="$PWD"

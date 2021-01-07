@@ -5,10 +5,10 @@
 
 function suite
 {
-  suite_addTest "testHelp"
+  suite_addTest "kworkflow-help_Test"
 }
 
-function testHelp
+function kworkflow-help_Test
 {
   HELP_OUTPUT=$(kworkflow-help | head -n 1)
   [[ $HELP_OUTPUT =~ Usage:\ kw.* ]]; assertTrue "Help text not displaying correctly." $?

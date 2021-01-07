@@ -6,14 +6,14 @@
 
 function suite
 {
-  suite_addTest "linuxRootCheckTest"
-  suite_addTest "cmdManagerTESTMODETest"
-  suite_addTest "cmdManagerSILENTTest"
+  suite_addTest "is_kernel_root_Test"
+  suite_addTest "cmd_manager_check_test_mode_option_Test"
+  suite_addTest "cmd_manager_check_silent_option_Test"
   suite_addTest "cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test"
-  suite_addTest "detect_distro_family_test"
-  suite_addTest "joinPathTest"
-  suite_addTest "findKernelRootTest"
-  suite_addTest "isAPatchTest"
+  suite_addTest "detect_distro_Test"
+  suite_addTest "join_path_Test"
+  suite_addTest "find_kernel_root_Test"
+  suite_addTest "is_a_patch_Test"
   suite_addTest "get_based_on_delimiter_Test"
   suite_addTest "store_statistics_data_Test"
   suite_addTest "update_statistics_database_Test"
@@ -77,7 +77,7 @@ function tearDownSetup
   rm -rf "$FAKE_STATISTICS_PATH"
 }
 
-function linuxRootCheckTest
+function is_kernel_root_Test
 {
   setupFakeKernelRepo
   is_kernel_root "tests/.tmp"
@@ -86,7 +86,7 @@ function linuxRootCheckTest
   true # Reset return value
 }
 
-function cmdManagerSILENTTest
+function cmd_manager_check_silent_option_Test
 {
   setupFakeKernelRepo
   cd "tests/.tmp"
@@ -143,7 +143,7 @@ function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test
   tearDownSetup
 }
 
-function cmdManagerTESTMODETest
+function cmd_manager_check_test_mode_option_Test
 {
   ret=$(cmd_manager TEST_MODE pwd)
   assertEquals "Expected pwd, but we got $ret" "$ret" "pwd"
@@ -152,7 +152,7 @@ function cmdManagerTESTMODETest
   assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
 }
 
-function detect_distro_family_test
+function detect_distro_Test
 {
   setupFakeOSInfo
   local root_path="tests/.tmp/detect_distro/arch"
@@ -177,7 +177,7 @@ function detect_distro_family_test
   assertEquals "We got $ret." "$ret" "none"
 }
 
-function joinPathTest
+function join_path_Test
 {
   local base="/lala/xpto"
   local ret=$(join_path "/lala" "///xpto")
@@ -194,7 +194,7 @@ function joinPathTest
   assertEquals "Expect /lala/" "$ret" "/lala/"
 }
 
-function findKernelRootTest
+function find_kernel_root_Test
 {
   setupFakeKernelRepo
 
@@ -213,7 +213,7 @@ function findKernelRootTest
   tearDownSetup
 }
 
-function isAPatchTest
+function is_a_patch_Test
 {
   setupPatch
   is_a_patch "tests/.tmp/test.patch"

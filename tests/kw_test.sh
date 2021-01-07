@@ -5,11 +5,11 @@
 
 function suite
 {
-  suite_addTest "testVariables"
-  suite_addTest "testExported"
+  suite_addTest "validate_global_variables_Test"
+  suite_addTest "check_kworkflow_global_variable_Test"
 }
 
-function testVariables
+function validate_global_variables_Test
 {
   VARS=( KWORKFLOW KW_LIB_DIR )
   for v in "${VARS[@]}"; do
@@ -17,7 +17,7 @@ function testVariables
   done
 }
 
-function testExported
+function check_kworkflow_global_variable_Test
 {
   VARS=( KWORKFLOW )
   for v in "${VARS[@]}"; do

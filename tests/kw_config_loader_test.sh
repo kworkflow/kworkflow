@@ -7,11 +7,11 @@ TMP_DIR=tests/.tmp_kw_config_loader_test
 
 function suite
 {
-  suite_addTest "parser_success_exit_code_Test"
-  suite_addTest "parser_failed_exit_code_Test"
-  suite_addTest "parser_output_Test"
-  suite_addTest "default_config_file_Test"
-  suite_addTest "config_files_loading_order_Test"
+  suite_addTest "parse_configuration_success_exit_code_Test"
+  suite_addTest "parser_configuration_failed_exit_code_Test"
+  suite_addTest "parse_configuration_output_Test"
+  suite_addTest "parse_configuration_standard_config_Test"
+  suite_addTest "parse_configuration_files_loading_order_Test"
 }
 
 function setUp
@@ -26,13 +26,13 @@ function tearDown
   rm -rf "$TMP_DIR"
 }
 
-function parser_success_exit_code_Test
+function parse_configuration_success_exit_code_Test
 {
   parse_configuration tests/samples/kworkflow.config
   assertTrue "Kw failed to load a regular config file" "[ 0 -eq $? ]"
 }
 
-function parser_failed_exit_code_Test
+function parser_configuration_failed_exit_code_Test
 {
   parse_configuration tests/kw_config_loader_test.sh
   assertTrue "kw loaded an unsupported file" "[ 22 -eq $? ]"
@@ -61,7 +61,7 @@ function assertConfigurations
 }
 
 # Test if parse_configuration correctly parses all settings in a file
-function parser_output_Test
+function parse_configuration_output_Test
 {
   declare -A expected_configurations=(
     [arch]="arm64"
@@ -90,7 +90,7 @@ function parser_output_Test
 }
 
 # Test if etc/kworkflow_template.config contains all the expected settings
-function default_config_file_Test
+function parse_configuration_standard_config_Test
 {
   local path_repo=$PWD
 
@@ -119,7 +119,7 @@ function default_config_file_Test
   true # Reset return value
 }
 
-function config_files_loading_order_Test
+function parse_configuration_files_loading_order_Test
 {
   expected="$KW_ETC_DIR/$CONFIG_FILENAME
 $HOME/.kw/$CONFIG_FILENAME

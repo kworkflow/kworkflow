@@ -7,9 +7,9 @@
 
 function suite
 {
-  suite_addTest "testPrintFileAuthorForFile"
-  suite_addTest "testPrintFileAuthorForDir"
-  suite_addTest "testGetMaintainers"
+  suite_addTest "print_files_authors_Test"
+  suite_addTest "print_files_authors_from_dir_Test"
+  suite_addTest "execute_get_maintainer_Tesg"
 }
 
 # The following variables hold the the lines print_files_authors should
@@ -52,7 +52,7 @@ function tearDownGetMainteiners
   rm -rf "$FAKE_KERNEL"
 }
 
-function testPrintFileAuthorForFile
+function print_files_authors_Test
 {
   local -r ret=$(print_files_authors "tests/samples/print_file_author_test_dir/code1.c")
   if [[ "$ret" != "$CORRECT_FILE_MSG" ]]; then
@@ -63,7 +63,7 @@ function testPrintFileAuthorForFile
   true # Reset return value
 }
 
-function testPrintFileAuthorForDir
+function print_files_authors_from_dir_Test
 {
   local -r ret=$(print_files_authors "tests/samples/print_file_author_test_dir")
   if [[ "$ret" != "$CORRECT_DIR_MSG" ]]; then
@@ -74,7 +74,7 @@ function testPrintFileAuthorForDir
   true # Reset return value
 }
 
-function testGetMaintainers
+function execute_get_maintainer_Tesg
 {
   local ret
   local got_prefixed

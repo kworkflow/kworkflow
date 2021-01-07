@@ -14,9 +14,9 @@ visual_file="$PWD/tests/.kwio_test_aux/visual.file"
 
 function suite
 {
-  suite_addTest "testAlertOptions"
-  suite_addTest "testAlertDefaultOptions"
-  suite_addTest "testAlertCommandPrinting"
+  suite_addTest "alert_completion_options_Test"
+  suite_addTest "alert_completition_validate_config_file_options_Test"
+  suite_addTest "alert_completion_visual_alert_Test"
 }
 
 function setUp
@@ -32,7 +32,7 @@ function tearDown
 }
 
 
-function testAlertOptions
+function alert_completion_options_Test
 {
   configurations["alert"]="n"
 
@@ -64,7 +64,7 @@ function testAlertOptions
   true
 }
 
-function testAlertDefaultOptions
+function alert_completition_validate_config_file_options_Test
 {
   mkdir -p tests/.kwio_test_aux
 
@@ -101,7 +101,7 @@ function testAlertDefaultOptions
   true
 }
 
-function testAlertCommandPrinting
+function alert_completion_visual_alert_Test
 {
   local expected="TESTING COMMAND"
   configurations["visual_alert_command"]="echo \$COMMAND"
