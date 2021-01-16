@@ -140,7 +140,7 @@ function install_kernel()
 
   if [[ ! -z "$target" ]]; then
     [[ -z "$architecture" ]] && architecture="x86_64"
-    cmd="$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name /boot/vmlinuz-$name"
+    cmd="$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   else
     cmd="$sudo_cmd cp -v vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
