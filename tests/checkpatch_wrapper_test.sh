@@ -14,69 +14,60 @@ function suite
   suite_addTest "multiple_files_output_Test"
 }
 
-FAKE_KERNEL="tests/.tmp"
-
 # Those variables hold the last line execute_checkpatch prints in a code that is
 # correct, has 1 warning, has 1 erros and has 1 check, respectively. The sample
 # codes used in this test are in tests/samples/
-CORRECT_MSG="$SEPARATOR"
-WARNING_MSG="total: 0 errors, 1 warnings, 0 checks, 25 lines checked"
-ERROR_MSG="total: 1 errors, 0 warnings, 0 checks, 25 lines checked"
-CHECK_MSG="total: 0 errors, 0 warnings, 1 checks, 26 lines checked"
-
-declare -A MSG=( \
-    ["correct"]=CORRECT_MSG \
-    ["warning"]=WARNING_MSG \
-    ["error"]=ERROR_MSG \
-    ["check"]=CHECK_MSG \
-)
-
-# Note:
-# This function explores some exciting features from bash that deserve a
-# highlight. Here we have the use of indirect references in ${!MSG[$1]}
-# (indicated by "!"), we basically access values in the array MSG that, in its
-# turn, evaluate the constant value (WARNING_MSG, ERROR_MSG, etc).
-function checkpatch
-{
-  local res
-
-  res=$(execute_checkpatch "$FAKE_KERNEL/samples/codestyle_$1.c" 2>&1)
-  [[ "$res" =~ "${!MSG[$1]}" ]]
-  assertTrue "Checkpatch should output: ${!MSG[$1]}" $?
-}
-
 function oneTimeSetUp
 {
-  mk_fake_kernel_root "$FAKE_KERNEL"
-  cp -f tests/external/checkpatch.pl "$FAKE_KERNEL"/scripts/
-  cp -f tests/external/const_structs.checkpatch "$FAKE_KERNEL"/scripts/
-  cp -f tests/external/spelling.txt "$FAKE_KERNEL"/scripts/
-  cp -r tests/samples "$FAKE_KERNEL"
+  mk_fake_kernel_root "$TMP_TEST_DIR"
+  cp -f tests/external/checkpatch.pl "$TMP_TEST_DIR"/scripts/
+  cp -f tests/external/const_structs.checkpatch "$TMP_TEST_DIR"/scripts/
+  cp -f tests/external/spelling.txt "$TMP_TEST_DIR"/scripts/
+  cp -r tests/samples "$TMP_TEST_DIR"
 }
 
 function oneTimeTearDown
 {
-  rm -rf "$FAKE_KERNEL"
+  rm -rf "$TMP_TEST_DIR"
+}
+
+function checkpatch_helper
+{
+  local type_msg="$1"
+  local CORRECT_MSG="$SEPARATOR"
+  local WARNING_MSG="total: 0 errors, 1 warnings, 0 checks, 25 lines checked"
+  local ERROR_MSG="total: 1 errors, 0 warnings, 0 checks, 25 lines checked"
+  local CHECK_MSG="total: 0 errors, 0 warnings, 1 checks, 26 lines checked"
+  local res
+  declare -A MSG=( \
+      ["correct"]=CORRECT_MSG \
+      ["warning"]=WARNING_MSG \
+      ["error"]=ERROR_MSG \
+      ["check"]=CHECK_MSG \
+  )
+
+  res=$(execute_checkpatch "$TMP_TEST_DIR/samples/codestyle_$type_msg.c" 2>&1)
+  assertTrue "Checkpatch should output: ${!MSG[$type_msg]}" '[[ "$res" =~ "${!MSG[$type_msg]}" ]]'
 }
 
 function warning_Test
 {
-  checkpatch "warning"
+  checkpatch_helper "warning"
 }
 
 function error_Test
 {
-  checkpatch "error"
+  checkpatch_helper "error"
 }
 
 function checks_Test
 {
-  checkpatch "check"
+  checkpatch_helper "check"
 }
 
 function correct_Test
 {
-  checkpatch "correct"
+  checkpatch_helper "correct"
 }
 
 function invalid_path_Test
@@ -85,17 +76,17 @@ function invalid_path_Test
   local output
   local ret
 
-  build_fake_path="$RANDOM/$RANDOM/$RANDOM/xptolala"
+  build_fake_path=$(create_invalid_file_path)
 
   output=$(execute_checkpatch "$build_fake_path")
   ret="$?"
-  assertFalse "We forced an invalid path and we expect an error" '[[ $ret != 22 ]]'
+  assertEquals "We forced an invalid path and we expect an error" "2" "$ret"
 }
 
 function no_kernel_directory_Test
 {
   local output
-  local sample_one="tests/samples/codestyle_warning.c"
+  local sample_one="$SAMPLES_DIR/codestyle_warning.c"
 
   # We want to force an unexpected condition, because of this we change the
   # basic setup but we rebuild it at the end of the test
@@ -114,7 +105,7 @@ function multiple_files_output_Test
   local delimiter="$SEPARATOR"
   local array=()
 
-  output=$(execute_checkpatch "$FAKE_KERNEL/samples" 2>&1)
+  output=$(execute_checkpatch "$TMP_TEST_DIR/samples" 2>&1)
 
   # Reference: https://www.tutorialkart.com/bash-shell-scripting/bash-split-string/
   s="$output$delimiter"

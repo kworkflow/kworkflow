@@ -28,7 +28,7 @@ function execute_checkpatch()
   # Check if is a valid path
   if [[ ! -d "$FILE_OR_DIR_CHECK" && ! -f "$FILE_OR_DIR_CHECK" ]]; then
     complain "Invalid path"
-    return 22 # EINVAL
+    return 2 # ENOENT
   fi
 
   # Get realpath for using inside checkpatch

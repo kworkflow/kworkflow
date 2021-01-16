@@ -157,6 +157,13 @@ function compare_command_sequence
   done <<< "$result_to_compare"
 }
 
+# Create an invalid file path
+function create_invalid_file_path
+{
+  invalid_path="$RANDOM/$RANDOM/$RANDOM/xptolala"
+  echo "$invalid_path"
+}
+
 function invoke_shunit
 {
   command -v shunit2 > /dev/null
