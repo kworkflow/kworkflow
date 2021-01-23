@@ -129,7 +129,7 @@ function kw()
       (
       . "$KW_LIB_DIR/checkpatch_wrapper.sh" --source-only
 
-        execute_checkpatch $@
+        execute_checkpatch "$@"
       )
       ;;
     maintainers|m)

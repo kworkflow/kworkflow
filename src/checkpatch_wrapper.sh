@@ -11,23 +11,28 @@
 function execute_checkpatch()
 {
   local FILE_OR_DIR_CHECK="$1"
+  local flag="$2"
 
-  #TODO: Note that codespell file is not specified yet because of the poluted
+  if [[ "$FILE_OR_DIR_CHECK" == '-h' ]]; then
+    codestyle_help
+    return 0
+  fi
+
+  # TODO: Note that codespell file is not specified yet because of the poluted
   # output. It could be nice if we can add another option just for this sort
   # of check.
 
-  local -r options="--terse --no-tree --color=always -strict --file "
-  local -r script="scripts/checkpatch.pl $options"
+  local options='--no-tree --color=always --strict '
   local -r original_working_dir="$PWD"
-  local kernel_root=""
+  local kernel_root
+  local cmd_script
 
-  if [[ -z "$FILE_OR_DIR_CHECK" ]]; then
-    FILE_OR_DIR_CHECK="."
-  fi
+  FILE_OR_DIR_CHECK=${FILE_OR_DIR_CHECK:-'.'}
+  flag=${flag:-'SILENT'}
 
   # Check if is a valid path
   if [[ ! -d "$FILE_OR_DIR_CHECK" && ! -f "$FILE_OR_DIR_CHECK" ]]; then
-    complain "Invalid path"
+    complain 'Invalid path'
     return 2 # ENOENT
   fi
 
@@ -43,17 +48,26 @@ function execute_checkpatch()
 
   # Check if kernel root was found
   if [[ -z "$kernel_root" ]]; then
-    complain "Neither the given path nor the working path is in a kernel tree."
+    complain 'Neither the given path nor the working path is in a kernel tree.'
     return 22 # EINVAL
   fi
 
   # Build a list of file to apply check patch
-  FLIST=`find $FILE_OR_DIR_CHECK -type f ! -name '*\.mod\.c' | grep "\.[ch]$"`
+  FLIST=$(find $FILE_OR_DIR_CHECK -type f ! -name '*\.mod\.c' | grep "\.[ch]$")
 
   say "Running checkpatch.pl on: $FILE_OR_DIR_CHECK"
   say "$SEPARATOR"
 
-  cmd="perl $script "
+  # Define different rules for patch and files
+  if is_a_patch "$FILE_OR_DIR_CHECK"; then
+    options="$options"
+    FLIST="$FILE_OR_DIR_CHECK"
+  else
+    options="--terse $options --file "
+  fi
+
+  cmd_script="perl scripts/checkpatch.pl $options"
+
   for current_file in $FLIST; do
     file="$current_file"
 
@@ -64,12 +78,15 @@ function execute_checkpatch()
 
     cd "$kernel_root"
 
-    cmd_manager "SILENT" "$cmd $file"
-
-    if [[ "$?" != 0 ]]; then
-      say "$SEPARATOR"
-    fi
+    cmd_manager "$flag" "$cmd_script $file"
+    [[ "$?" != 0 ]] && say "$SEPARATOR"
 
     cd "$original_working_dir"
   done
+}
+
+function codestyle_help()
+{
+  echo -e "kw codestyle|c Use checkpatch on directory, file, or patch:\n" \
+    "\tcodestyle,c PATH/[FILE|PATCH|DIR]\n"
 }

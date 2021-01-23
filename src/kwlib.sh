@@ -183,9 +183,6 @@ function is_a_patch
   # given file be considered NOT a patch
   local -ar PATCH_EXPECTED_STRINGS=(
     "diff --git"
-    "Subject:"
-    "Date:"
-    "From:"
     "---"
     "@@"
   )
