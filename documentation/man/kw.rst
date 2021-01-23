@@ -148,13 +148,13 @@ different option in the menu_config. If the user is working in a
 *cross-compile* environment, it is recommended to use this option to avoid
 messing with the config file.
 
-c, codestyle [*DIRECTORY|FILE*]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+c, codestyle [*DIRECTORY|FILE|PATCH*]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The **checkpatch** tool is one of the most fabulous scripts provided by the
 Linux Kernel to help developers follow the code style adopted by the project.
 This command is a wrapper for **checkpatch**, with the goal of simplifying the
-use of this tool; notice that you can specify a single file or an entire
-directory.
+use of this tool; notice that you can specify a single file, an entire
+directory, or a single patch.
 
 e, explore [--log, -l | --grep, -g | --all, -a] [*EXPRESSION*] [-p] [*DIRECTORY|FILE*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
