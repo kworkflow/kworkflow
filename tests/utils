@@ -157,6 +157,18 @@ function compare_command_sequence
   done <<< "$result_to_compare"
 }
 
+function assert_equals_helper()
+{
+  local msg="$1"
+  local line="$2"
+  local expected="$3"
+  local target="$4"
+
+  line=${line:-'Unknown line'}
+
+  assertEquals "line $line: $msg" "$target" "$expected"
+}
+
 # Create an invalid file path
 function create_invalid_file_path
 {
