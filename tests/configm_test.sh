@@ -33,6 +33,7 @@ function suite
   suite_addTest "list_config_check_when_there_is_no_config_Test"
   suite_addTest "list_config_normal_output_Test"
   suite_addTest "get_config_with_force_Test"
+  suite_addTest "get_config_Test"
   suite_addTest "execute_config_manager_get_config_invalid_option_Test"
   suite_addTest "execute_config_manager_remove_that_should_fail_Test"
   suite_addTest "remove_config_Test"
@@ -273,6 +274,39 @@ function execute_config_manager_get_config_invalid_option_Test()
 
   ret=$(execute_config_manager --get something_wrong)
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
+}
+
+function get_config_Test()
+{
+  local current_path="$PWD"
+  local config_files_path="$current_path/$TMP_TEST_DIR"
+  local ret=0
+  local msg="This operation will override the current .config file"
+  local replace_msg="Current config file updated based on $NAME_1"
+
+  declare -a expected_output=(
+    "$msg"
+    "$replace_msg"
+  )
+
+  # There's no configs yet, initialize it
+  cd "$TMP_TEST_DIR"
+  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
+  ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
+  cd "$current_path"
+
+  # Case 1: We already have a local config, pop up with replace question
+  cd "$TMP_TEST_DIR"
+  output=$(echo 'y' | get_config "$NAME_1")
+  compare_command_sequence expected_output[@] "$output" "$LINENO"
+
+  # Case 2: There's no local .config file
+  rm -f .config
+  output=$(get_config "$NAME_1")
+  ret=$(cat .config)
+  cd "$current_path"
+
+  assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 }
 
 function get_config_with_force_Test()

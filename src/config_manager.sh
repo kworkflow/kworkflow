@@ -135,10 +135,10 @@ function get_config()
   local -r dot_configs_dir="$config_files_path/configs/configs"
   local -r msg="This operation will override the current .config file"
 
+  force=${force:-0}
+
   # If we does not have a local config, there's no reason to warn the user
-  if [[ -f "$PWD/.config" ]]; then
-    force=1
-  fi
+  [[ ! -f "$PWD/.config" ]] && force=1
 
   basic_config_validations "$target" "$force" "Get" "$msg"
 
