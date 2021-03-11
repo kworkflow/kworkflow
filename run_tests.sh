@@ -157,6 +157,8 @@ function strip_path
   done
 }
 
+check_required_files
+check_files="$?"
 if [[ "$#" -eq 0 ]]; then
   check_required_files
   files_list=$(find ./tests -name "*_test.sh" | grep --invert-match "/shunit2/" )
@@ -165,22 +167,25 @@ if [[ "$#" -eq 0 ]]; then
   strip_path $files_list
   run_tests
 elif [[ "$1" == "list" ]]; then
-  strip_path tests/*.sh
+  local index=0
+  files_list=$(find ./tests/ -name "*_test.sh")
+  strip_path $files_list
   for test_name in "${TESTS[@]}"; do
-    say "  ${test_name}"
+    (( index++ ))
+    say "$index) ${test_name}"
   done
 elif [[ "$1" == "test" ]]; then
-  check_required_files
   strip_path ${@:2}
   run_tests
 elif [[ "$1" == "prepare" ]]; then
   if [[ "$#" -gt  1 && ("$2" == "--force-update" || "$2" == "-f") ]]; then
       check_required_files true
-  else
-      check_required_files
+      check_files="$?"
   fi
-  if [[ "$?" -eq 17 ]]; then
+
+  if [[ "$check_files" -eq 17 ]]; then
     say "You are ready for running the unit test"
+    return 0
   fi
 else
   show_help
