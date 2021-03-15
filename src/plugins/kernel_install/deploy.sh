@@ -29,7 +29,8 @@
 #    local="$3"
 #    architecture="$4"
 #    flag="$5"
-cd "$HOME/kw_deploy"
+target_kw_deploy="$HOME/kw_deploy"
+cd "$target_kw_deploy"
 
 # Load specific distro script
 . distro_deploy.sh --source-only
