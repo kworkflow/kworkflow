@@ -14,6 +14,11 @@ KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
 # External files
 CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
 
+# Constants
+LOCAL_TO_DEPLOY_DIR="to_deploy"
+LOCAL_REMOTE_DIR="remote"
+KERNEL_INSTALL_PLUGIN_PATH="src/plugins/kernel_install/"
+
 function init_env
 {
   unset -v KW_LIB_DIR KWORKFLOW
@@ -165,6 +170,19 @@ function mk_fake_remote
 
   touch "$modules_path/$modules_name"/file{1,2}
   touch "$FAKE_KW/$kernel_install_path"/{debian.sh,deploy.sh}
+}
+
+function mock_target_machine
+{
+  local -r FAKE_KW="$1"
+  local -r kernel_install_path="kernel_install"
+  local -r remote_kw_deploy="kw_deploy"
+
+  mkdir -p "$FAKE_KW/$remote_kw_deploy"
+  # Copy file
+  cp "$KERNEL_INSTALL_PLUGIN_PATH/deploy.sh" "$FAKE_KW/$remote_kw_deploy/"
+  cp "$KERNEL_INSTALL_PLUGIN_PATH/utils.sh" "$FAKE_KW/$remote_kw_deploy/"
+  cp "$KERNEL_INSTALL_PLUGIN_PATH/debian.sh" "$FAKE_KW/$remote_kw_deploy/distro_deploy.sh"
 }
 
 function mk_fake_boot
