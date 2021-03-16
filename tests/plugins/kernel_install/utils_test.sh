@@ -7,21 +7,59 @@ function suite
 {
   suite_addTest "human_list_installed_kernels_Test"
   suite_addTest "comman_list_installed_kernels_Test"
+  suite_addTest "cmd_manager_Test"
+  suite_addTest "ask_yN_Test"
 }
 
-FAKE_BOOT="tests/.tmp"
+declare -r TEST_ROOT_PATH="$PWD"
 
 function setUp
 {
-  rm -rf "$FAKE_BOOT"
+  rm -rf "$TMP_TEST_DIR"
 
-  mk_fake_boot "$FAKE_BOOT"
+  local current_path="$PWD"
+
+  mk_fake_boot "$TMP_TEST_DIR"
 }
 
 function tearDown()
 {
-  rm -rf "$FAKE_BOOT"
+  rm -rf "$TMP_TEST_DIR"
 }
+
+function cmd_manager_Test
+{
+  local count=0
+  local current_path="$PWD"
+
+  output=$(cmd_manager "TEST_MODE" "ls something")
+  assert_equals_helper "TEST_MODE" "$LINENO" "ls something" "$output"
+}
+
+function ask_yN_Test
+{
+  local count=0
+  local current_path="$PWD"
+
+  output=$(echo 'y' | ask_yN "Test message")
+  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+
+  output=$(echo 'Y' | ask_yN "Test message")
+  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+
+  output=$(echo 'Yes' | ask_yN "Test message")
+  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+
+  output=$(echo 'Sim' | ask_yN "Test message")
+  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+
+  output=$(echo 'No' | ask_yN "Test message")
+  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+
+  output=$(echo 'N' | ask_yN "Test message")
+  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+}
+
 
 function human_list_installed_kernels_Test
 {
@@ -34,7 +72,7 @@ function human_list_installed_kernels_Test
     "linux"
   )
 
-  output=$(list_installed_kernels "0" "$FAKE_BOOT")
+  output=$(list_installed_kernels "0" "$TMP_TEST_DIR")
   while read out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
@@ -50,7 +88,7 @@ function comman_list_installed_kernels_Test
     "5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux"
   )
 
-  output=$(list_installed_kernels "1" "$FAKE_BOOT")
+  output=$(list_installed_kernels "1" "$TMP_TEST_DIR")
   while read out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
