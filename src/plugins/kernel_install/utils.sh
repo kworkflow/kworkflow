@@ -109,10 +109,9 @@ function reboot_machine()
 {
   local reboot="$1"
   local local="$2"
+  local flag="$3"
 
-  if [[ "$local" == 'local' ]]; then
-    sudo_cmd="sudo -E"
-  fi
+  [[ "$local" == 'local' ]] && sudo_cmd="sudo -E"
 
   if [[ "$reboot" == "1" ]]; then
     cmd="$sudo_cmd reboot"

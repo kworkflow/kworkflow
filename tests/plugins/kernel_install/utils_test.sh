@@ -9,6 +9,7 @@ function suite
   suite_addTest "comman_list_installed_kernels_Test"
   suite_addTest "cmd_manager_Test"
   suite_addTest "ask_yN_Test"
+  suite_addTest "reboot_machine_Test"
 }
 
 declare -r TEST_ROOT_PATH="$PWD"
@@ -94,6 +95,21 @@ function comman_list_installed_kernels_Test
     ((count++))
   done <<< "$output"
 
+}
+
+function reboot_machine_Test
+{
+  output=$(reboot_machine '1' '' 'TEST_MODE')
+  assert_equals_helper 'Enable reboot in a non-local machine' "$LINENO" ' reboot' "$output"
+
+  output=$(reboot_machine '0' '' 'TEST_MODE')
+  assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" '' "$output"
+
+  output=$(reboot_machine '1' 'local' 'TEST_MODE')
+  assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
+
+  output=$(reboot_machine '1' 'local' 'TEST_MODE')
+  assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
 }
 
 invoke_shunit
