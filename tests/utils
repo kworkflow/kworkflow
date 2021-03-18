@@ -131,6 +131,26 @@ function mk_fake_remote
   touch "$FAKE_KW/$kernel_install_path"/{debian.sh,deploy.sh}
 }
 
+function mk_fake_remote_system
+{
+  local prefix="$1"
+  local target="$2"
+  local kernelpath="$prefix/boot/vmlinuz-$target"
+  local initrdpath="$prefix/boot/initrd.img-$target"
+  local modulespath="$prefix/lib/modules/$target"
+  local libpath="$prefix/var/lib/initramfs-tools/$target"
+
+  mkdir -p "$modulespath"
+  mkdir -p "$prefix/boot/"
+  mkdir -p "$prefix/lib/modules/"
+  mkdir -p "$prefix/var/lib/initramfs-tools/"
+
+  touch "$kernelpath"
+  touch "$kernelpath.old"
+  touch "$initrdpath"
+  touch "$libpath"
+}
+
 function mock_target_machine
 {
   local -r FAKE_KW="$1"
