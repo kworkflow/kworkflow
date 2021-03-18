@@ -122,53 +122,51 @@ function reboot_machine()
 function do_uninstall()
 {
   local target="$1"
-  local kernelpath="/boot/vmlinuz-$target"
-  local initrdpath="/boot/initrd.img-$target"
-  local modulespath="/lib/modules/$target"
-  local libpath="/var/lib/initramfs-tools/$target"
+  local prefix="$2"
+  local flag="$3"
+  local kernelpath="$prefix/boot/vmlinuz-$target"
+  local initrdpath="$prefix/boot/initrd.img-$target"
+  local modulespath="$prefix/lib/modules/$target"
+  local libpath="$prefix/var/lib/initramfs-tools/$target"
 
   if [ -z "$target" ]; then
     echo "No parameter, nothing to do"
     exit 0
   fi
 
-  local today=$(date +%Y_%m_%d-%H_%M_%S)
-  local temp_rm="/tmp/$today"
-  mkdir -p "$temp_rm/{lib,modules}"
-
   if [ -f "$kernelpath" ]; then
     echo "Removing: $kernelpath"
-    rm "$kernelpath"
+    cmd_manager "$flag" "rm $kernelpath"
   else
     echo "Can't find $kernelpath"
   fi
 
   if [ -f "$kernelpath.old" ]; then
     echo "Removing: $kernelpath.old"
-    rm "$kernelpath.old"
+    cmd_manager "$flag" "rm $kernelpath.old"
   else
     echo "Can't find $kernelpath.old"
   fi
 
   if [ -f "$initrdpath" ]; then
     echo "Removing: $initrdpath"
-    rm -rf "$initrdpath"
+    cmd_manager "$flag" "rm -rf $initrdpath"
   else
-    echo "Can't find: $initrdpath"
+    echo "Can't find $initrdpath"
   fi
 
   if [[ -d "$modulespath" && "$modulespath" != "/lib/modules" ]]; then
     echo "Removing: $modulespath"
-    rm -rf "$modulespath"
+    cmd_manager "$flag" "rm -rf $modulespath"
   else
     echo "Can't find $modulespath"
   fi
 
   if [ -f "$libpath" ]; then
     echo "Removing: $libpath"
-    rm -rf "$libpath"
+    cmd_manager "$flag" "rm -rf $libpath"
   else
-    echo "Cant't find $libpath"
+    echo "Can't find $libpath"
   fi
 }
 
@@ -187,7 +185,7 @@ function kernel_uninstall()
   IFS=', ' read -r -a kernel_names <<< "$kernel"
   for kernel in "${kernel_names[@]}"; do
     echo "Removing: $kernel"
-    do_uninstall "$kernel"
+    do_uninstall "$kernel" "" "$flag"
   done
 
   # Each distro script should implement update_boot_loader

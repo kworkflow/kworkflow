@@ -10,6 +10,7 @@ function suite
   suite_addTest "cmd_manager_Test"
   suite_addTest "ask_yN_Test"
   suite_addTest "reboot_machine_Test"
+  suite_addTest "do_uninstall_cmd_sequence_Test"
 }
 
 declare -r TEST_ROOT_PATH="$PWD"
@@ -110,6 +111,69 @@ function reboot_machine_Test
 
   output=$(reboot_machine '1' 'local' 'TEST_MODE')
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
+}
+
+function do_uninstall_cmd_sequence_Test
+{
+  local target='xpto'
+  local prefix="./test"
+  local kernelpath="$prefix/boot/vmlinuz-$target"
+  local initrdpath="$prefix/boot/initrd.img-$target"
+  local modulespath="$prefix/lib/modules/$target"
+  local libpath="$prefix/var/lib/initramfs-tools/$target"
+
+  # Invalid path
+  declare -a cmd_sequence=(
+    "Can't find $kernelpath"
+    "Can't find $kernelpath.old"
+    "Can't find $initrdpath"
+    "Can't find $modulespath"
+    "Can't find $libpath"
+    "Can't find $libpath"
+  )
+
+  output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
+  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+
+  # Good sequence
+  cd "$TMP_TEST_DIR"
+  mkdir -p "$prefix"
+  mk_fake_remote_system "$prefix" "$target"
+
+  declare -a cmd_sequence=(
+    "Removing: $kernelpath"
+    "rm $kernelpath"
+    "Removing: $kernelpath.old"
+    "rm $kernelpath.old"
+    "Removing: $initrdpath"
+    "rm -rf $initrdpath"
+    "Removing: $modulespath"
+    "rm -rf $modulespath"
+    "Removing: $libpath"
+    "rm -rf $libpath"
+  )
+
+  output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
+  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+
+  # Partial sequence
+  rm "$kernelpath.old"
+  rm -rf "$modulespath"
+  declare -a cmd_sequence=(
+    "Removing: $kernelpath"
+    "rm $kernelpath"
+    "Can't find $kernelpath.old"
+    "Removing: $initrdpath"
+    "rm -rf $initrdpath"
+    "Can't find $modulespath"
+    "Removing: $libpath"
+    "rm -rf $libpath"
+  )
+
+  output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
+  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+
+  cd "$TEST_ROOT_PATH"
 }
 
 invoke_shunit
