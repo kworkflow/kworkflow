@@ -9,13 +9,14 @@
 function install_modules()
 {
   local module_target="$1"
+  local flag="$2"
   local ret
 
   if [[ -z "$module_target" ]]; then
     module_target=*.tar
   fi
 
-  tar -C /lib/modules -xf "$module_target"
+  cmd_manager "$flag" "tar -C /lib/modules -xf $module_target"
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then
@@ -42,6 +43,7 @@ function vm_update_boot_loader()
 {
   local name="$1"
   local cmd_grub="$2"
+  local flag="$3"
   local cmd=""
   local mount_root=": mount /dev/sda1 /"
   local mkdir_init=": mkdir-p /etc/initramfs-tools"
@@ -49,11 +51,8 @@ function vm_update_boot_loader()
   local mkdir_grub=": mkdir-p /boot/grub"
   local setup_grub=": write /boot/grub/device.map '(hd0) /dev/sda'"
   local grub_install="grub-install --root-directory=/ --target=i386-pc --force /dev/sda1"
-  local flag
 
   flag=${flag:-"SILENT"}
-
-  sleep 0.5s
 
   cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
       $mount_root \
@@ -62,9 +61,15 @@ function vm_update_boot_loader()
 
   if [[ -f "${configurations[qemu_path_image]}" ]]; then
     warning " -> Updating initramfs and grub for $name on VM. This can take a few minutes."
+    cmd_manager "$flag" "sleep 0.5s"
     {
       cmd_manager "$flag" "$cmd"
     } 1> /dev/null # No visible stdout but still shows errors
+
+    # TODO: The below line is here for test purpose. We need a better way to
+    # do that.
+    [[ "$flag" == 'TEST_MODE' ]] && echo "$cmd"
+
     say "Done."
   else
     complain "There is no VM in ${configurations[qemu_path_image]}"
@@ -125,7 +130,7 @@ function install_kernel()
       path_prefix="${configurations[mount_point]}"
 
       # Copy config file
-      cp -v .config "$path_prefix/boot/config-$name"
+      cmd_manager "$flag" "cp -v .config $path_prefix/boot/config-$name"
     else
       complain "Did you check if your VM is mounted?"
       return 125 # ECANCELED
