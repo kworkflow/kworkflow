@@ -119,6 +119,91 @@ function reboot_machine()
   fi
 }
 
+function install_modules()
+{
+  local module_target="$1"
+  local flag="$2"
+  local ret
+
+  if [[ -z "$module_target" ]]; then
+    module_target=*.tar
+  fi
+
+  cmd_manager "$flag" "tar -C /lib/modules -xf $module_target"
+  ret="$?"
+
+  if [[ "$ret" != 0 ]]; then
+    echo "Warning: Couldn't extract module archive."
+  fi
+}
+
+# After configuring the handle (adding a disk image in write mode), the
+# guestfish performes the followed steps: (1) mount image;
+# (2) dracut (updates kernel images list); (3) create a dummy device.map
+# that tells Grub to look for /dev/sda; (4) install and update grub.
+#
+# Note: The virtual machine must be shut down and umounted before you use this
+# command, and disk images must not be edited concurrently.
+#
+# @name Kernel name for the deploy
+# @cmd_grub Command to update grub
+# mkinitcpio -g /boot/initramfs-linux.img -k /boot/vmlinuz-linux
+function vm_update_boot_loader()
+{
+  local name="$1"
+  local distro="$2"
+  local cmd_grub="$3"
+  local cmd_init="$4"
+  local setup_grub="$5"
+  local grub_install="$6"
+  local flag="$7"
+  local cmd=''
+  # We assume Debian as a default option
+  local mount_root=': mount /dev/sda1 /'
+  local mkdir_init=': mkdir-p /etc/initramfs-tools'
+
+  flag=${flag:-"SILENT"}
+
+  if [[ -z "$distro" ]]; then
+    complain "No distro specified. We are unable to deploy"
+    return 22 # EINVAL
+  fi
+
+  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+      $mount_root \
+      $mkdir_init : command '$cmd_init' \
+      $setup_grub : command '$grub_install' : command '$cmd_grub'"
+
+  if [[ "$distro" == 'arch' ]]; then
+    local mkdir_grub=": mkdir-p /boot/grub"
+
+    cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+        $mount_root : command '$cmd_init' \
+        $mkdir_grub $setup_grub : command '$grub_install' \
+        : command '$cmd_grub'"
+  fi
+
+  if [[ -f "${configurations[qemu_path_image]}" ]]; then
+    warning " -> Updating initramfs and grub for $name on VM. This can take a few minutes."
+    cmd_manager "$flag" "sleep 0.5s"
+    {
+      cmd_manager "$flag" "$cmd"
+    } 1> /dev/null # No visible stdout but still shows errors
+
+    # TODO: The below line is here for test purpose. We need a better way to
+    # do that.
+    [[ "$flag" == 'TEST_MODE' ]] && echo "$cmd"
+
+    say "Done."
+  else
+    complain "There is no VM in ${configurations[qemu_path_image]}"
+    return 125 # ECANCELED
+  fi
+
+  return 0
+}
+
+
 function do_uninstall()
 {
   local target="$1"

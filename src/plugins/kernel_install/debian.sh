@@ -5,86 +5,16 @@
 #
 # Note: We use this script for Debian and Ubuntu
 
-# Install modules
-function install_modules()
-{
-  local module_target="$1"
-  local flag="$2"
-  local ret
-
-  if [[ -z "$module_target" ]]; then
-    module_target=*.tar
-  fi
-
-  cmd_manager "$flag" "tar -C /lib/modules -xf $module_target"
-  ret="$?"
-
-  if [[ "$ret" != 0 ]]; then
-    echo "Warning: Couldn't extract module archive."
-  fi
-}
-
-# Update initramfs and grub on VM using Guestfish
-#
-# After configuring the handle (adding a disk image in write mode), the
-# guestfish performs the followed steps: (1) mount image;
-# (2) update-initramfs (needs kernel image name); (3) create a dummy device.map
-# that tells Grub to look for /dev/sda; (4) install and update grub.
-#
-# Note: The virtual machine must be turned off and umounted before you use this
-# command, and disk images must not be edited concurrently.
-#
-# @name Kernel name for the deploy
-# @cmd_grub Command to update grub
-#
-# Returns: if there is no VM in the expected path, the function is
-# canceled and returns 125
-function vm_update_boot_loader()
-{
-  local name="$1"
-  local cmd_grub="$2"
-  local flag="$3"
-  local cmd=""
-  local mount_root=": mount /dev/sda1 /"
-  local mkdir_init=": mkdir-p /etc/initramfs-tools"
-  local cmd_init="update-initramfs -c -k $name"
-  local mkdir_grub=": mkdir-p /boot/grub"
-  local setup_grub=": write /boot/grub/device.map '(hd0) /dev/sda'"
-  local grub_install="grub-install --root-directory=/ --target=i386-pc --force /dev/sda1"
-
-  flag=${flag:-"SILENT"}
-
-  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-      $mount_root \
-      $mkdir_init : command '$cmd_init' \
-      $setup_grub : command '$grub_install' : command '$cmd_grub'"
-
-  if [[ -f "${configurations[qemu_path_image]}" ]]; then
-    warning " -> Updating initramfs and grub for $name on VM. This can take a few minutes."
-    cmd_manager "$flag" "sleep 0.5s"
-    {
-      cmd_manager "$flag" "$cmd"
-    } 1> /dev/null # No visible stdout but still shows errors
-
-    # TODO: The below line is here for test purpose. We need a better way to
-    # do that.
-    [[ "$flag" == 'TEST_MODE' ]] && echo "$cmd"
-
-    say "Done."
-  else
-    complain "There is no VM in ${configurations[qemu_path_image]}"
-    return 125 # ECANCELED
-  fi
-
-  return 0
-}
-
 # Update boot loader API
 function update_boot_loader()
 {
   local name="$1"
   local target="$2"
   local flag="$3"
+  local cmd_init="update-initramfs -c -k $name"
+  local setup_grub=": write /boot/grub/device.map '(hd0) /dev/sda'"
+  local grub_install="grub-install --root-directory=/ --target=i386-pc --force /dev/sda1"
+  local cmd
 
   if [[ "$target" == 'local' ]]; then
     sudo_cmd="sudo -E"
@@ -94,7 +24,7 @@ function update_boot_loader()
 
   # Update grub
   if [[ "$target" == 'vm' ]] ; then
-    vm_update_boot_loader "$name" "$cmd"
+    vm_update_boot_loader "$name" 'debian' "$cmd" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
   else
     cmd_manager "$flag" "$cmd"
   fi

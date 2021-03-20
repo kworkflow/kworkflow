@@ -8,11 +8,9 @@
 function suite
 {
   suite_addTest 'update_boot_loader_Test'
-  suite_addTest 'vm_update_boot_loader_Test'
   suite_addTest 'install_kernel_remote_Test'
   suite_addTest 'install_kernel_local_Test'
   suite_addTest 'install_kernel_vm_Test'
-  suite_addTest 'install_modules_Test'
 }
 
 declare -r TEST_ROOT_PATH="$PWD"
@@ -41,40 +39,6 @@ function update_boot_loader_Test
   output=$(update_boot_loader 'xpto' 'local' 'TEST_MODE')
   cmd='sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
   assert_equals_helper 'Check local deploy' "$LINENO" "$cmd" "$output"
-}
-
-function vm_update_boot_loader_Test
-{
-  local name='xpto'
-  local cmd_grub='grub-mkconfig -o /boot/grub/grub.cfg'
-  local mount_root=": mount /dev/sda1 /"
-  local mkdir_init=": mkdir-p /etc/initramfs-tools"
-  local cmd_init="update-initramfs -c -k $name"
-  local mkdir_grub=": mkdir-p /boot/grub"
-  local setup_grub=": write /boot/grub/device.map '(hd0) /dev/sda'"
-  local grub_install="grub-install --root-directory=/ --target=i386-pc --force /dev/sda1"
-
-  output=$(vm_update_boot_loader "$name" "$cmd_grub" 'TEST_MODE')
-  assert_equals_helper "Invalide case" "$LINENO" "There is no VM in " "$output"
-
-  # We just want to force a positive action in the if condition in order to be
-  # able to validate vm boot loader
-  configurations[qemu_path_image]='./run_tests.sh'
-
-  guestfish_cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-      $mount_root \
-      $mkdir_init : command '$cmd_init' \
-      $setup_grub : command '$grub_install' : command '$cmd_grub'"
-
-  declare -a cmd_sequence=(
-    "-> Updating initramfs and grub for $name on VM. This can take a few minutes."
-    "sleep 0.5s"
-    "$guestfish_cmd"
-    "Done."
-  )
-
-  output=$(vm_update_boot_loader "$name" "$cmd_grub" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 }
 
 function install_kernel_remote_Test
@@ -170,15 +134,6 @@ function install_kernel_vm_Test
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 
   cd "$TEST_ROOT_PATH"
-}
-
-function install_modules_Test
-{
-  local module_target='5.9.0-rc5-NEW-VRR-TRACK+.tar'
-
-  output=$(install_modules "$module_target" 'TEST_MODE')
-  cmd="tar -C /lib/modules -xf $module_target"
-  assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
 }
 
 invoke_shunit
