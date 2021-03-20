@@ -293,6 +293,7 @@ function kernel_install
         exit 95 # ENOTSUP
       fi
 
+      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
       install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
@@ -306,6 +307,7 @@ function kernel_install
       fi
 
       # Local Deploy
+      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
       install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
