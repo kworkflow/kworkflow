@@ -5,70 +5,7 @@
 #
 # Note: We use this script for ArchLinux and Manjaro
 
-# Install modules
-function install_modules()
-{
-  local module_target="$1"
-  local ret
-
-  if [[ -z "$module_target" ]]; then
-    module_target=*.tar
-  fi
-
-  tar -C /lib/modules -xf "$module_target"
-  ret="$?"
-
-  if [[ "$ret" != 0 ]]; then
-    echo "Warning: Couldn't extract module archive."
-  fi
-}
-
 # Make initcpio and update grub on VM using Guestfish
-#
-# After configuring the handle (adding a disk image in write mode), the
-# guestfish performes the followed steps: (1) mount image;
-# (2) dracut (updates kernel images list); (3) create a dummy device.map
-# that tells Grub to look for /dev/sda; (4) install and update grub.
-#
-# Note: The virtual machine must be shut down and umounted before you use this
-# command, and disk images must not be edited concurrently.
-#
-# @name Kernel name for the deploy
-# @cmd_grub Command to update grub
-# mkinitcpio -g /boot/initramfs-linux.img -k /boot/vmlinuz-linux
-function vm_update_boot_loader()
-{
-  local name="$1"
-  local cmd_grub="$2"
-  local ret=0
-  local cmd=""
-  local mount_root=": mount /dev/sda1 /"
-  local cmd_init="dracut --regenerate-all -f"
-  local mkdir_grub=": mkdir-p /boot/grub"
-  local setup_grub=": write /boot/grub/device.map '(hd0,1) /dev/sda'"
-  local grub_install="grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda"
-  local flag
-
-  flag=${flag:-"SILENT"}
-
-  sleep 0.5s
-
-  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-      $mount_root : command '$cmd_init' \
-      $mkdir_grub $setup_grub : command '$grub_install' \
-      : command '$cmd_grub'"
-
-  if [[ -f ${configurations[qemu_path_image]} ]]; then
-    warning " -> Updating grub and boot files for $name. This can take a few minutes. Please, be patient..."
-    {
-      cmd_manager "$flag" "$cmd"
-    } > /dev/null
-    say "Done."
-  else
-    complain "There is no VM in ${configurations[qemu_path_image]}"
-    return 125 # ECANCELED
-  fi
-}
 
 # Update boot loader API
 function update_boot_loader()
@@ -76,6 +13,7 @@ function update_boot_loader()
   local name="$1"
   local target="$2"
   local flag="$3"
+  local cmd
 
   if [[ ! -z "$target" ]]; then
     sudo_cmd="sudo -E"
@@ -85,7 +23,11 @@ function update_boot_loader()
 
   # Update grub
   if [[ "$target" == 'vm' ]] ; then
-    vm_update_boot_loader "$name" "$cmd"
+    local cmd_grub='grub-mkconfig -o /boot/grub/grub.cfg'
+    local cmd_init="dracut --regenerate-all -f"
+    local setup_grub=": write /boot/grub/device.map '(hd0,1) /dev/sda'"
+    local grub_install="grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda"
+    vm_update_boot_loader "$name" 'arch' "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install"
   else
     cmd_manager "$flag" "$cmd"
   fi
