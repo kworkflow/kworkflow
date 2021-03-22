@@ -6,7 +6,7 @@
 # Note: We use this script for Debian and Ubuntu
 
 # Update boot loader API
-function update_boot_loader()
+function update_debian_boot_loader()
 {
   local name="$1"
   local target="$2"
@@ -14,20 +14,8 @@ function update_boot_loader()
   local cmd_init="update-initramfs -c -k $name"
   local setup_grub=": write /boot/grub/device.map '(hd0) /dev/sda'"
   local grub_install="grub-install --root-directory=/ --target=i386-pc --force /dev/sda1"
-  local cmd
 
-  if [[ "$target" == 'local' ]]; then
-    sudo_cmd="sudo -E"
-  fi
-
-  cmd="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
-
-  # Update grub
-  if [[ "$target" == 'vm' ]] ; then
-    vm_update_boot_loader "$name" 'debian' "$cmd" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
-  else
-    cmd_manager "$flag" "$cmd"
-  fi
+  update_boot_loader "$name" 'debian' "$target" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
 }
 
 # Install kernel
@@ -93,7 +81,7 @@ function install_kernel()
     [[ $(findmnt "${configurations[mount_point]}") ]] && vm_umount
   fi
 
-  update_boot_loader "$name" "$target" "$flag"
+  update_debian_boot_loader "$name" "$target" "$flag"
 
   # Reboot
   if [[ "$target" != 'vm' && "$reboot" == "1" ]]; then

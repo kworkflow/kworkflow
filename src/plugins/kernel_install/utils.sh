@@ -137,6 +137,31 @@ function install_modules()
   fi
 }
 
+# Update boot loader API
+function update_boot_loader()
+{
+  local name="$1"
+  local distro="$2"
+  local target="$3"
+  local cmd_init="$4"
+  local setup_grub="$5"
+  local grub_install="$6"
+  local flag="$7"
+
+  if [[ "$target" == 'local' ]]; then
+    sudo_cmd="sudo -E"
+  fi
+
+  cmd_grub="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
+
+  # Update grub
+  if [[ "$target" == 'vm' ]] ; then
+    vm_update_boot_loader "$name" "$distro" "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
+  else
+    cmd_manager "$flag" "$cmd_grub"
+  fi
+}
+
 # After configuring the handle (adding a disk image in write mode), the
 # guestfish performes the followed steps: (1) mount image;
 # (2) dracut (updates kernel images list); (3) create a dummy device.map
