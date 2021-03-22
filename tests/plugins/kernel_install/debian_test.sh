@@ -7,7 +7,7 @@
 
 function suite
 {
-  suite_addTest 'update_boot_loader_Test'
+  suite_addTest 'update_debian_boot_loader_Test'
   suite_addTest 'install_kernel_remote_Test'
   suite_addTest 'install_kernel_local_Test'
   suite_addTest 'install_kernel_vm_Test'
@@ -30,13 +30,13 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function update_boot_loader_Test
+function update_debian_boot_loader_Test
 {
-  output=$(update_boot_loader 'xpto' '' 'TEST_MODE')
+  output=$(update_debian_boot_loader 'xpto' '' 'TEST_MODE')
   cmd=' grub-mkconfig -o /boot/grub/grub.cfg'
   assert_equals_helper 'Check simple flow' "$LINENO" "$cmd" "$output"
 
-  output=$(update_boot_loader 'xpto' 'local' 'TEST_MODE')
+  output=$(update_debian_boot_loader 'xpto' 'local' 'TEST_MODE')
   cmd='sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
   assert_equals_helper 'Check local deploy' "$LINENO" "$cmd" "$output"
 }
