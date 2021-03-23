@@ -150,7 +150,7 @@ function install_kernel()
     cp -v "$name.preset" $path_prefix/etc/mkinitcpio.d/
   fi
 
-  if [[ "$target" != 'local' ]]; then
+  if [[ "$target" != 'vm' ]]; then
     # Update mkinitcpio
     cmd="$sudo_cmd mkinitcpio -p $name"
     cmd_manager "$flag" "$cmd"
