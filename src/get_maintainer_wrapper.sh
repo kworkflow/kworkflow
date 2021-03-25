@@ -38,40 +38,65 @@ function print_files_authors()
 
 # Executes get_maintainer with the given file or dir
 #
-# @1 First argument can be "--authors" or "a" to enable authors
-#    printing. It is optional.
-# @2 Second argument is the given file/dir. It is optional and, if not
-#    given, the current working directory will be used.
+# @raw_options String with all user options
 #
 # Returns:
 # False uppon error and true otherwise.
 #
 # This function also handle the cases where:
-# - A patch file is given
 # - The working dir and/or given path is not the root of a linux kernel repo
 # - The working dir and/or given path is not inside a linux kernel repo
+# - Option --authors/-a is given. It will print the name of the module's
+#   authors
+# - Option --update-patch/-u is given. It will include a "To:" field in
+#   the header of the patch with the contact of the maintainers associated
+#   with that patch
+# - Options --update-patch/-u is given and a field "To:" is already
+#   present in the patch
 function execute_get_maintainer()
 {
+  local raw_options="$@"
   local FILE_OR_DIR
-  local print_authors
+  local print_authors=false
+  local update_patch=false
   local is_file_a_patch=true
   local is_file_inside_kernel_tree=true
 
   local -r script="scripts/get_maintainer.pl"
-  local options="--separator , --nokeywords --nogit --nogit-fallback --norolestats "
+  local script_options="--separator , --nokeywords --nogit "
+  script_options="$script_options --nogit-fallback --norolestats "
 
   local -r original_working_dir=$PWD
   local kernel_root=""
   local path_from_kernel_root=""
 
-  # Check function options
-  if [[ $# -ge 1 && ( $1  = "--authors" || $1 = "-a" ) ]]; then
-    FILE_OR_DIR=$2
-    print_authors=true
-  else
-    FILE_OR_DIR=$1
-    print_authors=false
-  fi
+  IFS=' ' read -r -a options <<< "$raw_options"
+  for option in "${options[@]}"; do
+    if [[ "$option" =~ ^(--.*|-.*) ]]; then
+      case "$option" in
+        -au|-ua)
+          print_authors=true
+          update_patch=true
+          continue
+          ;;
+        --authors|-a)
+          print_authors=true
+          continue
+          ;;
+        --update-patch|-u)
+          update_patch=true
+          continue
+          ;;
+        *)
+          warning "Unrecognized option: $option"
+          continue
+          ;;
+      esac
+    else
+      FILE_OR_DIR=${FILE_OR_DIR:-$option}
+    fi
+  done
+
 
   # If no file is given, assume "."
   if [[ -z $FILE_OR_DIR ]]; then
@@ -88,8 +113,12 @@ function execute_get_maintainer()
 
   # if given path is not a patchfile, add -f to get_maintainer.pl options
   if ! is_a_patch "$FILE_OR_DIR"; then
+    if "$update_patch"; then
+      complain "Option --update-patch was passed but given path is not a patch."
+      return 1
+    fi
     is_file_a_patch=false
-    options="$options -f "
+    script_options="$script_options -f "
   fi
 
   # try to find kernel root at given path
@@ -114,11 +143,27 @@ function execute_get_maintainer()
     return 1
   fi
 
-  say $SEPARATOR
-  say "HERE:"
-  cd $kernel_root
-  eval perl $script $options "$FILE_OR_DIR"
-  cd $original_working_dir
+  cd "$kernel_root"
+  local -r script_output="$(eval perl $script $script_options "$FILE_OR_DIR")"
+  cd "$original_working_dir"
+
+  say "$SEPARATOR"
+  if "$update_patch"; then
+    # Check if "To:" field is already present
+    if grep -q -E '^To: .*'"$script_output" "$FILE_OR_DIR"; then
+      say "Maintainers already in \"To:\" field of $(basename $FILE_OR_DIR)"
+      return 0
+    elif grep -q -E '^To: ' "$FILE_OR_DIR"; then
+      # append maintainers to existing "To:" field
+      sed -E -i 's/(^To:.*)/\1, '"$script_output"'/' "$FILE_OR_DIR"
+    else
+      sed -E -i 's/(^Subject:.*)/To: '"$script_output"'\n\1/' "$FILE_OR_DIR"
+    fi
+    say "Patch $(basename $FILE_OR_DIR) updated with the following maintainers:"
+  else
+    say "HERE:"
+  fi
+  echo "$script_output"
 
   if $print_authors; then
     print_files_authors $FILE_OR_DIR
