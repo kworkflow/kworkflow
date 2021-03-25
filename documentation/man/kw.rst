@@ -180,15 +180,17 @@ string, you have to quote your search (e.g., **kw e "str1 str2"**).
    other words, if you use this option you going feel that `git grep` is first
    used, and then GNU grep.
 
-m, maintainers [*-a|--authors*] [*DIRECTORY|FILE*]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+m, maintainers [*-a|--authors*] [*-u|--update-patch*] [*DIRECTORY|FILE*]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Based on the Linux Kernel get_maintainers script, this command shows the
 maintainers of a given Kernel module (a given file or directory).  The
 *[-a|--authors]* option will also print the authors of the top-level target
 files (non-recursively). Files with more than one author will have their names
-separated by ",". This output should not be used by scripts because some
-authors include "," in their names (e.g. "Company X, Inc.").
+separated by ",". This output should not be used by scripts because some authors
+include "," in their names (e.g. "Company X, Inc."). The *[-u|--update-patch]*
+will update the patch FILE's header with a *To:* field with the maintainers
+(excluding the authors) associated with that patch.
 
 SUBSYSTEM COMMANDS
 ------------------
