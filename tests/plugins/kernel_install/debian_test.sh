@@ -47,11 +47,11 @@ function install_kernel_remote_Test
   local kernel_image_name='bzImage'
   local reboot='1'
   local architecture='x86_64'
-  local target=''
+  local target='remote'
   local flag='TEST_MODE'
   local path_prefix=''
 
-  output=$(install_kernel '' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  output=$(install_kernel '' 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   ret="$?"
   assert_equals_helper 'Test invalid name' "$LINENO" '22' "$ret"
 
@@ -62,7 +62,7 @@ function install_kernel_remote_Test
     "grub-mkconfig -o /boot/grub/grub.cfg"
     "reboot"
   )
-  output=$(install_kernel "$name" "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 }
 
@@ -85,7 +85,7 @@ function install_kernel_local_Test
     "$sudo_cmd reboot"
   )
 
-  output=$(install_kernel "$name" "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 }
 
@@ -130,7 +130,7 @@ function install_kernel_vm_Test
   shopt -s expand_aliases
   alias findmnt='findmnt_mock'
   alias vm_umount='vm_umount'
-  output=$(install_kernel "$name" "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 
   cd "$TEST_ROOT_PATH"

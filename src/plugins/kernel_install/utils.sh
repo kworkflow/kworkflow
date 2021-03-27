@@ -305,3 +305,77 @@ function kernel_uninstall()
   # Reboot
   reboot_machine "$reboot" "$local_deploy"
 }
+
+# Install kernel
+function install_kernel()
+{
+  local name="$1"
+  local distro="$2"
+  local kernel_image_name="$3"
+  local reboot="$4"
+  local architecture="$5"
+  local target="$6"
+  local flag="$7"
+  local sudo_cmd=""
+  local cmd=""
+  local path_prefix=""
+  local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
+
+  flag=${flag:-'SILENT'}
+  target=${target:-'remote'}
+
+  if [[ "$target" == 'local' ]]; then
+    sudo_cmd="sudo -E"
+  fi
+
+  if [[ -z "$name" ]]; then
+    echo "Invalid name"
+    return 22
+  fi
+
+  if [[ "$target" == 'vm' ]]; then
+    # Check if vm is mounted and get its path
+    if [[ $(findmnt "${configurations[mount_point]}") ]]; then
+      path_prefix="${configurations[mount_point]}"
+      # Copy config file
+      cmd_manager "$flag" "cp -v .config $path_prefix/boot/config-$name"
+    else
+      complain "Did you check if your VM is mounted?"
+      return 125 # ECANCELED
+    fi
+  fi
+
+  # Copy kernel image
+  if [[ -f "$path_prefix/boot/vmlinuz-$name" ]]; then
+    cmd="$sudo_cmd cp $path_prefix/boot/vmlinuz-$name $path_prefix/boot/vmlinuz-$name.old"
+    cmd_manager "$flag" "$cmd"
+  fi
+
+  if [[ "$target" != 'remote' ]]; then
+    [[ -z "$architecture" ]] && architecture="x86_64"
+    cmd="$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
+    cmd_manager "$flag" "$cmd"
+  else
+    cmd="$sudo_cmd cp -v vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+    cmd_manager "$flag" "$cmd"
+  fi
+
+  # Each distro has their own way to generate their temporary root file system.
+  # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
+  cmd="generate_$distro""_temporary_root_file_system"
+  eval "$cmd" "$name" "$target" "$flag" "$path_prefix"
+
+  # If VM is mounted, umount before update boot loader
+  if [[ "$target" == 'vm' ]]; then
+    [[ $(findmnt "${configurations[mount_point]}") ]] && vm_umount
+  fi
+
+  # Each distro has their own way to update their bootloader
+  eval "update_$distro""_boot_loader $name $target $flag"
+
+  # Reboot
+  if [[ "$target" != 'vm' && "$reboot" == "1" ]]; then
+    cmd="$sudo_cmd reboot"
+    cmd_manager "$flag" "$cmd"
+  fi
+}

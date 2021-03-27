@@ -275,7 +275,7 @@ function kernel_install
 
       . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
-      install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
+      install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
     ;;
     2) # LOCAL_TARGET
@@ -289,7 +289,7 @@ function kernel_install
       # Local Deploy
       . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
-      install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
+      install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
     ;;
     3) # REMOTE_TARGET
@@ -304,6 +304,9 @@ function kernel_install
       local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
+      distro_info=$(which_distro "$remote" "$port" "$user")
+      distro=$(detect_distro "/" "$distro_info")
+
       cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
                      "$REMOTE_KW_DEPLOY" \
                      "$remote" "$port" "$user" "$flag"
@@ -312,7 +315,7 @@ function kernel_install
                      "$remote" "$port" "$user" "$flag"
 
       # Deploy
-      local cmd_parameters="$name $kernel_img_name $reboot $arch_target '' $flag"
+      local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
       local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $cmd_parameters"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
     ;;
