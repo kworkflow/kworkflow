@@ -285,7 +285,6 @@ function modules_install_to_Test
 
 function kernel_install_Test
 {
-  local ID
   local name="test"
   local original="$PWD"
   local reboot="1"
@@ -296,7 +295,7 @@ function kernel_install_Test
   local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
   local ssh_cmd="ssh -p 3333"
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
-  local deploy_params="$name Image $reboot arm64 '' TEST_MODE"
+  local deploy_params="$name debian Image $reboot arm64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
 
   # For this test we expected three steps:
@@ -316,16 +315,14 @@ function kernel_install_Test
 
   cd "$FAKE_KERNEL"
 
-  ID=1
   output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
-  ID=2
   # Update values
   # NOTICE: I added one extra space in the below line for match what we
   # expect since I believe it is not worth to change the kernel_install
   # function just for it.
-  deploy_params="$name Image 0 arm64 '' TEST_MODE"
+  deploy_params="$name debian Image 0 arm64 'remote' TEST_MODE"
   deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
   cmd_deploy_image="$ssh_cmd $remote \"$deploy_cmd\""
 
@@ -336,9 +333,8 @@ function kernel_install_Test
   )
 
   output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
-  ID=3
   # We want to test an corner case described by the absence of mkinitcpio
   cd "$original"
   tearDown
@@ -355,7 +351,6 @@ function kernel_install_Test
 
 function kernel_install_x86_64_Test
 {
-  local ID
   local name="test"
   local original="$PWD"
   local reboot="1"
@@ -366,7 +361,7 @@ function kernel_install_x86_64_Test
   local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
   local ssh_cmd="ssh -p 3333"
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
-  local deploy_params="$name bzImage $reboot x86_64 '' TEST_MODE"
+  local deploy_params="$name debian bzImage $reboot x86_64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
 
   cd "$original"
@@ -374,8 +369,6 @@ function kernel_install_x86_64_Test
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
   parse_configuration "$FAKE_KERNEL/kworkflow.config"
   cd "$FAKE_KERNEL"
-
-  ID=1
 
   # For this test we expected three steps:
   # 1. Copy preset file (cmd_preset_remote)
@@ -393,21 +386,20 @@ function kernel_install_x86_64_Test
   )
 
   output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
   # Test kernel image infer
-  ID=2
   configurations['kernel_img_name']=''
   output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
   expected_msg='kw inferred arch/x86_64/boot/arch/x86_64/boot/bzImage as a kernel image'
-  assertEquals "($ID): " "$output" "$expected_msg"
+  assert_equals_helper "Infer kernel image" "$LINENO" "$expected_msg" "$output"
 
   # Test failures
-  ID=3
   rm -rf arch/x86_64/
   output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
   expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
-  assertEquals "($ID): " "$output" "$expected_msg"
+  assertEquals "($LINENO): " "$output" "$expected_msg"
+  assert_equals_helper "Could not find a valid image" "$LINENO" "$expected_msg" "$output"
 
   cd "$original"
 }
@@ -504,7 +496,6 @@ function kernel_modules_local_Test
 
 function kernel_install_local_Test
 {
-  local ID
   local count=0
   local original="$PWD"
   # We force Debian files in the setup; for this reason, we are using the
@@ -528,9 +519,8 @@ function kernel_install_local_Test
   export KW_PLUGINS_DIR="../../src/plugins"
   cd "$FAKE_KERNEL"
 
-  ID=1
   output=$(kernel_install "1" "test" "TEST_MODE" "2")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
   cd "$original"
 }
