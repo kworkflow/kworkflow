@@ -31,7 +31,7 @@ If you want to know more about kw's tests take a look at
 If you want to generate the Sphinx documentation, you can use:
 
 ```
-./setup.sh --html
+./setup.sh --docs
 ``` 
 
 Finally, you can use your browser to look the index.html page. For example:
