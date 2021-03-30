@@ -34,7 +34,7 @@ COMMANDS FOR USING QEMU
 Projects that use a QEMU VM in the development cycle to host the development
 environment usually require that developers use some specific commands to
 manage this VM. In this section, you can find all commands available in **kw**
-to manage many daily tasks related to QEMU VM operation.  Notice that some
+to manage many daily tasks related to QEMU VM operation. Notice that some
 rules are specific for the Linux Kernel project.
 
 mo, mount
@@ -306,12 +306,13 @@ be notified when they finish. The commands *build*, *deploy*, *mount*,
 init
 ~~~~
 This command creates a kworkflow.config file in the current directory. The
-primary reason for rerunning kw init is to pick up newly config file.
+primary reason for running kw init is to pick up a freshly created config
+file.
 
 statistics [--day [YEAR/MONTH/DAY] | --week [YEAR/MONTH/DAY] | --month [YEAR/MONTH] --year [YEAR] ]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-kw keep track of metadata regarding features utilization to be later used for
-show kw usage statistics, in summary, kw keep track of:
+kw keeps track of metadata regarding utilization of features. This data is
+used to show kw usage statistics. In summary, kw keeps track of:
 
 1. *Build*
 
@@ -319,31 +320,31 @@ show kw usage statistics, in summary, kw keep track of:
 
 
 For all the data tracked by kw, users can retrieve the total amount of time
-that a specific command was executed, the average time consumed by the feature,
-and the shortest and highest time required for executing the feature. All of
-this information can be retrieved by the *statistics* option with the following
-level of granularity:
+spent by a specific command, the average time consumed by the feature and the
+shortest and highest time required for executing the feature. All of this
+information can be retrieved by the *statistics* option with the following level
+of granularity:
 
-1. *--day [YEAR/MONTH/DAY]*: display day statistics summary, users have the
+1. *--day [YEAR/MONTH/DAY]*: display day statistics summary. Users have the
 option to search a specific date by passing an argument that follows the
-YEAR/MONTH/DAY format or not passes anything and get today info.
+YEAR/MONTH/DAY format. Not passing anything and gets info about today.
 
-2. *--week [YEAR/MONTH/DAY]*: shows the week summary, if a user does not pass
+2. *--week [YEAR/MONTH/DAY]*: shows the week summary. If a user does not pass
 any parameter kw will show the current week statistics. However, users can pass
 a random date (YEAR/MONTH/DAY) and let kw take care to provide a summary
 related to the week related to the target date.
 
 3. *--month [YEAR/MONTH]*: this option shows a report regarding a specific
-month, users can search for data related to a specific month by providing a
+month. Users can search for data related to a specific month by providing a
 parameter in the YEAR/MONTH format. If the user does not pass any parameter, kw
 displays the current month data.
 
 4. *--year [YEAR]*: exhibits the current year summary if the user does not
-specify a specific year.
+specify a year.
 
 df, diff [OPTIONS] FILE1 FILE2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This is a wrapper to some useful usage of diff command, by default, it shows
+This is a wrapper to some useful usage of diff command. By default, it shows
 diff files side-by-side in an interactive way. This command provides the
 following set of options:
 

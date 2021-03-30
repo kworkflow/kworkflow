@@ -165,8 +165,8 @@ all of them with labels; most of the available labels are self-explanatory.
 However, few of them deserve a brief explanation:
 
 * **done: wait for stable**: In the section *Development Cycle and Branches* we
-  explained how our branch management works, recall that we have an unstable
-  branch that soon or later will be merged into the master branch (stable).
+  explained how our branch management works. Recall that we have an unstable
+  branch that sooner or later will be merged into the master branch (stable).
   This label is used for identifying issues already solved on the unstable, but
   not landed in the master yet. If you see this label, feel free to test the
   feature/bugfix in the unstable branch.

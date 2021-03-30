@@ -185,7 +185,7 @@ Test name
 
 Tests are an important part of kw, we only accept new features with tests, and
 we prefer bug fixes that came with tests. For trying to keep the test
-comprehensible, we adopt the following patter for naming a test::
+comprehensible, we adopt the following pattern for naming a test::
 
     target_function_name_[an_option_description]_Test
 

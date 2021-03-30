@@ -4,9 +4,9 @@
 
 # About
 
-This set of scripts have a simple mission: reduces the environment and setup
+This set of scripts have a simple mission: to reduce the environment and setup
 overhead for developing for GNU/Linux. Kw is composed of different scripts
-unified in a single interface after the installation, kw commands become
+unified in a single interface. After the installation, kw commands become
 available in the command line interface.
 
 Kworkflow stands for Kernel Workflow.
