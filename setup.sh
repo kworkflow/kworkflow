@@ -298,7 +298,7 @@ function synchronize_files()
   setup_config_file
   ASSERT_IF_NOT_EQ_ZERO "Config file failed" "$?"
 
-  if [ -f "$HOME/.bashrc" ]; then
+  if [ -f "$HOME/.bashrc" ] || [ -h "$HOME/.bashrc" ]; then
     # Add to bashrc
     echo "# $app_name" >> "$HOME/.bashrc"
     echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.bashrc"
@@ -307,7 +307,7 @@ function synchronize_files()
     warning "Unable to find a bash shell."
   fi
 
-  if [ -f "$HOME/.zshrc"]; then 
+  if [ -f "$HOME/.zshrc" ] || [ -h "$HOME/.zshrc" ]; then 
     # Add to zshrc
     echo "# Enable bash completion for zsh" >> "$HOME/.zshrc"
     echo "autoload bashcompinit && bashcompinit" >> "$HOME/.zshrc"
