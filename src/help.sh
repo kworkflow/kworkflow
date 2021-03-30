@@ -1,6 +1,6 @@
 . "$KW_LIB_DIR/kwio.sh" --source-only
 
-function kworkflow-help()
+function kworkflow_help()
 {
   echo -e "Usage: kw [options]"
 
@@ -34,7 +34,7 @@ function kworkflow-help()
 
 # Display the man documentation using rst2man, or man kw if it is already
 # installed to the system
-function kworkflow-man()
+function kworkflow_man()
 {
     doc="$KW_SHARE_MAN_DIR"
     ret=0
