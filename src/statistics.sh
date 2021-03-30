@@ -21,6 +21,11 @@ function statistics()
   local year_month_dir=$(date +%Y/%m)
   local date_param
 
+  if [[ "$1" == -h ]]; then
+    statistics_help
+    exit 0
+  fi
+
   shift 1 # Remove the first option, i.e., --day, --week, or --year
   local date_param="$@"
 
@@ -351,4 +356,13 @@ function year_statistics()
   basic_data_process "$all_data"
   say "$year summary"
   print_basic_data
+}
+
+function statistics_help()
+{
+  echo -e "kw statistics:\n" \
+    "\tstatistics [--day [YEAR/MONTH/DAY]]\n" \
+    "\tstatistics [--week [YEAR/MONTH/DAY]]\n" \
+    "\tstatistics [--month [YEAR/MONTH]]\n" \
+    "\tstatistics [--year [YEAR]] \n"
 }

@@ -3,6 +3,15 @@
 declare -r metadata_dir="metadata"
 declare -r configs_dir="configs"
 
+function config_manager_help()
+{
+  echo -e "kw config manager:\n" \
+    "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
+    "\tconfigm,g --list|-l - List config files under kw management\n" \
+    "\tconfigm,g --get NAME - Get a config file based named *NAME*\n" \
+    "\tconfigm,g --remove|-rm - Remove config labeled with *NAME*\n"
+}
+
 # This function handles the save operation of kernel's '.config' file. It
 # checks if the '.config' exists and saves it using git (dir.:
 # <kw_install_path>/configs)
@@ -192,6 +201,9 @@ function execute_config_manager()
   [[ "$@" =~ "-f" ]] && force=1
 
   case $1 in
+    -h)
+      config_manager_help
+      ;;
     --save)
       shift # Skip '--save' option
       name_config=$1
