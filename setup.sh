@@ -299,16 +299,26 @@ function synchronize_files()
   ASSERT_IF_NOT_EQ_ZERO "Config file failed" "$?"
 
   if [ -f "$HOME/.bashrc" ]; then
-      # Add to bashrc
-      echo "# $app_name" >> "$HOME/.bashrc"
-      echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.bashrc"
-      update_path
+    # Add to bashrc
+    echo "# $app_name" >> "$HOME/.bashrc"
+    echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.bashrc"
+    update_path
   else
-      warning "Unable to find a shell."
+    warning "Unable to find a bash shell."
+  fi
+
+  if [ -f "$HOME/.zshrc"]; then 
+    # Add to zshrc
+    echo "# Enable bash completion for zsh" >> "$HOME/.zshrc"
+    echo "autoload bashcompinit && bashcompinit" >> "$HOME/.zshrc"
+    echo "# $app_name" >> "$HOME/.zshrc"
+    echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.zshrc"
+  else
+    warning "Unable to find a zsh shell."
   fi
 
   if command -v fish &> /dev/null; then
-      synchronize_fish
+    synchronize_fish
   fi
 
   say "$SEPARATOR"
