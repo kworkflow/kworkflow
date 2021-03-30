@@ -150,7 +150,7 @@ function kw()
       (
         . "$KW_LIB_DIR/help.sh" --source-only
 
-        kworkflow-help
+        kworkflow_help
       )
       ;;
     explore|e)
@@ -164,7 +164,7 @@ function kw()
       (
         . "$KW_LIB_DIR/help.sh" --source-only
 
-        kworkflow-man
+        kworkflow_man
       )
       ;;
     version|--version|-v)
@@ -199,7 +199,7 @@ function kw()
         . "$KW_LIB_DIR/help.sh" --source-only
 
         complain "Invalid option"
-        kworkflow-help
+        kworkflow_help
         return 1
       )
       ;;
