@@ -401,6 +401,11 @@ function kernel_deploy
   local runtime=0
   local ret=0
 
+  if [[ "$1" == -h ]]; then
+    deploy_help
+    exit 0
+  fi
+
   deploy_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
@@ -489,6 +494,14 @@ function kernel_deploy
   fi
 }
 
+function deploy_help()
+{
+  echo -e "kw deploy|d installs kernel and modules:\n" \
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m]\n" \
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--uninstall|-u KERNEL_NAME]\n" \
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--list|-l]"
+}
+
 # This function is responsible for manipulating kernel build operations such as
 # compile/cross-compile and menuconfig.
 #
@@ -509,6 +522,11 @@ function mk_build()
   local end
   local arch="${configurations[arch]}"
   local menu_config="${configurations[menu_config]}"
+
+  if [[ "$1" == -h ]]; then
+    build_help
+    exit 0
+  fi
 
   menu_config=${menu_config:-"nconfig"}
   arch=${arch:-"x86_64"}
@@ -559,6 +577,13 @@ function mk_build()
   fi
 
   return "$ret"
+}
+
+function build_help()
+{
+  echo -e "kw build:\n" \
+    "\tbuild - Build kernel \n" \
+    "\tbuild [--menu|-n] - Open kernel menu config"
 }
 
 # Handles the remote info

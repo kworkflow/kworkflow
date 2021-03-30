@@ -96,6 +96,11 @@ function vm_ssh
   local port=${configurations[ssh_port]}
   local target=${configurations[ssh_ip]}
 
+  if [[ "$1" == -h ]]; then
+    ssh_help
+    exit 0
+  fi
+
   # Mandatory parameter
   if [ -z "$target" ]; then
     complain "Invalid argument: $@"
@@ -128,4 +133,11 @@ function vm_ssh
 
   say "ssh $port $target $opts"
   eval "ssh $port $target $opts"
+}
+
+function ssh_help()
+{
+  echo -e "kw ssh|s options:\n" \
+    "\tssh|s [--script|-s=\"SCRIPT PATH\"]\n" \
+    "\tssh|s [--command|-c=\"COMMAND\"]"
 }

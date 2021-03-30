@@ -70,6 +70,11 @@ function execute_get_maintainer()
   local kernel_root=""
   local path_from_kernel_root=""
 
+  if [[ "$1" == -h ]]; then
+    maintainers_help
+    exit 0
+  fi
+
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*) ]]; then
@@ -168,4 +173,10 @@ function execute_get_maintainer()
   if $print_authors; then
     print_files_authors $FILE_OR_DIR
   fi
+}
+
+function maintainers_help()
+{
+  echo -e "kw maintainers|m:\n" \
+    "\tmaintainers,m [--authors|-a] [--update-patch|-u]\n"
 }
