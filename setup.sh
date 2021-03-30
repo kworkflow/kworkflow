@@ -298,16 +298,28 @@ function synchronize_files()
   setup_config_file
   ASSERT_IF_NOT_EQ_ZERO "Config file failed" "$?"
 
-  if [ -f "$HOME/.bashrc" ]; then
-      # Add to bashrc
-      echo "# $app_name" >> "$HOME/.bashrc"
-      echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.bashrc"
+  if command_exists "bash"; then
+    # Add tabcompletion to bashrc
+    if [[ -f "$HOME/.bashrc"  ||  -h "$HOME/.bashrc" ]]; then
+      append_bashcompletion ".bashrc"
       update_path
-  else
-      warning "Unable to find a shell."
+    else
+      warning "Unable to find a .bashrc file."
+    fi
   fi
 
-  if command -v fish &> /dev/null; then
+  if command_exists "zsh"; then
+    # Add tabcompletion to zshrc
+    if [[ -f "$HOME/.zshrc" ||  -h "$HOME/.zshrc" ]]; then
+      echo "# Enable bash completion for zsh" >> "$HOME/.zshrc"
+      echo "autoload bashcompinit && bashcompinit" >> "$HOME/.zshrc"
+      append_bashcompletion ".zshrc"
+    else
+      warning "Unable to find a .zshrc file."
+    fi
+  fi
+
+  if command_exists "fish"; then
       synchronize_fish
   fi
 
@@ -316,6 +328,14 @@ function synchronize_files()
   mkdir -p "$cachedir"
   say "$app_name installed into $PREFIX"
   warning " -> For a better experience with kw, please, open a new terminal."
+}
+
+function append_bashcompletion()
+{
+  local shellrc="$1"
+
+  echo "# $app_name" >> "$HOME/$shellrc"
+  echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/$shellrc"
 }
 
 function update_version()
