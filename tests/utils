@@ -28,6 +28,47 @@ function prefix_multiline
   echo "$@" | sed -E "s/^/> /g"
 }
 
+# Compare strings with multiple lines and prefix them with "> "
+function multilineAssertEquals
+{
+  local message
+  local left
+  local right
+
+  if [ $# -ge 3 ]; then
+    message="$1"
+    shift
+  fi
+
+  left=$'\n'"$(echo "$1" | sed -E "s/^/> /g" )"$'\n'
+  right=$'\n'"$(echo "$2" | sed -E "s/^/> /g" )"$'\n'
+
+  if [ -n "$message" ]; then
+    assertEquals "$message" "$left" "$right"
+  else
+    assertEquals "$left" "$right"
+  fi
+}
+
+# Assert that two files are byte by byte the same
+function assertFileEquals()
+{
+  local message
+  local ret
+
+  if [ $# -ge 3 ]; then
+    message="$1"
+    shift
+  else
+    message="Files $1 and $2 differ"
+  fi
+
+  cmp -s "$1" "$2"
+  ret="$?"
+
+  assertTrue "$message" "$ret"
+}
+
 # Receives a path and creates a fake kernel root in it. The goal is to make this
 # path recognizable by src/kwlib.sh:is_kernel_root().
 function mk_fake_kernel_root
