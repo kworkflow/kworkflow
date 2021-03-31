@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./src/pomodoro.sh --source-only
-. ./tests/utils --source-only
+include './src/pomodoro.sh'
+include './tests/utils'
 
 function suite
 {

@@ -1,10 +1,10 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
 
-declare -r BLUECOLOR="\033[1;34;49m%s\033[m"
-declare -r REDCOLOR="\033[1;31;49m%s\033[m"
-declare -r YELLOWCOLOR="\033[1;33;49m%s\033[m"
-declare -r GREENCOLOR="\033[1;32;49m%s\033[m"
-declare -r SEPARATOR="========================================================="
+declare -gr BLUECOLOR="\033[1;34;49m%s\033[m"
+declare -gr REDCOLOR="\033[1;31;49m%s\033[m"
+declare -gr YELLOWCOLOR="\033[1;33;49m%s\033[m"
+declare -gr GREENCOLOR="\033[1;32;49m%s\033[m"
+declare -gr SEPARATOR="========================================================="
 
 # Alerts command completion to the user.
 #

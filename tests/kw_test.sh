@@ -1,8 +1,10 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
+include './tests/utils'
 unset -v KW_LIB_DIR  # to be able to test the developer mode
-. ./kw --source-only > /dev/null
+include './kw' > /dev/null
+# when imported kw prints the help function and we don´t want
+# to polute our test results, so we redirect its output to /dev/null
 
 function suite
 {

@@ -4,7 +4,7 @@
 . "$KW_LIB_DIR/kw_time_and_date.sh" --source-only
 
 # Hash containing command line options
-declare -A options_values
+declare -gA options_values
 POMODORO_LOG_FILE="$KW_DATA_DIR/pomodoro_current.log"
 
 # Pomodoro manager function.

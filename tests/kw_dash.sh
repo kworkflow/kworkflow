@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
+include './tests/utils'
 
 function suite
 {

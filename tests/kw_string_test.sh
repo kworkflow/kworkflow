@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./src/kw_string.sh --source-only
-. ./tests/utils --source-only
+include './src/kw_string.sh'
+include './tests/utils'
 
 function suite
 {

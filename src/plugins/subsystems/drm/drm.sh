@@ -2,9 +2,9 @@
 . "$KW_LIB_DIR/remote.sh" --source-only
 . "$KW_LIB_DIR/kwlib.sh" --source-only
 
-declare -r LOAD="LOAD"
-declare -r UNLOAD="UNLOAD"
-declare -A drm_options_values
+declare -gr LOAD='LOAD'
+declare -gr UNLOAD='UNLOAD'
+declare -gA drm_options_values
 
 SYSFS_CLASS_DRM="/sys/class/drm"
 

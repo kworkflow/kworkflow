@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./src/init.sh --source-only
-. ./tests/utils --source-only
+include './src/init.sh'
+include './tests/utils'
 
 function suite
 {

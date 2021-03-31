@@ -1,9 +1,9 @@
 #!/bin/bash
 
-. ./src/remote.sh --source-only
-. ./src/kwlib.sh --source-only
-. ./src/kw_config_loader.sh --source-only
-. ./tests/utils --source-only
+include './src/remote.sh'
+include './src/kwlib.sh'
+include './src/kw_config_loader.sh'
+include './tests/utils'
 
 function suite
 {

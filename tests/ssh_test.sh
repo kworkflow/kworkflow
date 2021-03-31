@@ -4,8 +4,8 @@
 # NOTE: We're not testing the ssh command here, just the kw ssh operation
 #
 
-. ./src/vm.sh --source-only
-. ./tests/utils --source-only
+include './src/vm.sh'
+include './tests/utils'
 
 INVALID_ARG="Invalid arguments"
 NO_SUCH_FILE="No such file"

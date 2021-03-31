@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./src/mk.sh --source-only
-. ./tests/utils --source-only
+include './src/mk.sh'
+include './tests/utils'
 
 function suite
 {

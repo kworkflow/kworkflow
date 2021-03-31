@@ -1,8 +1,8 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
-. ./src/kwio.sh --source-only
-. ./src/kwlib.sh --source-only
+include './tests/utils'
+include './src/kwio.sh'
+include './src/kwlib.sh'
 
 # NOTE: All executions off 'alert_completion' in this test file must be done
 # inside a subshell (i.e. "$(alert_completion ...)"), because this function

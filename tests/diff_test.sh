@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./src/diff.sh --source-only
-. ./tests/utils --source-only
+include './src/diff.sh'
+include './tests/utils'
 
 function suite
 {

@@ -24,6 +24,7 @@ function init_env
   unset -v KW_LIB_DIR KWORKFLOW
   KW_LIB_DIR="./src"
   export KW_LIB_DIR KWORKFLOW
+  export -f include
 }
 
 # Receives a string with one or more lines and print each of

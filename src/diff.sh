@@ -1,8 +1,8 @@
-. "$KW_LIB_DIR/kwio.sh" --source-only
-. "$KW_LIB_DIR/kwlib.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 # Hash containing user options
-declare -A diff_options
+declare -gA diff_options
 
 function diff_manager()
 {

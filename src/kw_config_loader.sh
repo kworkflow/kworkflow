@@ -1,4 +1,4 @@
-. "$KW_LIB_DIR/kwio.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
 
 CONFIG_FILENAME=kworkflow.config
 
@@ -11,10 +11,10 @@ REMOTE_TARGET=3
 TARGET="$VM_TARGET"
 
 # Default configuration
-declare -A configurations
+declare -gA configurations
 
 # Default target option from kworkflow.config
-declare -A deploy_target_opt=( ["vm"]=1 ["local"]=2 ["remote"]=3 )
+declare -gA deploy_target_opt=( ["vm"]=1 ["local"]=2 ["remote"]=3 )
 
 # This function is used to show the current set up used by kworkflow.
 function show_variables()

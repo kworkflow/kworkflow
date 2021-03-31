@@ -2,18 +2,19 @@
 # process all data based on the user request. Here you going to find functions
 # responsible for aggregate and calculate values such as average and total.
 
-. "$KW_LIB_DIR/kw_config_loader.sh" --source-only
-. "$KW_LIB_DIR/kw_time_and_date.sh" --source-only
+include "$KW_LIB_DIR/kw_config_loader.sh"
+include "$KW_LIB_DIR/kw_time_and_date.sh"
+
 
 # This is a data struct that describes the main type of data collected. We use
 # this in some internal loops.
-declare -a statistics_opt=( "deploy" "build" "list" "uninstall" "build_failure" "Modules_deploy" )
+declare -ga statistics_opt=( 'deploy' 'build' 'list' 'uninstall' 'build_failure' 'Modules_deploy' )
 
 # ATTENTION:
 # This variable is shared between function, for this reason, it is NOT SAFE to
 # parallelize code inside this file. We use this array a temporary data
 # container to be pass through other functions.
-declare -A shared_data=( ["deploy"]='' ["build"]='' ["list"]='' ["uninstall"]='' ["build_failure"]='' ["Modules_deploy"]='' )
+declare -gA shared_data=( ["deploy"]='' ["build"]='' ["list"]='' ["uninstall"]='' ["build_failure"]='' ["Modules_deploy"]='' )
 
 function statistics()
 {

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./src/statistics.sh --source-only
-. ./tests/utils --source-only
+include './src/statistics.sh'
+include './tests/utils'
 
 # Pre-calculated:
 # Values: "9433 8750 4316 13 18 145 107 282 45 13 57 37 4 44"
