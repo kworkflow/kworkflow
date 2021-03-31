@@ -10,6 +10,7 @@ function suite
   suite_addTest "print_files_authors_Test"
   suite_addTest "print_files_authors_from_dir_Test"
   suite_addTest "execute_get_maintainer_Test"
+  suite_addTest "execute_get_maintainer_patch_Test"
 }
 
 # The following variables hold the the lines print_files_authors should
@@ -50,7 +51,7 @@ Maintainers already in \"To:\" field of update_patch_test.patch"
 
 FAKE_KERNEL="tests/.tmp"
 
-function setupGetMaintainers
+function oneTimeSetUp
 {
   # This creates tests/.tmp which should mock a kernel tree root. A .git
   # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
@@ -63,134 +64,78 @@ function setupGetMaintainers
   cp -f tests/samples/update_patch_test{_model,}{,2}.patch "$FAKE_KERNEL"/
 }
 
-function tearDownGetMainteiners
+function oneTimeTearDown
 {
   rm -rf "$FAKE_KERNEL"
 }
 
-function print_files_authors_Test
+function print_files_authors_Test()
 {
   local -r ret=$(print_files_authors "tests/samples/print_file_author_test_dir/code1.c")
-  if [[ "$ret" != "$CORRECT_FILE_MSG" ]]; then
-    local -r expected_prefixed=$(prefix_multiline "$CORRECT_FILE_MSG")
-    local -r got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_prefixed\nBut got:\n$got_prefixed"
-  fi
-  true # Reset return value
+  multilineAssertEquals "$ret" "$CORRECT_FILE_MSG"
 }
 
-function print_files_authors_from_dir_Test
+function print_files_authors_from_dir_Test()
 {
   local -r ret=$(print_files_authors "tests/samples/print_file_author_test_dir")
-  if [[ "$ret" != "$CORRECT_DIR_MSG" ]]; then
-    local -r expected_prefixed=$(prefix_multiline "$CORRECT_DIR_MSG")
-    local -r got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_prefixed\nBut got:\n$got_prefixed"
-  fi
-  true # Reset return value
+  multilineAssertEquals "$ret" "$CORRECT_DIR_MSG"
 }
 
 function execute_get_maintainer_Test
 {
   local ret
-  local got_prefixed
-  local -r expected_tmp_prefixed=$(prefix_multiline "$CORRECT_TMP_MSG")
-  local -r expected_tmp_fs_prefixed=$(prefix_multiline "$CORRECT_TMP_FS_MSG")
-  local -r expected_tmp_patch_prefixed=$(prefix_multiline "$CORRECT_TMP_PATCH_MSG")
-  local -r expected_tmp_patch2_prefixed=$(prefix_multiline "$CORRECT_TMP_PATCH2_MSG")
-  local -r expected_tmp_path_already_in_prefixed=$(prefix_multiline "$CORRECT_TMP_PATCH_ALREADY_IN_MSG")
-
-  setupGetMaintainers
+  local -r original_dir="$PWD"
 
   ret="$(execute_get_maintainer tests/.tmp)"
-  if [[ "$ret" != "$CORRECT_TMP_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_prefixed\nBut got:\n$got_prefixed\n(Calling lkr from outside lkr)"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
-  cd tests/.tmp
+  cd "$FAKE_KERNEL"
   ret="$(execute_get_maintainer .)"
-  if [[ "$ret" != "$CORRECT_TMP_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_prefixed\nBut got:\n$got_prefixed\n(Calling lkr from lkr)"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   ret="$(execute_get_maintainer fs)"
-  if [[ "$ret" != "$CORRECT_TMP_FS_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_fs_prefixed\nBut got:\n$got_prefixed\n(Calling lkr/fs from lkr)"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
 
   cd fs
   ret="$(execute_get_maintainer ..)"
-  if [[ "$ret" != "$CORRECT_TMP_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_prefixed\nBut got:\n$got_prefixed\n(Calling lkr from lkr/fs)"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   ret="$(execute_get_maintainer .)"
-  if [[ "$ret" != "$CORRECT_TMP_FS_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_fs_prefixed\nBut got:\n$got_prefixed\n(Calling lkr/fs from lkr/fs)"
-  fi
-  cd ..
+  multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
+  cd "$original_dir"
+}
 
-  # test patch
+function execute_get_maintainer_patch_Test() {
+
+  local original_dir="$PWD"
+  cd "$FAKE_KERNEL"
+
   ret="$(execute_get_maintainer update_patch_test.patch)"
-  if [[ "$ret" != "$CORRECT_TMP_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_fs_prefixed\nBut got:\n$got_prefixed\n(Calling lkr/fs from lkr/fs)"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   # test -u
   cp -f update_patch_test.patch{,.bak}
   ret="$(execute_get_maintainer -u update_patch_test.patch)"
-  if [[ "$ret" != "$CORRECT_TMP_PATCH_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_patch_prefixed\nBut got:\n$got_prefixed\n(Calling lkr/fs from lkr/fs)"
-  fi
-  if ! cmp -s update_patch_test{,_model}.patch; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Files update_patch_test.patch and update_patch_test_model.patch are not the same"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_MSG"
+  assertFileEquals update_patch_test{,_model}.patch
   cp -f update_patch_test.patch{.bak,}
 
   # test --update-patch
   ret="$(execute_get_maintainer --update-patch update_patch_test.patch)"
-  if [[ "$ret" != "$CORRECT_TMP_PATCH_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_patch_prefixed\nBut got:\n$got_prefixed\n(Calling lkr/fs from lkr/fs)"
-  fi
-  if ! cmp -s update_patch_test{,_model}.patch; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Files update_patch_test.patch and update_patch_test_model.patch are not the same"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_MSG"
+  assertFileEquals update_patch_test{,_model}.patch
 
   # test for already existing maintainers
   ret="$(execute_get_maintainer -u update_patch_test.patch)"
-  if [[ "$ret" != "$CORRECT_TMP_PATCH_ALREADY_IN_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_patch_already_in_prefixed\nBut got:\n$got_prefixed\n(Calling lkr/fs from lkr/fs)"
-  fi
-  if ! cmp -s update_patch_test{,_model}.patch; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Files update_patch_test.patch and update_patch_test_model.patch are not the same"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_ALREADY_IN_MSG"
+  assertFileEquals update_patch_test{,_model}.patch
 
   # test for already existing "To:" field without maintainers
   ret="$(execute_get_maintainer -u update_patch_test2.patch)"
-  if [[ "$ret" != "$CORRECT_TMP_PATCH2_MSG" ]]; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Expecting return:\n$expected_tmp_patch2_prefixed\nBut got:\n$got_prefixed\n(Calling lkr/fs from lkr/fs)"
-  fi
-  if ! cmp -s update_patch_test{,_model}2.patch; then
-    got_prefixed=$(prefix_multiline "$ret")
-    fail "Files update_patch_test2.patch and update_patch_test_model2.patch are not the same"
-  fi
+  multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH2_MSG"
+  assertFileEquals update_patch_test{,_model}2.patch
 
-  cd ../../
-
-  tearDownGetMainteiners
+  cd "$original_dir"
 }
 
 invoke_shunit
