@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./src/config_manager.sh --source-only
-. ./tests/utils --source-only
+include './src/config_manager.sh'
+include './tests/utils'
 
 LS_TITLE="Name\t\tDescription"
 COMMAND_MSG_UNKNOWN="Unknown option"

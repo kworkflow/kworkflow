@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
-. ./src/kw_config_loader.sh --source-only
+include './tests/utils'
+include './src/kw_config_loader.sh'
 
 TMP_DIR=tests/.tmp_kw_config_loader_test
 

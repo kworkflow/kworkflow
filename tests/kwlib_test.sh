@@ -1,8 +1,8 @@
 #!/bin/bash
 
-. ./src/get_maintainer_wrapper.sh --source-only
-. ./src/kwlib.sh --source-only
-. ./tests/utils --source-only
+include './src/get_maintainer_wrapper.sh'
+include './src/kwlib.sh'
+include './tests/utils'
 
 function suite
 {
@@ -180,7 +180,7 @@ function join_path_Test
 {
   local base="/lala/xpto"
   local ret=$(join_path "/lala" "///xpto")
- 
+
   assertEquals "Expect /lala/xpto" "$ret" "$base"
 
   ret=$(join_path "/lala" "/xpto////")

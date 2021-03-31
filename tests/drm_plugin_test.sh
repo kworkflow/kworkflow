@@ -1,8 +1,8 @@
 #!/bin/bash
 
-. ./src/plugins/subsystems/drm/drm.sh --source-only
-. ./src/kwlib.sh --source-only
-. ./tests/utils --source-only
+include './src/plugins/subsystems/drm/drm.sh'
+include './src/kwlib.sh'
+include './tests/utils'
 
 function suite
 {

@@ -16,7 +16,7 @@ following dependencies:
 
 * libguestfs
 * Qemu
-* Bash
+* Bash >= 4.4
 * git
 * tar
 * python-docutils

@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./src/checkpatch_wrapper.sh --source-only
-. ./tests/utils --source-only
+include './src/checkpatch_wrapper.sh'
+include './tests/utils'
 
 function suite
 {

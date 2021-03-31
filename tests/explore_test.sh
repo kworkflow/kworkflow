@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
-. ./src/explore.sh --source-only
+include './tests/utils'
+include './src/explore.sh'
 
 function suite
 {

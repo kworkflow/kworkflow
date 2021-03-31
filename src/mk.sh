@@ -17,11 +17,11 @@
 # root password.
 #
 
-. "$KW_LIB_DIR/vm.sh" --source-only # It includes kw_config_loader.sh and kwlib.sh
-. "$KW_LIB_DIR/remote.sh" --source-only
+include "$KW_LIB_DIR/vm.sh" # It includes kw_config_loader.sh and kwlib.sh
+include "$KW_LIB_DIR/remote.sh"
 
 # Hash containing user options
-declare -A options_values
+declare -gA options_values
 
 # This function is responsible for handling the command to
 # `make install_modules`, and it expects a target path for saving the modules

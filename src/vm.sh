@@ -1,5 +1,5 @@
-. "$KW_LIB_DIR/kw_config_loader.sh" --source-only
-. "$KW_LIB_DIR/kwlib.sh" --source-only
+include "$KW_LIB_DIR/kw_config_loader.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 function vm_mount
 {

@@ -1,7 +1,7 @@
-. "$KW_LIB_DIR/kwio.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
 
-declare -r metadata_dir="metadata"
-declare -r configs_dir="configs"
+declare -gr metadata_dir='metadata'
+declare -gr configs_dir='configs'
 
 function config_manager_help()
 {

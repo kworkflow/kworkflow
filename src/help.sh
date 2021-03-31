@@ -1,4 +1,4 @@
-. "$KW_LIB_DIR/kwio.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
 
 function kworkflow_help()
 {

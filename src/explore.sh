@@ -2,8 +2,8 @@
 # command it unifies the way that we search for things in the project, by
 # things, you can understand from files to messages in git log.
 
-. "$KW_LIB_DIR/kwio.sh" --source-only
-. "$KW_LIB_DIR/kwlib.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 # The main entry point for the explore feature, if you want to add another
 # search mechanism, you probably wish to start by this function

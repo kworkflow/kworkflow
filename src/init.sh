@@ -1,7 +1,7 @@
 # The init.sh keep all the operations related to the `kworkflow.config`
 # initialization. The initialization feature it is inspired on `git init`.
 
-. "$KW_LIB_DIR/kwio.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
 
 # This function is responsible for creating a local kworkflow.config based in a
 # template available in the etc directory.

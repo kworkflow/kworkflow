@@ -1,7 +1,7 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
-. ./src/vm.sh --source-only
+include './tests/utils'
+include './src/vm.sh'
 
 function suite
 {
