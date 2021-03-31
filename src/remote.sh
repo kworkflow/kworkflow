@@ -1,3 +1,5 @@
+[ -n "$REMOTE_IMPORTED" ] && return || readonly REMOTE_IMPORTED=1
+
 # NOTE: It is recommended that src/kw_config_loader.sh be included before this
 # file
 

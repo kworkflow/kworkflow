@@ -1,5 +1,7 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
 
+[ -n "$KWLIB_IMPORTED" ] && return || readonly KWLIB_IMPORTED=1
+
 # A common task used inside kw is a string separation based on a delimiter, for
 # this reason, this function tries to handle this scenario by getting a
 # delimiter character followed by the position that the users want to retrieve.

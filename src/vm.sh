@@ -1,3 +1,6 @@
+[ -n "$VM_IMPORTED" ] && return || readonly VM_IMPORTED=1
+
+
 . "$KW_LIB_DIR/kw_config_loader.sh" --source-only
 . "$KW_LIB_DIR/kwlib.sh" --source-only
 

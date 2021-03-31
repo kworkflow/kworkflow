@@ -1,3 +1,5 @@
+[ -n "$HELP_IMPORTED" ] && return || readonly HELP_IMPORTED=1
+
 . "$KW_LIB_DIR/kwio.sh" --source-only
 
 function kworkflow-help()

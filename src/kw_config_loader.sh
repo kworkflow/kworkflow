@@ -1,3 +1,5 @@
+[ -n "$KW_CONFIGLOADER_IMPORTED" ] && return || readonly KW_CONFIGLOADER_IMPORTED=1
+
 . "$KW_LIB_DIR/kwio.sh" --source-only
 
 CONFIG_FILENAME=kworkflow.config
