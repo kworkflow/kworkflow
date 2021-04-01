@@ -1,6 +1,6 @@
 language: bash
 os: linux
-dist: bionic
+dist: focal
 
 # Prepare for dependencies installation
 before_install:
