@@ -10,7 +10,7 @@ before_install:
 install:
   - >
     sudo apt-get -y install libguestfs-tools qemu bash git
-    python-docutils dash shunit2 fish python-sphinx
+    python-docutils dash shunit2 fish python3-sphinx
 
 # Prepare to execute tests
 before_script:
