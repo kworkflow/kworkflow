@@ -159,7 +159,7 @@ function strip_path
 
 if [[ "$#" -eq 0 ]]; then
   check_required_files
-  files_list=$(find ./tests -name "*_test.sh")
+  files_list=$(find ./tests -name "*_test.sh" | grep --invert-match "/shunit2/" )
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
   strip_path $files_list
