@@ -61,6 +61,20 @@ function get_kernel_release
   cmd_manager "$flag" "$cmd"
 }
 
+# Get the kernel version name.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function get_kernel_version
+{
+  local flag="$1"
+  local cmd="make kernelversion"
+
+  flag=${flag:-"SILENT"}
+
+  cmd_manager "$flag" "$cmd"
+}
+
 # This function goal is to perform a global clean up, it basically calls other
 # specialized cleanup functions.
 function cleanup
@@ -502,6 +516,24 @@ function deploy_help()
     "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--list|-l]"
 }
 
+# This function retrieves and prints information related to the kernel that
+# will be compiled.
+function build_info()
+{
+  local flag="$1"
+  local kernel_name=$(get_kernel_release "$flag")
+  local kernel_version=$(get_kernel_version "$flag")
+
+  say "Kernel source information"
+  echo -e "\tName: $kernel_name"
+  echo -e "\tVersion: $kernel_version"
+
+  if [[ -f '.config' ]]; then
+    local compiled_modules=$(grep -c '=m' .config)
+    echo -e "\tTotal modules to be compiled: $compiled_modules"
+  fi
+}
+
 # This function is responsible for manipulating kernel build operations such as
 # compile/cross-compile and menuconfig.
 #
@@ -543,6 +575,10 @@ function mk_build()
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     case "$option" in
+      --info|-i)
+        build_info
+        exit
+        ;;
       --menu|-n)
         command="make ARCH=$arch $CROSS_COMPILE $menu_config"
         cmd_manager "$flag" "$command"
@@ -583,7 +619,8 @@ function build_help()
 {
   echo -e "kw build:\n" \
     "\tbuild - Build kernel \n" \
-    "\tbuild [--menu|-n] - Open kernel menu config"
+    "\tbuild [--menu|-n] - Open kernel menu config\n" \
+    "\tbuild [--info|-i] - Display build information"
 }
 
 # Handles the remote info
