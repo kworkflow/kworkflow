@@ -5,6 +5,7 @@
 
 function suite
 {
+  suite_addTest "build_info_Test"
   suite_addTest "mk_build_Test"
   suite_addTest "kernel_deploy_Test"
   suite_addTest "modules_install_to_Test"
@@ -30,7 +31,12 @@ function which_distro_mock()
 
 function get_kernel_release_mock()
 {
-  echo "5.4.0-rc7-test"
+  echo '5.4.0-rc7-test'
+}
+
+function get_kernel_version_mock()
+{
+  echo '5.4.0-rc7'
 }
 
 function setUp
@@ -76,6 +82,7 @@ function setUp
   alias which_distro='which_distro_mock'
   alias detect_distro='which_distro_mock'
   alias get_kernel_release='get_kernel_release_mock'
+  alias get_kernel_version='get_kernel_version_mock'
 }
 
 function setupRemote()
@@ -651,6 +658,34 @@ function cleanup_after_deploy_Test
                 '[[ ${expected_cmd[$count]} != ${f} ]]'
     ((count++))
   done <<< "$output"
+}
+
+function build_info_Test
+{
+  local original="$PWD"
+  local release='5.4.0-rc7-test'
+  local version='5.4.0-rc7'
+  local release_output="Name: $release"
+  local version_output="Version: $version"
+  local modules='Total modules to be compiled: 5'
+
+  declare -a expected_cmd=(
+    'Kernel source information'
+    "$release_output"
+    "$version_output"
+  )
+
+  cd "$FAKE_KERNEL"
+  output=$(mk_build 'TEST_MODE' '--info')
+  compare_command_sequence expected_cmd[@] "$output" "($LINENO)"
+
+  cp "$original/tests/samples/.config" .config
+  expected_cmd[3]="$modules"
+  output=$(mk_build 'TEST_MODE' '--info')
+  compare_command_sequence expected_cmd[@] "$output" "($LINENO)"
+  rm .config
+
+  cd "$original"
 }
 
 invoke_shunit

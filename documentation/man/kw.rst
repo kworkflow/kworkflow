@@ -135,12 +135,15 @@ Projects that have a similar workflow to the Linux Kernel usually have a set of
 tools that simplify part of the tasks related with the code. This section
 describes some of the key features supported by **kw** to help with code.
 
-b, build [--menu|-n]
-~~~~~~~~~~~~~~~~~~~~
+b, build [--info|-i] [--menu|-n]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If users invoke this option without parameters, kw will look at the local
 Makefile and, based on that, start to build the project. This option tries to
 take advantage of your hardware by using the *-j* option with the appropriate
 parameter.
+
+By using the *--info|-i* option, building information such as the kernel
+release name and the total number of modules compiled will be displayed.
 
 Users can use *--menu|-n* for invoking kernel menuconfig. Notice that the
 default menu config can be changed in the kworkflow.config file by setting a
