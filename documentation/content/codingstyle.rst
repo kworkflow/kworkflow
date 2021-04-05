@@ -180,6 +180,14 @@ $PATH, you should use 'type ', instead of 'which '.
 The output of 'which' is not machine parsable and its exit code
 is not reliable across platforms.
 
+Sourcing files
+---------------
+Every file that may be sourced must have an import guard of the form:  
+`[ -n "$FILENAME_IMPORTED" ] && return || readonly FILENAME_IMPORTED=1`.
+This guarantees that no file may be imported twice.
+
+
+
 Test name
 ---------
 
