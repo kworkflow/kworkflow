@@ -57,12 +57,19 @@ function oneTimeSetUp
   # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
   # it is a git repo. This is done in order to avoid some warnings that
   # get_maintainer.pl prints when no .git is found.
+  local original_dir="$PWD"
   mk_fake_kernel_root "$FAKE_KERNEL"
-  mkdir -p "$FAKE_KERNEL/.git"
   cp -f tests/samples/MAINTAINERS "$FAKE_KERNEL"/MAINTAINERS
   cp -f tests/external/get_maintainer.pl "$FAKE_KERNEL"/scripts/
   cp -f tests/samples/update_patch_test{_model,}{,2}.patch "$FAKE_KERNEL"/
+  cd "$FAKE_KERNEL"
+  touch fs/some_file
+  git init --quiet
+  git add fs/some_file
+  git commit --quiet -m "Test message"
+  cd "$original_dir"
 }
+
 
 function oneTimeTearDown
 {
