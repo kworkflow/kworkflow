@@ -31,7 +31,7 @@ function generate_arch_temporary_root_file_system
   local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd="sudo -E"
+    sudo_cmd='sudo -E'
   fi
 
   # Update mkinitcpio
@@ -41,7 +41,8 @@ function generate_arch_temporary_root_file_system
     cmd="$sudo_cmd sed -i -e \"s/NAME/$name/g\" \"$path_prefix/etc/mkinitcpio.d/$name.preset\""
     cmd_manager "$flag" "$cmd"
   else
-    cp -v "$name.preset" $path_prefix/etc/mkinitcpio.d/
+    cmd="cp -v $name.preset $path_prefix/etc/mkinitcpio.d/"
+    cmd_manager "$flag" "$cmd"
   fi
 
   if [[ "$target" != 'vm' ]]; then
