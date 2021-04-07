@@ -201,6 +201,12 @@ Another example::
 The function `save_config_file` is tested with a focus on description
 validation.
 
+Help functions
+--------------
+Each subcommand may have its own help function that details its usage. 
+This function should be located as close as possible to the feature they document,
+i.e. they need to be on the same file.
+
 Conclusion
 ----------
 
