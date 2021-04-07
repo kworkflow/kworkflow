@@ -201,6 +201,14 @@ Another example::
 The function `save_config_file` is tested with a focus on description
 validation.
 
+Help functions
+--------------
+Each subcommand may have its help function that details its usage. This
+function should be located as close as possible to the feature they document;
+ideally, we want it in the same file. For example, you should find details on
+using the `build` option in the mk.sh, and for `configm` in the file
+config_manager.sh.
+
 Conclusion
 ----------
 
