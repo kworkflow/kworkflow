@@ -85,7 +85,7 @@ Package install
 Update
 ------
 Every time you want to get a new version of `kw`, just pull from this
-repository and install kw again (`./setup -i` removes legacy files and installs
+repository and install kw again (`./setup.sh -i` removes legacy files and installs
 new ones).
 
 Remove
