@@ -409,7 +409,7 @@ function kernel_deploy
   deploy_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
-    return 22
+    exit 22 # EINVAL
   fi
 
   target="${options_values['TARGET']}"
