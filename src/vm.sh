@@ -23,7 +23,7 @@ function vm_mount
   cmd_manager "$flag" "$guestmount_cmd"
   if [[ "$ret" ]] ; then
     complain "Something went wrong when tried to mount $qemu_img_path" \
-	     "in $mount_point_path"
+       "in $mount_point_path"
     return "$ret"
   fi
 
@@ -57,17 +57,6 @@ function vm_umount
   fi
 
   return 125 #ECANCELED
-}
-
-function vm_boot
-{
-  ${configurations[virtualizer]} -hda ${configurations[qemu_path_image]} \
-    ${configurations[qemu_hw_options]} \
-    -kernel $BUILD_DIR/$TARGET/arch/x86/boot/bzImage \
-    -append "root=/dev/sda1 debug console=ttyS0 console=ttyS1 console=tty1" \
-    -net nic -net user,hostfwd=tcp::5555-:22 \
-    -serial stdio \
-    -device virtio-gpu-pci,virgl -display gtk,gl=on 2> /dev/null
 }
 
 function vm_up
