@@ -62,13 +62,6 @@ function kw()
         return "$ret"
       )
       ;;
-    boot|bo)
-      (
-        . "$KW_LIB_DIR/vm.sh" --source-only
-
-        vm_boot
-      )
-      ;;
     up|u)
       (
         . "$KW_LIB_DIR/vm.sh" --source-only
