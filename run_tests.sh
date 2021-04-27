@@ -176,7 +176,7 @@ if [[ "$#" -eq 0 ]]; then
   strip_path $files_list
   run_tests
 elif [[ "$1" == "list" ]]; then
-  local index=0
+  index=0
   files_list=$(find ./tests/ -name "*_test.sh")
   strip_path $files_list
   for test_name in "${TESTS[@]}"; do
