@@ -18,6 +18,7 @@ function suite
   suite_addTest "store_statistics_data_Test"
   suite_addTest "update_statistics_database_Test"
   suite_addTest "statistics_manager_Test"
+  suite_addTest "command_exists_Test"
 }
 
 TARGET_YEAR_MONTH="2020/05"
@@ -353,6 +354,20 @@ function statistics_manager_Test
   ID=4
   configurations['disable_statistics_data_track']='yes'
   assertTrue "($ID) Database day" '[[ ! -f "$statistics_path/$this_year_and_month/$today" ]]'
+}
+
+function command_exists_Test
+{
+  local fake_command="a-non-existent-command -p"
+  local real_command="mkdir"
+
+  output=$(command_exists "$fake_command")
+  ret="$?"
+  assertEquals "$LINENO - We expected 22 as a return" 22 "$ret"
+
+  output=$(command_exists "$real_command")
+  ret="$?"
+  assertEquals "$LINENO - We expected 0 as a return" 0 "$ret"
 }
 
 invoke_shunit
