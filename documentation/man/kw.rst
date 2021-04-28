@@ -109,7 +109,7 @@ Follows the summary of the options:
 the network.
 
 2. --local: Deploy the Kernel image and modules in the host machine, you will
-need root access.
+need root access. 'kw deploy –local' should not be executed with sudo or root.
 
 3. --vm: Deploy the Kernel image and modules to QEMU vm.
 

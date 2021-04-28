@@ -39,6 +39,11 @@ function get_kernel_version_mock()
   echo '5.4.0-rc7'
 }
 
+function root_id_mock()
+{
+  echo "0"
+}
+
 function setUp
 {
   local create_mkinitcpio="$1"
@@ -521,6 +526,12 @@ function kernel_install_local_Test
 
   output=$(kernel_install "1" "test" "TEST_MODE" "2")
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
+
+  ID=2
+  alias "id"="root_id_mock;true"
+  output=$(kernel_install "1" "test" "TEST_MODE" "2")
+  ret="$?"
+  assertEquals "1" "$ret"
 
   cd "$original"
 }
