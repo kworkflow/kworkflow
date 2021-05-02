@@ -4,10 +4,10 @@
 
 function suite
 {
-  suite_addTest "testDash"
+  suite_addTest "check_dash_integration_with_kw_Test"
 }
 
-function testDash
+function check_dash_integration_with_kw_Test
 {
   ./tests/_kw_dash.dsh
   if [ $? -ne 0 ]; then

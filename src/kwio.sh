@@ -28,9 +28,23 @@ function alert_completion()
 
   grep -o . <<< "$opts" | while read option;  do
     if [ "$option" == "v" ]; then
-      eval "${configurations[visual_alert_command]} &"
+      if command_exists "${configurations[visual_alert_command]} &"; then
+        eval "${configurations[visual_alert_command]} &"
+      else
+        warning "The following command set in the visual_alert_command variable" \
+        "couldn't be run:"
+        warning "${configurations[visual_alert_command]}"
+        warning "Check if the necessary packages are installed."
+      fi
     elif [ "$option" == "s" ]; then
-      eval "${configurations[sound_alert_command]} &"
+      if command_exists "${configurations[sound_alert_command]} &"; then
+        eval "${configurations[sound_alert_command]} &"
+      else
+        warning "The following command set in the sound_alert_command variable" \
+        "couldn't be run:"
+        warning  "${configurations[sound_alert_command]}"
+        warning "Check if the necessary packages are installed."
+      fi
     fi
   done
 }

@@ -6,18 +6,19 @@
 
 function suite
 {
-  suite_addTest "linuxRootCheckTest"
-  suite_addTest "cmdManagerTESTMODETest"
-  suite_addTest "cmdManagerSILENTTest"
+  suite_addTest "is_kernel_root_Test"
+  suite_addTest "cmd_manager_check_test_mode_option_Test"
+  suite_addTest "cmd_manager_check_silent_option_Test"
   suite_addTest "cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test"
-  suite_addTest "detect_distro_family_test"
-  suite_addTest "joinPathTest"
-  suite_addTest "findKernelRootTest"
-  suite_addTest "isAPatchTest"
+  suite_addTest "detect_distro_Test"
+  suite_addTest "join_path_Test"
+  suite_addTest "find_kernel_root_Test"
+  suite_addTest "is_a_patch_Test"
   suite_addTest "get_based_on_delimiter_Test"
   suite_addTest "store_statistics_data_Test"
   suite_addTest "update_statistics_database_Test"
   suite_addTest "statistics_manager_Test"
+  suite_addTest "command_exists_Test"
 }
 
 TARGET_YEAR_MONTH="2020/05"
@@ -77,7 +78,7 @@ function tearDownSetup
   rm -rf "$FAKE_STATISTICS_PATH"
 }
 
-function linuxRootCheckTest
+function is_kernel_root_Test
 {
   setupFakeKernelRepo
   is_kernel_root "tests/.tmp"
@@ -86,7 +87,7 @@ function linuxRootCheckTest
   true # Reset return value
 }
 
-function cmdManagerSILENTTest
+function cmd_manager_check_silent_option_Test
 {
   setupFakeKernelRepo
   cd "tests/.tmp"
@@ -143,7 +144,7 @@ function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test
   tearDownSetup
 }
 
-function cmdManagerTESTMODETest
+function cmd_manager_check_test_mode_option_Test
 {
   ret=$(cmd_manager TEST_MODE pwd)
   assertEquals "Expected pwd, but we got $ret" "$ret" "pwd"
@@ -152,7 +153,7 @@ function cmdManagerTESTMODETest
   assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
 }
 
-function detect_distro_family_test
+function detect_distro_Test
 {
   setupFakeOSInfo
   local root_path="tests/.tmp/detect_distro/arch"
@@ -177,7 +178,7 @@ function detect_distro_family_test
   assertEquals "We got $ret." "$ret" "none"
 }
 
-function joinPathTest
+function join_path_Test
 {
   local base="/lala/xpto"
   local ret=$(join_path "/lala" "///xpto")
@@ -194,7 +195,7 @@ function joinPathTest
   assertEquals "Expect /lala/" "$ret" "/lala/"
 }
 
-function findKernelRootTest
+function find_kernel_root_Test
 {
   setupFakeKernelRepo
 
@@ -213,7 +214,7 @@ function findKernelRootTest
   tearDownSetup
 }
 
-function isAPatchTest
+function is_a_patch_Test
 {
   setupPatch
   is_a_patch "tests/.tmp/test.patch"
@@ -353,6 +354,20 @@ function statistics_manager_Test
   ID=4
   configurations['disable_statistics_data_track']='yes'
   assertTrue "($ID) Database day" '[[ ! -f "$statistics_path/$this_year_and_month/$today" ]]'
+}
+
+function command_exists_Test
+{
+  local fake_command="a-non-existent-command -p"
+  local real_command="mkdir"
+
+  output=$(command_exists "$fake_command")
+  ret="$?"
+  assertEquals "$LINENO - We expected 22 as a return" 22 "$ret"
+
+  output=$(command_exists "$real_command")
+  ret="$?"
+  assertEquals "$LINENO - We expected 0 as a return" 0 "$ret"
 }
 
 invoke_shunit

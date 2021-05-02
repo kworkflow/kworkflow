@@ -180,6 +180,35 @@ $PATH, you should use 'type ', instead of 'which '.
 The output of 'which' is not machine parsable and its exit code
 is not reliable across platforms.
 
+Test name
+---------
+
+Tests are an important part of kw, we only accept new features with tests, and
+we prefer bug fixes that came with tests. For trying to keep the test
+comprehensible, we adopt the following pattern for naming a test::
+
+    target_function_name_[an_option_description]_Test
+
+To better illustrate this definition, see the below example::
+
+    detect_distro_Test
+
+This function name indicates that we are testing `detect_distro` function.
+Another example::
+
+    save_config_file_check_description_Test
+
+The function `save_config_file` is tested with a focus on description
+validation.
+
+Help functions
+--------------
+Each subcommand may have its help function that details its usage. This
+function should be located as close as possible to the feature they document;
+ideally, we want it in the same file. For example, you should find details on
+using the `build` option in the mk.sh, and for `configm` in the file
+config_manager.sh.
+
 Conclusion
 ----------
 

@@ -183,9 +183,6 @@ function is_a_patch
   # given file be considered NOT a patch
   local -ar PATCH_EXPECTED_STRINGS=(
     "diff --git"
-    "Subject:"
-    "Date:"
-    "From:"
     "---"
     "@@"
   )
@@ -315,4 +312,18 @@ function store_statistics_data
   [[ ! -f "$day_path" || -z "$label" || -z "$value" ]] && return 22 # EINVAL
 
   echo "$label $value" >> "$day_path"
+}
+
+# This function checks if a certain command can be run
+#
+# @command The whole command that is meant to be executed
+function command_exists()
+{
+  local command="$1"
+  local package=( $command )
+
+  if [[ -x "$(command -v $package)" ]]; then
+    return 0
+  fi
+  return 22 # EINVAL
 }

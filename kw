@@ -62,13 +62,6 @@ function kw()
         return "$ret"
       )
       ;;
-    boot|bo)
-      (
-        . "$KW_LIB_DIR/vm.sh" --source-only
-
-        vm_boot
-      )
-      ;;
     up|u)
       (
         . "$KW_LIB_DIR/vm.sh" --source-only
@@ -129,7 +122,7 @@ function kw()
       (
       . "$KW_LIB_DIR/checkpatch_wrapper.sh" --source-only
 
-        execute_checkpatch $@
+        execute_checkpatch "$@"
       )
       ;;
     maintainers|m)
@@ -143,14 +136,14 @@ function kw()
       (
         . "$KW_LIB_DIR/config_manager.sh" --source-only
 
-        execute_config_manager $@
+        execute_config_manager "$@"
       )
       ;;
     help|h)
       (
         . "$KW_LIB_DIR/help.sh" --source-only
 
-        kworkflow-help
+        kworkflow_help
       )
       ;;
     explore|e)
@@ -164,7 +157,7 @@ function kw()
       (
         . "$KW_LIB_DIR/help.sh" --source-only
 
-        kworkflow-man
+        kworkflow_man
       )
       ;;
     version|--version|-v)
@@ -199,7 +192,7 @@ function kw()
         . "$KW_LIB_DIR/help.sh" --source-only
 
         complain "Invalid option"
-        kworkflow-help
+        kworkflow_help
         return 1
       )
       ;;

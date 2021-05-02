@@ -85,7 +85,7 @@ Package install
 Update
 ------
 Every time you want to get a new version of `kw`, just pull from this
-repository and install kw again (`./setup -i` removes legacy files and installs
+repository and install kw again (`./setup.sh -i` removes legacy files and installs
 new ones).
 
 Remove
@@ -135,4 +135,3 @@ configuration from the default you can follow these steps:
 3. Done! Every time you execute any command in the root dir of drm-work the
    local configuration file will be read. And if the file does not exist, the
    default settings will be used.
-

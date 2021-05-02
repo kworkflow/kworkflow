@@ -3,6 +3,15 @@
 declare -r metadata_dir="metadata"
 declare -r configs_dir="configs"
 
+function config_manager_help()
+{
+  echo -e "kw config manager:\n" \
+    "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
+    "\tconfigm,g --list|-l - List config files under kw management\n" \
+    "\tconfigm,g --get NAME - Get a config file based named *NAME*\n" \
+    "\tconfigm,g --remove|-rm - Remove config labeled with *NAME*"
+}
+
 # This function handles the save operation of kernel's '.config' file. It
 # checks if the '.config' exists and saves it using git (dir.:
 # <kw_install_path>/configs)
@@ -22,37 +31,37 @@ function save_config_file()
   local -r original_path="$PWD"
   local -r dot_configs_dir="$config_files_path/configs"
 
-  if [[ ! -f $original_path/.config ]]; then
+  if [[ ! -f "$original_path/.config" ]]; then
     complain "There's no .config file in the current directory"
     exit 2 # ENOENT
   fi
 
   if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
-    mkdir -p $dot_configs_dir
-    cd $dot_configs_dir
+    mkdir -p "$dot_configs_dir"
+    cd "$dot_configs_dir"
     git init --quiet
-    mkdir -p $metadata_dir $configs_dir
+    mkdir -p "$metadata_dir" "$configs_dir"
   fi
 
-  cd $dot_configs_dir
+  cd "$dot_configs_dir"
 
   # Check if the metadata related to .config file already exists
-  if [[ ! -f $metadata_dir/$name ]]; then
-    touch $metadata_dir/$name
-  elif [[ $force != 1 ]]; then
+  if [[ ! -f "$metadata_dir/$name" ]]; then
+    touch "$metadata_dir/$name"
+  elif [[ "$force" != 1 ]]; then
     if [[ $(ask_yN "$name already exists. Update?") =~ "0" ]]; then
       complain "Save operation aborted"
-      cd $original_path
+      cd "$original_path"
       exit 0
     fi
   fi
 
-  if [[ ! -z $description ]]; then
-    echo $description > $metadata_dir/$name
+  if [[ ! -z "$description" ]]; then
+    echo "$description" > "$metadata_dir/$name"
   fi
 
-  cp $original_path/.config $dot_configs_dir/$configs_dir/$name
-  git add $configs_dir/$name $metadata_dir/$name
+  cp "$original_path/.config" "$dot_configs_dir/$configs_dir/$name"
+  git add "$configs_dir/$name" "$metadata_dir/$name"
   git commit -m "New config file added: $USER - $(date)" > /dev/null 2>&1
 
   if [[ "$?" == 1 ]]; then
@@ -61,7 +70,7 @@ function save_config_file()
     success "Saved $name"
   fi
 
-  cd $original_path
+  cd "$original_path"
 }
 
 function list_configs()
@@ -77,8 +86,8 @@ function list_configs()
   echo
   for filename in $dot_configs_dir/$metadata_dir/*; do
     [[ ! -f "$filename" ]] && continue
-    local name=$(basename $filename)
-    local content=$(cat $filename)
+    local name=$(basename "$filename")
+    local content=$(cat "$filename")
     printf "%-30s | %-30s\n" "$name" "$content"
   done
 }
@@ -96,19 +105,19 @@ function list_configs()
 # Return 0 if everything ends well, otherwise return an errno code.
 function basic_config_validations()
 {
-  local target=$1
-  local force=$2
-  local operation=$3 && shift 3
-  local message=$@
+  local target="$1"
+  local force="$2"
+  local operation="$3" && shift 3
+  local message="$@"
   local -r dot_configs_dir="$config_files_path/configs/configs"
 
-  if [[ ! -f $dot_configs_dir/$target ]]; then
+  if [[ ! -f "$dot_configs_dir/$target" ]]; then
     complain "No such file or directory: $target"
     exit 2 # ENOENT
   fi
 
-  if [[ $force != 1 ]]; then
-    warning $message
+  if [[ "$force" != 1 ]]; then
+    warning "$message"
     if [[ $(ask_yN "Are you sure that you want to proceed?") =~ "0" ]]; then
       complain "$operation operation aborted"
       exit 0
@@ -130,19 +139,19 @@ function basic_config_validations()
 # Exit with 0 if everything ends well, otherwise exit an errno code.
 function get_config()
 {
-  local target=$1
-  local force=$2
+  local target="$1"
+  local force="$2"
   local -r dot_configs_dir="$config_files_path/configs/configs"
   local -r msg="This operation will override the current .config file"
 
+  force=${force:-0}
+
   # If we does not have a local config, there's no reason to warn the user
-  if [[ -f $PWD/.config ]]; then
-    force=1
-  fi
+  [[ ! -f "$PWD/.config" ]] && force=1
 
-  basic_config_validations $target $force "Get" $msg
+  basic_config_validations "$target" "$force" "Get" "$msg"
 
-  cp $dot_configs_dir/$target .config
+  cp "$dot_configs_dir/$target" .config
   say "Current config file updated based on $target"
 }
 
@@ -155,25 +164,25 @@ function get_config()
 # Exit 0 if everything ends well, otherwise exit an errno code.
 function remove_config()
 {
-  local target=$1
-  local force=$2
-  local original_path=$PWD
+  local target="$1"
+  local force="$2"
+  local original_path="$PWD"
   local -r dot_configs_dir="$config_files_path/configs"
   local -r msg="This operation will remove $target from kw management"
 
-  basic_config_validations $target $force "Remove" $msg
+  basic_config_validations "$target" "$force" "Remove" "$msg"
 
-  cd $dot_configs_dir
-  git rm $configs_dir/$target $dot_configs_dir/$metadata_dir/$target > /dev/null 2>&1
+  cd "$dot_configs_dir"
+  git rm "$configs_dir/$target" "$dot_configs_dir/$metadata_dir/$target" > /dev/null 2>&1
   git commit -m "Removed $target config: $USER - $(date)" > /dev/null 2>&1
-  cd $original_path
+  cd "$original_path"
 
   say "The $target config file was removed from kw management"
 
   # Without config file, there's no reason to keep config directory
   if [ ! "$(ls $dot_configs_dir)" ]; then
-    rm -rf /tmp/$configs_dir
-    mv $dot_configs_dir /tmp
+    rm -rf "/tmp/$configs_dir"
+    mv "$dot_configs_dir" /tmp
   fi
 }
 
@@ -191,20 +200,24 @@ function execute_config_manager()
 
   [[ "$@" =~ "-f" ]] && force=1
 
-  case $1 in
+  case "$1" in
+    -h)
+      config_manager_help
+      exit 0
+      ;;
     --save)
       shift # Skip '--save' option
-      name_config=$1
+      name_config="$1"
       # Validate string name
       if [[ "$name_config" =~ ^- || -z "${name_config// }" ]]; then
         complain "Invalid argument"
         exit 22 # EINVAL
       fi
       # Shift name and get '-d'
-      shift 2 && description_config=$@
-      save_config_file $force $name_config "$description_config"
+      shift 2 && description_config="$@"
+      save_config_file "$force" "$name_config" "$description_config"
       ;;
-    --ls)
+    --list|-l)
       list_configs
       ;;
     --get)
@@ -214,16 +227,16 @@ function execute_config_manager()
         return 22 # EINVAL
       fi
 
-      get_config $1 $force
+      get_config "$1" "$force"
       ;;
-    --rm)
+    --remove|-rm)
       shift # Skip '--rm' option
       if [[ -z "$1" ]]; then
         complain "Invalid argument"
         return 22 # EINVAL
       fi
 
-      remove_config $1 $force
+      remove_config "$1" "$force"
       ;;
     *)
       complain "Unknown option"

@@ -1,12 +1,12 @@
 <img src="images/kw_logo.png" width="600" alt="kworkflow">
 
 [![Build Status](https://travis-ci.org/kworkflow/kworkflow.svg?branch=master)](https://travis-ci.org/kworkflow/kworkflow)
-
+[![codecov](https://codecov.io/gh/kworkflow/kworkflow/branch/unstable/graph/badge.svg?token=ZQ52EK8VWF)](https://codecov.io/gh/kworkflow/kworkflow)
 # About
 
-This set of scripts have a simple mission: reduces the environment and setup
+This set of scripts have a simple mission: to reduce the environment and setup
 overhead for developing for GNU/Linux. Kw is composed of different scripts
-unified in a single interface after the installation, kw commands become
+unified in a single interface. After the installation, kw commands become
 available in the command line interface.
 
 Kworkflow stands for Kernel Workflow.
@@ -31,7 +31,7 @@ If you want to know more about kw's tests take a look at
 If you want to generate the Sphinx documentation, you can use:
 
 ```
-./setup.sh --html
+./setup.sh --docs
 ``` 
 
 Finally, you can use your browser to look the index.html page. For example:

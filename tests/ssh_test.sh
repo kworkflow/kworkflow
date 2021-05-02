@@ -15,10 +15,10 @@ SSH_OK="ssh -p 3333 127.0.0.1"
 
 function suite
 {
-  suite_addTest "vmSshFailsTest"
-  suite_addTest "vmSshTest"
-  suite_addTest "vmSshCommandTest"
-  suite_addTest "vmSshScriptTest"
+  suite_addTest "vm_ssh_check_fail_cases_Test"
+  suite_addTest "vm_ssh_basic_Test"
+  suite_addTest "vm_ssh_command_Test"
+  suite_addTest "vm_ssh_script_Test"
 }
 
 function setupSsh
@@ -42,7 +42,7 @@ function tearDownSsh
   rm -rf $TEST_PATH
 }
 
-function vmSshFailsTest
+function vm_ssh_check_fail_cases_Test
 {
   setupSsh
 
@@ -78,7 +78,7 @@ function vmSshFailsTest
   tearDownSsh
 }
 
-function vmSshTest
+function vm_ssh_basic_Test
 {
   setupSsh
 
@@ -89,7 +89,7 @@ function vmSshTest
   tearDownSsh
 }
 
-function vmSshCommandTest
+function vm_ssh_command_Test
 {
   setupSsh
 
@@ -104,7 +104,7 @@ function vmSshCommandTest
   tearDownSsh
 }
 
-function vmSshScriptTest
+function vm_ssh_script_Test
 {
   setupSsh
 

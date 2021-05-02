@@ -34,7 +34,7 @@ COMMANDS FOR USING QEMU
 Projects that use a QEMU VM in the development cycle to host the development
 environment usually require that developers use some specific commands to
 manage this VM. In this section, you can find all commands available in **kw**
-to manage many daily tasks related to QEMU VM operation.  Notice that some
+to manage many daily tasks related to QEMU VM operation. Notice that some
 rules are specific for the Linux Kernel project.
 
 mo, mount
@@ -72,8 +72,8 @@ notice that this approach is the most generic one because you can use it for
   **Currently, we don't support the Kernel image update in the --vm option.
   However, you can use the remote option for a workaround this issue**.
 
-d, deploy [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m] [--ls-line|-s] [--ls|-l] [--uninstall|-u KERNEL_NAME]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+d, deploy [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m] [--ls-line|-s] [--list|-l] [--uninstall|-u KERNEL_NAME]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If you are in a kernel directory, this command will try to install the current
 kernel version in your target machine (remote, host, and VM). If you want to
 install a kernel version in a remote machine, the following steps will be
@@ -117,7 +117,7 @@ need root access.
 
 5. --modules: Only install/update modules.
 
-6. --ls: List available kernels in a single column the target.
+6. --list: List available kernels in a single column the target.
 
 7. --ls-line: List available kernels separated by comma.
 
@@ -135,12 +135,15 @@ Projects that have a similar workflow to the Linux Kernel usually have a set of
 tools that simplify part of the tasks related with the code. This section
 describes some of the key features supported by **kw** to help with code.
 
-b, build [--menu|-n]
-~~~~~~~~~~~~~~~~~~~~
+b, build [--info|-i] [--menu|-n]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If users invoke this option without parameters, kw will look at the local
 Makefile and, based on that, start to build the project. This option tries to
 take advantage of your hardware by using the *-j* option with the appropriate
 parameter.
+
+By using the *--info|-i* option, building information such as the kernel
+release name and the total number of modules compiled will be displayed.
 
 Users can use *--menu|-n* for invoking kernel menuconfig. Notice that the
 default menu config can be changed in the kworkflow.config file by setting a
@@ -148,13 +151,13 @@ different option in the menu_config. If the user is working in a
 *cross-compile* environment, it is recommended to use this option to avoid
 messing with the config file.
 
-c, codestyle [*DIRECTORY|FILE*]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+c, codestyle [*DIRECTORY|FILE|PATCH*]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 The **checkpatch** tool is one of the most fabulous scripts provided by the
 Linux Kernel to help developers follow the code style adopted by the project.
 This command is a wrapper for **checkpatch**, with the goal of simplifying the
-use of this tool; notice that you can specify a single file or an entire
-directory.
+use of this tool; notice that you can specify a single file, an entire
+directory, or a single patch.
 
 e, explore [--log, -l | --grep, -g | --all, -a] [*EXPRESSION*] [-p] [*DIRECTORY|FILE*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -180,15 +183,17 @@ string, you have to quote your search (e.g., **kw e "str1 str2"**).
    other words, if you use this option you going feel that `git grep` is first
    used, and then GNU grep.
 
-m, maintainers [*-a|--authors*] [*DIRECTORY|FILE*]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+m, maintainers [*-a|--authors*] [*-u|--update-patch*] [*DIRECTORY|FILE*]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Based on the Linux Kernel get_maintainers script, this command shows the
 maintainers of a given Kernel module (a given file or directory).  The
 *[-a|--authors]* option will also print the authors of the top-level target
 files (non-recursively). Files with more than one author will have their names
-separated by ",". This output should not be used by scripts because some
-authors include "," in their names (e.g. "Company X, Inc.").
+separated by ",". This output should not be used by scripts because some authors
+include "," in their names (e.g. "Company X, Inc."). The *[-u|--update-patch]*
+will update the patch FILE's header with a *To:* field with the maintainers
+(excluding the authors) associated with that patch.
 
 SUBSYSTEM COMMANDS
 ------------------
@@ -250,8 +255,8 @@ expects a bash script as a parameter to evaluate it in the target machine. The
 *--command* parameter expects a command to be executed inside of target
 machine.
 
-g, configm [--save *NAME* [-d *DESCRIPTION*][-f]]|[--ls]|[--get *NAME* [-f]]|[--rm *NAME* [-f]]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+g, configm [--save *NAME* [-d *DESCRIPTION*][-f]]|[--list|-l]|[--get *NAME* [-f]]|[--remove|-rm *NAME* [-f]]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The 'configm' command manages different versions of the project's '.config'
 file.  It provides the save, load, remove, and list operations of such files.
@@ -263,15 +268,15 @@ can add a description by using *-d* flag. Finally, if the user tries to add the
 same name twice, **kw** will issue a warning; the '-f' will suppress this
 message.
 
-2. --ls lists all the .config file versions available.
+2. --list|-l lists all the .config file versions available.
 
 3. --get *NAME* [-f]: Get a config file based on the *NAME* and paste it in the
 current directory. It pop-up a warning message because this operation override
 the current .config file. The user can suppress this warning by using -f flag.
 
-4. --rm *NAME* [-f]: Remove config labeled with *NAME*. It pop-up a warning
-message because it will remove the config file from kw management. The user can
-suppress this warning by using -f.
+4. --remove|-rm *NAME* [-f]: Remove config labeled with *NAME*. It pop-up a
+warning message because it will remove the config file from kw management. The
+user can suppress this warning by using -f.
 
 v, vars
 ~~~~~~~
@@ -304,12 +309,13 @@ be notified when they finish. The commands *build*, *deploy*, *mount*,
 init
 ~~~~
 This command creates a kworkflow.config file in the current directory. The
-primary reason for rerunning kw init is to pick up newly config file.
+primary reason for running kw init is to pick up a freshly created config
+file.
 
 statistics [--day [YEAR/MONTH/DAY] | --week [YEAR/MONTH/DAY] | --month [YEAR/MONTH] --year [YEAR] ]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-kw keep track of metadata regarding features utilization to be later used for
-show kw usage statistics, in summary, kw keep track of:
+kw keeps track of metadata regarding utilization of features. This data is
+used to show kw usage statistics. In summary, kw keeps track of:
 
 1. *Build*
 
@@ -317,31 +323,31 @@ show kw usage statistics, in summary, kw keep track of:
 
 
 For all the data tracked by kw, users can retrieve the total amount of time
-that a specific command was executed, the average time consumed by the feature,
-and the shortest and highest time required for executing the feature. All of
-this information can be retrieved by the *statistics* option with the following
-level of granularity:
+spent by a specific command, the average time consumed by the feature and the
+shortest and highest time required for executing the feature. All of this
+information can be retrieved by the *statistics* option with the following level
+of granularity:
 
-1. *--day [YEAR/MONTH/DAY]*: display day statistics summary, users have the
+1. *--day [YEAR/MONTH/DAY]*: display day statistics summary. Users have the
 option to search a specific date by passing an argument that follows the
-YEAR/MONTH/DAY format or not passes anything and get today info.
+YEAR/MONTH/DAY format. Not passing anything and gets info about today.
 
-2. *--week [YEAR/MONTH/DAY]*: shows the week summary, if a user does not pass
+2. *--week [YEAR/MONTH/DAY]*: shows the week summary. If a user does not pass
 any parameter kw will show the current week statistics. However, users can pass
 a random date (YEAR/MONTH/DAY) and let kw take care to provide a summary
 related to the week related to the target date.
 
 3. *--month [YEAR/MONTH]*: this option shows a report regarding a specific
-month, users can search for data related to a specific month by providing a
+month. Users can search for data related to a specific month by providing a
 parameter in the YEAR/MONTH format. If the user does not pass any parameter, kw
 displays the current month data.
 
 4. *--year [YEAR]*: exhibits the current year summary if the user does not
-specify a specific year.
+specify a year.
 
 df, diff [OPTIONS] FILE1 FILE2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-This is a wrapper to some useful usage of diff command, by default, it shows
+This is a wrapper to some useful usage of diff command. By default, it shows
 diff files side-by-side in an interactive way. This command provides the
 following set of options:
 
@@ -502,7 +508,7 @@ In case you want that kw saves your current .config file, you can use::
 
 You can see the config's file maintained by kw with::
 
-  kw g --ls
+  kw g --list
 
 You can turn on your VM with::
 

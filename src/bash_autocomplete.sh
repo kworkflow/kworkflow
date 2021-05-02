@@ -1,5 +1,3 @@
-#!/bin/bash
-
 _kw_autocomplete()
 {
     local current_command previous_command kw_options

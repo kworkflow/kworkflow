@@ -51,12 +51,32 @@ function modules_install_to()
 #
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Note: Make sure that you called is_kernel_root before try to execute this
+# function.
 function get_kernel_release
 {
   local flag="$1"
-  local cmd="make kernelrelease"
+  local cmd='make kernelrelease'
 
-  flag=${flag:-"SILENT"}
+  flag=${flag:-'SILENT'}
+
+  cmd_manager "$flag" "$cmd"
+}
+
+# Get the kernel version name.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Note: Make sure that you called is_kernel_root before try to execute this
+# function.
+function get_kernel_version
+{
+  local flag="$1"
+  local cmd='make kernelversion'
+
+  flag=${flag:-'SILENT'}
 
   cmd_manager "$flag" "$cmd"
 }
@@ -273,8 +293,9 @@ function kernel_install
         exit 95 # ENOTSUP
       fi
 
+      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
-      install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
+      install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
     ;;
     2) # LOCAL_TARGET
@@ -286,8 +307,9 @@ function kernel_install
       fi
 
       # Local Deploy
+      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
-      install_kernel "$name" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
+      install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
     ;;
     3) # REMOTE_TARGET
@@ -302,6 +324,9 @@ function kernel_install
       local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
+      distro_info=$(which_distro "$remote" "$port" "$user")
+      distro=$(detect_distro "/" "$distro_info")
+
       cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
                      "$REMOTE_KW_DEPLOY" \
                      "$remote" "$port" "$user" "$flag"
@@ -310,7 +335,7 @@ function kernel_install
                      "$remote" "$port" "$user" "$flag"
 
       # Deploy
-      local cmd_parameters="$name $kernel_img_name $reboot $arch_target '' $flag"
+      local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
       local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $cmd_parameters"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
     ;;
@@ -401,10 +426,15 @@ function kernel_deploy
   local runtime=0
   local ret=0
 
+  if [[ "$1" == -h ]]; then
+    deploy_help
+    exit 0
+  fi
+
   deploy_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
-    return 22
+    exit 22 # EINVAL
   fi
 
   target="${options_values['TARGET']}"
@@ -489,6 +519,32 @@ function kernel_deploy
   fi
 }
 
+function deploy_help()
+{
+  echo -e "kw deploy|d installs kernel and modules:\n" \
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m]\n" \
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--uninstall|-u KERNEL_NAME]\n" \
+    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--list|-l]"
+}
+
+# This function retrieves and prints information related to the kernel that
+# will be compiled.
+function build_info()
+{
+  local flag="$1"
+  local kernel_name=$(get_kernel_release "$flag")
+  local kernel_version=$(get_kernel_version "$flag")
+
+  say "Kernel source information"
+  echo -e "\tName: $kernel_name"
+  echo -e "\tVersion: $kernel_version"
+
+  if [[ -f '.config' ]]; then
+    local compiled_modules=$(grep -c '=m' .config)
+    echo -e "\tTotal modules to be compiled: $compiled_modules"
+  fi
+}
+
 # This function is responsible for manipulating kernel build operations such as
 # compile/cross-compile and menuconfig.
 #
@@ -510,6 +566,11 @@ function mk_build()
   local arch="${configurations[arch]}"
   local menu_config="${configurations[menu_config]}"
 
+  if [[ "$1" == -h ]]; then
+    build_help
+    exit 0
+  fi
+
   menu_config=${menu_config:-"nconfig"}
   arch=${arch:-"x86_64"}
 
@@ -525,6 +586,10 @@ function mk_build()
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     case "$option" in
+      --info|-i)
+        build_info
+        exit
+        ;;
       --menu|-n)
         command="make ARCH=$arch $CROSS_COMPILE $menu_config"
         cmd_manager "$flag" "$command"
@@ -559,6 +624,14 @@ function mk_build()
   fi
 
   return "$ret"
+}
+
+function build_help()
+{
+  echo -e "kw build:\n" \
+    "\tbuild - Build kernel \n" \
+    "\tbuild [--menu|-n] - Open kernel menu config\n" \
+    "\tbuild [--info|-i] - Display build information"
 }
 
 # Handles the remote info
@@ -669,7 +742,7 @@ function deploy_parser_options()
           options_values["MODULES"]=1
           continue
           ;;
-        --ls|-l)
+        --list|-l)
           options_values["LS"]=1
           continue
           ;;
