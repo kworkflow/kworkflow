@@ -1,7 +1,7 @@
 <img src="images/kw_logo.png" width="600" alt="kworkflow">
 
 [![Build Status](https://travis-ci.org/kworkflow/kworkflow.svg?branch=master)](https://travis-ci.org/kworkflow/kworkflow)
-[![codecov](https://codecov.io/gh/kworkflow/kworkflow/branch/unstable/graph/badge.svg?token=ZQ52EK8VWF)](https://codecov.io/gh/kworkflow/kworkflow)
+[![codecov](https://codecov.io/gh/kworkflow/kworkflow/branch/master/graph/badge.svg?token=ZQ52EK8VWF)](https://codecov.io/gh/kworkflow/kworkflow)
 # About
 
 This set of scripts have a simple mission: to reduce the environment and setup
