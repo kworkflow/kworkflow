@@ -76,6 +76,7 @@ function parse_configuration_output_Test
     [reboot_after_deploy]="no"
     [gui_on]="turn on"
     [gui_off]="turn off"
+    [doc_type]="htmldocs"
   )
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"
@@ -111,6 +112,7 @@ function parse_configuration_standard_config_Test
     [default_deploy_target]="vm"
     [reboot_after_deploy]="no"
     [disable_statistics_data_track]="no"
+    [doc_type]="htmldocs"
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"

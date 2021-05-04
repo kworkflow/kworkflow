@@ -146,16 +146,21 @@ function mk_build_Test()
   assertEquals "($ID)" "$expected_result" "$output"
 
   ID=3
+  output=$(mk_build 'TEST_MODE' '--doc')
+  expected_result="make htmldocs"
+  assertEquals "($ID)" "$expected_result" "$output"
+
+  ID=4
   output=$(mk_build 'TEST_MODE' '--notvalid')
   ret="$?"
   assertEquals "($ID)" "$ret" "22"
 
-  ID=4
+  ID=5
   output=$(mk_build 'TEST_MODE' | head -1) # Remove statistics output
   expected_result="make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
   assertEquals "($ID)" "$expected_result" "${output}"
 
-  ID=5
+  ID=6
   cd "$original"
   configurations=()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"

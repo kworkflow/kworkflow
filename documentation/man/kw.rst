@@ -135,8 +135,8 @@ Projects that have a similar workflow to the Linux Kernel usually have a set of
 tools that simplify part of the tasks related with the code. This section
 describes some of the key features supported by **kw** to help with code.
 
-b, build [--info|-i] [--menu|-n]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+b, build [--info|-i] [--menu|-n] [--doc|-d]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If users invoke this option without parameters, kw will look at the local
 Makefile and, based on that, start to build the project. This option tries to
 take advantage of your hardware by using the *-j* option with the appropriate
@@ -150,6 +150,10 @@ default menu config can be changed in the kworkflow.config file by setting a
 different option in the menu_config. If the user is working in a
 *cross-compile* environment, it is recommended to use this option to avoid
 messing with the config file.
+
+The option *--doc|-d* provides a mechanism for build kernel-doc; by default, it
+will build htmldocs. Users can change the default documentation output by
+changing the parameter doc_type in the kworkflow.config file.
 
 c, codestyle [*DIRECTORY|FILE|PATCH*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -4,8 +4,8 @@
 . src/kwlib.sh --source-only
 
 # List of dependences per distro
-arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx)
-debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc)
+arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx imagemagick graphviz python-virtualenvi texlive-bin librsvg)
+debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc imagemagick graphviz dvipng python3-venv latexmk librsvg2-bin texlive-xetex python3-sphinx python3-dask-sphinx-theme)
 
 SILENT=1
 VERBOSE=0
