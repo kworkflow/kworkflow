@@ -600,6 +600,13 @@ function mk_build()
         cmd_manager "$flag" "$command"
         exit
         ;;
+      --doc|-d)
+        doc_type="${configurations[doc_type]}"
+        doc_type=${doc_type:='htmldocs'}
+        command="make $doc_type"
+        cmd_manager "$flag" "$command"
+        return
+        ;;
       *)
         complain "Invalid option: $option"
         exit 22 # EINVAL
@@ -636,7 +643,8 @@ function build_help()
   echo -e "kw build:\n" \
     "\tbuild - Build kernel \n" \
     "\tbuild [--menu|-n] - Open kernel menu config\n" \
-    "\tbuild [--info|-i] - Display build information"
+    "\tbuild [--info|-i] - Display build information\n" \
+    "\tbuild [--doc|-d] - Build kernel documentation"
 }
 
 # Handles the remote info
