@@ -4,12 +4,10 @@
 [![codecov](https://codecov.io/gh/kworkflow/kworkflow/branch/master/graph/badge.svg?token=ZQ52EK8VWF)](https://codecov.io/gh/kworkflow/kworkflow)
 # About
 
-This set of scripts have a simple mission: to reduce the environment and setup
-overhead for developing for GNU/Linux. Kw is composed of different scripts
-unified in a single interface. After the installation, kw commands become
-available in the command line interface.
-
-Kworkflow stands for Kernel Workflow.
+kw has a simple mission: reduce the setup overhead for working with Linux
+kernel and provide tools for support developers in their daily tasks. If you
+have a set of repeatable tasks that you usually perform when working in your
+favorite kernel subsystem or similar, consider putting it as a part of kw.
 
 # Install
 

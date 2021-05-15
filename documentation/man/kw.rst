@@ -83,7 +83,7 @@ executed:
 
 2. Send all the files to the target machine; and
 
-3. Execute the script that will update the target machine.
+3. Execute the operations that will update the target machine.
 
 You can specify the deploy target via command line by using the flag *--remote
 [REMOTE:PORT]* (e.g., *--remote 172.16.254.1:22*); however, if you do it
