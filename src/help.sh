@@ -24,6 +24,7 @@ function kworkflow_help()
     "\tmaintainers,m - Get maintainers and mailing list\n" \
     "\tman - Show manual\n" \
     "\tmount,mo - Mount partition with qemu-nbd\n" \
+    "\tpomodoro,p - kw pomodoro support\n" \
     "\tssh,s - SSH support\n" \
     "\tstatistics - Provide basic statistics related to daily development\n" \
     "\tumount,um - Umount partition created with qemu-nbd\n" \

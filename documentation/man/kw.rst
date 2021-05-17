@@ -349,6 +349,22 @@ displays the current month data.
 4. *--year [YEAR]*: exhibits the current year summary if the user does not
 specify a year.
 
+p, pomodoro --set-timer|-t INTEGER[h|m|s] | --current
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This feature provides a way for kernel developers to manage their time through
+the Pomodoro technique. To use a timer with visual and sonorous feedback:
+
+*--set-timer,-t INTEGER{h|m|s}*: This option expects an **integer** that
+indicates the timer for the Pomodoro timebox. It is **mandatory** to add a
+suffix that indicates the time unit, which can be h (hour), m (minutes), or s
+(seconds).
+
+Users can follow the timebox section status by using:
+
+*--current,-c*: This command shows information associated with each Pomodoro
+timebox created by the user.
+
 df, diff [OPTIONS] FILE1 FILE2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This is a wrapper to some useful usage of diff command. By default, it shows
