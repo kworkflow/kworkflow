@@ -10,7 +10,7 @@ debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc
 SILENT=1
 VERBOSE=0
 FORCE=0
-PREFIX="$HOME/.local"
+PREFIX="${PREFIX:-$HOME/.local}"
 
 declare -r app_name="kw"
 
