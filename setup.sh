@@ -263,6 +263,7 @@ function synchronize_files()
   ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
 
   sed -i -e "s,##KW_INSTALL_PREFIX_TOKEN##,$PREFIX/,g" "$binpath/$app_name"
+  sed -i -e "/##BEGIN-DEV-MODE##/,/##END-DEV-MODE##/ d" "$binpath/$app_name"
 
   # Lib files
   mkdir -p "$libdir"
