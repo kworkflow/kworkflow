@@ -7,6 +7,16 @@ KW_INSTALL_PREFIX=${KW_INSTALL_PREFIX:-"##KW_INSTALL_PREFIX_TOKEN##"}
 
 KWORKFLOW=${KWORKFLOW:-"kw"}
 
+##BEGIN-DEV-MODE##
+KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
+KW_BASE_DIR="$(dirname "${KW_BIN}")"
+if [ -f "${KW_BASE_DIR}/src/kwlib.sh" ]; then
+  # running from source directory
+  KW_LIB_DIR="${KW_BASE_DIR}/src"
+  KW_INSTALL_PREFIX="${KW_BASE_DIR}"
+fi
+##END-DEV-MODE##
+
 # Global paths
 KW_LIB_DIR=${KW_LIB_DIR:-"$KW_INSTALL_PREFIX/lib/kw"}
 KW_SHARE_DOC_DIR=${KW_SHARE_DIR:-"$KW_INSTALL_PREFIX/share/doc/kw/"}
