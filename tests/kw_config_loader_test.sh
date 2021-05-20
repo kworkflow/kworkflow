@@ -102,7 +102,7 @@ function parse_configuration_standard_config_Test
     [virtualizer]="qemu-system-x86_64"
     [qemu_path_image]="/home/USERKW/p/virty.qcow2"
     [qemu_hw_options]="-enable-kvm -daemonize -smp 2 -m 1024"
-    [qemu_net_options]="-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW"
+    [qemu_net_options]="-net nic -net user,hostfwd=tcp::2222-:22,smb=/home/USERKW"
     [ssh_ip]="localhost"
     [ssh_port]="22"
     [mount_point]="/home/USERKW/p/mount"

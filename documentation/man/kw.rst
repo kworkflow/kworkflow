@@ -424,7 +424,7 @@ Sets QEMU options. By default, **kw** uses
 qemu_net_options=OPTIONS
 ------------------------
 Defines the network configuration. By default, **kw** uses
-**-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW**
+**-net nic -net user,hostfwd=tcp::2222-:22,smb=/home/USER**
 
 qemu_path_image=PATH
 --------------------
