@@ -408,6 +408,7 @@ case "$1" in
     ;;
   *)
     complain "Invalid number of arguments"
+    usage
     exit 1
     ;;
 esac
