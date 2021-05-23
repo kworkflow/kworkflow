@@ -83,7 +83,7 @@ function statistics()
       local year=$(date +%Y)
 
       if [[ ! -z "$@" ]]; then
-        year=$(date -d "$@/01/01" +%Y/%m)
+        year=$(date -d "$@/01/01" +%Y)
         if [[ "$?" != 0 ]]; then
           complain "Invalid parameter: $@"
           return 22 # EINVAL

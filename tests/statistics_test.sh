@@ -24,27 +24,29 @@ function suite
 
 function setUp
 {
+  export statistics_path='tests/samples/statistics'
+
   # Samples file data
-  base_statistics="tests/samples/statistics/2020"
-  sample_total="19"
-  sample_build_avg="00:00:23" #23
-  sample_build_min="00:00:06" #6
-  sample_build_max="00:03:40" #220
+  base_statistics="$statistics_path/2020"
+  sample_total='19'
+  sample_build_avg='00:00:23' #23
+  sample_build_min='00:00:06' #6
+  sample_build_max='00:03:40' #220
   build_output="$sample_total $sample_build_max $sample_build_min $sample_build_avg"
 
-  sample_deploy_total="8"
-  sample_deploy_avg="00:01:04" #23
-  sample_deploy_min="00:00:31" #6
-  sample_deploy_max="00:01:13" #220
+  sample_deploy_total='8'
+  sample_deploy_avg='00:01:04' #23
+  sample_deploy_min='00:00:31' #6
+  sample_deploy_max='00:01:13' #220
   deploy_output="$sample_deploy_total $sample_deploy_max $sample_deploy_min $sample_deploy_avg"
 
-  pre_values="9433 8750 4316 13 18 145 107 282 45 13 57 37 4 44"
-  pre_min="4"
-  pre_max="9433"
-  pre_avg="1661"
-  pre_total="14"
-  pre_total_sec="1846"
-  pre_formated_sec="00:30:46"
+  pre_values='9433 8750 4316 13 18 145 107 282 45 13 57 37 4 44'
+  pre_min='4'
+  pre_max='9433'
+  pre_avg='1661'
+  pre_total='14'
+  pre_total_sec='1846'
+  pre_formated_sec='00:30:46'
 }
 
 function calculate_average_Test
@@ -156,8 +158,8 @@ function day_statistics_Test
 {
   local day_data
   local ID
-  local msg1="Currently, kw does not have any data for the present date."
-  local msg2="There is no data in the kw records"
+  local msg1='Currently, kw does not have any data for the present date.'
+  local msg2='There is no data in the kw records'
 
   ID=1
   day_data=$(day_statistics "an/invalid/path")
@@ -172,8 +174,8 @@ function week_statistics_Test
 {
   local day_data
   local ID
-  local start_target_week="2019/05/05"
-  local end_target_week="2019/05/11"
+  local start_target_week='2019/05/05'
+  local end_target_week='2019/05/11'
   local msg="Sorry, kw does not have any data from $start_target_week to $end_target_week"
 
   ID=1
@@ -183,8 +185,8 @@ function week_statistics_Test
 
 function month_statistics_Test
 {
-  local target_month="2019/05"
-  local msg="Currently, kw does not have any data for the present month."
+  local target_month='2019/05'
+  local msg='Currently, kw does not have any data for the present month.'
 
   ID=1
   month_data=$(month_statistics "$target_month")
@@ -193,12 +195,32 @@ function month_statistics_Test
 
 function year_statistics_Test
 {
-  local target_year="2019"
-  local msg="Currently, kw does not have any data for the requested year."
+  local target_year='2019'
+  local year_data
+  local msg='Currently, kw does not have any data for the requested year.'
+  local line
 
-  ID=1
+  declare -a expected_cmd=(
+    'Build   19   00:03:40  00:00:06  00:00:23'
+    'Deploy  8    00:01:13  00:00:31  00:01:04'
+  )
+
   year_data=$(year_statistics "$target_year")
-  assertEquals "($ID)" "$msg" "$year_data"
+  assertEquals "($LINENO)" "$msg" "$year_data"
+
+  year_data=$(year_statistics 2020 | tail -n 2)
+  compare_command_sequence expected_cmd[@] "$year_data" "$LINENO"
+
+  declare -a expected_cmd=(
+    'Uninstall      3    00:00:03  00:00:02  00:00:02'
+    'Build_failure  1    00:00:01  00:00:01  00:00:01'
+    'Build          3    00:00:55  00:00:01  00:00:19'
+    'Deploy         1    00:00:21  00:00:21  00:00:21'
+    'List           2    00:00:08  00:00:00  00:00:04'
+  )
+
+  year_data=$(year_statistics 2021 | tail -n 5)
+  compare_command_sequence expected_cmd[@] "$year_data" "$LINENO"
 }
 
 invoke_shunit
