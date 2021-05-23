@@ -3,6 +3,7 @@
 # responsible for aggregate and calculate values such as average and total.
 
 . "$KW_LIB_DIR/kw_config_loader.sh" --source-only
+. "$KW_LIB_DIR/kw_time_and_date.sh" --source-only
 
 # This is a data struct that describes the main type of data collected. We use
 # this in some internal loops.
@@ -17,8 +18,8 @@ declare -A shared_data=( ["deploy"]='' ["build"]='' ["list"]='' ["uninstall"]=''
 function statistics()
 {
   local info_request="$1"
-  local day=$(date +%d)
-  local year_month_dir=$(date +%Y/%m)
+  local day=$(get_today_info '+%d')
+  local year_month_dir=$(get_today_info '+%Y/%m')
   local date_param
 
   if [[ "$1" == -h ]]; then
@@ -40,12 +41,16 @@ function statistics()
     info_request="--day"
   fi
 
+  if [[ -z "$date_param" ]]; then
+    date_param=$(get_today_info '+%Y/%m/%d')
+  fi
+
   case "$info_request" in
     --day)
       if [[ -z "$date_param" ]]; then
         target_day="$statistics_path/$year_month_dir/$day"
       else
-        target_day="$statistics_path/$(date -d"$date_param" +%Y/%m/%d)"
+        target_day="$statistics_path/$(date_to_format "$date_param")"
         if [[ "$?" != 0 ]]; then
           complain "Invalid parameter: $date_param"
           return 22 # EINVAL
@@ -54,24 +59,18 @@ function statistics()
       day_statistics "$target_day"
     ;;
     --week)
-      local week_day_num=$(date +%u)
-      local first_week_day
+      local first_week_day=$(get_week_beginning_day)
 
-      first_week_day=$(date --date="${date_param} -${week_day_num} day" +%Y/%m/%d)
       if [[ ! -z "$@" ]]; then
-        week_day_num=$(date -d"$@" +%u)
-        if [[ "$?" != 0 ]]; then
-          complain "Invalid parameter: $@"
-          return 22 # EINVAL
-        fi
-        first_week_day=$(date --date="${date_param} -${week_day_num} day" +%Y/%m/%d)
+        first_week_day=$(get_week_beginning_day "$date_param")
       fi
+
       week_statistics "$first_week_day"
     ;;
     --month)
       if [[ ! -z "$@" ]]; then
         # First month of the month
-        year_month_dir=$(date -d "$@/01" +%Y/%m)
+        year_month_dir=$(date_to_format "$@/01" '+%Y/%m')
         if [[ "$?" != 0 ]]; then
           complain "Invalid parameter: $@"
           return 22 # EINVAL
@@ -83,7 +82,7 @@ function statistics()
       local year=$(date +%Y)
 
       if [[ ! -z "$@" ]]; then
-        year=$(date -d "$@/01/01" +%Y)
+        year=$(date_to_format "$@/01/01" +%Y)
         if [[ "$?" != 0 ]]; then
           complain "Invalid parameter: $@"
           return 22 # EINVAL
@@ -176,20 +175,6 @@ function min_value()
   echo "$min"
 }
 
-# Change seconds to H:M:S
-#
-# @value Value in seconds to be converted to H:M:S
-#
-# Return:
-# Return a string in the format H:M:S
-function sec_to_formatted_date()
-{
-  local value="$1"
-
-  value=${value:-"0"}
-  echo $(date -d@$value -u +%H:%M:%S)
-}
-
 # Print results of "Total Max Min Average" organized in columns.
 #
 # Note: This function relies on a global variable named shared_data.
@@ -236,9 +221,9 @@ function basic_data_process()
     min=$(min_value "$values" "$max")
 
     ## Format values
-    max=$(sec_to_formatted_date "$max")
-    min=$(sec_to_formatted_date "$min")
-    avg=$(sec_to_formatted_date "$avg_build")
+    max=$(sec_to_format "$max")
+    min=$(sec_to_format "$min")
+    avg=$(sec_to_format "$avg_build")
     shared_data["$option"]="$total_build $max $min $avg"
   done
 }
@@ -277,11 +262,11 @@ function day_statistics()
 function week_statistics()
 {
   local first="$1"
-  local current_week_day_num=$(date +%u)
+  local current_week_day_num=$(get_today_info '+%u')
   local week_begin=$(date -d "$date -$current_week_day_num days" +"%d")
   local all_data=""
 
-  first=${first:-$(date +%Y/%m/%d)}
+  first=${first:-$(get_today_info '+%Y/%m/%d')}
 
   # 7 -> week days
   for (( i=0 ; i < 7 ; i++ )); do
@@ -326,7 +311,7 @@ function month_statistics()
     return 0
   fi
 
-  local pretty_month=$(date -d"$1/01" +%B)
+  local pretty_month=$(date_to_format "$1/01" '+%B')
   basic_data_process "$all_data"
   say "$pretty_month summary ($1/01)"
   print_basic_data

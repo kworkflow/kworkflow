@@ -14,7 +14,6 @@ function suite
   suite_addTest "calculate_total_of_data_Test"
   suite_addTest "max_value_Test"
   suite_addTest "min_value_Test"
-  suite_addTest "sec_to_formatted_date_Test"
   suite_addTest "basic_data_process_Test"
   suite_addTest "day_statistics_Test"
   suite_addTest "week_statistics_Test"
@@ -111,19 +110,6 @@ function min_value_Test
   ID=2
   min=$(min_value "$pre_values" "$pre_max")
   assertEquals "($ID)" "$min" "$pre_min"
-}
-
-function sec_to_formatted_date_Test
-{
-  local ID
-
-  ID=1
-  formatted_time=$(sec_to_formatted_date "$pre_total_sec")
-  assertEquals "($ID)" "$formatted_time" "$pre_formated_sec"
-
-  ID=2
-  formatted_time=$(sec_to_formatted_date "")
-  assertEquals "($ID)" "$formatted_time" "00:00:00"
 }
 
 # Note: The weekly, monthly, and yearly calculation uses `basic_data_process`.
