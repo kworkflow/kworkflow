@@ -6,7 +6,7 @@
 
 # This is a data struct that describes the main type of data collected. We use
 # this in some internal loops.
-declare -A statistics_opt=( ["deploy"]=1 ["build"]=2 ["list"]=3 ["uninstall"]=4 ["build_failure"]=5  ["Modules_deploy"]=5 )
+declare -a statistics_opt=( "deploy" "build" "list" "uninstall" "build_failure" "Modules_deploy" )
 
 # ATTENTION:
 # This variable is shared between function, for this reason, it is NOT SAFE to
@@ -195,14 +195,14 @@ function sec_to_formatted_date()
 # Note: This function relies on a global variable named shared_data.
 function print_basic_data()
 {
-  local line=" Total Max Min Average\n"
-  for option in "${!statistics_opt[@]}"; do
+  local header_format="%20s %4s %8s %12s\n"
+  local row_format="%-14s %5d %s %s %s\n"
+
+  printf "$header_format" Total Max Min Average
+  for option in "${statistics_opt[@]}"; do
     [[ -z "${shared_data[$option]}" ]] && continue
-
-    line="${line}${option^} ${shared_data[$option]}\n"
+    printf "$row_format" "${option^}" ${shared_data[$option]}
   done
-
-  column -t -s' ' <<< $(echo -e "$line")
 }
 
 # This function expect a list of values organized as "<LABEL> <VALUE>", it will
@@ -225,7 +225,7 @@ function basic_data_process()
   local max
   local min
 
-  for option in "${!statistics_opt[@]}"; do
+  for option in "${statistics_opt[@]}"; do
     values=$(echo -e "$all_data" | grep "$option" | cut -d' ' -f2-)
     [[ -z "$values" ]] && continue
 
