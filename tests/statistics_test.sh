@@ -10,6 +10,7 @@
 # Max: 9433
 function suite
 {
+  suite_addTest "statistics_Test"
   suite_addTest "calculate_average_Test"
   suite_addTest "calculate_total_of_data_Test"
   suite_addTest "max_value_Test"
@@ -48,68 +49,78 @@ function setUp
   pre_formated_sec='00:30:46'
 }
 
+function statistics_Test
+{
+  local msg
+
+  declare -a expected_cmd=(
+    "You have disable_statistics_data_track marked as 'yes'"
+    "If you want to see the statistics, change this option to 'no'"
+  )
+
+  configurations[disable_statistics_data_track]='yes'
+  output=$(statistics --)
+  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
+
+  configurations[disable_statistics_data_track]='no'
+
+  output=$(statistics --invalid-option)
+  msg="Invalid parameter: --invalid-option"
+  assertEquals "($LINENO)" "$msg" "$output"
+}
+
 function calculate_average_Test
 {
-  local ID
-
-  ID=1
   avg=$(calculate_average "10")
-  assertEquals "($ID)" "10" "$avg"
+  assertEquals "($LINENO)" "10" "$avg"
 
-  ID=2
   avg=$(calculate_average "$pre_values")
-  assertEquals "($ID)" "$pre_avg" "$avg"
+  assertEquals "($LINENO)" "$pre_avg" "$avg"
 }
 
 function calculate_total_of_data_Test
 {
-  local ID
-
-  ID=1
   total=$(calculate_total_of_data "1")
-  assertEquals "($ID)" "1" "$total"
+  assertEquals "($LINENO)" "1" "$total"
 
-  ID=2
   total=$(calculate_total_of_data "")
-  assertEquals "($ID)" "0" "$total"
+  assertEquals "($LINENO)" "0" "$total"
 
-  ID=3
   total=$(calculate_total_of_data "$pre_values")
-  assertEquals "($ID)" "$pre_total" "$total"
+  assertEquals "($LINENO)" "$pre_total" "$total"
 }
 
 function max_value_Test
 {
-  local ID
-
-  ID=1
   max=$(max_value "0")
-  assertEquals "($ID)" "$max" "0"
+  assertEquals "($LINENO)" "$max" "0"
 
-  ID=2
   max=$(max_value "")
-  assertEquals "($ID)" "$max" "0"
+  assertEquals "($LINENO)" "$max" "0"
 
-  ID=3
   max=$(max_value "$pre_values")
-  assertEquals "($ID)" "$pre_max" "$max"
+  assertEquals "($LINENO)" "$pre_max" "$max"
 }
 
 function min_value_Test
 {
-  local ID
-
-  ID=1
   min=$(min_value "0" "0")
-  assertEquals "($ID)" "$min" "0"
+  assertEquals "($LINENO)" "$min" "0"
 
-  ID=1
   min=$(min_value "" "")
-  assertEquals "($ID)" "$min" ""
+  assertEquals "($LINENO)" "$min" ""
 
-  ID=2
   min=$(min_value "$pre_values" "$pre_max")
-  assertEquals "($ID)" "$min" "$pre_min"
+  assertEquals "($LINENO)" "$min" "$pre_min"
+}
+
+function sec_to_formatted_date_Test
+{
+  formatted_time=$(sec_to_formatted_date "$pre_total_sec")
+  assertEquals "($LINENO)" "$formatted_time" "$pre_formated_sec"
+
+  formatted_time=$(sec_to_formatted_date "")
+  assertEquals "($LINENO)" "$formatted_time" "00:00:00"
 }
 
 # Note: The weekly, monthly, and yearly calculation uses `basic_data_process`.
@@ -118,26 +129,22 @@ function min_value_Test
 # operation in the weekly, monthly, and yearly tests.
 function basic_data_process_Test
 {
-  local ID
   local data
   local day_path="$base_statistics/05/27"
 
   data=$(cat "$day_path")
 
-  ID=1
   basic_data_process "$data"
   build="${shared_data["build"]}"
-  assertEquals "($ID)" "$build_output" "$build"
+  assertEquals "($LINENO)" "$build_output" "$build"
 
-  ID=2
   basic_data_process "$data"
   deploy="${shared_data["deploy"]}"
-  assertEquals "($ID)" "$deploy_output" "$deploy"
+  assertEquals "($LINENO)" "$deploy_output" "$deploy"
 
-  ID=3
   basic_data_process "$data"
   deploy="${shared_data["list"]}"
-  assertEquals "($ID)" "" "$deploy"
+  assertEquals "($LINENO)" "" "$deploy"
 }
 
 function day_statistics_Test
@@ -147,13 +154,11 @@ function day_statistics_Test
   local msg1='Currently, kw does not have any data for the present date.'
   local msg2='There is no data in the kw records'
 
-  ID=1
   day_data=$(day_statistics "an/invalid/path")
-  assertEquals "($ID)" "$msg1" "$day_data"
+  assertEquals "($LINENO)" "$msg1" "$day_data"
 
-  ID=2
   day_data=$(day_statistics "$base_statistics/05/28")
-  assertEquals "($ID)" "$msg2" "$day_data"
+  assertEquals "($LINENO)" "$msg2" "$day_data"
 }
 
 function week_statistics_Test
@@ -164,9 +169,8 @@ function week_statistics_Test
   local end_target_week='2019/05/11'
   local msg="Sorry, kw does not have any data from $start_target_week to $end_target_week"
 
-  ID=1
   week_data=$(week_statistics "$start_target_week" "$end_target_week")
-  assertEquals "($ID)" "$msg" "$week_data"
+  assertEquals "($LINENO)" "$msg" "$week_data"
 }
 
 function month_statistics_Test
@@ -174,9 +178,8 @@ function month_statistics_Test
   local target_month='2019/05'
   local msg='Currently, kw does not have any data for the present month.'
 
-  ID=1
   month_data=$(month_statistics "$target_month")
-  assertEquals "($ID)" "$msg" "$month_data"
+  assertEquals "($LINENO)" "$msg" "$month_data"
 }
 
 function year_statistics_Test
