@@ -4,6 +4,7 @@
 
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kw_time_and_date.sh"
+include "$KW_LIB_DIR/remote.sh"
 
 
 # This is a data struct that describes the main type of data collected. We use
@@ -19,22 +20,29 @@ declare -gA shared_data=( ["deploy"]='' ["build"]='' ["list"]='' ["uninstall"]='
 function statistics()
 {
   local info_request="$1"
-  local day=$(get_today_info '+%d')
-  local year_month_dir=$(get_today_info '+%Y/%m')
-  local date_param
 
   if [[ "$1" == -h ]]; then
     statistics_help
     exit 0
   fi
 
-  shift 1 # Remove the first option, i.e., --day, --week, or --year
-  local date_param="$@"
+  if [[ ! $info_request == 'remote' ]]; then
+    local day=$(get_today_info '+%d')
+    local year_month_dir=$(get_today_info '+%Y/%m')
+    local date_param
 
-  if [[ ${configurations[disable_statistics_data_track]} == 'yes' ]]; then
-    say "You have disable_statistics_data_track marked as 'yes'"
-    say "If you want to see the statistics, change this option to 'no'"
-    return
+    shift 1 # Remove the first option, i.e., --day, --week, or --year
+    local date_param="$@"
+
+    if [[ ${configurations[disable_statistics_data_track]} == 'yes' ]]; then
+      say "You have disable_statistics_data_track marked as 'yes'"
+      say "If you want to see the statistics, change this option to 'no'"
+      return
+    fi
+
+    if [[ -z "$date_param" ]]; then
+      date_param=$(get_today_info '+%Y/%m/%d')
+    fi
   fi
 
   # Default to day
@@ -42,11 +50,19 @@ function statistics()
     info_request="--day"
   fi
 
-  if [[ -z "$date_param" ]]; then
-    date_param=$(get_today_info '+%Y/%m/%d')
-  fi
-
   case "$info_request" in
+    --remote)
+      local ip="$1"
+      local port="$2"
+
+      if [[ -z "$ip" ]]; then
+        ip=${configurations[ssh_ip]}
+        port=${configurations[ssh_port]}
+      fi
+
+      remote_info "$ip" "$port"
+      return 0
+    ;;
     --day)
       if [[ -z "$date_param" ]]; then
         target_day="$KW_DATA_DIR/statistics/$year_month_dir/$day"
@@ -343,11 +359,44 @@ function year_statistics()
   print_basic_data
 }
 
+# This function retrieves and outputs some hardware information from a remote
+# machine.
+#
+# @ip ip address from remote machine
+# @port port to access remote machine
+function remote_info()
+{
+  local ip="$1"
+  local port="$2"
+  local ram_command="cat /proc/meminfo | grep MemTotal | sed -r 's/.*:\s*(.*)/\1/'"
+  local cpu_model_command="lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g'"
+  local cpu_frequency_command="lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'"
+
+  # This command obtains the storage devices from the remote machine using lsblk
+  # and replaces 1s with rotational and 0s with not rotational
+  local disk_command="lsblk -d -o name,rota | grep -v loop | tail -n +2 |"
+  disk_command+="sed -r 's/(.*)\s+1/\t\1rotational/;s/(.*)\s+0/\t\1not rotational/'"
+
+  local ram=$(cmd_remotely "$ram_command" "SILENT" "$ip" "$port")
+  local cpu=$(cmd_remotely "$cpu_model_command" "SILENT" "$ip" "$port")
+  local frequency=$(cmd_remotely "$cpu_frequency_command" "SILENT" "$ip" "$port")
+  local disk=$(cmd_remotely "$disk_command" "SILENT" "$ip" "$port")
+
+  printf 'CPU:\n'
+  printf '\tName: %s\n' "$cpu"
+  printf '\tFrequency:\n %s\n' "$frequency"
+  printf 'RAM:\n'
+  printf '\tTotal RAM: %s\n' "$ram"
+  printf 'Storage devices:\n %s\n' "$disk"
+}
+
 function statistics_help()
 {
   echo -e "kw statistics:\n" \
     "\tstatistics [--day [YEAR/MONTH/DAY]]\n" \
     "\tstatistics [--week [YEAR/MONTH/DAY]]\n" \
     "\tstatistics [--month [YEAR/MONTH]]\n" \
-    "\tstatistics [--year [YEAR]]"
+    "\tstatistics [--year [YEAR]]\n" \
+    "\tstatistics [--local]\n" \
+    "\tstatistics [--remote [IP] [PORT]]"
 }
