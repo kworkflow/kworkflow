@@ -7,6 +7,10 @@
 declare -gA options_values
 POMODORO_LOG_FILE="$KW_DATA_DIR/pomodoro_current.log"
 
+declare -g KW_POMODORO_DATA="$KW_DATA_DIR/pomodoro"
+
+MAX_TAG_LENGTH=32
+
 # Pomodoro manager function.
 function pomodoro()
 {
@@ -28,6 +32,42 @@ function pomodoro()
   if [[ ${options_values['SHOW_TIMER']} == 1 ]]; then
     show_active_pomodoro_timebox
   fi
+}
+
+# Create the required folders and files to record Pomodoro data. To define
+# where to save data, we use the current date as a reference. In other words,
+# this function creates folders following YYYY/MM pattern and a file with the
+# present day.
+#
+# Return:
+# For simplicity's sake, it returns the path for saving today's data.
+function setup_pomodoro()
+{
+  local year_month_dir
+  local today
+
+  year_month_dir=$(get_today_info '+%Y/%m')
+  today=$(get_today_info '+%d')
+
+  mkdir -p "$KW_POMODORO_DATA/$year_month_dir"
+  touch "$KW_POMODORO_DATA/$year_month_dir/$today"
+
+  echo "$KW_POMODORO_DATA/$year_month_dir/$today"
+}
+
+# tag,timebox,start,description
+function register_data_for_report()
+{
+  local save_to
+  local time_now
+  local data_line
+
+  save_to=$(setup_pomodoro)
+  time_now=$(date +%T)
+
+  data_line="${options_values['TAG']},${options_values['TIMER']},$time_now"
+
+  echo "$data_line" >> "$save_to"
 }
 
 # kw pomodoro registers timebox values in the log file used to display the
@@ -63,6 +103,7 @@ function timer_thread()
   flag=${flag:-'SILENT'}
 
   register_timebox "$timestamp"
+  [[ -n "${options_values['TAG']}" ]] && register_data_for_report
   cmd_manager "$flag" "sleep ${options_values['TIMER']}"
   alert_completion "Pomodoro: Your ${options_values['TIMER']} timebox ended" '--alert=vs'
 
@@ -150,7 +191,7 @@ function pomodoro_parser()
   local time_scale
   local time_value
   local timer=0
-  local label=0
+  local tag=0
   local description=0
 
   if [[ "$1" == -h ]]; then
@@ -160,13 +201,13 @@ function pomodoro_parser()
 
   options_values['TIMER']=0
   options_values['SHOW_TIMER']=0
-  options_values['LABEL']=0
+  options_values['TAG']=''
   options_values['DESCRIPTION']=0
 
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
-      label=0
+      tag=0
       case "$option" in
         --set-timer | -t)
           options_values['TIMER']=1
@@ -176,11 +217,10 @@ function pomodoro_parser()
         --current | -c)
           options_values['SHOW_TIMER']=1
           continue
-          ;;
-        --label | -l)
-          options_values['LABEL']=''
-          label=1
-          echo "TODO: Add label"
+        ;;
+        --tag | -g)
+          options_values['TAG']=''
+          tag=1
           continue
           ;;
         --description | -d)
@@ -212,8 +252,15 @@ function pomodoro_parser()
 
         options_values['TIMER']="$option"
         timer=0
-      elif [[ "$label" == 1 ]]; then
-        options_values['LABEL']="${options_values['LABEL']} $option"
+      elif [[ "$tag" == 1 ]]; then
+        options_values['TAG']="${options_values['TAG']} $option"
+        tag_length=$(str_length "${options_values['TAG']}")
+
+        # Let's trim the string size
+        if [[ "$tag_length" -ge "$MAX_TAG_LENGTH" ]]; then
+          options_values['TAG']=$(str_trim "${options_values['TAG']}" "$MAX_TAG_LENGTH")
+          warning "Max tag size is $MAX_TAG_LENGTH"
+        fi
       elif [[ "$description" == 1 ]]; then
         options_values['DESCRIPTION']="${options_values['DESCRIPTION']} $option"
       fi
@@ -226,6 +273,8 @@ function pomodoro_parser()
     exit 22 # EINVAL
   fi
 
+  options_values['TAG']=$(str_strip "${options_values['TAG']}")
+
   if [[ "${options_values['TIMER']}" != 0 && "${options_values['SHOW_TIMER']}" == 1 ]]; then
     warning '--current|-c is ignored when used with --set-timer,t'
     options_values['SHOW_TIMER']=0
@@ -235,6 +284,7 @@ function pomodoro_parser()
 function pomodoro_help()
 {
   echo -e "kw pomodoro, p:\n" \
-    "\t--set-timer,-t INTEGER[h|m|s] - Set pomodoro timer \n" \
-    "\t--current,-c - Show elapsed time"
+    "\t--set-timer,-t INTEGER[h|m|s] - Set pomodoro timer\n" \
+    "\t--current,-c - Show elapsed time\n" \
+    "\t--tag,-g - Associate a tag to a timebox"
 }

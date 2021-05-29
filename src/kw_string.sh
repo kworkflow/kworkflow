@@ -28,3 +28,40 @@ function str_is_a_number()
   [[ "$1" =~ ^[0-9]+$ ]] && return 0
   return 1
 }
+
+# Calculate the length of a string
+#
+# @1 Target string
+#
+# Return:
+# String length
+function str_length()
+{
+  echo "${#1}"
+}
+
+# Trim string based on string lenght.
+#
+# @str: Target string
+# @size: Sting size
+#
+# Return:
+# Return a string limited by @size
+function str_trim()
+{
+  local str="$1"
+  local size="$2"
+
+  echo ${str:0:size}
+}
+
+# Remove extra spaces from the beginning and end of the string
+#
+# @1: Target string
+#
+# Return:
+# Return string without spaces in the beginning and the end.
+function str_strip()
+{
+  echo "$1" | xargs
+}

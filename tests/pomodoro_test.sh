@@ -10,12 +10,15 @@ function suite()
   suite_addTest 'calculate_missing_time_Test'
   suite_addTest 'show_active_pomodoro_timebox_Test'
   suite_addTest 'pomodoro_parser_Test'
+  suite_addTest 'setup_pomodoro_Test'
+  suite_addTest 'register_data_for_report_Test'
 }
 
 function setUp()
 {
   mkdir "$TMP_TEST_DIR"
   export POMODORO_LOG_FILE="$TMP_TEST_DIR/pomodoro_current.log"
+  export KW_POMODORO_DATA="$TMP_TEST_DIR/pomodoro"
 
   touch "$POMODORO_LOG_FILE"
 }
@@ -176,6 +179,48 @@ function pomodoro_parser_Test()
 
   pomodoro_parser '--current'
   assert_equals_helper 'Show current timebox' "$LINENO" "${options_values['SHOW_TIMER']}" '1'
+
+  pomodoro_parser '--tag Something is here'
+  assert_equals_helper 'Get tag' "$LINENO" "${options_values['TAG']}" 'Something is here'
+
+  pomodoro_parser '--tag    Extra  space   '
+  assert_equals_helper 'Handle extra space failed' "$LINENO" "${options_values['TAG']}" 'Extra space'
+}
+
+function setup_pomodoro_Test
+{
+  local output
+  local year_month
+  local today
+
+  year_month=$(date '+%Y/%m')
+  today=$(date '+%d')
+
+  output=$(setup_pomodoro)
+  assertTrue 'Date file was not created' '[[ -f "$KW_POMODORO_DATA/$year_month/$today" ]]'
+}
+
+function register_data_for_report_Test
+{
+  local output
+  local year_month
+  local today
+
+  year_month=$(date '+%Y/%m')
+  today=$(date '+%d')
+
+  options_values['TAG']='Test 12'
+  options_values['TIMER']='30m'
+  output=$(register_data_for_report)
+
+  assertTrue 'Date file was not created' '[[ -f "$KW_POMODORO_DATA/$year_month/$today" ]]'
+
+  data=$(cat "$KW_POMODORO_DATA/$year_month/$today")
+  tag=$(echo "$data" | cut -d',' -f1)
+  timer=$(echo "$data" | cut -d',' -f2)
+
+  assert_equals_helper 'Label did not match' "$LINENO" "$tag" "${options_values['TAG']}"
+  assert_equals_helper 'Timer did not match' "$LINENO" "$timer" "${options_values['TIMER']}"
 }
 
 invoke_shunit
