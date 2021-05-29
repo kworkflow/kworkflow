@@ -101,7 +101,7 @@ function cmd_manager_check_silent_option_Test
   assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
 
   # Test command with parameters
-  ret=$(cmd_manager SILENT pwd --help)
+  ret=$(cmd_manager SILENT help pwd)
   assertTrue "We expected to find -P" '[[ $ret =~ -P ]]'
   assertTrue "We expected to find -L" '[[ $ret =~ -L ]]'
 
@@ -123,8 +123,7 @@ function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test
   assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
 
   # TODO: There's an alternative to discover the color?
-  ret=$(cmd_manager COMPLAIN pwd --help)
-  assertTrue "We expected to find the ls command" '[[ $ret =~ --help ]]'
+  ret=$(cmd_manager COMPLAIN help pwd)
   assertTrue "We expected to find -P" '[[ $ret =~ -P ]]'
   assertTrue "We expected to find -L" '[[ $ret =~ -L ]]'
 
