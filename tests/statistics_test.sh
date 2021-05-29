@@ -187,8 +187,8 @@ function year_statistics_Test
   local line
 
   declare -a expected_cmd=(
-    'Build   19   00:03:40  00:00:06  00:00:23'
-    'Deploy  8    00:01:13  00:00:31  00:01:04'
+    'Deploy             8 00:01:13 00:00:31 00:01:04'
+    'Build             19 00:03:40 00:00:06 00:00:23'
   )
 
   year_data=$(year_statistics "$target_year")
@@ -198,11 +198,11 @@ function year_statistics_Test
   compare_command_sequence expected_cmd[@] "$year_data" "$LINENO"
 
   declare -a expected_cmd=(
-    'Uninstall      3    00:00:03  00:00:02  00:00:02'
-    'Build_failure  1    00:00:01  00:00:01  00:00:01'
-    'Build          3    00:00:55  00:00:01  00:00:19'
-    'Deploy         1    00:00:21  00:00:21  00:00:21'
-    'List           2    00:00:08  00:00:00  00:00:04'
+    'Deploy             1 00:00:21 00:00:21 00:00:21'
+    'Build              3 00:00:55 00:00:01 00:00:19'
+    'List               2 00:00:08 00:00:00 00:00:04'
+    'Uninstall          3 00:00:03 00:00:02 00:00:02'
+    'Build_failure      1 00:00:01 00:00:01 00:00:01'
   )
 
   year_data=$(year_statistics 2021 | tail -n 5)
