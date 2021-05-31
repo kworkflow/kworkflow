@@ -351,8 +351,8 @@ displays the current month data.
 4. *--year [YEAR]*: exhibits the current year summary if the user does not
 specify a year.
 
-p, pomodoro --set-timer|-t INTEGER[h|m|s] [--tag|-g STRING] | --current
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+p, pomodoro --set-timer|-t INTEGER[h|m|s] [--tag|-g STRING [--description|-d STRING] ] | --current|-c
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This feature provides a way for kernel developers to manage their time through
 the Pomodoro technique. To use a timer with visual and sonorous feedback:
@@ -362,12 +362,17 @@ indicates the timer for the Pomodoro timebox. It is **mandatory** to add a
 suffix that indicates the time unit, which can be h (hour), m (minutes), or s
 (seconds).
 
-One helpful feature associated with timers is the **--tag|-l** option since
+One helpful feature associated with timers is the **--tag|-g** option since
 it allows users to associate a simple tag to their timebox. Later, users can
 generate a report that will display their focus time per tag. The maximum
-length for this tag is 32 characters.
+length for this tag is 32 characters. Optionally, users can provide an extra
+level of details by associating a description to a specific tag by using
+**--description|-d**. It is recommended to use this option with the same tag
+and update the description every time you work on a specific task; with that,
+kw can generate a fine-grained report within a set of descriptions shown nested
+to a particular tag.
 
-(Note: tags only work if you set timers)
+(Note: tags and description only work if you set timers)
 
 Users can follow the timebox section status by using:
 

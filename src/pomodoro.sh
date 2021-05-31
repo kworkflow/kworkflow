@@ -10,6 +10,7 @@ POMODORO_LOG_FILE="$KW_DATA_DIR/pomodoro_current.log"
 declare -g KW_POMODORO_DATA="$KW_DATA_DIR/pomodoro"
 
 MAX_TAG_LENGTH=32
+MAX_DESCRIPTION_LENGTH=512
 
 # Pomodoro manager function.
 function pomodoro()
@@ -66,6 +67,10 @@ function register_data_for_report()
   time_now=$(date +%T)
 
   data_line="${options_values['TAG']},${options_values['TIMER']},$time_now"
+
+  if [[ -n "${options_values['DESCRIPTION']}" ]]; then
+    data_line="$data_line,${options_values['DESCRIPTION']}"
+  fi
 
   echo "$data_line" >> "$save_to"
 }
@@ -202,12 +207,14 @@ function pomodoro_parser()
   options_values['TIMER']=0
   options_values['SHOW_TIMER']=0
   options_values['TAG']=''
-  options_values['DESCRIPTION']=0
+  options_values['DESCRIPTION']=''
 
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
       tag=0
+      description=0
+
       case "$option" in
         --set-timer | -t)
           options_values['TIMER']=1
@@ -226,7 +233,6 @@ function pomodoro_parser()
         --description | -d)
           options_values['DESCRIPTION']=''
           description=1
-          echo "TODO: Add description"
           continue
           ;;
         *)
@@ -263,6 +269,13 @@ function pomodoro_parser()
         fi
       elif [[ "$description" == 1 ]]; then
         options_values['DESCRIPTION']="${options_values['DESCRIPTION']} $option"
+        description_length=$(str_length "${options_values['DESCRIPTION']}")
+
+        # Let's trim the string size
+        if [[ "$description_length" -ge "$MAX_DESCRIPTION_LENGTH" ]]; then
+          options_values['DESCRIPTION']=$(str_trim "${options_values['DESCRIPTION']}" "$MAX_DESCRIPTION_LENGTH")
+          warning "Max description size is $MAX_DESCRIPTION_LENGTH"
+        fi
       fi
     fi
   done
@@ -273,7 +286,16 @@ function pomodoro_parser()
     exit 22 # EINVAL
   fi
 
+  # If user provide a description, let's enforce a tag
+  if [[ -n "${options_values['DESCRIPTION']}" ]]; then
+    if [[ -z "${options_values['TAG']}" ]]; then
+      complain 'If you use description, you must provide a tag'
+      exit 22 # EINVAL
+    fi
+  fi
+
   options_values['TAG']=$(str_strip "${options_values['TAG']}")
+  options_values['DESCRIPTION']=$(str_strip "${options_values['DESCRIPTION']}")
 
   if [[ "${options_values['TIMER']}" != 0 && "${options_values['SHOW_TIMER']}" == 1 ]]; then
     warning '--current|-c is ignored when used with --set-timer,t'
@@ -286,5 +308,6 @@ function pomodoro_help()
   echo -e "kw pomodoro, p:\n" \
     "\t--set-timer,-t INTEGER[h|m|s] - Set pomodoro timer\n" \
     "\t--current,-c - Show elapsed time\n" \
-    "\t--tag,-g - Associate a tag to a timebox"
+    "\t--tag,-g - Associate a tag to a timebox" \
+    "\t--description,-d [STRING] - Add a description to a timebox with a tag"
 }

@@ -185,6 +185,17 @@ function pomodoro_parser_Test()
 
   pomodoro_parser '--tag    Extra  space   '
   assert_equals_helper 'Handle extra space failed' "$LINENO" "${options_values['TAG']}" 'Extra space'
+
+  output=$(pomodoro_parser '--description lala lalala')
+  assert_equals_helper 'Description requires tag' "$LINENO" "$?" '22'
+
+  str_sample='This is just a simple description'
+  pomodoro_parser "--tag Extra space -d $str_sample"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
+
+  str_sample_spaces='            This is just a simple description    '
+  pomodoro_parser "--tag Extra space -d $str_sample_spaces"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
 }
 
 function setup_pomodoro_Test
@@ -205,6 +216,8 @@ function register_data_for_report_Test
   local output
   local year_month
   local today
+  local description
+  local sample_str
 
   year_month=$(date '+%Y/%m')
   today=$(date '+%d')
@@ -221,6 +234,14 @@ function register_data_for_report_Test
 
   assert_equals_helper 'Label did not match' "$LINENO" "$tag" "${options_values['TAG']}"
   assert_equals_helper 'Timer did not match' "$LINENO" "$timer" "${options_values['TIMER']}"
+  rm "$KW_POMODORO_DATA/$year_month/$today"
+  sample_str='Simple description'
+  options_values['DESCRIPTION']="$sample_str"
+  output=$(register_data_for_report)
+  data=$(cat "$KW_POMODORO_DATA/$year_month/$today")
+  description=$(echo "$data" | cut -d',' -f4)
+
+  assert_equals_helper 'Label did not match' "$LINENO" "$sample_str" "${options_values['DESCRIPTION']}"
 }
 
 invoke_shunit
