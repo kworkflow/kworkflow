@@ -32,7 +32,6 @@ For development, you will need:
 
 * dash
 * shunit2
-* fish
 
 For getting the Sphinx Documentation:
 
