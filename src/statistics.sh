@@ -48,9 +48,9 @@ function statistics()
   case "$info_request" in
     --day)
       if [[ -z "$date_param" ]]; then
-        target_day="$statistics_path/$year_month_dir/$day"
+        target_day="$KW_DATA_DIR/statistics/$year_month_dir/$day"
       else
-        target_day="$statistics_path/$(date_to_format "$date_param")"
+        target_day="$KW_DATA_DIR/statistics/$(date_to_format "$date_param")"
         if [[ "$?" != 0 ]]; then
           complain "Invalid parameter: $date_param"
           return 22 # EINVAL
@@ -271,9 +271,9 @@ function week_statistics()
   # 7 -> week days
   for (( i=0 ; i < 7 ; i++ )); do
     day=$(date --date="${first} +${i} day" +%Y/%m/%d)
-    [[ ! -f "$statistics_path/$day" ]] && continue
+    [[ ! -f "$KW_DATA_DIR/statistics/$day" ]] && continue
 
-    all_file_data=$(cat "$statistics_path/$day")
+    all_file_data=$(cat "$KW_DATA_DIR/statistics/$day")
     [[ -z "$all_file_data" ]] && continue
 
     all_data="${all_data}${all_file_data}\n"
@@ -291,7 +291,7 @@ function week_statistics()
 
 function month_statistics()
 {
-  local month_path="$statistics_path/$1"
+  local month_path="$KW_DATA_DIR/statistics/$1"
   local all_data=""
 
   if [[ ! -d "$month_path" ]]; then
@@ -320,13 +320,12 @@ function month_statistics()
 function year_statistics()
 {
   local year="$1"
-
-  if [[ ! -d "$statistics_path/$year" ]]; then
+  if [[ ! -d "$KW_DATA_DIR/statistics/$year" ]]; then
     say "Currently, kw does not have any data for the requested year."
     return 0
   fi
 
-  all_year_file=$(find "$statistics_path/$year" -follow)
+  all_year_file=$(find "$KW_DATA_DIR/statistics/$year" -follow)
 
   # We did not add "" around all_year_file on purpose
   for day_full_path in $all_year_file; do

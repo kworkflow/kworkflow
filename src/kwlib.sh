@@ -271,7 +271,7 @@ function statistics_manager
   local value="$2"
   local day=$(date +%d)
   local year_month_dir=$(date +%Y/%m)
-  local day_path="$statistics_path/$year_month_dir/$day"
+  local day_path="$KW_DATA_DIR/statistics/$year_month_dir/$day"
 
   elapsed_time=$(date -d@$value -u +%H:%M:%S)
   say "-> Execution time: $elapsed_time"
@@ -294,8 +294,8 @@ function update_statistics_database
 
   [[ -z "$day" || -z "$year_month_path" ]] && return 22 # EINVAL
 
-  mkdir -p "$statistics_path/$year_month_path"
-  touch "$statistics_path/$year_month_path/$day"
+  mkdir -p "$KW_DATA_DIR/statistics/$year_month_path"
+  touch "$KW_DATA_DIR/statistics/$year_month_path/$day"
 }
 
 # This function save the information directly to a file.

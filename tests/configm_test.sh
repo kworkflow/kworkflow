@@ -50,6 +50,8 @@ function setUp()
   touch .config
   echo "$CONTENT" > .config
   cd "$current_path"
+  KW_DATA_DIR="$current_path/$TMP_TEST_DIR"
+  configs_path="$KW_DATA_DIR/configs"
 }
 
 function tearDown()
@@ -113,8 +115,6 @@ function save_config_file_check_save_failures_Test()
 function save_config_file_check_directories_creation_Test()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
-  local configs_path="$config_files_path/configs"
 
   # There's no configs yet, initialize it
   cd "$TMP_TEST_DIR"
@@ -131,8 +131,6 @@ function save_config_file_check_directories_creation_Test()
 function save_config_file_check_saved_config_Test()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
-  local configs_path="$config_files_path/configs"
   local ret=0
   local msg
 
@@ -163,8 +161,6 @@ function save_config_file_check_saved_config_Test()
 function save_config_file_check_description_Test()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
-  local configs_path="$config_files_path/configs"
   local ret=0
   local msg
 

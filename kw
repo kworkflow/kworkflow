@@ -27,12 +27,6 @@ KW_DATA_DIR=${KW_DATA_DIR:-"$HOME/.kw"}
 KW_PLUGINS_DIR=${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}
 KW_CACHE_DIR="$HOME/.cache/kw"
 
-# User data
-# TODO: These two variables just introduce more complexity, try to get rid of
-# them.
-config_files_path=${config_files_path:-"$KW_DATA_DIR"}
-statistics_path=${statistics_path:-"$KW_DATA_DIR/statistics"}
-
 # Export external variables required by kworkflow
 export KWORKFLOW
 

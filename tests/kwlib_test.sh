@@ -21,8 +21,9 @@ function suite
   suite_addTest "command_exists_Test"
 }
 
+KW_DATA_DIR="tests/.tmp"
 TARGET_YEAR_MONTH="2020/05"
-FAKE_STATISTICS_PATH="tests/.tmp"
+FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
 FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
 FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
 
@@ -37,8 +38,6 @@ function setupFakeOSInfo
 
 function setupPatch
 {
-  export statistics_path="$FAKE_STATISTICS_PATH"
-
   mkdir -p "$FAKE_STATISTICS_MONTH_PATH"
   touch "$FAKE_STATISTICS_DAY_PATH"
   cp -f tests/samples/test.patch tests/.tmp/
@@ -339,20 +338,20 @@ function statistics_manager_Test
 
   ID=1
   output=$(statistics_manager "values" "33")
-  assertTrue "($ID) Database folders failures" '[[ -d "$statistics_path/$this_year_and_month" ]]'
+  assertTrue "($ID) Database folders failures" '[[ -d "$FAKE_STATISTICS_PATH/$this_year_and_month" ]]'
 
   ID=2
-  assertTrue "($ID) Database day" '[[ -f "$statistics_path/$this_year_and_month/$today" ]]'
+  assertTrue "($ID) Database day" '[[ -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
 
   ID=3
-  stored_value=$(cat "$statistics_path/$this_year_and_month/$today")
+  stored_value=$(cat "$FAKE_STATISTICS_PATH/$this_year_and_month/$today")
   assertEquals "($ID) - " "values 33" "$stored_value"
 
   tearDownSetup
 
   ID=4
   configurations['disable_statistics_data_track']='yes'
-  assertTrue "($ID) Database day" '[[ ! -f "$statistics_path/$this_year_and_month/$today" ]]'
+  assertTrue "($ID) Database day" '[[ ! -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
 }
 
 function command_exists_Test
