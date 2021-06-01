@@ -24,10 +24,10 @@ function suite
 
 function setUp
 {
-  export statistics_path='tests/samples/statistics'
+  export KW_DATA_DIR="tests/samples"
 
   # Samples file data
-  base_statistics="$statistics_path/2020"
+  base_statistics="tests/samples/statistics/2020"
   sample_total='19'
   sample_build_avg='00:00:23' #23
   sample_build_min='00:00:06' #6
