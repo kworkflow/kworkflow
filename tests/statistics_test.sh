@@ -24,10 +24,10 @@ function suite()
 
 function setUp()
 {
-  export KW_DATA_DIR="tests/samples"
+  export KW_DATA_DIR='tests/samples'
 
   # Samples file data
-  base_statistics="tests/samples/statistics/2020"
+  base_statistics='tests/samples/statistics/2020'
   sample_total='19'
   sample_build_avg='00:00:23' #23
   sample_build_min='00:00:06' #6
@@ -47,6 +47,11 @@ function setUp()
   pre_total='14'
   pre_total_sec='1846'
   pre_formated_sec='00:30:46'
+
+  declare -ga may_27_2020=(
+    'Deploy             8 00:01:13 00:00:31 00:01:04'
+    'Build             19 00:03:40 00:00:06 00:00:23'
+  )
 }
 
 function statistics_Test()
@@ -65,7 +70,31 @@ function statistics_Test()
   configurations[disable_statistics_data_track]='no'
 
   output=$(statistics --invalid-option)
-  msg="Invalid parameter: --invalid-option"
+  msg='Invalid parameter: --invalid-option'
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  output=$(statistics --day not_a_day 2> /dev/null)
+  msg='Invalid parameter: not_a_day'
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  output=$(statistics --month 13 2> /dev/null)
+  msg='Invalid parameter: 13'
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  output=$(statistics --month not_a_month 2> /dev/null)
+  msg='Invalid parameter: not_a_month'
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  output=$(statistics --year -2021 2> /dev/null)
+  msg='Invalid parameter: -2021'
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  output=$(statistics --year not_a_year 2> /dev/null)
+  msg='Invalid parameter: not_a_year'
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  output=$(statistics)
+  msg='Currently, kw does not have any data for the present date.'
   assertEquals "($LINENO)" "$msg" "$output"
 }
 
@@ -150,7 +179,6 @@ function basic_data_process_Test()
 function day_statistics_Test()
 {
   local day_data
-  local ID
   local msg1='Currently, kw does not have any data for the present date.'
   local msg2='There is no data in the kw records'
 
@@ -159,27 +187,43 @@ function day_statistics_Test()
 
   day_data=$(day_statistics "$base_statistics/05/28")
   assertEquals "($LINENO)" "$msg2" "$day_data"
+
+  day_data=$(day_statistics "$base_statistics/05/27" | tail -n 2)
+  compare_command_sequence may_27_2020[@] "$day_data" "$LINENO"
 }
 
 function week_statistics_Test()
 {
   local day_data
-  local ID
+  local week_data
   local start_target_week='2019/05/05'
   local end_target_week='2019/05/11'
   local msg="Sorry, kw does not have any data from $start_target_week to $end_target_week"
 
   week_data=$(week_statistics "$start_target_week" "$end_target_week")
   assertEquals "($LINENO)" "$msg" "$week_data"
+
+  week_data=$(week_statistics 2020/05/25 | tail -n 2)
+  compare_command_sequence may_27_2020[@] "$week_data" "$LINENO"
 }
 
 function month_statistics_Test()
 {
   local target_month='2019/05'
+  local month_data
   local msg='Currently, kw does not have any data for the present month.'
 
   month_data=$(month_statistics "$target_month")
   assertEquals "($LINENO)" "$msg" "$month_data"
+
+  month_data=$(month_statistics 2020/05 | tail -n 2)
+  compare_command_sequence may_27_2020[@] "$month_data" "$LINENO"
+
+  mkdir -p "$base_statistics/04"
+  msg='Sorry, kw does not have any record for 2020/04'
+  month_data=$(month_statistics 2020/04)
+  assertEquals "($LINENO)" "$msg" "$month_data"
+  rm -rf "$base_statistics/04"
 }
 
 function year_statistics_Test()
@@ -189,16 +233,11 @@ function year_statistics_Test()
   local msg='Currently, kw does not have any data for the requested year.'
   local line
 
-  declare -a expected_cmd=(
-    'Deploy             8 00:01:13 00:00:31 00:01:04'
-    'Build             19 00:03:40 00:00:06 00:00:23'
-  )
-
   year_data=$(year_statistics "$target_year")
   assertEquals "($LINENO)" "$msg" "$year_data"
 
   year_data=$(year_statistics 2020 | tail -n 2)
-  compare_command_sequence expected_cmd[@] "$year_data" "$LINENO"
+  compare_command_sequence may_27_2020[@] "$year_data" "$LINENO"
 
   declare -a expected_cmd=(
     'Deploy             1 00:00:21 00:00:21 00:00:21'
