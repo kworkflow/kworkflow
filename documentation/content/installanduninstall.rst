@@ -2,6 +2,8 @@
   Install and Remove `kw`
 ===========================
 
+.. _install-and-remove-kw:
+
 .. contents::
    :depth: 1
    :local:
