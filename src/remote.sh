@@ -260,13 +260,13 @@ function get_remote_info()
 }
 
 # This function manages ssh operations. Currently, we have three basic actions:
-# connect to the VM, execute a command in the VM, and perform a local script
-# inside the VM.
+# connect to the host machine, execute a command in the host machine, and
+# perform a local script inside the host machine.
 #
-# @opts Expects a parameter to be passed for the ssh command (it could be
-#       --command, -c, --script, -s). If this parameter receives a null value
-#       this function will make a simple ssh operation; otherwise, it will
-#       attempt to execute a command or script.
+# @opts Pass modifier argument to the ssh command. Available options are
+#   (--command|-c) and (--script|-s). If this parameter receives a null value
+#   this function will perform a simple ssh connection; otherwise, it will
+#   attempt to execute a command or script on the remote host.
 function vm_ssh
 {
   local opts=$@
