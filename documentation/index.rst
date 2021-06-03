@@ -35,6 +35,7 @@ renderings of the man pages), or you can install kw and run the command
 
 .. toctree::
    :maxdepth: 1
+   :caption: Manual:
 
    man/kw
 
