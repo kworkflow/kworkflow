@@ -117,7 +117,7 @@ function kw()
         include "$KW_LIB_DIR/kw_config_loader.sh"
         include "$KW_LIB_DIR/remote.sh"
 
-        vm_ssh $@
+        kw_ssh $@
       )
       ;;
     vars)

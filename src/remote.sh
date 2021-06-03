@@ -267,11 +267,11 @@ function get_remote_info()
 #   (--command|-c) and (--script|-s). If this parameter receives a null value
 #   this function will perform a simple ssh connection; otherwise, it will
 #   attempt to execute a command or script on the remote host.
-function vm_ssh
+function kw_ssh()
 {
-  local opts=$@
-  local port=${configurations[ssh_port]};
-  local target=${configurations[ssh_ip]};
+  local opts="$@"
+  local port="${configurations[ssh_port]}";
+  local target="${configurations[ssh_ip]}";
 
   if [[ "$1" == -h ]]; then
     ssh_help
@@ -285,7 +285,7 @@ function vm_ssh
     exit 22 # EINVAL
   fi
 
-  if [[ $# -gt 0 ]]; then
+  if [[ "$#" -gt 0 ]]; then
     if [[ "$opts" =~ ^(--command|-c)= ]]; then
       opts="$(echo $opts | cut -d = -f2)"
     elif [[ "$opts" =~ ^(--script|-s)= ]]; then
