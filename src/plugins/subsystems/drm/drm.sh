@@ -231,7 +231,7 @@ function gui_control()
 #
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
-function get_available_connectors
+function get_available_connectors()
 {
   local target="$1"
   local unformatted_remote="$2"
@@ -300,7 +300,7 @@ function get_available_connectors
 #
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
-function get_supported_mode_per_connector
+function get_supported_mode_per_connector()
 {
   local target="$1"
   local unformatted_remote="$2"
@@ -459,7 +459,7 @@ function drm_parser_options()
   esac
 }
 
-function drm_help
+function drm_help()
 {
   echo -e "Usage: kw drm [options]:\n" \
     "\tdrm [--remote [REMOTE:PORT]] --load-module=|-lm='MODULE[:PARAM1,PARAM2][;MODULE:...][;...]\n" \

@@ -20,7 +20,7 @@ function update_arch_boot_loader()
   update_boot_loader "$name" 'arch' "$target" "$cmd_init" "$setup_grub" "$grub_install"  "$flag"
 }
 
-function generate_arch_temporary_root_file_system
+function generate_arch_temporary_root_file_system()
 {
   local name="$1"
   local target="$2"

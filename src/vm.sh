@@ -1,7 +1,7 @@
 . "$KW_LIB_DIR/kw_config_loader.sh" --source-only
 . "$KW_LIB_DIR/kwlib.sh" --source-only
 
-function vm_mount
+function vm_mount()
 {
   local flag="$1"
   local qemu_img_path="$2"
@@ -30,7 +30,7 @@ function vm_mount
   return 0
 }
 
-function vm_umount
+function vm_umount()
 {
   local flag="$1"
   local qemu_img_path="$2"
@@ -59,7 +59,7 @@ function vm_umount
   return 125 #ECANCELED
 }
 
-function vm_up
+function vm_up()
 {
   say "Starting Qemu with: "
   echo "${configurations[virtualizer]} ${configurations[qemu_hw_options]}" \
@@ -79,7 +79,7 @@ function vm_up
 #       --command, -c, --script, -s). If this parameter receives a null value
 #       this function will make a simple ssh operation; otherwise, a command or
 #       script will be attempted to execute.
-function vm_ssh
+function vm_ssh()
 {
   local opts=$@
   local port=${configurations[ssh_port]}

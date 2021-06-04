@@ -4,7 +4,7 @@
 . ./src/kwlib.sh --source-only
 . ./tests/utils --source-only
 
-function suite
+function suite()
 {
   suite_addTest "gui_control_Test"
   suite_addTest "drm_manager_Test"
@@ -37,7 +37,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function drm_manager_Test
+function drm_manager_Test()
 {
   local ID
 
@@ -69,7 +69,7 @@ function drm_manager_Test
   assertEquals "($ID) Should not accept --vm:" "$?" "22"
 }
 
-function gui_control_Test
+function gui_control_Test()
 {
   local gui_on_cmd='systemctl isolate graphical.target'
   local gui_off_cmd='systemctl isolate multi-user.target'
@@ -136,7 +136,7 @@ function gui_control_Test
   compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
 }
 
-function get_available_connectors_Test
+function get_available_connectors_Test()
 {
   local ID
   export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
@@ -160,7 +160,7 @@ function get_available_connectors_Test
   compare_command_sequence expected_output[@] "$output" "$ID"
 }
 
-function get_supported_mode_per_connector_Test
+function get_supported_mode_per_connector_Test()
 {
   declare -a expected_output=(
     "Modes per card"
@@ -198,7 +198,7 @@ function get_supported_mode_per_connector_Test
   compare_command_sequence expected_output[@] "$output" "$ID"
 }
 
-function module_control_Test
+function module_control_Test()
 {
   local ID
   local default_ssh="ssh -p 22 root@localhost"
@@ -253,7 +253,7 @@ function module_control_Test
 }
 #compare_command_sequence expected_cmd[@] "$output" "$ID"
 
-function convert_module_info_Test
+function convert_module_info_Test()
 {
   local ID
 

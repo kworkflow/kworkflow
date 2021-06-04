@@ -3,7 +3,7 @@
 . ./src/mk.sh --source-only
 . ./tests/utils --source-only
 
-function suite
+function suite()
 {
   suite_addTest "build_info_Test"
   suite_addTest "mk_build_Test"
@@ -44,7 +44,7 @@ function root_id_mock()
   echo "0"
 }
 
-function setUp
+function setUp()
 {
   local create_mkinitcpio="$1"
 
@@ -178,7 +178,7 @@ function mk_build_Test()
 #
 # Output sequence of kernel_deploy in the TEST_MODE:
 #   $reboot $modules $target $remote $single_line $list"
-function kernel_deploy_Test
+function kernel_deploy_Test()
 {
   local ID
   local original="$PWD"
@@ -273,7 +273,7 @@ function kernel_deploy_Test
   cd "$original"
 }
 
-function modules_install_to_Test
+function modules_install_to_Test()
 {
   local ID
   local original="$PWD"
@@ -293,7 +293,7 @@ function modules_install_to_Test
   cd "$original"
 }
 
-function kernel_install_Test
+function kernel_install_Test()
 {
   local name="test"
   local original="$PWD"
@@ -359,7 +359,7 @@ function kernel_install_Test
   tearDown
 }
 
-function kernel_install_x86_64_Test
+function kernel_install_x86_64_Test()
 {
   local name="test"
   local original="$PWD"
@@ -414,7 +414,7 @@ function kernel_install_x86_64_Test
   cd "$original"
 }
 
-function kernel_modules_Test
+function kernel_modules_Test()
 {
   local count=0
   local original="$PWD"
@@ -491,7 +491,7 @@ function kernel_modules_Test
   cd "$original"
 }
 
-function kernel_modules_local_Test
+function kernel_modules_local_Test()
 {
   local ID
   local original="$PWD"
@@ -504,7 +504,7 @@ function kernel_modules_local_Test
   cd "$original"
 }
 
-function kernel_install_local_Test
+function kernel_install_local_Test()
 {
   local count=0
   local original="$PWD"
@@ -545,7 +545,7 @@ function kernel_install_local_Test
 # by checking the expected command sequence; It is important to highlight that
 # we are not testing the actual kernel list code, this part is validated on
 # another test file.
-function mk_list_remote_kernels_Test
+function mk_list_remote_kernels_Test()
 {
   local count=0
   local original="$PWD"
@@ -588,7 +588,7 @@ function mk_list_remote_kernels_Test
   cd "$original"
 }
 
-function mk_kernel_uninstall_Test
+function mk_kernel_uninstall_Test()
 {
   local count=0
   local original="$PWD"
@@ -647,7 +647,7 @@ function mk_kernel_uninstall_Test
   cd "$original"
 }
 
-function cleanup_after_deploy_Test
+function cleanup_after_deploy_Test()
 {
   local output=""
   local cmd_remote="rm -rf $test_path/$LOCAL_TO_DEPLOY_DIR/*"
@@ -666,7 +666,7 @@ function cleanup_after_deploy_Test
   done <<< "$output"
 }
 
-function build_info_Test
+function build_info_Test()
 {
   local original="$PWD"
   local release='5.4.0-rc7-test'

@@ -3,7 +3,7 @@
 . ./src/kw_time_and_date.sh --source-only
 . ./tests/utils --source-only
 
-function suite
+function suite()
 {
   suite_addTest 'sec_to_format_Test'
   suite_addTest 'get_today_info_Test'
@@ -11,14 +11,14 @@ function suite
   suite_addTest 'date_to_format_Test'
 }
 
-function setUp
+function setUp()
 {
   # Samples file data
   pre_total_sec="1846"
   pre_formated_sec="00:30:46"
 }
 
-function sec_to_format_Test
+function sec_to_format_Test()
 {
   formatted_time=$(sec_to_format "$pre_total_sec")
   assertEquals "($LINENO)" "$formatted_time" "$pre_formated_sec"
@@ -33,7 +33,7 @@ function sec_to_format_Test
   assertEquals "($LINENO)" "$formatted_time" '46'
 }
 
-function get_today_info_Test
+function get_today_info_Test()
 {
   local today=$(date +%Y/%m/%d)
 
@@ -45,7 +45,7 @@ function get_today_info_Test
   assert_equals_helper 'No parameter' "$LINENO" "$today" "$formated_today"
 }
 
-function get_week_beginning_day_Test
+function get_week_beginning_day_Test()
 {
   local ref_week='2021/05/19'
   local first_week_day='2021/05/16'
@@ -66,7 +66,7 @@ function get_week_beginning_day_Test
   assert_equals_helper 'The first day of this week' "$LINENO" "$first_week_day" "$week_day"
 }
 
-function date_to_format_Test
+function date_to_format_Test()
 {
   local formatted_date
 

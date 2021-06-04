@@ -5,7 +5,7 @@
 
 declare -r PATH_TO_TESTS_EXTERNALS="tests/external"
 
-function show_help
+function show_help()
 {
   echo "Usage: $0 [help] [list] [test tfile1 tfile2 ... tfilen] [prepare [-f|--force-update]]"
   echo "Run tests for kworkflow."
@@ -90,7 +90,7 @@ function check_required_files()
 # Reports tests results.
 # Arguments are: $1: # of tests, $2: # of succeeded tests, $3: # of notfound tests and
 # $4: # of failed tests
-function report_results
+function report_results()
 {
     local -i total="$1"
     local -i success="$2"
@@ -125,7 +125,7 @@ function report_results
     fi
 }
 
-function run_tests
+function run_tests()
 {
   local -i total=${#TESTS[@]}
   local -i success=0
@@ -157,7 +157,7 @@ function run_tests
 }
 
 declare -a TESTS
-function strip_path
+function strip_path()
 {
   TESTS=( )
   for file in "$@"; do

@@ -3,7 +3,7 @@
 . ./src/init.sh --source-only
 . ./tests/utils --source-only
 
-function suite
+function suite()
 {
   suite_addTest "init_kw_Test"
 }
@@ -11,7 +11,7 @@ function suite
 FAKE_DIR="tests/.tmp"
 FAKE_CONFIG_PATH="$FAKE_DIR/.config"
 
-function setUp
+function setUp()
 {
   export KW_ETC_DIR="tests/samples"
   export KW_SHARE_SOUND_DIR="tests/samples/share/sound/kw"
@@ -23,12 +23,12 @@ function setUp
   mkdir -p "$FAKE_CONFIG_PATH/$KWORKFLOW"
 }
 
-function tearDown
+function tearDown()
 {
   rm -rf "$FAKE_DIR"
 }
 
-function init_kw_Test
+function init_kw_Test()
 {
   local ID
   local kworkflow_content

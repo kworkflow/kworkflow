@@ -4,14 +4,14 @@
 unset -v KW_LIB_DIR  # to be able to test the developer mode
 . ./kw --source-only > /dev/null
 
-function suite
+function suite()
 {
   suite_addTest "validate_global_variables_Test"
   suite_addTest "check_kworkflow_global_variable_Test"
   suite_addTest 'set_KW_LIB_DIR_in_dev_mode_Test'
 }
 
-function validate_global_variables_Test
+function validate_global_variables_Test()
 {
   VARS=( KWORKFLOW KW_LIB_DIR )
   for v in "${VARS[@]}"; do
@@ -19,7 +19,7 @@ function validate_global_variables_Test
   done
 }
 
-function check_kworkflow_global_variable_Test
+function check_kworkflow_global_variable_Test()
 {
   VARS=( KWORKFLOW )
   for v in "${VARS[@]}"; do
@@ -28,7 +28,7 @@ function check_kworkflow_global_variable_Test
   done
 }
 
-function set_KW_LIB_DIR_in_dev_mode_Test
+function set_KW_LIB_DIR_in_dev_mode_Test()
 {
   lib="${KW_LIB_DIR}/kwlib.sh"
   test -f "${lib}" || fail "kwlib.sh not found (${lib} not found)!"

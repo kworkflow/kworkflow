@@ -4,7 +4,7 @@
 . ./tests/utils --source-only
 . ./src/kwio.sh --source-only
 
-function suite
+function suite()
 {
   suite_addTest "human_list_installed_kernels_Test"
   suite_addTest "comman_list_installed_kernels_Test"
@@ -22,7 +22,7 @@ function suite
 
 declare -r TEST_ROOT_PATH="$PWD"
 
-function setUp
+function setUp()
 {
   rm -rf "$TMP_TEST_DIR"
 
@@ -36,7 +36,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function cmd_manager_Test
+function cmd_manager_Test()
 {
   local count=0
   local current_path="$PWD"
@@ -45,7 +45,7 @@ function cmd_manager_Test
   assert_equals_helper "TEST_MODE" "$LINENO" "ls something" "$output"
 }
 
-function ask_yN_Test
+function ask_yN_Test()
 {
   local count=0
   local current_path="$PWD"
@@ -70,7 +70,7 @@ function ask_yN_Test
 }
 
 
-function human_list_installed_kernels_Test
+function human_list_installed_kernels_Test()
 {
   local count=0
 
@@ -88,7 +88,7 @@ function human_list_installed_kernels_Test
   done <<< "$output"
 }
 
-function comman_list_installed_kernels_Test
+function comman_list_installed_kernels_Test()
 {
   local count=0
 
@@ -105,7 +105,7 @@ function comman_list_installed_kernels_Test
 
 }
 
-function reboot_machine_Test
+function reboot_machine_Test()
 {
   output=$(reboot_machine '1' '' 'TEST_MODE')
   assert_equals_helper 'Enable reboot in a non-local machine' "$LINENO" ' reboot' "$output"
@@ -120,7 +120,7 @@ function reboot_machine_Test
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
 }
 
-function do_uninstall_cmd_sequence_Test
+function do_uninstall_cmd_sequence_Test()
 {
   local target='xpto'
   local prefix="./test"
@@ -183,7 +183,7 @@ function do_uninstall_cmd_sequence_Test
   cd "$TEST_ROOT_PATH"
 }
 
-function install_modules_Test
+function install_modules_Test()
 {
   local module_target='5.9.0-rc5-NEW-VRR-TRACK+.tar'
   local cmd
@@ -193,7 +193,7 @@ function install_modules_Test
   assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
 }
 
-function vm_update_boot_loader_debian_Test
+function vm_update_boot_loader_debian_Test()
 {
   local name='xpto'
   local cmd_grub='grub-mkconfig -o /boot/grub/grub.cfg'
@@ -230,7 +230,7 @@ function vm_update_boot_loader_debian_Test
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 }
 
-function vm_update_boot_loader_arch_Test
+function vm_update_boot_loader_arch_Test()
 {
   local name='xpto'
   local cmd_grub='grub-mkconfig -o /boot/grub/grub.cfg'
@@ -284,12 +284,12 @@ function findmnt_mock()
   echo "/home  /dev/lala ext4   rw,relatime"
 }
 
-function vm_umount
+function vm_umount()
 {
   echo "vm_umount"
 }
 
-function install_kernel_remote_Test
+function install_kernel_remote_Test()
 {
   local name='5.9.0-rc5-TEST'
   local kernel_image_name='bzImage'
@@ -314,7 +314,7 @@ function install_kernel_remote_Test
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 }
 
-function install_kernel_local_Test
+function install_kernel_local_Test()
 {
   local name='5.9.0-rc5-TEST'
   local kernel_image_name='bzImage'
@@ -337,7 +337,7 @@ function install_kernel_local_Test
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 }
 
-function install_kernel_vm_Test
+function install_kernel_vm_Test()
 {
   local name='5.9.0-rc5-TEST'
   local kernel_image_name='bzImage'

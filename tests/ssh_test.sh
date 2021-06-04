@@ -13,7 +13,7 @@ TEST_PATH="tests/.tmp"
 
 SSH_OK="ssh -p 3333 127.0.0.1"
 
-function suite
+function suite()
 {
   suite_addTest "vm_ssh_check_fail_cases_Test"
   suite_addTest "vm_ssh_basic_Test"
@@ -21,7 +21,7 @@ function suite
   suite_addTest "vm_ssh_script_Test"
 }
 
-function setupSsh
+function setupSsh()
 {
   local -r current_path=$PWD
 
@@ -37,12 +37,12 @@ function setupSsh
   cd $current_path
 }
 
-function tearDownSsh
+function tearDownSsh()
 {
   rm -rf $TEST_PATH
 }
 
-function vm_ssh_check_fail_cases_Test
+function vm_ssh_check_fail_cases_Test()
 {
   setupSsh
 
@@ -78,7 +78,7 @@ function vm_ssh_check_fail_cases_Test
   tearDownSsh
 }
 
-function vm_ssh_basic_Test
+function vm_ssh_basic_Test()
 {
   setupSsh
 
@@ -89,7 +89,7 @@ function vm_ssh_basic_Test
   tearDownSsh
 }
 
-function vm_ssh_command_Test
+function vm_ssh_command_Test()
 {
   setupSsh
 
@@ -104,7 +104,7 @@ function vm_ssh_command_Test
   tearDownSsh
 }
 
-function vm_ssh_script_Test
+function vm_ssh_script_Test()
 {
   setupSsh
 

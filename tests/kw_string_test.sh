@@ -3,14 +3,14 @@
 . ./src/kw_string.sh --source-only
 . ./tests/utils --source-only
 
-function suite
+function suite()
 {
   suite_addTest 'chop_Test'
   suite_addTest 'last_char_Test'
   suite_addTest 'str_is_a_number_Test'
 }
 
-function chop_Test
+function chop_Test()
 {
   local output
   local str_test='1234567'
@@ -25,7 +25,7 @@ function chop_Test
   assert_equals_helper 'Expected an empty string' "$LINENO" "" "$output"
 }
 
-function last_char_Test
+function last_char_Test()
 {
   local output
   local str_test='kworkflow'
@@ -42,7 +42,7 @@ function last_char_Test
   assert_equals_helper 'We did not get the last char' "$LINENO" '' "$output"
 }
 
-function str_is_a_number_Test
+function str_is_a_number_Test()
 {
   local output
   local str_test=333

@@ -19,7 +19,7 @@ function update_debian_boot_loader()
   update_boot_loader "$name" 'debian' "$target" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
 }
 
-function generate_debian_temporary_root_file_system
+function generate_debian_temporary_root_file_system()
 {
   local name="$1"
   local target="$2"

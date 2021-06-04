@@ -3,7 +3,7 @@
 . ./tests/utils --source-only
 . ./src/explore.sh --source-only
 
-function suite
+function suite()
 {
   suite_addTest "explore_files_under_git_repo_Test"
   suite_addTest "explore_git_log_Test"
@@ -50,7 +50,7 @@ function tearDown()
   rm -rf "$test_path"
 }
 
-function explore_files_under_git_repo_Test
+function explore_files_under_git_repo_Test()
 {
   local ID
   local MSG_OUT
@@ -92,7 +92,7 @@ function explore_files_under_git_repo_Test
   cd "$current_path"
 }
 
-function explore_git_log_Test
+function explore_git_log_Test()
 {
   local ID
   local file_name
@@ -110,7 +110,7 @@ function explore_git_log_Test
   cd "$current_path"
 }
 
-function explore_grep_Test
+function explore_grep_Test()
 {
   local ID
   local expected_result
@@ -130,7 +130,7 @@ function explore_grep_Test
   cd "$current_path"
 }
 
-function explore_git_Test
+function explore_git_Test()
 {
   local ID
   local expected_result
@@ -158,7 +158,7 @@ function explore_git_Test
   cd "$current_path"
 }
 
-function explore_parser_Test
+function explore_parser_Test()
 {
   local ID
 

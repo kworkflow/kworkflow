@@ -21,7 +21,7 @@ readonly DESCRIPTION_2="Hi, I'm the second description"
 
 readonly LS_NO_FILES="There's no tracked .config file"
 
-function suite
+function suite()
 {
   suite_addTest "execute_config_manager_SAVE_fails_Test"
   suite_addTest "save_config_file_check_save_failures_Test"
@@ -59,7 +59,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function execute_config_manager_SAVE_fails_Test
+function execute_config_manager_SAVE_fails_Test()
 {
   local msg_prefix=" --save"
 
@@ -349,7 +349,7 @@ function execute_config_manager_remove_that_should_fail_Test()
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function remove_config_Test
+function remove_config_Test()
 {
   local current_path="$PWD"
   local ret=0

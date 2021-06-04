@@ -3,7 +3,8 @@
 BASE=$HOME/p/linux-trees
 BUILD_DIR=$BASE/build-linux
 
-function build_arch {
+function build_arch()
+{
 	echo "building $1..."
 	export KBUILD_OUTPUT=$BUILD_DIR/drm-misc/$1
 	mkdir -p $KBUILD_OUTPUT

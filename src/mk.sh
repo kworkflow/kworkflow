@@ -54,7 +54,7 @@ function modules_install_to()
 #
 # Note: Make sure that you called is_kernel_root before try to execute this
 # function.
-function get_kernel_release
+function get_kernel_release()
 {
   local flag="$1"
   local cmd='make kernelrelease'
@@ -71,7 +71,7 @@ function get_kernel_release
 #
 # Note: Make sure that you called is_kernel_root before try to execute this
 # function.
-function get_kernel_version
+function get_kernel_version()
 {
   local flag="$1"
   local cmd='make kernelversion'
@@ -83,7 +83,7 @@ function get_kernel_version
 
 # This function goal is to perform a global clean up, it basically calls other
 # specialized cleanup functions.
-function cleanup
+function cleanup()
 {
   say "Cleanup deploy files"
   cleanup_after_deploy
@@ -96,7 +96,7 @@ function cleanup
 #
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
-function cleanup_after_deploy
+function cleanup_after_deploy()
 {
   local flag="$1"
 
@@ -114,7 +114,7 @@ function cleanup_after_deploy
 # machine.
 #
 # @target Target machine
-function modules_install
+function modules_install()
 {
   local flag="$1"
   local target="$2"
@@ -184,7 +184,7 @@ function modules_install
 #   will display each kernel name by line.
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
 # @unformatted_remote We expect the REMOTE:PORT string
-function mk_list_installed_kernels
+function mk_list_installed_kernels()
 {
   local flag="$1"
   local single_line="$2"
@@ -236,7 +236,7 @@ function mk_list_installed_kernels
 #
 # Note:
 # Take a look at the available kernel plugins at: src/plugins/kernel_install
-function kernel_install
+function kernel_install()
 {
   local reboot="$1"
   local name="$2"
@@ -417,7 +417,7 @@ function mk_kernel_uninstall()
 #
 # @reboot If 1 the target machine will be rebooted after the kernel update
 # @name Kernel name for the deploy
-function kernel_deploy
+function kernel_deploy()
 {
   local reboot=0
   local modules=0
