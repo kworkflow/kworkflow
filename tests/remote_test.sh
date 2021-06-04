@@ -5,7 +5,7 @@ include './src/kwlib.sh'
 include './src/kw_config_loader.sh'
 include './tests/utils'
 
-function suite
+function suite()
 {
   suite_addTest "get_remote_info_Test"
   suite_addTest "cmd_remote_Test"
@@ -38,7 +38,7 @@ function tearDownMockFunctions()
 
 FAKE_KW="tests/.tmp"
 
-function oneTimeSetUp
+function oneTimeSetUp()
 {
   local -r modules_name="test"
   local -r kernel_install_path="kernel_install"
@@ -53,13 +53,13 @@ function oneTimeSetUp
   mk_fake_remote "$FAKE_KW" "$modules_path"
 }
 
-function oneTimeTearDown
+function oneTimeTearDown()
 {
   unset KW_CACHE_DIR
   rm -rf "$FAKE_KW"
 }
 
-function get_remote_info_Test
+function get_remote_info_Test()
 {
   local ID
 
@@ -93,7 +93,7 @@ function get_remote_info_Test
   assertEquals "($ID) Expected 127.0.0.1:3333" "127.0.0.1:3333" "$output"
 }
 
-function cmd_remote_Test
+function cmd_remote_Test()
 {
   local command="ls -lah"
   local remote="178.31.38.12"
@@ -128,7 +128,7 @@ function cmd_remote_Test
   assertEquals "cmd_remotely should not work ($ID)" "$expected_command" "$output"
 }
 
-function cp_host2remote_Test
+function cp_host2remote_Test()
 {
   local src="/any/path"
   local dst="/any/path/2"
@@ -178,7 +178,7 @@ function cp_host2remote_Test
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 }
 
-function which_distro_Test
+function which_distro_Test()
 {
   local cmd="cat /etc/os-release | grep -w ID | cut -d = -f 2"
   local remote="172.16.224.1"
@@ -208,7 +208,7 @@ function which_distro_Test
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 }
 
-function preapre_host_deploy_dir_Test
+function preapre_host_deploy_dir_Test()
 {
   local ID
 
@@ -244,11 +244,11 @@ function prepare_remote_dir_Test()
   local ID
 
   declare -a expected_cmd_sequence=(
-      "ssh -p 2222 root@172.16.224.1 \"mkdir -p /root/kw_deploy\""
-      "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh"
-      "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/"
-      "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/"
-    )
+    "ssh -p 2222 root@172.16.224.1 \"mkdir -p /root/kw_deploy\""
+    "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh"
+    "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/"
+    "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/"
+  )
 
   setupMockFunctions
   output=$(prepare_remote_dir "$remote" "$port" "$user" "$flag")
@@ -273,7 +273,7 @@ function generate_tarball_Test()
     "test/"
     "test/file1"
     "test/file2"
-    )
+  )
 
   expected_cmd="tar -C $FAKE_KW/kernel_install/lib/modules -cf $FAKE_KW/$LOCAL_TO_DEPLOY_DIR/$tarball_name $kernel_release"
   ID=1
@@ -306,7 +306,7 @@ TEST_PATH="tests/.tmp"
 
 SSH_OK="ssh -p 3333 127.0.0.1"
 
-function setupSsh
+function setupSsh()
 {
   local -r current_path=$PWD
 
@@ -322,12 +322,12 @@ function setupSsh
   cd $current_path
 }
 
-function tearDownSsh
+function tearDownSsh()
 {
   rm -rf $TEST_PATH
 }
 
-function kw_ssh_check_fail_cases_Test
+function kw_ssh_check_fail_cases_Test()
 {
   setupSsh
 
@@ -363,7 +363,7 @@ function kw_ssh_check_fail_cases_Test
   tearDownSsh
 }
 
-function kw_ssh_basic_Test
+function kw_ssh_basic_Test()
 {
   setupSsh
 
@@ -374,7 +374,7 @@ function kw_ssh_basic_Test
   tearDownSsh
 }
 
-function kw_ssh_command_Test
+function kw_ssh_command_Test()
 {
   setupSsh
 
@@ -389,7 +389,7 @@ function kw_ssh_command_Test
   tearDownSsh
 }
 
-function kw_ssh_script_Test
+function kw_ssh_script_Test()
 {
   setupSsh
 

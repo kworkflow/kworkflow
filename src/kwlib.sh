@@ -108,21 +108,21 @@ function is_kernel_root()
   # is used to tell if a directory is a linux tree root or not. (They
   # are the same ones used by get_maintainer.pl)
   if [[ -f "${DIR}/COPYING" &&
-        -f "${DIR}/CREDITS" &&
-        -f "${DIR}/Kbuild" &&
-        -e "${DIR}/MAINTAINERS" &&
-        -f "${DIR}/Makefile" &&
-        -f "${DIR}/README" &&
-        -d "${DIR}/Documentation" &&
-        -d "${DIR}/arch" &&
-        -d "${DIR}/include" &&
-        -d "${DIR}/drivers" &&
-        -d "${DIR}/fs" &&
-        -d "${DIR}/init" &&
-        -d "${DIR}/ipc" &&
-        -d "${DIR}/kernel" &&
-        -d "${DIR}/lib" &&
-        -d "${DIR}/scripts" ]]; then
+    -f "${DIR}/CREDITS" &&
+    -f "${DIR}/Kbuild" &&
+    -e "${DIR}/MAINTAINERS" &&
+    -f "${DIR}/Makefile" &&
+    -f "${DIR}/README" &&
+    -d "${DIR}/Documentation" &&
+    -d "${DIR}/arch" &&
+    -d "${DIR}/include" &&
+    -d "${DIR}/drivers" &&
+    -d "${DIR}/fs" &&
+    -d "${DIR}/init" &&
+    -d "${DIR}/ipc" &&
+    -d "${DIR}/kernel" &&
+    -d "${DIR}/lib" &&
+    -d "${DIR}/scripts" ]]; then
     return 0
   fi
   return 1
@@ -135,7 +135,7 @@ function is_kernel_root()
 # Returns:
 # The path of the kernel tree root (string) which the file or dir belongs to, or
 # an empty string if no root was found.
-function find_kernel_root
+function find_kernel_root()
 {
   local -r FILE_OR_DIR="$@"
   local current_dir
@@ -168,7 +168,7 @@ function find_kernel_root
 #
 # Returns:
 # True if given path is a patch file and false otherwise.
-function is_a_patch
+function is_a_patch()
 {
   local -r FILE_PATH="$@"
 
@@ -176,7 +176,7 @@ function is_a_patch
     return 1
   fi
 
-  local file_content=`cat "$FILE_PATH"`
+  local file_content=$(cat "$FILE_PATH")
 
   # The following array stores strings that are expected to be present
   # in a patch file. The absence of any of these strings makes the
@@ -265,7 +265,7 @@ function detect_distro()
 #
 # Return:
 # Print a execution time info
-function statistics_manager
+function statistics_manager()
 {
   local label="$1"
   local value="$2"
@@ -287,7 +287,7 @@ function statistics_manager
 #
 # @year_month_dir Current year
 # @day Current day of the week
-function update_statistics_database
+function update_statistics_database()
 {
   local year_month_path="$1"
   local day="$2"
@@ -303,7 +303,7 @@ function update_statistics_database
 # @day_path Current day
 # @label Label used to identify a value
 # @value An integer number associated to a label
-function store_statistics_data
+function store_statistics_data()
 {
   local day_path="$1"
   local label="$2"
@@ -320,7 +320,7 @@ function store_statistics_data
 function command_exists()
 {
   local command="$1"
-  local package=( $command )
+  local package=($command)
 
   if [[ -x "$(command -v $package)" ]]; then
     return 0

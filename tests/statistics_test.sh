@@ -8,7 +8,7 @@ include './tests/utils'
 # Average: 14
 # Min: 4
 # Max: 9433
-function suite
+function suite()
 {
   suite_addTest "statistics_Test"
   suite_addTest "calculate_average_Test"
@@ -22,7 +22,7 @@ function suite
   suite_addTest "year_statistics_Test"
 }
 
-function setUp
+function setUp()
 {
   export KW_DATA_DIR="tests/samples"
 
@@ -49,7 +49,7 @@ function setUp
   pre_formated_sec='00:30:46'
 }
 
-function statistics_Test
+function statistics_Test()
 {
   local msg
 
@@ -69,7 +69,7 @@ function statistics_Test
   assertEquals "($LINENO)" "$msg" "$output"
 }
 
-function calculate_average_Test
+function calculate_average_Test()
 {
   avg=$(calculate_average "10")
   assertEquals "($LINENO)" "10" "$avg"
@@ -78,7 +78,7 @@ function calculate_average_Test
   assertEquals "($LINENO)" "$pre_avg" "$avg"
 }
 
-function calculate_total_of_data_Test
+function calculate_total_of_data_Test()
 {
   total=$(calculate_total_of_data "1")
   assertEquals "($LINENO)" "1" "$total"
@@ -90,7 +90,7 @@ function calculate_total_of_data_Test
   assertEquals "($LINENO)" "$pre_total" "$total"
 }
 
-function max_value_Test
+function max_value_Test()
 {
   max=$(max_value "0")
   assertEquals "($LINENO)" "$max" "0"
@@ -102,7 +102,7 @@ function max_value_Test
   assertEquals "($LINENO)" "$pre_max" "$max"
 }
 
-function min_value_Test
+function min_value_Test()
 {
   min=$(min_value "0" "0")
   assertEquals "($LINENO)" "$min" "0"
@@ -114,7 +114,7 @@ function min_value_Test
   assertEquals "($LINENO)" "$min" "$pre_min"
 }
 
-function sec_to_formatted_date_Test
+function sec_to_formatted_date_Test()
 {
   formatted_time=$(sec_to_formatted_date "$pre_total_sec")
   assertEquals "($LINENO)" "$formatted_time" "$pre_formated_sec"
@@ -127,7 +127,7 @@ function sec_to_formatted_date_Test
 # These functions only concatenate the set of values before invoke
 # `basic_data_process`, for this reason, there is no point to validate this
 # operation in the weekly, monthly, and yearly tests.
-function basic_data_process_Test
+function basic_data_process_Test()
 {
   local data
   local day_path="$base_statistics/05/27"
@@ -147,7 +147,7 @@ function basic_data_process_Test
   assertEquals "($LINENO)" "" "$deploy"
 }
 
-function day_statistics_Test
+function day_statistics_Test()
 {
   local day_data
   local ID
@@ -161,7 +161,7 @@ function day_statistics_Test
   assertEquals "($LINENO)" "$msg2" "$day_data"
 }
 
-function week_statistics_Test
+function week_statistics_Test()
 {
   local day_data
   local ID
@@ -173,7 +173,7 @@ function week_statistics_Test
   assertEquals "($LINENO)" "$msg" "$week_data"
 }
 
-function month_statistics_Test
+function month_statistics_Test()
 {
   local target_month='2019/05'
   local msg='Currently, kw does not have any data for the present month.'
@@ -182,7 +182,7 @@ function month_statistics_Test
   assertEquals "($LINENO)" "$msg" "$month_data"
 }
 
-function year_statistics_Test
+function year_statistics_Test()
 {
   local target_year='2019'
   local year_data

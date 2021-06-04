@@ -59,7 +59,7 @@ function check_dependencies()
     cmd="pacman -S $package_list"
   elif [[ "$distro" =~ "debian" ]]; then
     for package in "${debian_packages[@]}"; do
-      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2>/dev/null | grep -c "ok installed")
+      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c "ok installed")
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
     done
     cmd="apt install $package_list"
@@ -69,7 +69,7 @@ function check_dependencies()
     return 0
   fi
 
-  if [[ ! -z "$package_list"  ]]; then
+  if [[ ! -z "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
       if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ "0" ]]; then
         return 0
@@ -213,7 +213,7 @@ function setup_config_file()
   if [[ -f "$config_file_template" ]]; then
     cp "$config_file_template" "$config_files_path/$global_config_name"
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sharesounddir,g" \
-           -e "/^#?.*/d" "$config_files_path/$global_config_name"
+      -e "/^#?.*/d" "$config_files_path/$global_config_name"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
       return "$ret"
@@ -285,7 +285,7 @@ function synchronize_files()
 
   if command_exists "bash"; then
     # Add tabcompletion to bashrc
-    if [[ -f "$HOME/.bashrc"  ||  -h "$HOME/.bashrc" ]]; then
+    if [[ -f "$HOME/.bashrc" || -L "$HOME/.bashrc" ]]; then
       append_bashcompletion ".bashrc"
       update_path
     else
@@ -295,7 +295,7 @@ function synchronize_files()
 
   if command_exists "zsh"; then
     # Add tabcompletion to zshrc
-    if [[ -f "$HOME/.zshrc" ||  -h "$HOME/.zshrc" ]]; then
+    if [[ -f "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
       echo "# Enable bash completion for zsh" >> "$HOME/.zshrc"
       echo "autoload bashcompinit && bashcompinit" >> "$HOME/.zshrc"
       append_bashcompletion ".zshrc"
@@ -325,7 +325,7 @@ function update_version()
   local branch_name=$(git rev-parse --short --abbrev-ref HEAD)
   local base_version=$(cat "$libdir/VERSION" | head -n 1)
 
-  cat > "$libdir/VERSION" <<EOF
+  cat > "$libdir/VERSION" << EOF
 $base_version
 Branch: $branch_name
 Commit: $head_hash
@@ -347,7 +347,7 @@ function install_home()
 }
 
 # Options
-for arg do
+for arg; do
   shift
   if [ "$arg" = "--verbose" ]; then
     VERBOSE=1

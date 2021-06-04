@@ -98,13 +98,13 @@ function calculate_missing_time()
   case "$time_type" in
     h)
       time_value=$((3600 * "$time_value"))
-    ;;
+      ;;
     m)
       time_value=$((60 * "$time_value"))
-    ;;
+      ;;
     s)
       time_value="$time_value"
-    ;;
+      ;;
   esac
 
   missing_time=$(($time_value - $elapsed_time))
@@ -128,8 +128,7 @@ function show_active_pomodoro_timebox()
 
   current_timestamp=$(get_timestamp_sec)
 
-  while read line
-  do
+  while read line; do
     # Get data from file
     timestamp=$(echo "$line" | cut -d',' -f1)
     timebox=$(echo "$line" | cut -d',' -f2)
@@ -170,32 +169,32 @@ function pomodoro_parser()
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
       label=0
       case "$option" in
-        --set-timer|-t)
+        --set-timer | -t)
           options_values['TIMER']=1
           timer=1
           continue
-        ;;
-        --current|-c)
+          ;;
+        --current | -c)
           options_values['SHOW_TIMER']=1
           continue
-        ;;
-        --label|-l)
+          ;;
+        --label | -l)
           options_values['LABEL']=''
           label=1
           echo "TODO: Add label"
           continue
-        ;;
-        --description|-d)
+          ;;
+        --description | -d)
           options_values['DESCRIPTION']=''
           description=1
           echo "TODO: Add description"
           continue
-        ;;
+          ;;
         *)
           complain "Invalid option: $option"
           pomodoro_help
           exit 22 # EINVAL
-        ;;
+          ;;
       esac
     else
       if [[ "$timer" == 1 ]]; then
@@ -207,9 +206,9 @@ function pomodoro_parser()
         fi
 
         time_value=$(chop "$option")
-        if ! str_is_a_number "$time_value" ; then
-           complain "'$time_value' is not a number"
-           exit 22 # EINVAL
+        if ! str_is_a_number "$time_value"; then
+          complain "'$time_value' is not a number"
+          exit 22 # EINVAL
         fi
 
         options_values['TIMER']="$option"

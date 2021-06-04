@@ -1,7 +1,7 @@
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
-function vm_mount
+function vm_mount()
 {
   local flag="$1"
   local qemu_img_path="$2"
@@ -21,16 +21,16 @@ function vm_mount
 
   guestmount_cmd="guestmount -a $qemu_img_path -i $mount_point_path 2>&1"
   cmd_manager "$flag" "$guestmount_cmd"
-  if [[ "$ret" ]] ; then
+  if [[ "$ret" ]]; then
     complain "Something went wrong when tried to mount $qemu_img_path" \
-       "in $mount_point_path"
+      "in $mount_point_path"
     return "$ret"
   fi
 
   return 0
 }
 
-function vm_umount
+function vm_umount()
 {
   local flag="$1"
   local qemu_img_path="$2"
@@ -48,9 +48,9 @@ function vm_umount
     guestumount_cmd="guestunmount $mount_point_path"
     cmd_manager "$flag" "$guestumount_cmd"
     ret="$?"
-    if [[ "$ret" != 0 ]] ; then
+    if [[ "$ret" != 0 ]]; then
       complain "Something went wrong when tried to unmount $qemu_img_path" \
-         "in $mount_point_path"
+        "in $mount_point_path"
       return "$ret"
     fi
     return 0
@@ -59,14 +59,14 @@ function vm_umount
   return 125 #ECANCELED
 }
 
-function vm_up
+function vm_up()
 {
   say "Starting Qemu with: "
   echo "${configurations[virtualizer]} ${configurations[qemu_hw_options]}" \
-       "${configurations[qemu_net_options]}" \
-       "${configurations[qemu_path_image]}"
+    "${configurations[qemu_net_options]}" \
+    "${configurations[qemu_path_image]}"
 
   ${configurations[virtualizer]} ${configurations[qemu_hw_options]} \
-        ${configurations[qemu_net_options]} \
-        ${configurations[qemu_path_image]}
+    ${configurations[qemu_net_options]} \
+    ${configurations[qemu_path_image]}
 }

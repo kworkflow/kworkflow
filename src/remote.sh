@@ -175,11 +175,11 @@ function prepare_remote_dir()
 
   # Send the specific deploy script as a root
   cp_host2remote "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
-                 "$DISTRO_DEPLOY_SCRIPT" "$remote" "$port" "$user" "$flag"
+    "$DISTRO_DEPLOY_SCRIPT" "$remote" "$port" "$user" "$flag"
   cp_host2remote "$DEPLOY_SCRIPT" "$REMOTE_KW_DEPLOY/" "$remote" "$port" \
-                 "$user" "$flag"
+    "$user" "$flag"
   cp_host2remote "$DEPLOY_SCRIPT_SUPPORT" "$REMOTE_KW_DEPLOY/" "$remote" \
-                 "$port" "$user" "$flag"
+    "$port" "$user" "$flag"
 }
 
 # This function generates a tarball file to be sent to the target machine.
@@ -270,8 +270,8 @@ function get_remote_info()
 function kw_ssh()
 {
   local opts="$@"
-  local port="${configurations[ssh_port]}";
-  local target="${configurations[ssh_ip]}";
+  local port="${configurations[ssh_port]}"
+  local target="${configurations[ssh_ip]}"
 
   if [[ "$1" == -h ]]; then
     ssh_help

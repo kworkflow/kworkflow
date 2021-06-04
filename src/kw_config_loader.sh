@@ -14,14 +14,14 @@ TARGET="$VM_TARGET"
 declare -gA configurations
 
 # Default target option from kworkflow.config
-declare -gA deploy_target_opt=( ['vm']=1 ['local']=2 ['remote']=3 )
+declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
 
 # This function is used to show the current set up used by kworkflow.
 function show_variables()
 {
   local has_local_config_path="No"
 
-  if [ -f "$PWD/kworkflow.config" ] ; then
+  if [ -f "$PWD/kworkflow.config" ]; then
     has_local_config_path="Yes"
   else
     has_local_config_path="No"
@@ -46,17 +46,15 @@ function parse_configuration()
   local config_path="$1"
   local filename="$(basename "$config_path")"
 
-  if [ ! -f "$config_path" ] || [ "$filename" != kworkflow.config ] ; then
+  if [ ! -f "$config_path" ] || [ "$filename" != kworkflow.config ]; then
     return 22 # 22 means Invalid argument - EINVAL
   fi
 
-  while read line
-  do
+  while read line; do
     # Line started with # should be ignored
     [[ "$line" =~ ^# ]] && continue
 
-    if echo "$line" | grep -F = &>/dev/null
-    then
+    if echo "$line" | grep -F = &> /dev/null; then
       varname="$(echo "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
       configurations["$varname"]="$(echo "$line" | cut -d '=' -f 2-)"
     fi
