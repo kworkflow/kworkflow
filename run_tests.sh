@@ -6,7 +6,7 @@ include './src/kwio.sh'
 
 declare -r PATH_TO_TESTS_EXTERNALS="tests/external"
 
-function show_help
+function show_help()
 {
   echo "Usage: $0 [help] [list] [test tfile1 tfile2 ... tfilen] [prepare [-f|--force-update]]"
   echo "Run tests for kworkflow."
@@ -24,9 +24,9 @@ function download_stuff()
   local OVERWRITE="$3"
 
   if "$OVERWRITE"; then
-      ret=$(wget -N "$URL" -P "$PATH_TO")
+    ret=$(wget -N "$URL" -P "$PATH_TO")
   else
-      ret=$(wget -nc "$URL" -P "$PATH_TO")
+    ret=$(wget -nc "$URL" -P "$PATH_TO")
   fi
 
   if [[ "$?" != 0 ]]; then
@@ -42,11 +42,11 @@ function get_external_scripts()
   local -r MAINTAINER_URL="https://raw.githubusercontent.com/torvalds/linux/master/scripts/get_maintainer.pl"
   local -r CHECKPATCH_CONST_STRUCTS="https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch"
   local -r CHECKPATCH_SPELLING="https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt"
-  local DOWNLOAD_URLS=( \
-        CHECKPATCH_URL \
-        CHECKPATCH_CONST_STRUCTS \
-        CHECKPATCH_SPELLING \
-        MAINTAINER_URL )
+  local DOWNLOAD_URLS=(
+    CHECKPATCH_URL
+    CHECKPATCH_CONST_STRUCTS
+    CHECKPATCH_SPELLING
+    MAINTAINER_URL)
 
   say "Downloading external scripts..."
   echo
@@ -55,7 +55,7 @@ function get_external_scripts()
   for url in ${DOWNLOAD_URLS[@]}; do
     download_stuff "${!url}" "$PATH_TO_TESTS_EXTERNALS" "$OVERWRITE"
     if [[ "$?" -eq 113 ]]; then
-     return 113 # Host unreachable errno
+      return 113 # Host unreachable errno
     fi
   done
 }
@@ -71,62 +71,62 @@ function check_required_files()
   force_update=${force_update:-'false'}
 
   if [[ "$force_update" == 'false' &&
-           -f "$PATH_TO_TESTS_EXTERNALS/checkpatch.pl" &&
-           -f "$PATH_TO_TESTS_EXTERNALS/const_structs.checkpatch" &&
-           -f "$PATH_TO_TESTS_EXTERNALS/spelling.txt" &&
-           -f "$PATH_TO_TESTS_EXTERNALS/get_maintainer.pl" ]]; then
-       # Errno code for File exist
-       return 17
+    -f "$PATH_TO_TESTS_EXTERNALS/checkpatch.pl" &&
+    -f "$PATH_TO_TESTS_EXTERNALS/const_structs.checkpatch" &&
+    -f "$PATH_TO_TESTS_EXTERNALS/spelling.txt" &&
+    -f "$PATH_TO_TESTS_EXTERNALS/get_maintainer.pl" ]]; then
+    # Errno code for File exist
+    return 17
   else
-        say "--> Preparing unit test"
-        get_external_scripts "$force_update"
-        if [[ "$?" -eq 113 ]]; then
-            complain "Failed to download external scripts. Check your connection."
-            complain "Cannot run kw tests"
-            exit 1
-        fi
+    say "--> Preparing unit test"
+    get_external_scripts "$force_update"
+    if [[ "$?" -eq 113 ]]; then
+      complain "Failed to download external scripts. Check your connection."
+      complain "Cannot run kw tests"
+      exit 1
+    fi
   fi
 }
 
 # Reports tests results.
 # Arguments are: $1: # of tests, $2: # of succeeded tests, $3: # of notfound tests and
 # $4: # of failed tests
-function report_results
+function report_results()
 {
-    local -i total="$1"
-    local -i success="$2"
-    local -i notfound="$3"
-    local -i fail="$4"
-    local test_failure_list="$5"
+  local -i total="$1"
+  local -i success="$2"
+  local -i notfound="$3"
+  local -i fail="$4"
+  local test_failure_list="$5"
 
-    if [[ "$total" -eq 0 ]]; then
-        echo 'No test files.'
-    elif [[ "$success" -eq "$total" ]]; then
-      success "$SEPARATOR"
-      success "Total: $total test file(s)"
-      success "Test file(s) SUCCEEDED"
-    else
-      complain "$SEPARATOR"
-      complain "Total: $total test file(s)"
-      if [[ "$fail" -gt 0 ]]; then
-        complain "$fail test file(s) FAILED"
-      fi
-      if [[ "$notfound" -gt 0 ]]; then
-        complain "$notfound test file(s) NOT FOUND"
-      fi
-
-      echo
-      complain "Take a look at:"
-      IF=' ' read -r -a test_failure_array <<< "$test_failure_list"
-      for failed in "${test_failure_array[@]}"; do
-        complain "-> $failed"
-      done
-
-      return 1
+  if [[ "$total" -eq 0 ]]; then
+    echo 'No test files.'
+  elif [[ "$success" -eq "$total" ]]; then
+    success "$SEPARATOR"
+    success "Total: $total test file(s)"
+    success "Test file(s) SUCCEEDED"
+  else
+    complain "$SEPARATOR"
+    complain "Total: $total test file(s)"
+    if [[ "$fail" -gt 0 ]]; then
+      complain "$fail test file(s) FAILED"
     fi
+    if [[ "$notfound" -gt 0 ]]; then
+      complain "$notfound test file(s) NOT FOUND"
+    fi
+
+    echo
+    complain "Take a look at:"
+    IF=' ' read -r -a test_failure_array <<< "$test_failure_list"
+    for failed in "${test_failure_array[@]}"; do
+      complain "-> $failed"
+    done
+
+    return 1
+  fi
 }
 
-function run_tests
+function run_tests()
 {
   local -i total=${#TESTS[@]}
   local -i success=0
@@ -158,9 +158,9 @@ function run_tests
 }
 
 declare -a TESTS
-function strip_path
+function strip_path()
 {
-  TESTS=( )
+  TESTS=()
   for file in "$@"; do
     local base=$(basename ${file})
     TESTS+=("${base%.*}")
@@ -171,7 +171,7 @@ check_required_files
 check_files="$?"
 if [[ "$#" -eq 0 ]]; then
   check_required_files
-  files_list=$(find ./tests -name "*_test.sh" | grep --invert-match "/shunit2/" )
+  files_list=$(find ./tests -name "*_test.sh" | grep --invert-match "/shunit2/")
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
   strip_path $files_list
@@ -181,16 +181,16 @@ elif [[ "$1" == "list" ]]; then
   files_list=$(find ./tests/ -name "*_test.sh")
   strip_path $files_list
   for test_name in "${TESTS[@]}"; do
-    (( index++ ))
+    ((index++))
     say "$index) ${test_name}"
   done
 elif [[ "$1" == "test" ]]; then
   strip_path ${@:2}
   run_tests
 elif [[ "$1" == "prepare" ]]; then
-  if [[ "$#" -gt  1 && ("$2" == "--force-update" || "$2" == "-f") ]]; then
-      check_required_files true
-      check_files="$?"
+  if [[ "$#" -gt 1 && ("$2" == "--force-update" || "$2" == "-f") ]]; then
+    check_required_files true
+    check_files="$?"
   fi
 
   if [[ "$check_files" -eq 17 ]]; then

@@ -4,7 +4,7 @@ include './src/get_maintainer_wrapper.sh'
 include './src/kwlib.sh'
 include './tests/utils'
 
-function suite
+function suite()
 {
   suite_addTest "is_kernel_root_Test"
   suite_addTest "cmd_manager_check_test_mode_option_Test"
@@ -27,7 +27,7 @@ FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
 FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
 FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
 
-function setupFakeOSInfo
+function setupFakeOSInfo()
 {
   mkdir -p tests/.tmp/detect_distro/{arch,manjaro,debian,ubuntu}/etc
   cp -f tests/samples/os/arch/* tests/.tmp/detect_distro/arch/etc
@@ -36,14 +36,14 @@ function setupFakeOSInfo
   cp -f tests/samples/os/ubuntu/* tests/.tmp/detect_distro/ubuntu/etc
 }
 
-function setupPatch
+function setupPatch()
 {
   mkdir -p "$FAKE_STATISTICS_MONTH_PATH"
   touch "$FAKE_STATISTICS_DAY_PATH"
   cp -f tests/samples/test.patch tests/.tmp/
 }
 
-function setupFakeKernelRepo
+function setupFakeKernelRepo()
 {
   # This creates tests/.tmp which should mock a kernel tree root. A .git
   # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
@@ -72,12 +72,12 @@ function setupFakeKernelRepo
   cp -f tests/external/get_maintainer.pl tests/.tmp/scripts/
 }
 
-function tearDownSetup
+function tearDownSetup()
 {
   rm -rf "$FAKE_STATISTICS_PATH"
 }
 
-function is_kernel_root_Test
+function is_kernel_root_Test()
 {
   setupFakeKernelRepo
   is_kernel_root "tests/.tmp"
@@ -86,7 +86,7 @@ function is_kernel_root_Test
   true # Reset return value
 }
 
-function cmd_manager_check_silent_option_Test
+function cmd_manager_check_silent_option_Test()
 {
   setupFakeKernelRepo
   cd "tests/.tmp"
@@ -110,7 +110,7 @@ function cmd_manager_check_silent_option_Test
 
 # The difference between say, complain, warning, and success it is the color
 # because of this we test all of them together
-function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test
+function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test()
 {
   setupFakeKernelRepo
   cd "tests/.tmp"
@@ -142,7 +142,7 @@ function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test
   tearDownSetup
 }
 
-function cmd_manager_check_test_mode_option_Test
+function cmd_manager_check_test_mode_option_Test()
 {
   ret=$(cmd_manager TEST_MODE pwd)
   assertEquals "Expected pwd, but we got $ret" "$ret" "pwd"
@@ -151,7 +151,7 @@ function cmd_manager_check_test_mode_option_Test
   assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
 }
 
-function detect_distro_Test
+function detect_distro_Test()
 {
   setupFakeOSInfo
   local root_path="tests/.tmp/detect_distro/arch"
@@ -176,7 +176,7 @@ function detect_distro_Test
   assertEquals "We got $ret." "$ret" "none"
 }
 
-function join_path_Test
+function join_path_Test()
 {
   local base="/lala/xpto"
   local ret=$(join_path "/lala" "///xpto")
@@ -193,7 +193,7 @@ function join_path_Test
   assertEquals "Expect /lala/" "$ret" "/lala/"
 }
 
-function find_kernel_root_Test
+function find_kernel_root_Test()
 {
   setupFakeKernelRepo
 
@@ -212,7 +212,7 @@ function find_kernel_root_Test
   tearDownSetup
 }
 
-function is_a_patch_Test
+function is_a_patch_Test()
 {
   setupPatch
   is_a_patch "tests/.tmp/test.patch"
@@ -221,7 +221,7 @@ function is_a_patch_Test
   true # Reset return value
 }
 
-function get_based_on_delimiter_Test
+function get_based_on_delimiter_Test()
 {
   local ID
   local ip_port_str="IP:PORT"
@@ -280,7 +280,7 @@ function get_based_on_delimiter_Test
 
 }
 
-function store_statistics_data_Test
+function store_statistics_data_Test()
 {
   local ID
   local fake_day_path="$FAKE_STATISTICS_DAY_PATH"
@@ -310,7 +310,7 @@ function store_statistics_data_Test
   tearDownSetup
 }
 
-function update_statistics_database_Test
+function update_statistics_database_Test()
 {
   local ID
 
@@ -328,7 +328,7 @@ function update_statistics_database_Test
   tearDownSetup
 }
 
-function statistics_manager_Test
+function statistics_manager_Test()
 {
   local ID
   local this_year_and_month=$(date +%Y/%m)
@@ -354,7 +354,7 @@ function statistics_manager_Test
   assertTrue "($ID) Database day" '[[ ! -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
 }
 
-function command_exists_Test
+function command_exists_Test()
 {
   local fake_command="a-non-existent-command -p"
   local real_command="mkdir"

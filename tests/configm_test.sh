@@ -21,7 +21,7 @@ readonly DESCRIPTION_2="Hi, I'm the second description"
 
 readonly LS_NO_FILES="There's no tracked .config file"
 
-function suite
+function suite()
 {
   suite_addTest "execute_config_manager_SAVE_fails_Test"
   suite_addTest "save_config_file_check_save_failures_Test"
@@ -59,7 +59,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function execute_config_manager_SAVE_fails_Test
+function execute_config_manager_SAVE_fails_Test()
 {
   local msg_prefix=" --save"
 
@@ -142,7 +142,7 @@ function save_config_file_check_saved_config_Test()
   msg="Failed to find $NAME_1"
   assertTrue "$LINENO: $msg" '[[ -f $configs_path/configs/$NAME_1 ]]'
   msg="Failed the metadata related to $NAME_1"
-  assertTrue "$LINENO: $msg"  '[[ -f $configs_path/metadata/$NAME_1 ]]'
+  assertTrue "$LINENO: $msg" '[[ -f $configs_path/metadata/$NAME_1 ]]'
 
   cd "$TMP_TEST_DIR"
   ret=$(save_config_file $NO_FORCE $NAME_2)
@@ -349,7 +349,7 @@ function execute_config_manager_remove_that_should_fail_Test()
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function remove_config_Test
+function remove_config_Test()
 {
   local current_path="$PWD"
   local ret=0
@@ -363,12 +363,12 @@ function remove_config_Test
   assertTrue "We expected , 2 files but got $ret" '[[ $ret = "2" ]]'
 
   # Case 2: Remove one config file
-  remove_config "$NAME_1" 1  > /dev/null 2>&1
+  remove_config "$NAME_1" 1 > /dev/null 2>&1
   ret=$(ls configs/configs -1 | wc -l)
   assertTrue "$LINENO: We expected , 1 files but got $ret" '[[ $ret = "1" ]]'
 
   # Case 2: Remove all config files
-  remove_config "$NAME_2" 1  > /dev/null 2>&1
+  remove_config "$NAME_2" 1 > /dev/null 2>&1
   assertTrue "$LINENO: We expected no file related to config" '[[ ! -f configs/configs ]]'
 
   cd "$current_path"

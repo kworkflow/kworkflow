@@ -5,16 +5,15 @@
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kw_time_and_date.sh"
 
-
 # This is a data struct that describes the main type of data collected. We use
 # this in some internal loops.
-declare -ga statistics_opt=( 'deploy' 'build' 'list' 'uninstall' 'build_failure' 'Modules_deploy' )
+declare -ga statistics_opt=('deploy' 'build' 'list' 'uninstall' 'build_failure' 'Modules_deploy')
 
 # ATTENTION:
 # This variable is shared between function, for this reason, it is NOT SAFE to
 # parallelize code inside this file. We use this array a temporary data
 # container to be pass through other functions.
-declare -gA shared_data=( ["deploy"]='' ["build"]='' ["list"]='' ["uninstall"]='' ["build_failure"]='' ["Modules_deploy"]='' )
+declare -gA shared_data=(["deploy"]='' ["build"]='' ["list"]='' ["uninstall"]='' ["build_failure"]='' ["Modules_deploy"]='')
 
 function statistics()
 {
@@ -58,7 +57,7 @@ function statistics()
         fi
       fi
       day_statistics "$target_day"
-    ;;
+      ;;
     --week)
       local first_week_day=$(get_week_beginning_day)
 
@@ -67,7 +66,7 @@ function statistics()
       fi
 
       week_statistics "$first_week_day"
-    ;;
+      ;;
     --month)
       if [[ ! -z "$@" ]]; then
         # First month of the month
@@ -78,7 +77,7 @@ function statistics()
         fi
       fi
       month_statistics "$year_month_dir"
-    ;;
+      ;;
     --year)
       local year=$(date +%Y)
 
@@ -91,11 +90,11 @@ function statistics()
       fi
 
       year_statistics "$year"
-    ;;
+      ;;
     *)
       complain "Invalid parameter: $info_request"
       return 22 # EINVAL
-    ;;
+      ;;
   esac
 
 }
@@ -117,11 +116,11 @@ function calculate_average()
   local avg=0
 
   for value in $list_of_values; do
-    sum=$(( sum + value ))
-    (( count++ ))
+    sum=$((sum + value))
+    ((count++))
   done
 
-  avg=$(( sum / count ))
+  avg=$((sum / count))
 
   echo "$avg"
 }
@@ -270,7 +269,7 @@ function week_statistics()
   first=${first:-$(get_today_info '+%Y/%m/%d')}
 
   # 7 -> week days
-  for (( i=0 ; i < 7 ; i++ )); do
+  for ((i = 0; i < 7; i++)); do
     day=$(date --date="${first} +${i} day" +%Y/%m/%d)
     [[ ! -f "$KW_DATA_DIR/statistics/$day" ]] && continue
 

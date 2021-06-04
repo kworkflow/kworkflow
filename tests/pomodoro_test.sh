@@ -3,7 +3,7 @@
 include './src/pomodoro.sh'
 include './tests/utils'
 
-function suite
+function suite()
 {
   suite_addTest 'register_timebox_Test'
   suite_addTest 'remove_completed_timebox_Test'
@@ -12,7 +12,7 @@ function suite
   suite_addTest 'pomodoro_parser_Test'
 }
 
-function setUp
+function setUp()
 {
   mkdir "$TMP_TEST_DIR"
   export POMODORO_LOG_FILE="$TMP_TEST_DIR/pomodoro_current.log"
@@ -20,12 +20,12 @@ function setUp
   touch "$POMODORO_LOG_FILE"
 }
 
-function tearDown
+function tearDown()
 {
   rm -rf "$TMP_TEST_DIR"
 }
 
-function register_timebox_Test
+function register_timebox_Test()
 {
   local timebox='3332232557'
   local output
@@ -53,7 +53,7 @@ function register_timebox_Test
   compare_command_sequence expected_content[@] "$output" "($LINENO)"
 }
 
-function remove_completed_timebox_Test
+function remove_completed_timebox_Test()
 {
   # Register a bunch of data
   options_values['TIMER']='30m'
@@ -88,7 +88,7 @@ function remove_completed_timebox_Test
   assert_equals_helper 'Line was not removed' "$LINENO" '' "$output"
 }
 
-function calculate_missing_time_Test
+function calculate_missing_time_Test()
 {
   local output
 
@@ -121,7 +121,7 @@ function get_timestamp_sec_mock()
   echo 3332232700
 }
 
-function show_active_pomodoro_timebox_Test
+function show_active_pomodoro_timebox_Test()
 {
   local timestamp='3332232557'
   local timestamp_to_date
@@ -152,8 +152,7 @@ function show_active_pomodoro_timebox_Test
   compare_command_sequence expected_content[@] "$output" "($LINENO)"
 }
 
-
-function pomodoro_parser_Test
+function pomodoro_parser_Test()
 {
   local output
 

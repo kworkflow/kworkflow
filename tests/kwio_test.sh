@@ -13,7 +13,7 @@ declare -A configurations
 sound_file="$PWD/tests/.kwio_test_aux/sound.file"
 visual_file="$PWD/tests/.kwio_test_aux/visual.file"
 
-function suite
+function suite()
 {
   suite_addTest "alert_completion_options_Test"
   suite_addTest "alert_completition_validate_config_file_options_Test"
@@ -21,20 +21,19 @@ function suite
   suite_addTest "alert_completion_sound_alert_Test"
 }
 
-function setUp
+function setUp()
 {
   mkdir -p tests/.kwio_test_aux
   configurations["sound_alert_command"]="touch $sound_file"
   configurations["visual_alert_command"]="touch $visual_file"
 }
 
-function tearDown
+function tearDown()
 {
   rm -rf tests/.kwio_test_aux
 }
 
-
-function alert_completion_options_Test
+function alert_completion_options_Test()
 {
   configurations["alert"]="n"
 
@@ -66,7 +65,7 @@ function alert_completion_options_Test
   true
 }
 
-function alert_completition_validate_config_file_options_Test
+function alert_completition_validate_config_file_options_Test()
 {
   mkdir -p tests/.kwio_test_aux
 
@@ -103,7 +102,7 @@ function alert_completition_validate_config_file_options_Test
   true
 }
 
-function alert_completion_visual_alert_Test
+function alert_completion_visual_alert_Test()
 {
   local output
   local expected="TESTING COMMAND"
@@ -113,7 +112,7 @@ function alert_completion_visual_alert_Test
   assertEquals "Variable v should exist." "$output" "$expected"
 }
 
-function alert_completion_sound_alert_Test
+function alert_completion_sound_alert_Test()
 {
   local output
   local expected="TESTING COMMAND"

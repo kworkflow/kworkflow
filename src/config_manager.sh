@@ -209,7 +209,7 @@ function execute_config_manager()
       shift # Skip '--save' option
       name_config="$1"
       # Validate string name
-      if [[ "$name_config" =~ ^- || -z "${name_config// }" ]]; then
+      if [[ "$name_config" =~ ^- || -z "${name_config// /}" ]]; then
         complain "Invalid argument"
         exit 22 # EINVAL
       fi
@@ -217,7 +217,7 @@ function execute_config_manager()
       shift 2 && description_config="$@"
       save_config_file "$force" "$name_config" "$description_config"
       ;;
-    --list|-l)
+    --list | -l)
       list_configs
       ;;
     --get)
@@ -229,7 +229,7 @@ function execute_config_manager()
 
       get_config "$1" "$force"
       ;;
-    --remove|-rm)
+    --remove | -rm)
       shift # Skip '--rm' option
       if [[ -z "$1" ]]; then
         complain "Invalid argument"
