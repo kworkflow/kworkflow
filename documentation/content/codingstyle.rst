@@ -19,6 +19,23 @@ style, for this reason, we copied-and-pasted many pieces from both projects.
 .. _Git: https://github.com/git/git/blob/master/Documentation/CodingGuidelines#L41
 .. _Linux: https://github.com/torvalds/linux/blob/master/Documentation/process/coding-style.rst
 
+
+shfmt
+_____
+
+To help us enforce our codestyle decisions we utilize the
+`shfmt <https://github.com/mvdan/sh>`_ code formatter in our CI pipeline.
+Please refer to the shfmt repository for instructions on how to install it
+on your specific linux distribution, it is available as a package for most
+distributions and as a plugin for most IDEs and text editors.
+To format a file using shfmt::
+
+  shfmt -w -i=2 -ln=bash -fn -ci -sr FILE
+
+To check a file and error with a diff when the formatting differs::
+
+  shfmt -d -i=2 -ln=bash -fn -ci -sr FILE
+
 Indentation
 -----------
 
