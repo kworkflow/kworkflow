@@ -385,7 +385,7 @@ case "$1" in
     usage
     ;;
   --docs)
-    sphinx-build -b html documentation/ build
+    sphinx-build -nW -b html documentation/ build
     ;;
   *)
     complain "Invalid number of arguments"
