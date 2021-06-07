@@ -203,11 +203,12 @@ function is_a_patch()
 # @member Component to join the path
 #
 # Returns:
-# Return the concatenation of path and member
+# Return the concatenation of path and member, removing any extra slashes '/'
 function join_path()
 {
   local target_path=$1
   local member=$2
+  local joined
 
   # TODO: Extended pattern matching. We should consider to use it as a default
   # in this project.
@@ -215,7 +216,9 @@ function join_path()
   member=${member%%+(/)}
   member=${member##+(/)}
 
-  echo "${target_path%%+(/)}/$member"
+  joined="${target_path%%+(/)}/$member"
+
+  echo "$(echo "$joined" | tr -s '/')"
 }
 
 # This function tries to identify the OS distribution. In order to make it work

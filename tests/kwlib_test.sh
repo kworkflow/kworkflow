@@ -189,6 +189,9 @@ function join_path_Test()
   ret=$(join_path "/lala" "////xpto////")
   assertEquals "Expect /lala/xpto" "$ret" "$base"
 
+  ret=$(join_path "/lala" "//test///xpto////")
+  assertEquals "Expect /lala/test/xpto" "$ret" "/lala/test/xpto"
+
   ret=$(join_path "/lala/")
   assertEquals "Expect /lala/" "$ret" "/lala/"
 }
