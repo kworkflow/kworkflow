@@ -184,12 +184,11 @@ function kw()
       ;;
     pomodoro | p)
       (
-        . "$KW_LIB_DIR/pomodoro.sh" --source-only
+        include "$KW_LIB_DIR/pomodoro.sh"
 
         pomodoro "$@"
       )
       ;;
-
     clear-cache)
       include "$KW_LIB_DIR/mk.sh"
 
