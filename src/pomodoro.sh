@@ -8,6 +8,7 @@ declare -gA options_values
 POMODORO_LOG_FILE="$KW_DATA_DIR/pomodoro_current.log"
 
 declare -g KW_POMODORO_DATA="$KW_DATA_DIR/pomodoro"
+declare -g KW_POMODORO_TAG_LIST="$KW_POMODORO_DATA/tags"
 
 MAX_TAG_LENGTH=32
 MAX_DESCRIPTION_LENGTH=512
@@ -24,6 +25,10 @@ function pomodoro()
   fi
 
   pomodoro_parser "$@"
+
+  if [[ -n "${options_values['TAG']}" ]]; then
+    register_tag "${options_values['TAG']}"
+  fi
 
   if [[ ${options_values['TIMER']} != 0 ]]; then
     touch "$POMODORO_LOG_FILE"
@@ -52,6 +57,7 @@ function setup_pomodoro()
 
   mkdir -p "$KW_POMODORO_DATA/$year_month_dir"
   touch "$KW_POMODORO_DATA/$year_month_dir/$today"
+  touch "$KW_POMODORO_TAG_LIST"
 
   echo "$KW_POMODORO_DATA/$year_month_dir/$today"
 }
@@ -73,6 +79,52 @@ function register_data_for_report()
   fi
 
   echo "$data_line" >> "$save_to"
+}
+
+# Register a new tag if it is not yet defined.
+#
+# @tag: tag name
+function register_tag()
+{
+  local tag
+
+  tag="$*"
+
+  setup_pomodoro > /dev/null
+
+  if ! is_tag_already_registered "$tag"; then
+    echo "$tag" >> "$KW_POMODORO_TAG_LIST"
+  fi
+}
+
+# Search in a file for a specific tag name. If it finds, it returns 0;
+# otherwise, return a positive number.
+#
+# @tag: Tag name
+#
+# Return:
+# Return 0 if it finds a match, or a value greater than 0 if it does not find
+# anything.
+function is_tag_already_registered()
+{
+  local tag="$*"
+
+  tag="\<$tag\>" # \<STRING\> forces the exact match
+  grep -q "$tag" "$KW_POMODORO_TAG_LIST"
+  return "$?"
+}
+
+# Show registered tags with number identification.
+function show_tags()
+{
+  if [[ ! -s "$KW_POMODORO_TAG_LIST" ]]; then
+    say 'You did not register any new tag yet'
+    pomodoro_help
+    exit 0
+  fi
+
+  # Show line numbers
+  nl -n rn -s . "$KW_POMODORO_TAG_LIST"
 }
 
 # kw pomodoro registers timebox values in the log file used to display the
@@ -108,7 +160,11 @@ function timer_thread()
   flag=${flag:-'SILENT'}
 
   register_timebox "$timestamp"
-  [[ -n "${options_values['TAG']}" ]] && register_data_for_report
+
+  if [[ -n "${options_values['TAG']}" ]]; then
+    register_data_for_report
+  fi
+
   cmd_manager "$flag" "sleep ${options_values['TIMER']}"
   alert_completion "Pomodoro: Your ${options_values['TIMER']} timebox ended" '--alert=vs'
 
@@ -196,8 +252,8 @@ function pomodoro_parser()
   local time_scale
   local time_value
   local timer=0
-  local tag=0
-  local description=0
+  local build_tag=0
+  local build_description=0
 
   if [[ "$1" == -h ]]; then
     pomodoro_help
@@ -212,8 +268,8 @@ function pomodoro_parser()
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
-      tag=0
-      description=0
+      build_tag=0
+      build_description=0
 
       case "$option" in
         --set-timer | -t)
@@ -227,12 +283,12 @@ function pomodoro_parser()
         ;;
         --tag | -g)
           options_values['TAG']=''
-          tag=1
+          build_tag=1
           continue
           ;;
         --description | -d)
           options_values['DESCRIPTION']=''
-          description=1
+          build_description=1
           continue
           ;;
         *)
@@ -258,7 +314,7 @@ function pomodoro_parser()
 
         options_values['TIMER']="$option"
         timer=0
-      elif [[ "$tag" == 1 ]]; then
+      elif [[ "$build_tag" == 1 ]]; then
         options_values['TAG']="${options_values['TAG']} $option"
         tag_length=$(str_length "${options_values['TAG']}")
 
@@ -267,7 +323,7 @@ function pomodoro_parser()
           options_values['TAG']=$(str_trim "${options_values['TAG']}" "$MAX_TAG_LENGTH")
           warning "Max tag size is $MAX_TAG_LENGTH"
         fi
-      elif [[ "$description" == 1 ]]; then
+      elif [[ "$build_description" == 1 ]]; then
         options_values['DESCRIPTION']="${options_values['DESCRIPTION']} $option"
         description_length=$(str_length "${options_values['DESCRIPTION']}")
 
@@ -296,6 +352,12 @@ function pomodoro_parser()
 
   options_values['TAG']=$(str_strip "${options_values['TAG']}")
   options_values['DESCRIPTION']=$(str_strip "${options_values['DESCRIPTION']}")
+
+  # If user only pass --tag|-g, we list available tags
+  if [[ "$build_tag" == 1 && -z "${options_values['TAG']}" ]]; then
+    show_tags
+    return 0
+  fi
 
   if [[ "${options_values['TIMER']}" != 0 && "${options_values['SHOW_TIMER']}" == 1 ]]; then
     warning '--current|-c is ignored when used with --set-timer,t'

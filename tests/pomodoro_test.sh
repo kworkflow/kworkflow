@@ -12,13 +12,16 @@ function suite()
   suite_addTest 'pomodoro_parser_Test'
   suite_addTest 'setup_pomodoro_Test'
   suite_addTest 'register_data_for_report_Test'
+  suite_addTest 'register_tag_Test'
+  suite_addTest 'is_tag_already_registered_Test'
 }
 
 function setUp()
 {
-  mkdir "$TMP_TEST_DIR"
+  mkdir -p "$TMP_TEST_DIR"
   export POMODORO_LOG_FILE="$TMP_TEST_DIR/pomodoro_current.log"
   export KW_POMODORO_DATA="$TMP_TEST_DIR/pomodoro"
+  export KW_POMODORO_TAG_LIST="$KW_POMODORO_DATA/tags"
 
   touch "$POMODORO_LOG_FILE"
 }
@@ -242,6 +245,49 @@ function register_data_for_report_Test
   description=$(echo "$data" | cut -d',' -f4)
 
   assert_equals_helper 'Label did not match' "$LINENO" "$sample_str" "${options_values['DESCRIPTION']}"
+}
+
+function register_tag_Test
+{
+  local output
+
+  # We need basic setup for tags
+  setup_pomodoro > /dev/null
+  declare -a expected_content=(
+    'tag 1'
+    'tag 2'
+  )
+
+  register_tag 'tag 1'
+  register_tag 'tag 2'
+  output=$(cat "$KW_POMODORO_TAG_LIST")
+
+  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+
+  # Try to register the same tag
+  register_tag 'tag 2'
+  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+
+  # Try to register an empty tag
+  register_tag ''
+  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+}
+
+function is_tag_already_registered_Test
+{
+  # We need basic setup for test this function
+  setup_pomodoro > /dev/null
+  touch "$KW_POMODORO_TAG_LIST"
+
+  is_tag_already_registered 'Tag 0'
+  assertNotEquals "$LINENO: We should not get a success" "$?" 0
+
+  is_tag_already_registered ''
+  assertNotEquals "$LINENO: We should not get a success" "$?" 0
+
+  echo 'Tag 0' >> "$KW_POMODORO_TAG_LIST"
+  is_tag_already_registered 'Tag 0'
+  assertEquals "$LINENO: We expect to find Tag 0" "$?" 0
 }
 
 invoke_shunit
