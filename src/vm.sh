@@ -1,7 +1,7 @@
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
-function vm_mount
+function vm_mount()
 {
   local flag="$1"
   local qemu_img_path="$2"
@@ -21,16 +21,16 @@ function vm_mount
 
   guestmount_cmd="guestmount -a $qemu_img_path -i $mount_point_path 2>&1"
   cmd_manager "$flag" "$guestmount_cmd"
-  if [[ "$ret" ]] ; then
+  if [[ "$ret" ]]; then
     complain "Something went wrong when tried to mount $qemu_img_path" \
-       "in $mount_point_path"
+      "in $mount_point_path"
     return "$ret"
   fi
 
   return 0
 }
 
-function vm_umount
+function vm_umount()
 {
   local flag="$1"
   local qemu_img_path="$2"
@@ -48,9 +48,9 @@ function vm_umount
     guestumount_cmd="guestunmount $mount_point_path"
     cmd_manager "$flag" "$guestumount_cmd"
     ret="$?"
-    if [[ "$ret" != 0 ]] ; then
+    if [[ "$ret" != 0 ]]; then
       complain "Something went wrong when tried to unmount $qemu_img_path" \
-         "in $mount_point_path"
+        "in $mount_point_path"
       return "$ret"
     fi
     return 0
@@ -59,16 +59,16 @@ function vm_umount
   return 125 #ECANCELED
 }
 
-function vm_up
+function vm_up()
 {
   say "Starting Qemu with: "
   echo "${configurations[virtualizer]} ${configurations[qemu_hw_options]}" \
-       "${configurations[qemu_net_options]}" \
-       "${configurations[qemu_path_image]}"
+    "${configurations[qemu_net_options]}" \
+    "${configurations[qemu_path_image]}"
 
   ${configurations[virtualizer]} ${configurations[qemu_hw_options]} \
-        ${configurations[qemu_net_options]} \
-        ${configurations[qemu_path_image]}
+    ${configurations[qemu_net_options]} \
+    ${configurations[qemu_path_image]}
 }
 
 # This function manages ssh operations. Currently, we have three basic actions:
@@ -79,7 +79,7 @@ function vm_up
 #       --command, -c, --script, -s). If this parameter receives a null value
 #       this function will make a simple ssh operation; otherwise, a command or
 #       script will be attempted to execute.
-function vm_ssh
+function vm_ssh()
 {
   local opts=$@
   local port=${configurations[ssh_port]}

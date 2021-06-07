@@ -37,21 +37,21 @@ function kworkflow_help()
 # installed to the system
 function kworkflow_man()
 {
-    doc="$KW_SHARE_MAN_DIR"
-    ret=0
+  doc="$KW_SHARE_MAN_DIR"
+  ret=0
 
-    if ! man kw > /dev/null 2>&1; then
-      if [ -x "$(command -v rst2man)" ]; then
-        rst2man < "$doc/kw.rst" | man -l -
-        ret="$?"
-      else
-        complain "There's no man support"
-        ret=1
-      fi
-      exit "$ret"
+  if ! man kw > /dev/null 2>&1; then
+    if [ -x "$(command -v rst2man)" ]; then
+      rst2man < "$doc/kw.rst" | man -l -
+      ret="$?"
+    else
+      complain "There's no man support"
+      ret=1
     fi
+    exit "$ret"
+  fi
 
-    man kw
+  man kw
 }
 
 function kworkflow_version()

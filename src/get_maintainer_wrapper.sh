@@ -7,7 +7,7 @@ include "$KW_LIB_DIR/kwlib.sh"
 function print_files_authors()
 {
   local FILE_OR_DIR=$1
-  local files=( )
+  local files=()
   if [[ -d $FILE_OR_DIR ]]; then
     for file in $FILE_OR_DIR/*; do
       if [[ -f $file ]]; then
@@ -22,8 +22,8 @@ function print_files_authors()
 
   for file in ${files[@]}; do
     authors=$(grep -oE "MODULE_AUTHOR *\(.*\)" $file |
-              sed -E "s/(MODULE_AUTHOR *\( *\"|\" *\))//g" |
-              sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g' )
+      sed -E "s/(MODULE_AUTHOR *\( *\"|\" *\))//g" |
+      sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g')
     if [[ ! -z $authors ]]; then
       if [[ $printed_authors_separator = false ]]; then
         say $SEPARATOR
@@ -79,16 +79,16 @@ function execute_get_maintainer()
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*) ]]; then
       case "$option" in
-        -au|-ua)
+        -au | -ua)
           print_authors=true
           update_patch=true
           continue
           ;;
-        --authors|-a)
+        --authors | -a)
           print_authors=true
           continue
           ;;
-        --update-patch|-u)
+        --update-patch | -u)
           update_patch=true
           continue
           ;;
@@ -101,7 +101,6 @@ function execute_get_maintainer()
       FILE_OR_DIR=${FILE_OR_DIR:-$option}
     fi
   done
-
 
   # If no file is given, assume "."
   if [[ -z $FILE_OR_DIR ]]; then

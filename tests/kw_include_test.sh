@@ -16,7 +16,8 @@ function include_Test()
   assertEquals "($LINENO)" 1 "$output"
 }
 
-function include_twice_Test() {
+function include_twice_Test()
+{
   include ./src/kwlib.sh
   include ./src/kwlib.sh
   ret="$?"

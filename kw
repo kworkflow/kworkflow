@@ -33,7 +33,6 @@ export KWORKFLOW
 # The include function (sourced from this file) should always be used for file sourcing.
 . "$KW_LIB_DIR/kw_include.sh" --source-only
 
-
 function kw()
 {
   action="$1"
@@ -50,7 +49,7 @@ function kw()
         return "$?"
       )
       ;;
-    mount|mo)
+    mount | mo)
       (
         include "$KW_LIB_DIR/vm.sh"
 
@@ -60,7 +59,7 @@ function kw()
         return "$ret"
       )
       ;;
-    umount|um)
+    umount | um)
       (
         include "$KW_LIB_DIR/vm.sh"
 
@@ -70,14 +69,14 @@ function kw()
         return "$ret"
       )
       ;;
-    up|u)
+    up | u)
       (
         include "$KW_LIB_DIR/vm.sh"
 
         vm_up
       )
       ;;
-    build|b)
+    build | b)
       (
         include "$KW_LIB_DIR/mk.sh"
 
@@ -87,7 +86,7 @@ function kw()
         return "$ret"
       )
       ;;
-    deploy|d)
+    deploy | d)
       (
         include "$KW_LIB_DIR/mk.sh"
 
@@ -107,12 +106,12 @@ function kw()
         return "$ret"
       )
       ;;
-    diff|df)
-        include "$KW_LIB_DIR/diff.sh"
+    diff | df)
+      include "$KW_LIB_DIR/diff.sh"
 
-        diff_manager "$@"
+      diff_manager "$@"
       ;;
-    ssh|s)
+    ssh | s)
       (
         include "$KW_LIB_DIR/vm.sh"
 
@@ -126,35 +125,35 @@ function kw()
         show_variables
       )
       ;;
-    codestyle|c)
+    codestyle | c)
       (
         include "$KW_LIB_DIR/checkpatch_wrapper.sh"
 
         execute_checkpatch "$@"
       )
       ;;
-    maintainers|m)
+    maintainers | m)
       (
         include "$KW_LIB_DIR/get_maintainer_wrapper.sh"
 
         execute_get_maintainer $@
       )
       ;;
-    configm|g)
+    configm | g)
       (
         include "$KW_LIB_DIR/config_manager.sh"
 
         execute_config_manager "$@"
       )
       ;;
-    help|h)
+    help | h)
       (
         include "$KW_LIB_DIR/help.sh"
 
         kworkflow_help
       )
       ;;
-    explore|e)
+    explore | e)
       (
         include "$KW_LIB_DIR/explore.sh"
 
@@ -168,7 +167,7 @@ function kw()
         kworkflow_man
       )
       ;;
-    version|--version|-v)
+    version | --version | -v)
       (
         include "$KW_LIB_DIR/help.sh"
 
@@ -182,7 +181,7 @@ function kw()
         statistics "$@"
       )
       ;;
-    pomodoro|p)
+    pomodoro | p)
       (
         . "$KW_LIB_DIR/pomodoro.sh" --source-only
 
@@ -191,9 +190,9 @@ function kw()
       ;;
 
     clear-cache)
-        include "$KW_LIB_DIR/mk.sh"
+      include "$KW_LIB_DIR/mk.sh"
 
-        cleanup
+      cleanup
       ;;
     # Subsystems support
     drm)

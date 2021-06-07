@@ -17,10 +17,10 @@ function update_arch_boot_loader()
   local setup_grub=": write /boot/grub/device.map '(hd0,1) /dev/sda'"
   local grub_install="grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda"
 
-  update_boot_loader "$name" 'arch' "$target" "$cmd_init" "$setup_grub" "$grub_install"  "$flag"
+  update_boot_loader "$name" 'arch' "$target" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
 }
 
-function generate_arch_temporary_root_file_system
+function generate_arch_temporary_root_file_system()
 {
   local name="$1"
   local target="$2"

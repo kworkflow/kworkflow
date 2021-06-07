@@ -15,25 +15,25 @@ function explore()
   ret="$?"
 
   case "$ret" in
-    1) # LOG
+    1)        # LOG
       shift 1 # Remove 'log' string
       explore_git_log "$@"
-    ;;
-    2) # Use GNU GREP
+      ;;
+    2)        # Use GNU GREP
       shift 1 # Remove 'grep' string
       explore_files_gnu_grep "$@"
-    ;;
+      ;;
     3) # Search in directories controlled or not by git
       shift 1
       explore_all_files_git "$@"
-    ;;
+      ;;
     4) # Search in files under git control
       explore_files_under_git "$@"
-    ;;
+      ;;
     *)
       complain "Invalid parameter"
       exit 22 # EINVAL
-    ;;
+      ;;
   esac
 }
 
@@ -66,18 +66,18 @@ function explore_parser()
   fi
 
   case "$option" in
-    --log|-l)
+    --log | -l)
       return 1
-    ;;
-    --grep|-g)
+      ;;
+    --grep | -g)
       return 2
-    ;;
-    --all|-a)
+      ;;
+    --all | -a)
       return 3
-    ;;
+      ;;
     *)
       return 4
-    ;;
+      ;;
   esac
 }
 
