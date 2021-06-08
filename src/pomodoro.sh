@@ -27,7 +27,23 @@ function pomodoro()
   pomodoro_parser "$@"
 
   if [[ -n "${options_values['TAG']}" ]]; then
-    register_tag "${options_values['TAG']}"
+    if str_is_a_number "${options_values['TAG']}"; then
+      local id="${options_values['TAG']}"
+
+      options_values['TAG']=$(translate_id_to_tag "$id")
+      if [[ "$?" != 0 ]]; then
+        complain "It looks like that $id is not valid"
+        complain 'Use kw p --tag to see all registered tags'
+        exit 22 # EINVAL
+      fi
+
+      # Check id
+      if [[ "${options_values['TIMER']}" == 0 ]]; then
+        show_tags
+      fi
+    else
+      register_tag "${options_values['TAG']}"
+    fi
   fi
 
   if [[ ${options_values['TIMER']} != 0 ]]; then
@@ -107,7 +123,9 @@ function register_tag()
 # anything.
 function is_tag_already_registered()
 {
-  local tag="$*"
+  local tag
+
+  tag="$*"
 
   tag="\<$tag\>" # \<STRING\> forces the exact match
   grep -q "$tag" "$KW_POMODORO_TAG_LIST"
@@ -125,6 +143,32 @@ function show_tags()
 
   # Show line numbers
   nl -n rn -s . "$KW_POMODORO_TAG_LIST"
+}
+
+# Translate an ID number to a tag identifier.
+#
+# @id: An integer number
+#
+# Return:
+# If ID is valid, this function prints the tag name and returns 0, otherwise
+# return 22 (EINVAL).
+function translate_id_to_tag()
+{
+  local id="$1"
+  local total_lines
+
+  # Basic check
+  [[ -z "$id" ]] && return 22 # EINVAL
+
+  total_lines=$(wc -l "$KW_POMODORO_TAG_LIST" | cut -d' ' -f1)
+  if [[ "$id" -le 0 || "$id" -gt "$total_lines"  ]]; then
+    return 22 # EINVAL
+  fi
+
+  result=$(sed "$id"'q;d' "$KW_POMODORO_TAG_LIST")
+  [[ -z "$result" ]] && return 22 # EINVAL
+  echo "$result"
+  return 0
 }
 
 # kw pomodoro registers timebox values in the log file used to display the

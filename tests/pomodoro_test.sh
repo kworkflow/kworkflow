@@ -14,6 +14,7 @@ function suite()
   suite_addTest 'register_data_for_report_Test'
   suite_addTest 'register_tag_Test'
   suite_addTest 'is_tag_already_registered_Test'
+  suite_addTest 'translate_id_to_tag_Test'
 }
 
 function setUp()
@@ -288,6 +289,34 @@ function is_tag_already_registered_Test
   echo 'Tag 0' >> "$KW_POMODORO_TAG_LIST"
   is_tag_already_registered 'Tag 0'
   assertEquals "$LINENO: We expect to find Tag 0" "$?" 0
+}
+
+function translate_id_to_tag_Test
+{
+  local output
+
+  setup_pomodoro > /dev/null
+
+  translate_id_to_tag ''
+  assert_equals_helper 'Empty string should be detected' "$LINENO" "$?" '22'
+
+  register_tag 'tag 1'
+  register_tag 'tag 2'
+  register_tag 'tag 3'
+  register_tag 'tag 4'
+
+  for i in {1..4}; do
+    output=$(translate_id_to_tag "$i")
+    expected="tag $i"
+    assert_equals_helper 'We expect to find a tag' "$LINENO: ($i)" "$output" "$expected"
+  done
+
+  # Try to get an ID out of range
+  translate_id_to_tag 65
+  assert_equals_helper 'Out of range' "$LINENO" "$?" '22'
+
+  translate_id_to_tag -2
+  assert_equals_helper 'Out of range' "$LINENO" "$?" '22'
 }
 
 invoke_shunit
