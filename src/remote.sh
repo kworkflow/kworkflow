@@ -1,6 +1,7 @@
 # NOTE: It is recommended that src/kw_config_loader.sh be included before this
 # file
 include "$KW_LIB_DIR/kw_config_loader.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
