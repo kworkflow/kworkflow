@@ -46,12 +46,12 @@ function pomodoro()
     fi
   fi
 
-  if [[ ${options_values['TIMER']} != 0 ]]; then
+  if [[ "${options_values['TIMER']}" != 0 ]]; then
     touch "$POMODORO_LOG_FILE"
     timer_thread "$alert" &
   fi
 
-  if [[ ${options_values['SHOW_TIMER']} == 1 ]]; then
+  if [[ "${options_values['SHOW_TIMER']}" == 1 ]]; then
     show_active_pomodoro_timebox
   fi
 }
@@ -161,7 +161,7 @@ function translate_id_to_tag()
   [[ -z "$id" ]] && return 22 # EINVAL
 
   total_lines=$(wc -l "$KW_POMODORO_TAG_LIST" | cut -d' ' -f1)
-  if [[ "$id" -le 0 || "$id" -gt "$total_lines"  ]]; then
+  if [[ "$id" -le 0 || "$id" -gt "$total_lines" ]]; then
     return 22 # EINVAL
   fi
 
@@ -324,7 +324,7 @@ function pomodoro_parser()
         --current | -c)
           options_values['SHOW_TIMER']=1
           continue
-        ;;
+          ;;
         --tag | -g)
           options_values['TAG']=''
           build_tag=1

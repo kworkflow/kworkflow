@@ -3,20 +3,6 @@
 include './src/pomodoro.sh'
 include './tests/utils'
 
-function suite()
-{
-  suite_addTest 'register_timebox_Test'
-  suite_addTest 'remove_completed_timebox_Test'
-  suite_addTest 'calculate_missing_time_Test'
-  suite_addTest 'show_active_pomodoro_timebox_Test'
-  suite_addTest 'pomodoro_parser_Test'
-  suite_addTest 'setup_pomodoro_Test'
-  suite_addTest 'register_data_for_report_Test'
-  suite_addTest 'register_tag_Test'
-  suite_addTest 'is_tag_already_registered_Test'
-  suite_addTest 'translate_id_to_tag_Test'
-}
-
 function setUp()
 {
   mkdir -p "$TMP_TEST_DIR"
@@ -32,7 +18,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function register_timebox_Test()
+function test_register_timebox()
 {
   local timebox='3332232557'
   local output
@@ -60,7 +46,7 @@ function register_timebox_Test()
   compare_command_sequence expected_content[@] "$output" "($LINENO)"
 }
 
-function remove_completed_timebox_Test()
+function test_remove_completed_timebox()
 {
   # Register a bunch of data
   options_values['TIMER']='30m'
@@ -95,7 +81,7 @@ function remove_completed_timebox_Test()
   assert_equals_helper 'Line was not removed' "$LINENO" '' "$output"
 }
 
-function calculate_missing_time_Test()
+function test_calculate_missing_time()
 {
   local output
 
@@ -128,7 +114,7 @@ function get_timestamp_sec_mock()
   echo 3332232700
 }
 
-function show_active_pomodoro_timebox_Test()
+function test_show_active_pomodoro_timebox()
 {
   local timestamp='3332232557'
   local timestamp_to_date
@@ -159,7 +145,7 @@ function show_active_pomodoro_timebox_Test()
   compare_command_sequence expected_content[@] "$output" "($LINENO)"
 }
 
-function pomodoro_parser_Test()
+function test_pomodoro_parser()
 {
   local output
 
@@ -202,7 +188,7 @@ function pomodoro_parser_Test()
   assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
 }
 
-function setup_pomodoro_Test
+function test_setup_pomodoro()
 {
   local output
   local year_month
@@ -215,7 +201,7 @@ function setup_pomodoro_Test
   assertTrue 'Date file was not created' '[[ -f "$KW_POMODORO_DATA/$year_month/$today" ]]'
 }
 
-function register_data_for_report_Test
+function test_register_data_for_report()
 {
   local output
   local year_month
@@ -248,7 +234,7 @@ function register_data_for_report_Test
   assert_equals_helper 'Label did not match' "$LINENO" "$sample_str" "${options_values['DESCRIPTION']}"
 }
 
-function register_tag_Test
+function test_register_tag()
 {
   local output
 
@@ -274,7 +260,7 @@ function register_tag_Test
   compare_command_sequence expected_content[@] "$output" "($LINENO)"
 }
 
-function is_tag_already_registered_Test
+function test_is_tag_already_registered()
 {
   # We need basic setup for test this function
   setup_pomodoro > /dev/null
@@ -291,7 +277,7 @@ function is_tag_already_registered_Test
   assertEquals "$LINENO: We expect to find Tag 0" "$?" 0
 }
 
-function translate_id_to_tag_Test
+function test_translate_id_to_tag()
 {
   local output
 
