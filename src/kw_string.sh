@@ -17,7 +17,7 @@ function last_char()
   echo "${1: -1}"
 }
 
-# Check if a string is a number
+# Check if a string is a number (it ignores spaces after and before the number)
 #
 # @1 Target string for validation
 #
@@ -25,7 +25,10 @@ function last_char()
 # Returns 0 if the string is a number, otherwise, return 1.
 function str_is_a_number()
 {
-  [[ "$1" =~ ^[0-9]+$ ]] && return 0
+  local value="$1"
+
+  value=$(str_strip "$value")
+  [[ "$value" =~ ^[-]?[0-9]+$ ]] && return 0
   return 1
 }
 
@@ -52,7 +55,7 @@ function str_trim()
   local str="$1"
   local size="$2"
 
-  echo ${str:0:size}
+  echo "${str:0:size}"
 }
 
 # Remove extra spaces from the beginning and end of the string

@@ -61,6 +61,15 @@ function str_is_a_number_Test()
   str_is_a_number 'kworkflow'
   output="$?"
   assert_equals_helper 'We did not get the last char' "$LINENO" '1' "$output"
+
+  str_is_a_number '   73   '
+  output="$?"
+  assert_equals_helper 'Number around space, is a number' "$LINENO" '0' "$output"
+
+  str_is_a_number ' -73 '
+  output="$?"
+  assert_equals_helper 'Negative number is a number' "$LINENO" '0' "$output"
+
 }
 
 function str_length_Test
