@@ -216,7 +216,7 @@ Tests are an important part of kw, we only accept new features with tests, and
 we prefer bug fixes that come with tests. For trying to keep the test
 comprehensible, we adopt the following pattern for naming a test::
 
-    test_target_function_name_[an_optional_description]
+    test_target_function_name_[an_optional_description]()
 
 To better illustrate this definition, see the example below::
 
@@ -229,6 +229,31 @@ Another example::
 
 The function `save_config_file` is tested with a focus on description
 validation.
+
+Resources for tests
+-------------------
+
+We encourage the use of the following features offered by shunit2, kworkflow's
+unit test framework.
+
+ - Functions `oneTimeSetUp` and `oneTimeTearDown`: If defined, these functions
+   will be called once before and after any tests are run, respectively. Notice
+   that shunit2 is sourced once for each test file, so the scope of
+   these functions is effectively the test file (e.g. `help_test.sh`) in
+   which they are defined.
+ - Functions `setUp` and `tearDown`: If defined, these functions will be
+   called before and after each test (i.e. a test function) is run, respectively.
+ - Shunit2 offers a temporary directory that will be cleaned upon it's exit. The
+   path to this directory is stored in the variable `SHUNIT_TMPDIR`. Note
+   however that this directory is not cleaned up between tests, so you may
+   need to clear it in the `tearDown` function.
+
+We also encourage each assertion in each test to be identified with the variable
+`LINENO`. This variable expands to the line number currently being executed.
+This way the origin of an error message can quickly be identified by a
+developer. For example::
+
+   assertEquals "($LINENO)" "$output" "$expected_output"
 
 Help functions
 --------------
