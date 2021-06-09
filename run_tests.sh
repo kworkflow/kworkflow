@@ -115,12 +115,14 @@ function report_results()
       complain "$notfound test file(s) NOT FOUND"
     fi
 
-    echo
-    complain "Take a look at:"
-    IF=' ' read -r -a test_failure_array <<< "$test_failure_list"
-    for failed in "${test_failure_array[@]}"; do
-      complain "-> $failed"
-    done
+    if [[ -n "$test_failure_list" ]]; then
+      echo
+      complain 'Take a look at:'
+      IF=' ' read -r -a test_failure_array <<< "$test_failure_list"
+      for failed in "${test_failure_array[@]}"; do
+        complain "-> $failed"
+      done
+    fi
 
     return 1
   fi
@@ -150,7 +152,11 @@ function run_tests()
         test_failure_list="$target $test_failure_list"
       fi
     else
-      complain "Test file $target not found."
+      if [[ -n "$target" ]]; then
+        complain "Test file $target not found."
+      else
+        complain "Test file '$current_test' not found."
+      fi
       notfound+=1
     fi
   done
