@@ -40,9 +40,8 @@ From time to time, when we feel happy with the unstable version, we merge the
 unstable branch into the master branch. The Figure below summarizes the
 development cycle.
 
-.. image:: ../images/dev_cycle.png
-   :alt: Development cycle
-   :align: center
+.. graphviz:: dev_cycle.dot
+    :align: center
 
 .. note::
     One of our main goals is to keep kw stable. In this sense, **if you send a
@@ -85,7 +84,7 @@ Describe your changes in imperative mood, e.g. "make xyzzy do frotz" instead of
 "[This patch] makes xyzzy do frotz" or "[I] changed xyzzy to do frotz", as if
 you are giving orders to the codebase to change its behavior. Try to make sure
 your explanation can be understood without external resources. At the bottom of
-the message body, you might include references to the issues that thecommit
+the message body, you might include references to the issues that the commit
 addresses. This can be something like "Solves #30", "Fixes: #28" or
 "Closes #10".
 
