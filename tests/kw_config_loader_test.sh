@@ -131,4 +131,84 @@ $PWD/$CONFIG_FILENAME"
   assertTrue "Wrong config file reading order.\n$expected_vs_got" $?
 }
 
+function test_show_variables_completeness()
+{
+  local -A shown_options
+  local -A possible_options
+  local output
+
+  # get all assigned options, including commented ones
+  # remove #'s and ='s to get option names
+  output="$(cat 'etc/kworkflow_template.config')"
+  output="$(echo "$output" | grep -oE '^(#?\w+=?)' | sed -E 's/[#=]//g')"
+
+  for option in $output; do
+    possible_options["$option"]='1'
+  done
+
+  output="$(show_variables 'TEST_MODE' | grep -E '^    ')"
+  # shellcheck disable=2001
+  output="$(echo "$output" | sed 's/.*(\(\S*\)).*/\1/')"
+
+  for option in $output; do
+    shown_options["$option"]=1
+  done
+
+  for option in "${!possible_options[@]}"; do
+    if [[ ! -v shown_options["$option"] ]]; then
+      fail "show_variables is missing option $option"
+    fi
+  done
+
+  for option in "${!shown_options[@]}"; do
+    if [[ ! -v possible_options["$option"] ]]; then
+      fail "show_variable is showing $option not present in kworkflow_template.config"
+    fi
+  done
+}
+
+function test_show_variables_correctness()
+{
+  local output
+  local option
+  local value
+  local message
+
+  unset configurations
+  declare -gA configurations=(
+    [ssh_ip]=1
+    [ssh_port]=2
+    [mount_point]=3
+    [arch]=4
+    [kernel_img_name]=5
+    [cross_compile]=6
+    [menu_config]=7
+    [doc_type]=8
+    [virtualizer]=9
+    [qemu_hw_options]=10
+    [qemu_net_options]=11
+    [qemu_path_image]=12
+    [alert]=13
+    [sound_alert_command]=14
+    [visual_alert_command]=15
+    [default_deploy_target]=16
+    [reboot_after_deploy]=17
+    [disable_statistics_data_track]=18
+    [gui_on]=19
+    [gui_off]=20
+  )
+
+  output="$(show_variables | grep -E '^    ')"
+
+  while read -r line; do
+    option="$(echo "$line" | sed -E 's/.*\((\S*)\).*/\1/')"
+    value=$(echo "$line" | sed -E 's/.*: (.*)/\1/')
+    if [[ "${configurations["$option"]}" != "$value" ]]; then
+      message="Value of option $option should be "
+      message+="${configurations["$option"]} but is $value"
+      fail "$message"
+    fi
+  done <<< "$output"
+}
+
 invoke_shunit
