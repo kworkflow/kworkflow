@@ -10,7 +10,7 @@ before_install:
 install:
   - >
     sudo apt-get -y install libguestfs-tools qemu bash git
-    python-docutils dash shunit2 python3-sphinx kcov
+    python-docutils dash shunit2 graphviz python3-sphinx kcov
 
 # Prepare to execute tests
 before_script:
