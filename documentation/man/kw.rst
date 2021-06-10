@@ -284,8 +284,8 @@ the current .config file. The user can suppress this warning by using -f flag.
 warning message because it will remove the config file from kw management. The
 user can suppress this warning by using -f.
 
-v, vars
-~~~~~~~
+vars
+~~~~
 Shows configurations being used by **kw** in the current working directory. To
 do that, it examines both global and local *kworkflow.config* files.
 

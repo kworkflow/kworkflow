@@ -29,7 +29,7 @@ function kworkflow_help()
     "\tstatistics - Provide basic statistics related to daily development\n" \
     "\tumount,um - Umount partition created with qemu-nbd\n" \
     "\tup,u - Wake up vm\n" \
-    "\tvars,v - Show variables\n" \
+    "\tvars - Show variables\n" \
     "\tversion,--version,-v - show kw version\n"
 }
 
