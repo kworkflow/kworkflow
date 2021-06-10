@@ -14,7 +14,7 @@ Overview
 The Linux Kernel and Git community inspired our contribution process. As a
 result, this document is directly based on their contribution documentation.
 In particular, the text under 'Commit Messages' and 'Certify Your Work by Adding
-Your "Signed-off-by: " Line' are directly copied-and-pasted from Git's
+Your "Signed-off-by: " Line' have been directly taken from Git's
 SubmittingPatches doc (with some modifications). For the original document,
 please check https://git-scm.com/docs/SubmittingPatches/
 
@@ -37,7 +37,7 @@ branch.
    pull requests to this branch.
 
 From time to time, when we feel happy with the unstable version, we merge the
-commit from the unstable version to master. The Figure below summarizes the
+unstable branch into the master branch. The Figure below summarizes the
 development cycle.
 
 .. image:: ../images/dev_cycle.png
@@ -48,9 +48,9 @@ development cycle.
     One of our main goals is to keep kw stable. In this sense, **if you send a
     new patch do not forget to add tests**. You might also want to fork `kw at
     github <https://github.com/kworkflow/kworkflow/>`_ and allow
-    `travis-ci <https://travis-ci.org/>`_ builds for it, to automatically run
-    the test in the cloud. If you want to know more about tests, take a look at
-    `About Tests` page.
+    `travis-ci <https://travis-ci.com/>`_ builds for it, to automatically run
+    tests in the cloud. If you want to know more about tests, take a look at
+    the `About Tests <./tests.html>`_ page.
 
 Commit Messages
 ---------------
@@ -64,7 +64,7 @@ modified, e.g.
 * setup: disable unnecessary download of checkpatch script
 * src: mk: remove unnecessary multiplication of PARALLEL_CORES
 
-If in doubt which identifier to use, run `git log --no-merges` on the files you
+If in doubt which identifier to use, run :code:`git log --no-merges` on the files you
 are modifying to see the current conventions.
 
 It's customary to start the remainder of the first line after "area: " with a
@@ -85,8 +85,8 @@ Describe your changes in imperative mood, e.g. "make xyzzy do frotz" instead of
 "[This patch] makes xyzzy do frotz" or "[I] changed xyzzy to do frotz", as if
 you are giving orders to the codebase to change its behavior. Try to make sure
 your explanation can be understood without external resources. At the bottom of
-the message body, you might include references to the issues that the said
-commit solves. This can be something like "Solves #30", "Fixes: #28" or
+the message body, you might include references to the issues that thecommit
+addresses. This can be something like "Solves #30", "Fixes: #28" or
 "Closes #10".
 
 Certify Your Work by Adding Your "Signed-off-by: " Line
@@ -99,7 +99,7 @@ it.
 
 The sign-off is a simple line at the end of the explanation for the patch,
 which certifies that you wrote it or otherwise have the right to pass it on as
-an open-source patch.  The rules are pretty simple: if you can certify the
+an open-source patch. The rules are pretty simple: if you can certify the
 below Developer's Certificate of Origin (D-C-O):
 
 .. important::
@@ -126,20 +126,20 @@ below Developer's Certificate of Origin (D-C-O):
 
 then you just add a line saying::
 
- Signed-off-by: Xpto Lalala Blabla <xpto@developer.example.org>
+  Signed-off-by: Xpto Lalala Blabla <xpto@developer.example.org>
 
 This line can be automatically added by Git if you run the git-commit
-command with the `-s` option.
+command with the :code:`-s` option.
 
 Notice that you can place your own Signed-off-by: line when forwarding somebody
-else's patch with the above rules for D-C-O.  Indeed you are encouraged to do
+else's patch with the above rules for D-C-O. Indeed you are encouraged to do
 so.
 
 .. note::
-  Also notice that a real name is used in the Signed-off-by: line. Please don't
-  hide your real name.
+  Also notice that a real name should be used in the Signed-off-by: line.
+  Please don't hide your real name.
 
-If you like, you can put extra tags at the end:
+If you'd like to, you can put extra tags at the end:
 
     1. Reported-by: is used to credit someone who found the bug that the patch
     attempts to fix.
@@ -147,20 +147,20 @@ If you like, you can put extra tags at the end:
     2. Acked-by: says that the person who is more familiar with the area the
     patch attempts to modify liked the patch.
 
-    3. Reviewed-by:, unlike the other tags, can only be offered by the reviewer
-    and means that she is completely satisfied that the patch is ready for
-    application. It is usually offered only after a detailed review.
-
-    4. Tested-by: is used to indicate that the person applied the patch and
+    3. Tested-by: is used to indicate that the person applied the patch and
     found it to have the desired effect.
+
+    4. Reviewed-by: unlike the other tags, can only be offered by the reviewer
+    and means that they are completely satisfied with the patch and it is ready
+    for application. It is usually only offered after a detailed review.
 
 You can also create your own tag or use one that’s in common usage such as
 `Co-authored-by` or `Helped-by`.
 
 About Issue Labels
 ------------------
-We use GitHub's issue and milestone trackers to help managing the kw project.
-We use issues for keeping track of different things, as a result, we categorize
+We use GitHub's issue and milestone trackers to help manage the kw project.
+We use issues to keep track of different things, as a result, we categorize
 all of them with labels; most of the available labels are self-explanatory.
 However, few of them deserve a brief explanation:
 
@@ -184,11 +184,11 @@ However, few of them deserve a brief explanation:
 
 How we incorporate PRs
 ----------------------
-In kw project, we avoid the addition of extra commits per PRs. For this reason,
-after we accept a contribution, we take it and apply it on top of the unstable
-branch. We only add a merge commit when we merge the unstable branch into the
-master branch, and usually, this commit has a summary of the new features
-brought by the unstable branch.
+In the kw project, we avoid the addition of extra commits per PR. For this
+reason, after we accept a contribution, we take it and apply it on top of the
+unstable branch. We only add a merge commit when we merge the unstable branch
+into the master branch, and usually, this commit has a summary of the new
+features brought from the unstable branch.
 
 Releases
 --------
