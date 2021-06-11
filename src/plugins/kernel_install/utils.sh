@@ -317,7 +317,6 @@ function install_kernel()
   local sudo_cmd=""
   local cmd=""
   local path_prefix=""
-  local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
 
   flag=${flag:-'SILENT'}
   target=${target:-'remote'}

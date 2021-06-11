@@ -48,7 +48,6 @@ function cmd_manager_Test()
 function ask_yN_Test()
 {
   local count=0
-  local current_path="$PWD"
 
   output=$(echo 'y' | ask_yN "Test message")
   assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
@@ -343,7 +342,6 @@ function install_kernel_vm_Test()
   local reboot='1'
   local architecture='x86_64'
   local target='vm'
-  local flag='TEST_MODE'
   local path_prefix="$TMP_TEST_DIR"
 
   # Setup this specific test

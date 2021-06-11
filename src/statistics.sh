@@ -204,7 +204,6 @@ function basic_data_process()
 {
   local all_data="$@"
   # Calculate build value
-  local build_values
   local avg_build
   local total_build
   local max
@@ -262,8 +261,6 @@ function day_statistics()
 function week_statistics()
 {
   local first="$1"
-  local current_week_day_num=$(get_today_info '+%u')
-  local week_begin=$(date -d "$date -$current_week_day_num days" +"%d")
   local all_data=""
 
   first=${first:-$(get_today_info '+%Y/%m/%d')}

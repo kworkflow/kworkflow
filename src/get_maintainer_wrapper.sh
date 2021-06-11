@@ -68,7 +68,6 @@ function execute_get_maintainer()
 
   local -r original_working_dir=$PWD
   local kernel_root=""
-  local path_from_kernel_root=""
 
   if [[ "$1" == -h ]]; then
     maintainers_help
