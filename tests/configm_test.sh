@@ -3,7 +3,6 @@
 include './src/config_manager.sh'
 include './tests/utils'
 
-LS_TITLE="Name\t\tDescription"
 COMMAND_MSG_UNKNOWN="Unknown option"
 COMMAND_MSG_INVALID_ARG="Invalid argument"
 COMMAND_NO_SUCH_FILE="No such file or directory"
@@ -18,8 +17,6 @@ readonly NAME_2="test_save_2"
 
 readonly DESCRIPTION_1="This is the first description"
 readonly DESCRIPTION_2="Hi, I'm the second description"
-
-readonly LS_NO_FILES="There's no tracked .config file"
 
 function suite()
 {
@@ -94,7 +91,6 @@ function execute_config_manager_SAVE_fails_Test()
 function save_config_file_check_save_failures_Test()
 {
   local current_path="$PWD"
-  local force=0
   local ret=0
 
   # Test without config file -> should fail

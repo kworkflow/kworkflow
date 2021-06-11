@@ -231,7 +231,6 @@ function year_statistics_Test()
   local target_year='2019'
   local year_data
   local msg='Currently, kw does not have any data for the requested year.'
-  local line
 
   year_data=$(year_statistics "$target_year")
   assertEquals "($LINENO)" "$msg" "$year_data"

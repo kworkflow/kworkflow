@@ -17,7 +17,6 @@ function suite()
 function setUp()
 {
   # Create a temporary directory for holding different config file
-  local -r current_path="$PWD"
   rm -rf "$TMP_TEST_DIR"
   mkdir -p "$TMP_TEST_DIR"
 

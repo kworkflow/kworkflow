@@ -24,7 +24,6 @@ function config_manager_help()
 # @description Description for a config file, de descrition from '-d' flag.
 function save_config_file()
 {
-  local ret=0
   local -r force="$1"
   local -r name="$2"
   local -r description="$3"

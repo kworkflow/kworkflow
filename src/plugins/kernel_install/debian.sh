@@ -24,10 +24,8 @@ function generate_debian_temporary_root_file_system()
   local name="$1"
   local target="$2"
   local flag="$3"
-  local path_prefix="$4"
   local cmd=""
   local sudo_cmd=""
-  local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
 
   if [[ "$target" == 'local' ]]; then
     sudo_cmd="sudo -E"

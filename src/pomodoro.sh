@@ -119,7 +119,6 @@ function calculate_missing_time()
 # tells the user the current status of his work section.
 function show_active_pomodoro_timebox()
 {
-  local log
   local timestamp
   local timebox
   local diff_time

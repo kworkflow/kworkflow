@@ -93,7 +93,6 @@ function parse_configuration_output_Test()
 # Test if etc/kworkflow_template.config contains all the expected settings
 function parse_configuration_standard_config_Test()
 {
-  local path_repo=$PWD
 
   declare -A expected_configurations=(
     [arch]="x86_64"

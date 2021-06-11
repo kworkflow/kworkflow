@@ -2,7 +2,6 @@
 . "$KW_LIB_DIR/remote.sh" --source-only
 . "$KW_LIB_DIR/kwlib.sh" --source-only
 
-declare -gr LOAD='LOAD'
 declare -gr UNLOAD='UNLOAD'
 declare -gA drm_options_values
 
@@ -281,7 +280,6 @@ function get_available_connectors()
   done <<< "$cards_raw_list"
 
   for card in "${!cards[@]}"; do
-    i=1
     connectors="${cards[$card]}"
 
     echo "[$target_label] ${card^} supports:"

@@ -40,7 +40,6 @@ FAKE_KW="tests/.tmp"
 
 function oneTimeSetUp()
 {
-  local -r modules_name="test"
   local -r kernel_install_path="kernel_install"
 
   export KW_CACHE_DIR="$FAKE_KW"

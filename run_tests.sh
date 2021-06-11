@@ -70,11 +70,7 @@ function check_required_files()
 
   force_update=${force_update:-'false'}
 
-  if [[ "$force_update" == 'false' &&
-    -f "$PATH_TO_TESTS_EXTERNALS/checkpatch.pl" &&
-    -f "$PATH_TO_TESTS_EXTERNALS/const_structs.checkpatch" &&
-    -f "$PATH_TO_TESTS_EXTERNALS/spelling.txt" &&
-    -f "$PATH_TO_TESTS_EXTERNALS/get_maintainer.pl" ]]; then
+  if [[ "$force_update" == 'false' && -f "$PATH_TO_TESTS_EXTERNALS/checkpatch.pl" && -f "$PATH_TO_TESTS_EXTERNALS/const_structs.checkpatch" && -f "$PATH_TO_TESTS_EXTERNALS/spelling.txt" && -f "$PATH_TO_TESTS_EXTERNALS/get_maintainer.pl" ]]; then
     # Errno code for File exist
     return 17
   else
