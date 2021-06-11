@@ -126,9 +126,13 @@ function run_checkpatch_in_a_path_Test()
 {
   local cmd="perl scripts/checkpatch.pl --no-tree --color=always --strict"
   local patch_path="$TMP_TEST_DIR/samples/test.patch"
-  local real_path=$(realpath "$patch_path")
-  local base_msg="Running checkpatch.pl on: $real_path"
   local output
+  local real_path
+  local base_msg
+
+  real_path=$(realpath "$patch_path")
+  base_msg="Running checkpatch.pl on: $real_path"
+
   declare -a expected_cmd=(
     "$base_msg"
     "$SEPARATOR"
@@ -143,9 +147,13 @@ function run_checkpatch_in_a_file_Test()
 {
   local cmd="perl scripts/checkpatch.pl --terse --no-tree --color=always --strict  --file"
   local patch_path="$TMP_TEST_DIR/samples/codestyle_correct.c"
-  local real_path=$(realpath "$patch_path")
-  local base_msg="Running checkpatch.pl on: $real_path"
   local output
+  local real_path
+  local base_msg
+
+  real_path=$(realpath "$patch_path")
+  base_msg="Running checkpatch.pl on: $real_path"
+
   declare -a expected_cmd=(
     "$base_msg"
     "$SEPARATOR"

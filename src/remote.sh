@@ -272,6 +272,7 @@ function kw_ssh()
   local opts="$@"
   local port="${configurations[ssh_port]}"
   local target="${configurations[ssh_ip]}"
+  local script_path
 
   if [[ "$1" == -h ]]; then
     ssh_help
@@ -289,7 +290,7 @@ function kw_ssh()
     if [[ "$opts" =~ ^(--command|-c)= ]]; then
       opts="$(echo $opts | cut -d = -f2)"
     elif [[ "$opts" =~ ^(--script|-s)= ]]; then
-      local script_path=$(echo $opts | cut -d = -f2)
+      script_path=$(echo $opts | cut -d = -f2)
 
       if [[ ! -f $script_path ]]; then
         complain "No such file: \"$script_path\""

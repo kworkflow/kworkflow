@@ -129,6 +129,7 @@ function save_config_file_check_saved_config_Test()
   local current_path="$PWD"
   local ret=0
   local msg
+  local tmp
 
   # There's no configs yet, initialize it
   cd "$TMP_TEST_DIR"
@@ -149,7 +150,7 @@ function save_config_file_check_saved_config_Test()
   msg="Failed the metadata related to $NAME_2"
   assertTrue "$LINENO: $msg" '[[ -f $configs_path/metadata/$NAME_2 ]]'
 
-  local tmp=$(cat $configs_path/configs/$NAME_2)
+  tmp=$(cat $configs_path/configs/$NAME_2)
   msg="Content in the file does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $CONTENT ]]'
 }
@@ -159,13 +160,14 @@ function save_config_file_check_description_Test()
   local current_path="$PWD"
   local ret=0
   local msg
+  local tmp
 
   # There's no configs yet, initialize it
   cd "$TMP_TEST_DIR"
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   cd "$current_path"
 
-  local tmp=$(cat $configs_path/metadata/$NAME_1)
+  tmp=$(cat $configs_path/metadata/$NAME_1)
   msg="The description content for $NAME_1 does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_1 ]]'
 

@@ -32,8 +32,10 @@ function init_kw_Test()
 {
   local ID
   local kworkflow_content
-  local output=$(init_kw)
   local path_config="$FAKE_CONFIG_PATH/$KWORKFLOW/kworkflow.config"
+  local output
+
+  output=$(init_kw)
 
   kworkflow_content=$(cat "$path_config" | grep "$USER" -o | head -n 1)
 

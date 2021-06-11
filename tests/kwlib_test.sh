@@ -155,8 +155,9 @@ function detect_distro_Test()
 {
   setupFakeOSInfo
   local root_path="tests/.tmp/detect_distro/arch"
-  local ret=$(detect_distro $root_path)
+  local ret
 
+  ret=$(detect_distro $root_path)
   assertEquals "We got $ret." "$ret" "arch"
 
   root_path="tests/.tmp/detect_distro/debian"
@@ -179,8 +180,9 @@ function detect_distro_Test()
 function join_path_Test()
 {
   local base="/lala/xpto"
-  local ret=$(join_path "/lala" "///xpto")
+  local ret
 
+  ret=$(join_path "/lala" "///xpto")
   assertEquals "Expect /lala/xpto" "$ret" "$base"
 
   ret=$(join_path "/lala" "/xpto////")
@@ -202,8 +204,9 @@ function find_kernel_root_Test()
 
   local fake_path="tests/.tmp/lala/xpto"
   mkdir -p $fake_path
-  local kernel_path=$(find_kernel_root $fake_path)
+  local kernel_path
 
+  kernel_path=$(find_kernel_root $fake_path)
   assertEquals "We expected to find a kernel path" "$kernel_path" "tests/.tmp"
 
   kernel_path=$(find_kernel_root "/tmp")
@@ -334,8 +337,11 @@ function update_statistics_database_Test()
 function statistics_manager_Test()
 {
   local ID
-  local this_year_and_month=$(date +%Y/%m)
-  local today=$(date +%d)
+  local this_year_and_month
+  local today
+
+  this_year_and_month=$(date +%Y/%m)
+  today=$(date +%d)
 
   setupPatch
 

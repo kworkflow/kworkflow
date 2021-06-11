@@ -44,7 +44,9 @@ function show_variables()
 function parse_configuration()
 {
   local config_path="$1"
-  local filename="$(basename "$config_path")"
+  local filename
+
+  filename="$(basename "$config_path")"
 
   if [ ! -f "$config_path" ] || [ "$filename" != kworkflow.config ]; then
     return 22 # 22 means Invalid argument - EINVAL

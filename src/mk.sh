@@ -119,6 +119,9 @@ function modules_install()
   local flag="$1"
   local target="$2"
   local formatted_remote="$3"
+  local remote
+  local port
+  local distro
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -129,7 +132,7 @@ function modules_install()
 
   case "$target" in
     1) # VM_TARGET
-      local distro=$(detect_distro "${configurations[mount_point]}/")
+      distro=$(detect_distro "${configurations[mount_point]}/")
 
       if [[ "$distro" =~ "none" ]]; then
         complain "Unfortunately, there's no support for the target distro"
@@ -147,8 +150,8 @@ function modules_install()
       # 1. Preparation steps
       prepare_host_deploy_dir
 
-      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       # User may specify a hostname instead of bare IP
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
@@ -190,6 +193,8 @@ function mk_list_installed_kernels()
   local single_line="$2"
   local target="$3"
   local unformatted_remote="$4"
+  local remote
+  local port
 
   flag=${flag:-"SILENT"}
 
@@ -213,8 +218,8 @@ function mk_list_installed_kernels()
       ;;
     3) # REMOTE_TARGET
       local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels $single_line"
-      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
+      port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
@@ -249,6 +254,9 @@ function kernel_install()
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
   local arch_target="${configurations[arch]}"
   local kernel_img_name="${configurations[kernel_img_name]}"
+  local remote
+  local port
+  local distro
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
@@ -281,7 +289,7 @@ function kernel_install()
 
   case "$target" in
     1) # VM_TARGET
-      local distro=$(detect_distro "${configurations[mount_point]}/")
+      distro=$(detect_distro "${configurations[mount_point]}/")
 
       if [[ "$distro" =~ "none" ]]; then
         complain "Unfortunately, there's no support for the target distro"
@@ -295,7 +303,7 @@ function kernel_install()
       return "$?"
       ;;
     2) # LOCAL_TARGET
-      local distro=$(detect_distro "/")
+      distro=$(detect_distro "/")
 
       if [[ "$distro" =~ "none" ]]; then
         complain "Unfortunately, there's no support for the target distro"
@@ -321,8 +329,8 @@ function kernel_install()
         sed -i "s/NAME/$name/g" "$preset_file"
       fi
 
-      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       distro_info=$(which_distro "$remote" "$port" "$user")
@@ -362,6 +370,8 @@ function mk_kernel_uninstall()
   local kernels_target="$4"
   local flag="$5"
   local distro
+  local remote
+  local port
 
   flag=${flag:-""}
 
@@ -384,8 +394,8 @@ function mk_kernel_uninstall()
       kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
       ;;
     3) # REMOTE_TARGET
-      local remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
+      port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
@@ -532,16 +542,21 @@ function deploy_help()
 # will be compiled.
 function build_info()
 {
-  local flag="$1"
-  local kernel_name=$(get_kernel_release "$flag")
-  local kernel_version=$(get_kernel_version "$flag")
+  local flag
+  local kernel_name
+  local kernel_version
+  local compiled_modules
+
+  flag="$1"
+  kernel_name=$(get_kernel_release "$flag")
+  kernel_version=$(get_kernel_version "$flag")
 
   say "Kernel source information"
   echo -e "\tName: $kernel_name"
   echo -e "\tVersion: $kernel_version"
 
   if [[ -f '.config' ]]; then
-    local compiled_modules=$(grep -c '=m' .config)
+    compiled_modules=$(grep -c '=m' .config)
     echo -e "\tTotal modules to be compiled: $compiled_modules"
   fi
 }

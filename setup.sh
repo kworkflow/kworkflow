@@ -47,9 +47,11 @@ declare -r CONFIGS_PATH="configs"
 
 function check_dependencies()
 {
-  local distro=$(detect_distro "/")
   local package_list=""
   local cmd=""
+  local distro
+
+  distro=$(detect_distro "/")
 
   if [[ "$distro" =~ "arch" ]]; then
     for package in "${arch_packages[@]}"; do
@@ -162,10 +164,12 @@ function confirm_complete_removal()
 
 function clean_legacy()
 {
-  local trash=$(mktemp -d)
   local completely_remove="$1"
-
   local toDelete="$app_name"
+  local trash
+
+  trash=$(mktemp -d)
+
   eval "sed -i '/\<$toDelete\>/d' $HOME/.bashrc"
 
   # Remove kw binary
@@ -321,9 +325,13 @@ function append_bashcompletion()
 
 function update_version()
 {
-  local head_hash=$(git rev-parse --short HEAD)
-  local branch_name=$(git rev-parse --short --abbrev-ref HEAD)
-  local base_version=$(cat "$libdir/VERSION" | head -n 1)
+  local head_hash
+  local branch_name
+  local base_version
+
+  head_hash=$(git rev-parse --short HEAD)
+  branch_name=$(git rev-parse --short --abbrev-ref HEAD)
+  base_version=$(cat "$libdir/VERSION" | head -n 1)
 
   cat > "$libdir/VERSION" << EOF
 $base_version

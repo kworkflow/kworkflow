@@ -75,6 +75,8 @@ function save_config_file()
 function list_configs()
 {
   local -r dot_configs_dir="$KW_DATA_DIR/configs"
+  local name
+  local content
 
   if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
     say "There's no tracked .config file"
@@ -85,8 +87,8 @@ function list_configs()
   echo
   for filename in $dot_configs_dir/$metadata_dir/*; do
     [[ ! -f "$filename" ]] && continue
-    local name=$(basename "$filename")
-    local content=$(cat "$filename")
+    name=$(basename "$filename")
+    content=$(cat "$filename")
     printf "%-30s | %-30s\n" "$name" "$content"
   done
 }

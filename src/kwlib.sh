@@ -156,12 +156,13 @@ function find_kernel_root()
 function is_a_patch()
 {
   local -r FILE_PATH="$@"
+  local file_content
 
   if [[ ! -f "$FILE_PATH" ]]; then
     return 1
   fi
 
-  local file_content=$(cat "$FILE_PATH")
+  file_content=$(cat "$FILE_PATH")
 
   # The following array stores strings that are expected to be present
   # in a patch file. The absence of any of these strings makes the
@@ -224,8 +225,10 @@ function detect_distro()
 {
   local root_path="$1"
   local str_check="$2"
-  local etc_path=$(join_path $root_path /etc)
   local distro="none"
+  local etc_path
+
+  etc_path=$(join_path $root_path /etc)
 
   if [[ ! -z "$str_check" ]]; then
     distro="$str_check"
@@ -257,9 +260,13 @@ function statistics_manager()
 {
   local label="$1"
   local value="$2"
-  local day=$(date +%d)
-  local year_month_dir=$(date +%Y/%m)
-  local day_path="$KW_DATA_DIR/statistics/$year_month_dir/$day"
+  local day
+  local year_month_dir
+  local day_path
+
+  day=$(date +%d)
+  year_month_dir=$(date +%Y/%m)
+  day_path="$KW_DATA_DIR/statistics/$year_month_dir/$day"
 
   elapsed_time=$(date -d@$value -u +%H:%M:%S)
   say "-> Execution time: $elapsed_time"
