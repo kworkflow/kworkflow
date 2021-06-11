@@ -15,6 +15,17 @@ available in the command line interface.
    content/tests
    content/codingstyle
 
+kw Tutorials
+============
+
+Check out our tutorials to see how you can use kw.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Tutorials:
+
+   tutorials/buildlinux
+
 kw Man
 ======
 
@@ -24,6 +35,7 @@ renderings of the man pages), or you can install kw and run the command
 
 .. toctree::
    :maxdepth: 1
+   :caption: Manual:
 
    man/kw
 

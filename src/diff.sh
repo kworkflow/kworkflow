@@ -1,8 +1,8 @@
-. "$KW_LIB_DIR/kwio.sh" --source-only
-. "$KW_LIB_DIR/kwlib.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 # Hash containing user options
-declare -A diff_options
+declare -gA diff_options
 
 function diff_manager()
 {
@@ -69,23 +69,23 @@ function diff_parser_options()
 
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
-      case "$option" in
-        --no-interactive)
-          diff_options['INTERACTIVE']=0
-          continue
+    case "$option" in
+      --no-interactive)
+        diff_options['INTERACTIVE']=0
+        continue
         ;;
-        --help|-h|help)
-          diff_options['HELP']=1
-          continue
+      --help | -h | help)
+        diff_options['HELP']=1
+        continue
         ;;
-        test_mode)
-          diff_options['TEST_MODE']='TEST_MODE'
+      test_mode)
+        diff_options['TEST_MODE']='TEST_MODE'
         ;;
-        *)
-          diff_options['ERROR']="$option"
-          return 22
-          ;;
-      esac
+      *)
+        diff_options['ERROR']="$option"
+        return 22
+        ;;
+    esac
   done
 
 }

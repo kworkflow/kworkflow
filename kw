@@ -7,6 +7,16 @@ KW_INSTALL_PREFIX=${KW_INSTALL_PREFIX:-"##KW_INSTALL_PREFIX_TOKEN##"}
 
 KWORKFLOW=${KWORKFLOW:-"kw"}
 
+##BEGIN-DEV-MODE##
+KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
+KW_BASE_DIR="$(dirname "${KW_BIN}")"
+if [ -f "${KW_BASE_DIR}/src/kwlib.sh" ]; then
+  # running from source directory
+  KW_LIB_DIR="${KW_BASE_DIR}/src"
+  KW_INSTALL_PREFIX="${KW_BASE_DIR}"
+fi
+##END-DEV-MODE##
+
 # Global paths
 KW_LIB_DIR=${KW_LIB_DIR:-"$KW_INSTALL_PREFIX/lib/kw"}
 KW_SHARE_DOC_DIR=${KW_SHARE_DIR:-"$KW_INSTALL_PREFIX/share/doc/kw/"}
@@ -17,14 +27,11 @@ KW_DATA_DIR=${KW_DATA_DIR:-"$HOME/.kw"}
 KW_PLUGINS_DIR=${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}
 KW_CACHE_DIR="$HOME/.cache/kw"
 
-# User data
-# TODO: These two variables just introduce more complexity, try to get rid of
-# them.
-config_files_path=${config_files_path:-"$KW_DATA_DIR"}
-statistics_path=${statistics_path:-"$KW_DATA_DIR/statistics"}
-
 # Export external variables required by kworkflow
 export KWORKFLOW
+# This is the one and only time a file will be sourced this way.
+# The include function (sourced from this file) should always be used for file sourcing.
+. "$KW_LIB_DIR/kw_include.sh" --source-only
 
 function kw()
 {
@@ -36,15 +43,15 @@ function kw()
   case "$action" in
     init)
       (
-        . "$KW_LIB_DIR/init.sh" --source-only
+        include "$KW_LIB_DIR/init.sh"
 
         init_kw
         return "$?"
       )
       ;;
-    mount|mo)
+    mount | mo)
       (
-        . "$KW_LIB_DIR/vm.sh" --source-only
+        include "$KW_LIB_DIR/vm.sh"
 
         vm_mount
         local ret="$?"
@@ -52,9 +59,9 @@ function kw()
         return "$ret"
       )
       ;;
-    umount|um)
+    umount | um)
       (
-        . "$KW_LIB_DIR/vm.sh" --source-only
+        include "$KW_LIB_DIR/vm.sh"
 
         vm_umount
         local ret="$?"
@@ -62,16 +69,16 @@ function kw()
         return "$ret"
       )
       ;;
-    up|u)
+    up | u)
       (
-        . "$KW_LIB_DIR/vm.sh" --source-only
+        include "$KW_LIB_DIR/vm.sh"
 
         vm_up
       )
       ;;
-    build|b)
+    build | b)
       (
-        . "$KW_LIB_DIR/mk.sh" --source-only
+        include "$KW_LIB_DIR/mk.sh"
 
         mk_build '' "$@"
         local ret="$?"
@@ -79,9 +86,9 @@ function kw()
         return "$ret"
       )
       ;;
-    deploy|d)
+    deploy | d)
       (
-        . "$KW_LIB_DIR/mk.sh" --source-only
+        include "$KW_LIB_DIR/mk.sh"
 
         kernel_deploy "$@"
         local ret="$?"
@@ -91,7 +98,7 @@ function kw()
       ;;
     bd)
       (
-        . "$KW_LIB_DIR/mk.sh" --source-only
+        include "$KW_LIB_DIR/mk.sh"
 
         mk_build && kernel_deploy "$@"
         local ret="$?"
@@ -99,97 +106,106 @@ function kw()
         return "$ret"
       )
       ;;
-    diff|df)
-        . "$KW_LIB_DIR/diff.sh" --source-only
+    diff | df)
+      include "$KW_LIB_DIR/diff.sh"
 
-        diff_manager "$@"
+      diff_manager "$@"
       ;;
-    ssh|s)
+    ssh | s)
       (
-        . "$KW_LIB_DIR/vm.sh" --source-only
+        include "$KW_LIB_DIR/kw_config_loader.sh"
+        include "$KW_LIB_DIR/remote.sh"
 
-        vm_ssh $@
+        kw_ssh $@
       )
       ;;
     vars)
       (
-        . "$KW_LIB_DIR/kw_config_loader.sh" --source-only
+        include "$KW_LIB_DIR/kw_config_loader.sh"
 
         show_variables
       )
       ;;
-    codestyle|c)
+    codestyle | c)
       (
-      . "$KW_LIB_DIR/checkpatch_wrapper.sh" --source-only
+        include "$KW_LIB_DIR/checkpatch_wrapper.sh"
 
         execute_checkpatch "$@"
       )
       ;;
-    maintainers|m)
+    maintainers | m)
       (
-        . "$KW_LIB_DIR/get_maintainer_wrapper.sh" --source-only
+        include "$KW_LIB_DIR/get_maintainer_wrapper.sh"
 
         execute_get_maintainer $@
       )
       ;;
-    configm|g)
+    configm | g)
       (
-        . "$KW_LIB_DIR/config_manager.sh" --source-only
+        include "$KW_LIB_DIR/config_manager.sh"
 
         execute_config_manager "$@"
       )
       ;;
-    help|h)
+    help | h)
       (
-        . "$KW_LIB_DIR/help.sh" --source-only
+        include "$KW_LIB_DIR/help.sh"
 
         kworkflow_help
       )
       ;;
-    explore|e)
+    explore | e)
       (
-        . "$KW_LIB_DIR/explore.sh" --source-only
+        include "$KW_LIB_DIR/explore.sh"
 
         explore "$@"
       )
       ;;
     man)
       (
-        . "$KW_LIB_DIR/help.sh" --source-only
+        include "$KW_LIB_DIR/help.sh"
 
         kworkflow_man
       )
       ;;
-    version|--version|-v)
+    version | --version | -v)
       (
-        . "$KW_LIB_DIR/help.sh" --source-only
+        include "$KW_LIB_DIR/help.sh"
 
         kworkflow_version
       )
       ;;
     statistics)
       (
-        . "$KW_LIB_DIR/statistics.sh" --source-only
+        include "$KW_LIB_DIR/statistics.sh"
 
         statistics "$@"
       )
       ;;
-    clear-cache)
-        . "$KW_LIB_DIR/mk.sh" --source-only
+    pomodoro | p)
+      (
+        . "$KW_LIB_DIR/pomodoro.sh" --source-only
 
-        cleanup
+        pomodoro "$@"
+      )
+      ;;
+
+    clear-cache)
+      include "$KW_LIB_DIR/mk.sh"
+
+      cleanup
       ;;
     # Subsystems support
     drm)
       (
-        . "$KW_PLUGINS_DIR/subsystems/drm/drm.sh" --source-only
+        include "$KW_PLUGINS_DIR/subsystems/drm/drm.sh"
 
         drm_manager "$@"
       )
       ;;
     *)
       (
-        . "$KW_LIB_DIR/help.sh" --source-only
+        include "$KW_LIB_DIR/help.sh"
 
         complain "Invalid option"
         kworkflow_help

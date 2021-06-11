@@ -1,11 +1,11 @@
 #!/bin/bash
 
-. ./src/get_maintainer_wrapper.sh --source-only
-. ./tests/utils --source-only
+include './src/get_maintainer_wrapper.sh'
+include './tests/utils'
 
 # TODO: make execute_get_maintainer's tests cover more corner cases?
 
-function suite
+function suite()
 {
   suite_addTest "print_files_authors_Test"
   suite_addTest "print_files_authors_from_dir_Test"
@@ -51,7 +51,7 @@ Maintainers already in \"To:\" field of update_patch_test.patch"
 
 FAKE_KERNEL="tests/.tmp"
 
-function oneTimeSetUp
+function oneTimeSetUp()
 {
   # This creates tests/.tmp which should mock a kernel tree root. A .git
   # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
@@ -70,8 +70,7 @@ function oneTimeSetUp
   cd "$original_dir"
 }
 
-
-function oneTimeTearDown
+function oneTimeTearDown()
 {
   rm -rf "$FAKE_KERNEL"
 }
@@ -88,7 +87,7 @@ function print_files_authors_from_dir_Test()
   multilineAssertEquals "$ret" "$CORRECT_DIR_MSG"
 }
 
-function execute_get_maintainer_Test
+function execute_get_maintainer_Test()
 {
   local ret
   local -r original_dir="$PWD"
@@ -112,7 +111,8 @@ function execute_get_maintainer_Test
   cd "$original_dir"
 }
 
-function execute_get_maintainer_patch_Test() {
+function execute_get_maintainer_patch_Test()
+{
 
   local original_dir="$PWD"
   cd "$FAKE_KERNEL"

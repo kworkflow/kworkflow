@@ -1,9 +1,9 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
-. ./src/explore.sh --source-only
+include './tests/utils'
+include './src/explore.sh'
 
-function suite
+function suite()
 {
   suite_addTest "explore_files_under_git_repo_Test"
   suite_addTest "explore_git_log_Test"
@@ -50,7 +50,7 @@ function tearDown()
   rm -rf "$test_path"
 }
 
-function explore_files_under_git_repo_Test
+function explore_files_under_git_repo_Test()
 {
   local ID
   local MSG_OUT
@@ -82,17 +82,17 @@ function explore_files_under_git_repo_Test
   ID=5
   cp "$current_path/tests/samples/grep_check.c" ./
   MSG_OUT="GNU grep"
-  output=$(explore "GNU grep" | cut -d: -f1 )
+  output=$(explore "GNU grep" | cut -d: -f1)
   assertEquals "($ID)" "" "$output"
   git add "grep_check.c" &> /dev/null
   MSG_OUT="GNU grep"
-  output=$(explore "GNU grep" | cut -d: -f1 )
+  output=$(explore "GNU grep" | cut -d: -f1)
   assertEquals "($ID)" "grep_check.c" "$output"
 
   cd "$current_path"
 }
 
-function explore_git_log_Test
+function explore_git_log_Test()
 {
   local ID
   local file_name
@@ -110,7 +110,7 @@ function explore_git_log_Test
   cd "$current_path"
 }
 
-function explore_grep_Test
+function explore_grep_Test()
 {
   local ID
   local expected_result
@@ -119,7 +119,7 @@ function explore_grep_Test
   cd "$test_path"
 
   ID=1
-  output=$(explore --grep "GNU grep" | cut -d/ -f2 )
+  output=$(explore --grep "GNU grep" | cut -d/ -f2)
   assertEquals "($ID)" ".git" "$output"
 
   ID=2
@@ -130,7 +130,7 @@ function explore_grep_Test
   cd "$current_path"
 }
 
-function explore_git_Test
+function explore_git_Test()
 {
   local ID
   local expected_result
@@ -145,20 +145,20 @@ function explore_git_Test
 
   # Test if the search ignores files in .git
   ID=2
-  output=$(explore --all "GNU grep" | cut -d/ -f2 )
+  output=$(explore --all "GNU grep" | cut -d/ -f2)
   assertEquals "($ID)" "" "$output"
 
   # Test if search files not under git control
   ID=3
   cp "$current_path/tests/samples/grep_check.c" ./
   MSG_OUT="GNU grep"
-  output=$(explore --all "GNU grep" | cut -d: -f1 )
+  output=$(explore --all "GNU grep" | cut -d: -f1)
   assertEquals "($ID)" "grep_check.c" "$output"
 
   cd "$current_path"
 }
 
-function explore_parser_Test
+function explore_parser_Test()
 {
   local ID
 

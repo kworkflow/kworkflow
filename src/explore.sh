@@ -2,8 +2,8 @@
 # command it unifies the way that we search for things in the project, by
 # things, you can understand from files to messages in git log.
 
-. "$KW_LIB_DIR/kwio.sh" --source-only
-. "$KW_LIB_DIR/kwlib.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 # The main entry point for the explore feature, if you want to add another
 # search mechanism, you probably wish to start by this function
@@ -15,25 +15,25 @@ function explore()
   ret="$?"
 
   case "$ret" in
-    1) # LOG
+    1)        # LOG
       shift 1 # Remove 'log' string
       explore_git_log "$@"
-    ;;
-    2) # Use GNU GREP
+      ;;
+    2)        # Use GNU GREP
       shift 1 # Remove 'grep' string
       explore_files_gnu_grep "$@"
-    ;;
+      ;;
     3) # Search in directories controlled or not by git
       shift 1
       explore_all_files_git "$@"
-    ;;
+      ;;
     4) # Search in files under git control
       explore_files_under_git "$@"
-    ;;
+      ;;
     *)
       complain "Invalid parameter"
       exit 22 # EINVAL
-    ;;
+      ;;
   esac
 }
 
@@ -66,18 +66,18 @@ function explore_parser()
   fi
 
   case "$option" in
-    --log|-l)
+    --log | -l)
       return 1
-    ;;
-    --grep|-g)
+      ;;
+    --grep | -g)
       return 2
-    ;;
-    --all|-a)
+      ;;
+    --all | -a)
       return 3
-    ;;
+      ;;
     *)
       return 4
-    ;;
+      ;;
   esac
 }
 

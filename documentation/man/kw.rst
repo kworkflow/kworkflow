@@ -2,6 +2,8 @@
  kw
 =====
 
+.. _manual:
+
 --------------------------------------------
 Inglorious kernel developer workflow scripts
 --------------------------------------------
@@ -109,7 +111,7 @@ Follows the summary of the options:
 the network.
 
 2. --local: Deploy the Kernel image and modules in the host machine, you will
-need root access.
+need root access. 'kw deploy –local' should not be executed with sudo or root.
 
 3. --vm: Deploy the Kernel image and modules to QEMU vm.
 
@@ -135,8 +137,8 @@ Projects that have a similar workflow to the Linux Kernel usually have a set of
 tools that simplify part of the tasks related with the code. This section
 describes some of the key features supported by **kw** to help with code.
 
-b, build [--info|-i] [--menu|-n]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+b, build [--info|-i] [--menu|-n] [--doc|-d]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 If users invoke this option without parameters, kw will look at the local
 Makefile and, based on that, start to build the project. This option tries to
 take advantage of your hardware by using the *-j* option with the appropriate
@@ -150,6 +152,10 @@ default menu config can be changed in the kworkflow.config file by setting a
 different option in the menu_config. If the user is working in a
 *cross-compile* environment, it is recommended to use this option to avoid
 messing with the config file.
+
+The option *--doc|-d* provides a mechanism for build kernel-doc; by default, it
+will build htmldocs. Users can change the default documentation output by
+changing the parameter doc_type in the kworkflow.config file.
 
 c, codestyle [*DIRECTORY|FILE|PATCH*]
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -345,6 +351,22 @@ displays the current month data.
 4. *--year [YEAR]*: exhibits the current year summary if the user does not
 specify a year.
 
+p, pomodoro --set-timer|-t INTEGER[h|m|s] | --current
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This feature provides a way for kernel developers to manage their time through
+the Pomodoro technique. To use a timer with visual and sonorous feedback:
+
+*--set-timer,-t INTEGER{h|m|s}*: This option expects an **integer** that
+indicates the timer for the Pomodoro timebox. It is **mandatory** to add a
+suffix that indicates the time unit, which can be h (hour), m (minutes), or s
+(seconds).
+
+Users can follow the timebox section status by using:
+
+*--current,-c*: This command shows information associated with each Pomodoro
+timebox created by the user.
+
 df, diff [OPTIONS] FILE1 FILE2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This is a wrapper to some useful usage of diff command. By default, it shows
@@ -420,7 +442,7 @@ Sets QEMU options. By default, **kw** uses
 qemu_net_options=OPTIONS
 ------------------------
 Defines the network configuration. By default, **kw** uses
-**-net nic -net user,hostfwd=tcp::2222-:22,smb=/home/USER**
+**-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW**
 
 qemu_path_image=PATH
 --------------------

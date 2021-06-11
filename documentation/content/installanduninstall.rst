@@ -2,6 +2,8 @@
   Install and Remove `kw`
 ===========================
 
+.. _install-and-remove-kw:
+
 .. contents::
    :depth: 1
    :local:
@@ -16,7 +18,7 @@ following dependencies:
 
 * libguestfs
 * Qemu
-* Bash
+* Bash >= 4.4
 * git
 * tar
 * python-docutils
@@ -32,7 +34,6 @@ For development, you will need:
 
 * dash
 * shunit2
-* fish
 
 For getting the Sphinx Documentation:
 

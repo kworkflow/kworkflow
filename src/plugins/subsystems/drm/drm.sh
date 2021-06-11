@@ -2,9 +2,9 @@
 . "$KW_LIB_DIR/remote.sh" --source-only
 . "$KW_LIB_DIR/kwlib.sh" --source-only
 
-declare -r LOAD="LOAD"
-declare -r UNLOAD="UNLOAD"
-declare -A drm_options_values
+declare -gr LOAD='LOAD'
+declare -gr UNLOAD='UNLOAD'
+declare -gA drm_options_values
 
 SYSFS_CLASS_DRM="/sys/class/drm"
 
@@ -102,13 +102,13 @@ function module_control()
   case "$target" in
     2) # LOCAL
       cmd_manager "$flag" "sudo bash -c \"$module_cmd\""
-    ;;
+      ;;
     3) # REMOTE
       local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
       local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
 
       cmd_remotely "$module_cmd" "$flag" "$remote" "$port"
-    ;;
+      ;;
   esac
 }
 
@@ -167,7 +167,7 @@ function convert_module_info()
     final_command+=" && $module_str"
   done
 
-  if [[ -z "$final_command"  ]]; then
+  if [[ -z "$final_command" ]]; then
     return 22 # EINVAL
   fi
 
@@ -215,7 +215,7 @@ function gui_control()
       bind_control_cmd="sudo $bind_control_cmd"
       cmd_manager "$flag" "$gui_control_cmd"
       cmd_manager "$flag" "$bind_control_cmd"
-    ;;
+      ;;
     3) # REMOTE TARGET
       local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
       local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
@@ -223,7 +223,7 @@ function gui_control()
 
       cmd_remotely "$gui_control_cmd" "$flag" "$remote" "$port"
       cmd_remotely "$bind_control_cmd" "$flag" "$remote" "$port" "root" "1"
-    ;;
+      ;;
   esac
 }
 
@@ -231,7 +231,7 @@ function gui_control()
 #
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
-function get_available_connectors
+function get_available_connectors()
 {
   local target="$1"
   local unformatted_remote="$2"
@@ -252,7 +252,7 @@ function get_available_connectors
         return "$ret" # ENOENT
       fi
       target_label="local"
-    ;;
+      ;;
     3) # REMOTE TARGET
       local find_conn_cmd="find $SYSFS_CLASS_DRM -name 'card*'"
       local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
@@ -261,11 +261,10 @@ function get_available_connectors
 
       cards_raw_list=$(cmd_remotely "$find_conn_cmd" "SILENT" "$remote" "$port")
       target_label="remote"
-    ;;
+      ;;
   esac
 
-  while read card
-  do
+  while read card; do
     card=$(basename "$card")
     key=$(echo "$card" | grep card | cut -d- -f1)
     value=$(echo "$card" | grep card | cut -d- -f2)
@@ -281,8 +280,7 @@ function get_available_connectors
     fi
   done <<< "$cards_raw_list"
 
-  for card in "${!cards[@]}"
-  do
+  for card in "${!cards[@]}"; do
     i=1
     connectors="${cards[$card]}"
 
@@ -300,7 +298,7 @@ function get_available_connectors
 #
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
-function get_supported_mode_per_connector
+function get_supported_mode_per_connector()
 {
   local target="$1"
   local unformatted_remote="$2"
@@ -319,7 +317,7 @@ function get_supported_mode_per_connector
       fi
       modes=$(eval $cmd)
       target_label="local"
-    ;;
+      ;;
     3) # REMOTE TARGET
       remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
       port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
@@ -327,7 +325,7 @@ function get_supported_mode_per_connector
 
       modes=$(cmd_remotely "$cmd" "SILENT" "$remote" "$port" "root" "1")
       target_label="remote"
-    ;;
+      ;;
   esac
 
   modes=${modes//\/modes/}
@@ -391,7 +389,7 @@ function drm_parser_options()
           drm_options_values["GUI_OFF"]=1
           continue
           ;;
-        --load-module=*|-lm=*)
+        --load-module=* | -lm=*)
           drm_options_values["LOAD_MODULE"]=$(cut -d "=" -f2- <<< "$option")
           module_parameter=1
           if [[ -z "${drm_options_values['LOAD_MODULE']}" ]]; then
@@ -400,7 +398,7 @@ function drm_parser_options()
           fi
           continue
           ;;
-        --unload-module=*|-um=*)
+        --unload-module=* | -um=*)
           drm_options_values["UNLOAD_MODULE"]=$(cut -d "=" -f2- <<< "$option")
           unmodule_parameter=1
           if [[ -z "${drm_options_values['UNLOAD_MODULE']}" ]]; then
@@ -417,7 +415,7 @@ function drm_parser_options()
           drm_options_values["MODES_AVAILABLE"]=1
           break
           ;;
-        --help|-h|help)
+        --help | -h | help)
           drm_options_values["HELP"]=1
           break
           ;;
@@ -432,7 +430,7 @@ function drm_parser_options()
     else
       # Handle other sub-parameters
       if [[ "${drm_options_values['TARGET']}" == "$REMOTE_TARGET" &&
-            "$module_parameter" != 1 && "$unload_module" != 1 ]]; then
+        "$module_parameter" != 1 && "$unload_module" != 1 ]]; then
         drm_options_values["REMOTE"]=$(get_remote_info "$option")
       fi
 
@@ -447,8 +445,8 @@ function drm_parser_options()
   done
 
   case "${drm_options_values["TARGET"]}" in
-    2|3)
-      ;;
+    2 | 3) ;;
+
     *)
       if [[ "${drm_options_values["TARGET"]}" == 1 ]]; then
         msg=" The option --vm is not valid for drm plugin, use --remote or --local"
@@ -459,7 +457,7 @@ function drm_parser_options()
   esac
 }
 
-function drm_help
+function drm_help()
 {
   echo -e "Usage: kw drm [options]:\n" \
     "\tdrm [--remote [REMOTE:PORT]] --load-module=|-lm='MODULE[:PARAM1,PARAM2][;MODULE:...][;...]\n" \

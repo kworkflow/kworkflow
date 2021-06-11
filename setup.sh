@@ -4,13 +4,13 @@
 . src/kwlib.sh --source-only
 
 # List of dependences per distro
-arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx)
-debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc)
+arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx imagemagick graphviz python-virtualenv texlive-bin librsvg)
+debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc imagemagick graphviz dvipng python3-venv latexmk librsvg2-bin texlive-xetex python3-sphinx python3-dask-sphinx-theme)
 
 SILENT=1
 VERBOSE=0
 FORCE=0
-PREFIX="$HOME/.local"
+PREFIX="${PREFIX:-$HOME/.local}"
 
 declare -r app_name="kw"
 
@@ -43,9 +43,6 @@ declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
 declare -r DOCUMENTATION="documentation"
 
-declare -r FISH_CONFIG_PATH="$HOME/.config/fish"
-declare -r FISH_COMPLETION_PATH="$FISH_CONFIG_PATH/completions"
-
 declare -r CONFIGS_PATH="configs"
 
 function check_dependencies()
@@ -62,7 +59,7 @@ function check_dependencies()
     cmd="pacman -S $package_list"
   elif [[ "$distro" =~ "debian" ]]; then
     for package in "${debian_packages[@]}"; do
-      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2>/dev/null | grep -c "ok installed")
+      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c "ok installed")
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
     done
     cmd="apt install $package_list"
@@ -72,7 +69,7 @@ function check_dependencies()
     return 0
   fi
 
-  if [[ ! -z "$package_list"  ]]; then
+  if [[ ! -z "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
       if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ "0" ]]; then
         return 0
@@ -216,7 +213,7 @@ function setup_config_file()
   if [[ -f "$config_file_template" ]]; then
     cp "$config_file_template" "$config_files_path/$global_config_name"
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sharesounddir,g" \
-           -e "/^#?.*/d" "$config_files_path/$global_config_name"
+      -e "/^#?.*/d" "$config_files_path/$global_config_name"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
       return "$ret"
@@ -225,19 +222,6 @@ function setup_config_file()
     warning "setup could not find $config_file_template"
     return 2
   fi
-}
-
-function synchronize_fish()
-{
-    local kw_fish_path="set -gx PATH $PATH:$kwbinpath"
-
-    say "Fish detected. Setting up fish support."
-    mkdir -p "$FISH_COMPLETION_PATH"
-    cmd_output_manager "rsync -vr $SRCDIR/kw.fish $FISH_COMPLETION_PATH/kw.fish"
-
-    if ! grep -F "$kw_fish_path" "$FISH_CONFIG_PATH"/config.fish > /dev/null ; then
-       echo "$kw_fish_path" >> "$FISH_CONFIG_PATH"/config.fish
-    fi
 }
 
 function ASSERT_IF_NOT_EQ_ZERO()
@@ -263,6 +247,7 @@ function synchronize_files()
   ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
 
   sed -i -e "s,##KW_INSTALL_PREFIX_TOKEN##,$PREFIX/,g" "$binpath/$app_name"
+  sed -i -e "/##BEGIN-DEV-MODE##/,/##END-DEV-MODE##/ d" "$binpath/$app_name"
 
   # Lib files
   mkdir -p "$libdir"
@@ -298,17 +283,25 @@ function synchronize_files()
   setup_config_file
   ASSERT_IF_NOT_EQ_ZERO "Config file failed" "$?"
 
-  if [ -f "$HOME/.bashrc" ]; then
-      # Add to bashrc
-      echo "# $app_name" >> "$HOME/.bashrc"
-      echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/.bashrc"
+  if command_exists "bash"; then
+    # Add tabcompletion to bashrc
+    if [[ -f "$HOME/.bashrc" || -L "$HOME/.bashrc" ]]; then
+      append_bashcompletion ".bashrc"
       update_path
-  else
-      warning "Unable to find a shell."
+    else
+      warning "Unable to find a .bashrc file."
+    fi
   fi
 
-  if command -v fish &> /dev/null; then
-      synchronize_fish
+  if command_exists "zsh"; then
+    # Add tabcompletion to zshrc
+    if [[ -f "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
+      echo "# Enable bash completion for zsh" >> "$HOME/.zshrc"
+      echo "autoload bashcompinit && bashcompinit" >> "$HOME/.zshrc"
+      append_bashcompletion ".zshrc"
+    else
+      warning "Unable to find a .zshrc file."
+    fi
   fi
 
   say "$SEPARATOR"
@@ -318,13 +311,21 @@ function synchronize_files()
   warning " -> For a better experience with kw, please, open a new terminal."
 }
 
+function append_bashcompletion()
+{
+  local shellrc="$1"
+
+  echo "# $app_name" >> "$HOME/$shellrc"
+  echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/$shellrc"
+}
+
 function update_version()
 {
   local head_hash=$(git rev-parse --short HEAD)
   local branch_name=$(git rev-parse --short --abbrev-ref HEAD)
   local base_version=$(cat "$libdir/VERSION" | head -n 1)
 
-  cat > "$libdir/VERSION" <<EOF
+  cat > "$libdir/VERSION" << EOF
 $base_version
 Branch: $branch_name
 Commit: $head_hash
@@ -346,7 +347,7 @@ function install_home()
 }
 
 # Options
-for arg do
+for arg; do
   shift
   if [ "$arg" = "--verbose" ]; then
     VERBOSE=1
@@ -384,10 +385,11 @@ case "$1" in
     usage
     ;;
   --docs)
-    sphinx-build -b html documentation/ build
+    sphinx-build -nW -b html documentation/ build
     ;;
   *)
     complain "Invalid number of arguments"
+    usage
     exit 1
     ;;
 esac

@@ -1,11 +1,11 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
-. ./src/kw_config_loader.sh --source-only
+include './tests/utils'
+include './src/kw_config_loader.sh'
 
 TMP_DIR=tests/.tmp_kw_config_loader_test
 
-function suite
+function suite()
 {
   suite_addTest "parse_configuration_success_exit_code_Test"
   suite_addTest "parser_configuration_failed_exit_code_Test"
@@ -14,31 +14,31 @@ function suite
   suite_addTest "parse_configuration_files_loading_order_Test"
 }
 
-function setUp
+function setUp()
 {
   mkdir -p "$TMP_DIR"
   cp "$PWD/etc/kworkflow_template.config" "$TMP_DIR/kworkflow.config"
   configurations=()
 }
 
-function tearDown
+function tearDown()
 {
   rm -rf "$TMP_DIR"
 }
 
-function parse_configuration_success_exit_code_Test
+function parse_configuration_success_exit_code_Test()
 {
   parse_configuration tests/samples/kworkflow.config
   assertTrue "Kw failed to load a regular config file" "[ 0 -eq $? ]"
 }
 
-function parser_configuration_failed_exit_code_Test
+function parser_configuration_failed_exit_code_Test()
 {
   parse_configuration tests/kw_config_loader_test.sh
   assertTrue "kw loaded an unsupported file" "[ 22 -eq $? ]"
 }
 
-function assertConfigurations
+function assertConfigurations()
 {
   declare -n configurations_ref=$1
   declare -n expected_configurations_ref=$2
@@ -61,7 +61,7 @@ function assertConfigurations
 }
 
 # Test if parse_configuration correctly parses all settings in a file
-function parse_configuration_output_Test
+function parse_configuration_output_Test()
 {
   declare -A expected_configurations=(
     [arch]="arm64"
@@ -76,6 +76,7 @@ function parse_configuration_output_Test
     [reboot_after_deploy]="no"
     [gui_on]="turn on"
     [gui_off]="turn off"
+    [doc_type]="htmldocs"
   )
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"
@@ -90,7 +91,7 @@ function parse_configuration_output_Test
 }
 
 # Test if etc/kworkflow_template.config contains all the expected settings
-function parse_configuration_standard_config_Test
+function parse_configuration_standard_config_Test()
 {
   local path_repo=$PWD
 
@@ -101,7 +102,7 @@ function parse_configuration_standard_config_Test
     [virtualizer]="qemu-system-x86_64"
     [qemu_path_image]="/home/USERKW/p/virty.qcow2"
     [qemu_hw_options]="-enable-kvm -daemonize -smp 2 -m 1024"
-    [qemu_net_options]="-net nic -net user,hostfwd=tcp::2222-:22,smb=/home/USERKW"
+    [qemu_net_options]="-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW"
     [ssh_ip]="localhost"
     [ssh_port]="22"
     [mount_point]="/home/USERKW/p/mount"
@@ -111,6 +112,7 @@ function parse_configuration_standard_config_Test
     [default_deploy_target]="vm"
     [reboot_after_deploy]="no"
     [disable_statistics_data_track]="no"
+    [doc_type]="htmldocs"
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"
@@ -119,14 +121,17 @@ function parse_configuration_standard_config_Test
   true # Reset return value
 }
 
-function parse_configuration_files_loading_order_Test
+function parse_configuration_files_loading_order_Test()
 {
   expected="$KW_ETC_DIR/$CONFIG_FILENAME
 $HOME/.kw/$CONFIG_FILENAME
 $PWD/$CONFIG_FILENAME"
 
   output="$(
-    function parse_configuration { echo "$@"; }
+    function parse_configuration()
+    {
+      echo "$@"
+    }
     load_configuration
   )"
 

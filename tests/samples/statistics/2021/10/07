@@ -1,0 +1,7 @@
+list 0
+uninstall 3
+list 8
+uninstall 2
+uninstall 2
+build_failure 1
+build 3

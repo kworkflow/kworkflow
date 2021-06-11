@@ -63,13 +63,13 @@ function list_installed_kernels()
 
   grub_cfg="$prefix/boot/grub/grub.cfg"
 
-  output=$(awk -F\' '/menuentry / {print $2}' "$grub_cfg" 2>/dev/null)
+  output=$(awk -F\' '/menuentry / {print $2}' "$grub_cfg" 2> /dev/null)
 
   if [[ "$?" != 0 ]]; then
-    if ! [[ -r "$grub_cfg" ]] ; then
+    if ! [[ -r "$grub_cfg" ]]; then
       echo "For showing the available kernel in your system we have to take" \
-           "a look at '/boot/grub/grub.cfg', however, it looks like that" \
-           "that you have no read permission."
+        "a look at '/boot/grub/grub.cfg', however, it looks like that" \
+        "that you have no read permission."
       if [[ $(ask_yN "Do you want to proceed with sudo?") =~ "0" ]]; then
         echo "List kernel operation aborted"
         return 0
@@ -82,12 +82,11 @@ function list_installed_kernels()
     output=$(sudo awk -F\' '/menuentry / {print $2}' "$grub_cfg")
   fi
 
-  output=$(echo "$output" | grep recovery -v | grep with |  awk -F" "  '{print $NF}')
+  output=$(echo "$output" | grep recovery -v | grep with | awk -F" " '{print $NF}')
 
-  while read kernel
-  do
+  while read kernel; do
     if [[ -f "$prefix/boot/vmlinuz-$kernel" ]]; then
-       available_kernels+=( "$kernel" )
+      available_kernels+=("$kernel")
     fi
   done <<< "$output"
 
@@ -155,7 +154,7 @@ function update_boot_loader()
   cmd_grub="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
 
   # Update grub
-  if [[ "$target" == 'vm' ]] ; then
+  if [[ "$target" == 'vm' ]]; then
     vm_update_boot_loader "$name" "$distro" "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
   else
     cmd_manager "$flag" "$cmd_grub"
@@ -228,7 +227,6 @@ function vm_update_boot_loader()
   return 0
 }
 
-
 function do_uninstall()
 {
   local target="$1"
@@ -287,7 +285,7 @@ function kernel_uninstall()
   local kernel="$3"
   local flag="$4"
 
-  if [[ -z "$kernel" ]];then
+  if [[ -z "$kernel" ]]; then
     echo "Invalid argument"
     exit 22 #EINVAL
   fi

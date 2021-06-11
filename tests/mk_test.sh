@@ -1,9 +1,9 @@
 #!/bin/bash
 
-. ./src/mk.sh --source-only
-. ./tests/utils --source-only
+include './src/mk.sh'
+include './tests/utils'
 
-function suite
+function suite()
 {
   suite_addTest "build_info_Test"
   suite_addTest "mk_build_Test"
@@ -39,7 +39,12 @@ function get_kernel_version_mock()
   echo '5.4.0-rc7'
 }
 
-function setUp
+function root_id_mock()
+{
+  echo "0"
+}
+
+function setUp()
 {
   local create_mkinitcpio="$1"
 
@@ -62,7 +67,7 @@ function setUp
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export KW_PLUGINS_DIR="$PWD/src/plugins/"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
-  if [ -x "$(command -v nproc)" ] ; then
+  if [ -x "$(command -v nproc)" ]; then
     PARALLEL_CORES=$(nproc --all)
   else
     PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
@@ -141,16 +146,21 @@ function mk_build_Test()
   assertEquals "($ID)" "$expected_result" "$output"
 
   ID=3
+  output=$(mk_build 'TEST_MODE' '--doc')
+  expected_result="make htmldocs"
+  assertEquals "($ID)" "$expected_result" "$output"
+
+  ID=4
   output=$(mk_build 'TEST_MODE' '--notvalid')
   ret="$?"
   assertEquals "($ID)" "$ret" "22"
 
-  ID=4
+  ID=5
   output=$(mk_build 'TEST_MODE' | head -1) # Remove statistics output
   expected_result="make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
   assertEquals "($ID)" "$expected_result" "${output}"
 
-  ID=5
+  ID=6
   cd "$original"
   configurations=()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
@@ -168,7 +178,7 @@ function mk_build_Test()
 #
 # Output sequence of kernel_deploy in the TEST_MODE:
 #   $reboot $modules $target $remote $single_line $list"
-function kernel_deploy_Test
+function kernel_deploy_Test()
 {
   local ID
   local original="$PWD"
@@ -263,7 +273,7 @@ function kernel_deploy_Test
   cd "$original"
 }
 
-function modules_install_to_Test
+function modules_install_to_Test()
 {
   local ID
   local original="$PWD"
@@ -283,7 +293,7 @@ function modules_install_to_Test
   cd "$original"
 }
 
-function kernel_install_Test
+function kernel_install_Test()
 {
   local name="test"
   local original="$PWD"
@@ -349,7 +359,7 @@ function kernel_install_Test
   tearDown
 }
 
-function kernel_install_x86_64_Test
+function kernel_install_x86_64_Test()
 {
   local name="test"
   local original="$PWD"
@@ -404,7 +414,7 @@ function kernel_install_x86_64_Test
   cd "$original"
 }
 
-function kernel_modules_Test
+function kernel_modules_Test()
 {
   local count=0
   local original="$PWD"
@@ -477,11 +487,10 @@ function kernel_modules_Test
   expected_output="sudo -E make modules_install"
   assertEquals "$ID: " "$output" "$expected_output"
 
-
   cd "$original"
 }
 
-function kernel_modules_local_Test
+function kernel_modules_local_Test()
 {
   local ID
   local original="$PWD"
@@ -494,7 +503,7 @@ function kernel_modules_local_Test
   cd "$original"
 }
 
-function kernel_install_local_Test
+function kernel_install_local_Test()
 {
   local count=0
   local original="$PWD"
@@ -522,6 +531,12 @@ function kernel_install_local_Test
   output=$(kernel_install "1" "test" "TEST_MODE" "2")
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
+  # Make sure that we are not running as a root user
+  alias id='root_id_mock;true'
+  output=$(kernel_install '1' 'test' 'TEST_MODE' '2')
+  ret="$?"
+  assertEquals "($LINENO)" '1' "$ret"
+
   cd "$original"
 }
 
@@ -529,7 +544,7 @@ function kernel_install_local_Test
 # by checking the expected command sequence; It is important to highlight that
 # we are not testing the actual kernel list code, this part is validated on
 # another test file.
-function mk_list_remote_kernels_Test
+function mk_list_remote_kernels_Test()
 {
   local count=0
   local original="$PWD"
@@ -572,7 +587,7 @@ function mk_list_remote_kernels_Test
   cd "$original"
 }
 
-function mk_kernel_uninstall_Test
+function mk_kernel_uninstall_Test()
 {
   local count=0
   local original="$PWD"
@@ -631,7 +646,7 @@ function mk_kernel_uninstall_Test
   cd "$original"
 }
 
-function cleanup_after_deploy_Test
+function cleanup_after_deploy_Test()
 {
   local output=""
   local cmd_remote="rm -rf $test_path/$LOCAL_TO_DEPLOY_DIR/*"
@@ -645,12 +660,12 @@ function cleanup_after_deploy_Test
   output=$(cleanup_after_deploy "TEST_MODE")
   while read f; do
     assertFalse "$ID (cmd: $count) - Expected \"${expected_cmd[$count]}\" to be \"${f}\"" \
-                '[[ ${expected_cmd[$count]} != ${f} ]]'
+      '[[ ${expected_cmd[$count]} != ${f} ]]'
     ((count++))
   done <<< "$output"
 }
 
-function build_info_Test
+function build_info_Test()
 {
   local original="$PWD"
   local release='5.4.0-rc7-test'

@@ -1,7 +1,7 @@
 # The init.sh keep all the operations related to the `kworkflow.config`
 # initialization. The initialization feature it is inspired on `git init`.
 
-. "$KW_LIB_DIR/kwio.sh" --source-only
+include "$KW_LIB_DIR/kwio.sh"
 
 # This function is responsible for creating a local kworkflow.config based in a
 # template available in the etc directory.
@@ -16,7 +16,7 @@ function init_kw()
   if [[ -f "$config_file_template" ]]; then
     cp "$config_file_template" "$PWD/$name"
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SHARE_SOUND_DIR,g" -e "/^#?.*/d" \
-              "$PWD/$name"
+      "$PWD/$name"
   else
     complain "No such: $config_file_template or $kw_path"
     exit 2 # ENOENT

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-. ./src/get_maintainer_wrapper.sh --source-only
-. ./src/kwlib.sh --source-only
-. ./tests/utils --source-only
+include './src/get_maintainer_wrapper.sh'
+include './src/kwlib.sh'
+include './tests/utils'
 
-function suite
+function suite()
 {
   suite_addTest "is_kernel_root_Test"
   suite_addTest "cmd_manager_check_test_mode_option_Test"
@@ -21,12 +21,13 @@ function suite
   suite_addTest "command_exists_Test"
 }
 
+KW_DATA_DIR="tests/.tmp"
 TARGET_YEAR_MONTH="2020/05"
-FAKE_STATISTICS_PATH="tests/.tmp"
+FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
 FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
 FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
 
-function setupFakeOSInfo
+function setupFakeOSInfo()
 {
   mkdir -p tests/.tmp/detect_distro/{arch,manjaro,debian,ubuntu}/etc
   cp -f tests/samples/os/arch/* tests/.tmp/detect_distro/arch/etc
@@ -35,16 +36,14 @@ function setupFakeOSInfo
   cp -f tests/samples/os/ubuntu/* tests/.tmp/detect_distro/ubuntu/etc
 }
 
-function setupPatch
+function setupPatch()
 {
-  export statistics_path="$FAKE_STATISTICS_PATH"
-
   mkdir -p "$FAKE_STATISTICS_MONTH_PATH"
   touch "$FAKE_STATISTICS_DAY_PATH"
   cp -f tests/samples/test.patch tests/.tmp/
 }
 
-function setupFakeKernelRepo
+function setupFakeKernelRepo()
 {
   # This creates tests/.tmp which should mock a kernel tree root. A .git
   # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
@@ -73,12 +72,12 @@ function setupFakeKernelRepo
   cp -f tests/external/get_maintainer.pl tests/.tmp/scripts/
 }
 
-function tearDownSetup
+function tearDownSetup()
 {
   rm -rf "$FAKE_STATISTICS_PATH"
 }
 
-function is_kernel_root_Test
+function is_kernel_root_Test()
 {
   setupFakeKernelRepo
   is_kernel_root "tests/.tmp"
@@ -87,7 +86,7 @@ function is_kernel_root_Test
   true # Reset return value
 }
 
-function cmd_manager_check_silent_option_Test
+function cmd_manager_check_silent_option_Test()
 {
   setupFakeKernelRepo
   cd "tests/.tmp"
@@ -101,7 +100,7 @@ function cmd_manager_check_silent_option_Test
   assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
 
   # Test command with parameters
-  ret=$(cmd_manager SILENT pwd --help)
+  ret=$(cmd_manager SILENT help pwd)
   assertTrue "We expected to find -P" '[[ $ret =~ -P ]]'
   assertTrue "We expected to find -L" '[[ $ret =~ -L ]]'
 
@@ -111,7 +110,7 @@ function cmd_manager_check_silent_option_Test
 
 # The difference between say, complain, warning, and success it is the color
 # because of this we test all of them together
-function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test
+function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test()
 {
   setupFakeKernelRepo
   cd "tests/.tmp"
@@ -123,8 +122,7 @@ function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test
   assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
 
   # TODO: There's an alternative to discover the color?
-  ret=$(cmd_manager COMPLAIN pwd --help)
-  assertTrue "We expected to find the ls command" '[[ $ret =~ --help ]]'
+  ret=$(cmd_manager COMPLAIN help pwd)
   assertTrue "We expected to find -P" '[[ $ret =~ -P ]]'
   assertTrue "We expected to find -L" '[[ $ret =~ -L ]]'
 
@@ -144,7 +142,7 @@ function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test
   tearDownSetup
 }
 
-function cmd_manager_check_test_mode_option_Test
+function cmd_manager_check_test_mode_option_Test()
 {
   ret=$(cmd_manager TEST_MODE pwd)
   assertEquals "Expected pwd, but we got $ret" "$ret" "pwd"
@@ -153,7 +151,7 @@ function cmd_manager_check_test_mode_option_Test
   assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
 }
 
-function detect_distro_Test
+function detect_distro_Test()
 {
   setupFakeOSInfo
   local root_path="tests/.tmp/detect_distro/arch"
@@ -178,11 +176,11 @@ function detect_distro_Test
   assertEquals "We got $ret." "$ret" "none"
 }
 
-function join_path_Test
+function join_path_Test()
 {
   local base="/lala/xpto"
   local ret=$(join_path "/lala" "///xpto")
- 
+
   assertEquals "Expect /lala/xpto" "$ret" "$base"
 
   ret=$(join_path "/lala" "/xpto////")
@@ -191,11 +189,14 @@ function join_path_Test
   ret=$(join_path "/lala" "////xpto////")
   assertEquals "Expect /lala/xpto" "$ret" "$base"
 
+  ret=$(join_path "/lala" "//test///xpto////")
+  assertEquals "Expect /lala/test/xpto" "$ret" "/lala/test/xpto"
+
   ret=$(join_path "/lala/")
   assertEquals "Expect /lala/" "$ret" "/lala/"
 }
 
-function find_kernel_root_Test
+function find_kernel_root_Test()
 {
   setupFakeKernelRepo
 
@@ -214,7 +215,7 @@ function find_kernel_root_Test
   tearDownSetup
 }
 
-function is_a_patch_Test
+function is_a_patch_Test()
 {
   setupPatch
   is_a_patch "tests/.tmp/test.patch"
@@ -223,7 +224,7 @@ function is_a_patch_Test
   true # Reset return value
 }
 
-function get_based_on_delimiter_Test
+function get_based_on_delimiter_Test()
 {
   local ID
   local ip_port_str="IP:PORT"
@@ -282,7 +283,7 @@ function get_based_on_delimiter_Test
 
 }
 
-function store_statistics_data_Test
+function store_statistics_data_Test()
 {
   local ID
   local fake_day_path="$FAKE_STATISTICS_DAY_PATH"
@@ -312,7 +313,7 @@ function store_statistics_data_Test
   tearDownSetup
 }
 
-function update_statistics_database_Test
+function update_statistics_database_Test()
 {
   local ID
 
@@ -330,7 +331,7 @@ function update_statistics_database_Test
   tearDownSetup
 }
 
-function statistics_manager_Test
+function statistics_manager_Test()
 {
   local ID
   local this_year_and_month=$(date +%Y/%m)
@@ -340,23 +341,23 @@ function statistics_manager_Test
 
   ID=1
   output=$(statistics_manager "values" "33")
-  assertTrue "($ID) Database folders failures" '[[ -d "$statistics_path/$this_year_and_month" ]]'
+  assertTrue "($ID) Database folders failures" '[[ -d "$FAKE_STATISTICS_PATH/$this_year_and_month" ]]'
 
   ID=2
-  assertTrue "($ID) Database day" '[[ -f "$statistics_path/$this_year_and_month/$today" ]]'
+  assertTrue "($ID) Database day" '[[ -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
 
   ID=3
-  stored_value=$(cat "$statistics_path/$this_year_and_month/$today")
+  stored_value=$(cat "$FAKE_STATISTICS_PATH/$this_year_and_month/$today")
   assertEquals "($ID) - " "values 33" "$stored_value"
 
   tearDownSetup
 
   ID=4
   configurations['disable_statistics_data_track']='yes'
-  assertTrue "($ID) Database day" '[[ ! -f "$statistics_path/$this_year_and_month/$today" ]]'
+  assertTrue "($ID) Database day" '[[ ! -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
 }
 
-function command_exists_Test
+function command_exists_Test()
 {
   local fake_command="a-non-existent-command -p"
   local real_command="mkdir"

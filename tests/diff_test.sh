@@ -1,15 +1,15 @@
 #!/bin/bash
 
-. ./src/diff.sh --source-only
-. ./tests/utils --source-only
+include './src/diff.sh'
+include './tests/utils'
 
-function suite
+function suite()
 {
   suite_addTest "diff_side_by_side_Test"
   suite_addTest "diff_manager_Test"
 }
 
-function diff_side_by_side_Test
+function diff_side_by_side_Test()
 {
   local ID
   local columns=$(tput cols)
@@ -45,7 +45,7 @@ function diff_side_by_side_Test
 
 }
 
-function diff_manager_Test
+function diff_manager_Test()
 {
   local ID
   local file_1="$SAMPLES_DIR/MAINTAINERS"

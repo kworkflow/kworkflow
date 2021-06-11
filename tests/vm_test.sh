@@ -1,9 +1,9 @@
 #!/bin/bash
 
-. ./tests/utils --source-only
-. ./src/vm.sh --source-only
+include './tests/utils'
+include './src/vm.sh'
 
-function suite
+function suite()
 {
   suite_addTest "vm_mount_Test"
   suite_addTest "vm_umount_Test"
@@ -11,7 +11,7 @@ function suite
 
 declare -r test_path="tests/.tmp"
 
-function setUp
+function setUp()
 {
   local -r current_path="$PWD"
 
@@ -22,12 +22,12 @@ function setUp
   cp -f tests/samples/kworkflow.config $test_path
 }
 
-function tearDown
+function tearDown()
 {
   rm -rf "$test_path"
 }
 
-function vm_mount_Test
+function vm_mount_Test()
 {
   local ID
   local mount_point="$test_path/lala"
@@ -82,7 +82,7 @@ function vm_mount_Test
   tearDown
 }
 
-function vm_umount_Test
+function vm_umount_Test()
 {
   local ID
   local mount_point="/"
