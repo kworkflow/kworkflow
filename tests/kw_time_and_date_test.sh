@@ -35,8 +35,9 @@ function sec_to_format_Test()
 
 function get_today_info_Test()
 {
-  local today=$(date +%Y/%m/%d)
+  local today
 
+  today=$(date +%Y/%m/%d)
   formated_today=$(get_today_info '+%Y/%m/%d')
   assert_equals_helper 'Today info did not match' "$LINENO" "$today" "$formated_today"
 

@@ -162,9 +162,10 @@ function run_tests()
 declare -a TESTS
 function strip_path()
 {
+  local base
   TESTS=()
   for file in "$@"; do
-    local base=$(basename ${file})
+    base=$(basename ${file})
     TESTS+=("${base%.*}")
   done
 }

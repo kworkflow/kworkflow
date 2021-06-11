@@ -8,7 +8,9 @@
 function include()
 {
   local filepath="$1"
-  local varname=$(basename "$filepath" .sh)
+  local varname
+
+  varname=$(basename "$filepath" .sh)
 
   if [[ ! -e "$filepath" ]]; then
     echo "File $filepath could not be found, check your file path."

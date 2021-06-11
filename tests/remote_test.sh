@@ -331,8 +331,9 @@ function kw_ssh_check_fail_cases_Test()
   setupSsh
 
   local args="--lala"
-  local ret=$(kw_ssh $args)
+  local ret
 
+  ret=$(kw_ssh $args)
   assertTrue "We expected a substring \"$INVALID_ARG: $args\", but we got \"$ret\"" '[[ $ret =~ "$INVALID_ARG: $args" ]]'
 
   args="-m"

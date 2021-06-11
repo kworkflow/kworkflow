@@ -198,8 +198,10 @@ function remove_completed_timebox()
 # current timestamp and uses it to register itself in the Pomodoro log file.
 function timer_thread()
 {
-  local timestamp=$(get_timestamp_sec)
+  local timestamp
   local flag
+
+  timestamp=$(get_timestamp_sec)
 
   flag=${flag:-'SILENT'}
 

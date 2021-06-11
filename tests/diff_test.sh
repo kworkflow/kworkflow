@@ -12,10 +12,13 @@ function suite()
 function diff_side_by_side_Test()
 {
   local ID
-  local columns=$(tput cols)
   local file_1="$SAMPLES_DIR/MAINTAINERS"
   local file_2="$SAMPLES_DIR/dmesg"
-  local diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2 | less -R"
+  local columns
+  local diff_cmd
+
+  columns=$(tput cols)
+  diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2 | less -R"
 
   declare -a expected_cmd=(
     "$diff_cmd"

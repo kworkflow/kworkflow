@@ -91,6 +91,8 @@ function module_control()
   local parameters="$4"
   local flag="$5"
   local module_cmd=""
+  local remote
+  local port
 
   module_cmd=$(convert_module_info "$operation" "$parameters")
   if [[ "$?" != 0 ]]; then
@@ -103,8 +105,8 @@ function module_control()
       cmd_manager "$flag" "sudo bash -c \"$module_cmd\""
       ;;
     3) # REMOTE
-      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
+      port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
 
       cmd_remotely "$module_cmd" "$flag" "$remote" "$port"
       ;;
@@ -192,6 +194,8 @@ function gui_control()
   local gui_control_cmd
   local vt_console
   local isolate_target
+  local remote
+  local port
 
   if [[ "$operation" == "ON" ]]; then
     isolate_target='graphical.target'
@@ -216,8 +220,8 @@ function gui_control()
       cmd_manager "$flag" "$bind_control_cmd"
       ;;
     3) # REMOTE TARGET
-      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
+      port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       cmd_remotely "$gui_control_cmd" "$flag" "$remote" "$port"
@@ -240,6 +244,9 @@ function get_available_connectors()
   local value
   local connectors
   local i
+  local remote
+  local port
+  local find_conn_cmd
   declare -A cards
 
   case "$target" in
@@ -253,9 +260,9 @@ function get_available_connectors()
       target_label="local"
       ;;
     3) # REMOTE TARGET
-      local find_conn_cmd="find $SYSFS_CLASS_DRM -name 'card*'"
-      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
+      find_conn_cmd="find $SYSFS_CLASS_DRM -name 'card*'"
+      remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
+      port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       cards_raw_list=$(cmd_remotely "$find_conn_cmd" "SILENT" "$remote" "$port")
