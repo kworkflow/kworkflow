@@ -55,21 +55,22 @@ function alert_completion()
 # the color to be used and two optional params:
 #   - the option '-n', to not output the trailing newline
 #   - text message to be printed
-#
+#shellcheck disable=SC2059
 function colored_print()
 {
   local message="${@:2}"
+  local colored_format="${!1}"
 
   if [[ $# -ge 2 && $2 = "-n" ]]; then
     message="${@:3}"
     if [ -t 1 ]; then
-      printf ${!1} "$message"
+      printf "$colored_format" "$message"
     else
       echo -n "$message"
     fi
   else
     if [ -t 1 ]; then
-      printf "${!1}\n" "$message"
+      printf "$colored_format\n" "$message"
     else
       echo "$message"
     fi

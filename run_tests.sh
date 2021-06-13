@@ -10,7 +10,7 @@ function show_help()
 {
   echo "Usage: $0 [help] [list] [test tfile1 tfile2 ... tfilen] [prepare [-f|--force-update]]"
   echo "Run tests for kworkflow."
-  printf "Example: $0 test kw_test\n\n"
+  printf "Example: %s test kw_test\n\n" "$0"
   echo "  help - displays this help message"
   echo "  list - lists all test files under tests/"
   echo "  test - runs the given test files"

@@ -175,8 +175,7 @@ function min_value()
 # Print results of "Total Max Min Average" organized in columns.
 #
 # Note: This function relies on a global variable named shared_data.
-#shellcheck disable=2059
-#shellcheck disable=2086
+#shellcheck disable=SC2059,SC2086
 function print_basic_data()
 {
   local header_format='%20s %4s %8s %12s\n'
