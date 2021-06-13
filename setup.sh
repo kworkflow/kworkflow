@@ -69,7 +69,7 @@ function check_dependencies()
     return 0
   fi
 
-  if [[ ! -z "$package_list" ]]; then
+  if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
       if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ "0" ]]; then
         return 0

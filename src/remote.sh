@@ -304,7 +304,7 @@ function kw_ssh()
   fi
 
   # Add port
-  if [ ! -z "$port" ]; then
+  if [ -n "$port" ]; then
     port="-p $port"
   fi
 

@@ -24,7 +24,7 @@ function print_files_authors()
     authors=$(grep -oE "MODULE_AUTHOR *\(.*\)" $file |
       sed -E "s/(MODULE_AUTHOR *\( *\"|\" *\))//g" |
       sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g')
-    if [[ ! -z $authors ]]; then
+    if [[ -n $authors ]]; then
       if [[ $printed_authors_separator = false ]]; then
         say $SEPARATOR
         say "MODULE AUTHORS:"

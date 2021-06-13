@@ -41,7 +41,7 @@ function drm_manager()
     return 0
   fi
 
-  if [[ ! -z "$load_module" ]]; then
+  if [[ -n "$load_module" ]]; then
     module_control "LOAD" "$target" "$remote" "$load_module"
     if [[ "$?" != 0 ]]; then
       return 22
@@ -56,7 +56,7 @@ function drm_manager()
     gui_control "OFF" "$target" "$remote"
   fi
 
-  if [[ ! -z "$unload_module" ]]; then
+  if [[ -n "$unload_module" ]]; then
     # For unload DRM drivers, we need to make sure that we turn off user GUI
     [[ "$gui_off" != 1 ]] && gui_control "OFF" "$target" "$remote"
     module_control "UNLOAD" "$target" "$remote" "$unload_module"
@@ -269,7 +269,7 @@ function get_available_connectors()
     value=$(echo "$card" | grep card | cut -d- -f2)
     [[ "$key" == "$value" ]] && continue
 
-    if [[ ! -z "$key" && ! -z "$value" ]]; then
+    if [[ -n "$key" && -n "$value" ]]; then
       list_of_values="${cards[$key]}"
       if [[ -z "$list_of_values" ]]; then
         cards["$key"]="$value"
