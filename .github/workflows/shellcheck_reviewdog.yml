@@ -16,4 +16,4 @@ jobs:
           fail_on_error: true
           path: "."
           pattern: "*.sh"
-          shellcheck_flags: "--external-sources --shell=bash --exclude=SC2016,SC2181,SC2034"
+          shellcheck_flags: "--external-sources --shell=bash --exclude=SC2016,SC2181,SC2034,SC2154"
