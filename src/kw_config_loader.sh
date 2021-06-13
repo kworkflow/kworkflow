@@ -49,7 +49,7 @@ function parse_configuration()
   if [ ! -f "$config_path" ] || [ "$filename" != kworkflow.config ]; then
     return 22 # 22 means Invalid argument - EINVAL
   fi
-
+  # shellcheck disable=SC2162
   while read line; do
     # Line started with # should be ignored
     [[ "$line" =~ ^# ]] && continue

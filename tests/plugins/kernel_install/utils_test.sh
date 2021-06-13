@@ -80,7 +80,7 @@ function human_list_installed_kernels_Test()
   )
 
   output=$(list_installed_kernels "0" "$TMP_TEST_DIR")
-  while read out; do
+  while read -r out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
   done <<< "$output"
@@ -96,7 +96,7 @@ function comman_list_installed_kernels_Test()
   )
 
   output=$(list_installed_kernels "1" "$TMP_TEST_DIR")
-  while read out; do
+  while read -r out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
   done <<< "$output"

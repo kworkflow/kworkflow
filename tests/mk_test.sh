@@ -470,7 +470,7 @@ function kernel_modules_Test()
 
   ID=1
   output=$(modules_install "TEST_MODE" "3" "127.0.0.1:3333")
-  while read f; do
+  while read -r f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
     fi
@@ -577,7 +577,7 @@ function mk_list_remote_kernels_Test()
   setupRemote
 
   output=$(mk_list_installed_kernels "TEST_MODE" "0" "3" "127.0.0.1:3333")
-  while read f; do
+  while read -r f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
     fi
@@ -658,7 +658,7 @@ function cleanup_after_deploy_Test()
   )
 
   output=$(cleanup_after_deploy "TEST_MODE")
-  while read f; do
+  while read -r f; do
     assertFalse "$ID (cmd: $count) - Expected \"${expected_cmd[$count]}\" to be \"${f}\"" \
       '[[ ${expected_cmd[$count]} != ${f} ]]'
     ((count++))
