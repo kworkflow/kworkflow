@@ -182,13 +182,13 @@ function day_statistics_Test()
   local msg1='Currently, kw does not have any data for the present date.'
   local msg2='There is no data in the kw records'
 
-  day_data=$(day_statistics "an/invalid/path")
+  day_data=$(day_statistics -14)
   assertEquals "($LINENO)" "$msg1" "$day_data"
 
-  day_data=$(day_statistics "$base_statistics/05/28")
+  day_data=$(day_statistics 2020/05/28)
   assertEquals "($LINENO)" "$msg2" "$day_data"
 
-  day_data=$(day_statistics "$base_statistics/05/27" | tail -n 2)
+  day_data=$(day_statistics 2020/05/27 | tail -n 2)
   compare_command_sequence may_27_2020[@] "$day_data" "$LINENO"
 }
 
