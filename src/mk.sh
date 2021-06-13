@@ -703,7 +703,7 @@ function deploy_parser_options()
   options_values["MENU_CONFIG"]="nconfig"
 
   # Set basic default values
-  if [[ ! -z ${configurations[default_deploy_target]} ]]; then
+  if [[ -n ${configurations[default_deploy_target]} ]]; then
     local config_file_deploy_target=${configurations[default_deploy_target]}
     options_values["TARGET"]=${deploy_target_opt[$config_file_deploy_target]}
   else
