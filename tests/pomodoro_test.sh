@@ -167,7 +167,7 @@ function test_pomodoro_parser()
   output=$(pomodoro_parser '--set-timer uum')
   assert_equals_helper 'No a number' "$LINENO" "$?" '22'
 
-  pomodoro_parser '--current'
+  pomodoro_parser '--list'
   assert_equals_helper 'Show current timebox' "$LINENO" "${options_values['SHOW_TIMER']}" '1'
 
   pomodoro_parser '--tag Something is here'

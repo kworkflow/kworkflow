@@ -351,8 +351,8 @@ displays the current month data.
 4. *--year [YEAR]*: exhibits the current year summary if the user does not
 specify a year.
 
-p, pomodoro --set-timer|-t INTEGER[h|m|s] [--tag|-g STRING [--description|-d STRING] ] | --current|-c
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+p, pomodoro --set-timer|-t INTEGER[h|m|s] [--tag|-g STRING [--description|-d STRING] ] | --list|-l
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This feature provides a way for kernel developers to manage their time through
 the Pomodoro technique. To use a timer with visual and sonorous feedback:
@@ -381,7 +381,7 @@ all tags created by them; the output also provides the tag id.
 
 Users can follow the timebox section status by using:
 
-*--current,-c*: This command shows information associated with each Pomodoro
+*--list,-l*: This command shows information associated with each Pomodoro
 timebox created by the user.
 
 df, diff [OPTIONS] FILE1 FILE2

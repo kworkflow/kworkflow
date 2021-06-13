@@ -321,7 +321,7 @@ function pomodoro_parser()
           timer=1
           continue
           ;;
-        --current | -c)
+        --list | -l)
           options_values['SHOW_TIMER']=1
           continue
           ;;
@@ -404,7 +404,7 @@ function pomodoro_parser()
   fi
 
   if [[ "${options_values['TIMER']}" != 0 && "${options_values['SHOW_TIMER']}" == 1 ]]; then
-    warning '--current|-c is ignored when used with --set-timer,t'
+    warning '--list|-l is ignored when used with --set-timer,t'
     options_values['SHOW_TIMER']=0
   fi
 }
@@ -413,7 +413,7 @@ function pomodoro_help()
 {
   echo -e "kw pomodoro, p:\n" \
     "\t--set-timer,-t INTEGER[h|m|s] - Set pomodoro timer\n" \
-    "\t--current,-c - Show elapsed time\n" \
+    "\t--list,-l - Show elapsed time\n" \
     "\t--tag,-g - Associate a tag to a timebox" \
     "\t--description,-d [STRING] - Add a description to a timebox with a tag"
 }
