@@ -228,7 +228,7 @@ function compare_command_sequence()
 
   ID=${ID:-0}
 
-  while read f; do
+  while read -r f; do
     if [[ "${expected[$count]}" != "${f}" ]]; then
       fail "($ID) $count - Expected cmd \"${expected[$count]}\" to be \"${f}\""
     fi

@@ -251,7 +251,7 @@ function prepare_remote_dir_Test()
 
   setupMockFunctions
   output=$(prepare_remote_dir "$remote" "$port" "$user" "$flag")
-  while read cmd; do
+  while read -r cmd; do
     if [[ ${expected_cmd_sequence[$count]} != ${cmd} ]]; then
       fail "Expected command \"${expected_cmd_sequence[$count]}\" to be \"${cmd}\")"
     fi
@@ -282,7 +282,7 @@ function generate_tarball_Test()
 
   ID=2
   output=$(tar -taf "$FAKE_KW/$LOCAL_TO_DEPLOY_DIR/$tarball_name" | sort -d)
-  while read f; do
+  while read -r f; do
     if [[ ${expected_files[$count]} != ${f} ]]; then
       fail "$ID - Expected file \"${expected_files[$count]}\" to be \"${f}\""
     fi

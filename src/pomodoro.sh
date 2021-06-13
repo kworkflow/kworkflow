@@ -273,7 +273,7 @@ function show_active_pomodoro_timebox()
 
   current_timestamp=$(get_timestamp_sec)
 
-  while read line; do
+  while read -r line; do
     # Get data from file
     timestamp=$(echo "$line" | cut -d',' -f1)
     timebox=$(echo "$line" | cut -d',' -f2)

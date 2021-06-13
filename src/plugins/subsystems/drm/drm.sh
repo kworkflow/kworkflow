@@ -263,7 +263,7 @@ function get_available_connectors()
       ;;
   esac
 
-  while read card; do
+  while read -r card; do
     card=$(basename "$card")
     key=$(echo "$card" | grep card | cut -d- -f1)
     value=$(echo "$card" | grep card | cut -d- -f2)
