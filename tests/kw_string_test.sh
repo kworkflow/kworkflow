@@ -120,6 +120,10 @@ function str_strip_Test
 
   output=$(str_strip 'lala xpto')
   assert_equals_helper 'Did not drop extra spaces' "$LINENO" "$expected_result" "$output"
+
+  output=$(str_strip "            Let's try to check things with contractions     ")
+  expected_result="Let's try to check things with contractions"
+  assert_equals_helper 'Did not drop extra spaces' "$LINENO" "$expected_result" "$output"
 }
 
 invoke_shunit

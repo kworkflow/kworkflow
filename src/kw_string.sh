@@ -66,5 +66,9 @@ function str_trim()
 # Return string without spaces in the beginning and the end.
 function str_strip()
 {
-  echo "$1" | xargs
+  local str
+
+  str="$*"
+
+  echo "$str" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
