@@ -19,6 +19,7 @@
 
 include "$KW_LIB_DIR/vm.sh" # It includes kw_config_loader.sh and kwlib.sh
 include "$KW_LIB_DIR/remote.sh"
+include "$KW_LIB_DIR/signal_manager.sh"
 
 # Hash containing user options
 declare -gA options_values
@@ -85,8 +86,19 @@ function get_kernel_version()
 # specialized cleanup functions.
 function cleanup()
 {
-  say "Cleanup deploy files"
+  say 'Cleanup deploy files'
   cleanup_after_deploy
+}
+
+function interrupt_cleanup()
+{
+  say 'Cleaning up...'
+  if [[ -v options_values['REMOTE'] ]]; then
+    cleanup_after_deploy 'SILENT'
+  fi
+
+  say 'Exiting...'
+  exit 0
 }
 
 # When kw deploy a new kernel it creates temporary files to be used for moving
@@ -487,6 +499,8 @@ function kernel_deploy()
     complain "Execute this command in a kernel tree."
     exit 125 # ECANCELED
   fi
+
+  signal_manager 'interrupt_cleanup' || warning 'Was not able to set signal handler'
 
   if [[ "$target" == "$VM_TARGET" ]]; then
     vm_mount
