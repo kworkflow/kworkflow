@@ -5,21 +5,6 @@ include './src/kwlib.sh'
 include './src/kw_config_loader.sh'
 include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest "get_remote_info_Test"
-  suite_addTest "cmd_remote_Test"
-  suite_addTest "cp_host2remote_Test"
-  suite_addTest "which_distro_Test"
-  suite_addTest "preapre_host_deploy_dir_Test"
-  suite_addTest "prepare_remote_dir_Test"
-  suite_addTest "generate_tarball_Test"
-  suite_addTest "kw_ssh_check_fail_cases_Test"
-  suite_addTest "kw_ssh_basic_Test"
-  suite_addTest "kw_ssh_command_Test"
-  suite_addTest "kw_ssh_script_Test"
-}
-
 function which_distro_mock()
 {
   echo "debian"
@@ -36,10 +21,24 @@ function tearDownMockFunctions()
   unalias which_distro
 }
 
-FAKE_KW="tests/.tmp"
 
 function oneTimeSetUp()
 {
+  FAKE_KW="$SHUNIT_TMPDIR/fake_kw"
+  TEST_PATH="$SHUNIT_TMPDIR/test_path"
+
+  mkdir -p "$FAKE_KW"
+  mkdir -p "$TEST_PATH"
+
+  local -r current_path="$PWD"
+
+  cp -f tests/samples/kworkflow.config "$TEST_PATH"
+  cp -f tests/samples/dmesg "$TEST_PATH"
+
+  cd "$TEST_PATH"
+  load_configuration
+  cd "$current_path"
+
   local -r kernel_install_path="kernel_install"
 
   export KW_CACHE_DIR="$FAKE_KW"
@@ -55,10 +54,9 @@ function oneTimeSetUp()
 function oneTimeTearDown()
 {
   unset KW_CACHE_DIR
-  rm -rf "$FAKE_KW"
 }
 
-function get_remote_info_Test()
+function test_get_remote_info()
 {
   local ID
 
@@ -92,7 +90,7 @@ function get_remote_info_Test()
   assertEquals "($ID) Expected 127.0.0.1:3333" "127.0.0.1:3333" "$output"
 }
 
-function cmd_remote_Test()
+function test_cmd_remote()
 {
   local command="ls -lah"
   local remote="178.31.38.12"
@@ -127,7 +125,7 @@ function cmd_remote_Test()
   assertEquals "cmd_remotely should not work ($ID)" "$expected_command" "$output"
 }
 
-function cp_host2remote_Test()
+function test_cp_host2remote()
 {
   local src="/any/path"
   local dst="/any/path/2"
@@ -177,7 +175,7 @@ function cp_host2remote_Test()
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 }
 
-function which_distro_Test()
+function test_which_distro()
 {
   local cmd="cat /etc/os-release | grep -w ID | cut -d = -f 2"
   local remote="172.16.224.1"
@@ -207,7 +205,7 @@ function which_distro_Test()
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 }
 
-function preapre_host_deploy_dir_Test()
+function test_preapre_host_deploy_dir()
 {
   local ID
 
@@ -232,7 +230,7 @@ function preapre_host_deploy_dir_Test()
   oneTimeSetUp
 }
 
-function prepare_remote_dir_Test()
+function test_prepare_remote_dir()
 {
   local cmd="cat /etc/os-release | grep -w ID | cut -d = -f 2"
   local remote="172.16.224.1"
@@ -244,9 +242,9 @@ function prepare_remote_dir_Test()
 
   declare -a expected_cmd_sequence=(
     "ssh -p 2222 root@172.16.224.1 \"mkdir -p /root/kw_deploy\""
-    "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh"
-    "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/"
-    "rsync -e 'ssh -p 2222' -La tests/.tmp/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/"
+    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh"
+    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/"
+    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/"
   )
 
   setupMockFunctions
@@ -261,7 +259,7 @@ function prepare_remote_dir_Test()
   tearDownMockFunctions
 }
 
-function generate_tarball_Test()
+function test_generate_tarball()
 {
   local kernel_release="test"
   local tarball_name="$kernel_release.tar"
@@ -301,35 +299,11 @@ function generate_tarball_Test()
 
 INVALID_ARG="Invalid arguments"
 NO_SUCH_FILE="No such file"
-TEST_PATH="tests/.tmp"
 
 SSH_OK="ssh -p 3333 127.0.0.1"
 
-function setupSsh()
+function test_kw_ssh_check_fail_cases()
 {
-  local -r current_path=$PWD
-
-  rm -rf $TEST_PATH
-
-  mkdir -p $TEST_PATH
-
-  cp -f tests/samples/kworkflow.config $TEST_PATH
-  cp -f tests/samples/dmesg $TEST_PATH
-
-  cd $TEST_PATH
-  load_configuration
-  cd $current_path
-}
-
-function tearDownSsh()
-{
-  rm -rf $TEST_PATH
-}
-
-function kw_ssh_check_fail_cases_Test()
-{
-  setupSsh
-
   local args="--lala"
   local ret
 
@@ -359,25 +333,17 @@ function kw_ssh_check_fail_cases_Test()
   args="--script="
   ret=$(kw_ssh $args)
   assertTrue "We expected a substring \"$NO_SUCH_FILE\", but we got \"$ret\"" '[[ $ret =~ "$NO_SUCH_FILE" ]]'
-
-  tearDownSsh
 }
 
-function kw_ssh_basic_Test()
+function test_kw_ssh_basic()
 {
-  setupSsh
-
   ret=$(kw_ssh 2>&1)
 
   assertTrue "We expected a substring \"$SSH_OK\", but we got \"$ret\"" '[[ $ret =~ "$SSH_OK" ]]'
-
-  tearDownSsh
 }
 
-function kw_ssh_command_Test()
+function test_kw_ssh_command()
 {
-  setupSsh
-
   ret=$(kw_ssh -c="pwd" 2>&1)
   msg="$SSH_OK pwd"
   assertTrue "We expected a substring \"$msg\", but we got \"$ret\"" '[[ $ret =~ "$msg" ]]'
@@ -385,14 +351,10 @@ function kw_ssh_command_Test()
   ret=$(kw_ssh --command="ls /etc/" 2>&1)
   msg="$SSH_OK ls /etc/"
   assertTrue "We expected a substring \"$msg\", but we got \"$ret\"" '[[ $ret =~ "$msg" ]]'
-
-  tearDownSsh
 }
 
-function kw_ssh_script_Test()
+function test_kw_ssh_script()
 {
-  setupSsh
-
   ret=$(kw_ssh -s="/not/a/valid/path/xpto" 2>&1)
   msg="$NO_SUCH_FILE: \"/not/a/valid/path/xpto\""
   assertTrue "We expected a substring \"$msg\", but we got \"$ret\"" '[[ $ret =~ "$msg" ]]'
@@ -400,8 +362,6 @@ function kw_ssh_script_Test()
   ret=$(kw_ssh -s="$TEST_PATH/dmesg" 2>&1)
   msg="$SSH_OK \"bash -s\" -- < $TEST_PATH/dmesg"
   assertTrue "We expected a substring \"$msg\", but we got \"$ret\"" '[[ $ret =~ "$msg" ]]'
-
-  tearDownSsh
 }
 
 invoke_shunit
