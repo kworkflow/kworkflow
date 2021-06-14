@@ -298,6 +298,8 @@ function pomodoro_parser()
   local timer=0
   local build_tag=0
   local build_description=0
+  local tag_dash=0
+  local description_dash=0
 
   if [[ "$1" == -h ]]; then
     pomodoro_help
@@ -312,6 +314,8 @@ function pomodoro_parser()
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
+      [[ "$build_tag" == 1 ]] && tag_dash=1
+      [[ "$build_description" == 1 ]] && description_dash=1
       build_tag=0
       build_description=0
 
@@ -328,14 +332,28 @@ function pomodoro_parser()
         --tag | -g)
           options_values['TAG']=''
           build_tag=1
+          tag_dash=0
+          description_dash=0
           continue
           ;;
         --description | -d)
           options_values['DESCRIPTION']=''
           build_description=1
+          tag_dash=0
+          description_dash=0
           continue
           ;;
         *)
+          if [[ "$tag_dash" == 1 ]]; then
+            options_values['TAG']="${options_values['TAG']} $option"
+            build_tag=1
+            continue
+          fi
+          if [[ "$description_dash" == 1 ]]; then
+            options_values['DESCRIPTION']="${options_values['DESCRIPTION']} $option"
+            build_description=1
+            continue
+          fi
           complain "Invalid option: $option"
           pomodoro_help
           exit 22 # EINVAL

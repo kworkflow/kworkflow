@@ -186,6 +186,18 @@ function test_pomodoro_parser()
   str_sample_spaces='            This is just a simple description    '
   pomodoro_parser "--tag Extra space -d $str_sample_spaces"
   assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
+
+  apostrophe="Let's try something with apostrophe (I'm, you're, we're)"
+  pomodoro_parser "--tag apostrophe -d $apostrophe"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$apostrophe"
+
+  str_sample='Does --comment --lal -u -x xpto-bla and xpto--blablbal'
+  pomodoro_parser "--tag Extra space -d $str_sample"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
+
+  str_sample='--com --lal -u -x xpo-la x--bl'
+  pomodoro_parser "--tag $str_sample"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['TAG']}" "$str_sample"
 }
 
 function test_setup_pomodoro()
