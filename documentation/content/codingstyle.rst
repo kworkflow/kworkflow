@@ -263,6 +263,17 @@ ideally, we want it in the same file. For example, you should find details on
 using the `build` option in the mk.sh, and for `configm` in the file
 config_manager.sh.
 
+Handling Signals
+----------------
+It is natural for commands to set global variables or to create temporary files
+during their execution. However, all commands should expect to receive signals
+and be able to properly handle them. If you implement a new feature, take some
+time to check if it pollutes the environment. If it does, make sure to handle
+it's de-pollution upon receiving a SIGINT or a SIGTERM: an interrupted command
+should always leave the environment in the same state as it was prior to its
+invocation. Convenience functions for this purpose (setting and resetting
+handlers for arbitrary signals) are implemented in `src/signal_manager`.
+
 Conclusion
 ----------
 

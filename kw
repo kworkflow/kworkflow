@@ -33,10 +33,14 @@ export KWORKFLOW
 # The include function (sourced from this file) should always be used for file sourcing.
 . "$KW_LIB_DIR/kw_include.sh" --source-only
 
+include "$KW_LIB_DIR"/signal_manager.sh
+
 function kw()
 {
   action="$1"
   shift
+
+  signal_manager || warning 'Was not able to set signal handler'
 
   mkdir -p "$KW_CACHE_DIR"
 
