@@ -48,9 +48,9 @@ development cycle.
     One of our main goals is to keep kw stable. In this sense, **if you send a
     new patch do not forget to add tests**. You might also want to fork `kw at
     github <https://github.com/kworkflow/kworkflow/>`_ and allow
-    `travis-ci <https://www.travis-ci.com/github/kworkflow/kworkflow/branches>`_
-    builds for it, to automatically run the test in the cloud. If you want to
-    know more about tests, take a look at `About Tests` page.
+    `travis-ci <https://travis-ci.org/>`_ builds for it, to automatically run
+    the test in the cloud. If you want to know more about tests, take a look at
+    `About Tests` page.
 
 Commit Messages
 ---------------

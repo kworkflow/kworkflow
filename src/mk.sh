@@ -44,6 +44,7 @@ function modules_install_to()
 
   local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   set +e
+  cmd_manager "$flag" "$cmd"
 }
 
 # Get the kernel release based on the command kernel release.

@@ -35,6 +35,6 @@ the external files, you can use::
    i.e. the root of the repository. Otherwise, it may not execute properly.
 
 Kw is already prepared to run tests, build the documentation and check the
-installation in `travis-ci <https://travis-ci.com/>`_ . To have it continuously
+installation in `travis-ci <https://travis-ci.org/>`_ . To have it continuously
 test your fork of kw on GitHub, upon pushes and pull requests, simply enable
-the travis-ci builds for it at https://travis-ci.com/account/repositories.
+the travis-ci builds for it at https://travis-ci.org/account/repositories.
