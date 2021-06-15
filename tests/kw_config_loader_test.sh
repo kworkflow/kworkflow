@@ -97,7 +97,7 @@ function test_parse_configuration_standard_config()
     [ssh_port]="22"
     [mount_point]="/home/USERKW/p/mount"
     [alert]="n"
-    [sound_alert_command]="paplay SOUNDPATH/complete.wav"
+    [sound_alert_command]="paplay SOUNDPATH/bell.wav"
     [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\\\"\$COMMAND\\\\\" completed!\""
     [default_deploy_target]="vm"
     [reboot_after_deploy]="no"
