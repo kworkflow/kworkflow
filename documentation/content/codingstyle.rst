@@ -2,6 +2,8 @@
   kw coding style
 =====================
 
+.. _coding-style:
+
 .. contents::
    :depth: 1
    :local:
@@ -19,6 +21,7 @@ style, for this reason, we copied-and-pasted many pieces from both projects.
 .. _Git: https://github.com/git/git/blob/master/Documentation/CodingGuidelines#L41
 .. _Linux: https://github.com/torvalds/linux/blob/master/Documentation/process/coding-style.rst
 
+.. _shfmt-label:
 
 shfmt
 _____

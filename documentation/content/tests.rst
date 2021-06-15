@@ -2,6 +2,8 @@
   About Tests
 ===============
 
+.. _tests:
+
 Kw's tests rely on `shunit2`. The `run_tests.sh` script automatically detects
 `shunit2` in `$PATH` in case it is installed in your system. Alternatively, you
 can have shunit2 source code in `tests/` (you can clone it from
