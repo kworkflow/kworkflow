@@ -14,6 +14,7 @@ available in the command line interface.
    content/howtocontribute
    content/tests
    content/codingstyle
+   content/developmentworkflow
 
 kw Tutorials
 ============
