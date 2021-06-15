@@ -1,6 +1,6 @@
 <img src="images/kw_logo.png" width="600" alt="kworkflow">
 
-[![Build Status](https://travis-ci.org/kworkflow/kworkflow.svg?branch=master)](https://travis-ci.org/kworkflow/kworkflow)
+[![Build Status](https://www.travis-ci.com/kworkflow/kworkflow.svg?branch=unstable)](https://www.travis-ci.com/kworkflow/kworkflow)
 [![codecov](https://codecov.io/gh/kworkflow/kworkflow/branch/unstable/graph/badge.svg?token=ZQ52EK8VWF)](https://codecov.io/gh/kworkflow/kworkflow)
 # About
 
