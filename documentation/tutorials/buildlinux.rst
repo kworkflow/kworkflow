@@ -1,6 +1,7 @@
 ============================================================
   How to build the Linux kernel for an x86_64 architecture
 ============================================================
+.. _buildlinux:
 
 .. contents::
    :depth: 1
