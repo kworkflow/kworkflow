@@ -26,6 +26,7 @@ Check out our tutorials to see how you can use kw.
    :caption: Tutorials:
 
    tutorials/buildlinux
+   tutorials/setup
 
 kw Man
 ======
