@@ -5,14 +5,6 @@ include './tests/utils.sh'
 
 # TODO: make execute_get_maintainer's tests cover more corner cases?
 
-function suite()
-{
-  suite_addTest "print_files_authors_Test"
-  suite_addTest "print_files_authors_from_dir_Test"
-  suite_addTest "execute_get_maintainer_Test"
-  suite_addTest "execute_get_maintainer_patch_Test"
-}
-
 # The following variables hold the the lines print_files_authors should
 # print when given the file samples/print_file_author_test_dir directory
 # and samples/print_file_author_test_dir/code1.c file, respectively.
@@ -75,19 +67,19 @@ function oneTimeTearDown()
   rm -rf "$FAKE_KERNEL"
 }
 
-function print_files_authors_Test()
+function test_print_files_authors()
 {
   local -r ret=$(print_files_authors "tests/samples/print_file_author_test_dir/code1.c")
   multilineAssertEquals "$ret" "$CORRECT_FILE_MSG"
 }
 
-function print_files_authors_from_dir_Test()
+function test_print_files_authors_from_dir()
 {
   local -r ret=$(print_files_authors "tests/samples/print_file_author_test_dir")
   multilineAssertEquals "$ret" "$CORRECT_DIR_MSG"
 }
 
-function execute_get_maintainer_Test()
+function test_execute_get_maintainer()
 {
   local ret
   local -r original_dir="$PWD"
@@ -111,9 +103,8 @@ function execute_get_maintainer_Test()
   cd "$original_dir"
 }
 
-function execute_get_maintainer_patch_Test()
+function test_execute_get_maintainer_patch()
 {
-
   local original_dir="$PWD"
   cd "$FAKE_KERNEL"
 

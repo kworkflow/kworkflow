@@ -5,11 +5,6 @@
 . ./src/kwio.sh --source-only
 . ./tests/utils.sh --source-only
 
-function suite()
-{
-  suite_addTest 'update_debian_boot_loader_Test'
-}
-
 function setUp()
 {
   rm -rf "$TMP_TEST_DIR"
@@ -23,7 +18,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function update_debian_boot_loader_Test()
+function test_update_debian_boot_loader()
 {
   output=$(update_debian_boot_loader 'xpto' '' 'TEST_MODE')
   cmd=' grub-mkconfig -o /boot/grub/grub.cfg'

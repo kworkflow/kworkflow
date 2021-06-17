@@ -3,11 +3,6 @@
 include './src/init.sh'
 include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest "init_kw_Test"
-}
-
 FAKE_DIR="tests/.tmp"
 FAKE_CONFIG_PATH="$FAKE_DIR/.config"
 
@@ -28,7 +23,7 @@ function tearDown()
   rm -rf "$FAKE_DIR"
 }
 
-function init_kw_Test()
+function test_init_kw()
 {
   local ID
   local kworkflow_content

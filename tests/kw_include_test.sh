@@ -2,21 +2,14 @@
 
 include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest 'include_Test'
-  suite_addTest 'include_twice_Test'
-  suite_addTest 'include_wrong_path_Test'
-}
-
-function include_Test()
+function test_include()
 {
   include ./src/kwio.sh
   output="$KWIO_IMPORTED"
   assertEquals "($LINENO)" 1 "$output"
 }
 
-function include_twice_Test()
+function test_include_twice()
 {
   include ./src/kwlib.sh
   include ./src/kwlib.sh
@@ -24,7 +17,7 @@ function include_twice_Test()
   assertEquals "($LINENO)" 0 "$ret"
 }
 
-function include_wrong_path_Test()
+function test_include_wrong_path()
 {
   output=$(include ./src/batata.sh)
   ret="$?"

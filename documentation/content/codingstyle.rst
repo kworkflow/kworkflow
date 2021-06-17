@@ -213,19 +213,19 @@ Test name
 ---------
 
 Tests are an important part of kw, we only accept new features with tests, and
-we prefer bug fixes that came with tests. For trying to keep the test
+we prefer bug fixes that come with tests. For trying to keep the test
 comprehensible, we adopt the following pattern for naming a test::
 
-    target_function_name_[an_option_description]_Test
+    test_target_function_name_[an_optional_description]
 
-To better illustrate this definition, see the below example::
+To better illustrate this definition, see the example below::
 
-    detect_distro_Test
+    function test_detect_distro()
 
 This function name indicates that we are testing `detect_distro` function.
 Another example::
 
-    save_config_file_check_description_Test
+    function test_save_config_file_check_description()
 
 The function `save_config_file` is tested with a focus on description
 validation.

@@ -3,12 +3,6 @@
 include './tests/utils.sh'
 include './src/vm.sh'
 
-function suite()
-{
-  suite_addTest "vm_mount_Test"
-  suite_addTest "vm_umount_Test"
-}
-
 declare -r test_path="tests/.tmp"
 
 function setUp()
@@ -27,7 +21,7 @@ function tearDown()
   rm -rf "$test_path"
 }
 
-function vm_mount_Test()
+function test_vm_mount()
 {
   local ID
   local mount_point="$test_path/lala"
@@ -82,7 +76,7 @@ function vm_mount_Test()
   tearDown
 }
 
-function vm_umount_Test()
+function test_vm_umount()
 {
   local ID
   local mount_point="/"

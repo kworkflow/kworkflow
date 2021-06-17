@@ -4,16 +4,6 @@ include './src/plugins/subsystems/drm/drm.sh'
 include './src/kwlib.sh'
 include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest "gui_control_Test"
-  suite_addTest "drm_manager_Test"
-  suite_addTest "get_supported_mode_per_connector_Test"
-  #suite_addTest "get_available_connectors_Test"
-  suite_addTest "module_control_Test"
-  suite_addTest "convert_module_info_Test"
-}
-
 function setUp()
 {
   # Create a temporary directory for holding different config file
@@ -36,7 +26,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function drm_manager_Test()
+function test_drm_manager()
 {
   local ID
 
@@ -68,7 +58,7 @@ function drm_manager_Test()
   assertEquals "($ID) Should not accept --vm:" "$?" "22"
 }
 
-function gui_control_Test()
+function test_gui_control()
 {
   local gui_on_cmd='systemctl isolate graphical.target'
   local gui_off_cmd='systemctl isolate multi-user.target'
@@ -135,31 +125,7 @@ function gui_control_Test()
   compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
 }
 
-function get_available_connectors_Test()
-{
-  local ID
-  export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
-
-  declare -a expected_output=(
-    "[local] Card1 supports:"
-    "DP"
-    "DP"
-    "HDMI"
-    "DP"
-    "[local] Card0 supports:"
-    "DP"
-    "DP"
-    "DP"
-    "HDMI"
-    "DVI"
-  )
-
-  ID=1
-  output=$(get_available_connectors 2)
-  compare_command_sequence expected_output[@] "$output" "$ID"
-}
-
-function get_supported_mode_per_connector_Test()
+function test_get_supported_mode_per_connector()
 {
   declare -a expected_output=(
     "Modes per card"
@@ -197,7 +163,7 @@ function get_supported_mode_per_connector_Test()
   compare_command_sequence expected_output[@] "$output" "$ID"
 }
 
-function module_control_Test()
+function test_module_control()
 {
   local ID
   local default_ssh="ssh -p 22 root@localhost"
@@ -252,7 +218,7 @@ function module_control_Test()
 }
 #compare_command_sequence expected_cmd[@] "$output" "$ID"
 
-function convert_module_info_Test()
+function test_convert_module_info()
 {
   local ID
 

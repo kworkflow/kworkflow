@@ -3,13 +3,7 @@
 include './src/diff.sh'
 include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest "diff_side_by_side_Test"
-  suite_addTest "diff_manager_Test"
-}
-
-function diff_side_by_side_Test()
+function test_diff_side_by_side()
 {
   local ID
   local file_1="$SAMPLES_DIR/MAINTAINERS"
@@ -48,7 +42,7 @@ function diff_side_by_side_Test()
 
 }
 
-function diff_manager_Test()
+function test_diff_manager()
 {
   local ID
   local file_1="$SAMPLES_DIR/MAINTAINERS"
