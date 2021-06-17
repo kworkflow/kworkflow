@@ -3,12 +3,7 @@
 include './tests/utils.sh'
 include './src/help.sh'
 
-function suite()
-{
-  suite_addTest "kworkflow_help_Test"
-}
-
-function kworkflow_help_Test()
+function test_kworkflow_help()
 {
   HELP_OUTPUT=$(kworkflow_help | head -n 1)
   [[ $HELP_OUTPUT =~ Usage:\ kw.* ]]

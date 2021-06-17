@@ -6,14 +6,7 @@ include './kw' > /dev/null
 # when imported kw prints the help function and we don´t want
 # to polute our test results, so we redirect its output to /dev/null
 
-function suite()
-{
-  suite_addTest "validate_global_variables_Test"
-  suite_addTest "check_kworkflow_global_variable_Test"
-  suite_addTest 'set_KW_LIB_DIR_in_dev_mode_Test'
-}
-
-function validate_global_variables_Test()
+function test_validate_global_variables()
 {
   VARS=(KWORKFLOW KW_LIB_DIR)
   for v in "${VARS[@]}"; do
@@ -22,7 +15,7 @@ function validate_global_variables_Test()
   done
 }
 
-function check_kworkflow_global_variable_Test()
+function test_check_kworkflow_global_variable()
 {
   VARS=(KWORKFLOW)
   for v in "${VARS[@]}"; do
@@ -31,7 +24,7 @@ function check_kworkflow_global_variable_Test()
   done
 }
 
-function set_KW_LIB_DIR_in_dev_mode_Test()
+function test_set_KW_LIB_DIR_in_dev_mode()
 {
   lib="${KW_LIB_DIR}/kwlib.sh"
   test -f "${lib}" || fail "kwlib.sh not found (${lib} not found)!"

@@ -8,20 +8,6 @@ include './tests/utils.sh'
 # Average: 14
 # Min: 4
 # Max: 9433
-function suite()
-{
-  suite_addTest "statistics_Test"
-  suite_addTest "calculate_average_Test"
-  suite_addTest "calculate_total_of_data_Test"
-  suite_addTest "max_value_Test"
-  suite_addTest "min_value_Test"
-  suite_addTest "basic_data_process_Test"
-  suite_addTest "day_statistics_Test"
-  suite_addTest "week_statistics_Test"
-  suite_addTest "month_statistics_Test"
-  suite_addTest "year_statistics_Test"
-}
-
 function setUp()
 {
   export KW_DATA_DIR='tests/samples'
@@ -54,7 +40,7 @@ function setUp()
   )
 }
 
-function statistics_Test()
+function test_statistics()
 {
   local msg
 
@@ -98,7 +84,7 @@ function statistics_Test()
   assertEquals "($LINENO)" "$msg" "$output"
 }
 
-function calculate_average_Test()
+function test_calculate_average()
 {
   avg=$(calculate_average "10")
   assertEquals "($LINENO)" "10" "$avg"
@@ -107,7 +93,7 @@ function calculate_average_Test()
   assertEquals "($LINENO)" "$pre_avg" "$avg"
 }
 
-function calculate_total_of_data_Test()
+function test_calculate_total_of_data()
 {
   total=$(calculate_total_of_data "1")
   assertEquals "($LINENO)" "1" "$total"
@@ -119,7 +105,7 @@ function calculate_total_of_data_Test()
   assertEquals "($LINENO)" "$pre_total" "$total"
 }
 
-function max_value_Test()
+function test_max_value()
 {
   max=$(max_value "0")
   assertEquals "($LINENO)" "$max" "0"
@@ -131,7 +117,7 @@ function max_value_Test()
   assertEquals "($LINENO)" "$pre_max" "$max"
 }
 
-function min_value_Test()
+function test_min_value()
 {
   min=$(min_value "0" "0")
   assertEquals "($LINENO)" "$min" "0"
@@ -143,20 +129,11 @@ function min_value_Test()
   assertEquals "($LINENO)" "$min" "$pre_min"
 }
 
-function sec_to_formatted_date_Test()
-{
-  formatted_time=$(sec_to_formatted_date "$pre_total_sec")
-  assertEquals "($LINENO)" "$formatted_time" "$pre_formated_sec"
-
-  formatted_time=$(sec_to_formatted_date "")
-  assertEquals "($LINENO)" "$formatted_time" "00:00:00"
-}
-
 # Note: The weekly, monthly, and yearly calculation uses `basic_data_process`.
 # These functions only concatenate the set of values before invoke
 # `basic_data_process`, for this reason, there is no point to validate this
 # operation in the weekly, monthly, and yearly tests.
-function basic_data_process_Test()
+function test_basic_data_process()
 {
   local data
   local day_path="$base_statistics/05/27"
@@ -176,7 +153,7 @@ function basic_data_process_Test()
   assertEquals "($LINENO)" "" "$deploy"
 }
 
-function day_statistics_Test()
+function test_day_statistics()
 {
   local day_data
   local msg1='Currently, kw does not have any data for the present date.'
@@ -192,7 +169,7 @@ function day_statistics_Test()
   compare_command_sequence may_27_2020[@] "$day_data" "$LINENO"
 }
 
-function week_statistics_Test()
+function test_week_statistics()
 {
   local day_data
   local week_data
@@ -207,7 +184,7 @@ function week_statistics_Test()
   compare_command_sequence may_27_2020[@] "$week_data" "$LINENO"
 }
 
-function month_statistics_Test()
+function test_month_statistics()
 {
   local target_month='2019/05'
   local month_data
@@ -226,7 +203,7 @@ function month_statistics_Test()
   rm -rf "$base_statistics/04"
 }
 
-function year_statistics_Test()
+function test_year_statistics()
 {
   local target_year='2019'
   local year_data

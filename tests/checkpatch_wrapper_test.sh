@@ -3,22 +3,10 @@
 include './src/checkpatch_wrapper.sh'
 include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest "warning_Test"
-  suite_addTest "error_Test"
-  suite_addTest "checks_Test"
-  suite_addTest "correct_Test"
-  suite_addTest "invalid_path_Test"
-  suite_addTest "no_kernel_directory_Test"
-  suite_addTest "multiple_files_output_Test"
-  suite_addTest "run_checkpatch_in_a_path_Test"
-  suite_addTest "run_checkpatch_in_a_file_Test"
-}
-
 # Those variables hold the last line execute_checkpatch prints in a code that is
 # correct, has 1 warning, has 1 erros and has 1 check, respectively. The sample
 # codes used in this test are in tests/samples/
+
 function oneTimeSetUp()
 {
   mk_fake_kernel_root "$TMP_TEST_DIR"
@@ -52,27 +40,27 @@ function checkpatch_helper()
   assertTrue "Checkpatch should output: ${!MSG[$type_msg]}" '[[ "$res" =~ "${!MSG[$type_msg]}" ]]'
 }
 
-function warning_Test()
+function test_warning()
 {
   checkpatch_helper 'warning'
 }
 
-function error_Test()
+function test_error()
 {
   checkpatch_helper 'error'
 }
 
-function checks_Test()
+function test_checks()
 {
   checkpatch_helper 'check'
 }
 
-function correct_Test()
+function test_correct()
 {
   checkpatch_helper 'correct'
 }
 
-function invalid_path_Test()
+function test_invalid_path()
 {
   local build_fake_path
   local output
@@ -85,7 +73,7 @@ function invalid_path_Test()
   assertEquals 'We forced an invalid path and we expect an error' '2' "$ret"
 }
 
-function no_kernel_directory_Test()
+function test_no_kernel_directory()
 {
   local sample_one="$SAMPLES_DIR/codestyle_warning.c"
   local output
@@ -101,7 +89,7 @@ function no_kernel_directory_Test()
   oneTimeSetUp
 }
 
-function multiple_files_output_Test()
+function test_multiple_files_output()
 {
   local delimiter="$SEPARATOR"
   local array=()
@@ -122,7 +110,7 @@ function multiple_files_output_Test()
   assertFalse 'We could not find more then two SEPARATOR sequence' '[[ $size -lt "3" ]]'
 }
 
-function run_checkpatch_in_a_path_Test()
+function test_run_checkpatch_in_a_path()
 {
   local cmd="perl scripts/checkpatch.pl --no-tree --color=always --strict"
   local patch_path="$TMP_TEST_DIR/samples/test.patch"
@@ -143,7 +131,7 @@ function run_checkpatch_in_a_path_Test()
   compare_command_sequence expected_cmd[@] "$output" '1'
 }
 
-function run_checkpatch_in_a_file_Test()
+function test_run_checkpatch_in_a_file()
 {
   local cmd="perl scripts/checkpatch.pl --terse --no-tree --color=always --strict  --file"
   local patch_path="$TMP_TEST_DIR/samples/codestyle_correct.c"

@@ -3,17 +3,7 @@
 include './src/kw_string.sh'
 include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest 'chop_Test'
-  suite_addTest 'last_char_Test'
-  suite_addTest 'str_is_a_number_Test'
-  suite_addTest 'str_length_Test'
-  suite_addTest 'str_trim_Test'
-  suite_addTest 'str_strip_Test'
-}
-
-function chop_Test()
+function test_chop()
 {
   local output
   local str_test='1234567'
@@ -28,7 +18,7 @@ function chop_Test()
   assert_equals_helper 'Expected an empty string' "$LINENO" "" "$output"
 }
 
-function last_char_Test()
+function test_last_char()
 {
   local output
   local str_test='kworkflow'
@@ -45,7 +35,7 @@ function last_char_Test()
   assert_equals_helper 'We did not get the last char' "$LINENO" '' "$output"
 }
 
-function str_is_a_number_Test()
+function test_str_is_a_number()
 {
   local output
   local str_test=333
@@ -72,7 +62,7 @@ function str_is_a_number_Test()
 
 }
 
-function str_length_Test
+function test_str_length()
 {
   local output
   local string_sample="let's check the string lenght" # 29
@@ -84,7 +74,7 @@ function str_length_Test
   assert_equals_helper 'Empty string should be 0 length' "$LINENO" 0 "$output"
 }
 
-function str_trim_Test
+function test_str_trim()
 {
   local output
   local string_sample='This is a simple string'
@@ -103,7 +93,7 @@ function str_trim_Test
   assert_equals_helper 'Trim 0 should be empty' "$LINENO" '' "$output"
 }
 
-function str_strip_Test
+function test_str_strip
 {
   local output
   local string_sample='    lala xpto    '

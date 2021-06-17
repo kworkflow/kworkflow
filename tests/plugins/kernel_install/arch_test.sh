@@ -5,12 +5,6 @@
 . ./src/kwio.sh --source-only
 . ./tests/utils.sh --source-only
 
-function suite()
-{
-  suite_addTest 'update_arch_boot_loader_Test'
-  suite_addTest 'generate_arch_temporary_root_file_system_Test'
-}
-
 function setUp()
 {
   rm -rf "$TMP_TEST_DIR"
@@ -23,7 +17,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function update_arch_boot_loader_Test()
+function test_update_arch_boot_loader()
 {
   output=$(update_arch_boot_loader 'xpto' '' 'TEST_MODE')
   cmd=' grub-mkconfig -o /boot/grub/grub.cfg'
@@ -34,7 +28,7 @@ function update_arch_boot_loader_Test()
   assert_equals_helper 'Check local deploy' "$LINENO" "$cmd" "$output"
 }
 
-function generate_arch_temporary_root_file_system_Test()
+function test_generate_arch_temporary_root_file_system()
 {
   local name='xpto'
   local path_prefix=''

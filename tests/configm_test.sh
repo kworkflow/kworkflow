@@ -18,24 +18,6 @@ readonly NAME_2="test_save_2"
 readonly DESCRIPTION_1="This is the first description"
 readonly DESCRIPTION_2="Hi, I'm the second description"
 
-function suite()
-{
-  suite_addTest "execute_config_manager_SAVE_fails_Test"
-  suite_addTest "save_config_file_check_save_failures_Test"
-  suite_addTest "save_config_file_check_directories_creation_Test"
-  suite_addTest "save_config_file_check_saved_config_Test"
-  suite_addTest "save_config_file_check_description_Test"
-  suite_addTest "save_config_file_check_git_save_schema_Test"
-  suite_addTest "save_config_file_check_force_Test"
-  suite_addTest "list_config_check_when_there_is_no_config_Test"
-  suite_addTest "list_config_normal_output_Test"
-  suite_addTest "get_config_with_force_Test"
-  suite_addTest "get_config_Test"
-  suite_addTest "execute_config_manager_get_config_invalid_option_Test"
-  suite_addTest "execute_config_manager_remove_that_should_fail_Test"
-  suite_addTest "remove_config_Test"
-}
-
 function setUp()
 {
   local -r current_path="$PWD"
@@ -56,7 +38,7 @@ function tearDown()
   rm -rf "$TMP_TEST_DIR"
 }
 
-function execute_config_manager_SAVE_fails_Test()
+function test_execute_config_manager_SAVE_fails()
 {
   local msg_prefix=" --save"
 
@@ -88,7 +70,7 @@ function execute_config_manager_SAVE_fails_Test()
   assert_equals_helper "$msg_prefix -f" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
 }
 
-function save_config_file_check_save_failures_Test()
+function test_save_config_file_check_save_failures()
 {
   local current_path="$PWD"
   local ret=0
@@ -108,7 +90,7 @@ function save_config_file_check_save_failures_Test()
   cd "$current_path"
 }
 
-function save_config_file_check_directories_creation_Test()
+function test_save_config_file_check_directories_creation()
 {
   local current_path="$PWD"
 
@@ -124,7 +106,7 @@ function save_config_file_check_directories_creation_Test()
   assertTrue "$LINENO: The configs dir is not available" '[[ -d $configs_path/configs ]]'
 }
 
-function save_config_file_check_saved_config_Test()
+function test_save_config_file_check_saved_config()
 {
   local current_path="$PWD"
   local ret=0
@@ -155,7 +137,7 @@ function save_config_file_check_saved_config_Test()
   assertTrue "$LINENO: $msg" '[[ $tmp = $CONTENT ]]'
 }
 
-function save_config_file_check_description_Test()
+function test_save_config_file_check_description()
 {
   local current_path="$PWD"
   local ret=0
@@ -180,7 +162,7 @@ function save_config_file_check_description_Test()
   assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_2 ]]'
 }
 
-function save_config_file_check_git_save_schema_Test()
+function test_save_config_file_check_git_save_schema()
 {
   local current_path="$PWD"
   local ret=0
@@ -197,7 +179,7 @@ function save_config_file_check_git_save_schema_Test()
   assertTrue "$LINENO: We expected 2 commits, but we got $ret" '[[ $ret = "2" ]]'
 }
 
-function save_config_file_check_force_Test()
+function test_save_config_file_check_force()
 {
   local current_path="$PWD"
   local ret=0
@@ -211,7 +193,7 @@ function save_config_file_check_force_Test()
   assertTrue "$LINENO: We expected no changes" '[[ $ret =~ Warning ]]'
 }
 
-function list_config_check_when_there_is_no_config_Test()
+function test_list_config_check_when_there_is_no_config()
 {
   local current_path="$PWD"
   local ret=0
@@ -222,7 +204,7 @@ function list_config_check_when_there_is_no_config_Test()
   assertTrue "$LINENO: We expected no changes" '[[ $ret =~ $LS_NO_FILES ]]'
 }
 
-function list_config_normal_output_Test()
+function test_list_config_normal_output()
 {
   local current_path="$PWD"
   local config_files_path="$current_path/$TMP_TEST_DIR"
@@ -256,7 +238,7 @@ function list_config_normal_output_Test()
   assertTrue "$LINENO:$msg" '[[ $ret =~ $DESCRIPTION_2 ]]'
 }
 
-function execute_config_manager_get_config_invalid_option_Test()
+function test_execute_config_manager_get_config_invalid_option()
 {
   local msg_prefix=" --get"
 
@@ -270,7 +252,7 @@ function execute_config_manager_get_config_invalid_option_Test()
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function get_config_Test()
+function test_get_config()
 {
   local current_path="$PWD"
   local config_files_path="$current_path/$TMP_TEST_DIR"
@@ -303,7 +285,7 @@ function get_config_Test()
   assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 }
 
-function get_config_with_force_Test()
+function test_get_config_with_force()
 {
   local current_path="$PWD"
   local config_files_path="$current_path/$TMP_TEST_DIR"
@@ -333,7 +315,7 @@ function get_config_with_force_Test()
   assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 }
 
-function execute_config_manager_remove_that_should_fail_Test()
+function test_execute_config_manager_remove_that_should_fail()
 {
   local msg_prefix=" -rm"
 
@@ -347,7 +329,7 @@ function execute_config_manager_remove_that_should_fail_Test()
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function remove_config_Test()
+function test_remove_config()
 {
   local current_path="$PWD"
   local ret=0

@@ -3,22 +3,6 @@
 include './src/mk.sh'
 include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest "build_info_Test"
-  suite_addTest "mk_build_Test"
-  suite_addTest "kernel_deploy_Test"
-  suite_addTest "modules_install_to_Test"
-  suite_addTest "kernel_install_Test"
-  suite_addTest "kernel_install_x86_64_Test"
-  suite_addTest "kernel_modules_Test"
-  suite_addTest "kernel_modules_local_Test"
-  suite_addTest "kernel_install_local_Test"
-  suite_addTest "mk_list_remote_kernels_Test"
-  suite_addTest "mk_kernel_uninstall_Test"
-  suite_addTest "cleanup_after_deploy_Test"
-}
-
 FAKE_KERNEL="tests/.tmp"
 
 # Some of the functions invoked by kw need to be mocked; otherwise, we cannot
@@ -128,7 +112,7 @@ function test_expected_string()
   assertEquals "$msg" "$target" "$expected"
 }
 
-function mk_build_Test()
+function test_mk_build()
 {
   local ID
   local expected_result
@@ -178,7 +162,7 @@ function mk_build_Test()
 #
 # Output sequence of kernel_deploy in the TEST_MODE:
 #   $reboot $modules $target $remote $single_line $list"
-function kernel_deploy_Test()
+function test_kernel_deploy()
 {
   local ID
   local original="$PWD"
@@ -273,7 +257,7 @@ function kernel_deploy_Test()
   cd "$original"
 }
 
-function modules_install_to_Test()
+function test_modules_install_to()
 {
   local ID
   local original="$PWD"
@@ -293,7 +277,7 @@ function modules_install_to_Test()
   cd "$original"
 }
 
-function kernel_install_Test()
+function test_kernel_install()
 {
   local name="test"
   local original="$PWD"
@@ -359,7 +343,7 @@ function kernel_install_Test()
   tearDown
 }
 
-function kernel_install_x86_64_Test()
+function test_kernel_install_x86_64()
 {
   local name="test"
   local original="$PWD"
@@ -414,7 +398,7 @@ function kernel_install_x86_64_Test()
   cd "$original"
 }
 
-function kernel_modules_Test()
+function test_kernel_modules()
 {
   local count=0
   local original="$PWD"
@@ -490,7 +474,7 @@ function kernel_modules_Test()
   cd "$original"
 }
 
-function kernel_modules_local_Test()
+function test_kernel_modules_local()
 {
   local ID
   local original="$PWD"
@@ -503,7 +487,7 @@ function kernel_modules_local_Test()
   cd "$original"
 }
 
-function kernel_install_local_Test()
+function test_kernel_install_local()
 {
   local count=0
   local original="$PWD"
@@ -544,7 +528,7 @@ function kernel_install_local_Test()
 # by checking the expected command sequence; It is important to highlight that
 # we are not testing the actual kernel list code, this part is validated on
 # another test file.
-function mk_list_remote_kernels_Test()
+function test_mk_list_remote_kernels()
 {
   local count=0
   local original="$PWD"
@@ -587,7 +571,7 @@ function mk_list_remote_kernels_Test()
   cd "$original"
 }
 
-function mk_kernel_uninstall_Test()
+function test_mk_kernel_uninstall()
 {
   local count=0
   local original="$PWD"
@@ -646,7 +630,7 @@ function mk_kernel_uninstall_Test()
   cd "$original"
 }
 
-function cleanup_after_deploy_Test()
+function test_cleanup_after_deploy()
 {
   local output=""
   local cmd_remote="rm -rf $test_path/$LOCAL_TO_DEPLOY_DIR/*"
@@ -665,7 +649,7 @@ function cleanup_after_deploy_Test()
   done <<< "$output"
 }
 
-function build_info_Test()
+function test_build_info()
 {
   local original="$PWD"
   local release='5.4.0-rc7-test'

@@ -3,15 +3,6 @@
 include './tests/utils.sh'
 include './src/explore.sh'
 
-function suite()
-{
-  suite_addTest "explore_files_under_git_repo_Test"
-  suite_addTest "explore_git_log_Test"
-  suite_addTest "explore_parser_Test"
-  suite_addTest "explore_grep_Test"
-  suite_addTest "explore_git_Test"
-}
-
 declare -r test_path="tests/.tmp"
 
 # Note: these file names came from tests/samples/
@@ -50,7 +41,7 @@ function tearDown()
   rm -rf "$test_path"
 }
 
-function explore_files_under_git_repo_Test()
+function test_explore_files_under_git_repo()
 {
   local ID
   local MSG_OUT
@@ -92,7 +83,7 @@ function explore_files_under_git_repo_Test()
   cd "$current_path"
 }
 
-function explore_git_log_Test()
+function test_explore_git_log()
 {
   local ID
   local file_name
@@ -110,7 +101,7 @@ function explore_git_log_Test()
   cd "$current_path"
 }
 
-function explore_grep_Test()
+function test_explore_grep()
 {
   local ID
   local expected_result
@@ -130,7 +121,7 @@ function explore_grep_Test()
   cd "$current_path"
 }
 
-function explore_git_Test()
+function test_explore_git()
 {
   local ID
   local expected_result
@@ -158,7 +149,7 @@ function explore_git_Test()
   cd "$current_path"
 }
 
-function explore_parser_Test()
+function test_explore_parser()
 {
   local ID
 
