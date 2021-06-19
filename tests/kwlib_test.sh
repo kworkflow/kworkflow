@@ -36,7 +36,10 @@ function setupFakeKernelRepo()
   # dir is also created inside $SHUNIT_TMPDIR so that get_maintainer.pl thinks
   # it is a git repo. This is done in order to avoid some warnings that
   # get_maintainer.pl prints when no .git is found.
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   touch "COPYING"
   touch "CREDITS"
   touch "Kbuild"
@@ -53,7 +56,10 @@ function setupFakeKernelRepo()
   mkdir -p "lib"
   mkdir -p "scripts"
   mkdir -p ".git"
-  cd "$ORIGINAL_DIR" || fail ''
+  cd "$ORIGINAL_DIR" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
   cp -f tests/samples/MAINTAINERS "$SHUNIT_TMPDIR/MAINTAINERS"
   cp -f tests/external/get_maintainer.pl "$SHUNIT_TMPDIR/scripts/"
 }
@@ -61,7 +67,10 @@ function setupFakeKernelRepo()
 function tearDown()
 {
   rm -rf "$FAKE_STATISTICS_PATH"
-  cd "$ORIGINAL_DIR" || fail 'Was not able to move back to original directory'
+  cd "$ORIGINAL_DIR" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
 }
 
 function test_is_kernel_root()
@@ -75,7 +84,10 @@ function test_is_kernel_root()
 function test_cmd_manager_check_silent_option()
 {
   setupFakeKernelRepo
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(cmd_manager SILENT ls)
 
   assertFalse "We used SILENT mode, we should not find ls" '[[ $ret =~ ls ]]'
@@ -96,7 +108,10 @@ function test_cmd_manager_check_silent_option()
 function test_cmdManagerSAY_COMPLAIN_WARNING_SUCCESS()
 {
   setupFakeKernelRepo
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(cmd_manager ls)
 
   assertTrue "We expected to find the ls command" '[[ $ret =~ ls ]]'

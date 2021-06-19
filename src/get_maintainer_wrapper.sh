@@ -146,9 +146,9 @@ function execute_get_maintainer()
     return 1
   fi
 
-  cd "$kernel_root"
+  cd "$kernel_root" || exit_msg 'It was not possible to move to kernel root dir'
   local -r script_output="$(eval perl "$script" "$script_options" "$FILE_OR_DIR")"
-  cd "$original_working_dir"
+  cd "$original_working_dir" || exit_msg 'It was not possible to move back from kernel dir'
 
   say "$SEPARATOR"
   if "$update_patch"; then
