@@ -2,7 +2,7 @@
 
 include './src/plugins/subsystems/drm/drm.sh'
 include './src/kwlib.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 function suite()
 {

@@ -3,7 +3,7 @@
 include './src/remote.sh'
 include './src/kwlib.sh'
 include './src/kw_config_loader.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 function suite()
 {

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/get_maintainer_wrapper.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 # TODO: make execute_get_maintainer's tests cover more corner cases?
 

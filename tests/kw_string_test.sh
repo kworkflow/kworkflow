@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/kw_string.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 function suite()
 {

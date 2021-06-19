@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/mk.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 function suite()
 {

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './tests/utils'
+include './tests/utils.sh'
 include './src/kwio.sh'
 include './src/kwlib.sh'
 
