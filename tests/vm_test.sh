@@ -37,7 +37,10 @@ function test_vm_mount()
   tearDown
   setUp
 
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ID=1
   output=$(vm_mount "TEST_MODE")
@@ -65,7 +68,10 @@ function test_vm_mount()
   output=$(vm_mount "TEST_MODE" "" "$mount_point")
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   tearDown
 }
@@ -89,7 +95,10 @@ function test_vm_umount()
     "$guestmount_cmd"
   )
 
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ID=1
   output=$(vm_umount "TEST_MODE")
@@ -106,7 +115,10 @@ function test_vm_umount()
   output=$(vm_umount "TEST_MODE" "" "$mount_point")
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit

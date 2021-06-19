@@ -12,7 +12,10 @@ function oneTimeSetUp()
 
 function setUp()
 {
-  cd "$SHUNIT_TMPDIR" || fail "($LINENO): Was not able to cd into temporary directory"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO): It was not possible to cd into temporary directory"
+    return
+  }
 }
 
 function write_to_file()

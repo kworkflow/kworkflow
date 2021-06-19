@@ -76,12 +76,12 @@ function execute_checkpatch()
       continue
     fi
 
-    cd "$kernel_root"
+    cd "$kernel_root" || exit_msg 'It was not possible to move to kernel root dir'
 
     cmd_manager "$flag" "$cmd_script $file"
     [[ "$?" != 0 ]] && say "$SEPARATOR"
 
-    cd "$original_working_dir"
+    cd "$original_working_dir" || exit_msg 'It was not possible to move back from kernel dir'
   done
 }
 

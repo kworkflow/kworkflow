@@ -34,9 +34,15 @@ function oneTimeSetUp()
   cp -f tests/samples/kworkflow.config "$TEST_PATH"
   cp -f tests/samples/dmesg "$TEST_PATH"
 
-  cd "$TEST_PATH" || fail 'Was not able to move to temporary directory'
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   load_configuration
-  cd "$current_path" || fail 'Was not able return to original directory'
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible return to original directory"
+    return
+  }
 
   local -r kernel_install_path="kernel_install"
 

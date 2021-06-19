@@ -36,21 +36,22 @@ setUp()
 {
   # In this case we actually want to exit, since all tests below rely on
   # being in a kernel root
-  cd "$FAKE_KERNEL" ||
-    {
-      fail 'Was not able to move into fake kernel directory'
-      exit
-    }
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move into fake kernel directory"
+    return
+  }
 }
 
 tearDown()
 {
-  cd "$original_dir" || fail 'Was not able to move back to original directory'
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
 }
 
 function test_kernel_build()
 {
-  local ID
   local expected_result
 
   output=$(kernel_build 'TEST_MODE' '--menu')
@@ -69,11 +70,10 @@ function test_kernel_build()
   expected_result="make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
   assertEquals "($LINENO)" "$expected_result" "${output}"
 
-  cd "$original_dir" ||
-    {
-      fail 'Was not able to move back to original directory'
-      return
-    }
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
 
   output=$(kernel_build 'TEST_MODE')
   ret="$?"
@@ -83,11 +83,10 @@ function test_kernel_build()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
   parse_configuration "$FAKE_KERNEL/kworkflow.config"
 
-  cd "$FAKE_KERNEL" ||
-    {
-      fail 'Was not able to move into temporary directory'
-      return
-    }
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move into temporary directory"
+    return
+  }
 
   output=$(kernel_build 'TEST_MODE' | head -1) # Remove statistics output
   expected_result="make -j$PARALLEL_CORES ARCH=x86_64 "

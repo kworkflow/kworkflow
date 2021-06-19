@@ -123,7 +123,10 @@ function test_do_uninstall_cmd_sequence()
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 
   # Good sequence
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   mkdir -p "$prefix"
   mk_fake_remote_system "$prefix" "$target"
 
@@ -160,7 +163,10 @@ function test_do_uninstall_cmd_sequence()
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 
-  cd "$TEST_ROOT_PATH"
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_install_modules()
@@ -342,7 +348,10 @@ function test_install_kernel_vm()
     'update_debian_boot_loader_mock'
   )
 
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   shopt -s expand_aliases
   alias findmnt='findmnt_mock'
   alias vm_umount='vm_umount'
@@ -350,7 +359,10 @@ function test_install_kernel_vm()
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 
-  cd "$TEST_ROOT_PATH"
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit

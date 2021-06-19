@@ -15,7 +15,10 @@ function setUp()
 {
   local -r current_path="$PWD"
 
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   # Setup git repository for test
   git init &> /dev/null
 
@@ -28,7 +31,10 @@ function setUp()
 
   cp "$current_path/tests/samples/grep_check.c" .git
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function tearDown()
@@ -48,7 +54,10 @@ function test_explore_files_under_git_repo()
   output=$(explore)
   assertEquals "($ID) - Expected an error message." "$MSG_OUT" "$output"
 
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ID=2
   MSG_OUT="camelCase(void)"
@@ -76,7 +85,10 @@ function test_explore_files_under_git_repo()
   output=$(explore "GNU grep" | cut -d: -f1)
   assertEquals "($ID)" "grep_check.c" "$output"
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_explore_git_log()
@@ -86,7 +98,10 @@ function test_explore_git_log()
   local commit_msg
   local -r current_path="$PWD"
 
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ID=1
   commit_msg="Commit number 2"
@@ -94,7 +109,10 @@ function test_explore_git_log()
   output=$(explore --log "$commit_msg" | grep "$commit_msg" | awk '{print $1, $2, $3}')
   assertEquals "($ID)" "$commit_msg" "$output"
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_explore_grep()
@@ -103,7 +121,10 @@ function test_explore_grep()
   local expected_result
   local -r current_path="$PWD"
 
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ID=1
   output=$(explore --grep "GNU grep" | cut -d/ -f2)
@@ -114,7 +135,10 @@ function test_explore_grep()
   expected_result="grep --color -nrI . -e \"GNU grep\""
   assertEquals "($ID)" "$expected_result" "$output"
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_explore_git()
@@ -123,7 +147,10 @@ function test_explore_git()
   local expected_result
   local -r current_path="$PWD"
 
-  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ID=1
   output=$(explore --all "GNU grep" "." "TEST_MODE")
@@ -142,7 +169,10 @@ function test_explore_git()
   output=$(explore --all "GNU grep" | cut -d: -f1)
   assertEquals "($ID)" "grep_check.c" "$output"
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_explore_parser()

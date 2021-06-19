@@ -300,7 +300,7 @@ function month_statistics()
   fi
 
   current_path=$(pwd)
-  cd "$month_path" || exit
+  cd "$month_path" || exit_msg 'It was not possible to move to month dir'
   shopt -s nullglob
   for day in *; do
     all_file_data=$(cat "$day")
@@ -308,7 +308,7 @@ function month_statistics()
 
     all_data="${all_data}${all_file_data}\n"
   done
-  cd "$current_path" || exit
+  cd "$current_path" || exit_msg 'It was not possible to move back from month dir'
 
   if [[ -z "$all_data" ]]; then
     say "Sorry, kw does not have any record for $month"

@@ -72,9 +72,15 @@ function test_parse_configuration_output()
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"
 
-  pushd "$TMP_DIR" > /dev/null
+  pushd "$TMP_DIR" > /dev/null || {
+    fail "($LINENO) It was not possible to pushd into temp directory"
+    return
+  }
   parse_configuration "$PWD/kworkflow.config"
-  popd > /dev/null
+  popd > /dev/null || {
+    fail "($LINENO) It was not possible to popd from temp directory"
+    return
+  }
 
   assertConfigurations configurations expected_configurations
 

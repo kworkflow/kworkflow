@@ -115,7 +115,10 @@ function test_kernel_deploy()
   local ID
   local original="$PWD"
 
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   # From kworkflow.config file we expect 0 0 1 127.0.0.1:3333 0 0
   ID=1
@@ -202,7 +205,10 @@ function test_kernel_deploy()
   expected_result="$?"
   assertEquals "($ID) No config:" "$expected_result" "22"
 
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_modules_install_to()
@@ -213,7 +219,10 @@ function test_modules_install_to()
   # Copy test.preset to remote
   local make_install_cmd="make INSTALL_MOD_PATH=$test_path modules_install"
 
-  cd "$test_path"
+  cd "$test_path" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ID=1
   output=$(modules_install_to "$test_path" "TEST_MODE")
@@ -222,7 +231,10 @@ function test_modules_install_to()
     fail "$ID - Expected \"$output\" to be \"$make_install_cmd\""
   fi
 
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_kernel_install()
@@ -255,7 +267,10 @@ function test_kernel_install()
     "$cmd_deploy_image"
   )
 
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
@@ -278,12 +293,21 @@ function test_kernel_install()
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
   # We want to test an corner case described by the absence of mkinitcpio
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
   tearDown
   setUp "no_mkinitcpio"
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
   assertTrue "The mkinit file was not created" '[[ -f "$preset_file" ]]'
@@ -306,11 +330,17 @@ function test_kernel_install_x86_64()
   local deploy_params="$name debian bzImage $reboot x86_64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
 
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
   configurations=()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
   parse_configuration "$FAKE_KERNEL/kworkflow.config"
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   # For this test we expected three steps:
   # 1. Copy preset file (cmd_preset_remote)
@@ -343,7 +373,10 @@ function test_kernel_install_x86_64()
   assertEquals "($LINENO): " "$output" "$expected_msg"
   assert_equals_helper "Could not find a valid image" "$LINENO" "$expected_msg" "$output"
 
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_kernel_modules()
@@ -396,7 +429,10 @@ function test_kernel_modules()
     "$exec_module_install"
   )
 
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   setupRemote
 
@@ -419,7 +455,10 @@ function test_kernel_modules()
   expected_output="sudo -E make modules_install"
   assertEquals "$ID: " "$output" "$expected_output"
 
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_kernel_modules_local()
@@ -428,11 +467,17 @@ function test_kernel_modules_local()
   local original="$PWD"
   local cmd="sudo -E make modules_install"
 
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ID=1
   output=$(modules_install "TEST_MODE" "2")
   assertFalse "$ID - Expected $output to be $cmd" '[[ "$cmd" != "$output" ]]'
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_kernel_install_local()
@@ -458,7 +503,10 @@ function test_kernel_install_local()
   # we have to update KW_PLUGINS_DIR for this test for making sure that we use a
   # real plugin.
   export KW_PLUGINS_DIR="../../src/plugins"
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   output=$(kernel_install "1" "test" "TEST_MODE" "2")
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
@@ -469,7 +517,10 @@ function test_kernel_install_local()
   ret="$?"
   assertEquals "($LINENO)" '1' "$ret"
 
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 # This test validates the correct behavior of list kernel on a remote machine
@@ -504,7 +555,10 @@ function test_list_remote_kernels()
     "$remote_list_cmd"
   )
 
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   setupRemote
 
@@ -516,7 +570,10 @@ function test_list_remote_kernels()
     ((count++))
   done <<< "$output"
 
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_kernel_uninstall()
@@ -548,7 +605,10 @@ function test_kernel_uninstall()
     "$kernel_uninstall_cmd"
   )
 
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   setupRemote
 
@@ -575,7 +635,10 @@ function test_kernel_uninstall()
 
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
-  cd "$original"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_cleanup_after_deploy()

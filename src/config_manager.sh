@@ -37,12 +37,12 @@ function save_config_file()
 
   if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
     mkdir -p "$dot_configs_dir"
-    cd "$dot_configs_dir"
+    cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
     git init --quiet
     mkdir -p "$metadata_dir" "$configs_dir"
   fi
 
-  cd "$dot_configs_dir"
+  cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
 
   # Check if the metadata related to .config file already exists
   if [[ ! -f "$metadata_dir/$name" ]]; then
@@ -50,7 +50,7 @@ function save_config_file()
   elif [[ "$force" != 1 ]]; then
     if [[ $(ask_yN "$name already exists. Update?") =~ "0" ]]; then
       complain "Save operation aborted"
-      cd "$original_path"
+      cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
       exit 0
     fi
   fi
@@ -69,7 +69,7 @@ function save_config_file()
     success "Saved $name"
   fi
 
-  cd "$original_path"
+  cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
 }
 
 function list_configs()
@@ -173,10 +173,10 @@ function remove_config()
 
   basic_config_validations "$target" "$force" "Remove" "$msg"
 
-  cd "$dot_configs_dir"
+  cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
   git rm "$configs_dir/$target" "$dot_configs_dir/$metadata_dir/$target" > /dev/null 2>&1
   git commit -m "Removed $target config: $USER - $(date)" > /dev/null 2>&1
-  cd "$original_path"
+  cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
 
   say "The $target config file was removed from kw management"
 

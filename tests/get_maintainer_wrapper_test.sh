@@ -54,12 +54,18 @@ function oneTimeSetUp()
   cp -f tests/samples/MAINTAINERS "$FAKE_KERNEL"/MAINTAINERS
   cp -f tests/external/get_maintainer.pl "$FAKE_KERNEL"/scripts/
   cp -f tests/samples/update_patch_test{_model,}{,2}.patch "$FAKE_KERNEL"/
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   touch fs/some_file
   git init --quiet
   git add fs/some_file
   git commit --quiet -m "Test message"
-  cd "$original_dir"
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function oneTimeTearDown()
@@ -87,26 +93,38 @@ function test_execute_get_maintainer()
   ret="$(execute_get_maintainer tests/.tmp)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret="$(execute_get_maintainer .)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   ret="$(execute_get_maintainer fs)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
 
-  cd fs
+  cd fs || {
+    fail "($LINENO) It was not possible to move to fs directory"
+    return
+  }
   ret="$(execute_get_maintainer ..)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   ret="$(execute_get_maintainer .)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
-  cd "$original_dir"
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_execute_get_maintainer_patch()
 {
   local original_dir="$PWD"
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ret="$(execute_get_maintainer update_patch_test.patch)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
@@ -133,7 +151,10 @@ function test_execute_get_maintainer_patch()
   multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH2_MSG"
   assertFileEquals update_patch_test{,_model}2.patch
 
-  cd "$original_dir"
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit
