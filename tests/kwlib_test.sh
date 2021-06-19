@@ -2,7 +2,7 @@
 
 include './src/get_maintainer_wrapper.sh'
 include './src/kwlib.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 function suite()
 {

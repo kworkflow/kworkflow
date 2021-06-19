@@ -1,7 +1,7 @@
 #!/bin/bash
 
 . ./src/kw_include.sh --source-only
-include './tests/utils'
+include './tests/utils.sh'
 include './src/kwio.sh'
 
 declare -r PATH_TO_TESTS_EXTERNALS="tests/external"

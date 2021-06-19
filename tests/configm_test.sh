@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/config_manager.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 COMMAND_MSG_UNKNOWN="Unknown option"
 COMMAND_MSG_INVALID_ARG="Invalid argument"

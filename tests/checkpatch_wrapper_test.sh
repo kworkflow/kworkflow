@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/checkpatch_wrapper.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 function suite()
 {

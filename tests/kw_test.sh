@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './tests/utils'
+include './tests/utils.sh'
 unset -v KW_LIB_DIR # to be able to test the developer mode
 include './kw' > /dev/null
 # when imported kw prints the help function and we don´t want

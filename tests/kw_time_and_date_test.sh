@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/kw_time_and_date.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 function suite()
 {

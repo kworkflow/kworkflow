@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './tests/utils'
+include './tests/utils.sh'
 include './src/vm.sh'
 
 function suite()

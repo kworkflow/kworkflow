@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './tests/utils'
+include './tests/utils.sh'
 include './src/kw_config_loader.sh'
 
 TMP_DIR=tests/.tmp_kw_config_loader_test

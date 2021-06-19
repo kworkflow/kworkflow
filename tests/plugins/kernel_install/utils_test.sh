@@ -1,7 +1,7 @@
 #!/bin/bash
 
 . ./src/plugins/kernel_install/utils.sh --source-only
-. ./tests/utils --source-only
+. ./tests/utils.sh --source-only
 . ./src/kwio.sh --source-only
 
 function suite()
