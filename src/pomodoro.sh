@@ -18,7 +18,7 @@ function pomodoro()
 {
   local alert
 
-  if [[ -z "$@" ]]; then
+  if [[ -z "$*" ]]; then
     complain 'Please, provide an argument'
     pomodoro_help
     exit 22 # EINVAL

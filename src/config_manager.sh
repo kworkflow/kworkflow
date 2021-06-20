@@ -199,7 +199,9 @@ function execute_config_manager()
   local description_config
   local force=0
 
-  [[ "$@" =~ "-f" ]] && force=1
+  for parameter in "$@"; do
+    [[ "$parameter" == '-f' ]] && force=1
+  done
 
   case "$1" in
     -h)
