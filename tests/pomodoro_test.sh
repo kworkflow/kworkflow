@@ -6,8 +6,8 @@ include './tests/utils.sh'
 function setUp()
 {
   mkdir -p "$TMP_TEST_DIR"
-  export POMODORO_LOG_FILE="$TMP_TEST_DIR/pomodoro_current.log"
-  export KW_POMODORO_DATA="$TMP_TEST_DIR/pomodoro"
+  export POMODORO_LOG_FILE="$SHUNIT_TMPDIR/pomodoro_current.log"
+  export KW_POMODORO_DATA="$SHUNIT_TMPDIR/pomodoro"
   export KW_POMODORO_TAG_LIST="$KW_POMODORO_DATA/tags"
 
   touch "$POMODORO_LOG_FILE"
@@ -15,7 +15,8 @@ function setUp()
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
+  mkdir -p "$SHUNIT_TMPDIR"
 }
 
 function test_register_timebox()

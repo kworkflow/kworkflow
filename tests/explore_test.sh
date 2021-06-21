@@ -3,8 +3,6 @@
 include './tests/utils.sh'
 include './src/explore.sh'
 
-declare -r test_path="tests/.tmp"
-
 # Note: these file names came from tests/samples/
 declare -a samples_names=(
   "codestyle_check.c"
@@ -17,10 +15,7 @@ function setUp()
 {
   local -r current_path="$PWD"
 
-  rm -rf "$test_path"
-
-  mkdir -p "$test_path"
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   # Setup git repository for test
   git init &> /dev/null
 
@@ -38,7 +33,8 @@ function setUp()
 
 function tearDown()
 {
-  rm -rf "$test_path"
+  rm -rf "$SHUNIT_TMPDIR"
+  mkdir -p "$SHUNIT_TMPDIR"
 }
 
 function test_explore_files_under_git_repo()
@@ -52,7 +48,7 @@ function test_explore_files_under_git_repo()
   output=$(explore)
   assertEquals "($ID) - Expected an error message." "$MSG_OUT" "$output"
 
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
 
   ID=2
   MSG_OUT="camelCase(void)"
@@ -90,7 +86,7 @@ function test_explore_git_log()
   local commit_msg
   local -r current_path="$PWD"
 
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
 
   ID=1
   commit_msg="Commit number 2"
@@ -107,7 +103,7 @@ function test_explore_grep()
   local expected_result
   local -r current_path="$PWD"
 
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
 
   ID=1
   output=$(explore --grep "GNU grep" | cut -d/ -f2)
@@ -127,7 +123,7 @@ function test_explore_git()
   local expected_result
   local -r current_path="$PWD"
 
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
 
   ID=1
   output=$(explore --all "GNU grep" "." "TEST_MODE")

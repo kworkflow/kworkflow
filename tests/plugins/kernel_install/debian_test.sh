@@ -7,15 +7,13 @@
 
 function setUp()
 {
-  rm -rf "$TMP_TEST_DIR"
-
-  mk_fake_boot "$TMP_TEST_DIR"
+  mk_fake_boot "$SHUNIT_TMPDIR"
   # parse_configuration "$KW_CONFIG_SAMPLE"
 }
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
 function test_update_debian_boot_loader()

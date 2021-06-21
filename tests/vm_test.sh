@@ -3,28 +3,21 @@
 include './tests/utils.sh'
 include './src/vm.sh'
 
-declare -r test_path="tests/.tmp"
-
 function setUp()
 {
-  local -r current_path="$PWD"
-
-  rm -rf "$test_path"
-
-  mkdir -p $test_path
-
-  cp -f tests/samples/kworkflow.config $test_path
+  cp -f tests/samples/kworkflow.config "$SHUNIT_TMPDIR"
 }
 
 function tearDown()
 {
-  rm -rf "$test_path"
+  rm -rf "$SHUNIT_TMPDIR"
+  mkdir -p "$SHUNIT_TMPDIR"
 }
 
 function test_vm_mount()
 {
   local ID
-  local mount_point="$test_path/lala"
+  local mount_point="$SHUNIT_TMPDIR/lala"
   local qemu_path="/any/path"
   local -r current_path="$PWD"
   local ret
@@ -41,9 +34,10 @@ function test_vm_mount()
     "$guestmount_cmd"
   )
 
+  tearDown
   setUp
 
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
 
   ID=1
   output=$(vm_mount "TEST_MODE")
@@ -95,9 +89,7 @@ function test_vm_umount()
     "$guestmount_cmd"
   )
 
-  setUp
-
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
 
   ID=1
   output=$(vm_umount "TEST_MODE")
@@ -115,8 +107,6 @@ function test_vm_umount()
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   cd "$current_path"
-
-  tearDown
 }
 
 invoke_shunit

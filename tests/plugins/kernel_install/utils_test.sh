@@ -8,16 +8,14 @@ declare -r TEST_ROOT_PATH="$PWD"
 
 function setUp()
 {
-  rm -rf "$TMP_TEST_DIR"
-
   local current_path="$PWD"
 
-  mk_fake_boot "$TMP_TEST_DIR"
+  mk_fake_boot "$SHUNIT_TMPDIR"
 }
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
 function test_cmd_manager()
@@ -52,7 +50,6 @@ function test_ask_yN()
   assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
 }
 
-
 function test_human_list_installed_kernels()
 {
   local count=0
@@ -64,14 +61,14 @@ function test_human_list_installed_kernels()
     "linux"
   )
 
-  output=$(list_installed_kernels "0" "$TMP_TEST_DIR")
+  output=$(list_installed_kernels "0" "$SHUNIT_TMPDIR")
   while read -r out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
   done <<< "$output"
 }
 
-function test_comman_list_installed_kernels()
+function test_command_list_installed_kernels()
 {
   local count=0
 
@@ -80,7 +77,7 @@ function test_comman_list_installed_kernels()
     "5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux"
   )
 
-  output=$(list_installed_kernels "1" "$TMP_TEST_DIR")
+  output=$(list_installed_kernels "1" "$SHUNIT_TMPDIR")
   while read -r out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
@@ -126,7 +123,7 @@ function test_do_uninstall_cmd_sequence()
   compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
 
   # Good sequence
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   mkdir -p "$prefix"
   mk_fake_remote_system "$prefix" "$target"
 
@@ -327,13 +324,14 @@ function test_install_kernel_vm()
   local reboot='1'
   local architecture='x86_64'
   local target='vm'
-  local path_prefix="$TMP_TEST_DIR"
+  local path_prefix="$SHUNIT_TMPDIR"
 
   # Setup this specific test
-  touch "$TMP_TEST_DIR/boot/vmlinuz-$name"
-  touch "$TMP_TEST_DIR/.config"
-  touch "$TMP_TEST_DIR/virty.qcow2"
-  configurations[mount_point]="$TMP_TEST_DIR"
+  touch "$SHUNIT_TMPDIR/boot/vmlinuz-$name"
+  touch "$SHUNIT_TMPDIR/.config"
+  touch "$SHUNIT_TMPDIR/virty.qcow2"
+  rm -rf "${SHUNIT_TMPDIR:?}"/boot
+  configurations[mount_point]="$SHUNIT_TMPDIR"
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
@@ -344,7 +342,7 @@ function test_install_kernel_vm()
     'update_debian_boot_loader_mock'
   )
 
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   shopt -s expand_aliases
   alias findmnt='findmnt_mock'
   alias vm_umount='vm_umount'
