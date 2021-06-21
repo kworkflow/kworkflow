@@ -9,16 +9,11 @@ include './tests/utils.sh'
 
 function oneTimeSetUp()
 {
-  mk_fake_kernel_root "$TMP_TEST_DIR"
-  cp -f tests/external/checkpatch.pl "$TMP_TEST_DIR"/scripts/
-  cp -f tests/external/const_structs.checkpatch "$TMP_TEST_DIR"/scripts/
-  cp -f tests/external/spelling.txt "$TMP_TEST_DIR"/scripts/
-  cp -r tests/samples "$TMP_TEST_DIR"
-}
-
-function oneTimeTearDown()
-{
-  rm -rf "$TMP_TEST_DIR"
+  mk_fake_kernel_root "$SHUNIT_TMPDIR"
+  cp -f tests/external/checkpatch.pl "$SHUNIT_TMPDIR"/scripts/
+  cp -f tests/external/const_structs.checkpatch "$SHUNIT_TMPDIR"/scripts/
+  cp -f tests/external/spelling.txt "$SHUNIT_TMPDIR"/scripts/
+  cp -r tests/samples "$SHUNIT_TMPDIR"
 }
 
 function checkpatch_helper()
@@ -36,7 +31,7 @@ function checkpatch_helper()
     ['check']=CHECK_MSG
   )
 
-  res=$(execute_checkpatch "$TMP_TEST_DIR/samples/codestyle_$type_msg.c" 2>&1)
+  res=$(execute_checkpatch "$SHUNIT_TMPDIR/samples/codestyle_$type_msg.c" 2>&1)
   assertTrue "Checkpatch should output: ${!MSG[$type_msg]}" '[[ "$res" =~ "${!MSG[$type_msg]}" ]]'
 }
 
@@ -95,7 +90,7 @@ function test_multiple_files_output()
   local array=()
   local output
 
-  output=$(execute_checkpatch "$TMP_TEST_DIR/samples" 2>&1)
+  output=$(execute_checkpatch "$SHUNIT_TMPDIR/samples" 2>&1)
 
   # Reference: https://www.tutorialkart.com/bash-shell-scripting/bash-split-string/
   s="$output$delimiter"
@@ -114,6 +109,7 @@ function test_run_checkpatch_in_a_path()
 {
   local cmd="perl scripts/checkpatch.pl --no-tree --color=always --strict"
   local patch_path="$TMP_TEST_DIR/samples/test.patch"
+  local patch_path="$SHUNIT_TMPDIR/samples/test.patch"
   local output
   local real_path
   local base_msg
@@ -134,7 +130,7 @@ function test_run_checkpatch_in_a_path()
 function test_run_checkpatch_in_a_file()
 {
   local cmd="perl scripts/checkpatch.pl --terse --no-tree --color=always --strict  --file"
-  local patch_path="$TMP_TEST_DIR/samples/codestyle_correct.c"
+  local patch_path="$SHUNIT_TMPDIR/samples/codestyle_correct.c"
   local output
   local real_path
   local base_msg

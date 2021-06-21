@@ -22,20 +22,20 @@ function setUp()
 {
   local -r current_path="$PWD"
 
-  rm -rf "$TMP_TEST_DIR"
-
-  mkdir -p "$TMP_TEST_DIR"
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   touch .config
   echo "$CONTENT" > .config
   cd "$current_path"
-  KW_DATA_DIR="$current_path/$TMP_TEST_DIR"
+
+  mkdir "$SHUNIT_TMPDIR/configs"
+  KW_DATA_DIR="$SHUNIT_TMPDIR"
   configs_path="$KW_DATA_DIR/configs"
 }
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
+  mkdir -p "$SHUNIT_TMPDIR"
 }
 
 function test_execute_config_manager_SAVE_fails()
@@ -76,7 +76,7 @@ function test_save_config_file_check_save_failures()
   local ret=0
 
   # Test without config file -> should fail
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   rm -f .config
   ret=$(save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1")
   assert_equals_helper 'No .config file should return ENOENT' "$LINENO" "$?" "2"
@@ -95,7 +95,7 @@ function test_save_config_file_check_directories_creation()
   local current_path="$PWD"
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   cd "$current_path"
 
@@ -114,7 +114,7 @@ function test_save_config_file_check_saved_config()
   local tmp
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   cd "$current_path"
 
@@ -123,7 +123,7 @@ function test_save_config_file_check_saved_config()
   msg="Failed the metadata related to $NAME_1"
   assertTrue "$LINENO: $msg" '[[ -f $configs_path/metadata/$NAME_1 ]]'
 
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_2)
   cd "$current_path"
 
@@ -145,7 +145,7 @@ function test_save_config_file_check_description()
   local tmp
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   cd "$current_path"
 
@@ -153,7 +153,7 @@ function test_save_config_file_check_description()
   msg="The description content for $NAME_1 does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_1 ]]'
 
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   cd "$current_path"
 
@@ -166,10 +166,9 @@ function test_save_config_file_check_git_save_schema()
 {
   local current_path="$PWD"
   local ret=0
-  local config_files_path="$current_path/$TMP_TEST_DIR"
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   cd "configs"
@@ -183,10 +182,9 @@ function test_save_config_file_check_force()
 {
   local current_path="$PWD"
   local ret=0
-  local config_files_path="$current_path/$TMP_TEST_DIR"
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
   cd "$current_path"
@@ -197,7 +195,6 @@ function test_list_config_check_when_there_is_no_config()
 {
   local current_path="$PWD"
   local ret=0
-  local config_files_path="$current_path/$TMP_TEST_DIR"
 
   # There's no configs yet, initialize it
   ret=$(list_configs)
@@ -207,12 +204,11 @@ function test_list_config_check_when_there_is_no_config()
 function test_list_config_normal_output()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
   local ret=0
   local msg
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $YES_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
   cd "$current_path"
@@ -255,7 +251,6 @@ function test_execute_config_manager_get_config_invalid_option()
 function test_get_config()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
   local ret=0
   local msg="This operation will override the current .config file"
   local replace_msg="Current config file updated based on $NAME_1"
@@ -266,13 +261,13 @@ function test_get_config()
   )
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   cd "$current_path"
 
   # Case 1: We already have a local config, pop up with replace question
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   output=$(echo 'y' | get_config "$NAME_1")
   compare_command_sequence expected_output[@] "$output" "$LINENO"
 
@@ -288,17 +283,16 @@ function test_get_config()
 function test_get_config_with_force()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
   local ret=0
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   cd "$current_path"
 
   # Case 1: There's no local .config file
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   rm -f .config
   get_config "$NAME_1" 1 > /dev/null 2>&1
   ret=$(cat .config)
@@ -307,7 +301,7 @@ function test_get_config_with_force()
   assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 
   # Case 2: There's a .config file
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   get_config "$NAME_2" 1 > /dev/null 2>&1
   ret=$(cat .config)
   cd "$current_path"
@@ -333,9 +327,8 @@ function test_remove_config()
 {
   local current_path="$PWD"
   local ret=0
-  local config_files_path="$current_path/$TMP_TEST_DIR"
 
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   ret=$(ls configs/configs -1 | wc -l)

@@ -4,36 +4,39 @@ include './src/get_maintainer_wrapper.sh'
 include './src/kwlib.sh'
 include './tests/utils.sh'
 
-KW_DATA_DIR="tests/.tmp"
-TARGET_YEAR_MONTH="2020/05"
-FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
-FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
-FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
+function oneTimeSetUp()
+{
+  KW_DATA_DIR="$SHUNIT_TMPDIR"
+  TARGET_YEAR_MONTH="2020/05"
+  FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
+  FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
+  FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
+  ORIGINAL_DIR="$PWD"
+}
 
 function setupFakeOSInfo()
 {
-  mkdir -p tests/.tmp/detect_distro/{arch,manjaro,debian,ubuntu}/etc
-  cp -f tests/samples/os/arch/* tests/.tmp/detect_distro/arch/etc
-  cp -f tests/samples/os/debian/* tests/.tmp/detect_distro/debian/etc
-  cp -f tests/samples/os/manjaro/* tests/.tmp/detect_distro/manjaro/etc
-  cp -f tests/samples/os/ubuntu/* tests/.tmp/detect_distro/ubuntu/etc
+  mkdir -p "$SHUNIT_TMPDIR"/detect_distro/{arch,manjaro,debian,ubuntu}/etc
+  cp -f tests/samples/os/arch/* "$SHUNIT_TMPDIR/detect_distro/arch/etc"
+  cp -f tests/samples/os/debian/* "$SHUNIT_TMPDIR/detect_distro/debian/etc"
+  cp -f tests/samples/os/manjaro/* "$SHUNIT_TMPDIR/detect_distro/manjaro/etc"
+  cp -f tests/samples/os/ubuntu/* "$SHUNIT_TMPDIR/detect_distro/ubuntu/etc"
 }
 
 function setupPatch()
 {
   mkdir -p "$FAKE_STATISTICS_MONTH_PATH"
   touch "$FAKE_STATISTICS_DAY_PATH"
-  cp -f tests/samples/test.patch tests/.tmp/
+  cp -f tests/samples/test.patch "$SHUNIT_TMPDIR"
 }
 
 function setupFakeKernelRepo()
 {
-  # This creates tests/.tmp which should mock a kernel tree root. A .git
-  # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
+  # This makes $SHUNIT_TMPDIR should mock a kernel tree root. A .git
+  # dir is also created inside $SHUNIT_TMPDIR so that get_maintainer.pl thinks
   # it is a git repo. This is done in order to avoid some warnings that
   # get_maintainer.pl prints when no .git is found.
-  mkdir -p "tests/.tmp"
-  cd "tests/.tmp"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   touch "COPYING"
   touch "CREDITS"
   touch "Kbuild"
@@ -50,29 +53,29 @@ function setupFakeKernelRepo()
   mkdir -p "lib"
   mkdir -p "scripts"
   mkdir -p ".git"
-  cd ../../
-  cp -f tests/samples/MAINTAINERS tests/.tmp/MAINTAINERS
-  cp -f tests/external/get_maintainer.pl tests/.tmp/scripts/
+  cd "$ORIGINAL_DIR" || fail ''
+  cp -f tests/samples/MAINTAINERS "$SHUNIT_TMPDIR/MAINTAINERS"
+  cp -f tests/external/get_maintainer.pl "$SHUNIT_TMPDIR/scripts/"
 }
 
-function tearDownSetup()
+function tearDown()
 {
   rm -rf "$FAKE_STATISTICS_PATH"
+  cd "$ORIGINAL_DIR" || fail 'Was not able to move back to original directory'
 }
 
 function test_is_kernel_root()
 {
   setupFakeKernelRepo
-  is_kernel_root "tests/.tmp"
+  is_kernel_root "$SHUNIT_TMPDIR"
   [[ "$?" != 0 ]] && fail "Failed to check if a directory is a kernel root."
-  tearDownSetup
   true # Reset return value
 }
 
 function test_cmd_manager_check_silent_option()
 {
   setupFakeKernelRepo
-  cd "tests/.tmp"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(cmd_manager SILENT ls)
 
   assertFalse "We used SILENT mode, we should not find ls" '[[ $ret =~ ls ]]'
@@ -86,9 +89,6 @@ function test_cmd_manager_check_silent_option()
   ret=$(cmd_manager SILENT help pwd)
   assertTrue "We expected to find -P" '[[ $ret =~ -P ]]'
   assertTrue "We expected to find -L" '[[ $ret =~ -L ]]'
-
-  cd ../../
-  tearDownSetup
 }
 
 # The difference between say, complain, warning, and success it is the color
@@ -96,7 +96,7 @@ function test_cmd_manager_check_silent_option()
 function test_cmdManagerSAY_COMPLAIN_WARNING_SUCCESS()
 {
   setupFakeKernelRepo
-  cd "tests/.tmp"
+  cd "$SHUNIT_TMPDIR" || fail 'Was not able to move to temporary directory'
   ret=$(cmd_manager ls)
 
   assertTrue "We expected to find the ls command" '[[ $ret =~ ls ]]'
@@ -120,9 +120,6 @@ function test_cmdManagerSAY_COMPLAIN_WARNING_SUCCESS()
   assertTrue "We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
   assertTrue "We expected to find arch" '[[ $ret =~ arch ]]'
   assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
-
-  cd ../../
-  tearDownSetup
 }
 
 function test_cmd_manager_check_test_mode_option()
@@ -137,25 +134,25 @@ function test_cmd_manager_check_test_mode_option()
 function test_detect_distro()
 {
   setupFakeOSInfo
-  local root_path="tests/.tmp/detect_distro/arch"
+  local root_path="$SHUNIT_TMPDIR/detect_distro/arch"
   local ret
 
   ret=$(detect_distro $root_path)
   assertEquals "We got $ret." "$ret" "arch"
 
-  root_path="tests/.tmp/detect_distro/debian"
+  root_path="$SHUNIT_TMPDIR/detect_distro/debian"
   ret=$(detect_distro $root_path)
   assertEquals "We got $ret." "$ret" "debian"
 
-  root_path="tests/.tmp/detect_distro/manjaro"
+  root_path="$SHUNIT_TMPDIR/detect_distro/manjaro"
   ret=$(detect_distro $root_path)
   assertEquals "We got $ret." "$ret" "arch"
 
-  root_path="tests/.tmp/detect_distro/ubuntu"
+  root_path="$SHUNIT_TMPDIR/detect_distro/ubuntu"
   ret=$(detect_distro $root_path)
   assertEquals "We got $ret." "$ret" "debian"
 
-  root_path="tests/.tmp/detect_distro/debian/etc/lala"
+  root_path="$SHUNIT_TMPDIR/detect_distro/debian/etc/lala"
   ret=$(detect_distro $root_path)
   assertEquals "We got $ret." "$ret" "none"
 }
@@ -185,28 +182,25 @@ function test_find_kernel_root()
 {
   setupFakeKernelRepo
 
-  local fake_path="tests/.tmp/lala/xpto"
+  local fake_path="$SHUNIT_TMPDIR/lala/xpto"
   mkdir -p $fake_path
   local kernel_path
 
   kernel_path=$(find_kernel_root $fake_path)
-  assertEquals "We expected to find a kernel path" "$kernel_path" "tests/.tmp"
+  assertEquals "We expected to find a kernel path" "$kernel_path" "$SHUNIT_TMPDIR"
 
   kernel_path=$(find_kernel_root "/tmp")
   assertEquals "We should not find a path" "$kernel_path" ""
 
   kernel_path=$(find_kernel_root "test/")
   assertEquals "We should not find a path" "$kernel_path" ""
-
-  tearDownSetup
 }
 
 function test_is_a_patch()
 {
   setupPatch
-  is_a_patch "tests/.tmp/test.patch"
+  is_a_patch "$SHUNIT_TMPDIR/test.patch"
   [[ "$?" != 0 ]] && fail "Failed to check if a file is a patch."
-  tearDownSetup
   true # Reset return value
 }
 
@@ -295,8 +289,6 @@ function test_store_statistics_data()
   store_statistics_data "$fake_day_path"
   ret="$?"
   assertEquals "($ID) - " "22" "$ret"
-
-  tearDownSetup
 }
 
 function test_update_statistics_database()
@@ -313,8 +305,6 @@ function test_update_statistics_database()
   update_statistics_database "$TARGET_YEAR_MONTH" ""
   ret="$?"
   assertEquals "($ID) - " "22" "$ret"
-
-  tearDownSetup
 }
 
 function test_statistics_manager()
@@ -339,7 +329,7 @@ function test_statistics_manager()
   stored_value=$(cat "$FAKE_STATISTICS_PATH/$this_year_and_month/$today")
   assertEquals "($ID) - " "values 33" "$stored_value"
 
-  tearDownSetup
+  tearDown
 
   ID=4
   configurations['disable_statistics_data_track']='yes'

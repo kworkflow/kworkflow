@@ -21,7 +21,6 @@ function tearDownMockFunctions()
   unalias which_distro
 }
 
-
 function oneTimeSetUp()
 {
   FAKE_KW="$SHUNIT_TMPDIR/fake_kw"
@@ -35,9 +34,9 @@ function oneTimeSetUp()
   cp -f tests/samples/kworkflow.config "$TEST_PATH"
   cp -f tests/samples/dmesg "$TEST_PATH"
 
-  cd "$TEST_PATH"
+  cd "$TEST_PATH" || fail 'Was not able to move to temporary directory'
   load_configuration
-  cd "$current_path"
+  cd "$current_path" || fail 'Was not able return to original directory'
 
   local -r kernel_install_path="kernel_install"
 

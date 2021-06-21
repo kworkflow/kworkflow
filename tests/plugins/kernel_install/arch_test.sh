@@ -7,14 +7,12 @@
 
 function setUp()
 {
-  rm -rf "$TMP_TEST_DIR"
-
-  mk_fake_boot "$TMP_TEST_DIR"
+  mk_fake_boot "$SHUNIT_TMPDIR"
 }
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
 function test_update_arch_boot_loader()
