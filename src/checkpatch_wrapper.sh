@@ -37,13 +37,13 @@ function execute_checkpatch()
   fi
 
   # Get realpath for using inside checkpatch
-  FILE_OR_DIR_CHECK="$(realpath $FILE_OR_DIR_CHECK)"
+  FILE_OR_DIR_CHECK="$(realpath "$FILE_OR_DIR_CHECK")"
 
   # Try to find kernel root at given path
-  kernel_root="$(find_kernel_root $FILE_OR_DIR_CHECK)"
+  kernel_root="$(find_kernel_root "$FILE_OR_DIR_CHECK")"
   if [[ -z "$kernel_root" ]]; then
     # Fallback: try to find kernel root at working path
-    kernel_root="$(find_kernel_root $original_working_dir)"
+    kernel_root="$(find_kernel_root "$original_working_dir")"
   fi
 
   # Check if kernel root was found
@@ -53,7 +53,7 @@ function execute_checkpatch()
   fi
 
   # Build a list of file to apply check patch
-  FLIST=$(find $FILE_OR_DIR_CHECK -type f ! -name '*\.mod\.c' | grep "\.[ch]$")
+  FLIST=$(find "$FILE_OR_DIR_CHECK" -type f ! -name '*\.mod\.c' | grep "\.[ch]$")
 
   say "Running checkpatch.pl on: $FILE_OR_DIR_CHECK"
   say "$SEPARATOR"

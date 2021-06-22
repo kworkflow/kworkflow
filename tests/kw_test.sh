@@ -19,7 +19,7 @@ function test_check_kworkflow_global_variable()
 {
   VARS=(KWORKFLOW)
   for v in "${VARS[@]}"; do
-    [[ $(declare -p $v) =~ ^declare\ -[aAilrtu]*x[aAilrtu]*\  ]] ||
+    [[ $(declare -p "$v") =~ ^declare\ -[aAilrtu]*x[aAilrtu]*\  ]] ||
       fail "Variable $v should have been exported"
   done
 }

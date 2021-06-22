@@ -20,7 +20,7 @@ function alert_completion()
   local opts
 
   if [[ $# -gt 1 && "$ALERT_OPT" =~ ^--alert= ]]; then
-    opts="$(echo $ALERT_OPT | sed s/--alert=//)"
+    opts="$(echo "$ALERT_OPT" | sed s/--alert=//)"
   else
     opts="${configurations[alert]}"
   fi

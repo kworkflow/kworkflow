@@ -132,7 +132,7 @@ function test_save_config_file_check_saved_config()
   msg="Failed the metadata related to $NAME_2"
   assertTrue "$LINENO: $msg" '[[ -f $configs_path/metadata/$NAME_2 ]]'
 
-  tmp=$(cat $configs_path/configs/$NAME_2)
+  tmp=$(cat "$configs_path/configs/$NAME_2")
   msg="Content in the file does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $CONTENT ]]'
 }
@@ -149,7 +149,7 @@ function test_save_config_file_check_description()
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   cd "$current_path"
 
-  tmp=$(cat $configs_path/metadata/$NAME_1)
+  tmp=$(cat "$configs_path/metadata/$NAME_1")
   msg="The description content for $NAME_1 does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_1 ]]'
 
@@ -157,7 +157,7 @@ function test_save_config_file_check_description()
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   cd "$current_path"
 
-  tmp=$(cat $configs_path/metadata/$NAME_2)
+  tmp=$(cat "$configs_path/metadata/$NAME_2")
   msg="The description content for $NAME_2 does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_2 ]]'
 }

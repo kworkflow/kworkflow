@@ -127,7 +127,7 @@ function find_kernel_root()
   local kernel_root=""
 
   if [[ -f "$FILE_OR_DIR" ]]; then
-    current_dir="$(dirname $FILE_OR_DIR)"
+    current_dir="$(dirname "$FILE_OR_DIR")"
   else
     current_dir="$FILE_OR_DIR"
   fi
@@ -136,7 +136,7 @@ function find_kernel_root()
     kernel_root="$current_dir"
   else
     while [[ "$current_dir" != "." && "$current_dir" != "/" ]]; do
-      current_dir="$(dirname $current_dir)"
+      current_dir="$(dirname "$current_dir")"
       if is_kernel_root "$current_dir"; then
         kernel_root="$current_dir"
         break
@@ -228,12 +228,12 @@ function detect_distro()
   local distro="none"
   local etc_path
 
-  etc_path=$(join_path $root_path /etc)
+  etc_path=$(join_path "$root_path" /etc)
 
   if [[ ! -z "$str_check" ]]; then
     distro="$str_check"
   elif [[ -d $etc_path ]]; then
-    distro=$(cat $etc_path/*-release | grep -w ID | cut -d = -f 2)
+    distro=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
   fi
 
   # ArchLinux family
@@ -268,7 +268,7 @@ function statistics_manager()
   year_month_dir=$(date +%Y/%m)
   day_path="$KW_DATA_DIR/statistics/$year_month_dir/$day"
 
-  elapsed_time=$(date -d@$value -u +%H:%M:%S)
+  elapsed_time=$(date -d@"$value" -u +%H:%M:%S)
   say "-> Execution time: $elapsed_time"
 
   [[ ${configurations[disable_statistics_data_track]} == 'yes' ]] && return
@@ -317,7 +317,7 @@ function command_exists()
   local command="$1"
   local package=($command)
 
-  if [[ -x "$(command -v $package)" ]]; then
+  if [[ -x "$(command -v "$package")" ]]; then
     return 0
   fi
   return 22 # EINVAL

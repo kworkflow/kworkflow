@@ -137,23 +137,23 @@ function test_detect_distro()
   local root_path="$SHUNIT_TMPDIR/detect_distro/arch"
   local ret
 
-  ret=$(detect_distro $root_path)
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "arch"
 
   root_path="$SHUNIT_TMPDIR/detect_distro/debian"
-  ret=$(detect_distro $root_path)
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "debian"
 
   root_path="$SHUNIT_TMPDIR/detect_distro/manjaro"
-  ret=$(detect_distro $root_path)
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "arch"
 
   root_path="$SHUNIT_TMPDIR/detect_distro/ubuntu"
-  ret=$(detect_distro $root_path)
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "debian"
 
   root_path="$SHUNIT_TMPDIR/detect_distro/debian/etc/lala"
-  ret=$(detect_distro $root_path)
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "none"
 }
 
@@ -183,10 +183,10 @@ function test_find_kernel_root()
   setupFakeKernelRepo
 
   local fake_path="$SHUNIT_TMPDIR/lala/xpto"
-  mkdir -p $fake_path
+  mkdir -p "$fake_path"
   local kernel_path
 
-  kernel_path=$(find_kernel_root $fake_path)
+  kernel_path=$(find_kernel_root "$fake_path")
   assertEquals "We expected to find a kernel path" "$kernel_path" "$SHUNIT_TMPDIR"
 
   kernel_path=$(find_kernel_root "/tmp")

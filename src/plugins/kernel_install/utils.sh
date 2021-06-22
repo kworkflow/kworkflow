@@ -95,7 +95,7 @@ function list_installed_kernels()
   if [[ "$single_line" != 1 ]]; then
     printf '%s\n' "${available_kernels[@]}"
   else
-    echo -n ${available_kernels[0]}
+    echo -n "${available_kernels[0]}"
     available_kernels=("${available_kernels[@]:1}")
     printf ',%s' "${available_kernels[@]}"
     echo ""
