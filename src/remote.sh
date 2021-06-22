@@ -288,9 +288,9 @@ function kw_ssh()
 
   if [[ "$#" -gt 0 ]]; then
     if [[ "$opts" =~ ^(--command|-c)= ]]; then
-      opts="$(echo $opts | cut -d = -f2)"
+      opts="$(echo "$opts" | cut -d = -f2)"
     elif [[ "$opts" =~ ^(--script|-s)= ]]; then
-      script_path=$(echo $opts | cut -d = -f2)
+      script_path=$(echo "$opts" | cut -d = -f2)
 
       if [[ ! -f $script_path ]]; then
         complain "No such file: \"$script_path\""

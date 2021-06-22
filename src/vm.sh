@@ -15,7 +15,7 @@ function vm_mount()
 
   [[ $(findmnt "$mount_point_path") ]] && return 125
 
-  mkdir -p $mount_point_path
+  mkdir -p "$mount_point_path"
 
   say "Mount $qemu_img_path in $mount_point_path"
 
@@ -61,12 +61,17 @@ function vm_umount()
 
 function vm_up()
 {
+  local cmd
+  local flag='SILENT'
+
   say "Starting Qemu with: "
   echo "${configurations[virtualizer]} ${configurations[qemu_hw_options]}" \
     "${configurations[qemu_net_options]}" \
     "${configurations[qemu_path_image]}"
 
-  ${configurations[virtualizer]} ${configurations[qemu_hw_options]} \
-    ${configurations[qemu_net_options]} \
-    ${configurations[qemu_path_image]}
+  cmd="${configurations[virtualizer]} ${configurations[qemu_hw_options]}"
+  cmd+=" ${configurations[qemu_net_options]}"
+  cmd+=" ${configurations[qemu_path_image]}"
+
+  cmd_manager "$flag" "$cmd"
 }

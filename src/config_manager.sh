@@ -85,7 +85,7 @@ function list_configs()
 
   printf "%-30s | %-30s\n" "Name" "Description"
   echo
-  for filename in $dot_configs_dir/$metadata_dir/*; do
+  for filename in "$dot_configs_dir/$metadata_dir"/*; do
     [[ ! -f "$filename" ]] && continue
     name=$(basename "$filename")
     content=$(cat "$filename")
@@ -181,7 +181,7 @@ function remove_config()
   say "The $target config file was removed from kw management"
 
   # Without config file, there's no reason to keep config directory
-  if [ ! "$(ls $dot_configs_dir)" ]; then
+  if [ ! "$(ls "$dot_configs_dir")" ]; then
     rm -rf "/tmp/$configs_dir"
     mv "$dot_configs_dir" /tmp
   fi

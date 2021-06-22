@@ -11,7 +11,7 @@ function _kw_autocomplete()
 
   # By default, autocomplete with kw_options
   if [[ ${previous_command} == kw ]]; then
-    COMPREPLY=($(compgen -W "${kw_options}" -- ${current_command}))
+    COMPREPLY=($(compgen -W "${kw_options}" -- "${current_command}"))
     return 0
   fi
 

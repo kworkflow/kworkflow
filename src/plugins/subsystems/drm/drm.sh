@@ -320,7 +320,7 @@ function get_supported_mode_per_connector()
         complain "We cannot access $SYSFS_CLASS_DRM"
         return "$ret" # ENOENT
       fi
-      modes=$(eval $cmd)
+      modes=$(eval "$cmd")
       target_label="local"
       ;;
     3) # REMOTE TARGET
@@ -371,7 +371,7 @@ function drm_parser_options()
 
   drm_options_values["REMOTE"]="$remote"
 
-  IFS=' ' read -r -a options <<< $raw_options
+  IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
       module_parameter=0

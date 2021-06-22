@@ -165,13 +165,14 @@ function strip_path()
   local base
   TESTS=()
   for file in "$@"; do
-    base=$(basename ${file})
+    base=$(basename "${file}")
     TESTS+=("${base%.*}")
   done
 }
 
 check_required_files
 check_files="$?"
+#shellcheck disable=SC2086
 if [[ "$#" -eq 0 ]]; then
   check_required_files
   files_list=$(find ./tests -name "*_test.sh" | grep --invert-match "/shunit2/")

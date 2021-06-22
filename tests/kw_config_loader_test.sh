@@ -73,7 +73,7 @@ function test_parse_configuration_output()
   cp tests/samples/kworkflow.config "$TMP_DIR/"
 
   pushd "$TMP_DIR" > /dev/null
-  parse_configuration $PWD/kworkflow.config
+  parse_configuration "$PWD/kworkflow.config"
   popd > /dev/null
 
   assertConfigurations configurations expected_configurations

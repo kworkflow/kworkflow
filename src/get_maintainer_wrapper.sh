@@ -9,7 +9,7 @@ function print_files_authors()
   local FILE_OR_DIR=$1
   local files=()
   if [[ -d $FILE_OR_DIR ]]; then
-    for file in $FILE_OR_DIR/*; do
+    for file in "$FILE_OR_DIR"/*; do
       if [[ -f $file ]]; then
         files+=($file)
       fi
@@ -21,16 +21,16 @@ function print_files_authors()
   local printed_authors_separator=false
 
   for file in ${files[@]}; do
-    authors=$(grep -oE "MODULE_AUTHOR *\(.*\)" $file |
+    authors=$(grep -oE "MODULE_AUTHOR *\(.*\)" "$file" |
       sed -E "s/(MODULE_AUTHOR *\( *\"|\" *\))//g" |
       sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g')
     if [[ -n $authors ]]; then
       if [[ $printed_authors_separator = false ]]; then
-        say $SEPARATOR
+        say "$SEPARATOR"
         say "MODULE AUTHORS:"
         printed_authors_separator=true
       fi
-      say -n "$(basename $file): "
+      say -n "$(basename "$file"): "
       echo "$authors"
     fi
   done
@@ -125,11 +125,11 @@ function execute_get_maintainer()
   fi
 
   # try to find kernel root at given path
-  kernel_root="$(find_kernel_root $FILE_OR_DIR)"
+  kernel_root="$(find_kernel_root "$FILE_OR_DIR")"
   if [[ -z "$kernel_root" ]]; then
     is_file_inside_kernel_tree=false
     # fallback: try to find kernel root at working path
-    kernel_root="$(find_kernel_root $original_working_dir)"
+    kernel_root="$(find_kernel_root "$original_working_dir")"
   fi
 
   # Check if kernel root was found.
@@ -147,14 +147,14 @@ function execute_get_maintainer()
   fi
 
   cd "$kernel_root"
-  local -r script_output="$(eval perl $script $script_options "$FILE_OR_DIR")"
+  local -r script_output="$(eval perl "$script" "$script_options" "$FILE_OR_DIR")"
   cd "$original_working_dir"
 
   say "$SEPARATOR"
   if "$update_patch"; then
     # Check if "To:" field is already present
     if grep -q -E '^To: .*'"$script_output" "$FILE_OR_DIR"; then
-      say "Maintainers already in \"To:\" field of $(basename $FILE_OR_DIR)"
+      say "Maintainers already in \"To:\" field of $(basename "$FILE_OR_DIR")"
       return 0
     elif grep -q -E '^To: ' "$FILE_OR_DIR"; then
       # append maintainers to existing "To:" field
@@ -162,14 +162,14 @@ function execute_get_maintainer()
     else
       sed -E -i 's/(^Subject:.*)/To: '"$script_output"'\n\1/' "$FILE_OR_DIR"
     fi
-    say "Patch $(basename $FILE_OR_DIR) updated with the following maintainers:"
+    say "Patch $(basename "$FILE_OR_DIR") updated with the following maintainers:"
   else
     say "HERE:"
   fi
   echo "$script_output"
 
   if $print_authors; then
-    print_files_authors $FILE_OR_DIR
+    print_files_authors "$FILE_OR_DIR"
   fi
 }
 
