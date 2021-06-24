@@ -16,6 +16,7 @@ function kworkflow_help()
     "\tcodestyle,c - Apply checkpatch on directory or file\n" \
     "\tconfigm,g - Manage config files\n" \
     "\tdeploy,d - Deploy a new kernel image to a target machine\n" \
+    "\tdevice - Show basic hardware information\n" \
     "\tdiff,df - Diff files\n" \
     "\tdrm - Set of commands to work with DRM drivers \n" \
     "\texplore,e - Explore string patterns\n" \
