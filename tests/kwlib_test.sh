@@ -350,4 +350,31 @@ function test_command_exists()
   assertEquals "$LINENO - We expected 0 as a return" 0 "$ret"
 }
 
+function test_exit_msg()
+{
+  local default_msg='Something went wrong!'
+  local custom_msg='Custom error message.'
+
+  # The `:` operation always returns 0, giving us consistent outputs
+  output=$(: && exit_msg)
+  ret="$?"
+  assertEquals "($LINENO) We expected the default msg" "$default_msg" "$output"
+  assertEquals "($LINENO) We expected 0 as a return" 0 "$ret"
+
+  output=$(: && exit_msg "$custom_msg")
+  ret="$?"
+  assertEquals "($LINENO) We expected the custom msg" "$custom_msg" "$output"
+  assertEquals "($LINENO) We expected 0 as a return" 0 "$ret"
+
+  output=$(: && exit_msg '' 3)
+  ret="$?"
+  assertEquals "($LINENO) We expected the default msg" "$default_msg" "$output"
+  assertEquals "($LINENO) We expected 3 as a return" 3 "$ret"
+
+  output=$(: && exit_msg "$custom_msg" 3)
+  ret="$?"
+  assertEquals "($LINENO) We expected the custom msg" "$custom_msg" "$output"
+  assertEquals "($LINENO) We expected 3 as a return" 3 "$ret"
+}
+
 invoke_shunit

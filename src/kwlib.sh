@@ -356,3 +356,17 @@ function command_exists()
   fi
   return 22 # EINVAL
 }
+
+# This function exits with a custom error message
+#
+# @err The error code to be used on exit, it takes the return code of the
+#        last command executed as default
+# @msg The custom message to be displayed
+function exit_msg()
+{
+  local err=${2:-"$?"}
+  local msg=${1:-'Something went wrong!'}
+
+  complain "$msg"
+  exit "$err"
+}
