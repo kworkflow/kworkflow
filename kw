@@ -201,6 +201,13 @@ function kw()
         report "$@"
       )
       ;;
+    device)
+      (
+        include "$KW_LIB_DIR/device_info.sh"
+
+        device_info "$@"
+      )
+      ;;
     clear-cache)
       include "$KW_LIB_DIR/deploy.sh"
 

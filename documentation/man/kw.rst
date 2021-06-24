@@ -384,6 +384,18 @@ Users can follow the timebox section status by using:
 *--list,-l*: This command shows information associated with each Pomodoro
 timebox created by the user.
 
+device [--local]
+~~~~~~~~~~~~~~~~
+In order to easily retrieve basic information about the hardware of a target
+machine, kw provides the 'device' option, which outputs details such as:
+- CPU architecture
+- RAM
+- Operating system
+- Storage device
+- GPU
+
+1. --local: Show hardware information from host machine.
+
 df, diff [OPTIONS] FILE1 FILE2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 This is a wrapper to some useful usage of diff command. By default, it shows
