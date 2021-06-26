@@ -72,3 +72,27 @@ function date_to_format()
   value=${value:-$(date "$format")}
   date -d "$value" "$format"
 }
+
+# Return the total number of days in a specific month.
+#
+# @month_number: The number that represents the target month. If it is null,
+#                this function assumes the current month.
+# @year: Target year. If it is empty, this function assumes this year.
+#
+# Return:
+# Return an integer number that represents the total days in the specific
+# month. In case of error, return 22.
+function days_in_the_month()
+{
+  local month_number="$1"
+  local year="$2"
+
+  if [[ -n "$month_number" && "$month_number" -lt 1 || "$month_number" -gt 12 ]]; then
+    return 22 # EINVAL
+  fi
+
+  month_number=${month_number:-$(date +%m)}
+  year=${year:-$(date +%Y)}
+
+  cal "$month_number" "$year" | awk 'NF {DAYS = $NF}; END {print DAYS}'
+}
