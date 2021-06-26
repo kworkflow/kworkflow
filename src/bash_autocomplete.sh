@@ -7,7 +7,7 @@ function _kw_autocomplete()
   kw_options="explore e bd build b init ssh s clear-cache
                 mount mo umount um vars up u codestyle c configm g
                 maintainers m deploy d help h version statistics
-                pomodoro p drm diff df --version -v man"
+                pomodoro p report r drm diff df --version -v man"
 
   # By default, autocomplete with kw_options
   if [[ ${previous_command} == kw ]]; then
