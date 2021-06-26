@@ -31,6 +31,7 @@ function report()
     grouping_week_data "${options_values['WEEK']}"
   elif [[ -n "${options_values['MONTH']}" ]]; then
     target_time="${options_values['MONTH']}"
+    grouping_month_data "${options_values['MONTH']}"
   elif [[ -n "${options_values['YEAR']}" ]]; then
     target_time="${options_values['YEAR']}"
   fi
@@ -133,6 +134,30 @@ function grouping_week_data()
     day_path=$(join_path "$KW_POMODORO_DATA" "$day")
     [[ ! -f "$day_path" ]] && continue
     grouping_day_data "$day"
+  done
+}
+
+# This function groups all month days data.
+#
+# @target_month: First day of the target month
+function grouping_month_data()
+{
+  local target_month="$*"
+  local month_total_days
+  local day_path
+  local year
+  local month
+  local current_day
+
+  year=$(echo "$target_month" | cut -d '/' -f1)
+  month=$(echo "$target_month" | cut -d '/' -f2)
+  month_total_days=$(days_in_the_month "$month" "$year")
+
+  for ((day = 1; day <= month_total_days; day++)); do
+    current_day="$target_month/"$(printf "%02d\n" "$day")
+    day_path=$(join_path "$KW_POMODORO_DATA" "$current_day")
+    [[ ! -f "$day_path" ]] && continue
+    grouping_day_data "$current_day"
   done
 }
 

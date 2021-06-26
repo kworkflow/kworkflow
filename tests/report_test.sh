@@ -201,4 +201,38 @@ function test_grouping_week_data()
   assert_equals_helper 'We expect 4 keys' "$LINENO" "$output" 4
 }
 
+function test_grouping_month_data()
+{
+  local fake_base_data='1815/12'
+  local day_path
+  local month_total_days
+
+  month_total_days=$(days_in_the_month 12 1815)
+  # Create fake files just for test: 1815/12/10-1815/12/16
+  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
+  for ((i = 1; i <= month_total_days; i++)); do
+    day_path="$SHUNIT_TMPDIR/$fake_base_data/"$(printf "%02d\n" "$i")
+    touch "$day_path"
+    echo "$i,20m,06:00:40,Tag $i description" > "$day_path"
+  done
+
+  grouping_month_data '1815/12'
+
+  output="${#tags_details[@]}"
+  assert_equals_helper "We expect $month_total_days keys" "$LINENO" "$output" "$month_total_days"
+
+  # Let's remove some files, and check an incomplete week
+  unset tags_details
+  declare -gA tags_details
+  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
+  for ((i = 20; i < 24; i++)); do
+    day_path="$SHUNIT_TMPDIR/$fake_base_data/"$(printf "%02d\n" "$i")
+    rm "$day_path"
+  done
+
+  grouping_month_data '1815/12'
+  output="${#tags_details[@]}"
+  assert_equals_helper 'We expect 27 keys' "$LINENO" "$output" 27
+}
+
 invoke_shunit
