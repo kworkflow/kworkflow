@@ -9,6 +9,16 @@ function oneTimeSetUp()
   export KW_POMODORO_DATA="$SHUNIT_TMPDIR"
 }
 
+function setUp()
+{
+  declare -gA tags_details
+}
+
+function tearDown()
+{
+  unset tags_details
+}
+
 function test_report_parse()
 {
   local output
@@ -151,6 +161,44 @@ function test_grouping_day_data()
     assert_equals_helper "Loop $count failed" "$LINENO" "$line" "${tags_details[$tag]}"
     ((count++))
   done
+}
+
+function test_grouping_week_data()
+{
+  local fake_base_data='1815/12'
+  local day_path
+
+  # Create fake files just for test: 1815/12/10-1815/12/16
+  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
+  for ((i = 10; i < 17; i++)); do
+    day_path="$SHUNIT_TMPDIR/$fake_base_data/$i"
+    touch "$day_path"
+    echo "$i,20m,06:00:40,Tag $i description" > "$day_path"
+  done
+
+  grouping_week_data '1815/12/10'
+
+  output="${#tags_details[@]}"
+  assert_equals_helper 'We expect 7 keys' "$LINENO" "$output" 7
+
+  # Check tags just in case
+  for ((i = 10; i < 17; i++)); do
+    value="${tags_details[$i]}"
+    [[ -z "$value" ]] && fail "$LINENO:$i: We expect one tag per week day"
+  done
+
+  # Let's remove some files, and check an incomplete week
+  unset tags_details
+  declare -gA tags_details
+  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
+  for ((i = 14; i < 17; i++)); do
+    day_path="$SHUNIT_TMPDIR/$fake_base_data/$i"
+    rm "$day_path"
+  done
+
+  grouping_week_data '1815/12/10'
+  output="${#tags_details[@]}"
+  assert_equals_helper 'We expect 4 keys' "$LINENO" "$output" 4
 }
 
 invoke_shunit

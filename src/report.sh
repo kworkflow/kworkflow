@@ -28,6 +28,7 @@ function report()
     target_time="${options_values['DAY']}"
   elif [[ -n "${options_values['WEEK']}" ]]; then
     target_time="${options_values['WEEK']}"
+    grouping_week_data "${options_values['WEEK']}"
   elif [[ -n "${options_values['MONTH']}" ]]; then
     target_time="${options_values['MONTH']}"
   elif [[ -n "${options_values['YEAR']}" ]]; then
@@ -117,6 +118,22 @@ function grouping_day_data()
 
     tags_metadata["$tag"]+="$metadata"
   done < "$day_path"
+}
+
+# This function groups all week days data.
+#
+# @first_day_of_the_week: First day of the target week
+function grouping_week_data()
+{
+  local first_day_of_the_week="$*"
+  local day_path
+
+  for ((i = 0; i < 7; i++)); do
+    day=$(date --date="${first_day_of_the_week} +${i} day" +%Y/%m/%d)
+    day_path=$(join_path "$KW_POMODORO_DATA" "$day")
+    [[ ! -f "$day_path" ]] && continue
+    grouping_day_data "$day"
+  done
 }
 
 function report_parse()
