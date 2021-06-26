@@ -194,6 +194,13 @@ function kw()
         pomodoro "$@"
       )
       ;;
+    report | r)
+      (
+        include "$KW_LIB_DIR/report.sh"
+
+        report "$@"
+      )
+      ;;
     clear-cache)
       include "$KW_LIB_DIR/deploy.sh"
 
