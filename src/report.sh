@@ -36,6 +36,8 @@ function report()
     target_time="${options_values['YEAR']}"
     grouping_year_data "${options_values['YEAR']}"
   fi
+
+  show_data "$target_time"
 }
 
 # Convert time labels in the format INTEGER[s|m|h] to an entire label that can
@@ -186,6 +188,18 @@ function grouping_year_data()
       [[ ! -f "$full_day_path" ]] && continue
       grouping_day_data "$target_day"
     done
+  done
+}
+
+function show_data
+{
+  local date="$*"
+
+  echo "$date"
+
+  for tag in "${!tags_details[@]}"; do
+    echo "## $tag"
+    echo -e "${tags_details[$tag]}"
   done
 }
 
