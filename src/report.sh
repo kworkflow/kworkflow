@@ -34,6 +34,7 @@ function report()
     grouping_month_data "${options_values['MONTH']}"
   elif [[ -n "${options_values['YEAR']}" ]]; then
     target_time="${options_values['YEAR']}"
+    grouping_year_data "${options_values['YEAR']}"
   fi
 }
 
@@ -158,6 +159,33 @@ function grouping_month_data()
     day_path=$(join_path "$KW_POMODORO_DATA" "$current_day")
     [[ ! -f "$day_path" ]] && continue
     grouping_day_data "$current_day"
+  done
+}
+
+# This function groups data for an entire year.
+#
+# @target_year: Target year
+function grouping_year_data()
+{
+  local target_year="$*"
+  local month_path
+  local target_day
+  local current_day
+  local current_month
+  local full_day_path
+  local month_total_days
+
+  for ((month = 1; month <= 12; month++)); do
+    current_month=$(printf "%02d\n" "$month")
+    month_total_days=$(days_in_the_month "$month" "$target_year")
+    month_path=$(join_path "$target_year" "$current_month")
+    for ((day = 1; day <= month_total_days; day++)); do
+      current_day=$(printf "%02d\n" "$day")
+      target_day=$(join_path "$month_path" "$current_day")
+      full_day_path=$(join_path "$KW_POMODORO_DATA" "$target_day")
+      [[ ! -f "$full_day_path" ]] && continue
+      grouping_day_data "$target_day"
+    done
   done
 }
 

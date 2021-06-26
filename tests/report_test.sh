@@ -235,4 +235,33 @@ function test_grouping_month_data()
   assert_equals_helper 'We expect 27 keys' "$LINENO" "$output" 27
 }
 
+function test_grouping_year_data()
+{
+  local fake_base_data=2016
+  local day_path
+  local month_total_days
+  local current_day
+  local current_month
+
+  # Create fake files just for test: 1815/12/10-1815/12/16
+  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
+  for ((month = 1; month <= 12; month++)); do
+    current_month=$(printf "%02d\n" "$month")
+    month_total_days=$(days_in_the_month "$month" "$fake_base_data")
+    month_path=$(join_path "$fake_base_data" "$current_month")
+    mkdir -p "$SHUNIT_TMPDIR/$month_path"
+    for ((day = 1; day <= month_total_days; day++)); do
+      current_day=$(printf "%02d\n" "$day")
+      day_path="$SHUNIT_TMPDIR/$month_path/$current_day"
+      touch "$day_path"
+      echo "$month_path-$day,20m,06:00:40,Tag $month_path-$day description" > "$day_path"
+    done
+  done
+
+  grouping_year_data '2016'
+
+  output="${#tags_details[@]}"
+  assert_equals_helper "We expect 366 (leap year) keys" "$LINENO" "$output" 366
+}
+
 invoke_shunit
