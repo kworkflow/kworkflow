@@ -120,3 +120,31 @@ To configure this Git pre-commit hook:
 
 The next time you try to commit your work, your pre-commit hook will run both
 shellcheck and shfmt, and warn you of any errors you may have made.
+
+Kwreview
+========
+Another way to have your code checked against ``shfmt`` and ``shellcheck`` is to
+use ``scripts/kwreview.sh``. By default, it will check your current patch (i.e.
+what has changed since the branch unstable) and print ``shellcheck``'s warnings
+and ``shfmt``'s warnings as diffs. Use ``kwreview -w`` to apply ``shfmt``'s
+changes to the files. Make sure you have ``shfmt``, ``shellcheck`` and
+``reviewdog`` installed.
+
+For vim users, it is possible to use ``kwreview.sh`` to populate the
+`quickfix <http://vimdoc.sourceforge.net/htmldoc/quickfix.html>`_ (or locations)
+window, making it easy to navigate the warnings and errors. As an example,
+consider adding the following lines to your ``.vimrc``::
+
+  function Kwreview(...)
+    let arg = get(a:, 1, "")
+    let &l:makeprg="scripts/kwreview.sh " . arg
+    make
+    execute ":e"
+  endfunction
+
+  command -nargs=* Kwreview :call Kwreview(<q-args>)
+
+Now you can call ``kwreview.sh`` with the vim command ``:Kwreview``
+(notice the upper case initial) and navigate the errors/warnings with
+``:copen``, ``:cn``, ``:cp``, etc.
+
