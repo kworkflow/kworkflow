@@ -37,7 +37,11 @@ function report()
     grouping_year_data "${options_values['YEAR']}"
   fi
 
-  show_data "$target_time"
+  if [[ -z "${options_values['OUTPUT']}" ]]; then
+    show_data "$target_time"
+  else
+    save_data_to "${options_values['OUTPUT']}"
+  fi
 }
 
 # Convert time labels in the format INTEGER[s|m|h] to an entire label that can
@@ -84,6 +88,30 @@ function expand_time_labels()
   echo "$time_label"
 }
 
+function timebox_to_sec()
+{
+  local timebox="$1"
+  local time_type
+  local time_value
+
+  time_type=$(last_char "$timebox")
+  time_value=$(chop "$timebox")
+
+  case "$time_type" in
+    h)
+      time_value=$((3600 * "$time_value"))
+      ;;
+    m)
+      time_value=$((60 * "$time_value"))
+      ;;
+    s)
+      true # Do nothing
+      ;;
+  esac
+
+  echo "$time_value"
+}
+
 # Group day data in the tags_details and tags_metadata. Part of the process
 # includes pre-processing raw data in something good to be displayed for users.
 #
@@ -93,11 +121,13 @@ function grouping_day_data()
   local day="$*"
   local day_path
   local details
-  local metadata
   local start_time
   local end_time
   local timebox
   local time_label
+  local timebox_sec
+  local total_time_box_sec=0
+  local total_repetition=0
 
   day_path=$(join_path "$KW_POMODORO_DATA" "$day")
   if [[ ! -f "$day_path" ]]; then
@@ -110,7 +140,6 @@ function grouping_day_data()
     timebox=$(echo "$line" | cut -d ',' -f2)
     start_time=$(echo "$line" | cut -d ',' -f3)
     details=$(echo "$line" | cut -d ',' -f4)
-    metadata=$(echo "$line" | cut -d ',' -f 2-)
 
     time_label=$(expand_time_labels "$timebox")
     [[ "$?" != 0 ]] && continue
@@ -120,7 +149,15 @@ function grouping_day_data()
     [[ -n "$details" ]] && details=": $details"
     tags_details["$tag"]+=" * [$start_time-$end_time][$timebox]$details\n"
 
-    tags_metadata["$tag"]+="$metadata"
+    # Preparing metadata: total timebox in sec, total repetition
+    timebox_sec=$(timebox_to_sec "$timebox")
+    total_time_box_sec=$(echo "${tags_metadata["$tag"]}" | cut -d ',' -f1)
+    total_repetition=$(echo "${tags_metadata["$tag"]}" | cut -d ',' -f2)
+
+    timebox_sec=$((timebox_sec + total_time_box_sec))
+    total_repetition=$((total_repetition + 1))
+
+    tags_metadata["$tag"]="$timebox_sec,$total_repetition"
   done < "$day_path"
 }
 
@@ -191,16 +228,77 @@ function grouping_year_data()
   done
 }
 
+function show_total_work_hours()
+{
+  local work_hours_sec="$1"
+  local hours
+  local minutes
+  local seconds
+
+  hours=$((work_hours_sec / 3600))
+  minutes=$((work_hours_sec % 3600 / 60))
+  seconds=$((work_hours_sec % 60))
+
+  printf ' * Total focus hours: %02d:%02d:%02d\n' "$hours" "$minutes" "$seconds"
+}
+
+# Show report data after processing.
 function show_data
 {
   local date="$*"
+  local total_time=0
+  local total_repetition
+  local tag_time
+  local tag_repetition=0
+  local total_focus_time=0
 
-  echo "$date"
+  echo "# Report: $date"
+
+  for tag in "${!tags_metadata[@]}"; do
+    tag_time=$(echo "${tags_metadata[$tag]}" | cut -d ',' -f1)
+    tag_repetition=$(echo "${tags_metadata[$tag]}" | cut -d ',' -f2)
+
+    total_focus_time=$((tag_time + total_focus_time))
+    total_repetition=$((total_repetition + tag_repetition))
+  done
+
+  show_total_work_hours "$total_focus_time"
+  echo " * Total focus section: $total_repetition"
+  echo
 
   for tag in "${!tags_details[@]}"; do
     echo "## $tag"
+    total_time=$(echo "${tags_metadata[$tag]}" | cut -d ',' -f1)
+    total_repetition=$(echo "${tags_metadata[$tag]}" | cut -d ',' -f2)
+
+    total_time=$(sec_to_format "$total_time")
+    echo " - Total focus time: $total_time"
+    echo " - Total repetitions: $total_repetition"
+    echo
+    echo "Summary:"
     echo -e "${tags_details[$tag]}"
   done
+}
+
+# Save report output to a file.
+#
+# @path: Where to save
+#
+# Return:
+# In case of error, return an error code.
+function save_data_to()
+{
+  local path="$1"
+  local ret
+
+  touch "$path" 2> /dev/null
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Failed to create $path, please check if this is a valid path"
+    exit "$ret"
+  fi
+
+  show_data > "$path"
 }
 
 function report_parse()
@@ -210,6 +308,7 @@ function report_parse()
   local week
   local month
   local year
+  local output
   local reference=0
 
   if [[ "$1" == -h ]]; then
@@ -221,10 +320,12 @@ function report_parse()
   options_values['WEEK']=''
   options_values['MONTH']=''
   options_values['YEAR']=''
+  options_values['OUTPUT']=''
 
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
+      output=0
       case "$option" in
         --day)
           options_values['DAY']=$(get_today_info '+%Y/%m/%d')
@@ -248,6 +349,15 @@ function report_parse()
           options_values['YEAR']=$(date +%Y)
           year=1
           reference+=1
+          continue
+          ;;
+        --output | -o)
+          options_values['OUTPUT']="$option"
+          day=0
+          week=0
+          month=0
+          year=0
+          output=1
           continue
           ;;
         *)
@@ -295,6 +405,8 @@ function report_parse()
             return 22 # EINVAL
           fi
         fi
+      elif [[ "$output" == 1 ]]; then
+        options_values['OUTPUT']="$option"
       fi
     fi
   done
@@ -302,6 +414,9 @@ function report_parse()
   if [[ "$reference" -gt 1 ]]; then
     complain 'Please, only use a single time reference'
     return 22
+  elif [[ "$reference" == 0 ]]; then
+    # If no option, set day as a default
+    options_values['DAY']=$(get_today_info '+%Y/%m/%d')
   fi
 }
 
@@ -311,5 +426,6 @@ function report_help()
     "\treport [--day [YEAR/MONTH/DAY]]\n" \
     "\treport [--week [YEAR/MONTH/DAY]]\n" \
     "\treport [--month [YEAR/MONTH]]\n" \
-    "\treport [--year [YEAR]]"
+    "\treport [--year [YEAR]]\n" \
+    "\treport [--output PATH]"
 }
