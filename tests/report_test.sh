@@ -264,4 +264,38 @@ function test_grouping_year_data()
   assert_equals_helper "We expect 366 (leap year) keys" "$LINENO" "$output" 366
 }
 
+function test_show_data()
+{
+  local count=0
+  local line
+  local output
+
+  grouping_day_data '2020/04/04'
+  output=$(show_data)
+
+  # Output can change multiple times. For this reason, I don't see a good
+  # reason for a very detailed test on this function behavior. Let's just check
+  # for a few keywords.
+  [[ ! "$output" =~ 'Summary:' ]] && fail "$LINENO: We expected to find at least one Summary entry"
+  [[ ! "$output" =~ '## tag_2' ]] && fail "$LINENO: We expected to find tag_2"
+  [[ ! "$output" =~ '06:00:40-' ]] && fail "$LINENO: We expected to find 06:00:40-"
+}
+
+function test_save_data_to()
+{
+  local output
+
+  grouping_day_data '2020/04/04'
+  save_data_to "$SHUNIT_TMPDIR/test"
+  [[ ! -f "$SHUNIT_TMPDIR/test" ]] && fail "$LINENO: We expect to find a test file"
+
+  output=$(cat "$SHUNIT_TMPDIR/test")
+  [[ ! "$output" =~ 'Summary:' ]] && fail "$LINENO: We expected to find at least one Summary entry"
+
+  # Try to use an invalid path
+  output=$(save_data_to '/this/is/An/InvaLid/Path')
+  ret="$?"
+  assert_equals_helper "We expect an invalid path error" "$LINENO" "$ret" 1
+}
+
 invoke_shunit
