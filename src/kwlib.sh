@@ -147,6 +147,40 @@ function find_kernel_root()
   echo "$kernel_root"
 }
 
+# Get the kernel release based on the command kernelrelease.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Note: Make sure that you called is_kernel_root before trying to execute this
+# function.
+function get_kernel_release()
+{
+  local flag="$1"
+  local cmd='make kernelrelease'
+
+  flag=${flag:-'SILENT'}
+
+  cmd_manager "$flag" "$cmd"
+}
+
+# Get the kernel version name.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Note: Make sure that you called is_kernel_root before trying to execute this
+# function.
+function get_kernel_version()
+{
+  local flag="$1"
+  local cmd='make kernelversion'
+
+  flag=${flag:-'SILENT'}
+
+  cmd_manager "$flag" "$cmd"
+}
+
 # Checks if the given path is a patch file
 #
 # @FILE_PATH The argument is the path

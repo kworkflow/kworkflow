@@ -82,9 +82,9 @@ function kw()
       ;;
     build | b)
       (
-        include "$KW_LIB_DIR/mk.sh"
+        include "$KW_LIB_DIR/build.sh"
 
-        mk_build '' "$@"
+        kernel_build '' "$@"
         local ret="$?"
         alert_completion "kw build" "$1"
         return "$ret"
@@ -92,7 +92,7 @@ function kw()
       ;;
     deploy | d)
       (
-        include "$KW_LIB_DIR/mk.sh"
+        include "$KW_LIB_DIR/deploy.sh"
 
         kernel_deploy "$@"
         local ret="$?"
@@ -102,9 +102,10 @@ function kw()
       ;;
     bd)
       (
-        include "$KW_LIB_DIR/mk.sh"
+        include "$KW_LIB_DIR/deploy.sh"
+        include "$KW_LIB_DIR/build.sh"
 
-        mk_build && kernel_deploy "$@"
+        kernel_build && kernel_deploy "$@"
         local ret="$?"
         alert_completion "kw db" "$1"
         return "$ret"
@@ -194,7 +195,7 @@ function kw()
       )
       ;;
     clear-cache)
-      include "$KW_LIB_DIR/mk.sh"
+      include "$KW_LIB_DIR/deploy.sh"
 
       cleanup
       ;;

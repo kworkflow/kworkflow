@@ -1,7 +1,6 @@
 #
-# The `mk.sh` file centralizes functions related to kernel operation workflows
-# such as compile, installation, and others. With kworkflow, we want to handle
-# three scenarios:
+# The `deploy.sh` file centralizes functions related to kernel installation.
+# With kworkflow, we want to handle three scenarios:
 #
 # 1. Virtual Machine (VM): we want to provide support for developers that uses
 #    VM during their work with Linux Kernel, because of this kw provide
@@ -11,10 +10,10 @@
 #    important to highlight that a VM in the localhost can be treated as a
 #    remote machine.
 #
-# Usually, install modules and update the kernel image requires root
-# permission, with this idea in mind we rely on the `/root` in the remote
-# machine. Additionally, for local deploy, you will be asked to enter your
-# root password.
+# Usually, installing modules and updating the kernel image requires root
+# permission. With this idea in mind we rely on the `/root` in the remote
+# machine. Additionally, for local deploy you will be asked to enter your root
+# password.
 #
 
 include "$KW_LIB_DIR/vm.sh" # It includes kw_config_loader.sh and kwlib.sh
@@ -45,40 +44,6 @@ function modules_install_to()
 
   local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   set +e
-  cmd_manager "$flag" "$cmd"
-}
-
-# Get the kernel release based on the command kernel release.
-#
-# @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
-#
-# Note: Make sure that you called is_kernel_root before try to execute this
-# function.
-function get_kernel_release()
-{
-  local flag="$1"
-  local cmd='make kernelrelease'
-
-  flag=${flag:-'SILENT'}
-
-  cmd_manager "$flag" "$cmd"
-}
-
-# Get the kernel version name.
-#
-# @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
-#
-# Note: Make sure that you called is_kernel_root before try to execute this
-# function.
-function get_kernel_version()
-{
-  local flag="$1"
-  local cmd='make kernelversion'
-
-  flag=${flag:-'SILENT'}
-
   cmd_manager "$flag" "$cmd"
 }
 
@@ -199,7 +164,7 @@ function modules_install()
 #   will display each kernel name by line.
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
 # @unformatted_remote We expect the REMOTE:PORT string
-function mk_list_installed_kernels()
+function list_installed_kernels()
 {
   local flag="$1"
   local single_line="$2"
@@ -374,7 +339,7 @@ function kernel_install()
 #
 # Return:
 # Return 0 if everything is correct or an error in case of failure
-function mk_kernel_uninstall()
+function kernel_uninstall()
 {
   local target="$1"
   local reboot="$2"
@@ -477,7 +442,7 @@ function kernel_deploy()
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
     say "Available kernels:"
     start=$(date +%s)
-    mk_list_installed_kernels "" "$single_line" "$target" "$remote"
+    list_installed_kernels "" "$single_line" "$target" "$remote"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -487,7 +452,7 @@ function kernel_deploy()
 
   if [[ ! -z "$uninstall" ]]; then
     start=$(date +%s)
-    mk_kernel_uninstall "$target" "$reboot" "$remote" "$uninstall" "$flag"
+    kernel_uninstall "$target" "$reboot" "$remote" "$uninstall" "$flag"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -550,126 +515,6 @@ function deploy_help()
     "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m]\n" \
     "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--uninstall|-u KERNEL_NAME]\n" \
     "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--list|-l]"
-}
-
-# This function retrieves and prints information related to the kernel that
-# will be compiled.
-function build_info()
-{
-  local flag
-  local kernel_name
-  local kernel_version
-  local compiled_modules
-
-  flag="$1"
-  kernel_name=$(get_kernel_release "$flag")
-  kernel_version=$(get_kernel_version "$flag")
-
-  say "Kernel source information"
-  echo -e "\tName: $kernel_name"
-  echo -e "\tVersion: $kernel_version"
-
-  if [[ -f '.config' ]]; then
-    compiled_modules=$(grep -c '=m' .config)
-    echo -e "\tTotal modules to be compiled: $compiled_modules"
-  fi
-}
-
-# This function is responsible for manipulating kernel build operations such as
-# compile/cross-compile and menuconfig.
-#
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
-# @raw_options String with all user options
-#
-# Return:
-# In case of successful return 0, otherwise, return 22 or 125.
-function mk_build()
-{
-  local flag="$1"
-  shift 1
-  local raw_options="$@"
-  local PARALLEL_CORES=1
-  local CROSS_COMPILE=""
-  local command=""
-  local start
-  local end
-  local arch="${configurations[arch]}"
-  local menu_config="${configurations[menu_config]}"
-
-  if [[ "$1" == -h ]]; then
-    build_help
-    exit 0
-  fi
-
-  menu_config=${menu_config:-"nconfig"}
-  arch=${arch:-"x86_64"}
-
-  if ! is_kernel_root "$PWD"; then
-    complain "Execute this command in a kernel tree."
-    exit 125 # ECANCELED
-  fi
-
-  if [[ ! -z "${configurations[cross_compile]}" ]]; then
-    CROSS_COMPILE="CROSS_COMPILE=${configurations[cross_compile]}"
-  fi
-
-  IFS=' ' read -r -a options <<< "$raw_options"
-  for option in "${options[@]}"; do
-    case "$option" in
-      --info | -i)
-        build_info
-        exit
-        ;;
-      --menu | -n)
-        command="make ARCH=$arch $CROSS_COMPILE $menu_config"
-        cmd_manager "$flag" "$command"
-        exit
-        ;;
-      --doc | -d)
-        doc_type="${configurations[doc_type]}"
-        doc_type=${doc_type:='htmldocs'}
-        command="make $doc_type"
-        cmd_manager "$flag" "$command"
-        return
-        ;;
-      *)
-        complain "Invalid option: $option"
-        exit 22 # EINVAL
-        ;;
-    esac
-  done
-
-  if [ -x "$(command -v nproc)" ]; then
-    PARALLEL_CORES=$(nproc --all)
-  else
-    PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
-  fi
-
-  command="make -j$PARALLEL_CORES ARCH=$arch $CROSS_COMPILE"
-
-  start=$(date +%s)
-  cmd_manager "$flag" "$command"
-  ret="$?"
-  end=$(date +%s)
-
-  runtime=$((end - start))
-
-  if [[ "$ret" != 0 ]]; then
-    statistics_manager "build_failure" "$runtime"
-  else
-    statistics_manager "build" "$runtime"
-  fi
-
-  return "$ret"
-}
-
-function build_help()
-{
-  echo -e "kw build:\n" \
-    "\tbuild - Build kernel \n" \
-    "\tbuild [--menu|-n] - Open kernel menu config\n" \
-    "\tbuild [--info|-i] - Display build information\n" \
-    "\tbuild [--doc|-d] - Build kernel documentation"
 }
 
 # Handles the remote info

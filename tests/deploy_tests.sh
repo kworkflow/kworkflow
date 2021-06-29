@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/mk.sh'
+include './src/deploy.sh'
 include './tests/utils.sh'
 
 FAKE_KERNEL="tests/.tmp"
@@ -51,12 +51,6 @@ function setUp()
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export KW_PLUGINS_DIR="$PWD/src/plugins/"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
-  if [ -x "$(command -v nproc)" ]; then
-    PARALLEL_CORES=$(nproc --all)
-  else
-    PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
-  fi
-  export PARALLEL_CORES
 
   mkdir "$test_path/$LOCAL_TO_DEPLOY_DIR"
   mkdir "$test_path/$LOCAL_REMOTE_DIR"
@@ -110,52 +104,6 @@ function test_expected_string()
   local target="$3"
 
   assertEquals "$msg" "$target" "$expected"
-}
-
-function test_mk_build()
-{
-  local ID
-  local expected_result
-  local original="$PWD"
-
-  ID=1
-  output=$(mk_build 'TEST_MODE')
-  ret="$?"
-  assertEquals "($ID) We expected an error" "125" "$ret"
-
-  cd "$FAKE_KERNEL"
-  ID=2
-  output=$(mk_build 'TEST_MODE' '--menu')
-  expected_result="make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig"
-  assertEquals "($ID)" "$expected_result" "$output"
-
-  ID=3
-  output=$(mk_build 'TEST_MODE' '--doc')
-  expected_result="make htmldocs"
-  assertEquals "($ID)" "$expected_result" "$output"
-
-  ID=4
-  output=$(mk_build 'TEST_MODE' '--notvalid')
-  ret="$?"
-  assertEquals "($ID)" "$ret" "22"
-
-  ID=5
-  output=$(mk_build 'TEST_MODE' | head -1) # Remove statistics output
-  expected_result="make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
-  assertEquals "($ID)" "$expected_result" "${output}"
-
-  ID=6
-  cd "$original"
-  configurations=()
-  cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
-  parse_configuration "$FAKE_KERNEL/kworkflow.config"
-  cd "$FAKE_KERNEL"
-
-  output=$(mk_build 'TEST_MODE' | head -1) # Remove statistics output
-  expected_result="make -j$PARALLEL_CORES ARCH=x86_64 "
-  assertEquals "($ID)" "$expected_result" "${output}"
-
-  cd "$original"
 }
 
 # This test relies on kworkflow.config loaded during the setUp
@@ -528,7 +476,7 @@ function test_kernel_install_local()
 # by checking the expected command sequence; It is important to highlight that
 # we are not testing the actual kernel list code, this part is validated on
 # another test file.
-function test_mk_list_remote_kernels()
+function test_list_remote_kernels()
 {
   local count=0
   local original="$PWD"
@@ -560,7 +508,7 @@ function test_mk_list_remote_kernels()
 
   setupRemote
 
-  output=$(mk_list_installed_kernels "TEST_MODE" "0" "3" "127.0.0.1:3333")
+  output=$(list_installed_kernels "TEST_MODE" "0" "3" "127.0.0.1:3333")
   while read -r f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
@@ -571,7 +519,7 @@ function test_mk_list_remote_kernels()
   cd "$original"
 }
 
-function test_mk_kernel_uninstall()
+function test_kernel_uninstall()
 {
   local count=0
   local original="$PWD"
@@ -606,12 +554,12 @@ function test_mk_kernel_uninstall()
 
   # List of kernels
   ID=1
-  output=$(mk_kernel_uninstall "3" "0" "127.0.0.1:3333" "$kernel_list" "TEST_MODE")
+  output=$(kernel_uninstall "3" "0" "127.0.0.1:3333" "$kernel_list" "TEST_MODE")
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   # Reboot
   ID=2
-  output=$(mk_kernel_uninstall "3" "1" "127.0.0.1:3333" "$kernel_list" "TEST_MODE")
+  output=$(kernel_uninstall "3" "1" "127.0.0.1:3333" "$kernel_list" "TEST_MODE")
   cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
   kernel_uninstall_cmd="ssh -p 3333 root@127.0.0.1 \"$cmd\""
   expected_cmd[4]="$kernel_uninstall_cmd"
@@ -620,7 +568,7 @@ function test_mk_kernel_uninstall()
 
   # Single kernel
   ID=3
-  output=$(mk_kernel_uninstall "3" "1" "127.0.0.1:3333" "$single_kernel" "TEST_MODE")
+  output=$(kernel_uninstall "3" "1" "127.0.0.1:3333" "$single_kernel" "TEST_MODE")
   cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
   kernel_uninstall_cmd="ssh -p 3333 root@127.0.0.1 \"$cmd\""
   expected_cmd[4]="$kernel_uninstall_cmd"
@@ -647,34 +595,6 @@ function test_cleanup_after_deploy()
       '[[ ${expected_cmd[$count]} != ${f} ]]'
     ((count++))
   done <<< "$output"
-}
-
-function test_build_info()
-{
-  local original="$PWD"
-  local release='5.4.0-rc7-test'
-  local version='5.4.0-rc7'
-  local release_output="Name: $release"
-  local version_output="Version: $version"
-  local modules='Total modules to be compiled: 5'
-
-  declare -a expected_cmd=(
-    'Kernel source information'
-    "$release_output"
-    "$version_output"
-  )
-
-  cd "$FAKE_KERNEL"
-  output=$(mk_build 'TEST_MODE' '--info')
-  compare_command_sequence expected_cmd[@] "$output" "($LINENO)"
-
-  cp "$original/tests/samples/.config" .config
-  expected_cmd[3]="$modules"
-  output=$(mk_build 'TEST_MODE' '--info')
-  compare_command_sequence expected_cmd[@] "$output" "($LINENO)"
-  rm .config
-
-  cd "$original"
 }
 
 invoke_shunit
