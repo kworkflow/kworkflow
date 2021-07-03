@@ -36,6 +36,8 @@ function show_variables()
     [ssh_user]='SSH user'
     [ssh_ip]='SSH address'
     [ssh_port]='SSH port'
+    [ssh_configfile]='SSH configuration file'
+    [hostname]='Hostname of the target in the SSH configuration file'
   )
 
   local -Ar build=(

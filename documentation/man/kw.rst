@@ -17,7 +17,7 @@ Inglorious kernel developer workflow scripts
 
 SYNOPSIS
 ========
-**kw** *COMMAND* [*OPTION* ...] 
+**kw** *COMMAND* [*OPTION* ...]
 
 DESCRIPTION
 ===========
@@ -413,6 +413,10 @@ the **kw** code and provides the overall behavior for **kw**. Local
 **kworkflow.config** per project. In this section, we describe the possible
 fields you can specify in the configuration files.
 
+ssh_user=USER
+-------------
+Sets the user to be used by ssh. By default **kw** uses **root**.
+
 ssh_ip=IP
 ---------
 Sets the IP address to be used by ssh. By default **kw** uses **localhost**.
@@ -420,6 +424,14 @@ Sets the IP address to be used by ssh. By default **kw** uses **localhost**.
 ssh_port=PORT
 -------------
 Sets the ssh port. By default **kw** uses 2222.
+
+ssh_configfile=SSH_CONFIGURATION_FILE
+-------------------------------------
+Provides an optional SSH configuration file to be used by ssh. For more details see `man ssh_config`.
+
+hostname=HOSTNAME
+-----------------
+Sets the hostname to be used when an SSH configuration file is provided.
 
 arch=ARCHITECTURE
 -----------------
