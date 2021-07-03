@@ -226,7 +226,7 @@ function gui_control()
       remote=$(get_based_on_delimiter "$remote" "@" 2)
 
       cmd_remotely "$gui_control_cmd" "$flag" "$remote" "$port"
-      cmd_remotely "$bind_control_cmd" "$flag" "$remote" "$port" "root" "1"
+      cmd_remotely "$bind_control_cmd" "$flag" "$remote" "$port" "" "1"
       ;;
   esac
 }

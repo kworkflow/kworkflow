@@ -22,6 +22,7 @@ function setUp()
 function tearDown()
 {
   configurations=()
+  configurations[ssh_user]=juca
 
   rm -rf "$TMP_TEST_DIR"
 }
@@ -65,9 +66,9 @@ function test_gui_control()
   tearDown # We want to test the default cases first
   # REMOTE = 3
   ID=1
-  ssh_part='ssh -p 8888 root@127.0.0.1'
-  full_turn_on_gui_cmd="$ssh_part \"$gui_on_cmd\""
-  full_bind_cmd="$ssh_part '$bind_cmd'"
+  ssh_part="ssh -p 8888 juca@127.0.0.1"
+  full_turn_on_gui_cmd="$ssh_part sudo \"$gui_on_cmd\""
+  full_bind_cmd="$ssh_part 'sudo bash -c '\''$bind_cmd'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_on_gui_cmd"
@@ -78,8 +79,8 @@ function test_gui_control()
   compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
 
   ID=2
-  full_turn_off_gui_cmd="$ssh_part \"$gui_off_cmd\""
-  full_unbind_cmd="$ssh_part '$unbind_cmd'"
+  full_turn_off_gui_cmd="$ssh_part sudo \"$gui_off_cmd\""
+  full_unbind_cmd="$ssh_part 'sudo bash -c '\''$unbind_cmd'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_off_gui_cmd"
@@ -94,9 +95,9 @@ function test_gui_control()
   parse_configuration "$KW_CONFIG_SAMPLE"
 
   gui_off_cmd='turn off'
-  ssh_part='ssh -p 22 root@localhost'
-  full_turn_off_gui_cmd="$ssh_part \"$gui_off_cmd\""
-  full_unbind_cmd="$ssh_part '$unbind_cmd'"
+  ssh_part="ssh -p 3333 juca@127.0.0.1"
+  full_turn_off_gui_cmd="$ssh_part sudo \"$gui_off_cmd\""
+  full_unbind_cmd="$ssh_part 'sudo bash -c '\''$unbind_cmd'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_off_gui_cmd"
@@ -108,8 +109,8 @@ function test_gui_control()
 
   ID=4
   gui_on_cmd='turn on'
-  full_turn_on_gui_cmd="$ssh_part \"$gui_on_cmd\""
-  full_bind_cmd="$ssh_part '$bind_cmd'"
+  full_turn_on_gui_cmd="$ssh_part sudo \"$gui_on_cmd\""
+  full_bind_cmd="$ssh_part 'sudo bash -c '\''$bind_cmd'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_on_gui_cmd"
@@ -161,7 +162,8 @@ function test_get_supported_mode_per_connector()
 function test_module_control()
 {
   local ID
-  local default_ssh="ssh -p 22 root@localhost"
+  local default_ssh
+  default_ssh="ssh -p 3333 juca@127.0.0.1 sudo"
 
   ID=1
   expected="sudo bash -c \"modprobe  amdgpu\""
