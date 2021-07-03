@@ -53,9 +53,9 @@ function cmd_remotely()
   fi
 
   if [[ "$bash_code" == 1 ]]; then
-    composed_cmd="$composed_cmd '$command'"
+    composed_cmd="$composed_cmd 'sudo bash -c '\''$command'\'"
   else
-    composed_cmd="$composed_cmd \"$command\""
+    composed_cmd="$composed_cmd sudo \"$command\""
   fi
 
   cmd_manager "$flag" "$composed_cmd"
@@ -82,10 +82,12 @@ function cp_host2remote()
   local user=${5:-${configurations[ssh_user]}}
   local flag=${6:-"HIGHLIGHT_CMD"}
 
-  cmd_manager "$flag" "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst"
+  cmd_manager "$flag" "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
     cmd_manager "$flag" "rsync -e 'ssh -F ${configurations['ssh_configfile']}' -La $src ${configurations['hostname']}:$dst --rsync-path='sudo rsync'"
   fi
+
+  cmd_remotely "chown -R root:root $dst" "$flag" "$remote" "$port" "$user"
 }
 
 # Access the target device and query the distro name.
