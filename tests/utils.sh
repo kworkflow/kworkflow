@@ -230,7 +230,7 @@ function compare_command_sequence()
 
   while read -r f; do
     if [[ "${expected[$count]}" != "${f}" ]]; then
-      fail "($ID) $count - Expected cmd \"${expected[$count]}\" to be \"${f}\""
+      fail "($ID) $count - Expected cmd \"${f}\" to be \"${expected[$count]}\""
     fi
     ((count++))
   done <<< "$result_to_compare"
