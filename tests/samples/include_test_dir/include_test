@@ -1,0 +1,4 @@
+function test2()
+{
+  echo 'output of test2'
+}
