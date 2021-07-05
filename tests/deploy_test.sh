@@ -440,7 +440,7 @@ function test_kernel_modules()
   setupRemote
 
   ID=1
-  output=$(modules_install "TEST_MODE" "3" "127.0.0.1:3333")
+  output=$(modules_install "TEST_MODE" 3)
   while read -r f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
@@ -449,12 +449,12 @@ function test_kernel_modules()
   done <<< "$output"
 
   ID=2
-  output=$(modules_install "TEST_MODE" "1" "")
+  output=$(modules_install "TEST_MODE" 1)
   expected_output="make INSTALL_MOD_PATH=/home/lala modules_install"
   assertEquals "$ID: " "$output" "$expected_output"
 
   ID=3
-  output=$(modules_install "TEST_MODE" "2" "")
+  output=$(modules_install "TEST_MODE" 2)
   expected_output="sudo -E make modules_install"
   assertEquals "$ID: " "$output" "$expected_output"
 
@@ -565,7 +565,7 @@ function test_list_remote_kernels()
 
   setupRemote
 
-  output=$(list_installed_kernels "TEST_MODE" "0" "3" "127.0.0.1:3333")
+  output=$(list_installed_kernels "TEST_MODE" 0 3)
   while read -r f; do
     if [[ ${expected_cmd[$count]} != ${f} ]]; then
       fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
@@ -617,12 +617,14 @@ function test_kernel_uninstall()
 
   # List of kernels
   ID=1
-  output=$(kernel_uninstall "3" "0" "127.0.0.1:3333" "$kernel_list" "TEST_MODE")
+  options_values['REMOTE_IP']='127.0.0.1'
+  options_values['REMOTE_PORT']=3333
+  output=$(kernel_uninstall 3 0 "$kernel_list" "TEST_MODE")
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   # Reboot
   ID=2
-  output=$(kernel_uninstall "3" "1" "127.0.0.1:3333" "$kernel_list" "TEST_MODE")
+  output=$(kernel_uninstall 3 1 "$kernel_list" "TEST_MODE")
   cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
   kernel_uninstall_cmd="ssh -p 3333 root@127.0.0.1 \"$cmd\""
   expected_cmd[4]="$kernel_uninstall_cmd"
@@ -631,7 +633,7 @@ function test_kernel_uninstall()
 
   # Single kernel
   ID=3
-  output=$(kernel_uninstall "3" "1" "127.0.0.1:3333" "$single_kernel" "TEST_MODE")
+  output=$(kernel_uninstall 3 1 "$single_kernel" "TEST_MODE")
   cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
   kernel_uninstall_cmd="ssh -p 3333 root@127.0.0.1 \"$cmd\""
   expected_cmd[4]="$kernel_uninstall_cmd"
