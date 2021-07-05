@@ -4,6 +4,7 @@ include './src/device_info.sh'
 include './tests/utils.sh'
 
 declare -gA configurations
+configurations[ssh_user]=john
 
 function test_get_ram()
 {
@@ -17,6 +18,11 @@ function test_get_ram()
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
   output=$(get_ram "$LOCAL_TARGET" 'TEST_MODE')
   assertEquals "($LINENO)" "$cmd" "$output"
+
+  device_options['ip']='127.0.0.1'
+  device_options['port']='2222'
+  output=$(get_ram "$REMOTE_TARGET" 'TEST_MODE')
+  assertEquals "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
 }
 
 function test_get_cpu()
@@ -31,6 +37,16 @@ function test_get_cpu()
   assertEquals "($LINENO)" 'Virtual' "${device_info_data['cpu_model']}"
 
   output=$(get_cpu "$LOCAL_TARGET" 'TEST_MODE')
+  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
+
+  declare -a expected_cmd=(
+    "ssh -p 2222 john@127.0.0.1 sudo \"lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1\""
+    "ssh -p 2222 john@127.0.0.1 sudo \"lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'\""
+  )
+
+  device_options['ip']='127.0.0.1'
+  device_options['port']='2222'
+  output=$(get_cpu "$REMOTE_TARGET" 'TEST_MODE')
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 }
 
@@ -47,6 +63,11 @@ function test_get_disk()
   cmd="df -h / | tail -n 1 | tr -s ' '"
   output=$(get_disk "$LOCAL_TARGET" 'TEST_MODE')
   assertEquals "($LINENO)" "$cmd" "$output"
+
+  device_options['ip']='127.0.0.1'
+  device_options['port']='2222'
+  output=$(get_disk "$REMOTE_TARGET" 'TEST_MODE')
+  assertEquals "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
 }
 
 function test_get_motherboard()
