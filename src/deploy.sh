@@ -127,10 +127,8 @@ function modules_install()
       # 1. Preparation steps
       prepare_host_deploy_dir
 
-      remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
-      port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
-      # User may specify a hostname instead of bare IP
-      remote=$(get_based_on_delimiter "$remote" "@" 2)
+      remote="${options_values['REMOTE_IP']}"
+      port="${options_values['REMOTE_PORT']}"
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
@@ -195,9 +193,8 @@ function list_installed_kernels()
       ;;
     3) # REMOTE_TARGET
       local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels $single_line"
-      remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
-      remote=$(get_based_on_delimiter "$remote" "@" 2)
+      remote="${options_values['REMOTE_IP']}"
+      port="${options_values['REMOTE_PORT']}"
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
@@ -224,7 +221,6 @@ function kernel_install()
   local name="$2"
   local flag="$3"
   local target="$4"
-  local formatted_remote="$5"
   local user=""
   local distro="none"
   local kernel_name="${configurations[kernel_name]}"
@@ -306,9 +302,8 @@ function kernel_install()
         sed -i "s/NAME/$name/g" "$preset_file"
       fi
 
-      remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
-      port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
-      remote=$(get_based_on_delimiter "$remote" "@" 2)
+      remote="${options_values['REMOTE_IP']}"
+      port="${options_values['REMOTE_PORT']}"
 
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro "/" "$distro_info")
@@ -371,9 +366,8 @@ function kernel_uninstall()
       kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
       ;;
     3) # REMOTE_TARGET
-      remote=$(get_based_on_delimiter "$formatted_remote" ":" 1)
-      port=$(get_based_on_delimiter "$formatted_remote" ":" 2)
-      remote=$(get_based_on_delimiter "$remote" "@" 2)
+      remote="${options_values['REMOTE_IP']}"
+      port="${options_values['REMOTE_PORT']}"
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
@@ -435,7 +429,7 @@ function kernel_deploy()
   uninstall="${options_values["UNINSTALL"]}"
 
   if [[ "$test_mode" == "TEST_MODE" ]]; then
-    echo "$reboot $modules $target $remote $single_line $list"
+    echo "$reboot $modules $target ${options_values['REMOTE_IP']} ${options_values['REMOTE_PORT']} $single_line $list"
     return 0
   fi
 
@@ -517,40 +511,42 @@ function deploy_help()
     "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--list|-l]"
 }
 
-# Handles the remote info
+# Populate remote info
 #
-# @parameters String to be parsed
+# @parameters: Command line parameter to be parsed
 #
 # Returns:
-# This function has two returns, and we make the second return by using
-# capturing the "echo" output. The standard return ("$?") can be 22 if
-# something is wrong or 0 if everything finished as expected; the second
-# output is the remote info as IP:PORT
-function get_remote_info()
+# This function populates the variables REMOTE_IP and REMOTE_PORT based on the
+# config file or command line. If it cannot retrieve those data, it returns 22.
+function populate_remote_info()
 {
-  ip="$1"
+  local ip="$1"
+  local port
 
   if [[ -z "$ip" ]]; then
-    ip=${configurations[ssh_ip]}
-    port=${configurations[ssh_port]}
-    ip="$ip:$port"
+    options_values['REMOTE_IP']=${configurations[ssh_ip]}
+    options_values['REMOTE_PORT']=${configurations[ssh_port]}
   else
     temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
     # 22 in the conditon refers to EINVAL
     if [[ "$?" == 22 ]]; then
-      ip="$ip:22"
+      options_values['REMOTE_IP']="$ip"
+      options_values['REMOTE_PORT']=22
     else
       port=$(get_based_on_delimiter "$ip" ":" 2)
-      ip="$temp_ip:$port"
+      options_values['REMOTE_IP']="$temp_ip"
+      options_values['REMOTE_PORT']="$port"
     fi
   fi
 
-  if [[ "$ip" =~ ^: ]]; then
-    complain "Something went wrong with the remote option"
+  ip="${options_values['REMOTE_IP']}:${options_values['REMOTE_PORT']}"
+  options_values['REMOTE']="$ip"
+
+  if [[ -z "$ip" || "$ip" =~ ^: ]]; then
+    complain 'Something went wrong with the remote option'
     return 22 # EINVAL
   fi
 
-  echo "$ip"
   return 0
 }
 
@@ -575,6 +571,9 @@ function deploy_parser_options()
   options_values["LS"]=0
   options_values["REBOOT"]=0
   options_values["MENU_CONFIG"]="nconfig"
+  options_values['REMOTE']=''
+  options_values['REMOTE_IP']=''
+  options_values['REMOTE_PORT']=''
 
   # Set basic default values
   if [[ -n ${configurations[default_deploy_target]} ]]; then
@@ -584,13 +583,11 @@ function deploy_parser_options()
     options_values["TARGET"]="$VM_TARGET"
   fi
 
-  remote=$(get_remote_info)
+  populate_remote_info ''
   if [[ "$?" == 22 ]]; then
     options_values["ERROR"]="$remote"
     return 22 # EINVAL
   fi
-
-  options_values["REMOTE"]="$remote"
 
   if [[ ${configurations[reboot_after_deploy]} == "yes" ]]; then
     options_values["REBOOT"]=1
@@ -649,7 +646,7 @@ function deploy_parser_options()
     else # Handle potential parameters
       if [[ "$uninstall" != 1 &&
         ${options_values["TARGET"]} == "$REMOTE_TARGET" ]]; then
-        options_values["REMOTE"]=$(get_remote_info "$option")
+        populate_remote_info "$option"
         if [[ "$?" == 22 ]]; then
           options_values["ERROR"]="$option"
           return 22

@@ -120,45 +120,45 @@ function test_kernel_deploy()
     return
   }
 
-  # From kworkflow.config file we expect 0 0 1 127.0.0.1:3333 0 0
+  # From kworkflow.config file we expect 0 0 1 127.0.0.1 3333 0 0
   ID=1
   output=$(kernel_deploy test_mode)
-  expected_result="0 0 1 127.0.0.1:3333 0 0"
+  expected_result="0 0 1 127.0.0.1 3333 0 0"
   assertEquals "($ID) Pure config:" "$expected_result" "$output"
 
   ID=2
   output=$(kernel_deploy test_mode --modules)
-  expected_result="0 1 1 127.0.0.1:3333 0 0"
+  expected_result="0 1 1 127.0.0.1 3333 0 0"
   assertEquals "($ID) Modules:" "$expected_result" "$output"
 
   ID=3
   output=$(kernel_deploy test_mode --reboot)
-  expected_result="1 0 1 127.0.0.1:3333 0 0"
+  expected_result="1 0 1 127.0.0.1 3333 0 0"
   assertEquals "($ID) Reboot: " "$expected_result" "$output"
 
   ID=4
   output=$(kernel_deploy test_mode --reboot --modules)
-  expected_result="1 1 1 127.0.0.1:3333 0 0"
+  expected_result="1 1 1 127.0.0.1 3333 0 0"
   assertEquals "($ID) Reboot, Modules:" "$expected_result" "$output"
 
   ID=5
   output=$(kernel_deploy test_mode --local --reboot --modules)
-  expected_result="1 1 2 127.0.0.1:3333 0 0"
+  expected_result="1 1 2 127.0.0.1 3333 0 0"
   assertEquals "($ID) Local, Reboot, Modules" "$expected_result" "$output"
 
   ID=6
   output=$(kernel_deploy test_mode --remote --reboot)
-  expected_result="1 0 3 127.0.0.1:3333 0 0"
+  expected_result="1 0 3 127.0.0.1 3333 0 0"
   assertEquals "($ID) Remote, Reboot" "$expected_result" "$output"
 
   ID=7
   output=$(kernel_deploy test_mode --remote 192.168.0.10 --reboot)
-  expected_result="1 0 3 192.168.0.10:22 0 0"
+  expected_result="1 0 3 192.168.0.10 22 0 0"
   assertEquals "($ID) Remote: 192.168.0.10, Reboot" "$expected_result" "$output"
 
   ID=8
   output=$(kernel_deploy test_mode --remote 192.168.0.10:1287)
-  expected_result="0 0 3 192.168.0.10:1287 0 0"
+  expected_result="0 0 3 192.168.0.10 1287 0 0"
   assertEquals "($ID) Remote: 192.168.0.10:1287" "$expected_result" "$output"
 
   # Test some invalid parameters
@@ -272,7 +272,10 @@ function test_kernel_install()
     return
   }
 
-  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  options_values['REMOTE_IP']='127.0.0.1'
+  options_values['REMOTE_PORT']=3333
+
+  output=$(kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
   # Update values
