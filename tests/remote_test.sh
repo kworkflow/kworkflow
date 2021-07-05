@@ -69,20 +69,33 @@ function test_populate_remote_info()
   # Force an unspected error
   configurations=()
 
+  populate_remote_info 'localhost'
+  assertEquals "($LINENO) Expected localhost" 'localhost' "${remote_parameters['REMOTE_IP']}"
+  assertEquals "($LINENO) Expected 22" 22 "${remote_parameters['REMOTE_PORT']}"
+  assertEquals "($LINENO) Expected root" 'root' "${remote_parameters['REMOTE_USER']}"
+
   populate_remote_info 'localhost:6789'
   assertEquals "($LINENO) Expected localhost" 'localhost' "${remote_parameters['REMOTE_IP']}"
   assertEquals "($LINENO) Expected 6789" 6789 "${remote_parameters['REMOTE_PORT']}"
+  assertEquals "($LINENO) Expected root" 'root' "${remote_parameters['REMOTE_USER']}"
 
   populate_remote_info 'localhost'
   assertEquals "($LINENO) Expected localhost" 'localhost' "${remote_parameters['REMOTE_IP']}"
   assertEquals "($LINENO) Expected 22" 22 "${remote_parameters['REMOTE_PORT']}"
+  assertEquals "($LINENO) Expected root" 'root' "${remote_parameters['REMOTE_USER']}"
+
+  populate_remote_info 'ada@localhost:3773'
+  assertEquals "($LINENO) Expected localhost" 'localhost' "${remote_parameters['REMOTE_IP']}"
+  assertEquals "($LINENO) Expected 3773" 3773 "${remote_parameters['REMOTE_PORT']}"
+  assertEquals "($LINENO) Expected ada" 'ada' "${remote_parameters['REMOTE_USER']}"
 
   # Let's check with a config file information
   parse_configuration "$KW_CONFIG_SAMPLE"
 
-  populate_remote_info
+  populate_remote_info ''
   assertEquals "($LINENO) Expected 127.0.0.1" '127.0.0.1' "${remote_parameters['REMOTE_IP']}"
   assertEquals "($LINENO) Expected 3333" 3333 "${remote_parameters['REMOTE_PORT']}"
+  assertEquals "($LINENO) Expected juca" 'juca' "${remote_parameters['REMOTE_USER']}"
 
   # Let's check a failure case
   remote_parameters=()

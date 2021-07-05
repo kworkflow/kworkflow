@@ -60,6 +60,7 @@ function test_parse_configuration_output()
     [cross_compile]="aarch64-linux-gnu-"
     [virtualizer]="libvirt"
     [qemu_path_image]="/home/xpto/p/virty.qcow2"
+    [ssh_user]='juca'
     [ssh_ip]="127.0.0.1"
     [ssh_port]="3333"
     [mount_point]="/home/lala"
@@ -99,6 +100,7 @@ function test_parse_configuration_standard_config()
     [qemu_path_image]="/home/USERKW/p/virty.qcow2"
     [qemu_hw_options]="-enable-kvm -daemonize -smp 2 -m 1024"
     [qemu_net_options]="-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW"
+    [ssh_user]='root'
     [ssh_ip]="localhost"
     [ssh_port]="22"
     [mount_point]="/home/USERKW/p/mount"

@@ -33,6 +33,7 @@ function show_variables()
   fi
 
   local -Ar ssh=(
+    [ssh_user]='SSH user'
     [ssh_ip]='SSH address'
     [ssh_port]='SSH port'
   )

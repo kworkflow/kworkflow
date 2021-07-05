@@ -235,22 +235,31 @@ function generate_tarball()
 function populate_remote_info()
 {
   local ip="$1"
-  local port
+  local temp_ip
+  local port=22
+  local user='root'
 
   if [[ -z "$ip" ]]; then
     remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
     remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
-  else
-    temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
-    # 22 in the conditon refers to EINVAL
-    if [[ "$?" == 22 ]]; then
-      remote_parameters['REMOTE_IP']="$ip"
-      remote_parameters['REMOTE_PORT']=22
-    else
-      port=$(get_based_on_delimiter "$ip" ":" 2)
-      remote_parameters['REMOTE_IP']="$temp_ip"
-      remote_parameters['REMOTE_PORT']="$port"
-    fi
+    remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
+  else # CLI
+    # Handling port
+    remote_parameters['REMOTE_PORT']="$port"
+    port=$(get_based_on_delimiter "$ip" ':' 2)
+    # Use the specific port
+    [[ "$?" != 22 ]] && remote_parameters['REMOTE_PORT']="$port"
+
+    # Handling user
+    remote_parameters['REMOTE_USER']="$user"
+    user=$(get_based_on_delimiter "$ip" '@' 1)
+    # There is no specific user, let's assume root
+    [[ "$?" != 22 ]] && remote_parameters['REMOTE_USER']="$user"
+
+    # Handling IP by making sure that we eliminate user and port
+    temp_ip=$(get_based_on_delimiter "$ip" ':' 1)
+    temp_ip=$(get_based_on_delimiter "$temp_ip" '@' 2)
+    remote_parameters['REMOTE_IP']="$temp_ip"
   fi
 
   ip="${remote_parameters['REMOTE_IP']}:${remote_parameters['REMOTE_PORT']}"
