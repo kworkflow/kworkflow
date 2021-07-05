@@ -20,7 +20,7 @@ function drm_manager()
 
   drm_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
-    complain "Invalid option: ${drm_options_values['ERROR']}  $target $gui_on $gui_off $remote"
+    complain "Invalid option: ${drm_options_values['ERROR']} $target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
     drm_help
     return 22
   fi
@@ -31,13 +31,14 @@ function drm_manager()
   conn_available="${drm_options_values['CONN_AVAILABLE']}"
   modes_available="${drm_options_values['MODES_AVAILABLE']}"
   help_opt="${drm_options_values['HELP']}"
-  remote="${drm_options_values['REMOTE']}"
   test_mode="${drm_options_values['TEST_MODE']}"
   load_module="${drm_options_values['LOAD_MODULE']}"
   unload_module="${drm_options_values['UNLOAD_MODULE']}"
 
+  remote="${remote_parameters['REMOTE']}"
+
   if [[ "$test_mode" == "TEST_MODE" ]]; then
-    echo "$target $gui_on $gui_off $remote"
+    echo "$target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
     return 0
   fi
 
@@ -363,9 +364,9 @@ function drm_parser_options()
     drm_options_values["TARGET"]="$LOCAL_TARGET"
   fi
 
-  remote=$(get_remote_info)
+  populate_remote_info ''
   if [[ "$?" == 22 ]]; then
-    drm_options_values["ERROR"]="$remote"
+    options_values['ERROR']="$remote"
     return 22 # EINVAL
   fi
 
@@ -436,7 +437,11 @@ function drm_parser_options()
       # Handle other sub-parameters
       if [[ "${drm_options_values['TARGET']}" == "$REMOTE_TARGET" &&
         "$module_parameter" != 1 && "$unload_module" != 1 ]]; then
-        drm_options_values["REMOTE"]=$(get_remote_info "$option")
+        populate_remote_info "$option"
+        if [[ "$?" == 22 ]]; then
+          drm_options_values['ERROR']="$option"
+          return 22
+        fi
       fi
 
       if [[ "$module_parameter" == 1 ]]; then

@@ -19,6 +19,8 @@ DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
 DEPLOY_SCRIPT="$KW_PLUGINS_DIR/kernel_install/deploy.sh"
 DEPLOY_SCRIPT_SUPPORT="$KW_PLUGINS_DIR/kernel_install/utils.sh"
 
+declare -gA remote_parameters
+
 # This function is responsible for executing a command in a remote machine.
 #
 # @command Command to be executed inside the remote machine
@@ -222,40 +224,43 @@ function generate_tarball()
   fi
 }
 
-# Handles the remote info
+# Populate remote info
 #
-# @parameters String to be parsed
+# @parameters: Command line parameter to be parsed
 #
 # Returns:
-# This function has two returns, and we make the second return by using
-# capturing the "echo" output. The standard return ("$?") can be 22 if
-# something is wrong or 0 if everything finished as expected; the second
-# output is the remote info as IP:PORT
-function get_remote_info()
+# This function populates the variables REMOTE_IP and REMOTE_PORT of the
+# remote_parameters array based on the config file or command line. If it
+# cannot retrieve those data, it returns 22.
+function populate_remote_info()
 {
-  ip="$1"
+  local ip="$1"
+  local port
 
   if [[ -z "$ip" ]]; then
-    ip=${configurations[ssh_ip]}
-    port=${configurations[ssh_port]}
-    ip="$ip:$port"
+    remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
+    remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
   else
     temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
     # 22 in the conditon refers to EINVAL
     if [[ "$?" == 22 ]]; then
-      ip="$ip:22"
+      remote_parameters['REMOTE_IP']="$ip"
+      remote_parameters['REMOTE_PORT']=22
     else
       port=$(get_based_on_delimiter "$ip" ":" 2)
-      ip="$temp_ip:$port"
+      remote_parameters['REMOTE_IP']="$temp_ip"
+      remote_parameters['REMOTE_PORT']="$port"
     fi
   fi
 
-  if [[ "$ip" =~ ^: ]]; then
-    complain "Something went wrong with the remote option"
+  ip="${remote_parameters['REMOTE_IP']}:${remote_parameters['REMOTE_PORT']}"
+  remote_parameters['REMOTE']="$ip"
+
+  if [[ -z "$ip" || "$ip" =~ ^: ]]; then
+    complain 'Something went wrong with the remote option'
     return 22 # EINVAL
   fi
 
-  echo "$ip"
   return 0
 }
 

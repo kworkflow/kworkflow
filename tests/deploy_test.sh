@@ -97,15 +97,6 @@ function tearDown()
   rm -rf "$FAKE_KERNEL"
 }
 
-function test_expected_string()
-{
-  local msg="$1"
-  local expected="$2"
-  local target="$3"
-
-  assertEquals "$msg" "$target" "$expected"
-}
-
 # This test relies on kworkflow.config loaded during the setUp
 #
 # Output sequence of kernel_deploy in the TEST_MODE:
@@ -272,8 +263,8 @@ function test_kernel_install()
     return
   }
 
-  options_values['REMOTE_IP']='127.0.0.1'
-  options_values['REMOTE_PORT']=3333
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']=3333
 
   output=$(kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"

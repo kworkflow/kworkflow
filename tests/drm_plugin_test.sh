@@ -28,34 +28,29 @@ function tearDown()
 
 function test_drm_manager()
 {
-  local ID
+  local output
 
   parse_configuration "$TMP_TEST_DIR/kworkflow.config"
 
-  ID=1
   output=$(drm_manager test_mode --remote --gui-on)
-  expected_result="3 1 0 127.0.0.1:3333"
-  assertEquals "($ID) Remote and --gui-on:" "$expected_result" "$output"
+  expected_result='3 1 0 127.0.0.1 3333'
+  assertEquals "($LINENO) Remote and --gui-on:" "$expected_result" "$output"
 
-  ID=2
   output=$(drm_manager test_mode --remote --gui-off)
-  expected_result="3 0 1 127.0.0.1:3333"
-  assertEquals "($ID) Remote and --gui-off:" "$expected_result" "$output"
+  expected_result='3 0 1 127.0.0.1 3333'
+  assertEquals "($LINENO) Remote and --gui-off:" "$expected_result" "$output"
 
-  ID=3
   output=$(drm_manager test_mode --gui-on)
-  expected_result="3 1 0 127.0.0.1:3333"
-  assertEquals "($ID) just --gui-on:" "$expected_result" "$output"
+  expected_result='3 1 0 127.0.0.1 3333'
+  assertEquals "($LINENO) just --gui-on:" "$expected_result" "$output"
 
-  ID=4
   output=$(drm_manager test_mode --gui-off)
-  expected_result="3 0 1 127.0.0.1:3333"
-  assertEquals "($ID) just --gui-off:" "$expected_result" "$output"
+  expected_result='3 0 1 127.0.0.1 3333'
+  assertEquals "($LINENO) just --gui-off:" "$expected_result" "$output"
 
   # Invalid options
-  ID=5
   output=$(drm_manager test_mode --vm --gui-on)
-  assertEquals "($ID) Should not accept --vm:" "$?" "22"
+  assertEquals "($LINENO) Should not accept --vm:" "$?" 22
 }
 
 function test_gui_control()

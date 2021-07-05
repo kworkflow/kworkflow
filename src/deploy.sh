@@ -58,7 +58,7 @@ function cleanup()
 function interrupt_cleanup()
 {
   say 'Cleaning up...'
-  if [[ -v options_values['REMOTE'] ]]; then
+  if [[ -v remote_parameters['REMOTE'] ]]; then
     cleanup_after_deploy 'SILENT'
   fi
 
@@ -126,8 +126,8 @@ function modules_install()
       # 1. Preparation steps
       prepare_host_deploy_dir
 
-      remote="${options_values['REMOTE_IP']}"
-      port="${options_values['REMOTE_PORT']}"
+      remote="${remote_parameters['REMOTE_IP']}"
+      port="${remote_parameters['REMOTE_PORT']}"
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
@@ -190,8 +190,8 @@ function list_installed_kernels()
       ;;
     3) # REMOTE_TARGET
       local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels $single_line"
-      remote="${options_values['REMOTE_IP']}"
-      port="${options_values['REMOTE_PORT']}"
+      remote="${remote_parameters['REMOTE_IP']}"
+      port="${remote_parameters['REMOTE_PORT']}"
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
@@ -299,8 +299,8 @@ function kernel_install()
         sed -i "s/NAME/$name/g" "$preset_file"
       fi
 
-      remote="${options_values['REMOTE_IP']}"
-      port="${options_values['REMOTE_PORT']}"
+      remote="${remote_parameters['REMOTE_IP']}"
+      port="${remote_parameters['REMOTE_PORT']}"
 
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro "/" "$distro_info")
@@ -363,8 +363,8 @@ function kernel_uninstall()
       kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
       ;;
     3) # REMOTE_TARGET
-      remote="${options_values['REMOTE_IP']}"
-      port="${options_values['REMOTE_PORT']}"
+      remote="${remote_parameters['REMOTE_IP']}"
+      port="${remote_parameters['REMOTE_PORT']}"
 
       prepare_remote_dir "$remote" "$port" "" "$flag"
 
@@ -422,11 +422,12 @@ function kernel_deploy()
   single_line="${options_values['LS_LINE']}"
   list="${options_values['LS']}"
   test_mode="${options_values['TEST_MODE']}"
-  remote="${options_values['REMOTE']}"
   uninstall="${options_values["UNINSTALL"]}"
 
+  remote="${remote_parameters['REMOTE']}"
+
   if [[ "$test_mode" == "TEST_MODE" ]]; then
-    echo "$reboot $modules $target ${options_values['REMOTE_IP']} ${options_values['REMOTE_PORT']} $single_line $list"
+    echo "$reboot $modules $target ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $single_line $list"
     return 0
   fi
 
@@ -508,45 +509,6 @@ function deploy_help()
     "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--list|-l]"
 }
 
-# Populate remote info
-#
-# @parameters: Command line parameter to be parsed
-#
-# Returns:
-# This function populates the variables REMOTE_IP and REMOTE_PORT based on the
-# config file or command line. If it cannot retrieve those data, it returns 22.
-function populate_remote_info()
-{
-  local ip="$1"
-  local port
-
-  if [[ -z "$ip" ]]; then
-    options_values['REMOTE_IP']=${configurations[ssh_ip]}
-    options_values['REMOTE_PORT']=${configurations[ssh_port]}
-  else
-    temp_ip=$(get_based_on_delimiter "$ip" ":" 1)
-    # 22 in the conditon refers to EINVAL
-    if [[ "$?" == 22 ]]; then
-      options_values['REMOTE_IP']="$ip"
-      options_values['REMOTE_PORT']=22
-    else
-      port=$(get_based_on_delimiter "$ip" ":" 2)
-      options_values['REMOTE_IP']="$temp_ip"
-      options_values['REMOTE_PORT']="$port"
-    fi
-  fi
-
-  ip="${options_values['REMOTE_IP']}:${options_values['REMOTE_PORT']}"
-  options_values['REMOTE']="$ip"
-
-  if [[ -z "$ip" || "$ip" =~ ^: ]]; then
-    complain 'Something went wrong with the remote option'
-    return 22 # EINVAL
-  fi
-
-  return 0
-}
-
 # This function gets raw data and based on that fill out the options values to
 # be used in another function.
 #
@@ -568,9 +530,8 @@ function deploy_parser_options()
   options_values["LS"]=0
   options_values["REBOOT"]=0
   options_values["MENU_CONFIG"]="nconfig"
-  options_values['REMOTE']=''
-  options_values['REMOTE_IP']=''
-  options_values['REMOTE_PORT']=''
+
+  remote_parameters['REMOTE']=''
 
   # Set basic default values
   if [[ -n ${configurations[default_deploy_target]} ]]; then

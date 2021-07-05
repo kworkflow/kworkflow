@@ -61,38 +61,35 @@ function oneTimeTearDown()
   unset KW_CACHE_DIR
 }
 
-function test_get_remote_info()
+function test_populate_remote_info()
 {
-  local ID
+  local ret
+  local output
 
   # Force an unspected error
   configurations=()
 
-  ID=0
-  output=$(get_remote_info)
-  ret="$?"
-  assertEquals "($ID) We did not load kworkflow.config, we expect an error" "22" "$ret"
-  setUp
+  populate_remote_info 'localhost:6789'
+  assertEquals "($LINENO) Expected localhost" 'localhost' "${remote_parameters['REMOTE_IP']}"
+  assertEquals "($LINENO) Expected 6789" 6789 "${remote_parameters['REMOTE_PORT']}"
 
-  ID=1
-  output=$(get_remote_info "localhost:6789")
-  ret="$?"
-  assertEquals "($ID) Expected 0" "0" "$ret"
-  assertEquals "($ID) Expected localhost:6789" "localhost:6789" "$output"
+  populate_remote_info 'localhost'
+  assertEquals "($LINENO) Expected localhost" 'localhost' "${remote_parameters['REMOTE_IP']}"
+  assertEquals "($LINENO) Expected 22" 22 "${remote_parameters['REMOTE_PORT']}"
 
-  ID=2
-  output=$(get_remote_info "localhost")
-  ret="$?"
-  assertEquals "($ID) Expected 0" "0" "$ret"
-  assertEquals "($ID) Expected localhost:22" "localhost:22" "$output"
-
+  # Let's check with a config file information
   parse_configuration "$KW_CONFIG_SAMPLE"
 
-  ID=3
-  output=$(get_remote_info)
+  populate_remote_info
+  assertEquals "($LINENO) Expected 127.0.0.1" '127.0.0.1' "${remote_parameters['REMOTE_IP']}"
+  assertEquals "($LINENO) Expected 3333" 3333 "${remote_parameters['REMOTE_PORT']}"
+
+  # Let's check a failure case
+  remote_parameters=()
+  configurations=()
+  populate_remote_info > /dev/null
   ret="$?"
-  assertEquals "($ID) Expected 0" "0" "$ret"
-  assertEquals "($ID) Expected 127.0.0.1:3333" "127.0.0.1:3333" "$output"
+  assertEquals "($LINENO) We did not load kworkflow.config, we expect an error" 22 "$ret"
 }
 
 function test_cmd_remote()
