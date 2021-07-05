@@ -10,8 +10,6 @@ function include()
   local filepath="$1"
   local varname
 
-  varname=$(basename "$filepath" .sh)
-
   if [[ ! -e "$filepath" ]]; then
     echo "File $filepath could not be found, check your file path."
     return 2 # ENOENT
@@ -22,7 +20,11 @@ function include()
     return 1 # EPERM
   fi
 
-  varname=${varname^^}_IMPORTED # capitalize and append "_IMPORTED"
+  varname="$(realpath "$filepath")"
+  varname="${varname#"$KW_LIB_DIR/"}" # leave path until KW_LIB_DIR
+  varname="${varname//\//_}"          # change bars to underlines
+  varname="${varname%.*}"             # remove extension
+  varname="${varname^^}_IMPORTED"     # capitalize and append "_IMPORTED"
 
   if [[ -v "${varname}" ]]; then
     return 0
