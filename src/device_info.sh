@@ -2,6 +2,7 @@
 
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/kwlib.sh"
+include "$KW_LIB_DIR/vm.sh"
 
 declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['cpu_model']=''                       # CPU model vendor
@@ -15,7 +16,9 @@ declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['os']=''                              # Operating system name
   ['motherboard_name']=''                # Motherboard name
   ['motherboard_vendor']=''              # Motherboard vendor
-  ['chassis']='')                        # Chassis type
+  ['chassis']=''                         # Chassis type
+  ['img_size']=''                        # Size of VM image in KB
+  ['img_type']='')                       # Type of VM image
 
 declare -gA gpus
 
@@ -51,6 +54,10 @@ function get_ram()
   flag=${flag:-'SILENT'}
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
   case "$target" in
+    1) # VM_TARGET
+      ram="$(echo "${configurations[qemu_hw_options]}" | sed -r 's/.*-m ?([0-9]+).*/\1/')"
+      ram="$(numfmt --from-unit=M --to-unit=K "$ram")"
+      ;;
     2) # LOCAL_TARGET
       ram=$(cmd_manager "$flag" "$cmd")
       ;;
@@ -81,6 +88,9 @@ function get_cpu()
   cmd_frequency="lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'"
   cmd_model="lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1"
   case "$target" in
+    1) #VM_TARGET
+      cpu_model='Virtual'
+      ;;
     2) # LOCAL_TARGET
       cpu_model=$(cmd_manager "$flag" "$cmd_model")
       cpu_frequency=$(cmd_manager "$flag" "$cmd_frequency")
@@ -125,6 +135,10 @@ function get_disk()
   flag=${flag:-'SILENT'}
   cmd="df -h / | tail -n 1 | tr -s ' '"
   case "$target" in
+    1) # VM_TARGET
+      cmd="df -h ${configurations[mount_point]} | tail -n 1 | tr -s ' '"
+      info=$(cmd_manager "$flag" "$cmd")
+      ;;
     2) # LOCAL_TARGET
       info=$(cmd_manager "$flag" "$cmd")
       ;;
@@ -159,6 +173,10 @@ function get_os()
   flag=${flag:-'SILENT'}
   cmd="find /usr/share/xsessions -type f -printf '%f ' | sed -r 's/\.desktop//g'"
   case "$target" in
+    1) # VM_TARGET
+      os=$(detect_distro "${configurations[mount_point]}")
+      desktop_env=$(find "${configurations[mount_point]}/usr/share/xsessions" -type f -printf '%f ' | sed -r 's/\.desktop//g')
+      ;;
     2) # LOCAL_TARGET
       os=$(detect_distro '/')
       desktop_env=$(cmd_manager "$flag" "$cmd")
@@ -250,6 +268,9 @@ function get_chassis()
   flag=${flag:-'SILENT'}
   cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
   case "$target" in
+    1) # VM_TARGET
+      chassis_type=25
+      ;;
     2) # LOCAL_TARGET
       chassis_type=$(cmd_manager "$flag" "$cmd")
       ;;
@@ -263,6 +284,24 @@ function get_chassis()
   device_info_data['chassis']="${chassis_table[(($chassis_type - 1))]}"
 }
 
+# This function populates the img_size and img_type values from the
+# device_info_data variable.
+function get_img_info()
+{
+  local img_info
+  local img_size
+  local img_type
+
+  img_info=$(file "${configurations[qemu_path_image]}")
+  img_size=$(echo "$img_info" | sed -r 's/.*: .+, ([0-9]+) bytes/\1/')
+  img_type=$(echo "$img_info" | sed -r 's/.*: (.+),.+/\1/')
+
+  # The variable img_size stores the image size in bytes. It has to be converted
+  # to kB when we store it in the device_info_data variable.
+  device_info_data['img_size']=$(numfmt --to-unit=1000 "$img_size")
+  device_info_data['img_type']="$img_type"
+}
+
 # This function calls other functions to populate the device_info_data variable
 # with the data related to the hardware from the target machine.
 #
@@ -274,6 +313,15 @@ function learn_device()
 
   flag=${flag:-'SILENT'}
 
+  if [[ "$target" == "$VM_TARGET" ]]; then
+    vm_mount > /dev/null
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain 'Please shut down or unmount your VM to continue.'
+      exit "$ret"
+    fi
+  fi
+
   get_ram "$target" "$flag"
   get_cpu "$target" "$flag"
   get_disk "$target" "$flag"
@@ -281,11 +329,31 @@ function learn_device()
   get_gpu "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
+
+  if [[ "$target" == "$VM_TARGET" ]]; then
+    vm_umount > /dev/null
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain "We couldn't unmount your VM."
+      exit "$ret"
+    fi
+    get_img_info
+  fi
 }
 
 # This function shows the information stored in the device_info_data variable.
 function show_data()
 {
+  local target="${device_options['target']}"
+
+  case "$target" in
+    1) # VM_TARGET
+      say 'Image:'
+      printf '  Type: %s\n' "${device_info_data['img_type']}"
+      printf '  Size: %s\n' "$(numfmt --from=si --to=iec "${device_info_data['img_size']}K")"
+      ;;
+  esac
+
   say 'Chassis:'
   printf '  Type: %s\n' "${device_info_data['chassis']}"
 
@@ -348,6 +416,9 @@ function device_info_parser()
   option=${option:-'--local'}
 
   case "$option" in
+    --vm)
+      device_options['target']="$VM_TARGET"
+      ;;
     --local)
       device_options['target']="$LOCAL_TARGET"
       ;;
@@ -365,5 +436,6 @@ function device_info_parser()
 function device_info_help()
 {
   echo -e 'kw device:\n' \
-    '\t--local - Retrieve information from this machine'
+    '\t--local - Retrieve information from this machine\n' \
+    '\t--vm - Retrieve information from a virtual machine'
 }

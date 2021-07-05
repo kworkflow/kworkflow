@@ -384,8 +384,8 @@ Users can follow the timebox section status by using:
 *--list,-l*: This command shows information associated with each Pomodoro
 timebox created by the user.
 
-device [--local]
-~~~~~~~~~~~~~~~~
+device [--local|--vm]
+~~~~~~~~~~~~~~~~~~~~~
 In order to easily retrieve basic information about the hardware of a target
 machine, kw provides the 'device' option, which outputs details such as:
 - CPU architecture
@@ -395,6 +395,7 @@ machine, kw provides the 'device' option, which outputs details such as:
 - GPU
 
 1. --local: Show hardware information from host machine.
+2. --vm: Show hardware information from virtual machine.
 
 df, diff [OPTIONS] FILE1 FILE2
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
