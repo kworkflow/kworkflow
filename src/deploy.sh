@@ -95,7 +95,6 @@ function modules_install()
 {
   local flag="$1"
   local target="$2"
-  local formatted_remote="$3"
   local remote
   local port
   local distro
@@ -161,13 +160,11 @@ function modules_install()
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
-# @unformatted_remote We expect the REMOTE:PORT string
 function list_installed_kernels()
 {
   local flag="$1"
   local single_line="$2"
   local target="$3"
-  local unformatted_remote="$4"
   local remote
   local port
 
@@ -328,7 +325,6 @@ function kernel_install()
 # @target Target machine Target machine Target machine Target machine
 # @reboot If this value is equal 1, it means reboot machine after kernel
 #         installation.
-# @formatted_remote Remote formatted as IP:PORT or USE@MACHINE:PORT
 # @kernels_target List containing kernels to be uninstalled
 # @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
 #
@@ -338,9 +334,8 @@ function kernel_uninstall()
 {
   local target="$1"
   local reboot="$2"
-  local formatted_remote="$3"
-  local kernels_target="$4"
-  local flag="$5"
+  local kernels_target="$3"
+  local flag="$4"
   local distro
   local remote
   local port
@@ -363,6 +358,8 @@ function kernel_uninstall()
       # We need to update grub, for this reason we to load specific scripts.
       . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
       . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
+      # TODO: Rename kernel_uninstall in the plugin, this name is super
+      # confusing
       kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
       ;;
     3) # REMOTE_TARGET
@@ -436,7 +433,7 @@ function kernel_deploy()
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
     say "Available kernels:"
     start=$(date +%s)
-    list_installed_kernels "" "$single_line" "$target" "$remote"
+    list_installed_kernels "" "$single_line" "$target"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -446,7 +443,7 @@ function kernel_deploy()
 
   if [[ ! -z "$uninstall" ]]; then
     start=$(date +%s)
-    kernel_uninstall "$target" "$reboot" "$remote" "$uninstall" "$flag"
+    kernel_uninstall "$target" "$reboot" "$uninstall" "$flag"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -475,7 +472,7 @@ function kernel_deploy()
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
   start=$(date +%s)
-  modules_install "" "$target" "$remote"
+  modules_install '' "$target"
   end=$(date +%s)
   runtime=$((end - start))
 
@@ -484,7 +481,7 @@ function kernel_deploy()
     # Update name: release + alias
     name=$(make kernelrelease)
 
-    kernel_install "$reboot" "$name" "" "$target" "$remote"
+    kernel_install "$reboot" "$name" "" "$target"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
     statistics_manager "deploy" "$runtime"
