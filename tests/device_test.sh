@@ -3,10 +3,16 @@
 include './src/device_info.sh'
 include './tests/utils.sh'
 
+declare -gA configurations
+
 function test_get_ram()
 {
   local cmd
   local output
+
+  configurations[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
+  get_ram "$VM_TARGET"
+  assertEquals "($LINENO)" 1024000 "${device_info_data['ram']}"
 
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
   output=$(get_ram "$LOCAL_TARGET" 'TEST_MODE')
@@ -21,6 +27,9 @@ function test_get_cpu()
     "lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'"
   )
 
+  get_cpu "$VM_TARGET"
+  assertEquals "($LINENO)" 'Virtual' "${device_info_data['cpu_model']}"
+
   output=$(get_cpu "$LOCAL_TARGET" 'TEST_MODE')
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 }
@@ -29,6 +38,11 @@ function test_get_disk()
 {
   local cmd
   local output
+
+  configurations[mount_point]='somewhere/to/mount'
+  cmd="df -h ${configurations[mount_point]} | tail -n 1 | tr -s ' '"
+  output=$(get_disk "$VM_TARGET" 'TEST_MODE')
+  assertEquals "($LINENO)" "$cmd" "$output"
 
   cmd="df -h / | tail -n 1 | tr -s ' '"
   output=$(get_disk "$LOCAL_TARGET" 'TEST_MODE')
