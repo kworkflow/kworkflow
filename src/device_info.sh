@@ -48,9 +48,13 @@ function get_ram()
 {
   local target="$1"
   local flag="$2"
+  local ip="$3"
+  local port="$4"
   local ram
   local cmd
 
+  ip=${ip:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
   flag=${flag:-'SILENT'}
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
   case "$target" in
@@ -60,6 +64,9 @@ function get_ram()
       ;;
     2) # LOCAL_TARGET
       ram=$(cmd_manager "$flag" "$cmd")
+      ;;
+    3) # REMOTE_TARGET
+      ram=$(cmd_remotely "$cmd" "$flag" "$ip" "$port")
       ;;
   esac
 
@@ -78,12 +85,16 @@ function get_cpu()
 {
   local target="$1"
   local flag="$2"
+  local ip="$3"
+  local port="$4"
   local cpu_model
   local cpu_frequency
   local cpu_currently
   local cpu_max
   local cpu_min
 
+  ip=${ip:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
   flag=${flag:-'SILENT'}
   cmd_frequency="lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'"
   cmd_model="lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1"
@@ -94,6 +105,10 @@ function get_cpu()
     2) # LOCAL_TARGET
       cpu_model=$(cmd_manager "$flag" "$cmd_model")
       cpu_frequency=$(cmd_manager "$flag" "$cmd_frequency")
+      ;;
+    3) # REMOTE_TARGET
+      cpu_model=$(cmd_remotely "$cmd_model" "$flag" "$ip" "$port")
+      cpu_frequency=$(cmd_remotely "$cmd_frequency" "$flag" "$ip" "$port")
       ;;
   esac
 
@@ -126,12 +141,16 @@ function get_disk()
 {
   local target="$1"
   local flag="$2"
+  local ip="$3"
+  local port="$4"
   local cmd
   local info
   local size
   local mount
   local fs
 
+  ip=${ip:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
   flag=${flag:-'SILENT'}
   cmd="df -h / | tail -n 1 | tr -s ' '"
   case "$target" in
@@ -141,6 +160,9 @@ function get_disk()
       ;;
     2) # LOCAL_TARGET
       info=$(cmd_manager "$flag" "$cmd")
+      ;;
+    3) # REMOTE_TARGET
+      info=$(cmd_remotely "$cmd" "$flag" "$ip" "$port")
       ;;
   esac
 
@@ -166,11 +188,16 @@ function get_os()
 {
   local target="$1"
   local flag="$2"
+  local ip="$3"
+  local port="$4"
   local cmd
   local os
   local desktop_env
 
   flag=${flag:-'SILENT'}
+  target=${target:-"${device_options['target']}"}
+  ip=${ip:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
   cmd="find /usr/share/xsessions -type f -printf '%f ' | sed -r 's/\.desktop//g'"
   case "$target" in
     1) # VM_TARGET
@@ -180,6 +207,10 @@ function get_os()
     2) # LOCAL_TARGET
       os=$(detect_distro '/')
       desktop_env=$(cmd_manager "$flag" "$cmd")
+      ;;
+    3) # REMOTE_TARGET
+      os=$(which_distro "$ip" "$port")
+      desktop_env=$(cmd_remotely "$cmd" "$flag" "$ip" "$port")
       ;;
   esac
 
@@ -193,11 +224,16 @@ function get_gpu()
 {
   local target="$1"
   local flag="$2"
+  local ip="$3"
+  local port="$4"
   local pci_addresses
   local gpu_info
   local cmd_pci_address
 
+  ip=${ip:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
   flag=${flag:-'SILENT'}
+
   # The first thing we want to do is retrieve all PCI addresses from any GPU in
   # the target machine. After that, we will get, for each GPU, the desired
   # information.
@@ -207,6 +243,15 @@ function get_gpu()
       pci_addresses=$(cmd_manager "$flag" "$cmd_pci_address")
       for g in $pci_addresses; do
         gpu_info=$(cmd_manager "$flag" "lspci -v -s $g")
+        gpu_name=$(echo "$gpu_info" | sed -nr '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
+        gpu_provider=$(echo "$gpu_info" | sed -nr '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
+        gpus["$g"]="$gpu_name;$gpu_provider"
+      done
+      ;;
+    3) # REMOTE_TARGET
+      pci_addresses=$(cmd_remotely "$cmd_pci_address" "$flag" "$ip" "$port")
+      for g in $pci_addresses; do
+        gpu_info=$(cmd_remotely "lspci -v -s $g" "$flag" "$ip" "$port")
         gpu_name=$(echo "$gpu_info" | sed -nr '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
         gpu_provider=$(echo "$gpu_info" | sed -nr '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
         gpus["$g"]="$gpu_name;$gpu_provider"
@@ -223,11 +268,15 @@ function get_motherboard()
 {
   local target="$1"
   local flag="$2"
+  local ip="$3"
+  local port="$4"
   local mb_name
   local mb_vendor
   local cmd_name
   local cmd_vendor
 
+  ip=${ip:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
   flag=${flag:-'SILENT'}
   cmd_name='[ -f /sys/devices/virtual/dmi/id/board_name ] && cat /sys/devices/virtual/dmi/id/board_name'
   cmd_vendor='[ -f /sys/devices/virtual/dmi/id/board_vendor ] && cat /sys/devices/virtual/dmi/id/board_vendor'
@@ -235,6 +284,10 @@ function get_motherboard()
     2) # LOCAL_TARGET
       mb_name=$(cmd_manager "$flag" "$cmd_name")
       mb_vendor=$(cmd_manager "$flag" "$cmd_vendor")
+      ;;
+    3) # REMOTE_TARGET
+      mb_name=$(cmd_remotely "$cmd_name" "$flag" "$ip" "$port")
+      mb_vendor=$(cmd_remotely "$cmd_vendor" "$flag" "$ip" "$port")
       ;;
   esac
 
@@ -255,6 +308,8 @@ function get_chassis()
 {
   local target="$1"
   local flag="$2"
+  local ip="$3"
+  local port="$4"
   local cmd
   local chassis_type
 
@@ -265,6 +320,8 @@ function get_chassis()
     'Peripheral Chassis' 'Storage Chassis' 'Rack Mount Chassis' 'Sealed-Case PC'
     'VM')
 
+  ip=${ip:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
   flag=${flag:-'SILENT'}
   cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
   case "$target" in
@@ -273,6 +330,9 @@ function get_chassis()
       ;;
     2) # LOCAL_TARGET
       chassis_type=$(cmd_manager "$flag" "$cmd")
+      ;;
+    3) # REMOTE_TARGET
+      chassis_type=$(cmd_remotely "$cmd" "$flag" "$ip" "$port")
       ;;
   esac
 
@@ -310,9 +370,14 @@ function learn_device()
 {
   local target="$1"
   local flag="$2"
+  local ip="$3"
+  local port="$4"
 
   flag=${flag:-'SILENT'}
 
+  target=${target:-"${device_options['target']}"}
+  ip=${ip:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
   if [[ "$target" == "$VM_TARGET" ]]; then
     vm_mount > /dev/null
     ret="$?"
@@ -345,12 +410,17 @@ function learn_device()
 function show_data()
 {
   local target="${device_options['target']}"
+  local ip="${device_options['ip']}"
+  local port="${device_options['port']}"
 
   case "$target" in
     1) # VM_TARGET
       say 'Image:'
       printf '  Type: %s\n' "${device_info_data['img_type']}"
       printf '  Size: %s\n' "$(numfmt --from=si --to=iec "${device_info_data['img_size']}K")"
+      ;;
+    3) # REMOTE_TARGET
+      say 'IP:' "$ip" 'Port:' "$port"
       ;;
   esac
 
@@ -409,6 +479,9 @@ function show_data()
 function device_info_parser()
 {
   local option="$1"
+  local remote="$2"
+  device_options['ip']="${configurations[ssh_ip]}"
+  device_options['port']="${configurations[ssh_port]}"
 
   if [[ -z "$option" && -n "${configurations[default_deploy_target]}" ]]; then
     option='--'"${configurations[default_deploy_target]}"
@@ -421,6 +494,14 @@ function device_info_parser()
       ;;
     --local)
       device_options['target']="$LOCAL_TARGET"
+      ;;
+    --remote)
+      if [[ -n "$remote" ]]; then
+        device_options['ip']=$(get_based_on_delimiter "$remote" ":" 1)
+        device_options['port']=$(get_based_on_delimiter "$remote" ":" 2)
+      fi
+
+      device_options['target']="$REMOTE_TARGET"
       ;;
     -h)
       device_info_help
@@ -437,5 +518,6 @@ function device_info_help()
 {
   echo -e 'kw device:\n' \
     '\t--local - Retrieve information from this machine\n' \
-    '\t--vm - Retrieve information from a virtual machine'
+    '\t--vm - Retrieve information from a virtual machine\n' \
+    '\t--remote [IP:PORT] - Retrieve information from a remote machine'
 }
