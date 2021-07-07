@@ -48,6 +48,8 @@ function kernel_build()
   local menu_config
   local parallel_cores
   local doc_type
+  local pkg
+  local pkg_rule
 
   parse_build_options "$@"
   if [[ "$?" != 0 ]]; then
@@ -59,6 +61,7 @@ function kernel_build()
   menu_config=${options_values['MENU_CONFIG']}
   parallel_cores=${options_values['PARALLEL_CORES']}
   doc_type=${options_values['DOC_TYPE']}
+  pkg=${options_values['PKG']}
 
   if [[ -n "${options_values['INFO']}" ]]; then
     build_info
@@ -86,13 +89,22 @@ function kernel_build()
     exit 125 # ECANCELED
   fi
 
-  if [ -x "$(command -v nproc)" ]; then
+  if [[ -x "$(command -v nproc)" ]]; then
     parallel_cores=$(nproc --all)
   else
     parallel_cores=$(grep -c ^processor /proc/cpuinfo)
   fi
 
   command="make -j$parallel_cores ARCH=$arch $cross_compile"
+
+  if [[ -n "$pkg" ]]; then
+    pkg_rule="$(pkg_get_rule "$pkg")"
+    if [[ "$?" == 95 ]]; then
+      complain "Package type '$pkg' not supported yet. Consider sending a patch for that!"
+      return 95 # ENOTSUP
+    fi
+    command="$command $pkg_rule"
+  fi
 
   start=$(date +%s)
   cmd_manager "$flag" "$command"
@@ -107,13 +119,15 @@ function kernel_build()
     statistics_manager "build" "$runtime"
   fi
 
+  pkg_info "$pkg"
+
   return "$ret"
 }
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc'
-  local short_options='h,i,n,d'
+  local long_options='help,info,menu,doc,pkg:'
+  local short_options='h,i,n,d,p'
   local doc_type
 
   options="$(getopt \
@@ -133,6 +147,7 @@ function parse_build_options()
   options_values['PARALLEL_CORES']=1
   options_values['INFO']=''
   options_values['DOC_TYPE']=''
+  options_values['PKG']="${configurations[use_pkg]}"
 
   eval "set -- $options"
 
@@ -147,23 +162,90 @@ function parse_build_options()
         shift
         ;;
       --menu | -n)
-        options_values['MENU_CONFIG']="${configurations[menu_config]:-nconfig}"
+        options_values['MENU_CONFIG']="${configurations[menu_config]:-"nconfig"}"
         shift
         ;;
       --doc | -d)
         options_values['DOC_TYPE']="${configurations[doc_type]:-htmldocs}"
         shift
         ;;
+      --pkg | -p)
+        options_values['PKG']="$2" # Default value is debian
+        shift 2
+        ;;
       --)
         shift
         ;;
       *)
-        complain "Invalid option: $option"
-        exit 22 # EINVAL
+        complain "Invalid option: $1"
+        return 22 # EINVAL
+        shift
         ;;
     esac
   done
 
+  if [[ "${options_values['PKG']}" == 'no' ]]; then
+    options_values['PKG']=''
+  fi
+}
+
+# This function returns the makefile rule for creating a package, according to
+# the type of package required
+#
+# @pkg_type The type of package created
+#
+# Returns:
+# The command necessary to create a package
+function pkg_get_rule()
+{
+  local pkg_type="$1"
+
+  case "$pkg_type" in
+    debian)
+      echo 'bindeb-pkg'
+      return
+      ;;
+    *)
+      return 95 # ENOTSUP
+      ;;
+  esac
+}
+
+# This function prints information about recently created debian packages
+#
+# @pkg_type The type of package created. If empty, nothing is done.
+#
+function pkg_info()
+{
+  local pkg_type="$1"
+
+  case "$pkg_type" in
+    debian)
+      pkg_info_deb
+      return
+      ;;
+  esac
+}
+
+# This function prints information about recently created debian packages
+#
+function pkg_info_deb()
+{
+  local revision
+  local version
+  local release
+  local created_packages
+
+  revision="$(($(cat .version) - 1))"
+  version="$(get_kernel_version 2> /dev/null)"
+  release="$(get_kernel_release 2> /dev/null)"
+
+  created_packages=(../*"${release}-${revision}"*'.deb')
+
+  say 'The following packages have been created:'
+  for p in "${created_packages[@]}"; do
+    say "  $(basename "$p")"
+  done
 }
 
 function build_help()
@@ -177,5 +259,6 @@ function build_help()
     '  build - Build kernel' \
     '  build (-n | --menu) - Open kernel menu config' \
     '  build (-i | --info) - Display build information' \
-    '  build (-d | --doc) - Build kernel documentation'
+    '  build (-d | --doc) - Build kernel documentation' \
+    '  build (-p | --pkg ) - Build kernel as a package'
 }

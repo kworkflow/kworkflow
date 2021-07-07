@@ -16,6 +16,7 @@ oneTimeSetUp()
   original_dir="$PWD"
   FAKE_KERNEL="$SHUNIT_TMPDIR"
   mk_fake_kernel_root "$FAKE_KERNEL"
+  touch "$FAKE_KERNEL/.version"
 
   parse_configuration "$KW_CONFIG_SAMPLE"
 
@@ -169,6 +170,75 @@ function test_build_info()
   output=$(kernel_build 'TEST_MODE' '--info')
   compare_command_sequence 'expected_cmd' "$output" "($LINENO)"
   rm .config
+}
+
+function test_kernel_build_pkg()
+{
+  local output
+  local expected
+
+  output=$(kernel_build 'TEST_MODE' '--pkg' 'debian' | head -1)
+  expected="make -j$PARALLEL_CORES ARCH=x86_64  bindeb-pkg"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  expected="Package type 'not-a-type' not supported yet. Consider sending a patch for that!"
+  kernel_build 'TEST_MODE' '--pkg' 'not-a-type' > /dev/null
+  assertEquals "($LINENO)" 95 "$?"
+  output=$(kernel_build 'TEST_MODE' '--pkg' 'not-a-type' | head -1)
+  assertEquals "($LINENO)" "$expected" "$output"
+}
+
+function test_pkg_get_rule()
+{
+  local output
+  local expected
+
+  expected='bindeb-pkg'
+  output=$(pkg_get_rule 'debian')
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  output=$(pkg_get_rule 'not-a-type')
+  assertEquals "($LINENO)" '95' "$?"
+
+}
+
+function test_pkg_info()
+{
+  local output
+  local expected
+
+  output="$(
+    function pkg_info_deb()
+    {
+      echo 1
+    }
+    pkg_info 'debian'
+  )"
+  expected=1
+  assertEquals "($LINENO)" "$expected" "$output"
+}
+
+function test_pkg_info_debian()
+{
+  local output
+  local expected
+  local pkg_name
+  local original_dir="$PWD"
+
+  mkdir -p tmp
+  cd 'tmp' || {
+    fail "($LINENO) It was not possible to move into directory"
+    return
+  }
+
+  echo 2 > .version
+  pkg_name='pkg_5.4.0-rc7-test-1.deb'
+  touch "../$pkg_name"
+
+  expected="The following packages have been created:
+  $pkg_name"
+  output="$(pkg_info_deb)"
+  assertEquals "($LINENO)" "$expected" "$output"
 }
 
 invoke_shunit
