@@ -203,7 +203,7 @@ is not reliable across platforms.
 How to include/import files
 ---------------------------
 Do not source code using `.` or `source`. We have a helper function for that
-named `kw_include` in `include.sh` and it should be used any and everytime a
+named `include` in `kw_include.sh` and it should be used any and everytime a
 file needs to be sourced, `. file.sh --source-only` should only be used to
 source `include.sh` itself. The `include` function guarantees us that no file
 will be sourced twice, making the kw dev life easier with one thing less to
