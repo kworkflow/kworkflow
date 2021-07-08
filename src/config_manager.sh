@@ -109,7 +109,7 @@ function basic_config_validations()
   local target="$1"
   local force="$2"
   local operation="$3" && shift 3
-  local message="$@"
+  local message="$*"
   local -r dot_configs_dir="$KW_DATA_DIR/configs/configs"
 
   if [[ ! -f "$dot_configs_dir/$target" ]]; then
@@ -217,7 +217,7 @@ function execute_config_manager()
         exit 22 # EINVAL
       fi
       # Shift name and get '-d'
-      shift 2 && description_config="$@"
+      shift 2 && description_config="$*"
       save_config_file "$force" "$name_config" "$description_config"
       ;;
     --list | -l)

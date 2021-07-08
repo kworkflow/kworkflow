@@ -101,7 +101,7 @@ function cmd_manager()
 # True if given dir is a kernel tree root and false otherwise.
 function is_kernel_root()
 {
-  local -r DIR="$@"
+  local -r DIR="$*"
 
   # The following files are some of the files expected to be at a linux
   # tree root and not expected to change. Their presence (or abscense)
@@ -122,7 +122,7 @@ function is_kernel_root()
 # an empty string if no root was found.
 function find_kernel_root()
 {
-  local -r FILE_OR_DIR="$@"
+  local -r FILE_OR_DIR="$*"
   local current_dir
   local kernel_root=""
 
@@ -189,7 +189,7 @@ function get_kernel_version()
 # True if given path is a patch file and false otherwise.
 function is_a_patch()
 {
-  local -r FILE_PATH="$@"
+  local -r FILE_PATH="$*"
   local file_content
 
   if [[ ! -f "$FILE_PATH" ]]; then
@@ -351,7 +351,7 @@ function command_exists()
   local command="$1"
   local package=($command)
 
-  if [[ -x "$(command -v "$package")" ]]; then
+  if [[ -x "$(command -v "${package[@]}")" ]]; then
     return 0
   fi
   return 22 # EINVAL

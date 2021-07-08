@@ -121,7 +121,7 @@ function kw()
         include "$KW_LIB_DIR/kw_config_loader.sh"
         include "$KW_LIB_DIR/remote.sh"
 
-        kw_ssh $@
+        kw_ssh "$@"
       )
       ;;
     vars)
@@ -142,7 +142,7 @@ function kw()
       (
         include "$KW_LIB_DIR/get_maintainer_wrapper.sh"
 
-        execute_get_maintainer $@
+        execute_get_maintainer "$@"
       )
       ;;
     configm | g)

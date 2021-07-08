@@ -52,7 +52,7 @@ function get_external_scripts()
   echo
 
   mkdir -p "$PATH_TO_TESTS_EXTERNALS"
-  for url in ${DOWNLOAD_URLS[@]}; do
+  for url in "${DOWNLOAD_URLS[@]}"; do
     download_stuff "${!url}" "$PATH_TO_TESTS_EXTERNALS" "$OVERWRITE"
     if [[ "$?" -eq 113 ]]; then
       return 113 # Host unreachable errno
@@ -189,7 +189,7 @@ elif [[ "$1" == "list" ]]; then
     say "$index) ${test_name}"
   done
 elif [[ "$1" == "test" ]]; then
-  strip_path ${@:2}
+  strip_path "${*:2}"
   run_tests
 elif [[ "$1" == "prepare" ]]; then
   if [[ "$#" -gt 1 && ("$2" == "--force-update" || "$2" == "-f") ]]; then

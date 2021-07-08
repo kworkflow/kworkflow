@@ -528,7 +528,7 @@ function deploy_help()
 # output is the remote info as IP:PORT
 function get_remote_info()
 {
-  ip="$@"
+  ip="$1"
 
   if [[ -z "$ip" ]]; then
     ip=${configurations[ssh_ip]}
@@ -564,7 +564,7 @@ function get_remote_info()
 #
 function deploy_parser_options()
 {
-  local raw_options="$@"
+  local raw_options="$*"
   local uninstall=0
   local enable_collect_param=0
   local remote

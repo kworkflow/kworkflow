@@ -67,7 +67,7 @@ function check_dependencies()
     cmd="apt install $package_list"
   else
     warning "Unfortunately, we do not have official support for your distro (yet)"
-    warning "Please, try to find the following packages: ${arch_packages[@]}"
+    warning "Please, try to find the following packages: ${arch_packages[*]}"
     return 0
   fi
 

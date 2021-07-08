@@ -294,7 +294,7 @@ function show_active_pomodoro_timebox()
 
 function pomodoro_parser()
 {
-  local raw_options="$@"
+  local raw_options="$*"
   local time_scale
   local time_value
   local timer=0

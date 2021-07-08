@@ -233,7 +233,7 @@ function generate_tarball()
 # output is the remote info as IP:PORT
 function get_remote_info()
 {
-  ip="$@"
+  ip="$1"
 
   if [[ -z "$ip" ]]; then
     ip=${configurations[ssh_ip]}
@@ -269,7 +269,7 @@ function get_remote_info()
 #   attempt to execute a command or script on the remote host.
 function kw_ssh()
 {
-  local opts="$@"
+  local opts="$*"
   local port="${configurations[ssh_port]}"
   local target="${configurations[ssh_ip]}"
   local script_path
@@ -281,7 +281,7 @@ function kw_ssh()
 
   # Mandatory parameter
   if [ -z "$target" ]; then
-    complain "Invalid argument: $@"
+    complain "Invalid argument: $*"
     complain "Take a look at the config file, something is wrong in the ssh_ip"
     exit 22 # EINVAL
   fi
@@ -299,7 +299,7 @@ function kw_ssh()
 
       opts="\"bash -s\" -- < $script_path"
     else
-      complain "Invalid arguments: $@"
+      complain "Invalid arguments: $*"
       exit 22 # EINVAL
     fi
   fi

@@ -6,7 +6,7 @@ declare -gA diff_options
 
 function diff_manager()
 {
-  local files_paths=${@: -2}
+  local files_paths=${*: -2}
   local interactive
   local target_1
   local target_2
@@ -62,7 +62,7 @@ function diff_manager()
 # In case of successful return 0, otherwise, return 22.
 function diff_parser_options()
 {
-  local raw_options="$@"
+  local raw_options="$*"
 
   diff_options["INTERACTIVE"]=1
   diff_options["HELP"]=0
