@@ -58,11 +58,11 @@ function alert_completion()
 #shellcheck disable=SC2059
 function colored_print()
 {
-  local message="${@:2}"
+  local message="${*:2}"
   local colored_format="${!1}"
 
   if [[ $# -ge 2 && $2 = "-n" ]]; then
-    message="${@:3}"
+    message="${*:3}"
     if [ -t 1 ]; then
       printf "$colored_format" "$message"
     else
@@ -112,7 +112,7 @@ function success()
 # yourself in the code.
 function ask_yN()
 {
-  local message=$@
+  local message="$*"
 
   read -r -p "$message [y/N] " response
   if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then

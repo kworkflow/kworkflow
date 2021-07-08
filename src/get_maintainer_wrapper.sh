@@ -20,7 +20,7 @@ function print_files_authors()
 
   local printed_authors_separator=false
 
-  for file in ${files[@]}; do
+  for file in "${files[@]}"; do
     authors=$(grep -oE "MODULE_AUTHOR *\(.*\)" "$file" |
       sed -E "s/(MODULE_AUTHOR *\( *\"|\" *\))//g" |
       sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g')
@@ -55,7 +55,7 @@ function print_files_authors()
 #   present in the patch
 function execute_get_maintainer()
 {
-  local raw_options="$@"
+  local raw_options="$*"
   local FILE_OR_DIR
   local print_authors=false
   local update_patch=false
