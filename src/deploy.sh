@@ -49,8 +49,8 @@ function kernel_deploy()
   local runtime=0
   local ret=0
 
-  if [[ "$1" == -h ]]; then
-    deploy_help
+  if [[ "$1" =~ -h|--help ]]; then
+    deploy_help "$1"
     exit 0
   fi
 
@@ -592,8 +592,17 @@ function kernel_install()
 
 function deploy_help()
 {
-  echo -e "kw deploy|d installs kernel and modules:\n" \
-    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m]\n" \
-    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--uninstall|-u KERNEL_NAME]\n" \
-    "\tdeploy,d [--remote [REMOTE:PORT]|--local|--vm] [--ls-line|-s] [--list|-l]"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'deploy'
+    return
+  fi
+  printf '%s\n' 'kw deploy:' \
+    '  deploy - installs kernel and modules:' \
+    '  deploy (--remote [<remote>:<port>] | --local | --vm) - choose target' \
+    '  deploy (--reboot | -r) - reboot machine after deploy' \
+    '  deploy (--modules | -m) - install only modules' \
+    '  deploy (--uninstall | -u) <kernel-name>,... - uninstall given kernels' \
+    '  deploy (--list | -l) - list kernels' \
+    '  deploy (--ls-line | -s) - list kernels separeted by commas'
 }

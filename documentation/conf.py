@@ -150,6 +150,7 @@ man_pages = [
     ('man/kw', 'kw', 'KernelWorkflow Documentation', [author], 1),
     ('man/features/build', 'build', 'build the kernel', [author], 1),
     ('man/features/configm', 'configm', 'config manager', [author], 1),
+    ('man/features/deploy', 'deploy', 'deploy the kernel', [author], 1),
     ('man/features/init', 'init', 'initialize kworkflow.config', [author], 1),
     ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
     ('man/features/umount', 'umount', 'command for unmounting a QEMU VM', [author], 1),
