@@ -49,7 +49,7 @@ function kw()
       (
         include "$KW_LIB_DIR/init.sh"
 
-        init_kw
+        init_kw "$@"
         return "$?"
       )
       ;;

@@ -41,6 +41,13 @@ renderings of the man pages), or you can install kw and run the command
 
    man/kw
 
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :hidden:
+
+   man/features/*
+
 Indices and Tables
 ==================
 

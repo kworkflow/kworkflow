@@ -148,6 +148,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('man/kw', 'kw', 'KernelWorkflow Documentation', [author], 1),
+    ('man/features/init', 'init', 'initialize kworkflow.config', [author], 1),
 ]
 
 
