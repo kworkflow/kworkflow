@@ -5,11 +5,16 @@ declare -gr configs_dir='configs'
 
 function config_manager_help()
 {
-  echo -e "kw config manager:\n" \
-    "\tconfigm,g --save NAME [-d 'DESCRIPTION']\n" \
-    "\tconfigm,g --list|-l - List config files under kw management\n" \
-    "\tconfigm,g --get NAME - Get a config file based named *NAME*\n" \
-    "\tconfigm,g --remove|-rm - Remove config labeled with *NAME*"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'configm'
+    return
+  fi
+  printf '%s\n' 'kw config manager:' \
+    '  configm --save <name> [-d <description>] [-f] - save a config' \
+    '  configm (-l | --list) - List config files under kw management' \
+    '  configm --get <name> [-f] - Get a config file based named <name>' \
+    '  configm (-rm | --remove) <name> [-f] - Remove config labeled with <name>'
 }
 
 # This function handles the save operation of kernel's '.config' file. It
@@ -204,8 +209,8 @@ function execute_config_manager()
   done
 
   case "$1" in
-    -h)
-      config_manager_help
+    --help | -h)
+      config_manager_help "$1"
       exit 0
       ;;
     --save)
