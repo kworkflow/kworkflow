@@ -114,7 +114,7 @@ function test_parse_build_options()
   help_output="$(build_help)"
   unset options_values
   declare -gA options_values
-  output="$(parse_build_options --help)"
+  output="$(parse_build_options -h)"
   assertEquals "($LINENO)" "$help_output" "$output"
 
   unset options_values

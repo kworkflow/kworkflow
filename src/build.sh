@@ -139,7 +139,7 @@ function parse_build_options()
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --help | -h)
-        build_help
+        build_help "$1"
         exit
         ;;
       --info | -i)
@@ -168,9 +168,14 @@ function parse_build_options()
 
 function build_help()
 {
-  echo -e "kw build:\n" \
-    "  build - Build kernel \n" \
-    "  build [--menu|-n] - Open kernel menu config\n" \
-    "  build [--info|-i] - Display build information\n" \
-    "  build [--doc|-d]  - Build kernel documentation"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'build'
+    return
+  fi
+  printf '%s\n' 'kw build:' \
+    '  build - Build kernel' \
+    '  build (-n | --menu) - Open kernel menu config' \
+    '  build (-i | --info) - Display build information' \
+    '  build (-d | --doc) - Build kernel documentation'
 }
