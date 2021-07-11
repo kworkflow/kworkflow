@@ -250,9 +250,6 @@ function calculate_missing_time()
     m)
       time_value=$((60 * "$time_value"))
       ;;
-    s)
-      time_value="$time_value"
-      ;;
   esac
 
   missing_time=$(($time_value - $elapsed_time))

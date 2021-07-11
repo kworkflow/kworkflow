@@ -60,7 +60,6 @@ function execute_checkpatch()
 
   # Define different rules for patch and files
   if is_a_patch "$FILE_OR_DIR_CHECK"; then
-    options="$options"
     FLIST="$FILE_OR_DIR_CHECK"
   else
     options="--terse $options --file "
