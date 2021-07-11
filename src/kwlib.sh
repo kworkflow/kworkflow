@@ -238,7 +238,7 @@ function join_path()
 
   joined="${target_path%%+(/)}/$member"
 
-  echo "$(echo "$joined" | tr -s '/')"
+  echo "$joined" | tr -s '/'
 }
 
 # This function tries to identify the OS distribution. In order to make it work
