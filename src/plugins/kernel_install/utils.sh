@@ -125,7 +125,7 @@ function install_modules()
   local ret
 
   if [[ -z "$module_target" ]]; then
-    module_target=*.tar
+    module_target='*.tar'
   fi
 
   cmd_manager "$flag" "tar -C /lib/modules -xf $module_target"
