@@ -300,8 +300,10 @@ function synchronize_files()
   if command_exists "zsh"; then
     # Add tabcompletion to zshrc
     if [[ -f "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
-      echo "# Enable bash completion for zsh" >> "$HOME/.zshrc"
-      echo "autoload bashcompinit && bashcompinit" >> "$HOME/.zshrc"
+      local zshcomp=$'# Enable bash completion for zsh\n'
+      zshcomp+='autoload bashcompinit && bashcompinit'
+
+      safe_append "$zshcomp" "$HOME/.zshrc"
       append_bashcompletion ".zshrc"
     else
       warning "Unable to find a .zshrc file."
@@ -318,9 +320,16 @@ function synchronize_files()
 function append_bashcompletion()
 {
   local shellrc="$1"
+  local msg="# $app_name"$'\n'"source $libdir/$BASH_AUTOCOMPLETE.sh"
 
-  echo "# $app_name" >> "$HOME/$shellrc"
-  echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/$shellrc"
+  safe_append "$msg" "$HOME/$shellrc"
+}
+
+function safe_append()
+{
+  if [[ $(grep -c -x "$1" "$2") == 0 ]]; then
+    printf "%s\n" "$1" >> "$2"
+  fi
 }
 
 function update_version()
