@@ -331,7 +331,7 @@ function update_version()
 
   head_hash=$(git rev-parse --short HEAD)
   branch_name=$(git rev-parse --short --abbrev-ref HEAD)
-  base_version=$(cat "$libdir/VERSION" | head -n 1)
+  base_version=$(head -n 1 "$libdir/VERSION")
 
   cat > "$libdir/VERSION" << EOF
 $base_version
