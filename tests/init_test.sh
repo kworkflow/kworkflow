@@ -32,13 +32,13 @@ function test_init_kw()
 
   output=$(init_kw)
 
-  kworkflow_content=$(cat "$path_config" | grep "$USER" -o | head -n 1)
+  kworkflow_content=$(grep "$USER" -o "$path_config" | head -n 1)
 
   ID=1
   assertEquals "($ID)" "$USER" "$kworkflow_content"
 
   ID=2
-  kworkflow_content=$(cat "$path_config" | grep "$KW_SHARE_SOUND_DIR" -o | head -n 1)
+  kworkflow_content=$(grep "$KW_SHARE_SOUND_DIR" -o "$path_config" | head -n 1)
   assertEquals "($ID)" "$KW_SHARE_SOUND_DIR" "$kworkflow_content"
 
   ID=3
