@@ -25,7 +25,7 @@ function alert_completion()
     opts="${configurations[alert]}"
   fi
 
-  grep -o . <<< "$opts" | while read option; do
+  grep -o . <<< "$opts" | while read -r option; do
     if [ "$option" == "v" ]; then
       if command_exists "${configurations[visual_alert_command]} &"; then
         eval "${configurations[visual_alert_command]} &"
