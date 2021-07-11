@@ -353,7 +353,7 @@ function drm_parser_options()
   drm_options_values["HELP"]=0
 
   # Set basic default values
-  if [[ ! -z ${configurations[default_deploy_target]} ]]; then
+  if [[ -n ${configurations[default_deploy_target]} ]]; then
     local config_file_deploy_target=${configurations[default_deploy_target]}
     drm_options_values["TARGET"]=${deploy_target_opt[$config_file_deploy_target]}
     # VM is not a valid case for drm option

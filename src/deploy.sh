@@ -442,7 +442,7 @@ function kernel_deploy()
     return "$?"
   fi
 
-  if [[ ! -z "$uninstall" ]]; then
+  if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
     kernel_uninstall "$target" "$reboot" "$uninstall" "$flag"
     end=$(date +%s)
