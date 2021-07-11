@@ -109,14 +109,14 @@ function remove_kw_from_PATH_variable()
 
 function update_path()
 {
-  local new_path=""
+  local shellrc=${1:-".bashrc"}
 
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
   for path in "${ALL_PATHS[@]}"; do
     [[ "$path" -ef "$binpath" ]] && return
   done
 
-  echo "PATH=$HOME/.local/bin:\$PATH # kw" >> "$HOME/.bashrc"
+  safe_append "PATH=$HOME/.local/bin:\$PATH # kw" "$HOME/$shellrc"
 }
 
 function update_current_bash()
@@ -305,6 +305,7 @@ function synchronize_files()
 
       safe_append "$zshcomp" "$HOME/.zshrc"
       append_bashcompletion ".zshrc"
+      update_path ".zshrc"
     else
       warning "Unable to find a .zshrc file."
     fi
