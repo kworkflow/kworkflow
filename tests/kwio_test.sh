@@ -30,27 +30,32 @@ function test_alert_completion_options()
   configurations["alert"]="n"
 
   rm -f "$sound_file" "$visual_file"
-  $(alert_completion "" "--alert=vs")
+  alert_completion "" "--alert=vs"
+  wait "$!"
   [[ -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's vs option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
-  $(alert_completion "" "--alert=sv")
+  alert_completion "" "--alert=sv"
+  wait "$!"
   [[ -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's sv option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
-  $(alert_completion "" "--alert=s")
+  alert_completion "" "--alert=s"
+  wait "$!"
   [[ -f "$sound_file" && ! -f "$visual_file" ]]
   assertTrue "Alert's s option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
-  $(alert_completion "" "--alert=v")
+  alert_completion "" "--alert=v"
+  wait "$!"
   [[ ! -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's v option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
-  $(alert_completion "" "--alert=n")
+  alert_completion "" "--alert=n"
+  wait "$!"
   [[ ! -f "$sound_file" && ! -f "$visual_file" ]]
   assertTrue "Alert's n option didn't work." $?
 
@@ -63,31 +68,36 @@ function test_alert_completition_validate_config_file_options()
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="vs"
-  $(alert_completion "" "")
+  alert_completion "" ""
+  wait "$!"
   [[ -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's vs option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="sv"
-  $(alert_completion "" "")
+  alert_completion "" ""
+  wait "$!"
   [[ -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's sv option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="s"
-  $(alert_completion "" "")
+  alert_completion "" ""
+  wait "$!"
   [[ -f "$sound_file" && ! -f "$visual_file" ]]
   assertTrue "Alert's s option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="v"
-  $(alert_completion "" "")
+  alert_completion "" ""
+  wait "$!"
   [[ ! -f "$sound_file" && -f "$visual_file" ]]
   assertTrue "Alert's v option didn't work." $?
 
   rm -f "$sound_file" "$visual_file"
   configurations["alert"]="n"
-  $(alert_completion "" "")
+  alert_completion "" ""
+  wait "$!"
   [[ ! -f "$sound_file" && ! -f "$visual_file" ]]
   assertTrue "Alert's n option didn't work." $?
 

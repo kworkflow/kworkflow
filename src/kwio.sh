@@ -25,7 +25,7 @@ function alert_completion()
     opts="${configurations[alert]}"
   fi
 
-  grep -o . <<< "$opts" | while read -r option; do
+  while read -rN 1 option; do
     if [ "$option" == "v" ]; then
       if command_exists "${configurations[visual_alert_command]} &"; then
         eval "${configurations[visual_alert_command]} &"
@@ -45,7 +45,7 @@ function alert_completion()
         warning "Check if the necessary packages are installed."
       fi
     fi
-  done
+  done <<< "$opts"
 }
 
 # Print colored message. This function verifies if stdout
