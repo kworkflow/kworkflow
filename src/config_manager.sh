@@ -55,7 +55,7 @@ function save_config_file()
     fi
   fi
 
-  if [[ ! -z "$description" ]]; then
+  if [[ -n "$description" ]]; then
     echo "$description" > "$metadata_dir/$name"
   fi
 

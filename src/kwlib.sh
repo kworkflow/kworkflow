@@ -264,7 +264,7 @@ function detect_distro()
 
   etc_path=$(join_path "$root_path" /etc)
 
-  if [[ ! -z "$str_check" ]]; then
+  if [[ -n "$str_check" ]]; then
     distro="$str_check"
   elif [[ -d $etc_path ]]; then
     distro=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
