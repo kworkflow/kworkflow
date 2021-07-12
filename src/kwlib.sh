@@ -349,6 +349,7 @@ function store_statistics_data()
 function command_exists()
 {
   local command="$1"
+  #shellcheck disable=SC2206 #FIXME: see issue #388
   local package=($command)
 
   if [[ -x "$(command -v "${package[@]}")" ]]; then
