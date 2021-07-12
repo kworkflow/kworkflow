@@ -11,11 +11,11 @@ function print_files_authors()
   if [[ -d $FILE_OR_DIR ]]; then
     for file in "$FILE_OR_DIR"/*; do
       if [[ -f $file ]]; then
-        files+=($file)
+        files+=("$file")
       fi
     done
   elif [[ -f $FILE_OR_DIR ]]; then
-    files+=($FILE_OR_DIR)
+    files+=("$FILE_OR_DIR")
   fi
 
   local printed_authors_separator=false
