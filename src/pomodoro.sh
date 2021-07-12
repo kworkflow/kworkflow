@@ -284,8 +284,8 @@ function show_active_pomodoro_timebox()
     timebox=$(calculate_missing_time "$timebox" "$diff_time")
 
     say "Started at: $timestamp_to_date"
-    say "- Elapsed time:" $(sec_to_format "$diff_time")
-    say "- You still have" $(sec_to_format "$timebox")
+    say "- Elapsed time:" "$(sec_to_format "$diff_time")"
+    say "- You still have" "$(sec_to_format "$timebox")"
   done < "$POMODORO_LOG_FILE"
 }
 
