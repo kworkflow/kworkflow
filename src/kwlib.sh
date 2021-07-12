@@ -208,7 +208,7 @@ function is_a_patch()
   )
 
   for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
-    if [[ ! "$file_content" =~ "$expected_str" ]]; then
+    if [[ ! "$file_content" =~ $expected_str ]]; then
       return 1
     fi
   done
