@@ -432,7 +432,7 @@ function test_kernel_modules()
   ID=1
   output=$(modules_install "TEST_MODE" 3)
   while read -r f; do
-    if [[ ${expected_cmd[$count]} != ${f} ]]; then
+    if [[ ${expected_cmd[$count]} != "${f}" ]]; then
       fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
     fi
     ((count++))
@@ -557,7 +557,7 @@ function test_list_remote_kernels()
 
   output=$(list_installed_kernels "TEST_MODE" 0 3)
   while read -r f; do
-    if [[ ${expected_cmd[$count]} != ${f} ]]; then
+    if [[ ${expected_cmd[$count]} != "${f}" ]]; then
       fail "$count - Expected cmd \"${expected_cmd[$count]}\" to be \"${f}\""
     fi
     ((count++))

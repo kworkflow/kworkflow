@@ -38,7 +38,7 @@ function assertConfigurations()
   for k in "${!configurations_ref[@]}"; do
     if [[ ${expected_configurations_ref[$k]+token} != token ]]; then
       fail "Did not expect setting \"$k\"."
-    elif [[ ${configurations_ref[$k]} != ${expected_configurations_ref[$k]} ]]; then
+    elif [[ ${configurations_ref[$k]} != "${expected_configurations_ref[$k]}" ]]; then
       fail "Expected setting \"${k}\" to be \"${expected_configurations_ref[$k]}\" (found \"${configurations_ref[$k]}\")."
     fi
   done
@@ -106,7 +106,7 @@ function test_parse_configuration_standard_config()
     [mount_point]="/home/USERKW/p/mount"
     [alert]="n"
     [sound_alert_command]="paplay SOUNDPATH/complete.wav"
-    [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\\\"\$COMMAND\\\\\" completed!\""
+    [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\"\$COMMAND\\\" completed!\""
     [default_deploy_target]="vm"
     [reboot_after_deploy]="no"
     [disable_statistics_data_track]="no"
