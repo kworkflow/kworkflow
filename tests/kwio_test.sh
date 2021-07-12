@@ -101,7 +101,7 @@ function test_alert_completion_visual_alert()
 
   configurations["visual_alert_command"]="/bin/echo \$COMMAND"
   output="$(alert_completion "$expected" "--alert=v")"
-  assertEquals "Variable v should exist." "$output" "$expected"
+  assertEquals "Variable v should exist." "$expected" "$output"
 }
 
 function test_alert_completion_sound_alert()
@@ -111,7 +111,7 @@ function test_alert_completion_sound_alert()
 
   configurations["sound_alert_command"]="/bin/echo \$COMMAND"
   output="$(alert_completion "$expected" "--alert=s")"
-  assertEquals "Variable s should exist." "$output" "$expected"
+  assertEquals "Variable s should exist." "$expected" "$output"
 }
 
 invoke_shunit
