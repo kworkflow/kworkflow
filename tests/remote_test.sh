@@ -113,6 +113,7 @@ function test_cmd_remote()
   local user="kw"
   local flag="TEST_MODE"
   local ID
+  parse_configuration "$SAMPLES_DIR/kworkflow_template.config"
 
   ID=1
   expected_command="ssh -p $port $user@$remote \"$command\""

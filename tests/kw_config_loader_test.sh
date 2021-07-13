@@ -25,7 +25,7 @@ function test_parse_configuration_success_exit_code()
 
 function test_parser_configuration_failed_exit_code()
 {
-  parse_configuration tests/kw_config_loader_test.sh
+  parse_configuration tests/foobarpotato
   assertTrue "kw loaded an unsupported file" "[ 22 -eq $? ]"
 }
 

@@ -104,11 +104,8 @@ function show_variables()
 function parse_configuration()
 {
   local config_path="$1"
-  local filename
 
-  filename="$(basename "$config_path")"
-
-  if [ ! -f "$config_path" ] || [ "$filename" != kworkflow.config ]; then
+  if [ ! -f "$config_path" ]; then
     return 22 # 22 means Invalid argument - EINVAL
   fi
   # shellcheck disable=SC2162

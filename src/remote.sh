@@ -35,10 +35,10 @@ declare -gA remote_parameters
 function cmd_remotely()
 {
   local command="$1"
-  local flag="$2"
-  local remote="$3"
-  local port="$4"
-  local user="$5"
+  local flag=${2:-"HIGHLIGHT_CMD"}
+  local remote=${3:-${configurations[ssh_ip]}}
+  local port=${4:-${configurations[ssh_port]}}
+  local user=${5:-${configurations[ssh_user]}}
   local bash_code="$6"
   local composed_cmd=""
 
@@ -46,12 +46,6 @@ function cmd_remotely()
     warning "No command specified"
     exit 22
   fi
-
-  # Set default values if not specified
-  remote=${remote:-"localhost"}
-  port=${port:-"22"}
-  user=${user:-"root"}
-  flag=${flag:-"HIGHLIGHT_CMD"}
 
   composed_cmd="ssh -p $port $user@$remote"
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
@@ -81,20 +75,12 @@ function cmd_remotely()
 #   more options see `src/kwlib.sh` function `cmd_manager`
 function cp_host2remote()
 {
-  local src="$1"
-  local dst="$2"
-  local remote="$3"
-  local port="$4"
-  local user="$5"
-  local flag="$6"
-
-  src=${src:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
-
-  dst=${dst:-"$REMOTE_KW_DEPLOY"}
-  remote=${remote:-"localhost"}
-  port=${port:-"22"}
-  user=${user:-"root"}
-  flag=${flag:-"HIGHLIGHT_CMD"}
+  local src=${1:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
+  local dst=${2:-"$REMOTE_KW_DEPLOY"}
+  local remote=${3:-${configurations[ssh_ip]}}
+  local port=${4:-${configurations[ssh_port]}}
+  local user=${5:-${configurations[ssh_user]}}
+  local flag=${6:-"HIGHLIGHT_CMD"}
 
   cmd_manager "$flag" "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst"
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
@@ -114,17 +100,12 @@ function cp_host2remote()
 # subshell and save it to a variable.
 function which_distro()
 {
-  local remote="$1"
-  local port="$2"
-  local user="$3"
-  local flag="$4"
+  local remote=${1:-${configurations[ssh_ip]}}
+  local port=${2:-${configurations[ssh_port]}}
+  local user=${3:-${configurations[ssh_user]}}
+  local flag=${4:-"SILENT"}
 
   cmd="cat /etc/os-release | grep -w ID | cut -d = -f 2"
-  remote=${remote:-"localhost"}
-  port=${port:-"22"}
-  user=${user:-"root"}
-  flag=${flag:-"SILENT"}
-
   cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user"
 }
 
