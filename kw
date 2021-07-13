@@ -208,6 +208,13 @@ function kw()
         device_info "$@"
       )
       ;;
+    send-email | se)
+      (
+        include "$KW_LIB_DIR/sendemail.sh"
+
+        kw_sendemail "$@"
+      )
+      ;;
     clear-cache)
       include "$KW_LIB_DIR/deploy.sh"
 
