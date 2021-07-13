@@ -303,13 +303,13 @@ function list_installed_kernels()
         return 125 # ECANCELED
       fi
 
-      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       list_installed_kernels "$single_line" "${configurations[mount_point]}"
 
       vm_umount
       ;;
     2) # LOCAL_TARGET
-      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       list_installed_kernels "$single_line"
       ;;
     3) # REMOTE_TARGET
@@ -362,8 +362,8 @@ function kernel_uninstall()
 
       # Local Deploy
       # We need to update grub, for this reason we to load specific scripts.
-      . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
-      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
+      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       # TODO: Rename kernel_uninstall in the plugin, this name is super
       # confusing
       kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
@@ -574,8 +574,8 @@ function kernel_install()
         exit 95 # ENOTSUP
       fi
 
-      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
-      . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
       ;;
@@ -593,8 +593,8 @@ function kernel_install()
         exit 1 # EPERM
       fi
 
-      . "$KW_PLUGINS_DIR/kernel_install/utils.sh" --source-only
-      . "$KW_PLUGINS_DIR/kernel_install/$distro.sh" --source-only
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
       ;;
