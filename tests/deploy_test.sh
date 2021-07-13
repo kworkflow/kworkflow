@@ -45,7 +45,6 @@ function setUp()
 
   export preset_name="template_mkinitcpio.preset"
   export test_path="$PWD/$FAKE_KERNEL"
-  export KW_PLUGINS_DIR="$test_path"
   export KW_CACHE_DIR="$test_path"
   export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
