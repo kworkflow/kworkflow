@@ -102,7 +102,7 @@ function kernel_deploy()
     exit 125 # ECANCELED
   fi
 
-  signal_manager 'interrupt_cleanup' || warning 'Was not able to set signal handler'
+  signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
   if [[ "$target" == "$VM_TARGET" ]]; then
     vm_mount
@@ -140,10 +140,8 @@ function kernel_deploy()
     vm_umount
   fi
 
-  if [[ "$target" == "$REMOTE_TARGET" ]]; then
-    say "Cleanup temporary files"
-    cleanup_after_deploy
-  fi
+  #shellcheck disable=SC2119
+  cleanup
 }
 
 # This function gets raw data and based on that fill out the options values to
@@ -384,43 +382,27 @@ function kernel_uninstall()
   esac
 }
 
-# This function goal is to perform a global clean up, it basically calls other
-# specialized cleanup functions.
-function cleanup()
-{
-  say 'Cleanup deploy files'
-  cleanup_after_deploy
-}
-
-function interrupt_cleanup()
-{
-  say 'Cleaning up...'
-  if [[ -v remote_parameters['REMOTE'] ]]; then
-    cleanup_after_deploy 'SILENT'
-  fi
-
-  say 'Exiting...'
-  exit 0
-}
-
 # When kw deploy a new kernel it creates temporary files to be used for moving
 # to the target machine. There is no need to keep those files in the user
 # machine, for this reason, this function is in charge of cleanup the temporary
 # files at the end.
-#
-# @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
-function cleanup_after_deploy()
+function cleanup()
 {
-  local flag="$1"
+  local flag=${1:-'SILENT'}
+  say 'Cleaning up temporary files...'
 
-  if [[ -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
-    cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/*"
+  if [[ -v options_values['REMOTE'] ]]; then
+    if [[ -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
+      cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/*"
+    fi
+
+    if [[ -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
+      cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
+    fi
   fi
 
-  if [[ -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  fi
+  say 'Exiting...'
+  exit 0
 }
 
 # This function expects a parameter that specifies the target machine;

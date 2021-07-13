@@ -637,20 +637,23 @@ function test_kernel_uninstall()
   }
 }
 
-function test_cleanup_after_deploy()
+function test_cleanup()
 {
   local output=""
   local cmd_remote="rm -rf $test_path/$LOCAL_TO_DEPLOY_DIR/*"
   local cmd_to_deploy="rm -rf $test_path/$LOCAL_REMOTE_DIR/*"
 
   declare -a expected_cmd=(
+    'Cleaning up temporary files...'
     "$cmd_to_deploy"
     "$cmd_remote"
+    'Exiting...'
   )
-
-  output=$(cleanup_after_deploy "TEST_MODE")
+  #shellcheck disable=SC2153
+  options_values[REMOTE]=1
+  output=$(cleanup "TEST_MODE")
   while read -r f; do
-    assertFalse "$ID (cmd: $count) - Expected \"${expected_cmd[$count]}\" to be \"${f}\"" \
+    assertFalse "$ID (cmd: $count) - Expected \"${f}\" to be \"${expected_cmd[$count]}\"" \
       '[[ ${expected_cmd[$count]} != ${f} ]]'
     ((count++))
   done <<< "$output"
