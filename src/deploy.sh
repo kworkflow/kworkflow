@@ -436,11 +436,6 @@ function modules_install()
   local port
   local distro
 
-  if ! is_kernel_root "$PWD"; then
-    complain "Execute this command in a kernel tree."
-    exit 125 # ECANCELED
-  fi
-
   flag=${flag:-""}
 
   case "$target" in
@@ -499,11 +494,6 @@ function modules_install_to()
 
   flag=${flag:-""}
 
-  if ! is_kernel_root "$PWD"; then
-    complain "Execute this command in a kernel tree."
-    exit 125 # ECANCELED
-  fi
-
   local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   set +e
   cmd_manager "$flag" "$cmd"
@@ -534,11 +524,6 @@ function kernel_install()
   local remote
   local port
   local distro
-
-  if ! is_kernel_root "$PWD"; then
-    complain "Execute this command in a kernel tree."
-    exit 125 # ECANCELED
-  fi
 
   # We have to guarantee some default values values
   kernel_name=${kernel_name:-"nothing"}
