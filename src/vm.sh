@@ -9,6 +9,11 @@ function vm_mount()
   local guestmount_cmd
   local ret
 
+  if [[ "$1" =~ -h|--help ]]; then
+    vm_help "$1" 'mount'
+    exit 0
+  fi
+
   flag=${flag:-"SILENT"}
   qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
   mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
@@ -38,6 +43,11 @@ function vm_umount()
   local guestumount_cmd
   local ret
 
+  if [[ "$1" =~ -h|--help ]]; then
+    vm_help "$1" 'umount'
+    exit 0
+  fi
+
   flag=${flag:-"SILENT"}
   qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
   mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
@@ -64,6 +74,11 @@ function vm_up()
   local cmd
   local flag='SILENT'
 
+  if [[ "$1" =~ -h|--help ]]; then
+    vm_help "$1" 'up'
+    exit 0
+  fi
+
   say "Starting Qemu with: "
   echo "${configurations[virtualizer]} ${configurations[qemu_hw_options]}" \
     "${configurations[qemu_net_options]}" \
@@ -74,4 +89,17 @@ function vm_up()
   cmd+=" ${configurations[qemu_path_image]}"
 
   cmd_manager "$flag" "$cmd"
+}
+
+function vm_help()
+{
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man "$2"
+    return
+  fi
+  printf '%s\n' 'kw (mount | umount | up):' \
+    '  mo | mount - Mount VM' \
+    '  um | umount - Unmount VM' \
+    '  u | up - Start VM'
 }
