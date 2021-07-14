@@ -123,12 +123,14 @@ shellcheck and shfmt, and warn you of any errors you may have made.
 
 Kwreview
 ========
+
 Another way to have your code checked against ``shfmt`` and ``shellcheck`` is to
 use ``scripts/kwreview.sh``. By default, it will check your current patch (i.e.
 what has changed since the branch unstable) and print ``shellcheck``'s warnings
 and ``shfmt``'s warnings as diffs. Use ``kwreview -w`` to apply ``shfmt``'s
-changes to the files. Make sure you have ``shfmt``, ``shellcheck`` and
-``reviewdog`` installed.
+changes to the files. If you supply it with path to shell files, it will analyse
+those. Make sure you have ``shfmt``, ``shellcheck`` and ``reviewdog`` installed
+(see :ref:`dependencies_label`).
 
 For vim users, it is possible to use ``kwreview.sh`` to populate the
 `quickfix <http://vimdoc.sourceforge.net/htmldoc/quickfix.html>`_ (or locations)
@@ -148,3 +150,60 @@ Now you can call ``kwreview.sh`` with the vim command ``:Kwreview``
 (notice the upper case initial) and navigate the errors/warnings with
 ``:copen``, ``:cn``, ``:cp``, etc.
 
+.. _dependencies_label:
+
+Dependencies
+============
+
+Installing ShellCheck
+~~~~~~~~~~~~~~~~~~~~~
+Shellcheck is available as a package for most distributions. On debian based
+distros, use ``sudo apt install shellcheck``. On Arch based distros, use ``sudo
+pacman -S shellcheck``.
+
+Installing shfmt
+~~~~~~~~~~~~~~~~
+
+To install shfmt, ``go`` must be installed. On debian based distros::
+
+  sudo apt install golang
+
+On arch based distros::
+
+  sudo pacman -S go
+
+With go installed, run the following command to install shfmt::
+
+  GO111MODULE=on go get mvdan.cc/sh/v3/cmd/shfmt
+
+More information can be found in their `github page <https://github.com/mvdan/sh>`__.
+
+Installing pre-commit
+~~~~~~~~~~~~~~~~~~~~~
+``pre-commit`` is available as a package for some distributions. On debian based
+distros, try using ``sudo apt install pre-commit``. On Arch based distros, use
+``sudo pacman -S python-pre-commit``. If that doesn't work, you can install it
+using pip with ``pip install pre-commit``.
+
+Installing reviewdog
+~~~~~~~~~~~~~~~~~~~~
+To install reviewdog, run the following command::
+
+  curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b <path>
+
+This will install reviewdog in the directory at ``path``. Make sure this
+directory is in your ``PATH`` environmental variable, so that reviewdog
+is executable from any directory. For example, you can install it in::
+
+  $HOME/bin/
+
+And add the following line to you shell configuration file (e.g.
+``~/.profile``)::
+
+  if [ -d "$HOME/bin" ] ; then
+      PATH="$HOME/bin:$PATH"
+  fi
+
+Check out reviewdog's `github page
+<https://github.com/reviewdog/reviewdog#installation>`__ for other
+installation options.
