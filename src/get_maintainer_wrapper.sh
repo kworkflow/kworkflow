@@ -69,8 +69,8 @@ function execute_get_maintainer()
   local -r original_working_dir=$PWD
   local kernel_root=""
 
-  if [[ "$1" == -h ]]; then
-    maintainers_help
+  if [[ "$1" =~ -h|--help ]]; then
+    maintainers_help "$1"
     exit 0
   fi
 
@@ -175,6 +175,13 @@ function execute_get_maintainer()
 
 function maintainers_help()
 {
-  echo -e "kw maintainers|m:\n" \
-    "\tmaintainers,m [--authors|-a] [--update-patch|-u]\n"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'maintainers'
+    return
+  fi
+  printf '%s\n' 'kw maintainers:' \
+    '  maintainers [<dir> | <file>] - Shows maintainers of module' \
+    '  maintainers (-a | --authors) - Also shows module authors' \
+    '  maintainers (-u | --update-patch) - Add maintainers to patch file header'
 }
