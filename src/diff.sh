@@ -13,8 +13,8 @@ function diff_manager()
 
   IFS=' ' read -r -a files <<< "$files_paths"
   for file in "${files[@]}"; do
-    if [[ '--help' == "$file" || '-h' == "$file" ]]; then
-      diff_help
+    if [[ "$file" =~ -h|--help ]]; then
+      diff_help "$file"
       return 0
     fi
 
@@ -38,7 +38,7 @@ function diff_manager()
   fi
 
   if [[ "${diff_options['HELP']}" == 1 ]]; then
-    diff_help
+    diff_help "$@"
     return 0
   fi
 
@@ -74,7 +74,7 @@ function diff_parser_options()
         diff_options['INTERACTIVE']=0
         continue
         ;;
-      --help | -h | help)
+      --help | -h)
         diff_options['HELP']=1
         continue
         ;;
@@ -125,7 +125,12 @@ function diff_side_by_side()
 
 function diff_help()
 {
-  echo -e "Usage: kw diff [options] FILES:\n" \
-    "\tdiff FILE1 FILE2" \
-    "\tdiff --no-interactive FILE1 FILE2"
+  if [[ "$*" =~ --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'diff'
+    return
+  fi
+  printf '%s\n' 'kw diff:' \
+    '  diff <file1> <file2>                  - interactive diff' \
+    '  diff --no-interactive <file1> <file2> - static diff'
 }
