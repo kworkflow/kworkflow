@@ -13,8 +13,8 @@ function execute_checkpatch()
   local FILE_OR_DIR_CHECK="$1"
   local flag="$2"
 
-  if [[ "$FILE_OR_DIR_CHECK" == '-h' ]]; then
-    codestyle_help
+  if [[ "$FILE_OR_DIR_CHECK" =~ -h|--help ]]; then
+    codestyle_help "$1"
     return 0
   fi
 
@@ -86,6 +86,11 @@ function execute_checkpatch()
 
 function codestyle_help()
 {
-  echo -e "kw codestyle|c Use checkpatch on directory, file, or patch:\n" \
-    "\tcodestyle,c PATH/[FILE|PATCH|DIR]\n"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'codestyle'
+    return
+  fi
+  printf '%s\n' 'kw codestyle:' \
+    '  codestyle [<dir>|<file>|<patch>] - Use checkpatch on target'
 }

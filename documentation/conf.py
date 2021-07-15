@@ -149,6 +149,7 @@ latex_documents = [
 man_pages = [
     ('man/kw', 'kw', 'KernelWorkflow Documentation', [author], 1),
     ('man/features/build', 'build', 'build the kernel', [author], 1),
+    ('man/features/codestyle', 'codestyle', 'checkpatch wrapper', [author], 1),
     ('man/features/configm', 'configm', 'config manager', [author], 1),
     ('man/features/deploy', 'deploy', 'deploy the kernel', [author], 1),
     ('man/features/diff', 'diff', 'useful diff wrapper', [author], 1),
