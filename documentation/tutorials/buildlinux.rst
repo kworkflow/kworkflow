@@ -82,7 +82,10 @@ And it can be even simpler by just running::
 
   kw b
 
+.. note:
+    kw runs `make olddefconfig` before building.
+
 Well, that's it. kw will automatically infer the number of job slots for
-compiling based on the number of cores of your machine (i.e. when running make 
+compiling based on the number of cores of your machine (i.e. when running make
 -jNUMBER, NUMBER is an integer that specifies the number of processes that will
 run at the same time), and compilation will begin!
