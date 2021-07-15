@@ -282,8 +282,8 @@ function kw_ssh()
   local target="${configurations[ssh_ip]}"
   local script_path
 
-  if [[ "$1" == -h ]]; then
-    ssh_help
+  if [[ "$1" =~ -h|--help ]]; then
+    ssh_help "$1"
     exit 0
   fi
 
@@ -323,7 +323,13 @@ function kw_ssh()
 
 function ssh_help()
 {
-  echo -e "kw ssh|s options:\n" \
-    "\tssh|s [--script|-s=\"SCRIPT PATH\"]\n" \
-    "\tssh|s [--command|-c=\"COMMAND\"]"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'ssh'
+    return
+  fi
+  printf '%s\n' 'kw ssh:' \
+    '  ssh - Connect to remote machine' \
+    '  ssh (-c | --command)=<command>    - Execute <command> remotely' \
+    '  ssh (-s | --script)=<script-path> - Execute <script-path> remotely'
 }

@@ -154,6 +154,7 @@ man_pages = [
     ('man/features/diff', 'diff', 'useful diff wrapper', [author], 1),
     ('man/features/init', 'init', 'initialize kworkflow.config', [author], 1),
     ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
+    ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
     ('man/features/umount', 'umount', 'command for unmounting a QEMU VM', [author], 1),
     ('man/features/up', 'up', 'command for starting a QEMU VM', [author], 1),
 ]
