@@ -22,6 +22,11 @@ function show_variables()
   local test_mode=0
   local has_local_config_path="No"
 
+  if [[ "$1" =~ -h|--help ]]; then
+    vars_help "$1"
+    exit 0
+  fi
+
   if [ -f "$PWD/kworkflow.config" ]; then
     has_local_config_path="Yes"
   else
@@ -95,6 +100,17 @@ function show_variables()
       fi
     done
   done
+}
+
+function vars_help()
+{
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'vars'
+    return
+  fi
+  printf '%s\n' 'kw vars:' \
+    '  vars - Show current variable values being used by kw.'
 }
 
 # This function read the configuration file and make the parser of the data on
