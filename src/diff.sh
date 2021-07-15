@@ -103,10 +103,11 @@ function diff_side_by_side()
   local file_2="$2"
   local interactive="$3"
   local flag="$4"
-  local diff_cmd="diff -y --color=always --width=$columns"
+  local diff_cmd
   local columns
 
   columns=$(tput cols)
+  diff_cmd="diff -y --color=always --width=$columns"
   flag=${flag:-""}
 
   if [[ ! -f "$file_1" || ! -f "$file_2" ]]; then
