@@ -23,8 +23,8 @@ function statistics()
   local month
   local year
 
-  if [[ "$1" == -h ]]; then
-    statistics_help
+  if [[ "$1" =~ -h|--help ]]; then
+    statistics_help "$1"
     exit 0
   fi
 
@@ -351,9 +351,15 @@ function year_statistics()
 
 function statistics_help()
 {
-  echo -e "kw statistics:\n" \
-    "\tstatistics [--day [YEAR/MONTH/DAY]]\n" \
-    "\tstatistics [--week [YEAR/MONTH/DAY]]\n" \
-    "\tstatistics [--month [YEAR/MONTH]]\n" \
-    "\tstatistics [--year [YEAR]]"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'statistics'
+    return
+  fi
+  printf '%s\n' 'kw statistics:' \
+    '  statistics - Statistics for current date' \
+    '  statistics --day [<year>/<month>/<day>] - Statistics of given day' \
+    '  statistics --week [<year>/<month>/<day>] - Statistics of given week' \
+    '  statistics --month [<year>/<month>] - Statistics of given month' \
+    '  statistics --year [<year>] - Statistics of given year'
 }

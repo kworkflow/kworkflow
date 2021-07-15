@@ -158,6 +158,7 @@ man_pages = [
     ('man/features/maintainers', 'maintainers', 'display module maintainers', [author], 1),
     ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
     ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
+    ('man/features/statistics', 'statistics', 'statistics about kw', [author], 1),
     ('man/features/umount', 'umount', 'command for unmounting a QEMU VM', [author], 1),
     ('man/features/up', 'up', 'command for starting a QEMU VM', [author], 1),
     ('man/features/vars', 'vars', 'view kw config values', [author], 1),
