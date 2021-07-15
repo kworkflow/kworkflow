@@ -56,8 +56,8 @@ function explore_parser()
     exit 22 # EINVAL
   fi
 
-  if [[ "$1" == -h ]]; then
-    explore_help
+  if [[ "$1" =~ -h|--help ]]; then
+    explore_help "$1"
     exit 0
   fi
 
@@ -83,12 +83,17 @@ function explore_parser()
 
 function explore_help()
 {
-  echo -e "kw explore:\n" \
-    "\texplore,e STRING [PATH] - Search for STRING based in PATH (./ by default) \n" \
-    "\texplore,e \"STR SRT\" [PATH] - Search for strings only in files under git control\n" \
-    "\texplore,e --log,-l STRING - Search for STRING on git log\n" \
-    "\texplore,e --grep,-g STRING - Search for STRING using the GNU grep tool\n" \
-    "\texplore,e --all,-a STRING - Search for all STRING match under or not of git management."
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'explore'
+    return
+  fi
+  printf '%s\n' 'kw explore:' \
+    '  explore,e <string> [<path>] - Search for <string> based in <path> (./ by default) ' \
+    '  explore,e "STR SRT" [<path>] - Search for strings only in files under git control' \
+    '  explore,e --log,-l <string> - Search for <string> on git log' \
+    '  explore,e --grep,-g <string> - Search for <string> using the GNU grep tool' \
+    '  explore,e --all,-a <string> - Search for all <string> match under or not of git management.'
 }
 
 # This function is responsible for handling the search in the log history.

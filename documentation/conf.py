@@ -153,6 +153,7 @@ man_pages = [
     ('man/features/configm', 'configm', 'config manager', [author], 1),
     ('man/features/deploy', 'deploy', 'deploy the kernel', [author], 1),
     ('man/features/diff', 'diff', 'useful diff wrapper', [author], 1),
+    ('man/features/explore', 'explore', 'git grep wrapper', [author], 1),
     ('man/features/init', 'init', 'initialize kworkflow.config', [author], 1),
     ('man/features/maintainers', 'maintainers', 'display module maintainers', [author], 1),
     ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
