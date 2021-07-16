@@ -311,8 +311,8 @@ function report_parse()
   local output
   local reference=0
 
-  if [[ "$1" == -h ]]; then
-    report_help
+  if [[ "$1" =~ -h|--help ]]; then
+    report_help "$1"
     exit 0
   fi
 
@@ -422,10 +422,15 @@ function report_parse()
 
 function report_help()
 {
-  echo -e "kw report, r:\n" \
-    "\treport [--day [YEAR/MONTH/DAY]]\n" \
-    "\treport [--week [YEAR/MONTH/DAY]]\n" \
-    "\treport [--month [YEAR/MONTH]]\n" \
-    "\treport [--year [YEAR]]\n" \
-    "\treport [--output PATH]"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'report'
+    return
+  fi
+  printf '%s\n' 'kw report:' \
+    '  report [--day [<year>/<month>/<day>]] - Report of the day' \
+    '  report [--week [<year>/<month>/<day>]] - Report of the week' \
+    '  report [--month [<year>/<month>]] - Report of the month' \
+    '  report [--year [<year>]] - Report fo the year' \
+    '  report [--output <path>] - Save report to <path>'
 }
