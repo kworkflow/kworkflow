@@ -12,6 +12,9 @@ function oneTimeSetUp()
   FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
   FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
   ORIGINAL_DIR="$PWD"
+
+  setupFakeOSInfo
+  setupFakeKernelRepo
 }
 
 function setupFakeOSInfo()
@@ -75,80 +78,118 @@ function tearDown()
 
 function test_is_kernel_root()
 {
-  setupFakeKernelRepo
   is_kernel_root "$SHUNIT_TMPDIR"
   [[ "$?" != 0 ]] && fail "Failed to check if a directory is a kernel root."
   true # Reset return value
 }
 
-function test_cmd_manager_check_silent_option()
+function test_cmd_manager_eacces()
 {
-  setupFakeKernelRepo
+  local output
+  local ret
+
+  output=$(cmd_manager 'TEST_MODE' 'dmesg -H' 'KW_REDIRECT_MODE' "/an/invalid/path")
+  ret="$?"
+  assertEquals "($LINENO): We expected 13 as a return" 13 "$ret"
+}
+
+function test_cmd_manager_with_iterative_option()
+{
+  local output
+  local fake_file_path="$SHUNIT_TMPDIR/fakefile.log"
+  local expected_output
+
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  ret=$(cmd_manager SILENT ls)
 
-  assertFalse "We used SILENT mode, we should not find ls" '[[ $ret =~ ls ]]'
-  assertTrue "We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
-  assertTrue "We expected to find CREDITS" '[[ $ret =~ CREDITS ]]'
-  assertTrue "We expected to find README" '[[ $ret =~ README ]]'
-  assertTrue "We expected to find arch" '[[ $ret =~ arch ]]'
-  assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
+  touch "$fake_file_path"
+
+  output=$(cmd_manager 'TEST_MODE' 'dmesg -H' 'KW_REDIRECT_MODE' "$fake_file_path")
+  expected_output="dmesg -H | tee $fake_file_path"
+  assertEquals "($LINENO): " "$expected_output" "$output"
+}
+
+function test_cmd_manager_check_silent_option()
+{
+  local ret
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  ret=$(cmd_manager 'SILENT' 'ls')
+
+  assertFalse "$LINENO: We used SILENT mode, we should not find ls" '[[ $ret =~ ls ]]'
+  assertTrue "$LINENO: We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
+  assertTrue "$LINENO: We expected to find CREDITS" '[[ $ret =~ CREDITS ]]'
+  assertTrue "$LINENO: We expected to find README" '[[ $ret =~ README ]]'
+  assertTrue "$LINENO: We expected to find arch" '[[ $ret =~ arch ]]'
+  assertTrue "$LINENO: We expected to find scripts" '[[ $ret =~ scripts ]]'
 
   # Test command with parameters
-  ret=$(cmd_manager SILENT help pwd)
-  assertTrue "We expected to find -P" '[[ $ret =~ -P ]]'
-  assertTrue "We expected to find -L" '[[ $ret =~ -L ]]'
+  ret=$(cmd_manager 'SILENT' 'help pwd')
+  assertTrue "$LINENO: We expected to find -P" '[[ $ret =~ -P ]]'
+  assertTrue "$LINENO: We expected to find -L" '[[ $ret =~ -L ]]'
 }
 
 # The difference between say, complain, warning, and success it is the color
 # because of this we test all of them together
-function test_cmdManagerSAY_COMPLAIN_WARNING_SUCCESS()
+function test_cmd_manager_say_complain_warning_highlight_cmd_success()
 {
-  setupFakeKernelRepo
+  local ret
+
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  ret=$(cmd_manager ls)
 
-  assertTrue "We expected to find the ls command" '[[ $ret =~ ls ]]'
-  assertTrue "We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
-  assertTrue "We expected to find arch" '[[ $ret =~ arch ]]'
-  assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
+  # Default option
+  ret=$(cmd_manager '' ls)
+  assertTrue "$LINENO: We expected to find the ls command" '[[ $ret =~ ls ]]'
+  assertTrue "$LINENO: We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
+  assertTrue "$LINENO: We expected to find arch" '[[ $ret =~ arch ]]'
+  assertTrue "$LINENO: We expected to find scripts" '[[ $ret =~ scripts ]]'
 
   # TODO: There's an alternative to discover the color?
-  ret=$(cmd_manager COMPLAIN help pwd)
-  assertTrue "We expected to find -P" '[[ $ret =~ -P ]]'
-  assertTrue "We expected to find -L" '[[ $ret =~ -L ]]'
+  ret=$(cmd_manager 'COMPLAIN' 'help pwd')
+  assertTrue "($LINENO): We expected to find -P" '[[ $ret =~ -P ]]'
+  assertTrue "($LINENO): We expected to find -L" '[[ $ret =~ -L ]]'
 
-  ret=$(cmd_manager WARNING ls)
-  assertTrue "We expected to find the ls command" '[[ $ret =~ ls ]]'
-  assertTrue "We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
-  assertTrue "We expected to find arch" '[[ $ret =~ arch ]]'
-  assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
+  ret=$(cmd_manager 'WARNING' 'ls')
+  assertTrue "($LINENO): We expected to find the ls command" '[[ $ret =~ ls ]]'
+  assertTrue "($LINENO): We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
+  assertTrue "($LINENO): We expected to find arch" '[[ $ret =~ arch ]]'
+  assertTrue "($LINENO): We expected to find scripts" '[[ $ret =~ scripts ]]'
 
-  ret=$(cmd_manager SUCCESS ls)
-  assertTrue "We expected to find the ls command" '[[ $ret =~ ls ]]'
-  assertTrue "We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
-  assertTrue "We expected to find arch" '[[ $ret =~ arch ]]'
-  assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
+  ret=$(cmd_manager 'SUCCESS' 'ls')
+  assertTrue "($LINENO): We expected to find the ls command" '[[ $ret =~ ls ]]'
+  assertTrue "($LINENO): We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
+  assertTrue "($LINENO): We expected to find arch" '[[ $ret =~ arch ]]'
+  assertTrue "($LINENO): We expected to find scripts" '[[ $ret =~ scripts ]]'
+
+  ret=$(cmd_manager 'HIGHLIGHT_CMD' 'ls')
+  assertTrue "($LINENO): We expected to find the ls command" '[[ $ret =~ ls ]]'
+  assertTrue "($LINENO): We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
+  assertTrue "($LINENO): We expected to find arch" '[[ $ret =~ arch ]]'
+  assertTrue "($LINENO): We expected to find scripts" '[[ $ret =~ scripts ]]'
 }
 
 function test_cmd_manager_check_test_mode_option()
 {
-  ret=$(cmd_manager TEST_MODE pwd)
+  local ret
+
+  ret=$(cmd_manager 'TEST_MODE' 'pwd')
   assertEquals "Expected pwd, but we got $ret" "$ret" "pwd"
 
-  ret=$(cmd_manager TEST_MODE ls -lah)
+  ret=$(cmd_manager 'TEST_MODE' 'ls -lah')
   assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
 }
 
 function test_detect_distro()
 {
-  setupFakeOSInfo
   local root_path="$SHUNIT_TMPDIR/detect_distro/arch"
   local ret
 
@@ -195,11 +236,10 @@ function test_join_path()
 
 function test_find_kernel_root()
 {
-  setupFakeKernelRepo
-
   local fake_path="$SHUNIT_TMPDIR/lala/xpto"
-  mkdir -p "$fake_path"
   local kernel_path
+
+  mkdir -p "$fake_path"
 
   kernel_path=$(find_kernel_root "$fake_path")
   assertEquals "We expected to find a kernel path" "$kernel_path" "$SHUNIT_TMPDIR"

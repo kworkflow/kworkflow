@@ -1,4 +1,5 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
+include "$KW_LIB_DIR/kw_string.sh"
 
 # Array with compression programs accepted by tar
 declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
@@ -55,7 +56,9 @@ function get_based_on_delimiter()
 # @flag: Expecting a flag, that could be SILENT, COMPLAIN, WARNING, SUCCESS,
 #        TEST_MODE, and HIGHLIGHT_CMD. By default, cmd_manager does not expects
 #        flags and always show the command.
-# @@: Target command
+# @@: Target command.
+# @redirect_mode: If set to KW_REDIRECT_MODE, it will read output_path.
+# @output_path: We expect a path to save the file's command output
 #
 # Returns:
 # Return the exit status of the command defined by the string or 0 in the case
@@ -63,38 +66,52 @@ function get_based_on_delimiter()
 function cmd_manager()
 {
   local flag="$1"
+  shift 1 # Let's remove flag parameter
+  local command_for_eval_array=("$@")
+  local redirect_mode="${*: -2:1}" # Last but one
+  local output_path="${*: -1}"     # Last
+  local command_for_eval=''
+  local base_path
+
+  if [[ "$redirect_mode" == 'KW_REDIRECT_MODE' ]]; then
+    base_path="${output_path%/*}"
+    unset 'command_for_eval_array[-1]' # Remove output_path
+    unset 'command_for_eval_array[-1]' # Remove redirect_mode
+
+    if [[ ! -w "$base_path" ]]; then
+      return 13 # EACCES
+    fi
+
+    command_for_eval_array+=("| tee $output_path")
+  fi
+
+  # Convert command_for_eval to a simple string
+  command_for_eval=$(str_strip "${command_for_eval_array[*]}")
 
   case "$flag" in
-    SILENT)
-      shift 1
-      ;;
+    SILENT) ;;
     COMPLAIN)
-      shift 1
-      complain "$@"
+      complain "$command_for_eval"
       ;;
     WARNING)
-      shift 1
-      warning "$@"
+      warning "$command_for_eval"
       ;;
     SUCCESS)
-      shift 1
-      success "$@"
+      success "$command_for_eval"
       ;;
     HIGHLIGHT_CMD)
-      shift 1
-      warning "$@"
+      warning "$command_for_eval"
       ;;
     TEST_MODE)
-      shift 1
-      say "$@"
+      say "$command_for_eval"
       return 0
       ;;
     *)
-      say "$@"
+      say "$command_for_eval"
       ;;
   esac
 
-  eval "$@"
+  eval "$command_for_eval"
 }
 
 # Checks if a directory is a kernel tree root
