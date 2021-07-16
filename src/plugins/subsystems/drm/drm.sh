@@ -18,6 +18,11 @@ function drm_manager()
   local unload_module
   local test_mode
 
+  if [[ "$*" =~ -h|--help ]]; then
+    drm_help "$*"
+    exit 0
+  fi
+
   drm_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${drm_options_values['ERROR']} $target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
@@ -469,11 +474,16 @@ function drm_parser_options()
 
 function drm_help()
 {
-  echo -e "Usage: kw drm [options]:\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --load-module=|-lm='MODULE[:PARAM1,PARAM2][;MODULE:...][;...]\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --unload-module=|-um='MODULE[;MODULE;...]\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --gui-on\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --gui-off\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --conn-available\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --modes"
+  if [[ "$1" =~ --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'drm'
+    return
+  fi
+  printf '%s\n' 'Usage: kw drm [options]:' \
+    '  drm [--local | --remote [<remote>:<port>]] (-lm|--load-module)=<module>[:<param1>,<param2>][;<module>:...][;...]' \
+    '  drm [--local | --remote [<remote>:<port>]] (-um|--unload-module)=<module>[;<module>;...]' \
+    '  drm [--local | --remote [<remote>:<port>]] --gui-on' \
+    '  drm [--local | --remote [<remote>:<port>]] --gui-off' \
+    '  drm [--local | --remote [<remote>:<port>]] --conn-available' \
+    '  drm [--local | --remote [<remote>:<port>]] --modes'
 }
