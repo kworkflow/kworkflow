@@ -300,8 +300,8 @@ function pomodoro_parser()
   local tag_dash=0
   local description_dash=0
 
-  if [[ "$1" == -h ]]; then
-    pomodoro_help
+  if [[ "$1" =~ -h|--help ]]; then
+    pomodoro_help "$1"
     exit 0
   fi
 
@@ -428,9 +428,14 @@ function pomodoro_parser()
 
 function pomodoro_help()
 {
-  echo -e "kw pomodoro, p:\n" \
-    "\t--set-timer,-t INTEGER[h|m|s] - Set pomodoro timer\n" \
-    "\t--list,-l - Show elapsed time\n" \
-    "\t--tag,-g - Associate a tag to a timebox" \
-    "\t--description,-d [STRING] - Add a description to a timebox with a tag"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'pomodoro'
+    return
+  fi
+  printf '%s\n' 'kw pomodoro:' \
+    '  pomodoro (-t|--set-timer) <integer>(h|m|s) - Set pomodoro timer' \
+    '  pomodoro (-g|--tag) <string> - Associate a tag to a timebox' \
+    '  pomodoro (-d|--description) <string> - Add a description to a timebox with a tag' \
+    '  pomodoro (-l|--list) - Show elapsed time'
 }
