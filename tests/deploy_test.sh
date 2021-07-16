@@ -62,6 +62,12 @@ function setUp()
     cp -f "$SAMPLES_DIR/$preset_name" "$FAKE_KERNEL/$LOCAL_TO_DEPLOY_DIR/test.preset"
   fi
 
+  # Let's add some files to make it a little bit more realistic
+  touch "$test_path/$LOCAL_TO_DEPLOY_DIR/file_1"
+
+  touch "$test_path/$LOCAL_REMOTE_DIR/file_1"
+  touch "$test_path/$LOCAL_REMOTE_DIR/file_2"
+
   parse_configuration "$KW_CONFIG_SAMPLE"
   remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
   remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
@@ -563,6 +569,7 @@ function test_cleanup()
     "$cmd_remote"
     'Exiting...'
   )
+
   #shellcheck disable=SC2153
   options_values[REMOTE]=1
   output=$(cleanup 'TEST_MODE')

@@ -91,7 +91,7 @@ function test_kernel_build()
   }
 
   output=$(kernel_build 'TEST_MODE' | head -1) # Remove statistics output
-  expected_result="make -j$PARALLEL_CORES ARCH=x86_64 "
+  expected_result="make -j$PARALLEL_CORES ARCH=x86_64"
   assertEquals "($LINENO)" "$expected_result" "${output}"
 
 }
