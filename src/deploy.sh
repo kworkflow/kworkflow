@@ -47,6 +47,8 @@ function kernel_deploy()
   local end=0
   local runtime=0
   local ret=0
+  local list_all
+  local flag
 
   if [[ "$1" =~ -h|--help ]]; then
     deploy_help "$1"
@@ -59,18 +61,21 @@ function kernel_deploy()
     return 22 # EINVAL
   fi
 
+  flag="${options_values['TEST_MODE']}"
   target="${options_values['TARGET']}"
   reboot="${options_values['REBOOT']}"
   modules="${options_values['MODULES']}"
   single_line="${options_values['LS_LINE']}"
+  list_all="${options_values['LS_ALL']}"
   list="${options_values['LS']}"
   uninstall="${options_values['UNINSTALL']}"
+  uninstall_force="${options_values['UNINSTALL_FORCE']}"
   remote="${remote_parameters['REMOTE']}"
 
-  if [[ "$list" == 1 || "$single_line" == 1 ]]; then
+  if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
     say "Available kernels:"
     start=$(date +%s)
-    list_installed_kernels "" "$single_line" "$target"
+    list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -80,7 +85,7 @@ function kernel_deploy()
 
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
-    kernel_uninstall "$target" "$reboot" "$uninstall" "$flag"
+    kernel_uninstall "$target" "$reboot" "$uninstall" "$flag" "$uninstall_force"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -149,7 +154,8 @@ function parse_deploy_options()
   local remote
   local options
   local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
-  local short_options='r,m,l,s,u:'
+  long_options+=',list-all,force'
+  local short_options='r,m,l,s,u:,a,f'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -159,12 +165,15 @@ function parse_deploy_options()
     return 22 # EINVAL
   fi
 
+  options_values['TEST_MODE']='SILENT'
   options_values['UNINSTALL']=''
+  options_values['UNINSTALL_FORCE']=''
   options_values['MODULES']=0
   options_values['LS_LINE']=0
   options_values['LS']=0
   options_values['REBOOT']=0
   options_values['MENU_CONFIG']='nconfig'
+  options_values['LS_ALL']=''
 
   remote_parameters['REMOTE']=''
 
@@ -219,6 +228,10 @@ function parse_deploy_options()
         options_values['LS']=1
         shift
         ;;
+      --list-all | -a)
+        options_values['LS_ALL']=1
+        shift
+        ;;
       --ls-line | -s)
         options_values['LS_LINE']=1
         shift
@@ -231,7 +244,15 @@ function parse_deploy_options()
         options_values['UNINSTALL']+="$2"
         shift 2
         ;;
+      --force | -f)
+        options_values['UNINSTALL_FORCE']=1
+        shift
+        ;;
       --) # End of options, beginning of arguments
+        shift
+        ;;
+      TEST_MODE)
+        options_values['TEST_MODE']='TEST_MODE'
         shift
         ;;
       *)
@@ -263,13 +284,17 @@ function parse_deploy_options()
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @all If this option is set to one, this will list all kernels
+#   availble. If not, will list only kernels that were installed by kw.
 function list_installed_kernels()
 {
   local flag="$1"
   local single_line="$2"
   local target="$3"
+  local all="$4"
   local remote
   local port
+  local cmd
 
   flag=${flag:-"SILENT"}
 
@@ -283,16 +308,16 @@ function list_installed_kernels()
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line" "${configurations[mount_point]}"
+      list_installed_kernels "$flag" "$single_line" "${configurations[mount_point]}" "$all"
 
       vm_umount
       ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line"
+      list_installed_kernels "$flag" "$single_line" '' "$all"
       ;;
     3) # REMOTE_TARGET
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels $single_line"
+      cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels '$flag' '$single_line' '' '$all'"
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
 
@@ -312,6 +337,8 @@ function list_installed_kernels()
 #         installation.
 # @kernels_target List containing kernels to be uninstalled
 # @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @force If this value is equal to 1, try to uninstall kernels even if they are
+#        not managed by kw
 #
 # Return:
 # Return 0 if everything is correct or an error in case of failure
@@ -321,6 +348,7 @@ function kernel_uninstall()
   local reboot="$2"
   local kernels_target="$3"
   local flag="$4"
+  local force="$5"
   local distro
   local remote
   local port
@@ -345,7 +373,7 @@ function kernel_uninstall()
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       # TODO: Rename kernel_uninstall in the plugin, this name is super
       # confusing
-      kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
+      kernel_uninstall '' "$reboot" 'local' "$kernels_target" "$flag" "$force"
       ;;
     3) # REMOTE_TARGET
       remote="${remote_parameters['REMOTE_IP']}"
@@ -357,7 +385,7 @@ function kernel_uninstall()
       # TODO
       # It would be better if `cmd_remotely` handle the extra space added by
       # line break with `\`; this may allow us to break a huge line like this.
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --uninstall_kernel $reboot remote $kernels_target $flag"
+      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --uninstall_kernel '' '$reboot' remote '$kernels_target' '$flag' '$force'"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
@@ -586,7 +614,8 @@ function deploy_help()
     '  deploy (--remote <remote>:<port> | --local | --vm) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
     '  deploy (--modules | -m) - install only modules' \
-    '  deploy (--uninstall | -u) <kernel-name>,... - uninstall given kernels' \
+    '  deploy (--uninstall | -u) [(--force | -f)] <kernel-name>,... - uninstall given kernels' \
     '  deploy (--list | -l) - list kernels' \
-    '  deploy (--ls-line | -s) - list kernels separeted by commas'
+    '  deploy (--ls-line | -s) - list kernels separeted by commas' \
+    '  deploy (--list-all | -a) - list all available kernels'
 }

@@ -28,6 +28,15 @@ function root_id_mock()
   echo "0"
 }
 
+function oneTimeSetUp()
+{
+  function sudo()
+  {
+    eval "$*"
+  }
+  export -f sudo
+}
+
 function setUp()
 {
   local create_mkinitcpio="$1"
@@ -50,6 +59,8 @@ function setUp()
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export KW_PLUGINS_DIR="$PWD/src/plugins/"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
+
+  KW_LIB_DIR="$PWD/$SAMPLES_DIR"
 
   mkdir "$test_path/$LOCAL_TO_DEPLOY_DIR"
   mkdir "$test_path/$LOCAL_REMOTE_DIR"
@@ -98,7 +109,6 @@ function tearDown()
 
 function test_modules_install_to()
 {
-  local ID
   local original="$PWD"
 
   # Copy test.preset to remote
@@ -109,11 +119,10 @@ function test_modules_install_to()
     return
   }
 
-  ID=1
   output=$(modules_install_to "$test_path" "TEST_MODE")
 
   if [[ "$output" != "$make_install_cmd" ]]; then
-    fail "$ID - Expected \"$output\" to be \"$make_install_cmd\""
+    fail "$LINENO - Expected \"$output\" to be \"$make_install_cmd\""
   fi
 
   cd "$original" || {
@@ -347,24 +356,16 @@ function test_kernel_modules()
   # Create folder so generate_tarball won't complain
   mkdir -p "$local_remote_path/lib/modules/$version"
 
-  ID=1
   output=$(modules_install "TEST_MODE" 3)
-  while read -r f; do
-    if [[ ${expected_cmd[$count]} != "${f}" ]]; then
-      fail "$count - Expected cmd \"${f}\" to be \"${expected_cmd[$count]}\""
-    fi
-    ((count++))
-  done <<< "$output"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
-  ID=2
   output=$(modules_install "TEST_MODE" 1)
   expected_output="make INSTALL_MOD_PATH=/home/lala modules_install"
-  assertEquals "$ID: " "$output" "$expected_output"
+  assertEquals "$LINENO: " "$output" "$expected_output"
 
-  ID=3
   output=$(modules_install "TEST_MODE" 2)
   expected_output="sudo -E make modules_install"
-  assertEquals "$ID: " "$output" "$expected_output"
+  assertEquals "$LINENO: " "$output" "$expected_output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -374,7 +375,6 @@ function test_kernel_modules()
 
 function test_kernel_modules_local()
 {
-  local ID
   local original="$PWD"
   local cmd="sudo -E make modules_install"
 
@@ -382,9 +382,8 @@ function test_kernel_modules_local()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  ID=1
   output=$(modules_install "TEST_MODE" "2")
-  assertFalse "$ID - Expected $output to be $cmd" '[[ "$cmd" != "$output" ]]'
+  assertFalse "$LINENO - Expected $output to be $cmd" '[[ "$cmd" != "$output" ]]'
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
@@ -401,12 +400,14 @@ function test_kernel_install_local()
   local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
   local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
   local cmd_reboot="sudo -E reboot"
+  local cmd_register_kernel="sudo tee -a '$REMOTE_KW_DEPLOY/INSTALLED_KERNELS' > /dev/null"
   local msg=""
 
   declare -a expected_cmd=(
     "$cmd_cp_kernel_img"
     "$cmd_update_initramfs"
     "$cmd_update_grub"
+    "$cmd_register_kernel"
     "$cmd_reboot"
   )
 
@@ -462,7 +463,7 @@ function test_list_remote_kernels()
   local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ --rsync-path='sudo rsync'"
   local cmd_chown_utils="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/\""
 
-  local remote_list_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"bash /root/kw_deploy/deploy.sh --list_kernels 0\""
+  local remote_list_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"bash /root/kw_deploy/deploy.sh --list_kernels 'TEST_MODE' '0' '' ''\""
 
   declare -a expected_cmd=(
     "$dir_kw_deploy"
@@ -483,12 +484,7 @@ function test_list_remote_kernels()
   setupRemote
 
   output=$(list_installed_kernels "TEST_MODE" 0 3)
-  while read -r f; do
-    if [[ ${expected_cmd[$count]} != "${f}" ]]; then
-      fail "$count - Expected cmd \"${f}\" to be \"${expected_cmd[$count]}\""
-    fi
-    ((count++))
-  done <<< "$output"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -511,7 +507,7 @@ function test_kernel_uninstall()
   local dir_kw_deploy="$ssh_cmd $remote_access sudo \"mkdir -p $remote_path\""
 
   # Rsync script command
-  local cmd="bash $remote_path/deploy.sh --uninstall_kernel 0 remote $kernel_list TEST_MODE"
+  local cmd="bash $remote_path/deploy.sh --uninstall_kernel '' '0' remote '$kernel_list' 'TEST_MODE' ''"
 
   local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh --rsync-path='sudo rsync'"
   local cmd_chown_debian="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/distro_deploy.sh\""
@@ -543,25 +539,22 @@ function test_kernel_uninstall()
   setupRemote
 
   # List of kernels
-  ID=1
   options_values['REMOTE_IP']='127.0.0.1'
   options_values['REMOTE_PORT']=3333
   output=$(kernel_uninstall 3 0 "$kernel_list" "TEST_MODE")
   compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   # Reboot
-  ID=2
   output=$(kernel_uninstall 3 1 "$kernel_list" "TEST_MODE")
-  cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
+  cmd="bash $remote_path/deploy.sh --uninstall_kernel '' '1' remote '$kernel_list' 'TEST_MODE' ''"
   kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
   expected_cmd[7]="$kernel_uninstall_cmd"
 
   compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   # Single kernel
-  ID=3
   output=$(kernel_uninstall 3 1 "$single_kernel" "TEST_MODE")
-  cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
+  cmd="bash $remote_path/deploy.sh --uninstall_kernel '' '1' remote '$single_kernel' 'TEST_MODE' ''"
   kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
   expected_cmd[7]="$kernel_uninstall_cmd"
 
@@ -588,11 +581,7 @@ function test_cleanup()
   #shellcheck disable=SC2153
   options_values[REMOTE]=1
   output=$(cleanup "TEST_MODE")
-  while read -r f; do
-    assertFalse "$ID (cmd: $count) - Expected \"${f}\" to be \"${expected_cmd[$count]}\"" \
-      '[[ ${expected_cmd[$count]} != ${f} ]]'
-    ((count++))
-  done <<< "$output"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 }
 
 function test_parse_deploy_options()
@@ -606,10 +595,12 @@ function test_parse_deploy_options()
   # test default options
   parse_deploy_options
   assertEquals "($LINENO)" '' "${options_values['UNINSTALL']}"
+  assertEquals "($LINENO)" '' "${options_values['UNINSTALL_FORCE']}"
   assertEquals "($LINENO)" '0' "${options_values['LS']}"
   assertEquals "($LINENO)" '0' "${options_values['REBOOT']}"
   assertEquals "($LINENO)" '0' "${options_values['MODULES']}"
   assertEquals "($LINENO)" '0' "${options_values['LS_LINE']}"
+  assertEquals "($LINENO)" '' "${options_values['LS_ALL']}"
   assertEquals "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
   assertEquals "($LINENO)" '1' "${options_values['TARGET']}"
 
@@ -687,6 +678,16 @@ function test_parse_deploy_options()
 
   unset options_values
   declare -gA options_values
+  parse_deploy_options --list-all
+  assertEquals "($LINENO)" '1' "${options_values['LS_ALL']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options -a
+  assertEquals "($LINENO)" '1' "${options_values['LS_ALL']}"
+
+  unset options_values
+  declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto'
   assertEquals "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
 
@@ -694,6 +695,26 @@ function test_parse_deploy_options()
   declare -gA options_values
   parse_deploy_options -u 'kernel_xpto'
   assertEquals "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --uninstall 'kernel_xpto' --force
+  assertEquals "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options -u 'kernel_xpto' -f
+  assertEquals "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --uninstall 'kernel_xpto' --force
+  assertEquals "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options 'TEST_MODE'
+  assertEquals "($LINENO)" 'TEST_MODE' "${options_values['TEST_MODE']}"
 
   # test integration of options
   unset options_values
