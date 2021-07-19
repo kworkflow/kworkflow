@@ -1,3 +1,6 @@
+declare -g REMOTE_KW_DEPLOY="/root/kw_deploy"
+declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
 # share the specific distro in the kw main code. However, when we deploy for a
@@ -49,15 +52,23 @@ function ask_yN()
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
 # @prefix Set a base prefix for searching for kernels.
+# @all List all available kernels, not only the ones installed by kw
 function list_installed_kernels()
 {
-  local single_line="$1"
-  local prefix="$2"
+  local flag="$1"
+  local single_line="$2"
+  local prefix="$3"
+  local all="$4"
   local output
   local ret
   local super=0
   local available_kernels=()
   local grub_cfg=""
+  local -a managed_kernels
+  local cmd
+
+  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
+  cmd_manager "$flag" "sudo touch $INSTALLED_KERNELS_PATH"
 
   grub_cfg="$prefix/boot/grub/grub.cfg"
 
@@ -83,20 +94,27 @@ function list_installed_kernels()
   output=$(printf '%s\n' "$output" | grep recovery -v | grep with | awk -F" " '{print $NF}')
 
   while read -r kernel; do
-    if [[ -f "$prefix/boot/vmlinuz-$kernel" && ! "$kernel" =~ .*\.old$ ]]; then
+    if [[ -f "$prefix/boot/vmlinuz-$kernel" ]]; then
+      if [[ -z "$all" ]]; then
+        [[ "$kernel" =~ .*\.old$ ]] && continue
+        cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
+        cmd_manager 'SILENT' "$cmd" || continue
+      fi
       available_kernels+=("$kernel")
     fi
   done <<< "$output"
 
-  printf '%s\n' ''
+  if [[ "${#available_kernels[@]}" -eq 0 ]]; then
+    echo 'None of the installed kernels are managed by kw.' \
+      'Pass --list-all|-a to see all installed kernels'
+    return 0
+  fi
 
   if [[ "$single_line" != 1 ]]; then
     printf '%s\n' "${available_kernels[@]}"
   else
-    printf '%s' "${available_kernels[0]}"
-    available_kernels=("${available_kernels[@]:1}")
-    printf ',%s' "${available_kernels[@]}"
-    printf '%s\n' ''
+    local IFS=','
+    echo "${available_kernels[*]}"
   fi
 
   return 0
@@ -108,10 +126,10 @@ function reboot_machine()
   local local="$2"
   local flag="$3"
 
-  [[ "$local" == 'local' ]] && sudo_cmd='sudo -E'
+  [[ "$local" == 'local' ]] && sudo_cmd='sudo -E '
 
   if [[ "$reboot" == '1' ]]; then
-    cmd="$sudo_cmd reboot"
+    cmd="$sudo_cmd"'reboot'
     cmd_manager "$flag" "$cmd"
   fi
 }
@@ -146,10 +164,10 @@ function update_boot_loader()
   local flag="$7"
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E'
+    sudo_cmd='sudo -E '
   fi
 
-  cmd_grub="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
+  cmd_grub="$sudo_cmd"'grub-mkconfig -o /boot/grub/grub.cfg'
 
   # Update grub
   if [[ "$target" == 'vm' ]]; then
@@ -290,10 +308,21 @@ function kernel_uninstall()
   local local_deploy="$2"
   local kernel="$3"
   local flag="$4"
+  local force="$5"
+
+  cmd_manager "$flag" "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+  cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
 
   if [[ -z "$kernel" ]]; then
     printf '%s\n' 'Invalid argument'
     exit 22 #EINVAL
+  fi
+
+  cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
+  cmd_manager "$flag" "$cmd"
+  if [[ "$?" && -z "$force" ]]; then
+    echo 'Kernel not managed by kw. Use --force/-f to uninstall anyway.'
+    exit 22 # EINVAL
   fi
 
   IFS=', ' read -r -a kernel_names <<< "$kernel"
@@ -304,10 +333,12 @@ function kernel_uninstall()
 
   # Each distro script should implement update_boot_loader
   printf '%s\n' "update_boot_loader $kernel $local_deploy $flag"
-  update_boot_loader "$kernel" "$local_deploy" "$flag"
+  update_boot_loader "$kernel" "$local_deploy" '' '' '' '' "$flag"
+
+  cmd_manager "$flag" "sudo sed -i '/$kernel/d' '$INSTALLED_KERNELS_PATH'"
 
   # Reboot
-  reboot_machine "$reboot" "$local_deploy"
+  reboot_machine "$reboot" "$local_deploy" "$flag"
 }
 
 # Install kernel
@@ -320,9 +351,9 @@ function install_kernel()
   local architecture="$5"
   local target="$6"
   local flag="$7"
-  local sudo_cmd=""
-  local cmd=""
-  local path_prefix=""
+  local sudo_cmd=''
+  local cmd=''
+  local path_prefix=''
 
   flag=${flag:-'SILENT'}
   target=${target:-'remote'}
@@ -376,9 +407,13 @@ function install_kernel()
   # Each distro has their own way to update their bootloader
   eval "update_$distro""_boot_loader $name $target $flag"
 
+  # Registering a new kernel
+  cmd="sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
+  echo "$name" | cmd_manager "$flag" "$cmd"
+
   # Reboot
   if [[ "$target" != 'vm' && "$reboot" == '1' ]]; then
     cmd="$sudo_cmd reboot"
-    cmd_manager "$flag" "$cmd"
+    reboot_machine "$reboot" "$target" "$flag"
   fi
 }

@@ -19,7 +19,7 @@ function tearDown()
 function test_update_debian_boot_loader()
 {
   output=$(update_debian_boot_loader 'xpto' '' 'TEST_MODE')
-  cmd=' grub-mkconfig -o /boot/grub/grub.cfg'
+  cmd='grub-mkconfig -o /boot/grub/grub.cfg'
   assert_equals_helper 'Check simple flow' "$LINENO" "$cmd" "$output"
 
   output=$(update_debian_boot_loader 'xpto' 'local' 'TEST_MODE')
