@@ -83,7 +83,7 @@ function list_installed_kernels()
   output=$(printf '%s\n' "$output" | grep recovery -v | grep with | awk -F" " '{print $NF}')
 
   while read -r kernel; do
-    if [[ -f "$prefix/boot/vmlinuz-$kernel" ]]; then
+    if [[ -f "$prefix/boot/vmlinuz-$kernel" && ! "$kernel" =~ .*\.old$ ]]; then
       available_kernels+=("$kernel")
     fi
   done <<< "$output"
