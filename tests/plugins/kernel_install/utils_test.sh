@@ -52,37 +52,26 @@ function test_ask_yN()
 
 function test_human_list_installed_kernels()
 {
-  local count=0
-
   declare -a expected_out=(
     "" # Extra espace in the beginning
-    "5.5.0-rc2-VKMS+"
-    "5.6.0-rc2-AMDGPU+"
-    "linux"
+    '5.5.0-rc2-VKMS+'
+    '5.6.0-rc2-AMDGPU+'
+    'linux'
   )
 
-  output=$(list_installed_kernels "0" "$SHUNIT_TMPDIR")
-  while read -r out; do
-    assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
-    ((count++))
-  done <<< "$output"
+  output=$(list_installed_kernels '0' "$SHUNIT_TMPDIR")
+  compare_command_sequence expected_out[@] "$output" "$LINENO"
 }
 
 function test_command_list_installed_kernels()
 {
-  local count=0
-
   declare -a expected_out=(
-    "" # Extra espace in the beginning
-    "5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux"
+    '' # Extra espace in the beginning
+    '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
-  output=$(list_installed_kernels "1" "$SHUNIT_TMPDIR")
-  while read -r out; do
-    assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
-    ((count++))
-  done <<< "$output"
-
+  output=$(list_installed_kernels '1' "$SHUNIT_TMPDIR")
+  compare_command_sequence expected_out[@] "$output" "$LINENO"
 }
 
 function test_reboot_machine()
