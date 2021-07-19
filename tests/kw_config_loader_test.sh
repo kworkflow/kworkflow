@@ -37,9 +37,9 @@ function assertConfigurations()
   # check if configurations is contained in expected_configurations
   for k in "${!configurations_ref[@]}"; do
     if [[ ${expected_configurations_ref[$k]+token} != token ]]; then
-      fail "Did not expect setting \"$k\"."
+      fail "($LINENO) Did not expect setting \"$k\"."
     elif [[ ${configurations_ref[$k]} != "${expected_configurations_ref[$k]}" ]]; then
-      fail "Expected setting \"${k}\" to be \"${expected_configurations_ref[$k]}\" (found \"${configurations_ref[$k]}\")."
+      fail "($LINENO) Expected setting \"${k}\" to be \"${expected_configurations_ref[$k]}\" (found \"${configurations_ref[$k]}\")."
     fi
   done
 
@@ -55,20 +55,20 @@ function assertConfigurations()
 function test_parse_configuration_output()
 {
   declare -A expected_configurations=(
-    [arch]="arm64"
-    [kernel_img_name]="Image"
-    [cross_compile]="aarch64-linux-gnu-"
-    [virtualizer]="libvirt"
-    [qemu_path_image]="/home/xpto/p/virty.qcow2"
+    [arch]='arm64'
+    [kernel_img_name]='Image'
+    [cross_compile]='aarch64-linux-gnu-'
+    [virtualizer]='libvirt'
+    [qemu_path_image]='/home/xpto/p/virty.qcow2'
     [ssh_user]='juca'
-    [ssh_ip]="127.0.0.1"
-    [ssh_port]="3333"
-    [mount_point]="/home/lala"
-    [default_deploy_target]="vm"
-    [reboot_after_deploy]="no"
-    [gui_on]="turn on"
-    [gui_off]="turn off"
-    [doc_type]="htmldocs"
+    [ssh_ip]='127.0.0.1'
+    [ssh_port]='3333'
+    [mount_point]='/home/lala'
+    [default_deploy_target]='vm'
+    [reboot_after_deploy]='no'
+    [gui_on]='turn on'
+    [gui_off]='turn off'
+    [doc_type]='htmldocs'
   )
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"
@@ -93,24 +93,25 @@ function test_parse_configuration_standard_config()
 {
 
   declare -A expected_configurations=(
-    [arch]="x86_64"
-    [kernel_img_name]="bzImage"
-    [menu_config]="nconfig"
-    [virtualizer]="qemu-system-x86_64"
-    [qemu_path_image]="/home/USERKW/p/virty.qcow2"
-    [qemu_hw_options]="-enable-kvm -daemonize -smp 2 -m 1024"
-    [qemu_net_options]="-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW"
+    [arch]='x86_64'
+    [kernel_img_name]='bzImage'
+    [menu_config]='nconfig'
+    [virtualizer]='qemu-system-x86_64'
+    [qemu_path_image]='/home/USERKW/p/virty.qcow2'
+    [qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
+    [qemu_net_options]='-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW'
     [ssh_user]='root'
-    [ssh_ip]="localhost"
-    [ssh_port]="22"
-    [mount_point]="/home/USERKW/p/mount"
-    [alert]="n"
-    [sound_alert_command]="paplay SOUNDPATH/bell.wav"
+    [ssh_ip]='localhost'
+    [ssh_port]='22'
+    [mount_point]='/home/USERKW/p/mount'
+    [alert]='n'
+    [sound_alert_command]='paplay SOUNDPATH/bell.wav'
     [visual_alert_command]="notify-send -i checkbox -t 10000 \"kw\" \"Command: \\\"\$COMMAND\\\" completed!\""
-    [default_deploy_target]="vm"
-    [reboot_after_deploy]="no"
-    [disable_statistics_data_track]="no"
-    [doc_type]="htmldocs"
+    [default_deploy_target]='vm'
+    [reboot_after_deploy]='no'
+    [disable_statistics_data_track]='no'
+    [doc_type]='htmldocs'
+    [use_pkg]='no'
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"

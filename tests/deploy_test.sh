@@ -3,8 +3,6 @@
 include './src/deploy.sh'
 include './tests/utils.sh'
 
-FAKE_KERNEL="tests/.tmp"
-
 # Some of the functions invoked by kw need to be mocked; otherwise, we cannot
 # test all the elements in the function. The following functions try to mimic
 # some of these functions behaviour.
@@ -30,6 +28,9 @@ function root_id_mock()
 
 function oneTimeSetUp()
 {
+  FAKE_KERNEL="$SHUNIT_TMPDIR/tmp"
+  KW_PLUGINS_DIR="./src/plugins"
+
   function sudo()
   {
     eval "$*"
@@ -43,8 +44,8 @@ function setUp()
 
   rm -rf "$FAKE_KERNEL"
 
-  # This creates tests/.tmp which should mock a kernel tree root. A .git
-  # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
+  # This creates $test_path which should mock a kernel tree root. A .git
+  # dir is also created inside $test_path so that get_maintainer.pl thinks
   # it is a git repo. This is done in order to avoid some warnings that
   # get_maintainer.pl prints when no .git is found.
   mk_fake_kernel_root "$FAKE_KERNEL"
@@ -53,7 +54,7 @@ function setUp()
   cp -f "$CHECKPATH_EXT" "$FAKE_KERNEL/scripts/"
 
   export preset_name="template_mkinitcpio.preset"
-  export test_path="$PWD/$FAKE_KERNEL"
+  export test_path="$FAKE_KERNEL"
   export KW_CACHE_DIR="$test_path"
   export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
@@ -192,7 +193,7 @@ function test_kernel_install()
     "$cmd_deploy_image"
   )
 
-  output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  output=$(kernel_install "0" "test" "TEST_MODE" "3")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # We want to test an corner case described by the absence of mkinitcpio
@@ -206,7 +207,7 @@ function test_kernel_install()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  output=$(kernel_install "0" "test" "TEST_MODE" "3")
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
@@ -264,18 +265,18 @@ function test_kernel_install_x86_64()
     "$cmd_deploy_image"
   )
 
-  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  output=$(kernel_install "1" "test" "TEST_MODE" "3")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Test kernel image infer
   configurations['kernel_img_name']=''
-  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
+  output=$(kernel_install "1" "test" "TEST_MODE" "3" | head -1)
   expected_msg='kw inferred arch/x86_64/boot/arch/x86_64/boot/bzImage as a kernel image'
   assert_equals_helper "Infer kernel image" "$LINENO" "$expected_msg" "$output"
 
   # Test failures
   rm -rf arch/x86_64/
-  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
+  output=$(kernel_install "1" "test" "TEST_MODE" "3" | head -1)
   expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
   assertEquals "($LINENO): " "$output" "$expected_msg"
   assert_equals_helper "Could not find a valid image" "$LINENO" "$expected_msg" "$output"
@@ -295,9 +296,9 @@ function test_kernel_modules()
   local ssh_cmd="ssh -p 3333"
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
 
-  local kernel_install_path="tests/.tmp/kernel_install"
-  local to_deploy_path="tests/.tmp/to_deploy"
-  local local_remote_path="tests/.tmp/remote"
+  local kernel_install_path="$test_path/kernel_install"
+  local to_deploy_path="$test_path/to_deploy"
+  local local_remote_path="$test_path/remote"
 
   local version="5.4.0-rc7-test"
 
@@ -408,10 +409,6 @@ function test_kernel_install_local()
     "$cmd_reboot"
   )
 
-  # ATTENTION: $FAKE_KERNEL got two levels deep (tests/.tmp); for this reason,
-  # we have to update KW_PLUGINS_DIR for this test for making sure that we use a
-  # real plugin.
-  export KW_PLUGINS_DIR="../../src/plugins"
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
@@ -425,9 +422,94 @@ function test_kernel_install_local()
   output=$(kernel_install '1' 'test' 'TEST_MODE' '2')
   ret="$?"
   assertEquals "($LINENO)" '1' "$ret"
+  unalias id
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_install_local_pkg()
+{
+  local output
+  local expected
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  touch '../linux-image-test.deb'
+
+  output="$(kernel_install '0' 'test' 'TEST_MODE' '2' 'debian')"
+  expected='sudo dpkg -i ../linux-image-test.deb'
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  output="$(kernel_install '0' 'test' 'TEST_MODE' '2' '../linux-image-test.deb')"
+  expected='sudo dpkg -i ../linux-image-test.deb'
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  expected='Invalid pkg specification: ../linux-image-non-existant.deb. Please specify valid path
+to existing package or specify a valid package type.'
+  output=$(kernel_install '0' 'test' 'TEST_MODE' '2' '../linux-image-non-existant.deb')
+  assertEquals "($LINENO)" 22 "$?"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
+}
+
+function test_kernel_install_remote_pkg()
+{
+  local output
+  local -a expected_cmd
+  local original="$PWD"
+
+  touch '../linux-image-test.deb'
+
+  expected_cmd=(
+    "rsync -e 'ssh -p 3333' -La ../linux-image-test.deb juca@127.0.0.1:/root/kw_deploy --rsync-path='sudo rsync'"
+    'ssh -p 3333 juca@127.0.0.1 sudo "chown -R root:root /root/kw_deploy"'
+    'ssh -p 3333 juca@127.0.0.1 sudo "dpkg -i /root/kw_deploy/linux-image-test.deb"'
+  )
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  output=$(kernel_install '0' 'test' 'TEST_MODE' '3' 'debian')
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  output=$(kernel_install '0' 'test' 'TEST_MODE' '3' '../linux-image-test.deb')
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
+}
+
+function test_kernel_install_vm_pkg()
+{
+  local expected='Package deployment to VM not supported!'
+  local output
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  output=$(kernel_install '0' 'test' 'TEST_MODE' '1' 'debian')
+  assertEquals "($LINENO)" 95 "$?"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back to original directory"
     return
   }
 }
@@ -445,7 +527,7 @@ function test_list_remote_kernels()
   local ssh_cmd="ssh -p 3333"
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
 
-  local kernel_install_path="tests/.tmp/kernel_install"
+  local kernel_install_path="$test_path/kernel_install"
 
   # Create remote directory
   local dir_kw_deploy="$ssh_cmd $remote_access sudo \"mkdir -p $remote_path\""
@@ -497,7 +579,7 @@ function test_kernel_uninstall()
   local remote_path="/root/kw_deploy"
   local ssh_cmd="ssh -p 3333"
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
-  local kernel_install_path="tests/.tmp/kernel_install"
+  local kernel_install_path="$test_path/kernel_install"
   local kernel_list="5.5.0-rc7,5.6.0-rc8,5.7.0-rc2"
   local single_kernel="5.7.0-rc2"
   # Create remote directory
@@ -702,6 +784,111 @@ function test_parse_deploy_options()
   assertEquals "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
   assertEquals "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
   assertEquals "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
+}
+
+function test_get_pkg_path()
+{
+  local output
+  local expected
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  touch '../linux-image-test.deb'
+
+  output="$(
+    function get_latest_debian_pkg()
+    {
+      echo "OK"
+    }
+    get_pkg_path 'debian'
+  )"
+  expected='OK'
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  output="$(get_pkg_path '../linux-image-test.deb')"
+  expected='../linux-image-test.deb'
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  expected=''
+  output="$(get_pkg_path '../linux-image-non-existant-test.deb')"
+  assertEquals "($LINENO)" 22 "$?"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_latest_debian_pkg()
+{
+  local output
+  local expected
+  local pkg_name
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  rm -f ../*.deb
+
+  expected=''
+  output="$(get_latest_debian_pkg)"
+  assertEquals "($LINENO)" 22 "$?"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  pkg_name='../linux-image-5.13.0-1-image-test.deb'
+  touch "$pkg_name"
+  output="$(get_latest_debian_pkg)"
+  expected="$pkg_name"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  pkg_name='../linux-image-5.13.0-2-image-test.deb'
+  touch "$pkg_name"
+  output="$(get_latest_debian_pkg)"
+  expected="$pkg_name"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  pkg_name='../linux-image-5.14.0-1-image-test.deb'
+  touch "$pkg_name"
+  output="$(get_latest_debian_pkg)"
+  expected="$pkg_name"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  pkg_name='../linux-image-5.13.0-6-image-test.deb'
+  touch "$pkg_name"
+  output="$(get_latest_debian_pkg)"
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_pkg_type()
+{
+  local output
+  local expected
+
+  output="$(get_pkg_type 'debian')"
+  expected='debian'
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  output="$(get_pkg_type '../linux-image-5.13.0-6-image-test.deb')"
+  expected='debian'
+  assertEquals "($LINENO)" "$expected" "$output"
+
+  expected=''
+  output="$(get_pkg_type '../linux-image-5.13.0-6-image-test.rpm')"
+  assertEquals "($LINENO)" 95 "$?"
+  assertEquals "($LINENO)" "$expected" "$output"
 }
 
 invoke_shunit

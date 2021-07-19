@@ -48,6 +48,7 @@ function kernel_deploy()
   local runtime=0
   local ret=0
   local list_all
+  local pkg=''
 
   if [[ "$1" =~ -h|--help ]]; then
     deploy_help "$1"
@@ -69,6 +70,7 @@ function kernel_deploy()
   uninstall="${options_values['UNINSTALL']}"
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
   remote="${remote_parameters['REMOTE']}"
+  pkg="${options_values['PKG']}"
 
   if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
     say "Available kernels:"
@@ -99,6 +101,11 @@ function kernel_deploy()
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
   if [[ "$target" == "$VM_TARGET" ]]; then
+    if [[ -n "$pkg" ]]; then
+      complain "Package deployment not supported for VM"
+      return 95 # ENOTSUP
+    fi
+
     vm_mount
     ret="$?"
     if [[ "$ret" != 0 ]]; then
@@ -111,17 +118,19 @@ function kernel_deploy()
   # we can break the boot. For security reason, every time we want to deploy a
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
-  start=$(date +%s)
-  modules_install '' "$target"
-  end=$(date +%s)
-  runtime=$((end - start))
+  if [[ -z "$pkg" ]]; then
+    start=$(date +%s)
+    modules_install '' "$target"
+    end=$(date +%s)
+    runtime=$((end - start))
+  fi
 
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
     name=$(make kernelrelease)
 
-    kernel_install "$reboot" "$name" "" "$target"
+    kernel_install "$reboot" "$name" "" "$target" "$pkg"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
     statistics_manager "deploy" "$runtime"
@@ -152,8 +161,8 @@ function parse_deploy_options()
   local remote
   local options
   local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
-  long_options+=',list-all,force'
-  local short_options='r,m,l,s,u:,a,f'
+  long_options+=',list-all,force,pkg:,no-pkg'
+  local short_options='r,m,l,s,u:,a,f,p'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -171,6 +180,7 @@ function parse_deploy_options()
   options_values['REBOOT']=0
   options_values['MENU_CONFIG']='nconfig'
   options_values['LS_ALL']=''
+  options_values['PKG']="${configurations['use_pkg']}"
 
   remote_parameters['REMOTE']=''
 
@@ -233,6 +243,14 @@ function parse_deploy_options()
         options_values['LS_LINE']=1
         shift
         ;;
+      --pkg)
+        options_values['PKG']="$2"
+        shift 2
+        ;;
+      --no-pkg)
+        options_values['PKG']='no'
+        shift
+        ;;
       --uninstall | -u)
         if [[ "$2" =~ ^-- ]]; then
           options_values['ERROR']='Uninstall requires a kernel name'
@@ -255,6 +273,10 @@ function parse_deploy_options()
         ;;
     esac
   done
+
+  if [[ "${options_values['PKG']}" == 'no' ]]; then
+    options_values['PKG']=''
+  fi
 
   case "${options_values['TARGET']}" in
     1 | 2 | 3) ;;
@@ -487,6 +509,9 @@ function modules_install_to()
 # @reboot If this value is equal 1, it means reboot machine after kernel
 #         installation.
 # @name Kernel name to be deployed.
+# @flag Command execution display flag
+# @target Deploy target: local, vm or remote
+# @pkg Type of or path to package to be deployed
 #
 # Note:
 # Take a look at the available kernel plugins at: src/plugins/kernel_install
@@ -496,6 +521,7 @@ function kernel_install()
   local name="$2"
   local flag="$3"
   local target="$4"
+  local pkg="$5"
   local user=''
   local distro='none'
   local kernel_name="${configurations[kernel_name]}"
@@ -505,12 +531,32 @@ function kernel_install()
   local remote
   local port
   local distro
+  local cmd
+  local cmd_parameters
+  local preset_file
+  local pkg_path
+  local pkg_name
 
-  # We have to guarantee some default values values
+  # We have to guarantee some default values
   kernel_name=${kernel_name:-'nothing'}
   mkinitcpio_name=${mkinitcpio_name:-'nothing'}
   name=${name:-'kw'}
   flag=${flag:-""}
+
+  if [[ -n "$pkg" ]]; then
+    pkg_path="$(get_pkg_path "$pkg")"
+    if [[ "$?" == 22 ]]; then
+      complain "Invalid pkg specification: $pkg. Please specify valid path"
+      complain "to existing package or specify a valid package type."
+      return 22 # EINVAL
+    fi
+    pkg_name="$(basename "$pkg_path")"
+    pkg="$(get_pkg_type "$pkg")"
+    if [[ "$?" == 95 ]]; then
+      complain "Type of package '$pkg' not supported"
+      return 95 # ENOTSUP
+    fi
+  fi
 
   if [[ "$reboot" == 0 ]]; then
     reboot_default="${configurations[reboot_after_deploy]}"
@@ -540,9 +586,14 @@ function kernel_install()
         exit 95 # ENOTSUP
       fi
 
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
-      install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
+      if [[ -n "$pkg" ]]; then
+        warning 'Package deployment to VM not supported!'
+        return 95 # ENOTSUP;
+      else
+        include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+        include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+        install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
+      fi
       return "$?"
       ;;
     2) # LOCAL_TARGET
@@ -554,41 +605,132 @@ function kernel_install()
       fi
 
       # Local Deploy
-      if [[ $(id -u) == 0 ]]; then
+      if [[ "$(id -u)" == 0 ]]; then
         complain 'kw deploy --local should not be run as root'
         exit 1 # EPERM
       fi
 
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
-      install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
+      if [[ -n "$pkg" ]]; then
+        cmd="sudo $(pkg_get_install_command "$pkg") $pkg_path"
+        cmd_manager "$flag" "$cmd"
+
+      else
+        include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+        include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+        install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
+      fi
       return "$?"
       ;;
     3) # REMOTE_TARGET
-      local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
-      if [[ ! -f "$preset_file" ]]; then
-        template_mkinit="$KW_ETC_DIR/template_mkinitcpio.preset"
-        cp "$template_mkinit" "$preset_file"
-        sed -i "s/NAME/$name/g" "$preset_file"
-      fi
-
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
 
-      distro_info=$(which_distro "$remote" "$port" "$user")
-      distro=$(detect_distro "/" "$distro_info")
+      if [[ -n "$pkg" ]]; then
+        cmd="$(pkg_get_install_command "$pkg") $REMOTE_KW_DEPLOY/$pkg_name"
+        cp_host2remote "$pkg_path" "$REMOTE_KW_DEPLOY" \
+          "$remote" "$port" "$user" "$flag"
+        cmd_remotely "$cmd" "$flag" "$remote" "$port"
 
-      cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
-        "$REMOTE_KW_DEPLOY" \
-        "$remote" "$port" "$user" "$flag"
-      cp_host2remote "arch/$arch_target/boot/$kernel_img_name" \
-        "$REMOTE_KW_DEPLOY/vmlinuz-$name" \
-        "$remote" "$port" "$user" "$flag"
+      else
+        preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
 
-      # Deploy
-      local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $cmd_parameters"
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+        if [[ ! -f "$preset_file" ]]; then
+          template_mkinit="$KW_ETC_DIR/template_mkinitcpio.preset"
+          cp "$template_mkinit" "$preset_file"
+          sed -i "s/NAME/$name/g" "$preset_file"
+        fi
+
+        distro_info=$(which_distro "$remote" "$port" "$user")
+        distro=$(detect_distro "/" "$distro_info")
+
+        cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
+          "$REMOTE_KW_DEPLOY" \
+          "$remote" "$port" "$user" "$flag"
+        cp_host2remote "arch/$arch_target/boot/$kernel_img_name" \
+          "$REMOTE_KW_DEPLOY/vmlinuz-$name" \
+          "$remote" "$port" "$user" "$flag"
+
+        # Deploy
+        cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
+        cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $cmd_parameters"
+        cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      fi
+      ;;
+  esac
+}
+
+# This function should receive a package type (e.g. 'debian' or a path
+# to a package and return the path to a package corresponding to that.
+#
+# @pkg Path to or type of package.
+#
+# Returns:
+# Path to package. If pkg is already a path, simply return that. Else,
+# search for the latest version and revision.
+function get_pkg_path()
+{
+  local pkg="$1"
+
+  case "$pkg" in
+    debian)
+      get_latest_debian_pkg
+      return "$?"
+      ;;
+  esac
+
+  if [[ -f "$pkg" ]]; then
+    echo "$pkg"
+  else
+    return 22 # EINVAL
+  fi
+}
+
+# This function receives a package type or package path and return the
+# type of that package.
+#
+# @pkg Package type or path to package
+#
+# Returns:
+# Type of package. If pkg is already a package type, simply return that.
+function get_pkg_type()
+{
+  local pkg="$1"
+
+  case "$pkg" in
+    debian | *.deb)
+      echo 'debian'
+      return
+      ;;
+    *)
+      return 95 # ENOTSUP
+      ;;
+  esac
+}
+
+# This function return the path to the latest debian package in folder ../
+function get_latest_debian_pkg()
+{
+  local -a all=('../linux-image'*'.deb')
+
+  if [[ "${all[0]}" == '../linux-image*.deb' ]]; then
+    return 22 # EINVAL
+  fi
+
+  readarray -t all < <(printf '%s\n' "${all[@]}" | sort)
+  echo "${all[-1]}"
+}
+
+function pkg_get_install_command()
+{
+  local package_type="$1"
+
+  case "$package_type" in
+    debian)
+      echo 'dpkg -i'
+      return
+      ;;
+    *)
+      return 22 # EINVAL
       ;;
   esac
 }

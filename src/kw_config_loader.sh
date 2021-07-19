@@ -52,6 +52,7 @@ function show_variables()
     [cross_compile]='Cross-compile name'
     [menu_config]='Kernel menu config'
     [doc_type]='Command to generate kernel-doc'
+    [use_pkg]='Use packaging for build and deploy'
   )
 
   local -Ar qemu=(
