@@ -6,6 +6,23 @@
 
 declare -r TEST_ROOT_PATH="$PWD"
 
+function oneTimeSetUp()
+{
+  declare -g REMOTE_KW_DEPLOY="$PWD/tests/samples"
+
+  # Mocking the sudo function
+  function sudo()
+  {
+    eval "$*"
+  }
+  export -f sudo
+}
+
+function oneTimeTearDown()
+{
+  rm -f "$REMOTE_KW_DEPLOY/MANAGED_KERNELS"
+}
+
 function setUp()
 {
   local current_path="$PWD"
@@ -53,25 +70,54 @@ function test_ask_yN()
 function test_human_list_installed_kernels()
 {
   declare -a expected_out=(
-    "" # Extra espace in the beginning
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo touch '$REMOTE_KW_DEPLOY/MANAGED_KERNELS'"
+    ''
+    ''
+    ''
     '5.5.0-rc2-VKMS+'
     '5.6.0-rc2-AMDGPU+'
     'linux'
   )
 
-  output=$(list_installed_kernels '0' "$SHUNIT_TMPDIR")
-  compare_command_sequence expected_out[@] "$output" "$LINENO"
+  printf '%s\n' "${expected_out[@]}" > "$REMOTE_KW_DEPLOY/MANAGED_KERNELS"
+
+  output=$(list_installed_kernels 'TEST_MODE' '0' "$SHUNIT_TMPDIR")
+  compare_command_sequence 'expected_out' "$output" "$LINENO"
 }
 
 function test_command_list_installed_kernels()
 {
   declare -a expected_out=(
-    '' # Extra espace in the beginning
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo touch '$REMOTE_KW_DEPLOY/MANAGED_KERNELS'"
+    ''
+    ''
+    ''
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
-  output=$(list_installed_kernels '1' "$SHUNIT_TMPDIR")
-  compare_command_sequence expected_out[@] "$output" "$LINENO"
+  printf '%s\n' "${expected_out[@]/,/$'\n'}" > "$REMOTE_KW_DEPLOY/MANAGED_KERNELS"
+
+  output=$(list_installed_kernels 'TEST_MODE' '1' "$SHUNIT_TMPDIR")
+  compare_command_sequence 'expected_out' "$output" "$LINENO"
+}
+
+function test_list_unmanaged_kernels()
+{
+  local output
+  local expected
+
+  echo -n '' > "$REMOTE_KW_DEPLOY/MANAGED_KERNELS"
+
+  expected=(
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo touch '$REMOTE_KW_DEPLOY/MANAGED_KERNELS'"
+    '5.5.0-rc2-VKMS+,5.5.0-rc2-VKMS+.old,5.6.0-rc2-AMDGPU+,linux'
+  )
+
+  output=$(list_installed_kernels 'TEST_MODE' "1" "$SHUNIT_TMPDIR" "1")
+  compare_command_sequence 'expected' "$output" "($LINENO)"
 }
 
 function test_reboot_machine()
@@ -87,6 +133,60 @@ function test_reboot_machine()
 
   output=$(reboot_machine '1' 'local' 'TEST_MODE')
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
+}
+
+function test_kernel_uninstall_unmanaged()
+{
+  local output
+  local -a expected
+
+  expected=(
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo touch '$REMOTE_KW_DEPLOY/MANAGED_KERNELS'"
+    "sudo grep -q 'kname' '$REMOTE_KW_DEPLOY/MANAGED_KERNELS'"
+    'Kernel not managed by kw. Use --force/-f to uninstall anyway.'
+  )
+  # Test unmanaged
+  output=$(kernel_uninstall 'TEST_MODE' '0' 'local' 'kname' 'TEST_MODE' '')
+  compare_command_sequence 'expected' "$output" "$LINENO"
+}
+
+function test_kernel_uninstall_managed()
+{
+  local target='xpto'
+  local prefix="./test"
+  local kernelpath="/boot/vmlinuz-$target"
+  local initrdpath="/boot/initrd.img-$target"
+  local modulespath="/lib/modules/$target"
+  local libpath="/var/lib/initramfs-tools/$target"
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  local -a cmd_sequence=(
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo touch '$REMOTE_KW_DEPLOY/MANAGED_KERNELS'"
+    "sudo grep -q 'xpto' '$REMOTE_KW_DEPLOY/MANAGED_KERNELS'"
+    "Removing: $target"
+    "Can't find $kernelpath"
+    "Can't find $kernelpath.old"
+    "Can't find $initrdpath"
+    "Can't find $modulespath"
+    "Can't find $libpath"
+    "update_boot_loader xpto local TEST_MODE"
+    "grub-mkconfig -o /boot/grub/grub.cfg"
+    "sudo sed -i '/xpto/d' '$REMOTE_KW_DEPLOY/MANAGED_KERNELS'"
+  )
+
+  output=$(kernel_uninstall 'TEST_MODE' 0 'local' 'xpto' 'TEST_MODE' '1')
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_do_uninstall_cmd_sequence()
@@ -283,6 +383,7 @@ function test_install_kernel_remote()
     "cp -v vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'update_debian_boot_loader_mock'
+    "sudo tee -a '$REMOTE_KW_DEPLOY/MANAGED_KERNELS' > /dev/null"
     'reboot'
   )
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
@@ -305,6 +406,7 @@ function test_install_kernel_local()
     "$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'update_debian_boot_loader_mock'
+    "sudo tee -a '$REMOTE_KW_DEPLOY/MANAGED_KERNELS' > /dev/null"
     "$sudo_cmd reboot"
   )
 
@@ -335,6 +437,7 @@ function test_install_kernel_vm()
     'generate_debian_temporary_root_file_system_mock'
     "vm_umount"
     'update_debian_boot_loader_mock'
+    "sudo tee -a '$REMOTE_KW_DEPLOY/MANAGED_KERNELS' > /dev/null"
   )
 
   cd "$SHUNIT_TMPDIR" || {
