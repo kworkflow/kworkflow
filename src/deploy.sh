@@ -362,6 +362,7 @@ function run_list_installed_kernels()
   local target="$3"
   local remote
   local port
+  local user
 
   flag=${flag:-'SILENT'}
 
@@ -387,6 +388,7 @@ function run_list_installed_kernels()
       local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --list_kernels $single_line"
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
+      user="${remote_parameters['REMOTE_USER']}"
 
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
@@ -440,6 +442,7 @@ function run_kernel_uninstall()
     3) # REMOTE_TARGET
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
+      user="${remote_parameters['REMOTE_USER']}"
 
       # Deploy
       # TODO
