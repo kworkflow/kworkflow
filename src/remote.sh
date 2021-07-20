@@ -19,9 +19,13 @@ declare -gA remote_parameters
 # @command Command to be executed inside the remote machine
 # @flag How to display a command, the default value is
 #   "HIGHLIGHT_CMD". For more options see `src/kwlib.sh` function `cmd_manager`
-# @remote IP or domain name. Default value is "localhost".
-# @port TCP Port. Default value is "22".
+# @remote IP or domain name.
+# @port TCP Port. Default value is 22.
 # @user User in the host machine. Default value is "root"
+# @bash_code If this parameter is set with a value, we are trying to run shell
+#   code in the remote by using a string.
+# @save_output_path This command implies that the user wants to capture the
+#   output in a specific path.
 #
 # Returns:
 # If no command is specified, we finish the execution and return 22
@@ -33,7 +37,9 @@ function cmd_remotely()
   local port=${4:-${configurations[ssh_port]}}
   local user=${5:-${configurations[ssh_user]}}
   local bash_code="$6"
+  local save_output_path="$7"
   local composed_cmd=''
+  local redirect_mode=''
 
   if [[ -z "$command" ]]; then
     warning 'No command specified'
@@ -45,13 +51,17 @@ function cmd_remotely()
     composed_cmd="ssh -F ${configurations['ssh_configfile']} ${configurations['hostname']}"
   fi
 
-  if [[ "$bash_code" == 1 ]]; then
+  if [[ -n "$save_output_path" ]]; then
+    redirect_mode='KW_REDIRECT_MODE'
+  fi
+
+  if [[ -n "$bash_code" ]]; then
     composed_cmd="$composed_cmd 'sudo bash -c '\''$command'\'"
   else
     composed_cmd="$composed_cmd sudo \"$command\""
   fi
 
-  cmd_manager "$flag" "$composed_cmd"
+  cmd_manager "$flag" "$composed_cmd" "$redirect_mode" "$save_output_path"
 }
 
 # This function copy files from host to the remote machine. kw has its
