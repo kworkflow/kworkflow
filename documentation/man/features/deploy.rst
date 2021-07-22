@@ -6,7 +6,7 @@ kw-deploy
 
 SYNOPSIS
 ========
-*kw* (*d* | *deploy*) [\--remote [<remote>:<port>] | \--local | \--vm]
+*kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local | \--vm]
                       [-r | \--reboot] [-m | \--modules] [-s | \--ls-line]
                       [-l | \--list] [(-u | \--uninstall) <kernel-name>[,...]]
                       [\--alert=(s | v | (sv | vs) | n)]
@@ -25,7 +25,7 @@ executed:
 3. Execute the operations that will update the target machine.
 
 You can specify the deploy target via command line by using the flag
-**\--remote [<remote>:<port>]** (e.g., **\--remote 172.16.254.1:22**); however,
+**\--remote <remote>:<port>** (e.g., **\--remote 172.16.254.1:22**); however,
 if you do it frequently you probably will prefer to add this information in
 your local **kworkflow.config**. See the example below::
 
@@ -51,7 +51,7 @@ This can be used with conjunction the **build** command by invoking ``kw bd``.
 
 OPTIONS
 =======
-\--remote [<remote>:<port>]:
+\--remote <remote>:<port>:
   Deploy the Kernel image and modules to a machine in
   the network.
 
