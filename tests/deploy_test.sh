@@ -96,111 +96,6 @@ function tearDown()
   rm -rf "$FAKE_KERNEL"
 }
 
-# This test relies on kworkflow.config loaded during the setUp
-#
-# Output sequence of kernel_deploy in the TEST_MODE:
-#   $reboot $modules $target $remote $single_line $list"
-function test_kernel_deploy()
-{
-  local ID
-  local original="$PWD"
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  # From kworkflow.config file we expect 0 0 1 127.0.0.1 3333 0 0
-  ID=1
-  output=$(kernel_deploy test_mode)
-  expected_result="0 0 1 127.0.0.1 3333 0 0"
-  assertEquals "($ID) Pure config:" "$expected_result" "$output"
-
-  ID=2
-  output=$(kernel_deploy test_mode --modules)
-  expected_result="0 1 1 127.0.0.1 3333 0 0"
-  assertEquals "($ID) Modules:" "$expected_result" "$output"
-
-  ID=3
-  output=$(kernel_deploy test_mode --reboot)
-  expected_result="1 0 1 127.0.0.1 3333 0 0"
-  assertEquals "($ID) Reboot: " "$expected_result" "$output"
-
-  ID=4
-  output=$(kernel_deploy test_mode --reboot --modules)
-  expected_result="1 1 1 127.0.0.1 3333 0 0"
-  assertEquals "($ID) Reboot, Modules:" "$expected_result" "$output"
-
-  ID=5
-  output=$(kernel_deploy test_mode --local --reboot --modules)
-  expected_result="1 1 2 127.0.0.1 3333 0 0"
-  assertEquals "($ID) Local, Reboot, Modules" "$expected_result" "$output"
-
-  ID=6
-  output=$(kernel_deploy test_mode --remote --reboot)
-  expected_result="1 0 3 127.0.0.1 3333 0 0"
-  assertEquals "($ID) Remote, Reboot" "$expected_result" "$output"
-
-  ID=7
-  output=$(kernel_deploy test_mode --remote 192.168.0.10 --reboot)
-  expected_result="1 0 3 192.168.0.10 22 0 0"
-  assertEquals "($ID) Remote: 192.168.0.10, Reboot" "$expected_result" "$output"
-
-  ID=8
-  output=$(kernel_deploy test_mode --remote 192.168.0.10:1287)
-  expected_result="0 0 3 192.168.0.10 1287 0 0"
-  assertEquals "($ID) Remote: 192.168.0.10:1287" "$expected_result" "$output"
-
-  # Test some invalid parameters
-  ID=9
-  output=$(kernel_deploy test_mode --rem 192.168.0.10:1287)
-  ret="$?"
-  expected_return="22"
-  assertEquals "($ID) Invalid parameter: --rem" "$expected_return" "$ret"
-
-  ID=10
-  output=$(kernel_deploy test_mode --lalala)
-  ret="$?"
-  expected_return="22"
-  assertEquals "($ID) Invalid parameter: --lalala" "$expected_return" "$ret"
-
-  ID=11
-  output=$(kernel_deploy test_mode --uninstall)
-  ret="$?"
-  expected_return="22"
-  assertEquals "($ID) Uninstall without parameter should fail" "$expected_return" "$ret"
-
-  ID=12
-  output=$(kernel_deploy test_mode --uninstall --remote lala)
-  ret="$?"
-  expected_return="22"
-  assertEquals "($ID) Uninstall requires parameter" "$expected_return" "$ret"
-
-  ID=13
-  output=$(kernel_deploy test_mode --remote --uninstall)
-  ret="$?"
-  expected_return="22"
-  assertEquals "($ID) Uninstall requires parameter without --" "$expected_return" "$ret"
-
-  ID=14
-  output=$(kernel_deploy test_mode --remote lala --uninstall)
-  ret="$?"
-  expected_return="22"
-  assertEquals "($ID) Uninstall requires parameter" "$expected_return" "$ret"
-
-  # Test some invalid case
-  tearDown
-  ID=14
-  output=$(kernel_deploy test_mode)
-  expected_result="$?"
-  assertEquals "($ID) No config:" "$expected_result" "22"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
 function test_modules_install_to()
 {
   local ID
@@ -695,6 +590,119 @@ function test_cleanup()
       '[[ ${expected_cmd[$count]} != ${f} ]]'
     ((count++))
   done <<< "$output"
+}
+
+function test_parse_deploy_options()
+{
+  unset options_values
+  unset remote_parameters
+  declare -gA options_values
+  declare -gA remote_parameters
+  local expected
+
+  # test default options
+  parse_deploy_options
+  assertEquals "($LINENO)" '' "${options_values['UNINSTALL']}"
+  assertEquals "($LINENO)" '0' "${options_values['LS']}"
+  assertEquals "($LINENO)" '0' "${options_values['REBOOT']}"
+  assertEquals "($LINENO)" '0' "${options_values['MODULES']}"
+  assertEquals "($LINENO)" '0' "${options_values['LS_LINE']}"
+  assertEquals "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
+  assertEquals "($LINENO)" '1' "${options_values['TARGET']}"
+
+  # test individual options
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --remote 'user@127.0.2.1:8888'
+  assertEquals "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
+  assertEquals "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
+  assertEquals "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
+  assertEquals "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
+
+  unset options_values
+  declare -gA options_values
+  expected="kw deploy: option '--remote' requires an argument"
+  parse_deploy_options --remote
+  assertEquals "($LINENO)" '22' "$?"
+  assertEquals "($LINENO)" "$expected" "${options_values['ERROR']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --remote ':8888' > /dev/null
+  assertEquals "($LINENO)" '22' "$?"
+  assertEquals "($LINENO)" 'Invalid remote: :8888' "${options_values['ERROR']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --local
+  assertEquals "($LINENO)" '2' "${options_values['TARGET']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --vm
+  assertEquals "($LINENO)" '1' "${options_values['TARGET']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --reboot
+  assertEquals "($LINENO)" '1' "${options_values['REBOOT']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options -r
+  assertEquals "($LINENO)" '1' "${options_values['REBOOT']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --modules
+  assertEquals "($LINENO)" '1' "${options_values['MODULES']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options -m
+  assertEquals "($LINENO)" '1' "${options_values['MODULES']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --list
+  assertEquals "($LINENO)" '1' "${options_values['LS']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options -l
+  assertEquals "($LINENO)" '1' "${options_values['LS']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --ls-line
+  assertEquals "($LINENO)" '1' "${options_values['LS_LINE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options -s
+  assertEquals "($LINENO)" '1' "${options_values['LS_LINE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --uninstall 'kernel_xpto'
+  assertEquals "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options -u 'kernel_xpto'
+  assertEquals "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
+
+  # test integration of options
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --remote 'user@127.0.2.1:8888' -m --ls-line -u 'kernel_xpto'
+  assertEquals "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
+  assertEquals "($LINENO)" '1' "${options_values['MODULES']}"
+  assertEquals "($LINENO)" '1' "${options_values['LS_LINE']}"
+  assertEquals "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
+  assertEquals "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
+  assertEquals "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
+  assertEquals "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
 }
 
 invoke_shunit

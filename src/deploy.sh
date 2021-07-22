@@ -40,7 +40,6 @@ function kernel_deploy()
   local reboot=0
   local modules=0
   local target=0
-  local test_mode=''
   local list=0
   local single_line=0
   local uninstall=''
@@ -54,10 +53,10 @@ function kernel_deploy()
     exit 0
   fi
 
-  deploy_parser_options "$@"
+  parse_deploy_options "$@"
   if [[ "$?" -gt 0 ]]; then
-    complain "Invalid option: ${options_values['ERROR']}"
-    exit 22 # EINVAL
+    complain "${options_values['ERROR']}"
+    return 22 # EINVAL
   fi
 
   target="${options_values['TARGET']}"
@@ -65,14 +64,8 @@ function kernel_deploy()
   modules="${options_values['MODULES']}"
   single_line="${options_values['LS_LINE']}"
   list="${options_values['LS']}"
-  test_mode="${options_values['TEST_MODE']}"
   uninstall="${options_values['UNINSTALL']}"
   remote="${remote_parameters['REMOTE']}"
-
-  if [[ "$test_mode" == 'TEST_MODE' ]]; then
-    echo "$reboot $modules $target ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $single_line $list"
-    return 0
-  fi
 
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
     say "Available kernels:"
@@ -150,12 +143,21 @@ function kernel_deploy()
 # Return:
 # In case of successful return 0, otherwise, return 22.
 #
-function deploy_parser_options()
+function parse_deploy_options()
 {
-  local raw_options="$*"
-  local uninstall=0
   local enable_collect_param=0
   local remote
+  local options
+  local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
+  local short_options='r,m,l,s,u:'
+
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw deploy' "$short_options" \
+      "$long_options" "$@")"
+    return 22 # EINVAL
+  fi
 
   options_values['UNINSTALL']=''
   options_values['MODULES']=0
@@ -176,7 +178,7 @@ function deploy_parser_options()
 
   populate_remote_info ''
   if [[ "$?" == 22 ]]; then
-    options_values['ERROR']="$remote"
+    options_values['ERROR']="Invalid remote: $remote"
     return 22 # EINVAL
   fi
 
@@ -184,87 +186,68 @@ function deploy_parser_options()
     options_values['REBOOT']=1
   fi
 
-  IFS=' ' read -r -a options <<< "$raw_options"
-  for option in "${options[@]}"; do
-    if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
-      if [[ "$enable_collect_param" == 1 ]]; then
-        options_values['ERROR']='expected paramater'
-        return 22
-      fi
+  eval "set -- $options"
 
-      case "$option" in
-        --remote)
-          options_values['TARGET']="$REMOTE_TARGET"
-          continue
-          ;;
-        --local)
-          options_values['TARGET']="$LOCAL_TARGET"
-          continue
-          ;;
-        --vm)
-          options_values['TARGET']="$VM_TARGET"
-          continue
-          ;;
-        --reboot | -r)
-          options_values['REBOOT']=1
-          continue
-          ;;
-        --modules | -m)
-          options_values['MODULES']=1
-          continue
-          ;;
-        --list | -l)
-          options_values['LS']=1
-          continue
-          ;;
-        --ls-line | -s)
-          options_values['LS_LINE']=1
-          continue
-          ;;
-        --uninstall | -u)
-          enable_collect_param=1
-          uninstall=1
-          continue
-          ;;
-        test_mode)
-          options_values['TEST_MODE']='TEST_MODE'
-          ;;
-        *)
-          options_values['ERROR']="$option"
-          return 22 # EINVAL
-          ;;
-      esac
-    else # Handle potential parameters
-      if [[ "$uninstall" != 1 &&
-        ${options_values['TARGET']} == "$REMOTE_TARGET" ]]; then
-        populate_remote_info "$option"
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --remote)
+        options_values['TARGET']="$REMOTE_TARGET"
+        populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
-          options_values['ERROR']="$option"
-          return 22
+          options_values['ERROR']="Invalid remote: $2"
+          return 22 # EINVAL
         fi
-      elif [[ "$uninstall" == 1 ]]; then
-        options_values['UNINSTALL']+="$option"
-        enable_collect_param=0
-      else
-        # Invalind option
-        options_values['ERROR']="$option"
-        return 22
-      fi
-    fi
+        shift 2
+        ;;
+      --local)
+        options_values['TARGET']="$LOCAL_TARGET"
+        shift
+        ;;
+      --vm)
+        options_values['TARGET']="$VM_TARGET"
+        shift
+        ;;
+      --reboot | -r)
+        options_values['REBOOT']=1
+        shift
+        ;;
+      --modules | -m)
+        options_values['MODULES']=1
+        shift
+        ;;
+      --list | -l)
+        options_values['LS']=1
+        shift
+        ;;
+      --ls-line | -s)
+        options_values['LS_LINE']=1
+        shift
+        ;;
+      --uninstall | -u)
+        if [[ "$2" =~ ^-- ]]; then
+          options_values['ERROR']='Uninstall requires a kernel name'
+          return 22 # EINVAL
+        fi
+        options_values['UNINSTALL']+="$2"
+        shift 2
+        ;;
+      --) # End of options, beginning of arguments
+        shift
+        ;;
+      *)
+        options_values['ERROR']="Unrecognized argument: $1"
+        return 22 # EINVAL
+        shift
+        ;;
+    esac
   done
-
-  # Uninstall requires an option
-  if [[ "$uninstall" == 1 && -z "${options_values['UNINSTALL']}" ]]; then
-    options_values['ERROR']='uninstall requires a kernel name'
-    return 22
-  fi
 
   case "${options_values['TARGET']}" in
     1 | 2 | 3) ;;
 
     *)
-      options_values['ERROR']='remote option'
-      return 22
+      options_values['ERROR']="Invalid target value: ${options_values['TARGET']}"
+      return 22 # EINVAL
       ;;
   esac
 }
@@ -599,7 +582,7 @@ function deploy_help()
   fi
   printf '%s\n' 'kw deploy:' \
     '  deploy - installs kernel and modules:' \
-    '  deploy (--remote [<remote>:<port>] | --local | --vm) - choose target' \
+    '  deploy (--remote <remote>:<port> | --local | --vm) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
     '  deploy (--modules | -m) - install only modules' \
     '  deploy (--uninstall | -u) <kernel-name>,... - uninstall given kernels' \
