@@ -1,7 +1,8 @@
 #!/bin/bash
-
-. src/kwio.sh --source-only
-. src/kwlib.sh --source-only
+KW_LIB_DIR='src'
+. 'src/kw_include.sh' --source-only
+include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 SILENT=1
 VERBOSE=0
