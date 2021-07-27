@@ -120,6 +120,15 @@ function kernel_deploy()
   end=$(date +%s)
   runtime=$((end - start))
 
+  # dtb
+  if [[ -d "arch/$architecture/boot/dts/" ]]; then
+    start=$(date +%s)
+    dtb_install "$target"
+    end=$(date +%s)
+    runtime=$((runtime + (end - start)))
+    statistics_manager 'dtb' "$runtime"
+  fi
+
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
@@ -474,6 +483,30 @@ function modules_install_to()
   local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   set +e
   cmd_manager "$flag" "$cmd"
+}
+
+# This function will copy and install the compiled dtb files
+# @target Where should the dtb files be installed (1-vm, 2-local or 3-remote)
+function dtb_install()
+{
+  local target="${1:configuration[default_deploy_target]}"
+  local architecture="${configurations[arch]}"
+  # the rsync_params variable is passed directly to rsync (also used in cp2remote) and
+  # used to copy only the dtb files and ignore everything else under the dts folder
+  local rsync_params='--include="*/" --include="*.dtb*" --exclude="*"'
+
+  if [[ -d "arch/$architecture/boot/dts/" ]]; then
+    case "$target" in
+      1 | 3) # VM_TARGET or REMOTE_TARGET
+        cp2remote "arch/$architecture/boot/dts/" "/boot/" '' "$rsync_params"
+        ;;
+      2) # LOCAL_TARGET
+        cmd_manager '' "rsync -LrlptD $rsync_params arch/$architecture/boot/dts/ /boot/ --rsync-path='sudo rsync'"
+        ;;
+    esac
+  else
+    warning "Directory arch/$architecture/boot/dts/ does not exist, no dtb files to be installed."
+  fi
 }
 
 # This function behaves like a kernel installation manager. It handles some
