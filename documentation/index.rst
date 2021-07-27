@@ -27,6 +27,7 @@ Check out our tutorials to see how you can use kw.
 
    tutorials/buildlinux
    tutorials/setup
+   tutorials/rasp
 
 kw Man
 ======
