@@ -96,9 +96,11 @@ function kernel_uninstall()
     do_uninstall "$kernel" "" "$flag"
   done
 
-  # Each distro script should implement update_boot_loader
-  echo "update_boot_loader $kernel $local_deploy $flag"
-  update_boot_loader "$kernel" "$local_deploy" "$flag"
+  if [[ $(type -t update_boot_loader) == 'function' ]]; then
+    # Each distro script should implement update_boot_loader
+    echo "update_boot_loader $kernel $local_deploy $flag"
+    update_boot_loader "$kernel" "$local_deploy" "$flag"
+  fi
 
   # Reboot
   reboot_machine "$reboot" "$local_deploy"

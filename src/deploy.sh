@@ -138,7 +138,9 @@ function kernel_deploy()
     start=$(date +%s)
     # Update name: release + alias
     name=$(make kernelrelease)
-
+    if [[ ${configurations[bootloader]} == 'rpi_bootloader' ]]; then
+      name="$name.img"
+    fi
     run_kernel_install "$reboot" "$name" "" "$target"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
@@ -314,12 +316,14 @@ function run_list_installed_kernels()
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/$bootloader.sh"
       list_installed_kernels "$single_line" "${configurations[mount_point]}"
 
       vm_umount
       ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/$bootloader.sh"
       list_installed_kernels "$single_line"
       ;;
     3) # REMOTE_TARGET
@@ -374,6 +378,7 @@ function run_kernel_uninstall()
       # We need to update grub, for this reason we to load specific scripts.
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/$bootloader.sh"
       # TODO: Rename kernel_uninstall in the plugin, this name is super
       # confusing
       kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"

@@ -274,7 +274,7 @@ function detect_distro()
   if [[ "$distro" =~ "arch" ]] || [[ "$distro" =~ "manjaro" ]]; then
     echo "arch"
   # Debian family
-  elif [[ "$distro" =~ "debian" ]] || [[ "$distro" =~ "ubuntu" ]]; then
+  elif [[ "$distro" =~ "debian" ]] || [[ "$distro" =~ "ubuntu" ]] || [[ "$distro" =~ "raspbian" ]]; then
     echo "debian"
   else
     echo "none"
