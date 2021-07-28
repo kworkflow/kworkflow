@@ -92,14 +92,6 @@ function test_kernel_build()
   expected_result="make -j$PARALLEL_CORES ARCH=x86_64 "
   assertEquals "($LINENO)" "$expected_result" "${output}"
 
-  cp "$original_dir/$SAMPLES_DIR/.config" .config
-  output=$(kernel_build 'TEST_MODE' | head -2) # Remove statistics output
-  declare -a expected_result=(
-    'make olddefconfig &> /dev/null'
-    "make -j$PARALLEL_CORES ARCH=x86_64"
-  )
-  compare_command_sequence expected_result[@] "$output" "$LINENO"
-  rm .config
 }
 
 function test_build_info()

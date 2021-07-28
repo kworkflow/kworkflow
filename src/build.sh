@@ -90,11 +90,6 @@ function kernel_build()
     esac
   done
 
-  if [ -f "$(join_path "$PWD" '.config')" ]; then
-    local mkflag=${flag:-'SILENT'}
-    cmd_manager "$mkflag" 'make olddefconfig &> /dev/null'
-  fi
-
   if [ -x "$(command -v nproc)" ]; then
     PARALLEL_CORES=$(nproc --all)
   else
