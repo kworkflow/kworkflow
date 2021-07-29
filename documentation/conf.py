@@ -152,6 +152,7 @@ man_pages = [
     ('man/features/codestyle', 'codestyle', 'checkpatch wrapper', [author], 1),
     ('man/features/configm', 'configm', 'config manager', [author], 1),
     ('man/features/deploy', 'deploy', 'deploy the kernel', [author], 1),
+    ('man/features/device', 'device', 'hardware information', [author], 1),
     ('man/features/diff', 'diff', 'useful diff wrapper', [author], 1),
     ('man/features/drm', 'drm', 'drm subsystem support', [author], 1),
     ('man/features/explore', 'explore', 'git grep wrapper', [author], 1),

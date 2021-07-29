@@ -503,8 +503,8 @@ function device_info_parser()
 
       device_options['target']="$REMOTE_TARGET"
       ;;
-    -h)
-      device_info_help
+    -h | --help)
+      device_info_help "$option"
       exit 0
       ;;
     *)
@@ -516,8 +516,13 @@ function device_info_parser()
 
 function device_info_help()
 {
-  echo -e 'kw device:\n' \
-    '\t--local - Retrieve information from this machine\n' \
-    '\t--vm - Retrieve information from a virtual machine\n' \
-    '\t--remote [IP:PORT] - Retrieve information from a remote machine'
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'device'
+    return
+  fi
+  printf '%s\n' 'kw device:' \
+    '  device [--local] - Retrieve information from this machine' \
+    '  device [--vm] - Retrieve information from a virtual machine' \
+    '  device [--remote [<ip>:<port>]] - Retrieve information from a remote machine'
 }
