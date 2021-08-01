@@ -449,8 +449,7 @@ function modules_install()
       generate_tarball "$release" '' "$flag"
 
       local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
-      cp_host2remote "$tarball_for_deploy_path" \
-        "$REMOTE_KW_DEPLOY" "$remote" "$port" '' "$flag"
+      cp2remote "$tarball_for_deploy_path" "$REMOTE_KW_DEPLOY" "$flag"
 
       # 3. Deploy: Execute script
       local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --modules $release.tar"
@@ -575,12 +574,8 @@ function kernel_install()
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro "/" "$distro_info")
 
-      cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
-        "$REMOTE_KW_DEPLOY" \
-        "$remote" "$port" "$user" "$flag"
-      cp_host2remote "arch/$arch_target/boot/$kernel_img_name" \
-        "$REMOTE_KW_DEPLOY/vmlinuz-$name" \
-        "$remote" "$port" "$user" "$flag"
+      cp2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" "$REMOTE_KW_DEPLOY" "$flag"
+      cp2remote "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/vmlinuz-$name" "$flag"
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
