@@ -14,6 +14,7 @@ declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['root_path']=''                       # Root directory path
   ['fs_mount']=''                        # Path where root is mounted
   ['os']=''                              # Operating system name
+  ['bootloader']=''                      # Bootloader used
   ['motherboard_name']=''                # Motherboard name
   ['motherboard_vendor']=''              # Motherboard vendor
   ['chassis']=''                         # Chassis type
@@ -218,6 +219,43 @@ function get_os()
   device_info_data['desktop_environment']="$desktop_env"
 }
 
+# This function populates the bootloader variables from the
+# device_info_data variable.
+#
+# @target Target machine
+function get_bootloader()
+{
+  local target="$1"
+  local flag="$2"
+  local prefix="${configurations[mount_point]}"
+  local path='/sys/firmware/devicetree/base/model'
+  local model
+  local ret
+
+  case "$target" in
+    1) # VM_TARGET
+      vm_mount
+      model=$(cmd_manager "$flag" "cat $prefix$path  2> /dev/null")
+      ret=$?
+      vm_umount
+      ;;
+    2) # LOCAL_TARGET
+      model=$(cmd_manager "$flag" "cat $path  2> /dev/null")
+      ret=$?
+
+      ;;
+    3) # REMOTE_TARGET
+      model=$(cmd_remotely "cat $path  2> /dev/null" "$flag")
+      ret=$?
+      ;;
+  esac
+  if [[ $ret && "$model" =~ (Raspberry Pi) ]]; then
+    device_info_data['bootloader']='rpi_bootloader'
+  else
+    device_info_data['bootloader']='grub'
+  fi
+}
+
 # This function populates the gpu associative array with the vendor and
 # fetchable memory from each GPU found in the target machine.
 function get_gpu()
@@ -394,6 +432,7 @@ function learn_device()
   get_gpu "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
+  get_bootloader "$target" "$flag"
 
   if [[ "$target" == "$VM_TARGET" ]]; then
     vm_umount > /dev/null

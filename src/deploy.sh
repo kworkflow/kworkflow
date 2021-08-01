@@ -19,9 +19,11 @@
 include "$KW_LIB_DIR/vm.sh" # It includes kw_config_loader.sh and kwlib.sh
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
+include "$KW_LIB_DIR/device_info.sh"
 
 # Hash containing user options
 declare -gA options_values
+declare -g bootloader
 
 # From kw perspective, deploy a new kernel is composed of two steps: install
 # modules and update kernel image. I chose this approach for reducing the
@@ -68,6 +70,9 @@ function kernel_deploy()
   test_mode="${options_values['TEST_MODE']}"
   uninstall="${options_values['UNINSTALL']}"
   remote="${remote_parameters['REMOTE']}"
+
+  learn_device "$target" 'SILENT' 2> /dev/null
+  bootloader="${device_info_data['bootloader']}"
 
   if [[ "$test_mode" == 'TEST_MODE' ]]; then
     echo "$reboot $modules $target ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $single_line $list"
@@ -571,6 +576,7 @@ function run_kernel_install()
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/$bootloader.sh"
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
       ;;
@@ -590,6 +596,7 @@ function run_kernel_install()
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/$bootloader.sh"
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
       ;;
@@ -610,7 +617,9 @@ function run_kernel_install()
         cp2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" "$REMOTE_KW_DEPLOY" "$flag"
       fi
 
-      cp2remote "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/vmlinuz-$name" "$flag"
+      kernel_name="vmlinuz-$name"
+      [[ "$bootloader" != 'grub' ]] && kernel_name="$name"
+      cp2remote "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/$kernel_name" "$flag"
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"

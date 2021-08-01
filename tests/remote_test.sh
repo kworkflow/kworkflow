@@ -221,9 +221,12 @@ function test_prepare_remote_dir()
   local count=0
   local ID
 
+  declare -gA device_info_data=(['bootloader']='grub')
+
   declare -a expected_cmd_sequence=(
     "ssh -p 22 root@localhost sudo \"mkdir -p /root/kw_deploy\""
     "rsync -e 'ssh -p 22' $FAKE_KW/kernel_install/debian.sh root@localhost:/root/kw_deploy/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p 22' $FAKE_KW/kernel_install/grub.sh root@localhost:/root/kw_deploy/bootloader.sh -LrlptD --rsync-path='sudo rsync'"
     "rsync -e 'ssh -p 22' $FAKE_KW/kernel_install/deploy.sh root@localhost:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
     "rsync -e 'ssh -p 22' $FAKE_KW/kernel_install/utils.sh root@localhost:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
   )

@@ -5,6 +5,9 @@ include './tests/utils.sh'
 
 FAKE_KERNEL="tests/.tmp"
 
+declare -gA device_info_data=(['bootloader']='grub')
+declare -g bootloader='grub'
+
 # Some of the functions invoked by kw need to be mocked; otherwise, we cannot
 # test all the elements in the function. The following functions try to mimic
 # some of these functions behaviour.
@@ -391,6 +394,7 @@ function test_kernel_modules()
 
   # Rsync script command
   local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+  local rsync_grub="$rsync_cmd $kernel_install_path/grub.sh $remote_access:$remote_path/bootloader.sh -LrlptD --rsync-path='sudo rsync'"
   local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
   local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
 
@@ -412,6 +416,7 @@ function test_kernel_modules()
   declare -a expected_cmd=(
     "$dir_kw_deploy"
     "$rsync_debian"
+    "$rsync_grub"
     "$rsync_deploy"
     "$rsync_utils"
     "$make_install_cmd"
@@ -535,6 +540,7 @@ function test_list_remote_kernels()
 
   # Rsync script command
   local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+  local rsync_grub="$rsync_cmd $kernel_install_path/grub.sh $remote_access:$remote_path/bootloader.sh -LrlptD --rsync-path='sudo rsync'"
   local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
   local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
 
@@ -543,6 +549,7 @@ function test_list_remote_kernels()
   declare -a expected_cmd=(
     "$dir_kw_deploy"
     "$rsync_debian"
+    "$rsync_grub"
     "$rsync_deploy"
     "$rsync_utils"
     "$remote_list_cmd"
@@ -587,6 +594,7 @@ function test_run_kernel_uninstall()
   local cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 0 remote $kernel_list TEST_MODE"
 
   local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+  local rsync_grub="$rsync_cmd $kernel_install_path/grub.sh $remote_access:$remote_path/bootloader.sh -LrlptD --rsync-path='sudo rsync'"
   local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
   local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
 
@@ -595,6 +603,7 @@ function test_run_kernel_uninstall()
   declare -a expected_cmd=(
     "$dir_kw_deploy"
     "$rsync_debian"
+    "$rsync_grub"
     "$rsync_deploy"
     "$rsync_utils"
     "$run_kernel_uninstall_cmd"
@@ -619,7 +628,7 @@ function test_run_kernel_uninstall()
   output=$(run_kernel_uninstall 3 1 "$kernel_list" "TEST_MODE")
   cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-  expected_cmd[4]="$run_kernel_uninstall_cmd"
+  expected_cmd[5]="$run_kernel_uninstall_cmd"
 
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
@@ -628,7 +637,7 @@ function test_run_kernel_uninstall()
   output=$(run_kernel_uninstall 3 1 "$single_kernel" "TEST_MODE")
   cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-  expected_cmd[4]="$run_kernel_uninstall_cmd"
+  expected_cmd[5]="$run_kernel_uninstall_cmd"
 
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 

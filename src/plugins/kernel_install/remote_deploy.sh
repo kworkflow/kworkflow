@@ -35,6 +35,7 @@ cd "$target_kw_deploy" || exit_msg 'It was not possible to move to deploy dir'
 # Load specific distro script
 . distro_deploy.sh --source-only
 . utils.sh --source-only
+. bootloader.sh --source-only
 
 case "$1" in
   --modules)

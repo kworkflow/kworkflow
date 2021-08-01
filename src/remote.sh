@@ -161,6 +161,7 @@ function prepare_remote_dir()
   local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
   local distro_info=""
   local distro=""
+  local bootloader="${device_info_data['bootloader']}"
 
   distro_info=$(which_distro "$remote" "$port" "$user")
   distro=$(detect_distro "/" "$distro_info")
@@ -174,6 +175,7 @@ function prepare_remote_dir()
 
   # Send the specific deploy script as a root
   cp2remote "$KW_PLUGINS_DIR/kernel_install/$distro.sh" "$DISTRO_DEPLOY_SCRIPT" "$flag"
+  cp2remote "$KW_PLUGINS_DIR/kernel_install/$bootloader.sh" "$REMOTE_KW_DEPLOY/bootloader.sh" "$flag"
   cp2remote "$DEPLOY_SCRIPT" "$REMOTE_KW_DEPLOY/" "$flag"
   cp2remote "$DEPLOY_SCRIPT_SUPPORT" "$REMOTE_KW_DEPLOY/" "$flag"
 }
