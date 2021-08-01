@@ -126,7 +126,7 @@ function convert_module_info()
 {
   local unload="$1"
   shift
-  local raw_modules_str="$@"
+  local raw_modules_str="$*"
   local parameters_str=""
   local final_command=""
   local remove_flag=""
@@ -343,7 +343,7 @@ function get_supported_mode_per_connector()
 
 function drm_parser_options()
 {
-  local raw_options="$@"
+  local raw_options="$*"
   local flag=0
   local remote
 

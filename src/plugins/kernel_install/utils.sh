@@ -36,7 +36,7 @@ function cmd_manager()
 
 function ask_yN()
 {
-  local message=$@
+  local message="$*"
 
   read -r -p "$message [y/N] " response
   if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
