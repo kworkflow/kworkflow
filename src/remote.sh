@@ -68,27 +68,30 @@ function cmd_remotely()
 #
 # @src Origin of the file to be send
 # @dst Destination for sending the file
-# @remote IP or domain name. Default value is "localhost".
-# @port TCP Port. Default value is "22".
-# @user User in the host machine. Default value is "root"
 # @flag How to display a command, the default value is "HIGHLIGHT_CMD". For
 #   more options see `src/kwlib.sh` function `cmd_manager`
-function cp_host2remote()
+# @rsync_params Additional optional flags and parameters to be passed directly to rsync
+function cp2remote()
 {
-  local src=${1:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
-  local dst=${2:-"$REMOTE_KW_DEPLOY"}
-  local remote=${3:-${remote_parameters['REMOTE_IP']}}
-  local port=${4:-${remote_parameters['REMOTE_PORT']}}
-  local user=${5:-${remote_parameters['REMOTE_USER']}}
-  local flag=${6:-'HIGHLIGHT_CMD'}
+  local flag=${1:-'HIGHLIGHT_CMD'}
+  local src=${2:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
+  local dst=${3:-"$REMOTE_KW_DEPLOY"}
+  local remote=${4:-${remote_parameters['REMOTE_IP']}}
+  local port=${5:-${remote_parameters['REMOTE_PORT']}}
+  local user=${6:-${remote_parameters['REMOTE_USER']}}
 
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
-    cmd_manager "$flag" "rsync -e 'ssh -F ${configurations['ssh_configfile']}' -La $src ${configurations['hostname']}:$dst --rsync-path='sudo rsync'"
+    rsync_target="'ssh -F ${configurations['ssh_configfile']}' $src ${configurations['hostname']}:$dst"
   else
-    cmd_manager "$flag" "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
+    rsync_target="'ssh -p $port' $src $user@$remote:$dst"
   fi
 
-  cmd_remotely "chown -R root:root $dst" "$flag" "$remote" "$port" "$user"
+  # The -LrlptD flags for rsync are similar to the -La flags used for archiving
+  # files and resolving symlinks the diference lies on the absence of the -og
+  # flags that preserve group and user ownership. We don't want to preserve
+  # ownership in order to automatically transfer the files to the root user and
+  # group.
+  cmd_manager "$flag" "rsync -e $rsync_target -LrlptD --rsync-path='sudo rsync' $rsync_params"
 }
 
 # Access the target device and query the distro name.
@@ -170,12 +173,13 @@ function prepare_remote_dir()
   cmd_remotely "$kw_deploy_cmd" "$flag" "$remote" "$port" "$user"
 
   # Send the specific deploy script as a root
-  cp_host2remote "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
-    "$DISTRO_DEPLOY_SCRIPT" "$remote" "$port" "$user" "$flag"
-  cp_host2remote "$DEPLOY_SCRIPT" "$REMOTE_KW_DEPLOY/" "$remote" "$port" \
-    "$user" "$flag"
-  cp_host2remote "$DEPLOY_SCRIPT_SUPPORT" "$REMOTE_KW_DEPLOY/" "$remote" \
-    "$port" "$user" "$flag"
+  cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
+    "$DISTRO_DEPLOY_SCRIPT" \
+    "$remote" "$port" "$user"
+  cp2remote "$flag" "$DEPLOY_SCRIPT" "$REMOTE_KW_DEPLOY/" \
+    "$remote" "$port" "$user"
+  cp2remote "$flag" "$DEPLOY_SCRIPT_SUPPORT" "$REMOTE_KW_DEPLOY/" \
+    "$remote" "$port" "$user"
 }
 
 # Populate remote info

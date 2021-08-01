@@ -156,7 +156,7 @@ function test_cmd_remote()
   assertEquals "($LINENO):" "$expected_command" "$output"
 }
 
-function test_cp_host2remote()
+function test_cp2remote()
 {
   local src='/any/path'
   local dst='/any/path/2'
@@ -167,9 +167,9 @@ function test_cp_host2remote()
   declare -a expected_cmd=()
 
   # Load default configureation, because we want to test default values
-  output=$(cp_host2remote "$src" "$dst" "$remote" "$port" "$user" "$flag")
+  output=$(cp2remote "$flag" "$src" "$dst" "$remote" "$port" "$user")
   expected_command=(
-    "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
     "ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
   )
 
@@ -177,32 +177,32 @@ function test_cp_host2remote()
 
   src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   expected_command=(
-    "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
     "ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
   )
 
-  output=$(cp_host2remote '' "$dst" "$remote" "$port" "$user" "$flag")
+  output=$(cp2remote "$flag" '' "$dst" "$remote" "$port" "$user")
   compare_command_sequence 'expected_command' "$output" "$LINENO"
 
   src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   dst="$REMOTE_KW_DEPLOY"
   expected_command=(
-    "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
     "ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
   )
 
-  output=$(cp_host2remote '' '' "$remote" "$port" "$user" "$flag")
+  output=$(cp2remote "$flag" '' '' "$remote" "$port" "$user")
   compare_command_sequence 'expected_command' "$output" "$LINENO"
 
   src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   dst="$REMOTE_KW_DEPLOY"
   remote='127.0.0.1'
   expected_command=(
-    "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
     "ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
   )
 
-  output=$(cp_host2remote '' '' '' "$port" "$user" "$flag")
+  output=$(cp2remote "$flag" '' '' '' "$port" "$user")
   compare_command_sequence 'expected_command' "$output" "$LINENO"
 
   src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
@@ -210,11 +210,11 @@ function test_cp_host2remote()
   remote='127.0.0.1'
   port='3333'
   expected_command=(
-    "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
     "ssh -p $port ${user}@$remote sudo \"chown -R root:root $dst\""
   )
 
-  output=$(cp_host2remote '' '' '' '' "$user" "$flag")
+  output=$(cp2remote "$flag" '' '' '' '' "$user")
   compare_command_sequence 'expected_command' "$output" "$LINENO"
 
   src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
@@ -223,11 +223,11 @@ function test_cp_host2remote()
   port='3333'
   user='juca'
   expected_command=(
-    "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
     "ssh -p $port ${user}@$remote sudo \"chown -R root:root $dst\""
   )
 
-  output=$(cp_host2remote '' '' '' '' '' "$flag")
+  output=$(cp2remote "$flag" '' '' '' '' '')
   compare_command_sequence 'expected_command' "$output" "$LINENO"
 }
 
@@ -294,11 +294,9 @@ function test_prepare_remote_dir()
 
   declare -a expected_cmd_sequence=(
     "ssh -p 2222 root@172.16.224.1 sudo \"mkdir -p /root/kw_deploy\""
-    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root /root/kw_deploy/distro_deploy.sh\""
-    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/ --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root /root/kw_deploy/\""
-    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/ --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p 2222' $FAKE_KW/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p 2222' $FAKE_KW/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p 2222' $FAKE_KW/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
     "ssh -p $port ${user}@${remote} sudo \"chown -R root:root /root/kw_deploy/\""
   )
 
