@@ -240,11 +240,15 @@ function assert_equals_helper()
 {
   local msg="$1"
   local line="$2"
+  # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
+  # shellcheck disable=SC2178
   local expected="$3"
   local target="$4"
 
   line=${line:-'Unknown line'}
 
+  # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
+  # shellcheck disable=2128
   assertEquals "line $line: $msg" "$target" "$expected"
 }
 
