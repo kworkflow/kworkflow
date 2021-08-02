@@ -135,7 +135,7 @@ function kw()
     ssh | s)
       (
         include "$KW_LIB_DIR/kw_config_loader.sh"
-        include "$KW_LIB_DIR/remote.sh"
+        include "$KW_LIB_DIR/kw_ssh.sh"
 
         kw_ssh "$@"
       )
