@@ -1,11 +1,31 @@
 #!/bin/bash
 
-# Note: the following line should not be modified, and neither the token should
-# be repeated in this file because It will be replaced during installation with
-# the respective installation prefix.
-KW_INSTALL_PREFIX=${KW_INSTALL_PREFIX:-"##KW_INSTALL_PREFIX_TOKEN##"}
-
 KWORKFLOW=${KWORKFLOW:-"kw"}
+
+# Global paths
+
+# Kw shell files
+KW_LIB_DIR="${KW_LIB_DIR:-"$HOME/.local/lib"}/$KWORKFLOW"
+KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}"
+
+# Share files
+KW_SHARE_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
+KW_DOC_DIR="$KW_SHARE_DIR/doc"
+KW_MAN_DIR="$KW_SHARE_DIR/man"
+KW_SOUND_DIR="$KW_SHARE_DIR/sound"
+
+# User specific data files (currently this collapses with the share dir,
+# but would not for a system-wide installation)
+KW_DATA_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
+
+# Configuration files
+KW_ETC_DIR="${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW"
+
+# Cache folder
+KW_CACHE_DIR="${XDG_CACHE_HOME:-"$HOME/.cache"}/$KWORKFLOW"
+
+# State files
+KW_STATE_DIR="${XDG_STATE_HOME:-"$HOME/.local/state"}/$KWORKFLOW"
 
 ##BEGIN-DEV-MODE##
 KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
@@ -13,19 +33,15 @@ KW_BASE_DIR="$(dirname "${KW_BIN}")"
 if [ -f "${KW_BASE_DIR}/src/kwlib.sh" ]; then
   # running from source directory
   KW_LIB_DIR="${KW_BASE_DIR}/src"
-  KW_INSTALL_PREFIX="${KW_BASE_DIR}"
+  # KW_DATA_DIR # use default data folder
+  KW_DOC_DIR="${KW_BASE_DIR}/documentation"
+  KW_MAN_DIR="${KW_BASE_DIR}/documentation/man"
+  KW_SOUND_DIR="${KW_BASE_DIR}/sound"
+  KW_ETC_DIR="${KW_BASE_DIR}/etc"
+  KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
+  # KW_CACHE_DIR # use default cache folder
 fi
 ##END-DEV-MODE##
-
-# Global paths
-KW_LIB_DIR=${KW_LIB_DIR:-"$KW_INSTALL_PREFIX/lib/kw"}
-KW_SHARE_DOC_DIR=${KW_SHARE_DIR:-"$KW_INSTALL_PREFIX/share/doc/kw/"}
-KW_SHARE_MAN_DIR=${KW_SHARE_DIR:-"$KW_INSTALL_PREFIX/share/man"}
-KW_SHARE_SOUND_DIR=${KW_SHARE_DIR:-"$KW_INSTALL_PREFIX/share/sound/kw"}
-KW_ETC_DIR=${KW_ETC_DIR:-"$KW_INSTALL_PREFIX/etc/kw"}
-KW_DATA_DIR=${KW_DATA_DIR:-"$HOME/.kw"}
-KW_PLUGINS_DIR=${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}
-KW_CACHE_DIR="$HOME/.cache/kw"
 
 # Export external variables required by kworkflow
 export KWORKFLOW

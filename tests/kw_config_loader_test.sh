@@ -3,6 +3,8 @@
 include './tests/utils.sh'
 include './src/kw_config_loader.sh'
 
+KWORKFLOW='kw'
+
 TMP_DIR=tests/.tmp_kw_config_loader_test
 
 function setUp()
@@ -119,11 +121,52 @@ function test_parse_configuration_standard_config()
   true # Reset return value
 }
 
+# To test the order of config file loading, we will put a file named
+# kworkflow.config in each place, in order, and remove the previous one.
+# The order is: PWD, XDG_CONFIG_HOME, XDG_CONFIG_DIRS, KW_ETC_DIR
 function test_parse_configuration_files_loading_order()
 {
-  expected="$KW_ETC_DIR/$CONFIG_FILENAME
-$HOME/.kw/$CONFIG_FILENAME
-$PWD/$CONFIG_FILENAME"
+  local expected
+  local original_dir="$PWD"
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was nos possible to move to temporary directory"
+    return
+  }
+
+  KW_ETC_DIR="1"
+  XDG_CONFIG_DIRS="2:3:4"
+  XDG_CONFIG_HOME="5"
+
+  expected=(
+    "1/$CONFIG_FILENAME"
+    "4/$KWORKFLOW/$CONFIG_FILENAME"
+    "3/$KWORKFLOW/$CONFIG_FILENAME"
+    "2/$KWORKFLOW/$CONFIG_FILENAME"
+    "5/$KWORKFLOW/$CONFIG_FILENAME"
+    "$PWD/$CONFIG_FILENAME"
+  )
+
+  output="$(
+    function parse_configuration()
+    {
+      echo "$@"
+    }
+    load_configuration
+  )"
+  compare_command_sequence 'expected' "$output" "$LINENO - Wrong config file reading order."
+
+  # IF XDG global variables are not defined
+  unset XDG_CONFIG_DIRS
+  unset XDG_CONFIG_HOME
+  HOME="5"
+
+  expected=(
+    "1/$CONFIG_FILENAME"
+    "/etc/xdg/$KWORKFLOW/$CONFIG_FILENAME"
+    "5/.config/$KWORKFLOW/$CONFIG_FILENAME"
+    "$PWD/$CONFIG_FILENAME"
+  )
 
   output="$(
     function parse_configuration()
@@ -133,10 +176,12 @@ $PWD/$CONFIG_FILENAME"
     load_configuration
   )"
 
-  expected_vs_got="Expected:\n>>>$expected<<<\nGot:\n>>>$output<<<"
+  compare_command_sequence 'expected' "$output" "$LINENO - Wrong config file reading order."
 
-  [[ "$output" == "$expected" ]]
-  assertTrue "Wrong config file reading order.\n$expected_vs_got" $?
+  cd "$original_dir" || {
+    fail "($LINENO) It was nos possible to move back to original directory"
+    return
+  }
 }
 
 function test_show_variables_completeness()

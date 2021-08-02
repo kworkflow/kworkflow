@@ -141,8 +141,27 @@ function parse_configuration()
 # higher level setting definitions to overwrite lower level ones.
 function load_configuration()
 {
+  local -a config_dirs
+  local config_dirs_size
+  local IFS=:
+  read -ra config_dirs <<< "${XDG_CONFIG_DIRS:-"/etc/xdg"}"
+  unset IFS
+
   parse_configuration "$KW_ETC_DIR/$CONFIG_FILENAME"
-  parse_configuration "$HOME/.kw/$CONFIG_FILENAME"
+
+  # XDG_CONFIG_DIRS is a colon-separated list of directories for config
+  # files to be searched, in order of preference. Since this function
+  # reads config files in a reversed order of preference, we must
+  # traverse it from back to top. Example: if
+  # XDG_CONFIG_DIRS=/etc/xdg:/home/user/myconfig:/etc/myconfig
+  # we will want to parse /etc/myconfig, then /home/user/myconfig, then
+  # /etc/xdg.
+  config_dirs_size="${#config_dirs[@]}"
+  for ((i = config_dirs_size - 1; i >= 0; i--)); do
+    parse_configuration "${config_dirs["$i"]}/$KWORKFLOW/$CONFIG_FILENAME"
+  done
+
+  parse_configuration "${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW/$CONFIG_FILENAME"
   parse_configuration "$PWD/$CONFIG_FILENAME"
 }
 

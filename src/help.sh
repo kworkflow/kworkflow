@@ -41,7 +41,7 @@ function kworkflow_man()
 {
   feature="$1"
   flag=${2:-'SILENT'}
-  doc="$KW_SHARE_MAN_DIR"
+  doc="$KW_MAN_DIR"
 
   if [[ -z "$feature" ]]; then
     feature='kw'
