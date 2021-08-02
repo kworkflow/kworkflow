@@ -12,7 +12,7 @@ function test_kworkflow_help()
 
 function test_kworkflow_man()
 {
-  export KW_SHARE_MAN_DIR="$SHUNIT_TMPDIR"
+  export KW_MAN_DIR="$SHUNIT_TMPDIR"
   touch "$SHUNIT_TMPDIR/kw.1"
   expect="man -l $SHUNIT_TMPDIR/kw.1"
   output=$(kworkflow_man '' 'TEST_MODE')

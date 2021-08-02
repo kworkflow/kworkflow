@@ -8,11 +8,11 @@ FAKE_CONFIG_PATH="$FAKE_DIR/.config"
 
 function setUp()
 {
-  export KW_ETC_DIR="tests/samples"
-  export KW_SHARE_SOUND_DIR="tests/samples/share/sound/kw"
+  export KW_ETC_DIR='tests/samples'
+  export KW_SOUND_DIR='tests/samples/share/sound/kw'
   export HOME="$FAKE_DIR"
-  export USER="kw_test"
-  export KWORKFLOW="kw_dir_test"
+  export USER='kw_test'
+  export KWORKFLOW='kw_dir_test'
   export PWD="$FAKE_CONFIG_PATH/$KWORKFLOW"
   mkdir -p "$FAKE_DIR"
   mkdir -p "$FAKE_CONFIG_PATH/$KWORKFLOW"
@@ -35,8 +35,8 @@ function test_init_kw()
 
   assertEquals "($LINENO): USERKW wasn't updated to $USER" "$USER" "$kworkflow_content"
 
-  kworkflow_content=$(grep "$KW_SHARE_SOUND_DIR" -o "$path_config" | head -n 1)
-  assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SHARE_SOUND_DIR" "$KW_SHARE_SOUND_DIR" "$kworkflow_content"
+  kworkflow_content=$(grep "$KW_SOUND_DIR" -o "$path_config" | head -n 1)
+  assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SOUND_DIR" "$KW_SOUND_DIR" "$kworkflow_content"
 
   output=$(init_kw --force)
   if [[ ! -f "$path_config.old" ]]; then

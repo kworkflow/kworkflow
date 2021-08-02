@@ -10,7 +10,6 @@ debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc
 SILENT=1
 VERBOSE=0
 FORCE=0
-PREFIX="${PREFIX:-$HOME/.local}"
 
 declare -r app_name="kw"
 
@@ -18,17 +17,16 @@ declare -r app_name="kw"
 ## Following are the install paths
 ##
 # Paths used during the installation process
-declare -r kwbinpath="$PREFIX/bin/kw"
-declare -r binpath="$PREFIX/bin"
-declare -r libdir="$PREFIX/lib/$app_name"
-declare -r sharedir="$PREFIX/share/"
-declare -r sharedocdir="$sharedir/doc"
-declare -r sharemandir="$sharedir/man"
-declare -r sharesounddir="$sharedir/sound/kw"
-declare -r etcdir="$PREFIX/etc/kw"
-# User specific data
-declare -r datadir="$HOME/.$app_name"
-declare -r cachedir="$HOME/.cache/$app_name"
+declare -r kwbinpath="$HOME/.local/bin/$app_name"
+declare -r binpath="$HOME/.local/bin"
+declare -r libdir="$HOME/.local/lib/$app_name"
+declare -r sharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
+declare -r docdir="$sharedir/doc"
+declare -r mandir="$sharedir/man"
+declare -r sounddir="$sharedir/sound"
+declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
+declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
+declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
 
 ##
 ## Source code references
@@ -36,8 +34,7 @@ declare -r cachedir="$HOME/.cache/$app_name"
 declare -r SRCDIR="src"
 declare -r MAN="documentation/man/"
 declare -r CONFIG_DIR="etc"
-declare -r INSTALLTO="$PREFIX"
-declare -r KW_CACHE_DIR="$HOME/.cache/$app_name"
+declare -r KW_CACHE_DIR="$cachedir"
 
 declare -r SOUNDS="sounds"
 declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
@@ -162,6 +159,30 @@ function confirm_complete_removal()
   fi
 }
 
+# This function moves the folders from the old directory structure to
+# folders of the new one.
+function legacy_folders()
+{
+  local prefix="$HOME/.local"
+
+  if [[ -d "$prefix/share/doc" && -f "$prefix/share/man/kw.rst" &&
+    -d "$prefix/share/sound/kw" && -d "$prefix/etc/kw" &&
+    -d "$HOME/.kw" ]]; then
+
+    say 'Found an obsolete installation of kw:'
+
+    say "Moving files in $HOME/.kw/ to $datadir..."
+    mv "$HOME/.kw/"* "$datadir"
+    say "Moving $prefix/etc/kw to $etcdir..."
+    mv "$prefix/etc/kw" "$etcdir"
+    rm -rf "$prefix/share/doc"
+    rm -rf "$prefix/share/man/kw.rst"
+    rm -rf "$prefix/share/sound/kw"
+    rmdir --ignore-fail-on-non-empty "$prefix/share/man" "$prefix/share/sound" \
+      "$prefix/etc" "$HOME/.kw"
+  fi
+}
+
 function clean_legacy()
 {
   local completely_remove="$1"
@@ -179,13 +200,13 @@ function clean_legacy()
   [[ -d "$libdir" ]] && mv "$libdir" "$trash/lib"
 
   # Remove doc dir
-  [[ -d "$sharedocdir" ]] && mv "$sharedocdir" "$trash"
+  [[ -d "$docdir" ]] && mv "$docdir" "$trash"
 
   # Remove man
-  [[ -d "$sharemandir" ]] && mv "$sharemandir" "$trash"
+  [[ -d "$mandir" ]] && mv "$mandir" "$trash"
 
   # Remove sound files
-  [[ -d "$sharesounddir" ]] && mv "$sharesounddir" "$trash/sound"
+  [[ -d "$sounddir" ]] && mv "$sounddir" "$trash/sound"
 
   # Remove etc files
   [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
@@ -216,7 +237,7 @@ function setup_config_file()
 
   if [[ -f "$config_file_template" ]]; then
     cp "$config_file_template" "$config_files_path/$global_config_name"
-    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sharesounddir,g" \
+    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sounddir,g" \
       -e "/^#?.*/d" "$config_files_path/$global_config_name"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
@@ -250,36 +271,33 @@ function synchronize_files()
   cmd_output_manager "cp $app_name $binpath" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
 
-  sed -i -e "s,##KW_INSTALL_PREFIX_TOKEN##,$PREFIX,g" "$binpath/$app_name"
-  sed -i -e "/##BEGIN-DEV-MODE##/,/##END-DEV-MODE##/ d" "$binpath/$app_name"
-
   # Lib files
   mkdir -p "$libdir"
   cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
 
   # Sound files
-  mkdir -p "$sharesounddir"
-  cmd_output_manager "rsync -vr $SOUNDS/ $sharesounddir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sharesounddir' failed" "$?"
+  mkdir -p "$sounddir"
+  cmd_output_manager "rsync -vr $SOUNDS/ $sounddir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sounddir' failed" "$?"
   ## TODO: Remove me one day
   # Old kworkflow.config uses complete.wav instead of bell
-  ln -s "$sharesounddir/bell.wav" "$sharesounddir/complete.wav"
+  ln -s "$sounddir/bell.wav" "$sounddir/complete.wav"
 
   # Documentation files
-  mkdir -p "$sharedocdir"
-  cmd_output_manager "rsync -vr $DOCUMENTATION/ $sharedocdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $sharedocdir' failed" "$?"
+  mkdir -p "$docdir"
+  cmd_output_manager "rsync -vr $DOCUMENTATION/ $docdir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
 
   # man file
-  mkdir -p "$sharemandir"
-  cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $sharemandir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $sharemandir' failed" "$?"
+  mkdir -p "$mandir"
+  cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
 
   # etc files
   mkdir -p "$etcdir"
   cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR $INSTALLTO' failed" "$?"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
 
   # User data
   mkdir -p "$datadir"
@@ -317,7 +335,7 @@ function synchronize_files()
   say "$SEPARATOR"
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
-  say "$app_name installed into $PREFIX"
+  say "$app_name installed into $HOME"
   warning " -> For a better experience with kw, please, open a new terminal."
 }
 
@@ -358,6 +376,8 @@ function install_home()
   # Check Dependencies
   say "Checking dependencies ..."
   check_dependencies
+  # Move old folder structure to new one
+  legacy_folders
   # First clean old installation
   clean_legacy
   # Synchronize source files
@@ -376,10 +396,6 @@ for arg; do
   fi
   if [ "$arg" = "--force" ]; then
     FORCE=1
-    continue
-  fi
-  if [[ "$arg" =~ "--prefix=" ]]; then
-    PREFIX=${arg#*=}
     continue
   fi
   set -- "$@" "$arg"
