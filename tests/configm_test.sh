@@ -33,6 +33,7 @@ function setUp()
     return
   }
 
+  export KW_CACHE_DIR="$SHUNIT_TMPDIR/cache"
   mkdir "$SHUNIT_TMPDIR/configs"
   KW_DATA_DIR="$SHUNIT_TMPDIR"
   configs_path="$KW_DATA_DIR/configs"
@@ -428,6 +429,92 @@ function test_remove_config()
   # Case 2: Remove all config files
   remove_config "$NAME_2" 1 > /dev/null 2>&1
   assertTrue "$LINENO: We expected no file related to config" '[[ ! -f configs/configs ]]'
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_cleanup()
+{
+  local output
+
+  mkdir -p "$KW_CACHE_DIR/config"
+
+  declare -a expected_cmd=(
+    'Cleaning up and retrieving files...'
+    "mv $KW_CACHE_DIR/config/* $PWD"
+    "rmdir $KW_CACHE_DIR/config"
+    'Exiting...'
+  )
+
+  output=$(cleanup 'TEST_MODE')
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+}
+
+function test_fetch_config()
+{
+  local output
+  local current_path="$PWD"
+
+  declare -a expected_output
+
+  export root="$SHUNIT_TMPDIR/kernel/"
+
+  mkdir -p "$root"
+  mkdir -p "$KW_CACHE_DIR"
+
+  function uname()
+  {
+    echo x86
+  }
+
+  cd "$root" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mk_fake_kernel_root "$PWD"
+
+  expected_output=(
+    'We are retrieving a .config file based on x86'
+    'make defconfig ARCH=x86'
+    'Successfully retrieved .config'
+  )
+  output=$(fetch_config 'TEST_MODE')
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  expected_output=(
+    'zcat /proc/config.gz > .config'
+    'Successfully retrieved .config'
+  )
+  mkdir "${root}proc"
+  touch "${root}proc/config.gz"
+  output=$(fetch_config 'TEST_MODE')
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  touch "$root/.config"
+
+  # Say no to overwriting the file
+  output=$(echo n | fetch_config 'TEST_MODE')
+  assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
+
+  # Say yes to overwriting the file
+  output=$(echo y | fetch_config 'TEST_MODE')
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  # Now using the --force option
+  output=$(fetch_config 'TEST_MODE' 1)
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  expected_output=(
+    'zcat /proc/config.gz > newconfig'
+    'Successfully retrieved newconfig'
+  )
+
+  output=$(fetch_config 'TEST_MODE' '' newconfig)
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
