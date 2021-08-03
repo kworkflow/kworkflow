@@ -39,6 +39,13 @@ OPTIONS
   will remove the config file from kw management. The user can suppress this
   warning by using ``-f``.
 
+\--fetch [(-o | --output) <filename>] [-f | --force]:
+  This option fetches a .config file from a target machine to your current
+  directory. If another .config is found in this directory, then it will ask you
+  whether you want to replace it or not. If you use the force option, the
+  .config file will be overwritten without any warnings. By using the output
+  option, you can specify the config file name.
+
 EXAMPLES
 ========
 For these examples, we suppose the fields in your **kworkflow.config** file are

@@ -1,9 +1,12 @@
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kwlib.sh"
+include "$KW_LIB_DIR/signal_manager.sh"
 
 declare -gr metadata_dir='metadata'
 declare -gr configs_dir='configs'
 declare -gA options_values
+declare -g root='/'
 
 function config_manager_help()
 {
@@ -13,7 +16,8 @@ function config_manager_help()
     return
   fi
   printf '%s\n' 'kw config manager:' \
-    '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - save a config' \
+    '  configm --fetch [(-o | --output) <filename>] [-f | --force] - Fetch a config' \
+    '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
     '  configm (-l | --list) - List config files under kw management' \
     '  configm --get <name> [-f | --force] - Get a config file based named <name>' \
     '  configm (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
@@ -77,6 +81,102 @@ function save_config_file()
   fi
 
   cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
+}
+
+# Clean-up for fetch_config. When running --fetch, some files may be
+# overwritten. If the user decides to cancel the command, important
+# configuration files may be gone. To overcome that, we run use cleanup, to both
+# retrieve these files and remove the temporary ones left.
+function cleanup()
+{
+  local flag=${1:-'SILENT'}
+  say 'Cleaning up and retrieving files...'
+
+  # Setting dotglob to include hidden files when running 'mv'
+  shopt -s dotglob
+  if [[ -d "$KW_CACHE_DIR/config" ]]; then
+    cmd_manager "$flag" "mv $KW_CACHE_DIR/config/* $PWD"
+    cmd_manager "$flag" "rmdir $KW_CACHE_DIR/config"
+  fi
+
+  say 'Exiting...'
+  exit 0
+}
+
+# This function retrieves a .config file.
+#
+# @flag How to display a command.
+# @force Force option. If it's set, it will ignore the warning if there's
+#        another .config file in the current directory and the file will be
+#        overwritten.
+# @output File name. This option requires an argument, which will be the name of
+#         the .config file to be retrieved.
+function fetch_config()
+{
+  local flag="$1"
+  local force="$2"
+  local output="$3"
+  local cmd
+  local arch
+  local ret
+
+  output=${output:-'.config'}
+
+  # Folder to store files in case there's an interruption and we need to return
+  # things to the state they were before or in case we need a place to store
+  # files temporarily.
+  mkdir -p "$KW_CACHE_DIR/config"
+
+  if [[ -f "$PWD/$output" ]]; then
+    if [[ -z "$force" && $(ask_yN "Do you want to overwrite $output in your current directory?") =~ "0" ]]; then
+      warning 'Operation aborted'
+      return 125 #ECANCELED
+    fi
+
+    cp "$PWD/$output" "$KW_CACHE_DIR/config"
+  fi
+
+  if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
+    cp "$PWD/.config" "$KW_CACHE_DIR/config"
+  fi
+
+  signal_manager 'cleanup' || warning 'Was not able to set signal handler'
+
+  if [[ -f "${root}proc/config.gz" ]] && command_exists 'zcat'; then
+    cmd="zcat /proc/config.gz > $output"
+  elif [[ -f "${root}boot/config-$(uname -r)" ]]; then
+    cmd="cp /boot/config-$(uname -r) $output"
+  else
+    if ! is_kernel_root "$PWD"; then
+      complain 'This command should be run in a kernel tree.'
+      exit 125 # ECANCELED
+    fi
+
+    arch=$(uname -m)
+    warning 'We are retrieving a .config file based on' "$arch"
+    cmd="make defconfig ARCH=$arch"
+
+    # By default 'make defconfig' writes to .config without worrying if
+    # there is another .config in the current directory. In order to avoid
+    # overwriting, we check the existence of .config and whether we're
+    # allowed to overwrite it or not.
+    # If there is a .config and we are not supposed to overwrite it, then we
+    # move it to KW_CACHE_DIR, run 'make defconfig', and then move it back.
+    if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
+      cmd+=" && mv $PWD/.config $output && mv $KW_CACHE_DIR/config/.config $PWD/.config"
+    fi
+  fi
+
+  cmd_manager "$flag" "$cmd"
+
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    warning 'We could not retrieve the config file'
+    exit "$ret"
+  fi
+
+  rm -rf "$KW_CACHE_DIR/config"
+  success 'Successfully retrieved' "$output"
 }
 
 function list_configs()
@@ -204,6 +304,7 @@ function execute_config_manager()
   local name_config
   local description_config
   local force
+  local flag='SILENT'
 
   if [[ -z "$*" ]]; then
     complain 'Please, provide an argument'
@@ -240,6 +341,10 @@ function execute_config_manager()
     remove_config "${options_values['REMOVE']}" "$force"
     return
   fi
+
+  if [[ -n "${options_values['FETCH']}" ]]; then
+    fetch_config "$flag" "$force" "${options_values['OUTPUT']}"
+  fi
 }
 
 # This function parses the options from 'kw configm', and populates the global
@@ -250,8 +355,8 @@ function parse_configm_options()
   local long_options
   local options
 
-  long_options='save:,list,get:,remove:,force,description:'
-  short_options='s,l,r:,d:,h,f'
+  long_options='save:,list,get:,remove:,force,description:,fetch,output:'
+  short_options='s:,l,r:,d:,h,f,o:'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -305,6 +410,14 @@ function parse_configm_options()
         options_values['REMOVE']+="$2"
         shift 2
         ;;
+      --fetch)
+        options_values['FETCH']=1
+        shift
+        ;;
+      --output | -o)
+        options_values['OUTPUT']+="$2"
+        shift 2
+        ;;
       --)
         shift
         ;;
@@ -314,4 +427,9 @@ function parse_configm_options()
         ;;
     esac
   done
+
+  if [[ -n "${options_values['OUTPUT']}" && -z "${options_values['FETCH']}" ]]; then
+    complain '--output|-o can only be used with --fetch'
+    return 22 # EINVAL
+  fi
 }
