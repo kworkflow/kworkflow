@@ -39,12 +39,15 @@ OPTIONS
   will remove the config file from kw management. The user can suppress this
   warning by using ``-f``.
 
-\--fetch [(-o | --output) <filename>] [-f | --force]:
+\--fetch [(-o | --output) <filename>] [-f | --force] [--optimize]:
   This option fetches a .config file from a target machine to your current
   directory. If another .config is found in this directory, then it will ask you
   whether you want to replace it or not. If you use the force option, the
   .config file will be overwritten without any warnings. By using the output
-  option, you can specify the config file name.
+  option, you can specify the config file name. With the optimize option,
+  `make localmodconfig` will be run to generate an optimized version of a
+  previously fetched .config file.
+
 
 EXAMPLES
 ========
