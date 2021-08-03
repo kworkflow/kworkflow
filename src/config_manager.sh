@@ -15,7 +15,7 @@ function config_manager_help()
     return
   fi
   printf '%s\n' 'kw config manager:' \
-    '  configm --fetch [(-o | --output) <filename>] [-f | --force] - Fetch a config' \
+    '  configm --fetch [(-o | --output) <filename>] [-f | --force] [--optimize] - Fetch a config' \
     '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
     '  configm (-l | --list) - List config files under kw management' \
     '  configm --get <name> [-f | --force] - Get a config file based named <name>' \
@@ -98,6 +98,10 @@ function cleanup()
     cmd_manager "$flag" "rmdir $KW_CACHE_DIR/config"
   fi
 
+  if [[ -f "$KW_CACHE_DIR/lsmod" ]]; then
+    cmd_manager "$flag" "rm $KW_CACHE_DIR/lsmod"
+  fi
+
   say 'Exiting...'
   exit 0
 }
@@ -110,11 +114,15 @@ function cleanup()
 #        overwritten.
 # @output File name. This option requires an argument, which will be the name of
 #         the .config file to be retrieved.
+# @optimize Optimization flag. If it's set, then an optimized version of the
+#           .config file will be retrieved.
 function fetch_config()
 {
   local flag="$1"
   local force="$2"
   local output="$3"
+  local optimize="$4"
+  local mods
   local cmd
   local arch
   local ret
@@ -166,12 +174,47 @@ function fetch_config()
     fi
   fi
 
+  mods=$(cmd_manager "$flag" 'lsmod')
   cmd_manager "$flag" "$cmd"
 
   ret="$?"
   if [[ "$ret" != 0 ]]; then
     warning 'We could not retrieve the config file'
     exit "$ret"
+  fi
+
+  if [[ -n "$optimize" ]]; then
+    if ! is_kernel_root "$PWD"; then
+      complain 'This command should be run in a kernel tree.'
+      exit 125 # ECANCELED
+    fi
+
+    printf "%s" "$mods" > "$KW_CACHE_DIR/lsmod"
+
+    cmd="make localmodconfig LSMOD=$KW_CACHE_DIR/lsmod"
+
+    # 'make localmodconfig' uses .config from the current directory. So, we need
+    # to rename the configuration file named <output> to .config. We also need to
+    # check if there is already a .config in the current directory, and if
+    # <output> isn't '.config'.
+    # If there is a .config, we move it to KW_CACHE_DIR, rename <output> to
+    # .config, run 'make localmodconfig', then move things back to place.
+    if [[ "$output" != '.config' ]]; then
+      if [[ -f "$PWD/.config" ]]; then
+        cmd_manager "$flag" "mv $PWD/$output $PWD/.config"
+        cmd_manager "$flag" "$cmd"
+        cmd_manager "$flag" "mv $PWD/.config $PWD/$output"
+        cmd_manager "$flag" "mv $KW_CACHE_DIR/config/.config $PWD/.config"
+      else
+        cmd_manager "$flag" "mv $PWD/$output $PWD/.config"
+        cmd_manager "$flag" "$cmd"
+        cmd_manager "$flag" "mv $PWD/.config $PWD/$output"
+      fi
+    else
+      cmd_manager "$flag" "$cmd"
+    fi
+
+    rm -f "$KW_CACHE_DIR/lsmod"
   fi
 
   rm -rf "$KW_CACHE_DIR/config"
@@ -304,6 +347,7 @@ function execute_config_manager()
   local description_config
   local force
   local flag='SILENT'
+  local optimize
 
   if [[ -z "$*" ]]; then
     complain 'Please, provide an argument'
@@ -320,6 +364,7 @@ function execute_config_manager()
   name_config="${options_values['SAVE']}"
   description_config="${options_values['DESCRIPTION']}"
   force="${options_values['FORCE']}"
+  optimize="${options_values['OPTIMIZE']}"
 
   if [[ -n "${options_values['SAVE']}" ]]; then
     save_config_file "$force" "$name_config" "$description_config"
@@ -342,7 +387,8 @@ function execute_config_manager()
   fi
 
   if [[ -n "${options_values['FETCH']}" ]]; then
-    fetch_config "$flag" "$force" "${options_values['OUTPUT']}"
+    fetch_config "$flag" "$force" "${options_values['OUTPUT']}" "$optimize"
+    return
   fi
 }
 
@@ -354,7 +400,7 @@ function parse_configm_options()
   local long_options
   local options
 
-  long_options='save:,list,get:,remove:,force,description:,fetch,output:'
+  long_options='save:,list,get:,remove:,force,description:,fetch,output:,optimize'
   short_options='s:,l,r:,d:,h,f,o:'
 
   options="$(getopt \
@@ -369,6 +415,7 @@ function parse_configm_options()
 
   options_values['SAVE']=''
   options_values['FORCE']=''
+  options_values['OPTIMIZE']=''
   options_values['DESCRIPTION']=''
   options_values['LIST']=''
   options_values['GET']=''
@@ -419,6 +466,10 @@ function parse_configm_options()
         options_values['OUTPUT']+="$2"
         shift 2
         ;;
+      --optimize)
+        options_values['OPTIMIZE']=1
+        shift
+        ;;
       --)
         shift
         ;;
@@ -429,8 +480,14 @@ function parse_configm_options()
     esac
   done
 
-  if [[ -n "${options_values['OUTPUT']}" && -z "${options_values['FETCH']}" ]]; then
-    complain '--output|-o can only be used with --fetch'
-    return 22 # EINVAL
+  if [[ -z "${options_values['FETCH']}" ]]; then
+    if [[ -n "${options_values['OUTPUT']}" ]]; then
+      complain '--output|-o can only be used with --fetch'
+      return 22 # EINVAL
+    fi
+    if [[ -n "${options_values['OPTIMIZE']}" ]]; then
+      complain '--optimize can only be used with --fetch'
+      return 22 # EINVAL
+    fi
   fi
 }

@@ -441,11 +441,13 @@ function test_cleanup()
   local output
 
   mkdir -p "$KW_CACHE_DIR/config"
+  touch "$KW_CACHE_DIR/lsmod"
 
   declare -a expected_cmd=(
     'Cleaning up and retrieving files...'
     "mv $KW_CACHE_DIR/config/* $PWD"
     "rmdir $KW_CACHE_DIR/config"
+    "rm $KW_CACHE_DIR/lsmod"
     'Exiting...'
   )
 
@@ -514,6 +516,30 @@ function test_fetch_config()
   )
 
   output=$(fetch_config 'TEST_MODE' '' newconfig)
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  # Optimized
+  rm -rf "${root:?}/"*
+
+  output=$(echo y | fetch_config 'TEST_MODE' '' '' 1)
+  assert_equals_helper 'No fake kernel should be here' "$LINENO" "$output" \
+    'This command should be run in a kernel tree.'
+
+  mk_fake_kernel_root "$PWD"
+
+  output=$(echo n | fetch_config 'TEST_MODE' '' '' 1)
+  assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
+
+  rm "$PWD/.config"
+  mkdir "${root}proc"
+  touch "${root}proc/config.gz"
+  expected_output=(
+    'zcat /proc/config.gz > .config'
+    "make localmodconfig LSMOD=$KW_CACHE_DIR/lsmod"
+    'Successfully retrieved .config'
+  )
+
+  output=$(echo y | fetch_config 'TEST_MODE' '' '' 1)
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   cd "$current_path" || {
