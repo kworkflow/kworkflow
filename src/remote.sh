@@ -88,6 +88,25 @@ function cp2remote()
   cmd_manager "$flag" "rsync -e $rsync_target -LrlptD --rsync-path='sudo rsync' $rsync_params"
 }
 
+# This function copies files from the remote machine to the local host.
+#
+# @src: file path from a path stored in the remote machine
+# @dst: path from local machine to store the file we're retrieving
+# @ip: IP or domain name
+# @port: TCP port
+# @user: User in the remote machine
+function remote2host()
+{
+  local src="$1"
+  local dst="$2"
+  local ip="$3"
+  local port="$4"
+  local user="$5"
+  local flag=${6:-"HIGHLIGHT_CMD"}
+
+  cmd_manager "$flag" "rsync -e \"ssh -p $port\" $user@$ip:$src $dst"
+}
+
 # Access the target device and query the distro name.
 #
 # @remote Origin of the file to be send

@@ -1,5 +1,6 @@
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
@@ -7,21 +8,6 @@ declare -gr metadata_dir='metadata'
 declare -gr configs_dir='configs'
 declare -gA options_values
 declare -g root='/'
-
-function config_manager_help()
-{
-  if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'configm'
-    return
-  fi
-  printf '%s\n' 'kw config manager:' \
-    '  configm --fetch [(-o | --output) <filename>] [-f | --force] [--optimize] - Fetch a config' \
-    '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
-    '  configm (-l | --list) - List config files under kw management' \
-    '  configm --get <name> [-f | --force] - Get a config file based named <name>' \
-    '  configm (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
-}
 
 # This function handles the save operation of kernel's '.config' file. It
 # checks if the '.config' exists and saves it using git (dir.:
@@ -115,14 +101,19 @@ function cleanup()
 #        overwritten.
 # @output File name. This option requires an argument, which will be the name of
 #         the .config file to be retrieved.
-# @optimize Optimization flag. If it's set, then an optimized version of the
-#           .config file will be retrieved.
+# @optimize Optimize flag, if set then 'make localmodconfig' is used.
+# @target Target can be 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET).
 function fetch_config()
 {
   local flag="$1"
   local force="$2"
   local output="$3"
   local optimize="$4"
+  local target="$5"
+  local user="${remote_parameters['REMOTE_USER']}"
+  local ip="${remote_parameters['REMOTE_IP']}"
+  local port="${remote_parameters['REMOTE_PORT']}"
+  local kernel_release
   local mods
   local cmd
   local arch
@@ -150,39 +141,96 @@ function fetch_config()
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
-  if [[ -f "${root}proc/config.gz" ]] && command_exists 'zcat'; then
-    cmd="zcat /proc/config.gz > $output"
-  elif [[ -f "${root}boot/config-$(uname -r)" ]]; then
-    cmd="cp /boot/config-$(uname -r) $output"
-  else
-    if ! is_kernel_root "$PWD"; then
-      complain 'This command should be run in a kernel tree.'
-      exit 125 # ECANCELED
-    fi
+  case "$target" in
+    2) # LOCAL_TARGET
+      if [[ -f "${root}proc/config.gz" ]] && command_exists 'zcat'; then
+        cmd="zcat /proc/config.gz > $output"
+      elif [[ -f "${root}boot/config-$(uname -r)" ]]; then
+        cmd="cp /boot/config-$(uname -r) $output"
+      else
+        if ! is_kernel_root "$PWD"; then
+          complain 'This command should be run in a kernel tree.'
+          exit 125 # ECANCELED
+        fi
 
-    arch=$(uname -m)
-    warning 'We are retrieving a .config file based on' "$arch"
-    cmd="make defconfig ARCH=$arch"
+        arch=$(uname -m)
+        warning 'We are retrieving a .config file based on' "$arch"
+        cmd="make defconfig ARCH=$arch"
 
-    # By default 'make defconfig' writes to .config without worrying if
-    # there is another .config in the current directory. In order to avoid
-    # overwriting, we check the existence of .config and whether we're
-    # allowed to overwrite it or not.
-    # If there is a .config and we are not supposed to overwrite it, then we
-    # move it to KW_CACHE_DIR, run 'make defconfig', and then move it back.
-    if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
-      cmd+=" && mv $PWD/.config $output && mv $KW_CACHE_DIR/config/.config $PWD/.config"
-    fi
-  fi
+        # By default 'make defconfig' writes to .config without worrying if
+        # there is another .config in the current directory. In order to avoid
+        # overwriting, we check the existence of .config and whether we're
+        # allowed to overwrite it or not.
+        # If there is a .config and we are not supposed to overwrite it, then we
+        # move it to KW_CACHE_DIR, run 'make defconfig', and then move it back.
+        if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
+          cmd+=" && mv $PWD/.config $output && mv $KW_CACHE_DIR/config/.config $PWD/.config"
+        fi
+      fi
 
-  mods=$(cmd_manager "$flag" 'lsmod')
-  cmd_manager "$flag" "$cmd"
+      cmd_manager "$flag" "$cmd"
 
-  ret="$?"
-  if [[ "$ret" != 0 ]]; then
-    warning 'We could not retrieve the config file'
-    exit "$ret"
-  fi
+      ret="$?"
+      if [[ "$ret" != 0 ]]; then
+        warning 'We could not retrieve the config file'
+        exit "$ret"
+      fi
+
+      mods=$(cmd_manager "$flag" 'lsmod')
+      ;;
+    3) # REMOTE_TARGET
+      kernel_release=$(cmd_remotely 'uname -r' "$flag" "$ip" "$port" "$user")
+      cmd_remotely 'mkdir -p /tmp/kw' "$flag" "$ip" "$port" "$user"
+
+      if cmd_remotely '[ -f /proc/config.gz ]' "$flag" "$ip" "$port" "$user"; then
+        cmd="zcat /proc/config.gz > /tmp/kw/$output"
+        cmd_remotely "$cmd" "$flag" "$ip" "$port" "$user"
+
+        ret="$?"
+        if [[ "$ret" != 0 ]]; then
+          warning 'We could not retrieve the config file'
+          exit "$ret"
+        fi
+
+        remote2host "/tmp/kw/$output" "$PWD" "$ip" "$port" "$user" "$flag"
+      elif cmd_remotely "[ -f /boot/config-$kernel_release ]" "$flag" "$ip" "$port" "$user"; then
+        cmd="cp /boot/config-$kernel_release /tmp/kw/$output"
+        cmd_remotely "$cmd" "$flag" "$ip" "$port" "$user"
+
+        ret="$?"
+        if [[ "$ret" != 0 ]]; then
+          warning 'We could not retrieve the config file'
+          exit "$ret"
+        fi
+
+        remote2host "/tmp/kw/$output" "$PWD" "$ip" "$port" "$user" "$flag"
+      else
+        if ! is_kernel_root "$PWD"; then
+          complain 'This command should be run in a kernel tree.'
+          exit 125 # ECANCELED
+        fi
+
+        arch=$(cmd_remotely 'uname -m' "$flag" "$ip" "$port" "$user")
+        warning 'We are retrieving a .config file based on' "$arch"
+        cmd="make defconfig ARCH=$arch"
+
+        if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
+          cmd+=" && mv $PWD/.config $output && mv $KW_CACHE_DIR/config/.config $PWD/.config"
+        fi
+
+        cmd_manager "$flag" "$cmd"
+
+        ret="$?"
+        if [[ "$ret" != 0 ]]; then
+          warning 'We could not retrieve the config file'
+          exit "$ret"
+        fi
+      fi
+
+      cmd_remotely 'rm -rf /tmp/kw' "$flag" "$ip" "$port" "$user"
+      mods=$(cmd_remotely 'lsmod' "$flag" "$ip" "$port" "$user")
+      ;;
+  esac
 
   if [[ -n "$optimize" ]]; then
     if ! is_kernel_root "$PWD"; then
@@ -349,6 +397,10 @@ function execute_config_manager()
   local force
   local flag='SILENT'
   local optimize
+  local user
+  local remote
+  local ip
+  local port
 
   if [[ -z "$*" ]]; then
     complain 'Please, provide an argument'
@@ -388,7 +440,7 @@ function execute_config_manager()
   fi
 
   if [[ -n "${options_values['FETCH']}" ]]; then
-    fetch_config "$flag" "$force" "${options_values['OUTPUT']}" "$optimize"
+    fetch_config "$flag" "$force" "${options_values['OUTPUT']}" "$optimize" "${options_values['TARGET']}"
     return
   fi
 }
@@ -401,7 +453,7 @@ function parse_configm_options()
   local long_options
   local options
 
-  long_options='save:,list,get:,remove:,force,description:,fetch,output:,optimize'
+  long_options='save:,list,get:,remove:,force,description:,fetch,output:,optimize,remote:'
   short_options='s:,l,r:,d:,h,f,o:'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -419,8 +471,23 @@ function parse_configm_options()
   options_values['LIST']=''
   options_values['GET']=''
   options_values['REMOVE']=''
+  options_values['TARGET']="$LOCAL_TARGET"
 
   eval "set -- $options"
+
+  # Set basic default values
+  if [[ -n ${configurations[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${configurations[default_deploy_target]}
+    options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
+  else
+    options_values['TARGET']="$VM_TARGET"
+  fi
+
+  populate_remote_info ''
+  if [[ "$?" == 22 ]]; then
+    options_values['ERROR']="Invalid remote: $remote"
+    return 22 # EINVAL
+  fi
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -469,6 +536,15 @@ function parse_configm_options()
         options_values['OPTIMIZE']=1
         shift
         ;;
+      --remote)
+        options_values['TARGET']=$REMOTE_TARGET
+        shift
+        populate_remote_info "$1"
+        if [[ "$?" == 22 ]]; then
+          return 22 # EINVAL
+        fi
+        shift
+        ;;
       --)
         shift
         ;;
@@ -489,4 +565,19 @@ function parse_configm_options()
       return 22 # EINVAL
     fi
   fi
+}
+
+function config_manager_help()
+{
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'configm'
+    return
+  fi
+  printf '%s\n' 'kw config manager:' \
+    '  configm --fetch [(-o | --output) <filename>] [-f | --force] [--optimize] [--remote [<user>@<ip>:<port>]] - Fetch a config' \
+    '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
+    '  configm (-l | --list) - List config files under kw management' \
+    '  configm --get <name> [-f | --force] - Get a config file based named <name>' \
+    '  configm (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
 }
