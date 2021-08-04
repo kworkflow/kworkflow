@@ -87,6 +87,16 @@ function test_init_kw()
   assertEquals "($LINENO)" '22' "$?"
   compare_command_sequence 'expected_content' "$output" "($LINENO)"
 
+  rm -rf "${path:?}"/*
+  output=$(init_kw --target local)
+  kworkflow_content=$(grep default_deploy_target= "$path_config")
+  assertEquals "($LINENO)" 'default_deploy_target=local' "$kworkflow_content"
+
+  rm -rf "${path:?}"/*
+  output=$(init_kw --target dartboard | head -n 1)
+  kworkflow_content=$(grep default_deploy_target= "$path_config")
+  assertEquals "($LINENO)" 'Target can only be vm, local or remote.' "$output"
+
   export KW_ETC_DIR="break/on/purpose"
   output=$(init_kw -f) # avoids the overwrite prompt
   ret="$?"
@@ -116,6 +126,11 @@ function test_parse_init_options()
   declare -gA remote_parameters
   parse_init_options --remote 'user@127.0.2.1:8888'
   assertEquals "($LINENO):" 'user@127.0.2.1:8888' "${options_values['REMOTE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_init_options --target remote
+  assertEquals "($LINENO):" 'remote' "${options_values['TARGET']}"
 }
 
 invoke_shunit

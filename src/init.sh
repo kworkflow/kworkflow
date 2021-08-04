@@ -74,6 +74,17 @@ function init_kw()
       fi
     fi
 
+    if [[ -n "${options_values['TARGET']}" ]]; then
+      case "${options_values['TARGET']}" in
+        vm | local | remote)
+          set_config_value 'default_deploy_target' "${options_values['TARGET']}"
+          ;;
+        *)
+          complain 'Target can only be vm, local or remote.'
+          ;;
+      esac
+    fi
+
   else
     complain "No such: $config_file_template"
     exit 2 # ENOENT
@@ -99,8 +110,8 @@ function set_config_value()
 
 function parse_init_options()
 {
-  local long_options='arch:,remote:,force'
-  local short_options='a:,r:,f'
+  local long_options='arch:,remote:,target:,force'
+  local short_options='a:,r:,t:,f'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -124,6 +135,11 @@ function parse_init_options()
       --remote | -r)
         options_values['REMOTE']+="$2"
         shift 2
+        ;;
+      --target | -t)
+        shift
+        options_values['TARGET']="$1"
+        shift
         ;;
       --force | -f)
         shift
@@ -151,5 +167,6 @@ function init_help()
   printf '%s\n' 'kw init:' \
     '  init - Creates a kworkflow.config file in the current directory.' \
     '  init --arch <arch> - Set the arch field in the kworkflow.config file.' \
-    '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.'
+    '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
+    '  init --target <target> Set the default_deploy_target field in the kworkflow.config file'
 }
