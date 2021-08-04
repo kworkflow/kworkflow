@@ -3,6 +3,7 @@
 
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
+include "$KW_LIB_DIR/remote.sh"
 
 KW_DIR='.kw'
 
@@ -60,6 +61,19 @@ function init_kw()
         find "$PWD/arch" -maxdepth 1 -mindepth 1 -type d -printf '%f\n'
       fi
     fi
+
+    if [[ -n "${options_values['REMOTE']}" ]]; then
+      populate_remote_info "${options_values['REMOTE']}"
+      if [[ "$?" == 22 ]]; then
+        complain 'Invalid remote:' "${options_values['REMOTE']}"
+        exit 22 # EINVAL
+      else
+        set_config_value 'ssh_user' "${remote_parameters['REMOTE_USER']}"
+        set_config_value 'ssh_ip' "${remote_parameters['REMOTE_IP']}"
+        set_config_value 'ssh_port' "${remote_parameters['REMOTE_PORT']}"
+      fi
+    fi
+
   else
     complain "No such: $config_file_template"
     exit 2 # ENOENT
@@ -85,8 +99,8 @@ function set_config_value()
 
 function parse_init_options()
 {
-  local long_options='arch:,force'
-  local short_options='a:,f'
+  local long_options='arch:,remote:,force'
+  local short_options='a:,r:,f'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -105,6 +119,10 @@ function parse_init_options()
     case "$1" in
       --arch | -a)
         options_values['ARCH']+="$2"
+        shift 2
+        ;;
+      --remote | -r)
+        options_values['REMOTE']+="$2"
         shift 2
         ;;
       --force | -f)
@@ -132,5 +150,6 @@ function init_help()
   fi
   printf '%s\n' 'kw init:' \
     '  init - Creates a kworkflow.config file in the current directory.' \
-    '  init --arch <arch> - Set the arch field in the kworkflow.config file.'
+    '  init --arch <arch> - Set the arch field in the kworkflow.config file.' \
+    '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.'
 }

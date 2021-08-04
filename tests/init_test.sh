@@ -69,6 +69,24 @@ function test_init_kw()
   kworkflow_content=$(grep arch= "$path_config")
   assertEquals "($LINENO):" 'arch=baroque' "$kworkflow_content"
 
+  rm -rf "${path:?}"/*
+  output=$(init_kw --remote juca@123.456.789.123:2222)
+  kworkflow_content=$(grep ssh_user= "$path_config")
+  assertEquals "($LINENO)" 'ssh_user=juca' "$kworkflow_content"
+
+  kworkflow_content=$(grep ssh_ip= "$path_config")
+  assertEquals "($LINENO)" 'ssh_ip=123.456.789.123' "$kworkflow_content"
+
+  kworkflow_content=$(grep ssh_port= "$path_config")
+  assertEquals "($LINENO)" 'ssh_port=2222' "$kworkflow_content"
+
+  rm -rf "${path:?}"/*
+  expected_content=('Something went wrong with the remote option'
+    'Invalid remote: :8888')
+  output=$(init_kw --remote ':8888')
+  assertEquals "($LINENO)" '22' "$?"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+
   export KW_ETC_DIR="break/on/purpose"
   output=$(init_kw -f) # avoids the overwrite prompt
   ret="$?"
@@ -91,6 +109,13 @@ function test_parse_init_options()
   declare -gA options_values
   parse_init_options --not-valid
   assertEquals "($LINENO)" '22' "$?"
+
+  unset options_values
+  unset remote_parameters
+  declare -gA options_values
+  declare -gA remote_parameters
+  parse_init_options --remote 'user@127.0.2.1:8888'
+  assertEquals "($LINENO):" 'user@127.0.2.1:8888' "${options_values['REMOTE']}"
 }
 
 invoke_shunit
