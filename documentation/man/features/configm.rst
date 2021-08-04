@@ -39,7 +39,7 @@ OPTIONS
   will remove the config file from kw management. The user can suppress this
   warning by using ``-f``.
 
-\--fetch [(-o | --output) <filename>] [-f | --force] [--optimize]:
+\--fetch [(-o | --output) <filename>] [-f | --force] [--optimize] [--remote [<remote>:<port>]]:
   This option fetches a .config file from a target machine to your current
   directory. If another .config is found in this directory, then it will ask you
   whether you want to replace it or not. If you use the force option, the
@@ -62,3 +62,8 @@ In case you want that kw saves your current **.config** file, you can use::
 You can see the config's file maintained by kw with::
 
   kw g --list
+
+If you want to fetch a .config file from a remote machine at localhost:2222 with
+user root, then you can run::
+
+  kw configm --fetch --remote root@localhost:2222

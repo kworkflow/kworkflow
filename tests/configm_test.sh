@@ -459,6 +459,8 @@ function test_fetch_config()
 {
   local output
   local current_path="$PWD"
+  local LOCAL_TARGET=2
+  local REMOTE_TARGET=3
 
   declare -a expected_output
 
@@ -484,7 +486,7 @@ function test_fetch_config()
     'make defconfig ARCH=x86'
     'Successfully retrieved .config'
   )
-  output=$(fetch_config 'TEST_MODE')
+  output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   expected_output=(
@@ -493,21 +495,21 @@ function test_fetch_config()
   )
   mkdir "${root}proc"
   touch "${root}proc/config.gz"
-  output=$(fetch_config 'TEST_MODE')
+  output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   touch "$root/.config"
 
   # Say no to overwriting the file
-  output=$(echo n | fetch_config 'TEST_MODE')
+  output=$(echo n | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
 
   # Say yes to overwriting the file
-  output=$(echo y | fetch_config 'TEST_MODE')
+  output=$(echo y | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   # Now using the --force option
-  output=$(fetch_config 'TEST_MODE' 1)
+  output=$(fetch_config 'TEST_MODE' 1 '' '' "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   expected_output=(
@@ -515,7 +517,7 @@ function test_fetch_config()
     'Successfully retrieved newconfig'
   )
 
-  output=$(fetch_config 'TEST_MODE' '' newconfig)
+  output=$(fetch_config 'TEST_MODE' '' newconfig '' "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   # Optimized
@@ -527,7 +529,7 @@ function test_fetch_config()
 
   mk_fake_kernel_root "$PWD"
 
-  output=$(echo n | fetch_config 'TEST_MODE' '' '' 1)
+  output=$(echo n | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
   assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
 
   rm "$PWD/.config"
@@ -539,8 +541,23 @@ function test_fetch_config()
     'Successfully retrieved .config'
   )
 
-  output=$(echo y | fetch_config 'TEST_MODE' '' '' 1)
+  output=$(echo y | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  expected_output=(
+    "ssh -p 1234 mary@localhost sudo \"mkdir -p /tmp/kw\""
+    "ssh -p 1234 mary@localhost sudo \"[ -f /proc/config.gz ]\""
+    "ssh -p 1234 mary@localhost sudo \"zcat /proc/config.gz > /tmp/kw/.config\""
+    "rsync -e \"ssh -p 1234\" mary@localhost:/tmp/kw/.config $PWD"
+    "ssh -p 1234 mary@localhost sudo \"rm -rf /tmp/kw\""
+    'Successfully retrieved .config'
+  )
+
+  # Compare sequence of commands to retrieve .config from remote machine
+  remote_parameters['REMOTE_USER']='mary'
+  remote_parameters['REMOTE_IP']='localhost'
+  remote_parameters['REMOTE_PORT']='1234'
+  output=$(echo y | fetch_config 'TEST_MODE' '' '' '' "$REMOTE_TARGET")
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
