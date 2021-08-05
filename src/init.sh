@@ -18,6 +18,15 @@ function init_kw()
     exit 0
   fi
 
+  if [[ -f "$PWD/$name" ]]; then
+    if [[ "$*" =~ --?f(orce)? || $(ask_yN "$name already exists, do you wish to overwrite it?") =~ '1' ]]; then
+      mv "$PWD/$name" "$PWD/$name.old"
+    else
+      say 'Initialization aborted!'
+      exit 0
+    fi
+  fi
+
   if [[ -f "$config_file_template" ]]; then
     cp "$config_file_template" "$PWD/$name"
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SHARE_SOUND_DIR,g" -e "/^#?.*/d" \

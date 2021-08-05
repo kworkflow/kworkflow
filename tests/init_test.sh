@@ -29,7 +29,7 @@ function test_init_kw()
   local path_config="$FAKE_CONFIG_PATH/$KWORKFLOW/kworkflow.config"
   local output
 
-  output=$(init_kw)
+  output=$(init_kw 1)
 
   kworkflow_content=$(grep "$USER" -o "$path_config" | head -n 1)
 
@@ -38,8 +38,17 @@ function test_init_kw()
   kworkflow_content=$(grep "$KW_SHARE_SOUND_DIR" -o "$path_config" | head -n 1)
   assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SHARE_SOUND_DIR" "$KW_SHARE_SOUND_DIR" "$kworkflow_content"
 
+  output=$(init_kw --force)
+  if [[ ! -f "$path_config.old" ]]; then
+    fail "($LINENO) We expected to find a 'kworkflow.config.old' file."
+  fi
+
+  expect='Initialization aborted!'
+  output=$(echo 'n' | init_kw)
+  assertEquals "($LINENO): The init proccess didn't abort correctly" "$expect" "$output"
+
   export KW_ETC_DIR="break/on/purpose"
-  output=$(init_kw)
+  output=$(init_kw -f) # avoids the overwrite prompt
   ret="$?"
   assertEquals "($LINENO): We forced an error and expected to catch it" "2" "$ret"
 }
