@@ -2,6 +2,8 @@ include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/kw_config_loader.sh"
 
+declare -gA options_values
+
 # This function retrieves and prints information related to the kernel that
 # will be compiled.
 # shellcheck disable=2120
@@ -38,65 +40,59 @@ function kernel_build()
 {
   local flag="$1"
   shift 1
-  local raw_options="$*"
-  local PARALLEL_CORES=1
-  local CROSS_COMPILE=""
-  local command=""
+  local command
   local start
   local end
-  local arch="${configurations[arch]}"
-  local menu_config="${configurations[menu_config]}"
+  local cross_compile
+  local arch
+  local menu_config
+  local parallel_cores
+  local doc_type
 
-  if [[ "$1" == -h ]]; then
-    build_help
-    exit 0
+  parse_build_options "$@"
+  if [[ "$?" != 0 ]]; then
+    exit 22 # EINVAL
   fi
 
-  menu_config=${menu_config:-"nconfig"}
-  arch=${arch:-"x86_64"}
+  cross_compile="${options_values['CROSS_COMPILE']}"
+  arch=${options_values['ARCH']}
+  menu_config=${options_values['MENU_CONFIG']}
+  parallel_cores=${options_values['PARALLEL_CORES']}
+  doc_type=${options_values['DOC_TYPE']}
+
+  if [[ -n "${options_values['INFO']}" ]]; then
+    build_info
+    exit
+  fi
+
+  if [[ -n "$cross_compile" ]]; then
+    cross_compile="CROSS_COMPILE=$cross_compile"
+  fi
+
+  if [[ -n "$menu_config" ]]; then
+    command="make ARCH=$arch $cross_compile $menu_config"
+    cmd_manager "$flag" "$command"
+    return
+  fi
+
+  if [[ -n "$doc_type" ]]; then
+    command="make $doc_type"
+    cmd_manager "$flag" "$command"
+    return
+  fi
 
   if ! is_kernel_root "$PWD"; then
     complain "Execute this command in a kernel tree."
     exit 125 # ECANCELED
   fi
 
-  if [[ -n "${configurations[cross_compile]}" ]]; then
-    CROSS_COMPILE="CROSS_COMPILE=${configurations[cross_compile]}"
-  fi
-
-  IFS=' ' read -r -a options <<< "$raw_options"
-  for option in "${options[@]}"; do
-    case "$option" in
-      --info | -i)
-        build_info
-        exit
-        ;;
-      --menu | -n)
-        command="make ARCH=$arch $CROSS_COMPILE $menu_config"
-        cmd_manager "$flag" "$command"
-        exit
-        ;;
-      --doc | -d)
-        doc_type="${configurations[doc_type]}"
-        doc_type=${doc_type:='htmldocs'}
-        command="make $doc_type"
-        cmd_manager "$flag" "$command"
-        return
-        ;;
-      *)
-        complain "Invalid option: $option"
-        exit 22 # EINVAL
-        ;;
-    esac
-  done
-
   if [ -x "$(command -v nproc)" ]; then
-    PARALLEL_CORES=$(nproc --all)
+    parallel_cores=$(nproc --all)
   else
-    PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
+    parallel_cores=$(grep -c ^processor /proc/cpuinfo)
   fi
 
-  command="make -j$PARALLEL_CORES ARCH=$arch $CROSS_COMPILE"
+  command="make -j$parallel_cores ARCH=$arch $cross_compile"
 
   start=$(date +%s)
   cmd_manager "$flag" "$command"
@@ -112,6 +108,62 @@ function kernel_build()
   fi
 
   return "$ret"
+}
+
+function parse_build_options()
+{
+  local long_options='help,info,menu,doc'
+  local short_options='h,i,n,d'
+  local doc_type
+
+  options="$(getopt \
+    --name "kw build" \
+    --options "$short_options" \
+    --longoptions "$long_options" \
+    -- "$@")"
+
+  if [[ "$?" != 0 ]]; then
+    return 22 # EINVAL
+  fi
+
+  # Default values
+  options_values['ARCH']="${configurations[arch]:-'x86_64'}"
+  options_values['MENU_CONFIG']=''
+  options_values['CROSS_COMPILE']="${configurations[cross_compile]}"
+  options_values['PARALLEL_CORES']=1
+  options_values['INFO']=''
+  options_values['DOC_TYPE']=''
+
+  eval "set -- $options"
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --help | -h)
+        build_help
+        exit
+        ;;
+      --info | -i)
+        options_values['INFO']=1
+        shift
+        ;;
+      --menu | -n)
+        options_values['MENU_CONFIG']="${configurations[menu_config]:-nconfig}"
+        shift
+        ;;
+      --doc | -d)
+        options_values['DOC_TYPE']="${configurations[doc_type]:-htmldocs}"
+        shift
+        ;;
+      --)
+        shift
+        ;;
+      *)
+        complain "Invalid option: $option"
+        exit 22 # EINVAL
+        ;;
+    esac
+  done
+
 }
 
 function build_help()
