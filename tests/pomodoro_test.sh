@@ -131,7 +131,7 @@ function test_show_active_pomodoro_timebox()
   output=$(show_active_pomodoro_timebox)
 
   timestamp_to_date=$(date_to_format "@$timestamp" '+%H:%M:%S[%Y/%m/%d]')
-  diff_time=$((3332232700 - $timestamp))
+  diff_time=$((3332232700 - timestamp))
   elapsed_time=$(sec_to_format "$diff_time")
   missing_time=$(calculate_missing_time "${options_values['TIMER']}" "$diff_time")
   missing_time=$(sec_to_format "$missing_time")
