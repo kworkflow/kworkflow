@@ -25,7 +25,6 @@ function tearDown()
 
 function test_init_kw()
 {
-  local ID
   local kworkflow_content
   local path_config="$FAKE_CONFIG_PATH/$KWORKFLOW/kworkflow.config"
   local output
@@ -34,18 +33,15 @@ function test_init_kw()
 
   kworkflow_content=$(grep "$USER" -o "$path_config" | head -n 1)
 
-  ID=1
-  assertEquals "($ID)" "$USER" "$kworkflow_content"
+  assertEquals "($LINENO): USERKW wasn't updated to $USER" "$USER" "$kworkflow_content"
 
-  ID=2
   kworkflow_content=$(grep "$KW_SHARE_SOUND_DIR" -o "$path_config" | head -n 1)
-  assertEquals "($ID)" "$KW_SHARE_SOUND_DIR" "$kworkflow_content"
+  assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SHARE_SOUND_DIR" "$KW_SHARE_SOUND_DIR" "$kworkflow_content"
 
-  ID=3
   export KW_ETC_DIR="break/on/purpose"
   output=$(init_kw)
   ret="$?"
-  assertEquals "($ID) We forced an error and expected to catch it" "2" "$ret"
+  assertEquals "($LINENO): We forced an error and expected to catch it" "2" "$ret"
 }
 
 invoke_shunit
