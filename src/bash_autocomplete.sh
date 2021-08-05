@@ -6,7 +6,7 @@ function _kw_autocomplete()
   previous_command="${COMP_WORDS[COMP_CWORD - 1]}"
   kw_options="explore e bd build b init ssh s clear-cache
                 mount mo umount um vars up u codestyle c configm g
-                maintainers m deploy d help h version statistics
+                maintainers m deploy d help h version statistics send-email se
                 pomodoro p report r device drm diff df --version -v man"
 
   # By default, autocomplete with kw_options

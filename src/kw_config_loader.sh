@@ -70,6 +70,11 @@ function show_variables()
     [reboot_after_deploy]='Reboot after deploy'
   )
 
+  local -Ar sendemail=(
+    [mail_recipents]='Default mail recipients'
+    [mail_args]='Default arguments passed to "git send-email"'
+  )
+
   local -Ar misc=(
     [disable_statistics_data_track]='Disable tracking of statistical data'
     [gui_on]='Command to activate GUI'

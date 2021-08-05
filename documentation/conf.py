@@ -161,6 +161,7 @@ man_pages = [
     ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
     ('man/features/pomodoro', 'pomodoro', 'pomodoro style time management', [author], 1),
     ('man/features/report', 'report', 'user data report support', [author], 1),
+    ('man/features/sendemail', 'sendemail', 'git send-email wrapper', [author], 1),
     ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
     ('man/features/statistics', 'statistics', 'statistics about kw', [author], 1),
     ('man/features/umount', 'umount', 'command for unmounting a QEMU VM', [author], 1),

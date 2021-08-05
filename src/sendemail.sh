@@ -7,11 +7,15 @@ declare -gA options_values
 
 function kw_sendemail()
 {
-  local test_opts='--dry-run --annotate --cover-letter --thread --no-chain-reply-to'
+  parse_sendemail_options "$@"
 
-  cmd="git send-email $test_opts --to=rugone1000@hotmail.com -1"
+  local opts="${configurations[mail_args]} ${options_values[EX_ARGS]}"
+  local recipients="${configurations[mail_recipients]}"
 
-  eval "$cmd"
+  cmd="git send-email $opts --to=$recipients -1"
+
+  echo "$cmd"
+  # eval "$cmd"
 
   return 0
 }
@@ -20,152 +24,88 @@ function sendemail_setup()
 {
   local count=0
   local -a missing_conf
-  local -a min_conf=('user.name' 'user.email' 'sendemail.smtpencryption'
-    'sendemail.smtpserver' 'sendemail.smtpuser' 'sendemail.smtpserverport')
+  local -a min_conf=('user.name=' 'user.email=' 'sendemail.smtpencryption=' 'fail'
+    'sendemail.smtpserver=' 'sendemail.smtpuser=' 'sendemail.smtpserverport=')
   local set_confs
 
+  # echo "${min_conf[*]}"
   set_confs=$(git config --list)
+  # echo "*****$set_confs*****"
   for config in "${min_conf[@]}"; do
-    if [[ $(grep -c "$config" "$set_confs") -eq 0 ]]; then
+    if ! echo "$set_confs" | grep -cF "$config" - &> /dev/null; then
+      # printf "\n\n%s\n\n" "$config;"
       missing_conf[$count]="$config"
       count=$((count + 1))
     fi
   done
+  echo "COUNT: $count"
   if [[ $count -gt 0 ]]; then
-    complain "Missing configurations neede for sendemail: ${missing_conf[*]}"
+    complain "Missing configurations needed for sendemail: ${missing_conf[*]%=}"
     return 1
   fi
   return 0
 }
 
-function sendemail_parser_options()
+function parse_sendemail_options()
 {
-  local raw_options="$*"
-  local uninstall=0
-  local enable_collect_param=0
-  local remote
+  local long_options='help,send,setup,args:'
+  local short_options='h,s,i,a:'
 
-  options_values['UNINSTALL']=''
-  options_values['MODULES']=0
-  options_values['LS_LINE']=0
-  options_values['LS']=0
-  options_values['REBOOT']=0
-  options_values['MENU_CONFIG']='nconfig'
+  options="$(getopt \
+    --name "kw send-email" \
+    --options "$short_options" \
+    --longoptions "$long_options" \
+    -- "$@")"
 
-  remote_parameters['REMOTE']=''
-
-  # Set basic default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    local config_file_deploy_target=${configurations[default_deploy_target]}
-    options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
-  else
-    options_values['TARGET']="$VM_TARGET"
-  fi
-
-  populate_remote_info ''
-  if [[ "$?" == 22 ]]; then
-    options_values['ERROR']="$remote"
+  if [[ "$?" != 0 ]]; then
     return 22 # EINVAL
   fi
 
-  if [[ ${configurations[reboot_after_deploy]} == 'yes' ]]; then
-    options_values['REBOOT']=1
-  fi
+  # Default values
+  options_values['SEND']=''
+  options_values['EX_ARGS']=''
 
-  IFS=' ' read -r -a options <<< "$raw_options"
-  for option in "${options[@]}"; do
-    if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
-      if [[ "$enable_collect_param" == 1 ]]; then
-        options_values['ERROR']='expected paramater'
-        return 22
-      fi
+  eval "set -- $options"
 
-      case "$option" in
-        --remote)
-          options_values['TARGET']="$REMOTE_TARGET"
-          continue
-          ;;
-        --local)
-          options_values['TARGET']="$LOCAL_TARGET"
-          continue
-          ;;
-        --vm)
-          options_values['TARGET']="$VM_TARGET"
-          continue
-          ;;
-        --reboot | -r)
-          options_values['REBOOT']=1
-          continue
-          ;;
-        --modules | -m)
-          options_values['MODULES']=1
-          continue
-          ;;
-        --list | -l)
-          options_values['LS']=1
-          continue
-          ;;
-        --ls-line | -s)
-          options_values['LS_LINE']=1
-          continue
-          ;;
-        --uninstall | -u)
-          enable_collect_param=1
-          uninstall=1
-          continue
-          ;;
-        test_mode)
-          options_values['TEST_MODE']='TEST_MODE'
-          ;;
-        *)
-          options_values['ERROR']="$option"
-          return 22 # EINVAL
-          ;;
-      esac
-    else # Handle potential parameters
-      if [[ "$uninstall" != 1 &&
-        ${options_values['TARGET']} == "$REMOTE_TARGET" ]]; then
-        populate_remote_info "$option"
-        if [[ "$?" == 22 ]]; then
-          options_values['ERROR']="$option"
-          return 22
-        fi
-      elif [[ "$uninstall" == 1 ]]; then
-        options_values['UNINSTALL']+="$option"
-        enable_collect_param=0
-      else
-        # Invalind option
-        options_values['ERROR']="$option"
-        return 22
-      fi
-    fi
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --help | -h)
+        sendemail_help "$1"
+        exit
+        ;;
+      --setup | -i)
+        sendemail_setup
+        exit
+        ;;
+      --send | -s)
+        options_values['SEND']=1
+        shift
+        ;;
+      --args | -a)
+        options_values['EX_ARGS']="$2"
+        shift 2
+        ;;
+      --)
+        shift
+        ;;
+      *)
+        complain "Invalid option: $option"
+        exit 22 # EINVAL
+        ;;
+    esac
   done
-
-  # Uninstall requires an option
-  if [[ "$uninstall" == 1 && -z "${options_values['UNINSTALL']}" ]]; then
-    options_values['ERROR']='uninstall requires a kernel name'
-    return 22
-  fi
-
-  case "${options_values['TARGET']}" in
-    1 | 2 | 3) ;;
-
-    *)
-      options_values['ERROR']='remote option'
-      return 22
-      ;;
-  esac
 }
 
-function build_help()
+function sendemail_help()
 {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'send-email'
-    return
+    kworkflow_man 'sendemail'
+    exit
   fi
-  echo -e "kw send-email:\n" \
-    "  send-email - Send email"
+  printf "%s\n" "kw send-email:" \
+    "  send-email (-s | --send) - Send email" \
+    "  send-email (-i | --setup) - Configure mailing functionality"
 }
 
 # Basic:
