@@ -252,7 +252,7 @@ function calculate_missing_time()
       ;;
   esac
 
-  missing_time=$(($time_value - $elapsed_time))
+  missing_time=$((time_value - elapsed_time))
   if [[ "$missing_time" -lt 0 ]]; then
     missing_time=0
   fi
@@ -279,7 +279,7 @@ function show_active_pomodoro_timebox()
 
     # Calculate and process output
     timestamp_to_date=$(date_to_format "@$timestamp" '+%H:%M:%S[%Y/%m/%d]')
-    diff_time=$(($current_timestamp - $timestamp))
+    diff_time=$((current_timestamp - timestamp))
 
     timebox=$(calculate_missing_time "$timebox" "$diff_time")
 
