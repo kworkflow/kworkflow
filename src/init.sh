@@ -23,7 +23,7 @@ function init_kw()
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SHARE_SOUND_DIR,g" -e "/^#?.*/d" \
       "$PWD/$name"
   else
-    complain "No such: $config_file_template or $kw_path"
+    complain "No such: $config_file_template"
     exit 2 # ENOENT
   fi
 
