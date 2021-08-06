@@ -1,6 +1,8 @@
 include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 CONFIG_FILENAME=kworkflow.config
+KW_DIR='.kw'
 
 # Basic targets
 VM_TARGET=1
@@ -27,7 +29,8 @@ function show_variables()
     exit 0
   fi
 
-  if [ -f "$PWD/kworkflow.config" ]; then
+  # TODO: Drop [[ -f "$PWD/$CONFIG_FILENAME" ]] in the future
+  if [[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" ]] || [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
     has_local_config_path="Yes"
   else
     has_local_config_path="No"
@@ -162,7 +165,24 @@ function load_configuration()
   done
 
   parse_configuration "${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW/$CONFIG_FILENAME"
-  parse_configuration "$PWD/$CONFIG_FILENAME"
+
+  # New users may not have kworkflow.config at $PWD
+  if [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
+    warning 'We will stop supporting kworkflow.config in the kernel root directory in favor of using a .kw/ directory.'
+    if is_kernel_root "$PWD" &&
+      [[ $(ask_yN 'Do you want to migrate to the new configuration file approach? (Recommended)') =~ 1 ]]; then
+      mkdir -p "$PWD/$KW_DIR/"
+      mv "$PWD/$CONFIG_FILENAME" "$PWD/$KW_DIR/$CONFIG_FILENAME"
+      parse_configuration "$PWD/$KW_DIR/$CONFIG_FILENAME"
+    else
+      parse_configuration "$PWD/$CONFIG_FILENAME"
+    fi
+  fi
+
+  # Old users may not have used kw init yet, so they wouldn't have .kw
+  if [[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" ]]; then
+    parse_configuration "$PWD/$KW_DIR/$CONFIG_FILENAME"
+  fi
 }
 
 # Every time that "kw_config_loader.sh" is included, the configuration file has

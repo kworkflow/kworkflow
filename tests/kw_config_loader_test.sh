@@ -76,12 +76,12 @@ function test_parse_configuration_output()
   cp tests/samples/kworkflow.config "$TMP_DIR/"
 
   pushd "$TMP_DIR" > /dev/null || {
-    fail "($LINENO) It was not possible to pushd into temp directory"
+    fail "($LINENO): It was not possible to pushd into temp directory"
     return
   }
   parse_configuration "$PWD/kworkflow.config"
   popd > /dev/null || {
-    fail "($LINENO) It was not possible to popd from temp directory"
+    fail "($LINENO): It was not possible to popd from temp directory"
     return
   }
 
@@ -130,7 +130,7 @@ function test_parse_configuration_files_loading_order()
   local original_dir="$PWD"
 
   cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was nos possible to move to temporary directory"
+    fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
 
@@ -144,7 +144,6 @@ function test_parse_configuration_files_loading_order()
     "3/$KWORKFLOW/$CONFIG_FILENAME"
     "2/$KWORKFLOW/$CONFIG_FILENAME"
     "5/$KWORKFLOW/$CONFIG_FILENAME"
-    "$PWD/$CONFIG_FILENAME"
   )
 
   output="$(
@@ -154,6 +153,7 @@ function test_parse_configuration_files_loading_order()
     }
     load_configuration
   )"
+
   compare_command_sequence 'expected' "$output" "$LINENO - Wrong config file reading order."
 
   # IF XDG global variables are not defined
@@ -179,7 +179,7 @@ function test_parse_configuration_files_loading_order()
   compare_command_sequence 'expected' "$output" "$LINENO - Wrong config file reading order."
 
   cd "$original_dir" || {
-    fail "($LINENO) It was nos possible to move back to original directory"
+    fail "($LINENO) It was not possible to move back to original directory"
     return
   }
 }
@@ -262,6 +262,66 @@ function test_show_variables_correctness()
       fail "$message"
     fi
   done <<< "$output"
+}
+
+function test_load_configuration()
+{
+  local current_path="$PWD"
+  local msg='We will stop supporting kworkflow.config in the kernel root directory in favor of using a .kw/ directory.'
+  local -a expected
+
+  function parse_configuration()
+  {
+    :
+  }
+
+  cp "$PWD/etc/kworkflow_template.config" "$SHUNIT_TMPDIR/kworkflow.config"
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO): It was not possible to move to temporary directory"
+    return
+  }
+  mk_fake_kernel_root "$PWD"
+
+  # No to updating kworkflow.config to .kw/kworkflow.config
+  output="$(echo n | load_configuration)"
+  assertEquals "($LINENO): There should have been a warning" "$output" "$msg"
+  assertTrue 'kworkflow.config was moved' '[[ -f "$PWD/$CONFIG_FILENAME" ]]'
+
+  # Yes to updating kworkflow.config to .kw/kworkflow.config
+  output="$(echo y | load_configuration)"
+
+  assertEquals "($LINENO): There should have been a warning" "$output" "$msg"
+
+  assertTrue '.kw was not created' '[[ -d "$PWD/$KW_DIR/" ]]'
+  assertTrue 'kworkflow.config is not inside .kw' '[[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" ]]'
+  assertTrue 'kworkflow.config was not moved' '[[ ! -f "$PWD/$CONFIG_FILENAME" ]]'
+
+  rm -rf "${SHUNIT_TMPDIR:?}"/*
+  mkdir -p "$SHUNIT_TMPDIR/$KW_DIR"
+  cp "$current_path/etc/kworkflow_template.config" "$SHUNIT_TMPDIR/$KW_DIR/kworkflow.config"
+
+  expected=(
+    "1/$CONFIG_FILENAME"
+    "/etc/xdg/$KWORKFLOW/$CONFIG_FILENAME"
+    "5/.config/$KWORKFLOW/$CONFIG_FILENAME"
+    "$PWD/$KW_DIR/$CONFIG_FILENAME"
+  )
+
+  output="$(
+    function parse_configuration()
+    {
+      echo "$@"
+    }
+    load_configuration
+  )"
+
+  compare_command_sequence 'expected' "$output" "$LINENO"
+
+  cd "$current_path" || {
+    fail "($LINENO): It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit
