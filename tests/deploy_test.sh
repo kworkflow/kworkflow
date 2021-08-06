@@ -13,6 +13,11 @@ function which_distro_mock()
   printf '%s\n' 'debian'
 }
 
+function detect_distro_mock()
+{
+  printf '%s\n' 'arch'
+}
+
 function get_kernel_release_mock()
 {
   printf '%s\n' '5.4.0-rc7-test'
@@ -130,7 +135,6 @@ function test_kernel_install()
   local name='test'
   local original="$PWD"
   local remote='juca@127.0.0.1'
-  local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
   local kernel_image_path='arch/arm64/boot/Image'
   local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-test"
   local ssh_cmd='ssh -p 3333'
@@ -141,17 +145,14 @@ function test_kernel_install()
 
   # For this test we expected three steps:
   #
-  # 1. Copy preset file (cmd_preset_remote)
-  # 2. Copy kernel image (cmd_image_remote)
-  # 3. Execute deploy command (cmd_deploy_image)
+  # 1. Copy kernel image (cmd_image_remote)
+  # 2. Execute deploy command (cmd_deploy_image)
   #
   # The following commands represets those steps
-  local cmd_preset_remote="$rsync_cmd $preset_path $remote:/root/kw_deploy $rsync_flags"
   local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path $rsync_flags"
   local cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
-    "$cmd_preset_remote"
     "$cmd_image_remote"
     "$cmd_deploy_image"
   )
@@ -178,7 +179,6 @@ function test_kernel_install()
   cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
-    "$cmd_preset_remote"
     "$cmd_image_remote"
     "$cmd_deploy_image"
   )
@@ -207,10 +207,60 @@ function test_kernel_install()
     return
   }
 
-  local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/test.preset"
-  assertTrue "The mkinit file was not created" '[[ -f "$preset_file" ]]'
-
   tearDown
+}
+
+function test_kernel_archlinux_install()
+{
+  local name='test'
+  local original="$PWD"
+  local remote='juca@127.0.0.1'
+  local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
+  local kernel_image_path='arch/arm64/boot/Image'
+  local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-test"
+  local ssh_cmd='ssh -p 3333'
+  local rsync_cmd="rsync -e '$ssh_cmd'"
+  local rsync_flags="-LrlptD --rsync-path='sudo rsync'"
+  local deploy_params="test arch Image 1 arm64 'remote' TEST_MODE"
+  local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
+
+  # For this test we expected three steps:
+  #
+  # 1. Copy preset file (cmd_preset_remote)
+  # 2. Copy kernel image (cmd_image_remote)
+  # 3. Execute deploy command (cmd_deploy_image)
+  #
+  # The following commands represets those steps
+  local cmd_preset_remote="$rsync_cmd $preset_path $remote:/root/kw_deploy $rsync_flags"
+  local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path $rsync_flags"
+  local cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
+
+  declare -a expected_cmd=(
+    "$cmd_preset_remote"
+    "$cmd_image_remote"
+    "$cmd_deploy_image"
+  )
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']=3333
+  remote_parameters['REMOTE_USER']='juca'
+
+  alias detect_distro='detect_distro_mock'
+  output=$(kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
+
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  alias detect_distro='which_distro_mock'
+  # We want to test an corner case described by the absence of mkinitcpio
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_kernel_install_x86_64()
@@ -218,7 +268,6 @@ function test_kernel_install_x86_64()
   local original="$PWD"
   local remote='root@localhost'
   local remote_path='/root/kw_deploy'
-  local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
   local kernel_image_path='arch/x86_64/boot/bzImage'
   local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-test"
   local ssh_cmd='ssh -p 22'
@@ -248,16 +297,13 @@ function test_kernel_install_x86_64()
   }
 
   # For this test we expected three steps:
-  # 1. Copy preset file (cmd_preset_remote)
-  # 2. Copy kernel image (cmd_image_remote)
-  # 3. Execute deploy command (cmd_deploy_image)
+  # 1. Copy kernel image (cmd_image_remote)
+  # 2. Execute deploy command (cmd_deploy_image)
   # The following commands represets those steps
-  local cmd_preset_remote="$rsync_cmd $preset_path $remote:$remote_path $rsync_flags"
   local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path $rsync_flags"
   local cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
-    "$cmd_preset_remote"
     "$cmd_image_remote"
     "$cmd_deploy_image"
   )
