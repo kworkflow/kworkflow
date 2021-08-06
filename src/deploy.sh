@@ -547,13 +547,6 @@ function kernel_install()
       return "$?"
       ;;
     3) # REMOTE_TARGET
-      local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
-      if [[ ! -f "$preset_file" ]]; then
-        template_mkinit="$KW_ETC_DIR/template_mkinitcpio.preset"
-        cp "$template_mkinit" "$preset_file"
-        sed -i "s/NAME/$name/g" "$preset_file"
-      fi
-
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
       user="${remote_parameters['REMOTE_USER']}"
@@ -561,9 +554,19 @@ function kernel_install()
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro '/' "$distro_info")
 
-      cp2remote "$flag" "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
-        "$REMOTE_KW_DEPLOY"
-      cp2remote "$flag" "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/vmlinuz-$name"
+      if [[ "$distro" == 'arch' ]]; then
+        local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
+        if [[ ! -f "$preset_file" ]]; then
+          template_mkinit="$KW_ETC_DIR/template_mkinitcpio.preset"
+          cp "$template_mkinit" "$preset_file"
+          sed -i "s/NAME/$name/g" "$preset_file"
+        fi
+        cp2remote "$flag" \
+          "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" "$REMOTE_KW_DEPLOY"
+      fi
+
+      cp2remote "$flag" \
+        "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/vmlinuz-$name"
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
