@@ -26,10 +26,10 @@ function tearDown()
 function test_init_kw()
 {
   local kworkflow_content
-  local path_config="$FAKE_CONFIG_PATH/$KWORKFLOW/kworkflow.config"
+  local path_config="$FAKE_CONFIG_PATH/$KWORKFLOW/$KW_DIR/kworkflow.config"
   local output
 
-  output=$(init_kw 1)
+  output=$(init_kw)
 
   kworkflow_content=$(grep "$USER" -o "$path_config" | head -n 1)
 

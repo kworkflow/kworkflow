@@ -3,6 +3,8 @@
 
 include "$KW_LIB_DIR/kwio.sh"
 
+KW_DIR='.kw'
+
 # This function is responsible for creating a local kworkflow.config based in a
 # template available in the etc directory.
 #
@@ -18,9 +20,9 @@ function init_kw()
     exit 0
   fi
 
-  if [[ -f "$PWD/$name" ]]; then
+  if [[ -f "$PWD/$KW_DIR/$name" ]]; then
     if [[ "$*" =~ --?f(orce)? || $(ask_yN "$name already exists, do you wish to overwrite it?") =~ '1' ]]; then
-      mv "$PWD/$name" "$PWD/$name.old"
+      mv "$PWD/$KW_DIR/$name" "$PWD/$KW_DIR/$name.old"
     else
       say 'Initialization aborted!'
       exit 0
@@ -28,15 +30,16 @@ function init_kw()
   fi
 
   if [[ -f "$config_file_template" ]]; then
-    cp "$config_file_template" "$PWD/$name"
+    mkdir -p "$PWD/$KW_DIR"
+    cp "$config_file_template" "$PWD/$KW_DIR/$name"
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e "/^#?.*/d" \
-      "$PWD/$name"
+      "$PWD/$KW_DIR/$name"
   else
     complain "No such: $config_file_template"
     exit 2 # ENOENT
   fi
 
-  say "Initialized kworkflow config in $PWD based on $USER data"
+  say "Initialized kworkflow directory in $PWD/$KW_DIR based on $USER data"
 }
 
 function init_help()
