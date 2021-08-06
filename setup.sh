@@ -264,7 +264,7 @@ function synchronize_files()
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sharesounddir' failed" "$?"
   ## TODO: Remove me one day
   # Old kworkflow.config uses complete.wav instead of bell
-  ln -s "$sharesounddir/bell.wav" $sharesounddir/complete.wav
+  ln -s "$sharesounddir/bell.wav" "$sharesounddir/complete.wav"
 
   # Documentation files
   mkdir -p "$sharedocdir"
