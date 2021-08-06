@@ -17,7 +17,7 @@ function setUp()
 {
   export INVALID_ARG='Invalid arguments'
   export NO_SUCH_FILE='No such file'
-  export SSH_OK='ssh -p 3333 127.0.0.1'
+  export SSH_OK='ssh -p 3333 juca@127.0.0.1'
 
   mkdir "$TEST_PATH"
 
@@ -32,65 +32,72 @@ function tearDown()
   rm -rf "$TEST_PATH"
 }
 
-function test_kw_ssh_check_fail_cases()
+function test_parser_ssh_options()
 {
-  local args='--lala'
   local ret
+  local substring_output
+  local error
 
-  ret=$(kw_ssh "$args")
-  assertTrue "($LINENO): We expected a substring \"$INVALID_ARG: $args\", but we got \"$ret\"" '[[ $ret =~ "$INVALID_ARG: $args" ]]'
+  parser_ssh_options --lala
+  ret="$?"
+  assertTrue "($LINENO): We expected a 22 for --lala parameter" '[[ $ret -eq 22 ]]'
 
-  args="-m"
-  ret=$(kw_ssh $args)
-  assertTrue "($LINENO): We expected a substring \"$INVALID_ARG: $args\", but we got \"$ret\"" '[[ $ret =~ "$INVALID_ARG: $args" ]]'
+  parser_ssh_options -m
+  ret="$?"
+  assertTrue "($LINENO): We expected a 22 for -m parameter" '[[ $ret -eq 22 ]]'
 
-  args="-d="
-  ret=$(kw_ssh $args)
-  assertTrue "($LINENO): We expected a substring \"$INVALID_ARG: $args\", but we got \"$ret\"" '[[ $ret =~ "$INVALID_ARG: $args" ]]'
+  parser_ssh_options -c
+  substring_output="ssh: option requires an argument -- 'c'"
+  error="${options_values['ERROR']}"
+  assertTrue "($LINENO): We should fail since -c expects a parameter" \
+    '[[ $substring_output =~ $error ]]'
 
-  args="-c"
-  ret=$(kw_ssh $args)
-  assertTrue "($LINENO): We expected a substring \"$INVALID_ARG: $args\", but we got \"$ret\"" '[[ $ret =~ "$INVALID_ARG: $args" ]]'
-
-  args="-s"
-  ret=$(kw_ssh $args)
-  assertTrue "($LINENO): We expected a substring \"$INVALID_ARG: $args\", but we got \"$ret\"" '[[ $ret =~ "$INVALID_ARG: $args" ]]'
-
-  args="-s="
-  ret=$(kw_ssh $args)
-  assertTrue "($LINENO): We expected a substring \"$NO_SUCH_FILE\", but we got \"$ret\"" '[[ $ret =~ "$NO_SUCH_FILE" ]]'
-
-  args="--script="
-  ret=$(kw_ssh $args)
-  assertTrue "($LINENO): We expected a substring \"$NO_SUCH_FILE\", but we got \"$ret\"" '[[ $ret =~ "$NO_SUCH_FILE" ]]'
+  parser_ssh_options -s
+  substring_output="ssh: option requires an argument -- 's'"
+  error="${options_values['ERROR']}"
+  assertTrue "($LINENO): We expected a failure since -s expected a parameter" \
+    '[[ $substring_output =~ $error ]]'
 }
 
-function test_kw_ssh_basic()
+function test_kw_ssh_no_parameter()
 {
-  ret=$(kw_ssh 2>&1)
+  local ret
+
+  ret=$(kw_ssh test_mode)
 
   assertTrue "We expected a substring \"$SSH_OK\", but we got \"$ret\"" '[[ $ret =~ "$SSH_OK" ]]'
 }
 
 function test_kw_ssh_command()
 {
-  ret=$(kw_ssh -c="pwd" 2>&1)
-  msg="$SSH_OK pwd"
-  assertTrue "We expected a substring \"$msg\", but we got \"$ret\"" '[[ $ret =~ "$msg" ]]'
+  local ret
+  local msg
 
-  ret=$(kw_ssh --command="ls /etc/" 2>&1)
+  ret=$(kw_ssh test_mode -c 'pwd')
+  msg="$SSH_OK pwd"
+  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
+    '[[ $ret == "$msg" ]]'
+
+  ret=$(kw_ssh test_mode --command "ls /etc/" 2>&1)
   msg="$SSH_OK ls /etc/"
-  assertTrue "We expected a substring \"$msg\", but we got \"$ret\"" '[[ $ret =~ "$msg" ]]'
+  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
+    '[[ $ret == $msg ]]'
 }
 
 function test_kw_ssh_script()
 {
-  ret=$(kw_ssh -s="/not/a/valid/path/xpto" 2>&1)
+  local ret
+  local msg
+
+  ret=$(kw_ssh test_mode -s "/not/a/valid/path/xpto" 2>&1)
   msg="$NO_SUCH_FILE: \"/not/a/valid/path/xpto\""
-  assertTrue "We expected a substring \"$msg\", but we got \"$ret\"" '[[ $ret =~ "$msg" ]]'
-  ret=$(kw_ssh -s="$TEST_PATH/dmesg" 2>&1)
+  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
+    '[[ $ret =~ "$msg" ]]'
+
+  ret=$(kw_ssh test_mode -s "$TEST_PATH/dmesg" 2>&1)
   msg="$SSH_OK \"bash -s\" -- < $TEST_PATH/dmesg"
-  assertTrue "We expected a substring \"$msg\", but we got \"$ret\"" '[[ $ret =~ "$msg" ]]'
+  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
+    '[[ $ret =~ "$msg" ]]'
 }
 
 invoke_shunit
