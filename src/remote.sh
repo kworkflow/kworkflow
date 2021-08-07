@@ -16,7 +16,7 @@ REMOTE_KW_DEPLOY="/root/kw_deploy"
 # operation of installing a new kernel; it depends on "kernel_install" plugin
 # for work as expected
 DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
-DEPLOY_SCRIPT="$KW_PLUGINS_DIR/kernel_install/deploy.sh"
+DEPLOY_SCRIPT="$KW_PLUGINS_DIR/kernel_install/remote_deploy.sh"
 DEPLOY_SCRIPT_SUPPORT="$KW_PLUGINS_DIR/kernel_install/utils.sh"
 
 declare -gA remote_parameters

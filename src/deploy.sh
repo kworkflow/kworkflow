@@ -77,7 +77,7 @@ function kernel_deploy()
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
     say "Available kernels:"
     start=$(date +%s)
-    list_installed_kernels "" "$single_line" "$target"
+    run_list_installed_kernels "" "$single_line" "$target"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -87,7 +87,7 @@ function kernel_deploy()
 
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
-    kernel_uninstall "$target" "$reboot" "$uninstall" "$flag"
+    run_kernel_uninstall "$target" "$reboot" "$uninstall" "$flag"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -134,7 +134,7 @@ function kernel_deploy()
     # Update name: release + alias
     name=$(make kernelrelease)
 
-    kernel_install "$reboot" "$name" "" "$target"
+    run_kernel_install "$reboot" "$name" "" "$target"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
     statistics_manager "deploy" "$runtime"
@@ -289,7 +289,7 @@ function deploy_parser_options()
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
-function list_installed_kernels()
+function run_list_installed_kernels()
 {
   local flag="$1"
   local single_line="$2"
@@ -318,7 +318,7 @@ function list_installed_kernels()
       list_installed_kernels "$single_line"
       ;;
     3) # REMOTE_TARGET
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels $single_line"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --list_kernels $single_line"
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
 
@@ -341,7 +341,7 @@ function list_installed_kernels()
 #
 # Return:
 # Return 0 if everything is correct or an error in case of failure
-function kernel_uninstall()
+function run_kernel_uninstall()
 {
   local target="$1"
   local reboot="$2"
@@ -383,7 +383,7 @@ function kernel_uninstall()
       # TODO
       # It would be better if `cmd_remotely` handle the extra space added by
       # line break with `\`; this may allow us to break a huge line like this.
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --uninstall_kernel $reboot remote $kernels_target $flag"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --uninstall_kernel $reboot remote $kernels_target $flag"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
@@ -461,7 +461,7 @@ function modules_install()
       cp2remote "$tarball_for_deploy_path" "$REMOTE_KW_DEPLOY" "$flag"
 
       # 3. Deploy: Execute script
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --modules $release.tar"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --modules $release.tar"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
@@ -519,7 +519,7 @@ function dtb_install()
 #
 # Note:
 # Take a look at the available kernel plugins at: src/plugins/kernel_install
-function kernel_install()
+function run_kernel_install()
 {
   local reboot="$1"
   local name="$2"
@@ -614,7 +614,7 @@ function kernel_install()
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $cmd_parameters"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $cmd_parameters"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
