@@ -240,7 +240,7 @@ function test_kernel_install()
   local ssh_cmd="ssh -p 3333"
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
   local deploy_params="$name debian Image $reboot arm64 'remote' TEST_MODE"
-  local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
+  local deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $deploy_params"
 
   # For this test we expected three steps:
   # 1. Copy preset file (cmd_preset_remote)
@@ -269,7 +269,7 @@ function test_kernel_install()
   remote_parameters['REMOTE_IP']='127.0.0.1'
   remote_parameters['REMOTE_PORT']=3333
 
-  output=$(kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
   # Update values
@@ -277,7 +277,7 @@ function test_kernel_install()
   # expect since I believe it is not worth to change the kernel_install
   # function just for it.
   deploy_params="$name debian Image 0 arm64 'remote' TEST_MODE"
-  deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
+  deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $deploy_params"
   cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
@@ -288,7 +288,7 @@ function test_kernel_install()
     "$cmd_deploy_image"
   )
 
-  output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  output=$(run_kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
   # We want to test an corner case described by the absence of mkinitcpio
@@ -302,7 +302,7 @@ function test_kernel_install()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  output=$(run_kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
@@ -327,7 +327,7 @@ function test_kernel_install_x86_64()
   local ssh_cmd="ssh -p 3333"
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
   local deploy_params="$name debian bzImage $reboot x86_64 'remote' TEST_MODE"
-  local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
+  local deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $deploy_params"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -360,18 +360,18 @@ function test_kernel_install_x86_64()
     "$cmd_deploy_image"
   )
 
-  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  output=$(run_kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
   # Test kernel image infer
   configurations['kernel_img_name']=''
-  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
+  output=$(run_kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
   expected_msg='kw inferred arch/x86_64/boot/arch/x86_64/boot/bzImage as a kernel image'
   assert_equals_helper "Infer kernel image" "$LINENO" "$expected_msg" "$output"
 
   # Test failures
   rm -rf arch/x86_64/
-  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
+  output=$(run_kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333" | head -1)
   expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
   assertEquals "($LINENO): " "$output" "$expected_msg"
   assert_equals_helper "Could not find a valid image" "$LINENO" "$expected_msg" "$output"
@@ -521,12 +521,12 @@ function test_kernel_install_local()
     return
   }
 
-  output=$(kernel_install "1" "test" "TEST_MODE" "2")
+  output=$(run_kernel_install "1" "test" "TEST_MODE" "2")
   compare_command_sequence expected_cmd[@] "$output" "$LINENO"
 
   # Make sure that we are not running as a root user
   alias id='root_id_mock;true'
-  output=$(kernel_install '1' 'test' 'TEST_MODE' '2')
+  output=$(run_kernel_install '1' 'test' 'TEST_MODE' '2')
   ret="$?"
   assertEquals "($LINENO)" '1' "$ret"
 
@@ -584,7 +584,7 @@ function test_list_remote_kernels()
 
   setupRemote
 
-  output=$(list_installed_kernels "TEST_MODE" 0 3)
+  output=$(run_list_installed_kernels "TEST_MODE" 0 3)
   while read -r f; do
     if [[ ${expected_cmd[$count]} != "${f}" ]]; then
       fail "$count - Expected cmd \"${f}\" to be \"${expected_cmd[$count]}\""
@@ -598,7 +598,7 @@ function test_list_remote_kernels()
   }
 }
 
-function test_kernel_uninstall()
+function test_run_kernel_uninstall()
 {
   local count=0
   local original="$PWD"
@@ -624,7 +624,7 @@ function test_kernel_uninstall()
   local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ --rsync-path='sudo rsync'"
   local cmd_chown_utils="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/\""
 
-  local kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
+  local run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
 
   declare -a expected_cmd=(
     "$dir_kw_deploy"
@@ -634,7 +634,7 @@ function test_kernel_uninstall()
     "$cmd_chown_deploy"
     "$rsync_utils"
     "$cmd_chown_utils"
-    "$kernel_uninstall_cmd"
+    "$run_kernel_uninstall_cmd"
   )
 
   cd "$FAKE_KERNEL" || {
@@ -648,24 +648,24 @@ function test_kernel_uninstall()
   ID=1
   options_values['REMOTE_IP']='127.0.0.1'
   options_values['REMOTE_PORT']=3333
-  output=$(kernel_uninstall 3 0 "$kernel_list" "TEST_MODE")
+  output=$(run_kernel_uninstall 3 0 "$kernel_list" "TEST_MODE")
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   # Reboot
   ID=2
-  output=$(kernel_uninstall 3 1 "$kernel_list" "TEST_MODE")
+  output=$(run_kernel_uninstall 3 1 "$kernel_list" "TEST_MODE")
   cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
-  kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-  expected_cmd[7]="$kernel_uninstall_cmd"
+  run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
+  expected_cmd[7]="$run_kernel_uninstall_cmd"
 
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   # Single kernel
   ID=3
-  output=$(kernel_uninstall 3 1 "$single_kernel" "TEST_MODE")
+  output=$(run_kernel_uninstall 3 1 "$single_kernel" "TEST_MODE")
   cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
-  kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-  expected_cmd[7]="$kernel_uninstall_cmd"
+  run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
+  expected_cmd[7]="$run_kernel_uninstall_cmd"
 
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
