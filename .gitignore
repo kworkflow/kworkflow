@@ -1,9 +1,13 @@
 # Tests
-tests/shunit2
+*/shunit2/
 .checkpatch-camelcase.git.
 .checkpatch-camelcase.date.*
-tests/external
-tests/.tmp_kw_config_loader_test
-tests/.tmp
+unit_tests/external
+unit_tests/.tmp_kw_config_loader_test
+unit_tests/.tmp
 build/
 kcov_out/
+*.vagrant/
+*.log
+*vagrant_ssh
+*/*kernel/

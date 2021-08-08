@@ -1,0 +1,27 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# All Vagrant configuration is done below. The "2" in Vagrant.configure
+# configures the configuration version (we support older styles for
+# backwards compatibility). Please don't change it unless you know what
+# you're doing.
+Vagrant.configure("2") do |config|
+  # For a complete reference, please see the online documentation at
+  # https://docs.vagrantup.com.
+  # Every Vagrant development environment requires a box. You can search for
+  # boxes at https://vagrantcloud.com/search.
+
+  # Debian box
+  config.vm.define "debian_kw_test_vm" do |debian|
+    debian.vm.box = "debian/buster64"
+    debian.vm.provision "shell", inline: "sudo apt update && sudo apt install rsync screen"
+  end
+
+  # Arch box
+  config.vm.define "arch_kw_test_vm" do |arch|
+    arch.vm.box = "archlinux/archlinux"
+  end
+
+  # Disable shared folder to improve perfomance
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+end
