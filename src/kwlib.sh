@@ -513,3 +513,15 @@ function extract_tarball()
   cmd="tar $compression_type -xzf $file_to_extract -C $path"
   cmd_manager "$flag" "$cmd"
 }
+
+# Given a file path, this function returns only the file name. For instance, for
+# a file path 'documents/file.txt', it returns file.txt. If the file path is
+# empty, then this function returns an empty string.
+#
+# @ file_path: path to a file
+function get_file_name_from_path()
+{
+  local file_path="$1"
+
+  echo "${file_path##*/}"
+}
