@@ -1,5 +1,9 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
 
+# Array with compression programs accepted by tar
+declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd' 'xz'
+  'auto-compress')
+
 # A common task used inside kw is a string separation based on a delimiter, for
 # this reason, this function tries to handle this scenario by getting a
 # delimiter character followed by the position that the users want to retrieve.
@@ -417,4 +421,48 @@ function kw_parse_get_errors()
       --longoptions "$long_options" \
       -- "$@" > /dev/null
   } 2>&1
+}
+
+# This function compresses a given path to a .tar.gz file
+#
+# @path_to_compress The directory to compress
+# @file_path Where the compressed directory will be stored
+# @compression_type compression program used
+# @flag How to display (or not) the command used
+function generate_tarball()
+{
+  local path_to_compress="$1"
+  local file_path="$2"
+  local compression_type="$3"
+  local flag="$4"
+  local ret
+  local cmd
+
+  flag=${flag:-'SILENT'}
+
+  if [[ ! -d "$path_to_compress" ]]; then
+    complain "$path_to_compress" 'does not exist'
+    exit 22 #EINVAL
+  fi
+
+  if [[ -n "$compression_type" ]]; then
+    if [[ "${compression_programs[*]}" =~ $compression_type ]]; then
+      compression_type="--$compression_type"
+    else
+      complain 'Invalid compression type:' "$compression_type"
+      return 22 # EINVAL
+    fi
+  fi
+
+  compression_type=${compression_type:-'--auto-compress'}
+
+  cmd="tar -C $path_to_compress $compression_type -cf $file_path ."
+  cmd_manager "$flag" "$cmd"
+
+  ret="$?"
+
+  if [[ "$ret" != 0 ]]; then
+    complain 'Error archiving modules.'
+    exit "$ret"
+  fi
 }

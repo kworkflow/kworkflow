@@ -419,4 +419,38 @@ function test_kw_parse_get_errors()
   compare_command_sequence 'expected_output' "$out" "$LINENO"
 }
 
+function test_generate_tarball()
+{
+  local path_to_compress="$SHUNIT_TMPDIR/files"
+  local file_path="$SHUNIT_TMPDIR/compressed.tar.gz"
+  local output
+
+  mkdir -p "$SHUNIT_TMPDIR/files"
+  touch "$SHUNIT_TMPDIR/files/file1"
+  touch "$SHUNIT_TMPDIR/files/file2"
+
+  declare -a expected_files=(
+    './'
+    './file1'
+    './file2'
+  )
+
+  output=$(generate_tarball "$path_to_compress" "$file_path" 'gzip' 'SUCCESS')
+  assertEquals "($LINENO)" "tar -C $path_to_compress --gzip -cf $file_path ." "$output"
+
+  assertTrue 'Compressed file was not created' "[[ -f $SHUNIT_TMPDIR/compressed.tar.gz ]]"
+
+  output=$(tar -taf "$file_path" | sort -d)
+  compare_command_sequence expected_files "$output" "$LINENO"
+
+  output=$(generate_tarball "$SHUNIT_TMPDIR/vacation/photos" "$file_path" 'gzip' 'SUCCESS')
+  assertEquals "($LINENO)" "$SHUNIT_TMPDIR/vacation/photos does not exist" "$output"
+
+  output=$(generate_tarball "$path_to_compress" "$file_path" 'zipper')
+  assertEquals "($LINENO)" 'Invalid compression type: zipper' "$output"
+
+  output=$(generate_tarball "$path_to_compress" "$SHUNIT_TMPDIR/file/file" 2> /dev/null)
+  assertEquals "($LINENO)" 'Error archiving modules.' "$output"
+}
+
 invoke_shunit
