@@ -116,4 +116,29 @@ function test_str_strip
   assert_equals_helper 'Did not drop extra spaces' "$LINENO" "$expected_result" "$output"
 }
 
+function test_str_remove_prefix()
+{
+  local output
+  local string_sample='Hello world'
+  local expected_result='world'
+
+  output=$(str_remove_prefix "$string_sample" 'Hello ')
+  assert_equals_helper 'Did not remove prefix' "$LINENO" "$expected_result" "$output"
+
+  string_sample='/path/to/something'
+  expected_result='something'
+  output=$(str_remove_prefix "$string_sample" '/path/to/')
+  assert_equals_helper 'Did not remove prefix' "$LINENO" "$expected_result" "$output"
+
+  output=$(str_remove_prefix '' 're')
+  expected_result=''
+  assert_equals_helper 'There should be nothing to remove from an empty string' "$LINENO" "$expected_result" "$output"
+
+  output=$(str_remove_prefix "$string_sample" '')
+  assert_equals_helper 'String should have remained the same' "$LINENO" "$string_sample" "$output"
+
+  output=$(str_remove_prefix '' '')
+  assert_equals_helper 'Removing emptiness from emptiness should have remained emptiness' "$LINENO" '' "$output"
+}
+
 invoke_shunit
