@@ -2,7 +2,7 @@
 */shunit2/
 .checkpatch-camelcase.git.
 .checkpatch-camelcase.date.*
-unit_tests/external
+*/external
 unit_tests/.tmp_kw_config_loader_test
 unit_tests/.tmp
 build/

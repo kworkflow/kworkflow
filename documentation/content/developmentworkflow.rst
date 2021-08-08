@@ -27,7 +27,7 @@ To make sure our code is working as it is supposed to, we add
 
 All our tests can be found in the `tests` folder. Notice that every test file
 name ends with test before the .sh extension (i.e. `mk_test.sh` and
-`statistics_test.sh`). This is done so that the `run_tests.sh` file can detect
+`statistics_test.sh`). This is done so that the `run_unit_tests.sh` file can detect
 those tests and run or list them.
 
 Unit tests

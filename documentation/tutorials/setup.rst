@@ -38,10 +38,10 @@ Then install kw::
 
   ./setup.sh --install
 
-Actually, in this folder you can see three executables: ``run_tests.sh``,
+Actually, in this folder you can see three executables: ``run_unit_tests.sh``,
 ``setup.sh`` and ``kw``.
 
-* ``run_tests.sh`` is used by kw's developers to run its test suite;
+* ``run_unit_tests.sh`` is used by kw's developers to run its test suite;
 * ``setup.sh`` is used to install kw to your system, like we just did;
 * ``kw`` is kw's main executable, but it should normally not be called
   from this folder: ``setup.sh`` will alter it slightly when installing

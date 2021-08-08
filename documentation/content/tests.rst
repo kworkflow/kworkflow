@@ -12,31 +12,31 @@ https://github.com/kward/shunit2).
 Unit Tests
 ----------
 
-If you want to run all the tests, try::
+If you want to run all the unit tests, try::
 
-  ./run_tests.sh
+  ./run_unit_tests.sh
 
 List all available test files::
 
-  ./run_tests.sh list
+  ./run_unit_tests.sh list
 
 Or run individual tests with::
 
-  ./run_tests.sh test TESTFILE1 ...
+  ./run_unit_tests.sh test TESTFILE1 ...
 
 Tests rely on some external files. These files are automatically downloaded
-when you first try to run a test. You can, however, force `run_tests.sh` to
+when you first try to run a test. You can, however, force `run_unit_tests.sh` to
 prepare the environment for running tests with::
 
-  ./run_tests.sh prepare
+  ./run_unit_tests.sh prepare
 
 Also, if you already have the test's environment prepared but want to update
 the external files, you can use::
 
-  ./run_tests.sh prepare -f|--force-update
+  ./run_unit_tests.sh prepare -f|--force-update
 
 .. note::
-   `run_tests.sh` script must be run from the directory it is in,
+   `run_unit_tests.sh` script must be run from the directory it is in,
    i.e. the root of the repository. Otherwise, it may not execute properly.
 
 Kw is already prepared to run tests, build the documentation and check the

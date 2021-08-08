@@ -1,6 +1,5 @@
 name: unit-tests
-on:
-  [pull_request]
+on: [pull_request]
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
@@ -21,7 +20,7 @@ jobs:
 
       - name: Prepare for tests
         run: |
-          ./run_tests.sh prepare
+          ./run_unit_tests.sh prepare
           mkdir kcov_out/
 
       - name: Unit tests
@@ -31,7 +30,7 @@ jobs:
           git init
           git commit --allow-empty -m "Test commit 1"
           git commit --allow-empty -m "Test commit 2"
-          ./run_tests.sh
+          ./run_unit_tests.sh
 
       - name: Setup tests
         run: |
@@ -42,7 +41,7 @@ jobs:
         run: |
           kcov --include-path=src,kw \
           --exclude-pattern=src/bash_autocomplete.sh,src/help.sh \
-          kcov_out/ ./run_tests.sh
+          kcov_out/ ./run_unit_tests.sh
 
       - name: Upload coverage do codecov
         run: |
