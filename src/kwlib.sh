@@ -466,3 +466,44 @@ function generate_tarball()
     exit "$ret"
   fi
 }
+
+# This function extracts a .tar.gz file to a given path
+#
+# @file_to_extract The path to the file to extract from
+# @path Where to extract the file
+# @compression_type compression program used
+# @flag How to display (or not) the command used
+function extract_tarball()
+{
+  local file_to_extract="$1"
+  local path="$2"
+  local compression_type="$3"
+  local flag="$4"
+  local cmd
+
+  flag=${flag:-'SILENT'}
+
+  if [[ ! -f "$file_to_extract" ]]; then
+    complain 'We could not find' "$file_to_extract"
+    exit 22 #EINVAL
+  fi
+
+  if [[ ! -d "$path" ]]; then
+    complain "$path" 'does not exist'
+    exit 22 #EINVAL
+  fi
+
+  if [[ -n "$compression_type" ]]; then
+    if [[ "${compression_programs[*]}" =~ $compression_type ]]; then
+      compression_type="--$compression_type"
+    else
+      complain 'Invalid compression type:' "$compression_type"
+      return 22 # EINVAL
+    fi
+  fi
+
+  compression_type=${compression_type:-'--auto-compress'}
+
+  cmd="tar $compression_type -xzf $file_to_extract -C $path"
+  cmd_manager "$flag" "$cmd"
+}
