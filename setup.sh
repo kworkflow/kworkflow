@@ -144,9 +144,10 @@ function usage()
   say "usage: ./setup.sh option"
   say ""
   say "Where option may be one of the following:"
-  say "--help      | -h     Display this usage message"
-  say "--install   | -i     Install $app_name"
-  say "--uninstall | -u     Uninstall $app_name"
+  say "--help          | -h     Display this usage message"
+  say "--development   | -d     Install $app_name and its development dependencies"
+  say "--install       | -i     Install $app_name"
+  say "--uninstall     | -u     Uninstall $app_name"
   say "--verbose            Explain what is being done"
   say "--force              Never prompt"
   say "--completely-remove  Remove $app_name and all files under its responsibility"
@@ -367,6 +368,12 @@ function install_home()
   update_version
 }
 
+function update_devel_dependencies_list()
+{
+  arch_packages+=(vagrant shunit2)
+  debian_packages+=(vagrant shunit2)
+}
+
 # Options
 for arg; do
   shift
@@ -386,6 +393,10 @@ for arg; do
 done
 
 case "$1" in
+  --development | -d)
+    update_dependencies
+    install_home
+    ;;
   --install | -i)
     install_home
     #update_current_bash

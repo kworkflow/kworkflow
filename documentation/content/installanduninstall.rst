@@ -89,6 +89,12 @@ Every time you want to get a new version of `kw`, just pull from this
 repository and install kw again (`./setup.sh -i` removes legacy files and installs
 new ones).
 
+Development
+-----------
+You may install kw with its development dependencies, to do so simply run::
+
+   ./setup.sh --development # or just -d
+
 Remove
 ------
 There's two way to remove kw: soft and hard way. The soft way (recommended
