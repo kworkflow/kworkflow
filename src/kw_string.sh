@@ -72,3 +72,20 @@ function str_strip()
 
   echo "$str" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
+
+# Remove substring on the left side. If the string whose substring should be
+# removed is empty, then this function returns an empty string. If the prefix
+# substring is empty, then the original string is returned unchanged.
+#
+# @str: Target string
+# @str_remove: Substring to be removed from the left side of str
+#
+# Return:
+# Return string str without substring str_remove on the left side.
+function str_remove_prefix()
+{
+  local str="$1"
+  local str_remove="$2"
+
+  echo "${str##"$str_remove"}"
+}
