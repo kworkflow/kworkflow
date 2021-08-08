@@ -453,4 +453,24 @@ function test_generate_tarball()
   assertEquals "($LINENO)" 'Error archiving modules.' "$output"
 }
 
+function test_extract_tarball()
+{
+  local file="$SHUNIT_TMPDIR/compressed.tar.gz"
+  local output
+
+  output=$(extract_tarball "$file" "$SHUNIT_TMPDIR" 'gzip' 'SUCCESS')
+  assertEquals "($LINENO)" "tar --gzip -xzf $file -C $SHUNIT_TMPDIR" "$output"
+
+  assertTrue 'Extraction not done' "[[ -f $SHUNIT_TMPDIR/file1 ]] && [[ -f $SHUNIT_TMPDIR/file2 ]]"
+
+  output=$(extract_tarball "$SHUNIT_TMPDIR/i/dont/exist.tar" "$SHUNIT_TMPDIR")
+  assertEquals "($LINENO)" "We could not find $SHUNIT_TMPDIR/i/dont/exist.tar" "$output"
+
+  output=$(extract_tarball "$file" "$SHUNIT_TMPDIR/me/neither")
+  assertEquals "($LINENO)" "$SHUNIT_TMPDIR/me/neither does not exist" "$output"
+
+  output=$(extract_tarball "$file" "$SHUNIT_TMPDIR" 'zipper' 'SUCCESS')
+  assertEquals "($LINENO)" 'Invalid compression type: zipper' "$output"
+}
+
 invoke_shunit
