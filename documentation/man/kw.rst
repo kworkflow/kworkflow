@@ -86,6 +86,7 @@ This section describes a tool available in **kw** to help developers keep track
 of configuration files and other features provided by **kw** that do not fit in
 the previous sections.
 
+  | :ref:`kw-backup<backup-doc>`
   | :ref:`kw-init<init-doc>`
   | :ref:`kw-device<device-doc>`
   | :ref:`kw-ssh<ssh-doc>`

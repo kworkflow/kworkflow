@@ -148,6 +148,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('man/kw', 'kw', 'KernelWorkflow Documentation', [author], 1),
+    ('man/features/backup', 'backup', 'save and restore kw data', [author], 1),
     ('man/features/build', 'build', 'build the kernel', [author], 1),
     ('man/features/codestyle', 'codestyle', 'checkpatch wrapper', [author], 1),
     ('man/features/configm', 'configm', 'config manager', [author], 1),

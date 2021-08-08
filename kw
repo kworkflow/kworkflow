@@ -208,6 +208,13 @@ function kw()
         device_info "$@"
       )
       ;;
+    backup)
+      (
+        include "$KW_LIB_DIR/backup.sh"
+
+        backup "$@"
+      )
+      ;;
     clear-cache)
       include "$KW_LIB_DIR/deploy.sh"
 
