@@ -47,33 +47,28 @@ function tearDown()
 function test_execute_config_manager_SAVE_fails()
 {
   local msg_prefix=" --save"
+  local ret
 
-  ret=$(execute_config_manager --save)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  ret=$(execute_config_manager --save 2>&1 > /dev/null)
+  assert_equals_helper "$msg_prefix" "$LINENO" "$ret" "kw configm: option '--save' requires an argument"
 
   ret=$(execute_config_manager --save --lala)
-  assert_equals_helper "$msg_prefix --lala" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix --lala" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -n)
-  assert_equals_helper "$msg_prefix -n" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -n" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -d)
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
-
-  ret=$(execute_config_manager --save -n -d)
-  assert_equals_helper "$msg_prefix -n -d" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
-
-  ret=$(execute_config_manager --save -n -lulu)
-  assert_equals_helper "$msg_prefix -n -lulu" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -d)
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -d "lalala and xpto")
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -f)
-  assert_equals_helper "$msg_prefix -f" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -f" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 }
 
 function test_save_config_file_check_save_failures()
@@ -301,11 +296,8 @@ function test_execute_config_manager_get_config_invalid_option()
 {
   local msg_prefix=" --get"
 
-  ret=$(execute_config_manager --get)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
-
-  ret=$(execute_config_manager -get)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_UNKNOWN" "$ret"
+  ret=$(execute_config_manager --get 2>&1 > /dev/null)
+  assert_equals_helper "$msg_prefix" "$LINENO" "$ret" "kw configm: option '--get' requires an argument"
 
   ret=$(execute_config_manager --get something_wrong)
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
@@ -404,15 +396,12 @@ function test_get_config_with_force()
 
 function test_execute_config_manager_remove_that_should_fail()
 {
-  local msg_prefix=" -rm"
+  local msg_prefix=" -r"
 
-  ret=$(execute_config_manager -rm)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  ret=$(execute_config_manager -r 2>&1 > /dev/null)
+  assert_equals_helper "$msg_prefix" "$LINENO" "$ret" "kw configm: option requires an argument -- 'r'"
 
-  ret=$(execute_config_manager --rm)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_UNKNOWN" "$ret"
-
-  ret=$(execute_config_manager -rm something_wrong)
+  ret=$(execute_config_manager -r something_wrong)
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
