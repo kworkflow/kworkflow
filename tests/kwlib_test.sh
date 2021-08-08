@@ -473,4 +473,25 @@ function test_extract_tarball()
   assertEquals "($LINENO)" 'Invalid compression type: zipper' "$output"
 }
 
+function test_get_file_name_from_path()
+{
+  local file_path='documents/file.txt'
+  local output
+  local expected_result='file.txt'
+
+  output=$(get_file_name_from_path "$file_path")
+  assertEquals "($LINENO)" "$expected_result" "$output"
+
+  file_path='/pictures/vacation/path/photo.png'
+  expected_result='photo.png'
+  output=$(get_file_name_from_path "$file_path")
+  assertEquals "($LINENO)" "$expected_result" "$output"
+
+  output=$(get_file_name_from_path '')
+  assertEquals "($LINENO) Should have returned an empty string" '' "$output"
+
+  output=$(get_file_name_from_path 'pictures/vacation/')
+  assertEquals "($LINENO) Should have returned an empty string" '' "$output"
+}
+
 invoke_shunit
