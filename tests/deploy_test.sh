@@ -312,7 +312,7 @@ function test_kernel_modules()
   local expected_output="Kernel: $version"
 
   # Compress modules for sending
-  local compress_cmd="tar -C $local_remote_path/lib/modules/ -cf $to_deploy_path/$version.tar $version"
+  local compress_cmd="tar -C $local_remote_path/lib/modules/$version --auto-compress -cf $to_deploy_path/$version.tar ."
 
   # Rsync modules
   local rsync_tarball="$rsync_cmd $to_deploy_path/$version.tar $remote_access:$remote_path --rsync-path='sudo rsync'"
@@ -343,6 +343,9 @@ function test_kernel_modules()
   }
 
   setupRemote
+
+  # Create folder so generate_tarball won't complain
+  mkdir -p "$local_remote_path/lib/modules/$version"
 
   ID=1
   output=$(modules_install "TEST_MODE" 3)

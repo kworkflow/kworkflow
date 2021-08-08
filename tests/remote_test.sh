@@ -285,39 +285,6 @@ function test_prepare_remote_dir()
   tearDownMockFunctions
 }
 
-function test_generate_tarball()
-{
-  local kernel_release="test"
-  local tarball_name="$kernel_release.tar"
-  local count=0
-  local ID
-
-  declare -a expected_files=(
-    "test/"
-    "test/file1"
-    "test/file2"
-  )
-
-  expected_cmd="tar -C $FAKE_KW/kernel_install/lib/modules -cf $FAKE_KW/$LOCAL_TO_DEPLOY_DIR/$tarball_name $kernel_release"
-  ID=1
-  output=$(generate_tarball "$kernel_release" "$modules_path")
-
-  assertTrue "$ID - We expected a tarball" '[[ -f $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$tarball_name ]]'
-
-  ID=2
-  output=$(tar -taf "$FAKE_KW/$LOCAL_TO_DEPLOY_DIR/$tarball_name" | sort -d)
-  while read -r f; do
-    if [[ ${expected_files[$count]} != "${f}" ]]; then
-      fail "$ID - Expected file \"${expected_files[$count]}\" to be \"${f}\""
-    fi
-    ((count++))
-  done <<< "$output"
-
-  ID=3
-  output=$(generate_tarball "$kernel_release" "$modules_path" "TEST_MODE")
-  assertEquals "Command did not match ($ID)" "$expected_cmd" "$output"
-}
-
 ### SSH tests ###
 #
 # NOTE: We're not testing the ssh command here, just the kw ssh operation

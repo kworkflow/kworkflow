@@ -178,46 +178,6 @@ function prepare_remote_dir()
     "$port" "$user" "$flag"
 }
 
-# This function generates a tarball file to be sent to the target machine.
-# Notice that we rely on the directory "~/kw/remote".
-#
-# @kernel_release Kernel release name.
-# @files_path Point to the directory with the modules files to be deployed. By
-#   default we set "$kw_remote_dir/lib/modules" if the user does not indicate
-#   any path
-# @flag How to display a command, the default value is
-#   "HIGHLIGHT_CMD". For more options see `src/kwlib.sh` function `cmd_manager`
-function generate_tarball()
-{
-  local kernel_release=$1
-  local files_path=$2
-  local flag=$3
-  local ret
-  local tarball_name=""
-  local compress_cmd=""
-  local kw_remote_dir="$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
-
-  files_path=${files_path:-"$kw_remote_dir/lib/modules/"}
-  kernel_release=${kernel_release:-"no_release"}
-  flag=${flag:-""}
-  tarball_name="$kernel_release.tar"
-
-  # Anyone can read the documentation about tar, and understood what this
-  # command does. However, it does not hurt explain it a little bit here.
-  # -C: Go to $files_path directory
-  # -cf: Compress the directory named $kernel_release (inside $files_path) to
-  #      $kw_remote_dir/$tarball_name
-  compress_cmd="tar -C $files_path -cf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$tarball_name $kernel_release"
-
-  cmd_manager "$flag" "$compress_cmd"
-  ret=$?
-
-  if [[ "$ret" != 0 ]]; then
-    complain "Error archiving modules."
-    exit $ret
-  fi
-}
-
 # Populate remote info
 #
 # @parameters: Command line parameter to be parsed
