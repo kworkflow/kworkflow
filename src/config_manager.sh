@@ -1,7 +1,9 @@
+include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kwio.sh"
 
 declare -gr metadata_dir='metadata'
 declare -gr configs_dir='configs'
+declare -gA options_values
 
 function config_manager_help()
 {
@@ -11,10 +13,10 @@ function config_manager_help()
     return
   fi
   printf '%s\n' 'kw config manager:' \
-    '  configm --save <name> [-d <description>] [-f] - save a config' \
+    '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - save a config' \
     '  configm (-l | --list) - List config files under kw management' \
-    '  configm --get <name> [-f] - Get a config file based named <name>' \
-    '  configm (-rm | --remove) <name> [-f] - Remove config labeled with <name>'
+    '  configm --get <name> [-f | --force] - Get a config file based named <name>' \
+    '  configm (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
 }
 
 # This function handles the save operation of kernel's '.config' file. It
@@ -201,53 +203,115 @@ function execute_config_manager()
 {
   local name_config
   local description_config
-  local force=0
+  local force
 
-  for parameter in "$@"; do
-    [[ "$parameter" == '-f' ]] && force=1
-  done
+  if [[ -z "$*" ]]; then
+    complain 'Please, provide an argument'
+    config_manager_help
+    exit 22 # EINVAL
+  fi
 
-  case "$1" in
-    --help | -h)
-      config_manager_help "$1"
-      exit 0
-      ;;
-    --save)
-      shift # Skip '--save' option
-      name_config="$1"
-      # Validate string name
-      if [[ "$name_config" =~ ^- || -z "${name_config// /}" ]]; then
-        complain 'Invalid argument'
+  parse_configm_options "$@"
+
+  if [[ "$?" -gt 0 ]]; then
+    exit 22 # EINVAL
+  fi
+
+  name_config="${options_values['SAVE']}"
+  description_config="${options_values['DESCRIPTION']}"
+  force="${options_values['FORCE']}"
+
+  if [[ -n "${options_values['SAVE']}" ]]; then
+    save_config_file "$force" "$name_config" "$description_config"
+    return
+  fi
+
+  if [[ -n "${options_values['LIST']}" ]]; then
+    list_configs
+    return
+  fi
+
+  if [[ -n "${options_values['GET']}" ]]; then
+    get_config "${options_values['GET']}" "$force"
+    return
+  fi
+
+  if [[ -n "${options_values['REMOVE']}" ]]; then
+    remove_config "${options_values['REMOVE']}" "$force"
+    return
+  fi
+}
+
+# This function parses the options from 'kw configm', and populates the global
+# variable options_values accordingly.
+function parse_configm_options()
+{
+  local short_options
+  local long_options
+  local options
+
+  long_options='save:,list,get:,remove:,force,description:'
+  short_options='s,l,r:,d:,h,f'
+
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw configm' "$short_options" \
+      "$long_options" "$@")"
+    return 22 # EINVAL
+  fi
+
+  options_values['SAVE']=''
+  options_values['FORCE']=''
+  options_values['DESCRIPTION']=''
+  options_values['LIST']=''
+  options_values['GET']=''
+  options_values['REMOVE']=''
+
+  eval "set -- $options"
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      -h)
+        config_manager_help "$1"
+        exit 0
+        ;;
+      --force | -f)
+        options_values['FORCE']=1
+        shift
+        ;;
+      --save | -s)
+        # Validate string name
+        if [[ "$2" =~ ^- || -z "${2// /}" ]]; then
+          complain 'Invalid argument'
+          return 22 # EINVAL
+        fi
+        options_values['SAVE']+="$2"
+        shift 2
+        ;;
+      --description | -d)
+        options_values['DESCRIPTION']+="$*"
+        shift 2
+        ;;
+      --list | -l)
+        options_values['LIST']=1
+        shift
+        ;;
+      --get)
+        options_values['GET']+="$2"
+        shift 2
+        ;;
+      --remove | -r)
+        options_values['REMOVE']+="$2"
+        shift 2
+        ;;
+      --)
+        shift
+        ;;
+      *)
+        complain "Invalid option: $1"
         exit 22 # EINVAL
-      fi
-      # Shift name and get '-d'
-      shift 2 && description_config="$*"
-      save_config_file "$force" "$name_config" "$description_config"
-      ;;
-    --list | -l)
-      list_configs
-      ;;
-    --get)
-      shift # Skip '--get' option
-      if [[ -z "$1" ]]; then
-        complain 'Invalid argument'
-        return 22 # EINVAL
-      fi
-
-      get_config "$1" "$force"
-      ;;
-    --remove | -rm)
-      shift # Skip '--rm' option
-      if [[ -z "$1" ]]; then
-        complain 'Invalid argument'
-        return 22 # EINVAL
-      fi
-
-      remove_config "$1" "$force"
-      ;;
-    *)
-      complain 'Unknown option'
-      exit 22 #EINVAL
-      ;;
-  esac
+        ;;
+    esac
+  done
 }
