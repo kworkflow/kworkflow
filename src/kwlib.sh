@@ -371,3 +371,50 @@ function exit_msg()
   complain "$msg"
   exit "$err"
 }
+
+# This function parses command line arguments. Each option may be
+# followed by a one colon to indicate it has a required argument, and by
+# two colons to indicate it has an optional argument. If any errors are
+# found, this will print an error message to stderr indicating it.
+#
+# @short_options Short options to be accepted
+# @long_options Long options to be accepted
+# @{@:2} Arguments to be parsed
+#
+# Returns:
+# Parsed command line arguments.
+function kw_parse()
+{
+  local short_options="$1"
+  local long_options="$2"
+  shift 2
+
+  getopt -q --options "$short_options" \
+    --longoptions "$long_options" \
+    -- "$@"
+}
+
+# This function gets the error messages for a kw_parse call. The same
+# arguments passed to kw_parse should be passed to this function.
+#
+# @name Name to be prefixed in error messages
+# @short_options Short options to be accepted
+# @long_options Long options to be accepted
+# @{@:2} Arguments to be parsed
+#
+# Returns:
+# Error messages separated by a newline and prefixed with @name
+function kw_parse_get_errors()
+{
+  local name="$1"
+  local short_options="$2"
+  local long_options="$3"
+  shift 3
+
+  {
+    getopt --name "$name" \
+      --options "$short_options" \
+      --longoptions "$long_options" \
+      -- "$@" > /dev/null
+  } 2>&1
+}
