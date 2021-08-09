@@ -392,4 +392,31 @@ function test_exit_msg()
   assertEquals "($LINENO) We expected 3 as a return" 3 "$ret"
 }
 
+function test_kw_parse()
+{
+  local long_options='xpto:,foo,bar'
+  local short_options='x:,f,b'
+  local out
+  local expected
+
+  out="$(kw_parse "$short_options" "$long_options" --xpto 1 --foo --bar biz)"
+  expected=" --xpto '1' --foo --bar -- 'biz'"
+  assertEquals "($LINENO)" "$expected" "$out"
+}
+
+function test_kw_parse_get_errors()
+{
+  local long_options='xpto:,foo,bar'
+  local short_options='x:,f,b'
+  local out
+  local -a expected_output
+
+  out="$(kw_parse_get_errors 'kw' "$short_options" "$long_options" --fee --bar biz --xpto)"
+  expected_output=(
+    "kw: unrecognized option '--fee'"
+    "kw: option '--xpto' requires an argument"
+  )
+  compare_command_sequence 'expected_output' "$out" "$LINENO"
+}
+
 invoke_shunit
