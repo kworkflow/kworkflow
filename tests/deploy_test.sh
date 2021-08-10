@@ -238,7 +238,7 @@ function test_kernel_install()
   local kernel_image_path="arch/arm64/boot/Image"
   local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
   local ssh_cmd="ssh -p 3333"
-  local rsync_cmd="rsync -e '$ssh_cmd' -La"
+  local rsync_cmd="rsync -e '$ssh_cmd'"
   local deploy_params="$name debian Image $reboot arm64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $deploy_params"
 
@@ -247,17 +247,13 @@ function test_kernel_install()
   # 2. Copy kernel image (cmd_image_remote)
   # 3. Execute deploy command (cmd_deploy_image)
   # The following commands represets those steps
-  local cmd_preset_remote="$rsync_cmd $preset_path $remote:$remote_path --rsync-path='sudo rsync'"
-  local cmd_chown_preset="$ssh_cmd $remote sudo \"chown -R root:root $remote_path\""
-  local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path --rsync-path='sudo rsync'"
-  local cmd_chown_image="$ssh_cmd $remote sudo \"chown -R root:root $kernel_image_remote_path\""
+  local cmd_preset_remote="$rsync_cmd $preset_path $remote:$remote_path -LrlptD --rsync-path='sudo rsync'"
+  local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path -LrlptD --rsync-path='sudo rsync'"
   local cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
+  populate_remote_info
 
   declare -a expected_cmd=(
-    "$cmd_preset_remote"
-    "$cmd_chown_preset"
     "$cmd_image_remote"
-    "$cmd_chown_image"
     "$cmd_deploy_image"
   )
 
@@ -281,10 +277,7 @@ function test_kernel_install()
   cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
-    "$cmd_preset_remote"
-    "$cmd_chown_preset"
     "$cmd_image_remote"
-    "$cmd_chown_image"
     "$cmd_deploy_image"
   )
 
@@ -308,9 +301,6 @@ function test_kernel_install()
     return
   }
 
-  local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
-  assertTrue "The mkinit file was not created" '[[ -f "$preset_file" ]]'
-
   tearDown
 }
 
@@ -319,13 +309,13 @@ function test_kernel_install_x86_64()
   local name="test"
   local original="$PWD"
   local reboot="1"
-  local remote="root@127.0.0.1"
+  local remote="root@localhost"
   local remote_path="/root/kw_deploy"
   local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
   local kernel_image_path="arch/x86_64/boot/bzImage"
   local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
-  local ssh_cmd="ssh -p 3333"
-  local rsync_cmd="rsync -e '$ssh_cmd' -La"
+  local ssh_cmd="ssh -p 22"
+  local rsync_cmd="rsync -e '$ssh_cmd'"
   local deploy_params="$name debian bzImage $reboot x86_64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $deploy_params"
 
@@ -336,6 +326,7 @@ function test_kernel_install_x86_64()
   configurations=()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
   parse_configuration "$FAKE_KERNEL/kworkflow.config"
+  populate_remote_info
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
@@ -346,17 +337,12 @@ function test_kernel_install_x86_64()
   # 2. Copy kernel image (cmd_image_remote)
   # 3. Execute deploy command (cmd_deploy_image)
   # The following commands represets those steps
-  local cmd_preset_remote="$rsync_cmd $preset_path $remote:$remote_path --rsync-path='sudo rsync'"
-  local cmd_chown_preset="$ssh_cmd $remote sudo \"chown -R root:root $remote_path\""
-  local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path --rsync-path='sudo rsync'"
-  local cmd_chown_image="$ssh_cmd $remote sudo \"chown -R root:root $kernel_image_remote_path\""
+  local cmd_preset_remote="$rsync_cmd $preset_path $remote:$remote_path -LrlptD --rsync-path='sudo rsync'"
+  local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path -LrlptD --rsync-path='sudo rsync'"
   local cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
-    "$cmd_preset_remote"
-    "$cmd_chown_preset"
     "$cmd_image_remote"
-    "$cmd_chown_image"
     "$cmd_deploy_image"
   )
 
@@ -389,7 +375,7 @@ function test_kernel_modules()
   local remote_access="juca@127.0.0.1"
   local remote_path="/root/kw_deploy"
   local ssh_cmd="ssh -p 3333"
-  local rsync_cmd="rsync -e '$ssh_cmd' -La"
+  local rsync_cmd="rsync -e '$ssh_cmd'"
 
   local kernel_install_path="tests/.tmp/kernel_install"
   local to_deploy_path="tests/.tmp/to_deploy"
@@ -397,18 +383,16 @@ function test_kernel_modules()
 
   local version="5.4.0-rc7-test"
 
+  parse_configuration "$KW_CONFIG_SAMPLE"
+  populate_remote_info
+
   # Create remote directory
   local dir_kw_deploy="$ssh_cmd $remote_access sudo \"mkdir -p $remote_path\""
 
   # Rsync script command
-  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh --rsync-path='sudo rsync'"
-  local cmd_chown_debian="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/distro_deploy.sh\""
-
-  local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ --rsync-path='sudo rsync'"
-  local cmd_chown_deploy="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/\""
-
-  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ --rsync-path='sudo rsync'"
-  local cmd_chown_utils="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/\""
+  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+  local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
+  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
 
   # Install modules
   local make_install_cmd="make INSTALL_MOD_PATH=$local_remote_path/ modules_install"
@@ -420,25 +404,20 @@ function test_kernel_modules()
   local compress_cmd="tar -C $local_remote_path/lib/modules/ -cf $to_deploy_path/$version.tar $version"
 
   # Rsync modules
-  local rsync_tarball="$rsync_cmd $to_deploy_path/$version.tar $remote_access:$remote_path --rsync-path='sudo rsync'"
-  local cmd_chown_tarball="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path\""
+  local rsync_tarball="$rsync_cmd $to_deploy_path/$version.tar $remote_access:$remote_path -LrlptD --rsync-path='sudo rsync'"
 
   # Install module inside remote
-  local exec_module_install="$ssh_cmd $remote_access sudo \"bash $remote_path/deploy.sh --modules $version.tar\""
+  local exec_module_install="$ssh_cmd $remote_access sudo \"bash $remote_path/remote_deploy.sh --modules $version.tar\""
 
   declare -a expected_cmd=(
     "$dir_kw_deploy"
     "$rsync_debian"
-    "$cmd_chown_debian"
     "$rsync_deploy"
-    "$cmd_chown_deploy"
     "$rsync_utils"
-    "$cmd_chown_utils"
     "$make_install_cmd"
     "$expected_output"
     "$compress_cmd"
     "$rsync_tarball"
-    "$cmd_chown_tarball"
     "$exec_module_install"
   )
 
@@ -547,7 +526,7 @@ function test_list_remote_kernels()
   local remote_access="juca@127.0.0.1"
   local remote_path="/root/kw_deploy"
   local ssh_cmd="ssh -p 3333"
-  local rsync_cmd="rsync -e '$ssh_cmd' -La"
+  local rsync_cmd="rsync -e '$ssh_cmd'"
 
   local kernel_install_path="tests/.tmp/kernel_install"
 
@@ -555,25 +534,17 @@ function test_list_remote_kernels()
   local dir_kw_deploy="$ssh_cmd $remote_access sudo \"mkdir -p $remote_path\""
 
   # Rsync script command
-  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh --rsync-path='sudo rsync'"
-  local cmd_chown_debian="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/distro_deploy.sh\""
+  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+  local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
+  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
 
-  local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ --rsync-path='sudo rsync'"
-  local cmd_chown_deploy="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/\""
-
-  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ --rsync-path='sudo rsync'"
-  local cmd_chown_utils="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/\""
-
-  local remote_list_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"bash /root/kw_deploy/deploy.sh --list_kernels 0\""
+  local remote_list_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"bash /root/kw_deploy/remote_deploy.sh --list_kernels 0\""
 
   declare -a expected_cmd=(
     "$dir_kw_deploy"
     "$rsync_debian"
-    "$cmd_chown_debian"
     "$rsync_deploy"
-    "$cmd_chown_deploy"
     "$rsync_utils"
-    "$cmd_chown_utils"
     "$remote_list_cmd"
   )
 
@@ -605,7 +576,7 @@ function test_run_kernel_uninstall()
   local remote_access="juca@127.0.0.1"
   local remote_path="/root/kw_deploy"
   local ssh_cmd="ssh -p 3333"
-  local rsync_cmd="rsync -e '$ssh_cmd' -La"
+  local rsync_cmd="rsync -e '$ssh_cmd'"
   local kernel_install_path="tests/.tmp/kernel_install"
   local kernel_list="5.5.0-rc7,5.6.0-rc8,5.7.0-rc2"
   local single_kernel="5.7.0-rc2"
@@ -613,27 +584,19 @@ function test_run_kernel_uninstall()
   local dir_kw_deploy="$ssh_cmd $remote_access sudo \"mkdir -p $remote_path\""
 
   # Rsync script command
-  local cmd="bash $remote_path/deploy.sh --uninstall_kernel 0 remote $kernel_list TEST_MODE"
+  local cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 0 remote $kernel_list TEST_MODE"
 
-  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh --rsync-path='sudo rsync'"
-  local cmd_chown_debian="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/distro_deploy.sh\""
-
-  local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ --rsync-path='sudo rsync'"
-  local cmd_chown_deploy="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/\""
-
-  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ --rsync-path='sudo rsync'"
-  local cmd_chown_utils="$ssh_cmd $remote_access sudo \"chown -R root:root $remote_path/\""
+  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+  local rsync_deploy="$rsync_cmd $kernel_install_path/deploy.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
+  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ -LrlptD --rsync-path='sudo rsync'"
 
   local run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
 
   declare -a expected_cmd=(
     "$dir_kw_deploy"
     "$rsync_debian"
-    "$cmd_chown_debian"
     "$rsync_deploy"
-    "$cmd_chown_deploy"
     "$rsync_utils"
-    "$cmd_chown_utils"
     "$run_kernel_uninstall_cmd"
   )
 
@@ -654,18 +617,18 @@ function test_run_kernel_uninstall()
   # Reboot
   ID=2
   output=$(run_kernel_uninstall 3 1 "$kernel_list" "TEST_MODE")
-  cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
+  cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-  expected_cmd[7]="$run_kernel_uninstall_cmd"
+  expected_cmd[4]="$run_kernel_uninstall_cmd"
 
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 
   # Single kernel
   ID=3
   output=$(run_kernel_uninstall 3 1 "$single_kernel" "TEST_MODE")
-  cmd="bash $remote_path/deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
+  cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-  expected_cmd[7]="$run_kernel_uninstall_cmd"
+  expected_cmd[4]="$run_kernel_uninstall_cmd"
 
   compare_command_sequence expected_cmd[@] "$output" "$ID"
 

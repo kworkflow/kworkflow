@@ -141,59 +141,18 @@ function test_cmd_remote()
   assertEquals "cmd_remotely should not work ($ID)" "$expected_command" "$output"
 }
 
-function test_cp_host2remote()
+function test_cp2remote()
 {
   local src="/any/path"
   local dst="/any/path/2"
-  local remote="172.16.224.1"
-  local port="2222"
-  local user="kw"
   local flag="TEST_MODE"
   local ID
 
+  populate_remote_info
+
   ID=1
-  expected_command="rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'
-ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
-  output=$(cp_host2remote "$src" "$dst" "$remote" "$port" "$user" "$flag")
-  assertEquals "Command did not match ($ID)" "$expected_command" "$output"
-
-  ID=2
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  expected_command="rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'
-ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
-  output=$(cp_host2remote "" "$dst" "$remote" "$port" "$user" "$flag")
-  assertEquals "Command did not match ($ID)" "$expected_command" "$output"
-
-  ID=3
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  dst="$REMOTE_KW_DEPLOY"
-  expected_command="rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'
-ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
-  output=$(cp_host2remote "" "" "$remote" "$port" "$user" "$flag")
-  assertEquals "Command did not match ($ID)" "$expected_command" "$output"
-
-  ID=4
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  dst="$REMOTE_KW_DEPLOY"
-  expected_command="rsync -e 'ssh -p $port' -La $src $user@localhost:$dst --rsync-path='sudo rsync'
-ssh -p $port ${user}@localhost sudo \"chown -R root:root $dst\""
-  output=$(cp_host2remote "" "" "" "$port" "$user" "$flag")
-  assertEquals "Command did not match ($ID)" "$expected_command" "$output"
-
-  ID=5
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  dst="$REMOTE_KW_DEPLOY"
-  expected_command="rsync -e 'ssh -p 22' -La $src $user@localhost:$dst --rsync-path='sudo rsync'
-ssh -p 22 ${user}@localhost sudo \"chown -R root:root $dst\""
-  output=$(cp_host2remote "" "" "" "" "$user" "$flag")
-  assertEquals "Command did not match ($ID)" "$expected_command" "$output"
-
-  ID=6
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  dst="$REMOTE_KW_DEPLOY"
-  expected_command="rsync -e 'ssh -p 22' -La $src root@localhost:$dst --rsync-path='sudo rsync'
-ssh -p 22 root@localhost sudo \"chown -R root:root $dst\""
-  output=$(cp_host2remote "" "" "" "" "" "$flag")
+  expected_command="rsync -e 'ssh -p 22' $src root@localhost:$dst -LrlptD --rsync-path='sudo rsync' "
+  output=$(cp2remote "$src" "$dst" "$flag")
   assertEquals "Command did not match ($ID)" "$expected_command" "$output"
 }
 
@@ -255,22 +214,18 @@ function test_preapre_host_deploy_dir()
 function test_prepare_remote_dir()
 {
   local cmd="cat /etc/os-release | grep -w ID | cut -d = -f 2"
-  local remote="172.16.224.1"
+  local remote="localhost"
   local user="root"
-  local port="2222"
+  local port="22"
   local flag="TEST_MODE"
   local count=0
   local ID
 
   declare -a expected_cmd_sequence=(
-    "ssh -p 2222 root@172.16.224.1 sudo \"mkdir -p /root/kw_deploy\""
-    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root /root/kw_deploy/distro_deploy.sh\""
-    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/ --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root /root/kw_deploy/\""
-    "rsync -e 'ssh -p 2222' -La $FAKE_KW/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/ --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root /root/kw_deploy/\""
-
+    "ssh -p 22 root@localhost sudo \"mkdir -p /root/kw_deploy\""
+    "rsync -e 'ssh -p 22' $FAKE_KW/kernel_install/debian.sh root@localhost:/root/kw_deploy/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p 22' $FAKE_KW/kernel_install/deploy.sh root@localhost:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p 22' $FAKE_KW/kernel_install/utils.sh root@localhost:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
   )
 
   setupMockFunctions
