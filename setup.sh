@@ -273,8 +273,8 @@ function synchronize_files()
 
   # man file
   mkdir -p "$sharemandir"
-  cmd_output_manager "rsync -vr $MAN $sharemandir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $sharemandir' failed" "$?"
+  cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $sharemandir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $sharemandir' failed" "$?"
 
   # etc files
   mkdir -p "$etcdir"

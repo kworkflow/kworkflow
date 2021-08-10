@@ -170,7 +170,7 @@ function kw()
       (
         include "$KW_LIB_DIR/help.sh"
 
-        kworkflow_man
+        kworkflow_man "$@"
       )
       ;;
     version | --version | -v)
