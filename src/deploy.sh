@@ -65,7 +65,6 @@ function kernel_deploy()
   single_line="${options_values['LS_LINE']}"
   list="${options_values['LS']}"
   uninstall="${options_values['UNINSTALL']}"
-  remote="${remote_parameters['REMOTE']}"
 
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
     say "Available kernels:"
@@ -166,7 +165,9 @@ function parse_deploy_options()
   options_values['REBOOT']=0
   options_values['MENU_CONFIG']='nconfig'
 
-  remote_parameters['REMOTE']=''
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_USER']=''
 
   # Set basic default values
   if [[ -n ${configurations[default_deploy_target]} ]]; then
@@ -421,8 +422,9 @@ function modules_install()
 
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
+      user="${remote_parameters['REMOTE_USER']}"
 
-      prepare_remote_dir "$remote" "$port" "" "$flag"
+      prepare_remote_dir "$remote" "$port" "$user" "$flag"
 
       # 2. Send files modules
       modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"

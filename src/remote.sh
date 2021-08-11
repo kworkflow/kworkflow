@@ -77,9 +77,9 @@ function cp_host2remote()
 {
   local src=${1:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
   local dst=${2:-"$REMOTE_KW_DEPLOY"}
-  local remote=${3:-${configurations[ssh_ip]}}
-  local port=${4:-${configurations[ssh_port]}}
-  local user=${5:-${configurations[ssh_user]}}
+  local remote=${3:-${remote_parameters['REMOTE_IP']}}
+  local port=${4:-${remote_parameters['REMOTE_PORT']}}
+  local user=${5:-${remote_parameters['REMOTE_USER']}}
   local flag=${6:-"HIGHLIGHT_CMD"}
 
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
@@ -103,12 +103,12 @@ function cp_host2remote()
 # subshell and save it to a variable.
 function which_distro()
 {
-  local remote=${1:-${configurations[ssh_ip]}}
-  local port=${2:-${configurations[ssh_port]}}
-  local user=${3:-${configurations[ssh_user]}}
+  local remote=${1:-${remote_parameters[ssh_ip]}}
+  local port=${2:-${remote_parameters[ssh_port]}}
+  local user=${3:-${remote_parameters[ssh_user]}}
   local flag=${4:-"SILENT"}
 
-  cmd="cat /etc/os-release | grep -w ID | cut -d = -f 2"
+  cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
   cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user"
 }
 
