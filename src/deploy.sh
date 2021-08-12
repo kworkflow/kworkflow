@@ -479,7 +479,7 @@ function kernel_install()
   local name="$2"
   local flag="$3"
   local target="$4"
-  local user=''
+  local user="${5:-${remote_parameters['REMOTE_USER']}}"
   local distro='none'
   local kernel_name="${configurations[kernel_name]}"
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
@@ -557,6 +557,7 @@ function kernel_install()
 
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
+      user="${remote_parameters['REMOTE_USER']}"
 
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro "/" "$distro_info")
