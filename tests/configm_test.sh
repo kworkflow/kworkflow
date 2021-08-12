@@ -427,13 +427,13 @@ function test_remove_config()
   }
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  ret=$(find configs/configs -type f -mindepth 1 | wc -l)
+  ret=$(find configs/configs -mindepth 1 -type f | wc -l)
   # Case 1: We should have two files
   assertTrue "We expected , 2 files but got $ret" '[[ $ret = "2" ]]'
 
   # Case 2: Remove one config file
   remove_config "$NAME_1" 1 > /dev/null 2>&1
-  ret=$(find configs/configs -type f -mindepth 1 | wc -l)
+  ret=$(find configs/configs -mindepth 1 -type f | wc -l)
   assertTrue "$LINENO: We expected , 1 files but got $ret" '[[ $ret = "1" ]]'
 
   # Case 2: Remove all config files
