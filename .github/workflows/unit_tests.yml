@@ -1,6 +1,6 @@
 name: unit-tests
 on:
-  [pull_request]
+  [push, pull_request]
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
@@ -9,14 +9,12 @@ jobs:
         shell: bash
 
     steps:
-      - name: Checkout branch unstable
+      - name: Checkout repository
         uses: actions/checkout@v2
-        with:
-          ref: unstable
 
       - name: Install dependencies
         run: |
-          sudo apt install -y shunit2 kcov libguestfs-tools qemu bash git \
+          sudo apt install -y shunit2 kcov bash git \
           python-docutils dash graphviz python3-sphinx
 
       - name: Prepare for tests
@@ -33,9 +31,12 @@ jobs:
           git commit --allow-empty -m "Test commit 2"
           ./run_tests.sh
 
-      - name: Setup tests
+      - name: Check documentation
         run: |
           ./setup.sh --docs --force
+
+      - name: Check installation
+        run: |
           ./setup.sh -i --force
 
       - name: Kcov test
