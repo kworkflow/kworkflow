@@ -58,6 +58,9 @@ function setUp()
   fi
 
   parse_configuration "$KW_CONFIG_SAMPLE"
+  remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
+  remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
+  remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
 
   # Mock functions
   shopt -s expand_aliases
@@ -124,15 +127,15 @@ function test_modules_install_to()
 
 function test_kernel_install()
 {
-  local name="test"
+  local name='test'
   local original="$PWD"
-  local reboot="1"
-  local remote="juca@127.0.0.1"
-  local remote_path="/root/kw_deploy"
+  local reboot=1
+  local remote='juca@127.0.0.1'
+  local remote_path='/root/kw_deploy'
   local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
-  local kernel_image_path="arch/arm64/boot/Image"
+  local kernel_image_path='arch/arm64/boot/Image'
   local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
-  local ssh_cmd="ssh -p 3333"
+  local ssh_cmd='ssh -p 3333'
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
   local deploy_params="$name debian Image $reboot arm64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
@@ -163,6 +166,7 @@ function test_kernel_install()
 
   remote_parameters['REMOTE_IP']='127.0.0.1'
   remote_parameters['REMOTE_PORT']=3333
+  remote_parameters['REMOTE_USER']='juca'
 
   output=$(kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
@@ -211,15 +215,15 @@ function test_kernel_install()
 
 function test_kernel_install_x86_64()
 {
-  local name="test"
+  local name='test'
   local original="$PWD"
-  local reboot="1"
-  local remote="root@127.0.0.1"
-  local remote_path="/root/kw_deploy"
+  local reboot=1
+  local remote='root@localhost'
+  local remote_path='/root/kw_deploy'
   local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
-  local kernel_image_path="arch/x86_64/boot/bzImage"
+  local kernel_image_path='arch/x86_64/boot/bzImage'
   local kernel_image_remote_path="$REMOTE_KW_DEPLOY/vmlinuz-$name"
-  local ssh_cmd="ssh -p 3333"
+  local ssh_cmd='ssh -p 22'
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
   local deploy_params="$name debian bzImage $reboot x86_64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $deploy_params"
@@ -228,9 +232,16 @@ function test_kernel_install_x86_64()
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
+
   configurations=()
+  remote_parameters=()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
   parse_configuration "$FAKE_KERNEL/kworkflow.config"
+
+  remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
+  remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
+  remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
+
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
@@ -255,7 +266,7 @@ function test_kernel_install_x86_64()
     "$cmd_deploy_image"
   )
 
-  output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
+  output=$(kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333')
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Test kernel image infer
@@ -281,16 +292,14 @@ function test_kernel_modules()
 {
   local count=0
   local original="$PWD"
-  local remote_access="juca@127.0.0.1"
-  local remote_path="/root/kw_deploy"
-  local ssh_cmd="ssh -p 3333"
+  local remote_access='juca@127.0.0.1'
+  local remote_path='/root/kw_deploy'
+  local ssh_cmd='ssh -p 3333'
   local rsync_cmd="rsync -e '$ssh_cmd' -La"
-
-  local kernel_install_path="tests/.tmp/kernel_install"
-  local to_deploy_path="tests/.tmp/to_deploy"
-  local local_remote_path="tests/.tmp/remote"
-
-  local version="5.4.0-rc7-test"
+  local kernel_install_path='tests/.tmp/kernel_install'
+  local to_deploy_path='tests/.tmp/to_deploy'
+  local local_remote_path='tests/.tmp/remote'
+  local version='5.4.0-rc7-test'
 
   # Create remote directory
   local dir_kw_deploy="$ssh_cmd $remote_access sudo \"mkdir -p $remote_path\""
@@ -347,24 +356,16 @@ function test_kernel_modules()
   # Create folder so generate_tarball won't complain
   mkdir -p "$local_remote_path/lib/modules/$version"
 
-  ID=1
-  output=$(modules_install "TEST_MODE" 3)
-  while read -r f; do
-    if [[ ${expected_cmd[$count]} != "${f}" ]]; then
-      fail "$count - Expected cmd \"${f}\" to be \"${expected_cmd[$count]}\""
-    fi
-    ((count++))
-  done <<< "$output"
+  output=$(modules_install 'TEST_MODE' 3)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
-  ID=2
-  output=$(modules_install "TEST_MODE" 1)
-  expected_output="make INSTALL_MOD_PATH=/home/lala modules_install"
-  assertEquals "$ID: " "$output" "$expected_output"
+  output=$(modules_install 'TEST_MODE' 1)
+  expected_output='make INSTALL_MOD_PATH=/home/lala modules_install'
+  assertEquals "($LINENO):" "$output" "$expected_output"
 
-  ID=3
-  output=$(modules_install "TEST_MODE" 2)
+  output=$(modules_install 'TEST_MODE' 2)
   expected_output="sudo -E make modules_install"
-  assertEquals "$ID: " "$output" "$expected_output"
+  assertEquals "($LINENO): " "$output" "$expected_output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -374,17 +375,17 @@ function test_kernel_modules()
 
 function test_kernel_modules_local()
 {
-  local ID
   local original="$PWD"
-  local cmd="sudo -E make modules_install"
+  local cmd='sudo -E make modules_install'
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  ID=1
-  output=$(modules_install "TEST_MODE" "2")
-  assertFalse "$ID - Expected $output to be $cmd" '[[ "$cmd" != "$output" ]]'
+
+  output=$(modules_install 'TEST_MODE' 2)
+  assertFalse "($LINENO):" '[[ "$cmd" != "$output" ]]'
+
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
