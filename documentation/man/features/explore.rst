@@ -16,9 +16,8 @@ string matches in files under git control or in the git log messages.
 Additional parameters extended its behavior to cover all files in a directory
 (whether or not controlled by git) and also to replace the search tool with the
 GNU grep utility. Default usage: you can use :code:`kw e <function-name>` to
-find *<function-name>* in the source directory; If you want to search for a
-composed string, you have to quote your search (e.g.,
-:code:`kw e "<str1> <str2>"`).
+find *<function-name>* in the source directory; If your string has spaces in it
+you have to quote your search (e.g., :code:`kw e "<str1> <str2>"`).
 
 OPTIONS
 =======
