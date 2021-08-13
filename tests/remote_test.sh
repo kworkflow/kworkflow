@@ -7,7 +7,7 @@ include './tests/utils.sh'
 
 function which_distro_mock()
 {
-  echo "debian"
+  echo 'debian'
 }
 
 function setupMockFunctions()
@@ -23,28 +23,29 @@ function tearDownMockFunctions()
 
 function oneTimeSetUp()
 {
+  local -r current_path="$PWD"
+  local -r kernel_install_path='kernel_install'
+
   FAKE_KW="$SHUNIT_TMPDIR/fake_kw"
   TEST_PATH="$SHUNIT_TMPDIR/test_path"
 
   mkdir -p "$FAKE_KW"
   mkdir -p "$TEST_PATH"
 
-  local -r current_path="$PWD"
-
-  cp -f tests/samples/kworkflow.config "$TEST_PATH"
-  cp -f tests/samples/dmesg "$TEST_PATH"
+  cp -f 'tests/samples/kworkflow.config' "$TEST_PATH"
+  cp -f 'tests/samples/dmesg' "$TEST_PATH"
 
   cd "$TEST_PATH" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
   load_configuration
+
   cd "$current_path" || {
     fail "($LINENO) It was not possible return to original directory"
     return
   }
-
-  local -r kernel_install_path="kernel_install"
 
   export KW_CACHE_DIR="$FAKE_KW"
   export KW_PLUGINS_DIR="$FAKE_KW"
