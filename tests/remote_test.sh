@@ -7,7 +7,7 @@ include './tests/utils.sh'
 
 function which_distro_mock()
 {
-  echo "debian"
+  echo 'debian'
 }
 
 function setupMockFunctions()
@@ -23,28 +23,17 @@ function tearDownMockFunctions()
 
 function oneTimeSetUp()
 {
+  local -r current_path="$PWD"
+  local -r kernel_install_path='kernel_install'
+
   FAKE_KW="$SHUNIT_TMPDIR/fake_kw"
   TEST_PATH="$SHUNIT_TMPDIR/test_path"
 
   mkdir -p "$FAKE_KW"
   mkdir -p "$TEST_PATH/.kw"
 
-  local -r current_path="$PWD"
-
-  cp -f tests/samples/kworkflow.config "$TEST_PATH/.kw/"
-  cp -f tests/samples/dmesg "$TEST_PATH"
-
-  cd "$TEST_PATH" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  load_configuration
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible return to original directory"
-    return
-  }
-
-  local -r kernel_install_path="kernel_install"
+  cp -f 'tests/samples/kworkflow.config' "$TEST_PATH/.kw/"
+  cp -f 'tests/samples/dmesg' "$TEST_PATH"
 
   export KW_CACHE_DIR="$FAKE_KW"
   export KW_PLUGINS_DIR="$FAKE_KW"
@@ -70,10 +59,20 @@ function setUp()
 {
   local -r current_path="$PWD"
 
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
   load_configuration
   remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
   remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
   remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible return to original directory"
+    return
+  }
 }
 
 function tearDown()

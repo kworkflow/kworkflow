@@ -35,7 +35,7 @@ declare -gA remote_parameters
 function cmd_remotely()
 {
   local command="$1"
-  local flag=${2:-"HIGHLIGHT_CMD"}
+  local flag=${2:-'HIGHLIGHT_CMD'}
   local remote=${3:-${configurations[ssh_ip]}}
   local port=${4:-${configurations[ssh_port]}}
   local user=${5:-${configurations[ssh_user]}}
@@ -43,7 +43,7 @@ function cmd_remotely()
   local composed_cmd=""
 
   if [[ -z "$command" ]]; then
-    warning "No command specified"
+    warning 'No command specified'
     exit 22
   fi
 
@@ -80,7 +80,7 @@ function cp_host2remote()
   local remote=${3:-${remote_parameters['REMOTE_IP']}}
   local port=${4:-${remote_parameters['REMOTE_PORT']}}
   local user=${5:-${remote_parameters['REMOTE_USER']}}
-  local flag=${6:-"HIGHLIGHT_CMD"}
+  local flag=${6:-'HIGHLIGHT_CMD'}
 
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
     cmd_manager "$flag" "rsync -e 'ssh -F ${configurations['ssh_configfile']}' -La $src ${configurations['hostname']}:$dst --rsync-path='sudo rsync'"
@@ -197,7 +197,7 @@ function populate_remote_info()
     remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
     remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
     remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
-  else # CLI
+  else
     # Handling port
     remote_parameters['REMOTE_PORT']="$port"
     port=$(get_based_on_delimiter "$ip" ':' 2)
