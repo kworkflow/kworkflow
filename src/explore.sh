@@ -89,8 +89,7 @@ function explore_help()
     return
   fi
   printf '%s\n' 'kw explore:' \
-    '  explore,e <string> [<path>] - Search for <string> based in <path> (./ by default) ' \
-    '  explore,e "STR SRT" [<path>] - Search for strings only in files under git control' \
+    '  explore,e <string> [<path>] - Search for <string> based in <path> (./ by default)' \
     '  explore,e --log,-l <string> - Search for <string> on git log' \
     '  explore,e --grep,-g <string> - Search for <string> using the GNU grep tool' \
     '  explore,e --all,-a <string> - Search for all <string> match under or not of git management.'
