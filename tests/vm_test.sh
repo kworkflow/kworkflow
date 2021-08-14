@@ -16,7 +16,6 @@ function tearDown()
 
 function test_vm_mount()
 {
-  local ID
   local mount_point="$SHUNIT_TMPDIR/lala"
   local qemu_path="/any/path"
   local -r current_path="$PWD"
@@ -42,38 +41,38 @@ function test_vm_mount()
     return
   }
 
-  ID=1
-  output=$(vm_mount "TEST_MODE")
+  output=$(
+    function findmnt()
+    {
+      echo "anything"
+    }
+    vm_mount "TEST_MODE"
+  )
   ret="$?"
   expected_ret="125"
-  assertEquals "($ID) - Expected 125" "$expected_ret" "$ret"
+  assertEquals "($LINENO) - Expected 125" "$expected_ret" "$ret"
 
-  ID=2
   output=$(vm_mount "TEST_MODE" "$qemu_path" "$mount_point")
   ret="$?"
-  assertTrue "($ID)" "$ret"
+  assertTrue "($LINENO)" "$ret"
 
-  ID=3
   output=$(vm_mount "TEST_MODE" "$qemu_path" "$mount_point")
-  compare_command_sequence 'expected_cmd' "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   load_configuration "$KW_CONFIG_SAMPLE"
 
-  ID=4
   say_msg="Mount ${configurations[qemu_path_image]} in $mount_point"
   guestmount_cmd="guestmount -a ${configurations[qemu_path_image]} -i $mount_point 2>&1"
   expected_cmd[0]="$say_msg"
   expected_cmd[1]="$guestmount_cmd"
 
   output=$(vm_mount "TEST_MODE" "" "$mount_point")
-  compare_command_sequence 'expected_cmd' "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
-
-  tearDown
 }
 
 function test_vm_umount()

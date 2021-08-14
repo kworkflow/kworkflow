@@ -18,7 +18,9 @@ function vm_mount()
   qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
   mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
 
-  [[ $(findmnt "$mount_point_path") ]] && return 125
+  if [[ -n "$(findmnt "$mount_point_path")" ]]; then
+    return 125 # ECANCELED
+  fi
 
   mkdir -p "$mount_point_path"
 
