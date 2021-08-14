@@ -124,7 +124,7 @@ function test_run_checkpatch_in_a_path()
   )
 
   output=$(execute_checkpatch "$patch_path" 'TEST_MODE' 2>&1)
-  compare_command_sequence expected_cmd[@] "$output" '1'
+  compare_command_sequence 'expected_cmd' "$output" '1'
 }
 
 function test_run_checkpatch_in_a_file()
@@ -145,7 +145,7 @@ function test_run_checkpatch_in_a_file()
   )
 
   output=$(execute_checkpatch "$patch_path" 'TEST_MODE' 2>&1)
-  compare_command_sequence expected_cmd[@] "$output" '1'
+  compare_command_sequence 'expected_cmd' "$output" '1'
 }
 
 invoke_shunit

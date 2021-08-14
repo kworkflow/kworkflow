@@ -44,7 +44,7 @@ function test_register_timebox()
   register_timebox '433222557'
 
   output=$(cat "$POMODORO_LOG_FILE")
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
 }
 
 function test_remove_completed_timebox()
@@ -66,7 +66,7 @@ function test_remove_completed_timebox()
 
   remove_completed_timebox '433222557'
   output=$(cat "$POMODORO_LOG_FILE")
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
 
   remove_completed_timebox '933222557'
   output=$(cat "$POMODORO_LOG_FILE")
@@ -143,7 +143,7 @@ function test_show_active_pomodoro_timebox()
   )
 
   output=$(show_active_pomodoro_timebox)
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
 }
 
 function test_pomodoro_parser()
@@ -262,15 +262,15 @@ function test_register_tag()
   register_tag 'tag 2'
   output=$(cat "$KW_POMODORO_TAG_LIST")
 
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
 
   # Try to register the same tag
   register_tag 'tag 2'
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
 
   # Try to register an empty tag
   register_tag ''
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
 }
 
 function test_is_tag_already_registered()

@@ -43,7 +43,7 @@ function test_generate_arch_temporary_root_file_system()
   )
 
   output=$(generate_arch_temporary_root_file_system "$name" 'local' 'TEST_MODE' '')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # Remote
   declare -a cmd_sequence=(
@@ -52,7 +52,7 @@ function test_generate_arch_temporary_root_file_system()
   )
 
   output=$(generate_arch_temporary_root_file_system "$name" 'remote' 'TEST_MODE' '')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # VM
   sudo_cmd=''
@@ -62,7 +62,7 @@ function test_generate_arch_temporary_root_file_system()
   )
 
   output=$(generate_arch_temporary_root_file_system "$name" 'vm' 'TEST_MODE' '')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
 invoke_shunit

@@ -55,7 +55,7 @@ function test_vm_mount()
 
   ID=3
   output=$(vm_mount "TEST_MODE" "$qemu_path" "$mount_point")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   load_configuration "$KW_CONFIG_SAMPLE"
 
@@ -66,7 +66,7 @@ function test_vm_mount()
   expected_cmd[1]="$guestmount_cmd"
 
   output=$(vm_mount "TEST_MODE" "" "$mount_point")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -113,7 +113,7 @@ function test_vm_umount()
 
   ID=3
   output=$(vm_umount "TEST_MODE" "" "$mount_point")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
