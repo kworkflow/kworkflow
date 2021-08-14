@@ -27,7 +27,7 @@ function alert_completion()
 
   while read -rN 1 option; do
     if [ "$option" == "v" ]; then
-      if command_exists "${configurations[visual_alert_command]} &"; then
+      if command_exists "${configurations[visual_alert_command]}"; then
         eval "${configurations[visual_alert_command]} &"
       else
         warning "The following command set in the visual_alert_command variable" \
@@ -36,7 +36,7 @@ function alert_completion()
         warning "Check if the necessary packages are installed."
       fi
     elif [ "$option" == "s" ]; then
-      if command_exists "${configurations[sound_alert_command]} &"; then
+      if command_exists "${configurations[sound_alert_command]}"; then
         eval "${configurations[sound_alert_command]} &"
       else
         warning "The following command set in the sound_alert_command variable" \
