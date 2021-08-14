@@ -341,7 +341,7 @@ function test_get_config()
     return
   }
   output=$(echo 'y' | get_config "$NAME_1")
-  compare_command_sequence expected_output[@] "$output" "$LINENO"
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   # Case 2: There's no local .config file
   rm -f .config

@@ -76,7 +76,7 @@ function test_gui_control()
   )
 
   output=$(gui_control 'ON' '3' '127.0.0.1:8888' 'TEST_MODE')
-  compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
 
   ID=2
   full_turn_off_gui_cmd="$ssh_part sudo \"$gui_off_cmd\""
@@ -88,7 +88,7 @@ function test_gui_control()
   )
 
   output=$(gui_control 'OFF' '3' '127.0.0.1:8888' 'TEST_MODE')
-  compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
 
   ID=3
   # Test with config file
@@ -105,7 +105,7 @@ function test_gui_control()
   )
 
   output=$(gui_control 'OFF' '3' '' 'TEST_MODE')
-  compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
 
   ID=4
   gui_on_cmd='turn on'
@@ -118,7 +118,7 @@ function test_gui_control()
   )
 
   output=$(gui_control 'ON' '3' '' 'TEST_MODE')
-  compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
 }
 
 function test_get_supported_mode_per_connector()
@@ -156,7 +156,7 @@ function test_get_supported_mode_per_connector()
 
   export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
   output=$(get_supported_mode_per_connector 2)
-  compare_command_sequence expected_output[@] "$output" "$ID"
+  compare_command_sequence 'expected_output' "$output" "$ID"
 }
 
 function test_module_control()
@@ -213,7 +213,7 @@ function test_module_control()
   output=$(module_control "UNLOAD" "3" "" "amdgpu;vkms" "TEST_MODE")
   assertEquals "$ID - Load modules with parameters" "$expected" "$output"
 }
-#compare_command_sequence expected_cmd[@] "$output" "$ID"
+#compare_command_sequence 'expected_cmd' "$output" "$ID"
 
 function test_convert_module_info()
 {

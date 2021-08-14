@@ -216,12 +216,13 @@ function mk_fake_boot()
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #
-# @expected Command sequence as an array
+# @_expected Name of the array variable containing expected strings
 # @result_to_compare A raw output from the string
 # @ID An ID identification
 function compare_command_sequence()
 {
-  declare -a expected=("${!1}")
+  # This variable name must be unique
+  local -n _expected="$1"
   local result_to_compare="$2"
   local ID="$3"
   local count=0
@@ -229,9 +230,9 @@ function compare_command_sequence()
   ID=${ID:-0}
 
   while read -r f; do
-    if [[ "${expected[$count]}" != "${f}" ]]; then
+    if [[ "${_expected[$count]}" != "${f}" ]]; then
       fail "($ID) $count
-Expected: \"${expected[$count]}\"
+Expected: \"${_expected[$count]}\"
 but got:  \"${f}\"
 "
     fi

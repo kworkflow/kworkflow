@@ -20,7 +20,7 @@ function test_diff_side_by_side()
 
   ID=1
   output=$(diff_side_by_side "$file_1" "$file_2" 1 'TEST_MODE')
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   ID=2
   diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2"
@@ -29,7 +29,7 @@ function test_diff_side_by_side()
   )
 
   output=$(diff_side_by_side "$file_1" "$file_2" 0 'TEST_MODE')
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   ID=3
   output=$(diff_side_by_side 'an_invalid_file' "$file_2" 0 'TEST_MODE')

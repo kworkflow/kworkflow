@@ -162,12 +162,12 @@ function test_build_info()
   )
 
   output=$(kernel_build 'TEST_MODE' '--info')
-  compare_command_sequence expected_cmd[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_cmd' "$output" "($LINENO)"
 
   cp "$original_dir/tests/samples/.config" .config
   expected_cmd[3]="$modules"
   output=$(kernel_build 'TEST_MODE' '--info')
-  compare_command_sequence expected_cmd[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_cmd' "$output" "($LINENO)"
   rm .config
 }
 

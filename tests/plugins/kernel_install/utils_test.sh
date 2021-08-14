@@ -120,7 +120,7 @@ function test_do_uninstall_cmd_sequence()
   )
 
   output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # Good sequence
   cd "$SHUNIT_TMPDIR" || {
@@ -144,7 +144,7 @@ function test_do_uninstall_cmd_sequence()
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # Partial sequence
   rm "$kernelpath.old"
@@ -161,7 +161,7 @@ function test_do_uninstall_cmd_sequence()
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -213,7 +213,7 @@ function test_vm_update_boot_loader_debian()
 
   output=$(vm_update_boot_loader "$name" 'debian' "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" 'TEST_MODE')
 
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
 function test_vm_update_boot_loader_arch()
@@ -250,7 +250,7 @@ function test_vm_update_boot_loader_arch()
 
   output=$(vm_update_boot_loader "$name" 'arch' "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" 'TEST_MODE')
 
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
 # Mock funtions for install tests
@@ -297,7 +297,7 @@ function test_install_kernel_remote()
     'reboot'
   )
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
 function test_install_kernel_local()
@@ -320,7 +320,7 @@ function test_install_kernel_local()
   )
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
 function test_install_kernel_vm()
@@ -357,7 +357,7 @@ function test_install_kernel_vm()
   alias vm_umount='vm_umount'
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move back from temp directory"

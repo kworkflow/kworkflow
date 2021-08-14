@@ -51,7 +51,7 @@ function test_statistics()
 
   configurations[disable_statistics_data_track]='yes'
   output=$(statistics --)
-  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   configurations[disable_statistics_data_track]='no'
 
@@ -166,7 +166,7 @@ function test_day_statistics()
   assertEquals "($LINENO)" "$msg2" "$day_data"
 
   day_data=$(day_statistics 2020/05/27 | tail -n 2)
-  compare_command_sequence may_27_2020[@] "$day_data" "$LINENO"
+  compare_command_sequence 'may_27_2020' "$day_data" "$LINENO"
 }
 
 function test_week_statistics()
@@ -181,7 +181,7 @@ function test_week_statistics()
   assertEquals "($LINENO)" "$msg" "$week_data"
 
   week_data=$(week_statistics 2020/05/25 | tail -n 2)
-  compare_command_sequence may_27_2020[@] "$week_data" "$LINENO"
+  compare_command_sequence 'may_27_2020' "$week_data" "$LINENO"
 }
 
 function test_month_statistics()
@@ -194,7 +194,7 @@ function test_month_statistics()
   assertEquals "($LINENO)" "$msg" "$month_data"
 
   month_data=$(month_statistics 2020/05 | tail -n 2)
-  compare_command_sequence may_27_2020[@] "$month_data" "$LINENO"
+  compare_command_sequence 'may_27_2020' "$month_data" "$LINENO"
 
   mkdir -p "$base_statistics/04"
   msg='Sorry, kw does not have any record for 2020/04'
@@ -213,7 +213,7 @@ function test_year_statistics()
   assertEquals "($LINENO)" "$msg" "$year_data"
 
   year_data=$(year_statistics 2020 | tail -n 2)
-  compare_command_sequence may_27_2020[@] "$year_data" "$LINENO"
+  compare_command_sequence 'may_27_2020' "$year_data" "$LINENO"
 
   declare -a expected_cmd=(
     'Deploy             1 00:00:21 00:00:21 00:00:21'
@@ -224,7 +224,7 @@ function test_year_statistics()
   )
 
   year_data=$(year_statistics 2021 | tail -n 5)
-  compare_command_sequence expected_cmd[@] "$year_data" "$LINENO"
+  compare_command_sequence 'expected_cmd' "$year_data" "$LINENO"
 }
 
 invoke_shunit

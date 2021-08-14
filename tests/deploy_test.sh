@@ -270,7 +270,7 @@ function test_kernel_install()
   remote_parameters['REMOTE_PORT']=3333
 
   output=$(kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
-  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Update values
   # NOTICE: I added one extra space in the below line for match what we
@@ -289,7 +289,7 @@ function test_kernel_install()
   )
 
   output=$(kernel_install "0" "test" "TEST_MODE" "3" "127.0.0.1:3333")
-  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # We want to test an corner case described by the absence of mkinitcpio
   cd "$original" || {
@@ -361,7 +361,7 @@ function test_kernel_install_x86_64()
   )
 
   output=$(kernel_install "1" "test" "TEST_MODE" "3" "127.0.0.1:3333")
-  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Test kernel image infer
   configurations['kernel_img_name']=''
@@ -522,7 +522,7 @@ function test_kernel_install_local()
   }
 
   output=$(kernel_install "1" "test" "TEST_MODE" "2")
-  compare_command_sequence expected_cmd[@] "$output" "$LINENO"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Make sure that we are not running as a root user
   alias id='root_id_mock;true'
@@ -649,7 +649,7 @@ function test_kernel_uninstall()
   options_values['REMOTE_IP']='127.0.0.1'
   options_values['REMOTE_PORT']=3333
   output=$(kernel_uninstall 3 0 "$kernel_list" "TEST_MODE")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   # Reboot
   ID=2
@@ -658,7 +658,7 @@ function test_kernel_uninstall()
   kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
   expected_cmd[7]="$kernel_uninstall_cmd"
 
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   # Single kernel
   ID=3
@@ -667,7 +667,7 @@ function test_kernel_uninstall()
   kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
   expected_cmd[7]="$kernel_uninstall_cmd"
 
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
