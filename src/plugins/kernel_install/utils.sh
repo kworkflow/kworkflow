@@ -59,16 +59,45 @@ function list_installed_kernels()
   local single_line="$2"
   local prefix="$3"
   local all="$4"
-  local output
-  local ret
-  local super=0
-  local available_kernels=()
-  local grub_cfg=""
-  local -a managed_kernels
+  local -a available_kernels=()
   local cmd
 
   cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
   cmd_manager "$flag" "sudo touch $INSTALLED_KERNELS_PATH"
+
+  if [[ -n "$all" ]]; then
+    if [[ -d "$prefix/boot/grub/" ]]; then
+      list_installed_kernels_based_on_grub "$prefix" 'available_kernels'
+    else
+      echo "Could not find grub installed. Cannot list all installed kernels"
+      return 95 # ENOTSUP
+    fi
+  else
+    readarray -t available_kernels < "$INSTALLED_KERNELS_PATH"
+    if [[ "${#available_kernels[@]}" -eq 0 ]]; then
+      echo 'None of the installed kernels are managed by kw.' \
+        'Pass --list-all|-a to see all installed kernels'
+      return 0
+    fi
+  fi
+
+  if [[ "$single_line" != 1 ]]; then
+    printf '%s\n' "${available_kernels[@]}"
+  else
+    local IFS=','
+    echo "${available_kernels[*]}"
+  fi
+
+  return 0
+}
+
+list_installed_kernels_based_on_grub()
+{
+  local prefix="$1"
+  local -n _available_kernels="$2"
+  local grub_cfg
+  local output
+  local super=0
 
   grub_cfg="$prefix/boot/grub/grub.cfg"
 
@@ -94,30 +123,10 @@ function list_installed_kernels()
   output=$(printf '%s\n' "$output" | grep recovery -v | grep with | awk -F" " '{print $NF}')
 
   while read -r kernel; do
-    if [[ -f "$prefix/boot/vmlinuz-$kernel" ]]; then
-      if [[ -z "$all" ]]; then
-        [[ "$kernel" =~ .*\.old$ ]] && continue
-        cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
-        cmd_manager 'SILENT' "$cmd" || continue
-      fi
-      available_kernels+=("$kernel")
+    if [[ -f "$prefix/boot/vmlinuz-$kernel" && ! "$kernel" =~ .*\.old$ ]]; then
+      _available_kernels+=("$kernel")
     fi
   done <<< "$output"
-
-  if [[ "${#available_kernels[@]}" -eq 0 ]]; then
-    echo 'None of the installed kernels are managed by kw.' \
-      'Pass --list-all|-a to see all installed kernels'
-    return 0
-  fi
-
-  if [[ "$single_line" != 1 ]]; then
-    printf '%s\n' "${available_kernels[@]}"
-  else
-    local IFS=','
-    echo "${available_kernels[*]}"
-  fi
-
-  return 0
 }
 
 function reboot_machine()
@@ -408,8 +417,16 @@ function install_kernel()
   eval "update_$distro""_boot_loader $name $target $flag"
 
   # Registering a new kernel
+  [[ ! -f "$INSTALLED_KERNELS_PATH" ]] && touch "$INSTALLED_KERNELS_PATH"
+
+  # See shellcheck warning SC2024: sudo doesn't affect redirects. That
+  # is why we use tee. Also note that the stdin is passed to the eval
+  # inside cmd_manager.
   cmd="sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
-  echo "$name" | cmd_manager "$flag" "$cmd"
+  grep -Fxq "$name" "$INSTALLED_KERNELS_PATH"
+  if [[ "$?" != 0 ]]; then
+    echo "$name" | cmd_manager "$flag" "$cmd"
+  fi
 
   # Reboot
   if [[ "$target" != 'vm' && "$reboot" == '1' ]]; then

@@ -96,7 +96,7 @@ function kernel_deploy()
   if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
     say 'Available kernels:'
     start=$(date +%s)
-    run_list_installed_kernels '' "$single_line" "$target" "$list_all"
+    run_list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
     end=$(date +%s)
 
     runtime=$((end - start))

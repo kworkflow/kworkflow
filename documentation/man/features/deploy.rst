@@ -82,7 +82,9 @@ OPTIONS
 
 -f, \--force:
   Remove kernels even if they were not installed by kw (only valid with
-  \--uninstall or -u)
+  \--uninstall or -u). Trying to remove a kernel not directly managed by
+  kw can lead to system failures, and it is not recommended; only use it
+  if you are sure about what you are doing.
 
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
