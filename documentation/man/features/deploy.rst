@@ -25,9 +25,9 @@ executed:
 3. Execute the operations that will update the target machine.
 
 You can specify the deploy target via command line by using the flag
-**\--remote <remote>:<port>** (e.g., **\--remote 172.16.254.1:22**); however,
-if you do it frequently you probably will prefer to add this information in
-your local **kworkflow.config**. See the example below::
+``--remote <remote>:<port>`` (e.g., ``--remote 172.16.254.1:22``); however, if
+you do this frequently you will probably prefer to add this information to your
+local **kworkflow.config**. See the example below::
 
   default_deploy_target=remote
   ssh_user=root
@@ -35,19 +35,16 @@ your local **kworkflow.config**. See the example below::
   ssh_port=22
 
 If you want to install a new kernel version in your host machine, you can use
-the flag **\--local**; you will need to use your root password.
-
-.. note::
-  **Currently, we don't support the Kernel image update in the --vm option.
-  However, you can use the remote option for a workaround this issue**.
+the flag ``--local``; you will need to use your root password.
 
 Another typical operation when deploying a new kernel to a test machine, it is
 the reboot after the update. You can explicitly say it for **kw** by adding the
-flag **\--reboot**, or again, add this to the **kworkflow.config** with::
+flag ``--reboot``, add this to the **kworkflow.config** with::
 
   reboot_after_deploy=yes
 
-This can be used with conjunction the **build** command by invoking ``kw bd``.
+This can be used with conjunction the :ref:`build<build-doc>` command by
+invoking ``kw bd``.
 
 OPTIONS
 =======
@@ -57,7 +54,7 @@ OPTIONS
 
 \--local:
   Deploy the Kernel image and modules in the host machine, you will
-  need root access. :code:`kw deploy \--local` should not be executed with sudo
+  need root access. ``kw deploy --local`` should not be executed with sudo
   or root.
 
 \--vm:
@@ -88,7 +85,7 @@ OPTIONS
 
 .. note::
   **Only run commands related to VM after you turn it off**. Under the hood, it
-  executes the mount operation, followed by :code:`make modules_install` with a
+  executes the mount operation, followed by ``make modules_install`` with a
   specific target, and finally umounts the QEMU image.
 
 EXAMPLES
@@ -99,7 +96,7 @@ already configured.
 First, if you are working in a specific kernel module, and if you want to
 install your recent changes in your VM you can use::
 
-  cd </kernel/path>
+  cd <kernel-path>
   kw d --vm --modules
 
 .. note::
@@ -108,5 +105,5 @@ install your recent changes in your VM you can use::
 For building and installing a new module version based on the current kernel
 version, you can use::
 
-  cd </kernel/path>
+  cd <kernel-path>
   kw bd

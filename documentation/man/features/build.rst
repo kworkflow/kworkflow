@@ -14,10 +14,11 @@ DESCRIPTION
 ===========
 If users invoke this option without parameters, *kw* will look at the local
 Makefile and, based on that, start to build the project. This option tries to
-take advantage of your hardware by using the **-j** option with the appropriate
+take advantage of your hardware by using the ``-j`` option with the appropriate
 parameter.
 
-This command can be used in conjunction with **deploy** by invoking ``kw bd``.
+This command can be used in conjunction with :ref:`deploy<deploy-doc>` by
+invoking ``kw bd``.
 
 .. note::
   This command must be run inside of a kernel tree.
@@ -36,9 +37,9 @@ OPTIONS
   config file manually.
 
 -d, \--doc:
-  The doc option provides a mechanism for build kernel-doc; by default, it will
-  build htmldocs. Users can change the default documentation output by changing
-  the parameter *doc_type* in the **kworkflow.config** file.
+  The doc option provides a mechanism for building the kernel-doc; by default,
+  it will build htmldocs. Users can change the default documentation output by
+  changing the parameter *doc_type* in the **kworkflow.config** file.
 
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
@@ -55,5 +56,5 @@ already configured.
 For building and installing a new module version based on the current kernel
 version, you can use::
 
-  cd </kernel/path>
+  cd <kernel-path>
   kw bd

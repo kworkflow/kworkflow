@@ -6,19 +6,21 @@ kw-statistics
 
 SYNOPSIS
 ========
-| *kw* *statistics* [(\--year [<year>]) | (\--month [<year>/<month>]) |
-|                    (\--week [<year>/<month>/<day>]) | (\--day [<year>/<month>/<day>])]
+| *kw* *statistics* [\--day [<year>/<month>/<day>]]
+| *kw* *statistics* [\--week [<year>/<month>/<day>]]
+| *kw* *statistics* [\--month [<year>/<month>]]
+| *kw* *statistics* [\--year [<year>]]
 
 DESCRIPTION
 ===========
-kw keeps track of metadata regarding utilization of features. This data is
-used to show kw usage statistics. In summary, kw keeps track of:
+**kw** keeps track of metadata regarding utilization of features. This data is
+used to show **kw** usage statistics. In summary, **kw** keeps track of:
 
 1. **Build**
 
 2. **Deploy** (included list and uninstall)
 
-For all the data tracked by kw, users can retrieve the total amount of time
+For all the data tracked by **kw**, users can retrieve the total amount of time
 spent by a specific command, the average time consumed by the feature and the
 shortest and highest time required for executing the feature. All of this
 information can be retrieved by the **statistics** command, the options define

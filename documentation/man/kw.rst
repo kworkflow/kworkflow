@@ -4,9 +4,9 @@
 
 .. _manual:
 
---------------------------------------------
-Inglorious kernel developer workflow scripts
---------------------------------------------
+-----------------------------------------
+Inglorious kernel developer workflow tool
+-----------------------------------------
 
 :Author: Rodrigo Siqueira <rodrigosiqueiramelo@gmail.com>
 :Author: Matheus Tavares <matheus.bernardino@usp.br>
@@ -72,7 +72,6 @@ describes some of the key features supported by **kw** to help with code.
 
 SUBSYSTEM COMMANDS
 ------------------
-
 Linux kernel has multiple subsystems that expose operations via sysfs or
 provide mechanisms for userspace to interact with the driver. For this reason,
 kw offers some options that target some specific subsystems for providing
@@ -83,7 +82,6 @@ only support drm.
 
 OTHER COMMANDS
 --------------
-
 This section describes a tool available in **kw** to help developers keep track
 of configuration files and other features provided by **kw** that do not fit in
 the previous sections.
@@ -105,8 +103,8 @@ h, help
 ~~~~~~~
 Show basic help.
 
-version, --version, -v
-~~~~~~~~~~~~~~~~~~~~~~
+version, \--version, -v
+~~~~~~~~~~~~~~~~~~~~~~~
 Show kworkflow version.
 
 ABOUT kworflow.config
@@ -121,148 +119,151 @@ part of the **kw** code and provides the overall behavior for **kw**. Local
 **kworkflow.config** per project. In this section, we describe the possible
 fields you can specify in the configuration files.
 
-ssh_user=USER
--------------
-Sets the user to be used by ssh. By default **kw** uses **root**.
+ssh_user=<user>
+---------------
+Sets the user to be used by ssh. By default **kw** uses ``root``.
 
-ssh_ip=IP
----------
-Sets the IP address to be used by ssh. By default **kw** uses **localhost**.
+ssh_ip=<ip>
+-----------
+Sets the IP address to be used by ssh. By default **kw** uses ``localhost``.
 
-ssh_port=PORT
--------------
-Sets the ssh port. By default **kw** uses 2222.
+ssh_port=<port>
+---------------
+Sets the ssh port. By default **kw** uses ``2222``.
 
-ssh_configfile=SSH_CONFIGURATION_FILE
--------------------------------------
-Provides an optional SSH configuration file to be used by ssh. For more details see `man ssh_config`.
+ssh_configfile=<ssh-config-file>
+--------------------------------
+Provides an optional SSH configuration file to be used by ssh. For more details
+see ``man ssh_config``.
 
-hostname=HOSTNAME
------------------
+hostname=<hostname>
+-------------------
 Sets the hostname to be used when an SSH configuration file is provided.
 
-arch=ARCHITECTURE
------------------
+arch=<architecture>
+-------------------
 Allows you to specify the default architecture used by **kw**. By default,
-**kw** uses x86_64.
+**kw** uses ``x86_64``.
 
-kernel_img_name=KERNEL_IMAGE_NAME
----------------------------------
+kernel_img_name=<kernel-image-name>
+-----------------------------------
 Use this option as a way to indicate to kw the kernel image name. This is the
-file present in the directory `arch/*/boot/`; keep in mind that the kernel
+file present in the directory ``arch/*/boot/``; keep in mind that the kernel
 image name might change based on the user config file or target architecture.
 
-cross_compile=CROSS_COMPILE_TOOLCHAIN_NAME
-------------------------------------------
+cross_compile=<cross-compile-toolchain-name>
+--------------------------------------------
 Kw supports cross compile setup, use this option to indicate the target
 toolchain.
 
-menu_config=MENU_OPTION
------------------------
-Default kernel menu used by kw.
+menu_config=<menu-option>
+-------------------------
+Default kernel menu used by **kw**, the default is ``nconfig``.
 
-virtualizer=VIRTUALIZER
------------------------
-Defines the virtualization tool that should be used by kw. Currently, we only
-support QEMU and, as a result, the default is **qemu-system-x86_64**
+virtualizer=<virtualizer>
+-------------------------
+Defines the virtualization tool that should be used by **kw**. Currently, we
+only support QEMU and, as a result, the default is ``qemu-system-x86_64``
 
-mount_point=PATH
-----------------
+mount_point=<path>
+------------------
 Defines the kw mount point, which will be used by libguestfs during the
-mount/umount operation of a VM. By default, **kw** uses /home/$USER/p/mount.
+mount/umount operation of a VM. By default, **kw** uses ``/home/$USER/p/mount``.
 
-qemu_hw_options=OPTIONS
------------------------
+qemu_hw_options=<options>
+-------------------------
 Sets QEMU options. By default, **kw** uses
-**-enable-kvm -daemonize -smp 2 -m 1024**
+``-enable-kvm -daemonize -smp 2 -m 1024``
 
-qemu_net_options=OPTIONS
-------------------------
+qemu_net_options=<options>
+--------------------------
 Defines the network configuration. By default, **kw** uses
-**-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW**
+``-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW``
 
-qemu_path_image=PATH
---------------------
+qemu_path_image=<path>
+----------------------
 Specify the VM image path. By default, **kw** uses
-**/home/USERKW/p/virty.qcow2**
+``/home/USERKW/p/virty.qcow2``
 
-alert=[vs|s|v|n]
-----------------
+alert=[vs | s | v | n]
+----------------------
 Default alert options, you have:
 
 1. v: enables visual notification.
 
-2. s enables sound notification.
+2. s: enables sound notification.
 
-3. vs or sv enables both.
+3. vs or sv: enables both.
 
-4. n (or any other option) disables notifications.
+4. n (or any other option): disables notifications.
 
-sound_alert_command=COMMAND
----------------------------
+sound_alert_command=<command>
+-----------------------------
 Command to run for sound completion alert. By default, **kw** uses
-**paplay INSTALLPATH/sounds/complete.wav &**
+``paplay INSTALLPATH/sounds/complete.wav &``
 
-visual_alert_command=COMMAND
-----------------------------
+visual_alert_command=<command>
+------------------------------
 Command to run for visual completion alert. By default, **kw** uses
-notify-send -i checkbox -t 10000 "kw" "Command: \\"$COMMAND\\" completed!"
-(Note: You may use COMMAND, which will be replaced by the kw command
-whose conclusion the user wished to be alerted.)
+``notify-send -i checkbox -t 10000 "kw" "Command: \\"$COMMAND\\" completed!"``
+
+.. note::
+  You may use the *COMMAND* variable, which will be replaced by the kw command
+  whose conclusion the user wished to be alerted of.
 
 default_deploy_target
 ---------------------
 By default, **kw** deploys in the VM; however, you can change this behavior
-with this variable. The available options are: vm, local, and remote.
+with this variable. The available options are: *vm*, *local*, and *remote*.
 
 reboot_remote_by_default
 ------------------------
-Reboot machine after the deploy finish
+Reboot machine after the deploy finishes.
 
-gui_on=COMMAND
---------------
+gui_on=<command>
+----------------
 This option is disabled by default, if enabled, it requires a command that
 instructs kw to turn on the GUI.
 
-gui_off=COMMAND
----------------
+gui_off=<command>
+-----------------
 This option is disabled by default, if enabled, it requires a command that
 instructs kw to turn off the GUI.
 
-EXAMPLE
-=======
-For these examples, we suppose the fields in your *kworkflow.config* file is
+EXAMPLES
+========
+For these examples, we suppose the fields in your **kworkflow.config** file is
 already configured.
 
 First, if you are working in a specific kernel module, and if you want to
 install your recent changes in your VM you can use::
 
-    cd /KERNEL/PATH
-    kw d --vm --modules
+  cd <kernel-path>
+  kw d --vm --modules
 
 .. note::
-   Turn off your VM before use the *intall* command.
+  Turn off your VM before use the *install* command.
 
 For building and installing a new module version based on the current kernel
 version, you can use::
 
-  cd /KERNEL/PATH
+  cd <kernel-path>
   kw bd
 
 For checking the code style::
 
-  cd /KERNEL/PATH
+  cd <kernel-path>
   kw c drivers/iio/dummy/
   kw c drivers/iio/dummy/iio_simple_dummy.c
 
 If you want to check the maintainers::
 
-  cd /KERNEL/PATH
+  cd <kernel-path>
   kw m drivers/iio/dummy/iio_simple_dummy.c
 
 In case you want that kw saves your current .config file, you can use::
 
-    cd /KERNEL/PATH
+    cd <kernel-path>
     kw g --save my_current_config
 
 You can see the config's file maintained by kw with::
