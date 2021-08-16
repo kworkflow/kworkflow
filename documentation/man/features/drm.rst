@@ -35,7 +35,7 @@ OPTIONS
   parameters. If you want to indicate more than one module, you have to
   separate them using ';'. Additionally, if users wish to provide specific
   parameters for the target module, they have to use ':' and separate each
-  parameter with ','. This option can be combined with **\--gui-on**, **kw**
+  parameter with ','. This option can be combined with ``--gui-on``, **kw**
   will make sure that the target module will be load first and after that
   trigger the GUI.
 

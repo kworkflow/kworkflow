@@ -6,9 +6,10 @@ kw-report
 
 SYNOPSIS
 ========
-| *kw* (*r* | *report*) [(\--year [<year>]) | (\--month [<year>/<month>]) |
-|           (\--week [<year>/<month>/<day>]) | (\--day [<year>/<month>/<day>])]
-|           [\--output <file-path>]
+| *kw* (*r* | *report*) [\--year [<year>]] [\--output <file-path>]
+| *kw* (*r* | *report*) [\--month [<year>/<month>]] [\--output <file-path>]
+| *kw* (*r* | *report*) [\--week [<year>/<month>/<day>]] [\--output <file-path>]
+| *kw* (*r* | *report*) [\--day [<year>/<month>/<day>]] [\--output <file-path>]
 
 DESCRIPTION
 ===========

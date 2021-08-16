@@ -177,7 +177,7 @@ man_pages = [
 texinfo_documents = [
     (master_doc, 'KernelWorkflow', 'KernelWorkflow Documentation',
      author, 'KernelWorkflow',
-    'Inglorious kernel developer workflow scripts.', 'Miscellaneous'),
+    'Inglorious kernel developer workflow tool', 'Miscellaneous'),
 ]
 
 

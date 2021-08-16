@@ -6,14 +6,14 @@ kw-ssh
 
 SYNOPSIS
 ========
-*kw* (*s* | *ssh*) [(-s | \--script)=<script-path> |
-                    (-c | \--command)=<command>]
+| *kw* (*s* | *ssh*) [(-s | \--script)=<script-path>]
+| *kw* (*s* | *ssh*) [(-c | \--command)=<command>]
 
 DESCRIPTION
 ===========
-Ssh into any machine reachable via the network. The **\--script** parameter
+Ssh into any machine reachable via the network. The ``--script`` parameter
 expects a bash script as a parameter to evaluate it in the target machine. The
-**\--command** parameter expects a command to be executed inside of target
+``--command`` parameter expects a command to be executed inside of target
 machine.
 
 OPTIONS

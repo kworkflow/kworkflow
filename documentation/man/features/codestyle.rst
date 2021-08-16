@@ -29,6 +29,6 @@ already configured.
 
 For checking the code style::
 
-  cd /<kernel>/<path>
+  cd <kernel-path>
   kw c drivers/iio/dummy/
   kw c drivers/iio/dummy/iio_simple_dummy.c
