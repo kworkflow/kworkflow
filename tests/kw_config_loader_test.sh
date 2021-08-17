@@ -25,6 +25,17 @@ function test_parse_configuration_success_exit_code()
   assertTrue "Kw failed to load a regular config file" "[ 0 -eq $? ]"
 }
 
+function test_parse_configuration_config_with_spaces_and_comments()
+{
+  parse_configuration 'tests/samples/kworkflow_space_comments.config'
+  assertTrue "($LINENO): Kw failed to load a regular config file" "[ 0 -eq $? ]"
+
+  assertEquals "($LINENO)" "${configurations['arch']}" 'arm64'
+  assertEquals "($LINENO)" "${configurations['kernel_img_name']}" 'Image'
+  assertEquals "($LINENO)" "${configurations['virtualizer']}" 'libvirt'
+  assertEquals "($LINENO)" "${configurations['reboot_after_deploy']}" 'no'
+}
+
 function test_parser_configuration_failed_exit_code()
 {
   parse_configuration tests/foobarpotato
