@@ -123,6 +123,7 @@ function vars_help()
 function parse_configuration()
 {
   local config_path="$1"
+  local value
 
   if [ ! -f "$config_path" ]; then
     return 22 # 22 means Invalid argument - EINVAL
@@ -134,7 +135,10 @@ function parse_configuration()
 
     if echo "$line" | grep -F = &> /dev/null; then
       varname="$(echo "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
-      configurations["$varname"]="$(echo "${line%#*}" | cut -d '=' -f 2-)"
+      value="$(echo "${line%#*}" | cut -d '=' -f 2-)"
+      value="$(echo "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+
+      configurations["$varname"]="$value"
     fi
   done < "$config_path"
 }
