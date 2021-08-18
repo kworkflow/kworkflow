@@ -27,11 +27,11 @@ function oneTimeSetUp()
   TEST_PATH="$SHUNIT_TMPDIR/test_path"
 
   mkdir -p "$FAKE_KW"
-  mkdir -p "$TEST_PATH"
+  mkdir -p "$TEST_PATH/.kw"
 
   local -r current_path="$PWD"
 
-  cp -f tests/samples/kworkflow.config "$TEST_PATH"
+  cp -f tests/samples/kworkflow.config "$TEST_PATH/.kw/"
   cp -f tests/samples/dmesg "$TEST_PATH"
 
   cd "$TEST_PATH" || {

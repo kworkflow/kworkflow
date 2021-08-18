@@ -5,7 +5,8 @@ include './src/vm.sh'
 
 function setUp()
 {
-  cp -f tests/samples/kworkflow.config "$SHUNIT_TMPDIR"
+  mkdir -p "$SHUNIT_TMPDIR/.kw/"
+  cp -f tests/samples/kworkflow.config "$SHUNIT_TMPDIR/.kw/"
 }
 
 function tearDown()
