@@ -20,7 +20,7 @@ declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
 function show_variables()
 {
   local test_mode=0
-  local has_local_config_path="No"
+  local has_local_config_path='No'
 
   if [[ "$1" =~ -h|--help ]]; then
     vars_help "$1"
@@ -28,13 +28,11 @@ function show_variables()
   fi
 
   if [ -f "$PWD/kworkflow.config" ]; then
-    has_local_config_path="Yes"
-  else
-    has_local_config_path="No"
+    has_local_config_path='Yes'
   fi
 
   if [[ "$1" == 'TEST_MODE' ]]; then
-    test_mode='1'
+    test_mode=1
   fi
 
   local -Ar ssh=(
@@ -80,7 +78,7 @@ function show_variables()
 
   local -Ar group_descriptions=(
     [build]='Kernel build options'
-    [deploy]='kernel deploy options'
+    [deploy]='Kernel deploy options'
     [ssh]='SSH options'
     [qemu]='QEMU options'
     [notification]='Notification options'
@@ -88,15 +86,15 @@ function show_variables()
   )
 
   say "kw configuration variables:"
-  echo -e "  Local config file: $has_local_config_path"
+  printf '%s\n' "  Local config file: $has_local_config_path"
 
   for group in 'build' 'deploy' 'qemu' 'ssh' 'notification' 'misc'; do
-    echo "  ${group_descriptions["$group"]}:"
+    printf '%s\n' "  ${group_descriptions["$group"]}:"
     local -n descriptions="$group"
 
     for option in "${!descriptions[@]}"; do
-      if [[ -v configurations["$option"] || "$test_mode" == '1' ]]; then
-        echo "    ${descriptions[$option]} ($option): ${configurations[$option]}"
+      if [[ -v configurations["$option"] || "$test_mode" == 1 ]]; then
+        printf '%s\n' "    ${descriptions[$option]} ($option): ${configurations[$option]}"
       fi
     done
   done
@@ -129,9 +127,9 @@ function parse_configuration()
     # Line started with # should be ignored
     [[ "$line" =~ ^# ]] && continue
 
-    if echo "$line" | grep -F = &> /dev/null; then
-      varname="$(echo "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
-      configurations["$varname"]="$(echo "${line%#*}" | cut -d '=' -f 2-)"
+    if printf '%s\n' "$line" | grep -F = &> /dev/null; then
+      varname="$(printf '%s\n' "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
+      configurations["$varname"]="$(printf '%s\n' "${line%#*}" | cut -d '=' -f 2-)"
     fi
   done < "$config_path"
 }
