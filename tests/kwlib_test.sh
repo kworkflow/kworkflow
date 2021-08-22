@@ -459,7 +459,7 @@ function test_extract_tarball()
   local output
 
   output=$(extract_tarball "$file" "$SHUNIT_TMPDIR" 'gzip' 'SUCCESS')
-  assertEquals "($LINENO)" "tar --gzip -xzf $file -C $SHUNIT_TMPDIR" "$output"
+  assertEquals "($LINENO)" "tar --gzip -xf $file -C $SHUNIT_TMPDIR" "$output"
 
   assertTrue 'Extraction not done' "[[ -f $SHUNIT_TMPDIR/file1 ]] && [[ -f $SHUNIT_TMPDIR/file2 ]]"
 
