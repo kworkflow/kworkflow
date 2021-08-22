@@ -510,7 +510,7 @@ function extract_tarball()
 
   compression_type=${compression_type:-'--auto-compress'}
 
-  cmd="tar $compression_type -xzf $file_to_extract -C $path"
+  cmd="tar $compression_type -xf $file_to_extract -C $path"
   cmd_manager "$flag" "$cmd"
 }
 
