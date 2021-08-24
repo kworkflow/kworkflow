@@ -7,6 +7,13 @@ function setUp()
 {
   mkdir -p "$SHUNIT_TMPDIR/.kw/"
   cp -f tests/samples/kworkflow.config "$SHUNIT_TMPDIR/.kw/"
+
+  tests="$PWD/tests"
+  etc="${prefix}etc"
+
+  export prefix="$SHUNIT_TMPDIR/"
+  mkdir -p "${prefix}boot"
+  mkdir -p "$etc"
 }
 
 function tearDown()
@@ -22,6 +29,7 @@ function test_vm_mount()
   local -r current_path="$PWD"
   local ret
   local expected_ret
+  local msg
 
   # Message to user
   local say_msg="Mount $qemu_path in $mount_point"
@@ -29,10 +37,12 @@ function test_vm_mount()
   # Guestmount cmd
   local guestmount_cmd="guestmount -a $qemu_path -i $mount_point 2>&1"
 
-  declare -a expected_cmd=(
-    "$say_msg"
-    "$guestmount_cmd"
-  )
+  declare -a expected_cmd
+
+  function uname()
+  {
+    echo '5.1'
+  }
 
   tearDown
   setUp
@@ -41,6 +51,41 @@ function test_vm_mount()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
+  # Mock vmlinuz
+  touch "${prefix}boot/vmlinuz-$(uname)"
+
+  # Removing read permission from our mock vmlinuz
+  chmod a-r "${prefix}boot/vmlinuz-$(uname)"
+
+  # Suppose it's a debian system
+  cp -f "$tests/samples/os/debian/"* "$prefix/etc"
+
+  expected_cmd=(
+    'To mount the VM, the kernel image needs to be readable'
+    "sudo dpkg-statoverride --update --add root root 0644 ${prefix}boot/vmlinuz-$(uname -r)"
+    "$say_msg"
+    "$guestmount_cmd"
+  )
+
+  output=$(echo y | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Suppose it's not debian
+  rm -rf "${etc:?}/"*
+  cp -f "$tests/samples/os/arch/"* "$prefix/etc"
+
+  expected_cmd[1]="sudo chmod +r ${prefix}boot/vmlinuz-$(uname -r)"
+  output=$(echo y | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Adding back read permission
+  chmod +r "${prefix}boot/vmlinuz-$(uname)"
+
+  expected_cmd=(
+    "$say_msg"
+    "$guestmount_cmd"
+  )
 
   output=$(
     function findmnt()

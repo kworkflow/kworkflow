@@ -1,6 +1,8 @@
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
+declare -g prefix='/'
+
 function vm_mount()
 {
   local flag="$1"
@@ -8,6 +10,7 @@ function vm_mount()
   local mount_point_path="$3"
   local guestmount_cmd
   local ret
+  local distro
 
   if [[ "$1" =~ -h|--help ]]; then
     vm_help "$1" 'mount'
@@ -17,6 +20,20 @@ function vm_mount()
   flag=${flag:-'SILENT'}
   qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
   mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
+
+  if [[ ! -r "${prefix}boot/vmlinuz-$(uname -r)" ]]; then
+    say 'To mount the VM, the kernel image needs to be readable'
+    if [[ $(ask_yN 'Do you want to make your host kernel image readable?') =~ 0 ]]; then
+      return 125 # ECANCELED
+    fi
+
+    distro=$(detect_distro "${prefix}")
+    if [[ "$distro" =~ 'debian' ]]; then
+      cmd_manager "$flag" "sudo dpkg-statoverride --update --add root root 0644 ${prefix}boot/vmlinuz-$(uname -r)"
+    else
+      cmd_manager "$flag" "sudo chmod +r ${prefix}boot/vmlinuz-$(uname -r)"
+    fi
+  fi
 
   if [[ -n "$(findmnt "$mount_point_path")" ]]; then
     return 125 # ECANCELED
