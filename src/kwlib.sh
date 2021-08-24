@@ -425,23 +425,26 @@ function kw_parse_get_errors()
 
 # This function compresses a given path to a .tar.gz file
 #
-# @path_to_compress The directory to compress
+# @go_to_path_to_compress Directory to go into
 # @file_path Where the compressed directory will be stored
 # @compression_type compression program used
+# @dir_name The directory to be compressed, inside go_to_path_to_compress
 # @flag How to display (or not) the command used
 function generate_tarball()
 {
-  local path_to_compress="$1"
+  local go_to_path_to_compress="$1"
   local file_path="$2"
   local compression_type="$3"
-  local flag="$4"
+  local dir_name="$4"
+  local flag="$5"
   local ret
   local cmd
 
   flag=${flag:-'SILENT'}
+  dir_name=${dir_name:-'.'}
 
-  if [[ ! -d "$path_to_compress" ]]; then
-    complain "$path_to_compress" 'does not exist'
+  if [[ ! -d "$go_to_path_to_compress" ]]; then
+    complain "$go_to_path_to_compress" 'does not exist'
     exit 22 #EINVAL
   fi
 
@@ -456,7 +459,10 @@ function generate_tarball()
 
   compression_type=${compression_type:-'--auto-compress'}
 
-  cmd="tar -C $path_to_compress $compression_type -cf $file_path ."
+  # -C: Go to $go_to_path_to_compress directory
+  # -cf: Compress the directory named $dir_name (inside $go_to_path_to_compress) to
+  #      $file_path
+  cmd="tar -C $go_to_path_to_compress $compression_type -cf $file_path $dir_name"
   cmd_manager "$flag" "$cmd"
 
   ret="$?"
