@@ -435,7 +435,7 @@ function test_generate_tarball()
     './file2'
   )
 
-  output=$(generate_tarball "$path_to_compress" "$file_path" 'gzip' 'SUCCESS')
+  output=$(generate_tarball "$path_to_compress" "$file_path" 'gzip' '' 'SUCCESS')
   assertEquals "($LINENO)" "tar -C $path_to_compress --gzip -cf $file_path ." "$output"
 
   assertTrue 'Compressed file was not created' "[[ -f $SHUNIT_TMPDIR/compressed.tar.gz ]]"
@@ -443,7 +443,7 @@ function test_generate_tarball()
   output=$(tar -taf "$file_path" | sort -d)
   compare_command_sequence expected_files "$output" "$LINENO"
 
-  output=$(generate_tarball "$SHUNIT_TMPDIR/vacation/photos" "$file_path" 'gzip' 'SUCCESS')
+  output=$(generate_tarball "$SHUNIT_TMPDIR/vacation/photos" "$file_path" 'gzip' '' 'SUCCESS')
   assertEquals "($LINENO)" "$SHUNIT_TMPDIR/vacation/photos does not exist" "$output"
 
   output=$(generate_tarball "$path_to_compress" "$file_path" 'zipper')

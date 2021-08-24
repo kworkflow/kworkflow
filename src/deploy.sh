@@ -429,8 +429,8 @@ function modules_install()
 
       release=$(get_kernel_release "$flag")
       success "Kernel: $release"
-      generate_tarball "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/lib/modules/$release" \
-        "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" '' "$flag"
+      generate_tarball "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/lib/modules/" \
+        "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" '' "$release" "$flag"
 
       local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
       cp_host2remote "$tarball_for_deploy_path" \

@@ -312,7 +312,7 @@ function test_kernel_modules()
   local expected_output="Kernel: $version"
 
   # Compress modules for sending
-  local compress_cmd="tar -C $local_remote_path/lib/modules/$version --auto-compress -cf $to_deploy_path/$version.tar ."
+  local compress_cmd="tar -C $local_remote_path/lib/modules/ --auto-compress -cf $to_deploy_path/$version.tar $version"
 
   # Rsync modules
   local rsync_tarball="$rsync_cmd $to_deploy_path/$version.tar $remote_access:$remote_path --rsync-path='sudo rsync'"
