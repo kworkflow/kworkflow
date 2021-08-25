@@ -276,9 +276,10 @@ function test_show_data()
   # Output can change multiple times. For this reason, I don't see a good
   # reason for a very detailed test on this function behavior. Let's just check
   # for a few keywords.
-  [[ ! "$output" =~ 'Summary:' ]] && fail "$LINENO: We expected to find at least one Summary entry"
-  [[ ! "$output" =~ '## tag_2' ]] && fail "$LINENO: We expected to find tag_2"
-  [[ ! "$output" =~ '06:00:40-' ]] && fail "$LINENO: We expected to find 06:00:40-"
+
+  assertTrue "$LINENO: We expected to find at least one Summary entry" '[[ "$output" =~ 'Summary:' ]]'
+  assertTrue "$LINENO: We expected to find tag_2" '[[ "$output" =~ 'tag_2' ]]'
+  assertTrue "$LINENO: We expected to find 06:00:40-" '[[ "$output" =~ '06:00:40-' ]]'
 }
 
 function test_save_data_to()
