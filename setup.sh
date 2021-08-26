@@ -165,22 +165,29 @@ function legacy_folders()
 {
   local prefix="$HOME/.local"
 
-  if [[ -d "$prefix/share/doc" && -f "$prefix/share/man/kw.rst" &&
-    -d "$prefix/share/sound/kw" && -d "$prefix/etc/kw" &&
-    -d "$HOME/.kw" ]]; then
-
+  if [[ -d "$HOME/.kw" ]]; then
     say 'Found an obsolete installation of kw:'
-
     say "Moving files in $HOME/.kw/ to $datadir..."
-    mv "$HOME/.kw/"* "$datadir"
-    say "Moving $prefix/etc/kw to $etcdir..."
-    mv "$prefix/etc/kw" "$etcdir"
-    rm -rf "$prefix/share/doc"
-    rm -rf "$prefix/share/man/kw.rst"
-    rm -rf "$prefix/share/sound/kw"
-    rmdir --ignore-fail-on-non-empty "$prefix/share/man" "$prefix/share/sound" \
-      "$prefix/etc" "$HOME/.kw"
+    rsync -a "$HOME/.kw/" "$datadir"
+
+    rm -rf "$HOME/.kw"
   fi
+
+  [[ -d "$prefix/share/doc" ]] && rm -rf "$prefix/share/doc"
+  [[ -f "$prefix/share/man/kw.rst" ]] && rm -rf "$prefix/share/man/kw.rst"
+  [[ -d "$prefix/share/sound/kw" ]] && rm -rf "$prefix/share/sound/kw"
+  [[ -d "$prefix/share/man" ]] && rm -rf "$prefix/share/man"
+  [[ -d "$prefix/share/sound" ]] && rm -rf "$prefix/share/sound"
+
+  # Legacy global config
+  if [[ -d "$prefix/etc/kw/" ]]; then
+    say "Moving $prefix/etc/kw to $etcdir..."
+    rsync -a "$prefix/etc/kw/" "$etcdir"
+    # We already check "$prefix"
+    # shellcheck disable=SC2115
+    rm -rf "$prefix/etc"
+  fi
+
 }
 
 function clean_legacy()
