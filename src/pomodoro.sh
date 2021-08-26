@@ -272,21 +272,23 @@ function show_active_pomodoro_timebox()
 
   current_timestamp=$(get_timestamp_sec)
 
-  while read -r line; do
-    # Get data from file
-    timestamp=$(echo "$line" | cut -d',' -f1)
-    timebox=$(echo "$line" | cut -d',' -f2)
+  if [[ -f "$POMODORO_LOG_FILE" ]]; then
+    while read -r line; do
+      # Get data from file
+      timestamp=$(echo "$line" | cut -d',' -f1)
+      timebox=$(echo "$line" | cut -d',' -f2)
 
-    # Calculate and process output
-    timestamp_to_date=$(date_to_format "@$timestamp" '+%H:%M:%S[%Y/%m/%d]')
-    diff_time=$((current_timestamp - timestamp))
+      # Calculate and process output
+      timestamp_to_date=$(date_to_format "@$timestamp" '+%H:%M:%S[%Y/%m/%d]')
+      diff_time=$((current_timestamp - timestamp))
 
-    timebox=$(calculate_missing_time "$timebox" "$diff_time")
+      timebox=$(calculate_missing_time "$timebox" "$diff_time")
 
-    say "Started at: $timestamp_to_date"
-    say "- Elapsed time:" "$(sec_to_format "$diff_time")"
-    say "- You still have" "$(sec_to_format "$timebox")"
-  done < "$POMODORO_LOG_FILE"
+      say "Started at: $timestamp_to_date"
+      say "- Elapsed time:" "$(sec_to_format "$diff_time")"
+      say "- You still have" "$(sec_to_format "$timebox")"
+    done < "$POMODORO_LOG_FILE"
+  fi
 }
 
 function pomodoro_parser()

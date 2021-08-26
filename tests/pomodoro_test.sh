@@ -144,6 +144,10 @@ function test_show_active_pomodoro_timebox()
 
   output=$(show_active_pomodoro_timebox)
   compare_command_sequence 'expected_content' "$output" "($LINENO)"
+
+  rm "$POMODORO_LOG_FILE"
+  output=$(show_active_pomodoro_timebox 2>&1)
+  assert_equals_helper 'We should have no output' "$LINENO" "$output" ''
 }
 
 function test_pomodoro_parser()
