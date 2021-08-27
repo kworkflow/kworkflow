@@ -156,6 +156,10 @@ function test_mail_parser()
   expected=1
   assert_equals_helper 'Set force flag' "$LINENO" "${options_values['FORCE']}" "$expected"
 
+  parse_mail_options '--verify'
+  expected_result=1
+  assert_equals_helper 'Set verify flag' "$LINENO" "${options_values['VERIFY']}" "$expected_result"
+
   expected=''
   assert_equals_helper 'Unset local or global flag' "$LINENO" "${options_values['CMD_SCOPE']}" "$expected"
 
@@ -337,7 +341,7 @@ function test_mail_setup()
   }
 
   # prepare options for testing
-  parse_mail_options '-f' '--smtpencryption' 'ssl' '--smtppass' 'verySafePass' \
+  parse_mail_options '--force' '--smtpencryption' 'ssl' '--smtppass' 'verySafePass' \
     '--email' 'test@email.com' '--name' 'Xpto Lala' \
     '--smtpuser' 'test@email.com' '--smtpserver' 'test.email.com'
 
@@ -357,7 +361,7 @@ function test_mail_setup()
   declare -gA options_values
 
   # we need to force in case the user has set config at a global scope
-  parse_mail_options '-f' '--global' '--smtppass' 'verySafePass'
+  parse_mail_options '--force' '--global' '--smtppass' 'verySafePass'
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --global sendemail.smtppass 'verySafePass'"
@@ -384,6 +388,153 @@ function test_mail_setup()
   output=$(mail_setup 'TEST_MODE')
   expected="git config --global sendemail.smtppass 'verySafePass'"
   assert_equals_helper 'Testing global option outside git' "$LINENO" "$output" "$expected"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+}
+
+# This test can only be done on a local scope, as we have no control over the
+# user's system
+function test_mail_verify()
+{
+  local expected
+  local output
+  local ret
+
+  local -a expected_results=(
+    'Missing configurations required for send-email:'
+    'sendemail.smtpuser'
+    'sendemail.smtpserver'
+    'sendemail.smtpserverport'
+  )
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
+  parse_mail_options '--local'
+
+  get_configs
+
+  output=$(mail_verify)
+  ret="$?"
+  assert_equals_helper 'Failed verify expected an error' "$LINENO" "$ret" 22
+  compare_command_sequence 'expected_results' "$output" "$LINENO"
+
+  unset options_values
+  unset set_confs
+  declare -gA options_values
+  declare -gA set_confs
+
+  # fulfill required options
+  parse_mail_options '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
+    'test.email.com' '--smtpserverport' '123'
+  mail_setup &> /dev/null
+  get_configs
+
+  expected_results=(
+    'It looks like you are ready to send patches as:'
+    'Xpto Lala <test@email.com>'
+    ''
+    'If you encounter problems you might need to configure these options:'
+    'sendemail.smtpencryption'
+    'sendemail.smtppass'
+  )
+
+  output=$(mail_verify)
+  ret="$?"
+  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
+  compare_command_sequence 'expected_results' "$output" "$LINENO"
+
+  unset options_values
+  unset set_confs
+  declare -gA options_values
+  declare -gA set_confs
+
+  # complete all the settings
+  parse_mail_options '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
+    'test.email.com' '--smtpserverport' '123' '--smtpencryption' 'ssl' \
+    '--smtppass' 'verySafePass'
+  mail_setup &> /dev/null
+  get_configs
+
+  output=$(mail_verify | head -1)
+  expected='It looks like you are ready to send patches as:'
+  assert_equals_helper 'Expected successful verification' "$LINENO" "$output" "$expected"
+
+  unset options_values
+  unset set_confs
+  declare -gA options_values
+  declare -gA set_confs
+
+  # test custom local smtpserver
+  mkdir -p ./fake_server
+
+  expected_results=(
+    'It appears you are using a local smtpserver with custom configurations.'
+    "Unfortunately we can't verify these configurations yet."
+    'Current value is: ./fake_server/'
+  )
+
+  parse_mail_options '--local' '--smtpserver' './fake_server/'
+  mail_setup &> /dev/null
+  get_configs
+
+  output=$(mail_verify)
+  compare_command_sequence 'expected_results' "$output" "$LINENO"
+
+  rm -rf ./fake_server
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+}
+
+function test_mail_list()
+{
+  local expected
+  local output
+  local ret
+
+  local -a expected_results=(
+    'These are the essential configurations for git send-email:'
+    'NAME'
+    '[local: Xpto Lala]'
+    'EMAIL'
+    '[local: test@email.com]'
+    'SMTPUSER'
+    '[local: test@email.com]'
+    'SMTPSERVER'
+    '[local: test.email.com]'
+    'SMTPSERVERPORT'
+    '[local: 123]'
+    'These are the optional configurations for git send-email:'
+    'SMTPENCRYPTION'
+    '[local: ssl]'
+    'SMTPPASS'
+    '[local: verySafePass]'
+  )
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
+  parse_mail_options '--force' '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
+    'test.email.com' '--smtpserverport' '123' '--smtpencryption' 'ssl' \
+    '--smtppass' 'verySafePass'
+  mail_setup &> /dev/null
+
+  output=$(mail_list)
+  compare_command_sequence 'expected_results' "$output" "$LINENO"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"

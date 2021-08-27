@@ -1,5 +1,7 @@
 # This file handles all the interactions with git send-email. Currently it
 # provides functions to configure the options used by git send-email.
+# It's also able to verify if the configurations required to use git send-email
+# are set.
 
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kw_string.sh"
@@ -24,6 +26,12 @@ function mail_main()
     complain "${options_values['ERROR']}"
     mail_help
     return 22 # EINVAL
+  fi
+
+  if [[ "${options_values['VERIFY']}" == 1 ]]; then
+    get_configs
+    mail_verify ''
+    exit
   fi
 
   if [[ "${options_values['SETUP']}" == 1 ]]; then
@@ -214,12 +222,121 @@ function get_configs()
   done
 }
 
+# This function checks that the required and recommended options to use
+# git send-email have been set. It does not validate the options values, only
+# that a value has been set.
+#
+# @missing_conf:     The options that have not been set
+# @missing_rec_conf: The recommended options that have not been set
+# @cmd_scope:            Limit the search scope
+# @set_confs:        The relevant options that have already been set
+#
+# Returns:
+# Returns 22 if missing any required configuration; 0 otherwise
+function mail_verify()
+{
+  local count=0
+  local count_opt=0
+  local -a missing_conf
+  local -a missing_opt_conf
+  local cmd_scope=${options_values['CMD_SCOPE']}
+
+  for config in {'local','global'}'_sendemail.smtpserver'; do
+    if [[ -d "${set_confs["$config"]}" ]]; then
+      warning 'It appears you are using a local smtpserver with custom configurations.'
+      warning "Unfortunately we can't verify these configurations yet."
+      warning "  Current value is: ${set_confs["$config"]}"
+
+      return 0
+    fi
+  done
+
+  for config in "${optional_config_options[@]}"; do
+    if [[ ! "${!set_confs[*]} " =~ (local|global)_"$config"[[:space:]] ]]; then
+      missing_opt_conf["$count_opt"]="$config"
+      count_opt=$((count_opt + 1))
+    fi
+  done
+
+  for config in "${essential_config_options[@]}"; do
+    if [[ ! "${!set_confs[*]} " =~ (local|global)_"$config"[[:space:]] ]]; then
+      missing_conf["$count"]="$config"
+      count=$((count + 1))
+    fi
+  done
+
+  if [[ "$count" -gt 0 ]]; then
+    complain 'Missing configurations required for send-email:'
+    printf '  %s\n' "${missing_conf[@]}"
+    return 22
+  fi
+
+  success 'It looks like you are ready to send patches as:'
+  if [[ -n "${set_confs['local_user.name']}" ]]; then
+    success -n "  ${set_confs['local_user.name']}"
+  elif [[ -n "${set_confs['global_user.name']}" ]]; then
+    success -n "  ${set_confs['global_user.name']}"
+  fi
+
+  if [[ -n "${set_confs['local_user.email']}" ]]; then
+    success " <${set_confs['local_user.email']}>"
+  elif [[ -n "${set_confs['global_user.email']}" ]]; then
+    success " <${set_confs['global_user.email']}>"
+  fi
+
+  if [[ "$count_opt" -gt 0 ]]; then
+    printf '%s\n' ''
+    say 'If you encounter problems you might need to configure these options:'
+    printf '  %s\n' "${missing_opt_conf[@]}"
+  fi
+
+  return 0
+}
+
+# This function lists the required and optional options to use
+# git send-email. Also lists any values that are already set.
+function mail_list()
+{
+  get_configs
+
+  success 'These are the essential configurations for git send-email:'
+  print_configs 'essential_config_options'
+
+  warning 'These are the optional configurations for git send-email:'
+  print_configs 'optional_config_options'
+}
+
+function print_configs()
+{
+  local -n _configs="$1"
+  local tmp
+  local la=0
+
+  for config in "${_configs[@]}"; do
+    tmp=$(printf '%s\n' "$config" | cut -d '.' -f2)
+    say "  ${tmp^^}"
+    if [[ -n "${set_confs[local_"$config"]}" ]]; then
+      printf '    [local: %s]' "${set_confs[local_"$config"]}"
+      la=1
+    fi
+    if [[ -n "${set_confs[global_"$config"]}" ]]; then
+      if [[ "$la" == 1 ]]; then
+        printf ', [global: %s]' "${set_confs[global_"$config"]}"
+      else
+        printf '    [global: %s]' "${set_confs[global_"$config"]}"
+      fi
+    fi
+    printf '%s\n' ''
+    la=0
+  done
+}
+
 function parse_mail_options()
 {
   local index
   local option
-  local short_options='t,f,'
-  local long_options='setup,local,global,force,'
+  local short_options='t,f,v,l,'
+  local long_options='setup,local,global,force,verify,list,'
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -234,6 +351,7 @@ function parse_mail_options()
   # Default values
   options_values['SETUP']=0
   options_values['FORCE']=0
+  options_values['VERIFY']=0
   options_values['SCOPE']='local'
   options_values['CMD_SCOPE']=''
 
@@ -241,6 +359,10 @@ function parse_mail_options()
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
+      --list | -l)
+        mail_list
+        exit
+        ;;
       --setup | -t)
         options_values['SETUP']=1
         shift
@@ -269,6 +391,10 @@ function parse_mail_options()
       --global)
         options_values['SCOPE']='global'
         options_values['CMD_SCOPE']='global'
+        shift
+        ;;
+      --verify | -v)
+        options_values['VERIFY']=1
         shift
         ;;
       --force | -f)
@@ -300,5 +426,7 @@ function mail_help()
     '    --smtpuser <email>' \
     '    --smtpserver <domain>' \
     '    --smtpserverport <port>' \
-    '    --smtpencryption <encryption>'
+    '    --smtpencryption <encryption>' \
+    '  mail (-v | --verify) - Check if required configurations are set' \
+    '  mail (-l | --list) - List the configurable options'
 }
