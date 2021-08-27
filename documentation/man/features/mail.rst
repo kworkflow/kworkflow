@@ -6,7 +6,9 @@ kw-mail
 
 SYNOPSIS
 ========
-*kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
+| *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
+| *kw mail* (-v | \--verify) [\--local | \--global]
+| *kw mail* (-l | \--list)
 
 DESCRIPTION
 ===========
@@ -40,6 +42,12 @@ OPTIONS
 -f, \--force:
   Forces the configurations to be added, regardles of conflicts with the
   current values already set in the system.
+
+-v, \--verify:
+  Verify that all the settings needed are set and valid.
+
+-l, \--list:
+  Lists the settings that mail uses.
 
 EXAMPLES
 ========
