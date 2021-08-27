@@ -1,13 +1,13 @@
 <img src="images/kw_logo.png" width="600" alt="kworkflow">
 
-[![Build Status](https://www.travis-ci.com/kworkflow/kworkflow.svg?branch=unstable)](https://www.travis-ci.com/kworkflow/kworkflow)
+![Build Status](https://github.com/kworkflow/kworkflow/actions/workflows/unit_tests.yml/badge.svg?branch=unstable)
 [![codecov](https://codecov.io/gh/kworkflow/kworkflow/branch/unstable/graph/badge.svg?token=ZQ52EK8VWF)](https://codecov.io/gh/kworkflow/kworkflow)
 # About
 
-kw has a simple mission: reduce the setup overhead for working with Linux
-kernel and provide tools for support developers in their daily tasks. If you
-have a set of repeatable tasks that you usually perform when working in your
-favorite kernel subsystem or similar, consider putting it as a part of kw.
+kw has a simple mission: reduce the setup overhead of working with the Linux
+kernel and provide tools to support developers in their daily tasks. If you
+have a set of repeatable tasks that you usually perform while working in your
+favorite kernel subsystem or similar, consider adding it as a part of kw.
 
 # Install
 
@@ -30,9 +30,10 @@ If you want to generate the Sphinx documentation, you can use:
 
 ```
 ./setup.sh --docs
-``` 
+```
 
-Finally, you can use your browser to look the index.html page. For example:
+Finally, you can use your browser to look at the **index.html** page. For
+example:
 
 ```
 firefox build/index.html
@@ -46,6 +47,17 @@ point, check
 and don't forget to read our
 [Contribuitor's Guide](https://flusp.ime.usp.br/doc/kw/content/howtocontribute.html)
 (or [howtocontribute file](documentation/content/howtocontribute.rst)).
+
+# Reach Out
+
+The best way to get help or make suggestions is by creating
+[issues](https://github.com/kworkflow/kworkflow/issues) or making a
+[pull request](https://github.com/kworkflow/kworkflow/pulls), someone is
+likely to reply to these in little time.
+You can also reach out to us at the `#kw-devel` channel on the
+[OFTC](https://www.oftc.net/) IRC server (**irc.of</span>tc.n</span>et**), or
+by joining or opening a new discussion on the
+[discussions](https://github.com/kworkflow/kworkflow/discussions) page.
 
 # License
 
