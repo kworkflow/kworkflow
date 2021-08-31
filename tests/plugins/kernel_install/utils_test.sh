@@ -108,6 +108,7 @@ function test_do_uninstall_cmd_sequence()
   local initrdpath="$prefix/boot/initrd.img-$target"
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
+  local configpath="$prefix/boot/config-$target"
 
   # Invalid path
   declare -a cmd_sequence=(
@@ -116,7 +117,7 @@ function test_do_uninstall_cmd_sequence()
     "Can't find $initrdpath"
     "Can't find $modulespath"
     "Can't find $libpath"
-    "Can't find $libpath"
+    "Can't find $configpath"
   )
 
   output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
@@ -141,6 +142,8 @@ function test_do_uninstall_cmd_sequence()
     "rm -rf $modulespath"
     "Removing: $libpath"
     "rm -rf $libpath"
+    "Removing: $configpath"
+    "rm $configpath"
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
@@ -158,6 +161,8 @@ function test_do_uninstall_cmd_sequence()
     "Can't find $modulespath"
     "Removing: $libpath"
     "rm -rf $libpath"
+    "Removing: $configpath"
+    "rm $configpath"
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')

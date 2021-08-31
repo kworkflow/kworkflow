@@ -149,9 +149,11 @@ function test_kernel_install()
   # The following commands represets those steps
   local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path $rsync_flags"
   local cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
+  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
 
   declare -a expected_cmd=(
     "$cmd_image_remote"
+    "$config_warning"
     "$cmd_deploy_image"
   )
 
@@ -178,6 +180,7 @@ function test_kernel_install()
 
   declare -a expected_cmd=(
     "$cmd_image_remote"
+    "$config_warning"
     "$cmd_deploy_image"
   )
 
@@ -221,6 +224,7 @@ function test_kernel_archlinux_install()
   local rsync_flags="-LrlptD --rsync-path='sudo rsync'"
   local deploy_params="test arch Image 1 arm64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $deploy_params"
+  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
 
   # For this test we expected three steps:
   #
@@ -236,6 +240,7 @@ function test_kernel_archlinux_install()
   declare -a expected_cmd=(
     "$cmd_preset_remote"
     "$cmd_image_remote"
+    "$config_warning"
     "$cmd_deploy_image"
   )
 
@@ -273,6 +278,7 @@ function test_kernel_install_x86_64()
   local rsync_flags="-LrlptD --rsync-path='sudo rsync'"
   local deploy_params="test debian bzImage 1 x86_64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $deploy_params"
+  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
 
   # Test preparation
   cd "$original" || {
@@ -303,6 +309,7 @@ function test_kernel_install_x86_64()
 
   declare -a expected_cmd=(
     "$cmd_image_remote"
+    "$config_warning"
     "$cmd_deploy_image"
   )
 
@@ -440,9 +447,11 @@ function test_kernel_install_local()
   local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
   local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
   local cmd_reboot="sudo -E reboot"
+  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
   local msg=""
 
   declare -a expected_cmd=(
+    "$config_warning"
     "$cmd_cp_kernel_img"
     "$cmd_update_initramfs"
     "$cmd_update_grub"

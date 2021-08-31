@@ -180,6 +180,7 @@ function mk_fake_remote_system()
   local initrdpath="$prefix/boot/initrd.img-$target"
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
+  local configpath="$prefix/boot/config-$target"
 
   mkdir -p "$modulespath"
   mkdir -p "$prefix/boot/"
@@ -190,6 +191,7 @@ function mk_fake_remote_system()
   touch "$kernelpath.old"
   touch "$initrdpath"
   touch "$libpath"
+  touch "$configpath"
 }
 
 function mock_target_machine()

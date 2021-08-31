@@ -45,6 +45,9 @@ declare -gA options_values
 # required functions to update the kernel. This function handles a different
 # set of parameters for the distinct set of target machines.
 #
+# @build_and_deploy If the user uses `kw bd` we can safely copy the local
+#                   .config file.
+#
 # Note: I know that developer know what they are doing (usually) and in the
 # future, it will be nice if we support single kernel update (patches are
 # welcome).
@@ -52,6 +55,7 @@ declare -gA options_values
 # Note: This function relies on the parameters set in the config file.
 function kernel_deploy()
 {
+  local build_and_deploy="$1"
   local reboot=0
   local modules=0
   local target=0
@@ -62,6 +66,9 @@ function kernel_deploy()
   local end=0
   local runtime=0
   local ret=0
+
+  # Drop build_and_deploy flag
+  shift
 
   if [[ "$1" =~ -h|--help ]]; then
     deploy_help "$1"
@@ -138,7 +145,7 @@ function kernel_deploy()
     # Update name: release + alias
     name=$(make kernelrelease)
 
-    run_kernel_install "$reboot" "$name" '' "$target"
+    run_kernel_install "$reboot" "$name" '' "$target" '' "$build_and_deploy"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
     statistics_manager 'deploy' "$runtime"
@@ -561,6 +568,7 @@ function run_kernel_install()
   local flag="$3"
   local target="$4"
   local user="${5:-${remote_parameters['REMOTE_USER']}}"
+  local build_and_deploy="$6"
   local distro='none'
   local kernel_name="${configurations[kernel_name]}"
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
@@ -568,7 +576,7 @@ function run_kernel_install()
   local kernel_img_name="${configurations[kernel_img_name]}"
   local remote
   local port
-  local distro
+  local config_local_version
 
   # We have to guarantee some default values values
   kernel_name=${kernel_name:-'nothing'}
@@ -594,6 +602,11 @@ function run_kernel_install()
     warning "kw inferred arch/$arch_target/boot/$kernel_img_name as a kernel image"
   fi
 
+  if [[ -f "$PWD/.config" ]]; then
+    config_local_version=$(sed -nr '/CONFIG_LOCALVERSION=/s/CONFIG_LOCALVERSION="(.*)"/\1/p' \
+      "$PWD/.config")
+  fi
+
   case "$target" in
     1) # VM_TARGET
       distro=$(detect_distro "${configurations[mount_point]}/")
@@ -602,6 +615,13 @@ function run_kernel_install()
         complain 'Unfortunately, there is no support for the target distro'
         vm_umount
         exit 95 # ENOTSUP
+      fi
+
+      # Copy .config
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name$" ]]; then
+        cp "$PWD/.config" "${configurations[mount_point]}/boot/config-$name"
+      else
+        complain 'Undefined .config file for the target kernel. Consider using kw bd'
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
@@ -621,6 +641,13 @@ function run_kernel_install()
       if [[ $(id -u) == 0 ]]; then
         complain 'kw deploy --local should not be run as root'
         exit 1 # EPERM
+      fi
+
+      # Copy .config
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name$" ]]; then
+        cp "$PWD/.config" "/boot/config-$name"
+      else
+        complain 'Undefined .config file for the target kernel. Consider using kw bd'
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
@@ -649,6 +676,13 @@ function run_kernel_install()
 
       cp2remote "$flag" \
         "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/vmlinuz-$name"
+
+      # Copy .config
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name$" ]]; then
+        cp2remote "$flag" "$PWD/.config" "/boot/config-$name"
+      else
+        complain 'Undefined .config file for the target kernel. Consider using kw bd'
+      fi
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
