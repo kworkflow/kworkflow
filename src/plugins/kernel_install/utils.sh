@@ -234,6 +234,7 @@ function do_uninstall()
   local initrdpath="$prefix/boot/initrd.img-$target"
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
+  local configpath="$prefix/boot/config-$target"
 
   if [ -z "$target" ]; then
     printf '%s\n' 'No parameter, nothing to do'
@@ -273,6 +274,13 @@ function do_uninstall()
     cmd_manager "$flag" "rm -rf $libpath"
   else
     printf '%s\n' "Can't find $libpath"
+  fi
+
+  if [ -f "$configpath" ]; then
+    echo "Removing: $configpath"
+    cmd_manager "$flag" "rm $configpath"
+  else
+    echo "Can't find $configpath"
   fi
 }
 
