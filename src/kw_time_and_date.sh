@@ -86,6 +86,8 @@ function days_in_the_month()
 {
   local month_number="$1"
   local year="$2"
+  local days=31
+  local short=(4 6 9 11) # list of months with 30 days
 
   if [[ -n "$month_number" && "$month_number" -lt 1 || "$month_number" -gt 12 ]]; then
     return 22 # EINVAL
@@ -94,5 +96,21 @@ function days_in_the_month()
   month_number=${month_number:-$(date +%m)}
   year=${year:-$(date +%Y)}
 
-  cal "$month_number" "$year" | awk 'NF {DAYS = $NF}; END {print DAYS}'
+  # check if it's a leap year
+  if [[ "$month_number" == 2 ]]; then
+    if ((year % 4 != 0)); then
+      days=28
+    elif ((year % 100 != 0)); then
+      days=29
+    elif ((year % 400 != 0)); then
+      days=28
+    else
+      days=29
+    fi
+  # check if it's a short month
+  elif [[ "${short[*]}" =~ (^|[[:space:]])$month_number($|[[:space:]]) ]]; then
+    days=30
+  fi
+
+  printf '%s\n' "$days"
 }
