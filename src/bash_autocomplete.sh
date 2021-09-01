@@ -8,7 +8,7 @@ function _kw_autocomplete()
                 mount mo umount um vars up u codestyle c configm g
                 maintainers m deploy d help h version statistics
                 pomodoro p report r device drm diff df --version -v man
-                backup debug"
+                backup debug mail"
 
   # By default, autocomplete with kw_options
   if [[ ${previous_command} == kw ]]; then

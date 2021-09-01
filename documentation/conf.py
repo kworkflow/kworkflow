@@ -167,6 +167,7 @@ man_pages = [
     ('man/features/drm', 'drm', 'drm subsystem support', [author], 1),
     ('man/features/explore', 'explore', 'git grep wrapper', [author], 1),
     ('man/features/init', 'init', 'initialize kworkflow.config', [author], 1),
+    ('man/features/mail', 'mail', 'git send-email wrapper', ['Rubens Gomes Neto'], 1),
     ('man/features/maintainers', 'maintainers', 'display module maintainers', [author], 1),
     ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
     ('man/features/pomodoro', 'pomodoro', 'pomodoro style time management', [author], 1),
