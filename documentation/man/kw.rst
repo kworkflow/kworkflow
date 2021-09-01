@@ -104,6 +104,7 @@ the previous sections.
   | :ref:`kw-diff<diff-doc>`
   | :ref:`kw-statistics<statistics-doc>`
   | :ref:`kw-pomodoro<pomodoro-doc>`
+  | :ref:`kw-mail<mail-doc>`
 
 clear-cache
 ~~~~~~~~~~~
