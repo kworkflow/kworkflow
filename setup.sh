@@ -11,7 +11,7 @@ SILENT=1
 VERBOSE=0
 FORCE=0
 
-declare -r app_name="kw"
+declare -r app_name='kw'
 
 ##
 ## Following are the install paths
@@ -31,46 +31,46 @@ declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
 ##
 ## Source code references
 ##
-declare -r SRCDIR="src"
-declare -r MAN="documentation/man/"
-declare -r CONFIG_DIR="etc"
+declare -r SRCDIR='src'
+declare -r MAN='documentation/man/'
+declare -r CONFIG_DIR='etc'
 declare -r KW_CACHE_DIR="$cachedir"
 
-declare -r SOUNDS="sounds"
-declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
-declare -r DOCUMENTATION="documentation"
+declare -r SOUNDS='sounds'
+declare -r BASH_AUTOCOMPLETE='bash_autocomplete'
+declare -r DOCUMENTATION='documentation'
 
-declare -r CONFIGS_PATH="configs"
+declare -r CONFIGS_PATH='configs'
 
 function check_dependencies()
 {
-  local package_list=""
-  local cmd=""
+  local package_list=''
+  local cmd=''
   local distro
 
-  distro=$(detect_distro "/")
+  distro=$(detect_distro '/')
 
-  if [[ "$distro" =~ "arch" ]]; then
+  if [[ "$distro" =~ 'arch' ]]; then
     for package in "${arch_packages[@]}"; do
       installed=$(pacman -Qs "$package" > /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
     done
     cmd="pacman -S $package_list"
-  elif [[ "$distro" =~ "debian" ]]; then
+  elif [[ "$distro" =~ 'debian' ]]; then
     for package in "${debian_packages[@]}"; do
-      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c "ok installed")
+      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
     done
     cmd="apt install $package_list"
   else
-    warning "Unfortunately, we do not have official support for your distro (yet)"
+    warning 'Unfortunately, we do not have official support for your distro (yet)'
     warning "Please, try to find the following packages: ${arch_packages[*]}"
     return 0
   fi
 
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ "0" ]]; then
+      if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ '0' ]]; then
         return 0
       fi
     fi
@@ -84,12 +84,12 @@ function check_dependencies()
 # migration from the old version to the new one.
 function remove_kw_from_PATH_variable()
 {
-  local new_path=""
+  local new_path=''
   local needs_update=0
 
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
   for path in "${ALL_PATHS[@]}"; do
-    if [[ "$path" =~ "/kw" ]]; then
+    if [[ "$path" =~ '/kw' ]]; then
       needs_update=1
       continue
     fi
@@ -106,7 +106,7 @@ function remove_kw_from_PATH_variable()
 
 function update_path()
 {
-  local shellrc=${1:-".bashrc"}
+  local shellrc=${1:-'.bashrc'}
 
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
   for path in "${ALL_PATHS[@]}"; do
@@ -138,23 +138,23 @@ function cmd_output_manager()
 
 function usage()
 {
-  say "usage: ./setup.sh option"
-  say ""
-  say "Where option may be one of the following:"
-  say "--help      | -h     Display this usage message"
+  say 'usage: ./setup.sh option'
+  say ''
+  say 'Where option may be one of the following:'
+  say '--help      | -h     Display this usage message'
   say "--install   | -i     Install $app_name"
   say "--uninstall | -u     Uninstall $app_name"
-  say "--verbose            Explain what is being done"
-  say "--force              Never prompt"
+  say '--verbose            Explain what is being done'
+  say '--force              Never prompt'
   say "--completely-remove  Remove $app_name and all files under its responsibility"
   say "--docs               Build $app_name's documentation as HTML pages into ./build"
 }
 
 function confirm_complete_removal()
 {
-  warning "This operation will completely remove all files related to kw,"
-  warning "including the kernel '.config' files under its controls."
-  if [[ $(ask_yN "Do you want to proceed?") =~ "0" ]]; then
+  warning 'This operation will completely remove all files related to kw,'
+  warning 'including the kernel '.config' files under its controls.'
+  if [[ $(ask_yN 'Do you want to proceed?') =~ '0' ]]; then
     exit 0
   fi
 }
@@ -219,7 +219,7 @@ function clean_legacy()
   [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
 
   # Completely remove user data
-  if [[ "$completely_remove" =~ "-d" ]]; then
+  if [[ "$completely_remove" =~ '-d' ]]; then
     mv "$datadir" "$trash/userdata"
     return 0
   fi
@@ -240,7 +240,7 @@ function setup_config_file()
 {
   local config_files_path="$etcdir"
   local config_file_template="$config_files_path/kworkflow_template.config"
-  local global_config_name="kworkflow.config"
+  local global_config_name='kworkflow.config'
 
   if [[ -f "$config_file_template" ]]; then
     cp "$config_file_template" "$config_files_path/$global_config_name"
@@ -269,7 +269,7 @@ function ASSERT_IF_NOT_EQ_ZERO()
 # Synchronize .vim and .vimrc with repository.
 function synchronize_files()
 {
-  verbose=""
+  verbose=''
 
   [[ "$VERBOSE" == 1 ]] && verbose=1
 
@@ -313,29 +313,29 @@ function synchronize_files()
 
   # Copy and setup global config file
   setup_config_file
-  ASSERT_IF_NOT_EQ_ZERO "Config file failed" "$?"
+  ASSERT_IF_NOT_EQ_ZERO 'Config file failed' "$?"
 
-  if command_exists "bash"; then
+  if command_exists 'bash'; then
     # Add tabcompletion to bashrc
     if [[ -f "$HOME/.bashrc" || -L "$HOME/.bashrc" ]]; then
-      append_bashcompletion ".bashrc"
+      append_bashcompletion '.bashrc'
       update_path
     else
-      warning "Unable to find a .bashrc file."
+      warning 'Unable to find a .bashrc file.'
     fi
   fi
 
-  if command_exists "zsh"; then
+  if command_exists 'zsh'; then
     # Add tabcompletion to zshrc
     if [[ -f "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
       local zshcomp=$'# Enable bash completion for zsh\n'
       zshcomp+='autoload bashcompinit && bashcompinit'
 
       safe_append "$zshcomp" "$HOME/.zshrc"
-      append_bashcompletion ".zshrc"
-      update_path ".zshrc"
+      append_bashcompletion '.zshrc'
+      update_path '.zshrc'
     else
-      warning "Unable to find a .zshrc file."
+      warning 'Unable to find a .zshrc file.'
     fi
   fi
 
@@ -343,7 +343,7 @@ function synchronize_files()
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
   say "$app_name installed into $HOME"
-  warning " -> For a better experience with kw, please, open a new terminal."
+  warning ' -> For a better experience with kw, please, open a new terminal.'
 }
 
 function append_bashcompletion()
@@ -357,7 +357,7 @@ function append_bashcompletion()
 function safe_append()
 {
   if [[ $(grep -c -x "$1" "$2") == 0 ]]; then
-    printf "%s\n" "$1" >> "$2"
+    printf '%s\n' "$1" >> "$2"
   fi
 }
 
@@ -381,14 +381,14 @@ EOF
 function install_home()
 {
   # Check Dependencies
-  say "Checking dependencies ..."
+  say 'Checking dependencies ...'
   check_dependencies
   # Move old folder structure to new one
   legacy_folders
   # First clean old installation
   clean_legacy
   # Synchronize source files
-  say "Installing ..."
+  say 'Installing ...'
   synchronize_files
   # Update version based on the current branch
   update_version
@@ -397,11 +397,11 @@ function install_home()
 # Options
 for arg; do
   shift
-  if [ "$arg" = "--verbose" ]; then
+  if [ "$arg" = '--verbose' ]; then
     VERBOSE=1
     continue
   fi
-  if [ "$arg" = "--force" ]; then
+  if [ "$arg" = '--force' ]; then
     FORCE=1
     continue
   fi
@@ -415,7 +415,7 @@ case "$1" in
     ;;
   --uninstall | -u)
     clean_legacy
-    say "kw was removed."
+    say 'kw was removed.'
     ;;
     # ATTENTION: This option is dangerous because it completely removes all files
     # related to kw, e.g., '.config' file under kw controls. For this reason, we do
@@ -423,7 +423,7 @@ case "$1" in
     # operation.
   --completely-remove)
     confirm_complete_removal
-    clean_legacy "-d"
+    clean_legacy '-d'
     ;;
   --help | -h)
     usage
@@ -432,7 +432,7 @@ case "$1" in
     sphinx-build -nW -b html documentation/ build
     ;;
   *)
-    complain "Invalid number of arguments"
+    complain 'Invalid number of arguments'
     usage
     exit 1
     ;;

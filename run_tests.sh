@@ -4,7 +4,7 @@
 include './tests/utils.sh'
 include './src/kwio.sh'
 
-declare -r PATH_TO_TESTS_EXTERNALS="tests/external"
+declare -r PATH_TO_TESTS_EXTERNALS='tests/external'
 
 function show_help()
 {
@@ -39,15 +39,16 @@ function get_external_scripts()
 {
   local OVERWRITE="$1"
   local ret
-  local -r CHECKPATCH_URL="https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl"
-  local -r MAINTAINER_URL="https://raw.githubusercontent.com/torvalds/linux/master/scripts/get_maintainer.pl"
-  local -r CHECKPATCH_CONST_STRUCTS="https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch"
-  local -r CHECKPATCH_SPELLING="https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt"
+  local -r CHECKPATCH_URL='https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl'
+  local -r MAINTAINER_URL='https://raw.githubusercontent.com/torvalds/linux/master/scripts/get_maintainer.pl'
+  local -r CHECKPATCH_CONST_STRUCTS='https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch'
+  local -r CHECKPATCH_SPELLING='https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt'
   local DOWNLOAD_URLS=(
     CHECKPATCH_URL
     CHECKPATCH_CONST_STRUCTS
     CHECKPATCH_SPELLING
-    MAINTAINER_URL)
+    MAINTAINER_URL
+  )
 
   say $'Downloading external scripts...\n'
 
@@ -74,11 +75,11 @@ function check_required_files()
     # Errno code for File exist
     return 17
   else
-    say "--> Preparing unit test"
+    say '--> Preparing unit test'
     get_external_scripts "$force_update"
     if [[ "$?" -eq 113 ]]; then
-      complain "Failed to download external scripts. Check your connection."
-      complain "Cannot run kw tests"
+      complain 'Failed to download external scripts. Check your connection.'
+      complain 'Cannot run kw tests'
       exit 1
     fi
   fi
@@ -100,7 +101,7 @@ function report_results()
   elif [[ "$success" -eq "$total" ]]; then
     success "$SEPARATOR"
     success "Total: $total test file(s)"
-    success "Test file(s) SUCCEEDED"
+    success 'Test file(s) SUCCEEDED'
   else
     complain "$SEPARATOR"
     complain "Total: $total test file(s)"
@@ -174,30 +175,30 @@ check_files="$?"
 #shellcheck disable=SC2086
 if [[ "$#" -eq 0 ]]; then
   check_required_files
-  files_list=$(find ./tests -name "*_test.sh" | grep --invert-match "/shunit2/")
+  files_list=$(find ./tests -name '*_test.sh' | grep --invert-match '/shunit2/')
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
   strip_path $files_list
   run_tests
-elif [[ "$1" == "list" ]]; then
+elif [[ "$1" == 'list' ]]; then
   index=0
-  files_list=$(find ./tests/ -name "*_test.sh")
+  files_list=$(find ./tests/ -name '*_test.sh')
   strip_path $files_list
   for test_name in "${TESTS[@]}"; do
     ((index++))
     say "$index) ${test_name}"
   done
-elif [[ "$1" == "test" ]]; then
+elif [[ "$1" == 'test' ]]; then
   strip_path "${*:2}"
   run_tests
-elif [[ "$1" == "prepare" ]]; then
-  if [[ "$#" -gt 1 && ("$2" == "--force-update" || "$2" == "-f") ]]; then
+elif [[ "$1" == 'prepare' ]]; then
+  if [[ "$#" -gt 1 && ("$2" == '--force-update' || "$2" == '-f') ]]; then
     check_required_files true
     check_files="$?"
   fi
 
   if [[ "$check_files" -eq 17 ]]; then
-    say "You are ready for running the unit test"
+    say 'You are ready to run the unit test'
     return 0
   fi
 else

@@ -99,10 +99,10 @@ function timebox_to_sec()
 
   case "$time_type" in
     h)
-      time_value=$((3600 * "$time_value"))
+      time_value=$((3600 * time_value))
       ;;
     m)
-      time_value=$((60 * "$time_value"))
+      time_value=$((60 * time_value))
       ;;
     s)
       true # Do nothing
@@ -194,7 +194,7 @@ function grouping_month_data()
   month_total_days=$(days_in_the_month "$month" "$year")
 
   for ((day = 1; day <= month_total_days; day++)); do
-    current_day="$target_month/"$(printf "%02d\n" "$day")
+    current_day="$target_month/"$(printf '%02d\n' "$day")
     day_path=$(join_path "$KW_POMODORO_DATA" "$current_day")
     [[ ! -f "$day_path" ]] && continue
     grouping_day_data "$current_day"
@@ -215,11 +215,11 @@ function grouping_year_data()
   local month_total_days
 
   for ((month = 1; month <= 12; month++)); do
-    current_month=$(printf "%02d\n" "$month")
+    current_month=$(printf '%02d\n' "$month")
     month_total_days=$(days_in_the_month "$month" "$target_year")
     month_path=$(join_path "$target_year" "$current_month")
     for ((day = 1; day <= month_total_days; day++)); do
-      current_day=$(printf "%02d\n" "$day")
+      current_day=$(printf '%02d\n' "$day")
       target_day=$(join_path "$month_path" "$current_day")
       full_day_path=$(join_path "$KW_POMODORO_DATA" "$target_day")
       [[ ! -f "$full_day_path" ]] && continue

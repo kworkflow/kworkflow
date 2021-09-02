@@ -25,7 +25,7 @@ function write_to_file()
 
 function test_default_handler()
 {
-  local -r expected=$'\n'"Oh no! An interruption! See ya..."
+  local -r expected=$'\nOh no! An interruption! See ya...'
 
   trap 'kill -s SIGTERM $!' SIGUSR1
   {

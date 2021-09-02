@@ -21,13 +21,13 @@ function print_files_authors()
   local printed_authors_separator=false
 
   for file in "${files[@]}"; do
-    authors=$(grep -oE "MODULE_AUTHOR *\(.*\)" "$file" |
-      sed -E "s/(MODULE_AUTHOR *\( *\"|\" *\))//g" |
+    authors=$(grep -oE 'MODULE_AUTHOR *\(.*\)' "$file" |
+      sed -E 's/(MODULE_AUTHOR *\( *\"|\" *\))//g' |
       sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g')
     if [[ -n $authors ]]; then
       if [[ $printed_authors_separator = false ]]; then
         say "$SEPARATOR"
-        say "MODULE AUTHORS:"
+        say 'MODULE AUTHORS:'
         printed_authors_separator=true
       fi
       say -n "$(basename "$file"): "
@@ -62,12 +62,12 @@ function execute_get_maintainer()
   local is_file_a_patch=true
   local is_file_inside_kernel_tree=true
 
-  local -r script="scripts/get_maintainer.pl"
-  local script_options="--separator , --nokeywords --nogit "
-  script_options="$script_options --nogit-fallback --norolestats "
+  local -r script='scripts/get_maintainer.pl'
+  local script_options='--separator , --nokeywords --nogit'
+  script_options="$script_options --nogit-fallback --norolestats"
 
   local -r original_working_dir=$PWD
-  local kernel_root=""
+  local kernel_root=''
 
   if [[ "$1" =~ -h|--help ]]; then
     maintainers_help "$1"
@@ -101,14 +101,14 @@ function execute_get_maintainer()
     fi
   done
 
-  # If no file is given, assume "."
+  # If no file is given, assume '.'
   if [[ -z $FILE_OR_DIR ]]; then
-    FILE_OR_DIR="."
+    FILE_OR_DIR='.'
   fi
 
   # Check if is a valid path
   if [[ ! -d $FILE_OR_DIR && ! -f $FILE_OR_DIR ]]; then
-    complain "Invalid path"
+    complain 'Invalid path'
     return 1
   fi
 
@@ -117,11 +117,11 @@ function execute_get_maintainer()
   # if given path is not a patchfile, add -f to get_maintainer.pl options
   if ! is_a_patch "$FILE_OR_DIR"; then
     if "$update_patch"; then
-      complain "Option --update-patch was passed but given path is not a patch."
+      complain 'Option --update-patch was passed but given path is not a patch.'
       return 1
     fi
     is_file_a_patch=false
-    script_options="$script_options -f "
+    script_options="$script_options -f"
   fi
 
   # try to find kernel root at given path
@@ -134,7 +134,7 @@ function execute_get_maintainer()
 
   # Check if kernel root was found.
   if [[ -z "$kernel_root" ]]; then
-    complain "Neither the given path nor the working path is in a kernel tree."
+    complain 'Neither the given path nor the working path is in a kernel tree.'
     return 1
   fi
 
@@ -142,7 +142,7 @@ function execute_get_maintainer()
   # mistake. Although get_maintainer.pl can handle this, it's better to abort
   # because it is most likely a user's mistake. So better let the user know.
   if ! $is_file_a_patch && ! $is_file_inside_kernel_tree; then
-    complain "The given file is not a patch and is outside a kernel tree."
+    complain 'The given file is not a patch and is outside a kernel tree.'
     return 1
   fi
 
@@ -154,7 +154,7 @@ function execute_get_maintainer()
   if "$update_patch"; then
     # Check if "To:" field is already present
     if grep -q -E '^To: .*'"$script_output" "$FILE_OR_DIR"; then
-      say "Maintainers already in \"To:\" field of $(basename "$FILE_OR_DIR")"
+      say "Maintainers already in 'To:' field of $(basename "$FILE_OR_DIR")"
       return 0
     elif grep -q -E '^To: ' "$FILE_OR_DIR"; then
       # append maintainers to existing "To:" field
@@ -164,7 +164,7 @@ function execute_get_maintainer()
     fi
     say "Patch $(basename "$FILE_OR_DIR") updated with the following maintainers:"
   else
-    say "HERE:"
+    say 'HERE:'
   fi
   printf '%s\n' "$script_output"
 

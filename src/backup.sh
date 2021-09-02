@@ -151,10 +151,10 @@ function restore_data_from_dir()
           ! cmp -s "$KW_DATA_DIR/$dir/$year$month/$day" "$day_file"; then
           if [[ -z "$decision" ]]; then
             complain "It looks like that the file $year$month/$day differs from the backup version."
-            complain "Do you want to:"
-            say "(1) Replace all duplicate files with backup"
-            say "(2) Keep all the old files"
-            say "(3) Aggregate all old and backup files"
+            complain 'Do you want to:'
+            say '(1) Replace all duplicate files with backup'
+            say '(2) Keep all the old files'
+            say '(3) Aggregate all old and backup files'
             read -r decision
           fi
 
@@ -193,9 +193,9 @@ function restore_pomodoro()
         if [[ -z "$decision" ]]; then
           complain 'pomodoro/tags already exists'
           complain 'Do you want to:'
-          say "(1) Replace it"
-          say "(2) Keep it"
-          say "(3) Aggregate it"
+          say '(1) Replace it'
+          say '(2) Keep it'
+          say '(3) Aggregate it'
           read -r decision
         fi
         case "$decision" in

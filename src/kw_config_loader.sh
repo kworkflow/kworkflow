@@ -88,7 +88,7 @@ function show_variables()
     [misc]='Miscellaneous options'
   )
 
-  say "kw configuration variables:"
+  say 'kw configuration variables:'
   printf '%s\n' "  Local config file: $has_local_config_path"
 
   for group in 'build' 'deploy' 'qemu' 'ssh' 'notification' 'misc'; do

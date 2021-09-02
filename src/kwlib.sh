@@ -1,8 +1,8 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
 
 # Array with compression programs accepted by tar
-declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd' 'xz'
-  'auto-compress')
+declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
+  'xz' 'auto-compress')
 
 # A common task used inside kw is a string separation based on a delimiter, for
 # this reason, this function tries to handle this scenario by getting a
@@ -28,10 +28,10 @@ function get_based_on_delimiter()
   local string="$1"
   local delimiter="$2"
   local position="$3"
-  local output=""
+  local output=''
   local ret=0
 
-  delimiter=${delimiter:-":"}
+  delimiter=${delimiter:-':'}
 
   output=$(printf '%s\n' "$string" | grep -i "$delimiter")
   if [[ "$?" != 0 ]]; then
@@ -128,7 +128,7 @@ function find_kernel_root()
 {
   local -r FILE_OR_DIR="$*"
   local current_dir
-  local kernel_root=""
+  local kernel_root=''
 
   if [[ -f "$FILE_OR_DIR" ]]; then
     current_dir="$(dirname "$FILE_OR_DIR")"
@@ -139,7 +139,7 @@ function find_kernel_root()
   if is_kernel_root "$current_dir"; then
     kernel_root="$current_dir"
   else
-    while [[ "$current_dir" != "." && "$current_dir" != "/" ]]; do
+    while [[ "$current_dir" != '.' && "$current_dir" != '/' ]]; do
       current_dir="$(dirname "$current_dir")"
       if is_kernel_root "$current_dir"; then
         kernel_root="$current_dir"
@@ -206,9 +206,9 @@ function is_a_patch()
   # in a patch file. The absence of any of these strings makes the
   # given file be considered NOT a patch
   local -ar PATCH_EXPECTED_STRINGS=(
-    "diff --git"
-    "---"
-    "@@"
+    'diff --git'
+    '---'
+    '@@'
   )
 
   for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
@@ -263,7 +263,7 @@ function detect_distro()
 {
   local root_path="$1"
   local str_check="$2"
-  local distro="none"
+  local distro='none'
   local etc_path
 
   etc_path=$(join_path "$root_path" /etc)
@@ -275,10 +275,10 @@ function detect_distro()
   fi
 
   # ArchLinux family
-  if [[ "$distro" =~ "arch" ]] || [[ "$distro" =~ "manjaro" ]]; then
+  if [[ "$distro" =~ 'arch' ]] || [[ "$distro" =~ 'manjaro' ]]; then
     printf '%s\n' 'arch'
   # Debian family
-  elif [[ "$distro" =~ "debian" ]] || [[ "$distro" =~ "ubuntu" ]]; then
+  elif [[ "$distro" =~ 'debian' ]] || [[ "$distro" =~ 'ubuntu' ]]; then
     printf '%s\n' 'debian'
   else
     printf '%s\n' 'none'

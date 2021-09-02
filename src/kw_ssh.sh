@@ -37,7 +37,7 @@ function kw_ssh()
 
   if [[ -n "${options_values['SCRIPT']}" ]]; then
     if [[ ! -f "$script_path" ]]; then
-      complain "No such file: \"$script_path\""
+      complain "No such file: $script_path"
       exit 2 # ENOENT
     fi
 

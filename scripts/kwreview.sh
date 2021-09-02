@@ -134,7 +134,7 @@ function parse_args()
 
 function print_help()
 {
-  printf '%s\n' 'Usage: kwreview [<options>] [<files>]' \
+  printf '%s\n' 'Usage: kwreview [<options>] [<files>...]' \
     "Print formatting diff and linter revision for kw's bash files." \
     'If <files> are supplied, analyse them. If not, analyse all shell files' \
     'which differ from branch unstable.' \

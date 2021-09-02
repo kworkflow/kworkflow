@@ -4,13 +4,13 @@ include "$KW_LIB_DIR/kw_config_loader.sh"
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
-LOCAL_REMOTE_DIR="remote"
-LOCAL_TO_DEPLOY_DIR="to_deploy"
+LOCAL_REMOTE_DIR='remote'
+LOCAL_TO_DEPLOY_DIR='to_deploy'
 
 # For making the deploy in the remote machine straightforward, we create a
 # directory on the host that will be used for centralizing files required for
 # the new deploy.
-REMOTE_KW_DEPLOY="/root/kw_deploy"
+REMOTE_KW_DEPLOY='/root/kw_deploy'
 
 # We have a generic script named `distro_deploy.sh` that handles the essential
 # operation of installing a new kernel; it depends on "kernel_install" plugin
@@ -40,7 +40,7 @@ function cmd_remotely()
   local port=${4:-${configurations[ssh_port]}}
   local user=${5:-${configurations[ssh_user]}}
   local bash_code="$6"
-  local composed_cmd=""
+  local composed_cmd=''
 
   if [[ -z "$command" ]]; then
     warning 'No command specified'
@@ -106,7 +106,7 @@ function which_distro()
   local remote=${1:-${remote_parameters[ssh_ip]}}
   local port=${2:-${remote_parameters[ssh_port]}}
   local user=${3:-${remote_parameters[ssh_user]}}
-  local flag=${4:-"SILENT"}
+  local flag=${4:-'SILENT'}
 
   cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
   cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user"
@@ -119,7 +119,7 @@ function which_distro()
 function prepare_host_deploy_dir()
 {
   if [[ -z "$KW_CACHE_DIR" ]]; then
-    complain "\$KW_CACHE_DIR isn't set. The kw directory at home may not exist"
+    complain '$KW_CACHE_DIR is not set. The kw directory at home may not exist'
     return 22
   fi
 
@@ -156,14 +156,14 @@ function prepare_remote_dir()
   local user="$3"
   local flag="$4"
   local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
-  local distro_info=""
-  local distro=""
+  local distro_info=''
+  local distro=''
 
   distro_info=$(which_distro "$remote" "$port" "$user")
-  distro=$(detect_distro "/" "$distro_info")
+  distro=$(detect_distro '/' "$distro_info")
 
-  if [[ $distro =~ "none" ]]; then
-    complain "Unfortunately, there's no support for the target distro"
+  if [[ $distro =~ 'none' ]]; then
+    complain 'Unfortunately, there is no support for the target distro'
     exit 95 # ENOTSUP
   fi
 

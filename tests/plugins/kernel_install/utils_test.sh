@@ -23,8 +23,8 @@ function test_cmd_manager()
   local count=0
   local current_path="$PWD"
 
-  output=$(cmd_manager "TEST_MODE" "ls something")
-  assert_equals_helper "TEST_MODE" "$LINENO" "ls something" "$output"
+  output=$(cmd_manager 'TEST_MODE' 'ls something')
+  assert_equals_helper 'TEST_MODE' "$LINENO" 'ls something' "$output"
 }
 
 function test_ask_yN()
@@ -32,22 +32,22 @@ function test_ask_yN()
   local count=0
 
   output=$(printf '%s\n' 'y' | ask_yN 'Test message')
-  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
 
   output=$(printf '%s\n' 'Y' | ask_yN 'Test message')
-  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
 
   output=$(printf '%s\n' 'Yes' | ask_yN 'Test message')
-  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
 
   output=$(printf '%s\n' 'Sim' | ask_yN 'Test message')
-  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
 
   output=$(printf '%s\n' 'No' | ask_yN 'Test message')
-  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
 
   output=$(printf '%s\n' 'N' | ask_yN 'Test message')
-  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
 }
 
 function test_human_list_installed_kernels()
@@ -55,13 +55,13 @@ function test_human_list_installed_kernels()
   local count=0
 
   declare -a expected_out=(
-    "" # Extra espace in the beginning
-    "5.5.0-rc2-VKMS+"
-    "5.6.0-rc2-AMDGPU+"
-    "linux"
+    '' # Extra espace in the beginning
+    '5.5.0-rc2-VKMS+'
+    '5.6.0-rc2-AMDGPU+'
+    'linux'
   )
 
-  output=$(list_installed_kernels "0" "$SHUNIT_TMPDIR")
+  output=$(list_installed_kernels '0' "$SHUNIT_TMPDIR")
   while read -r out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
@@ -73,11 +73,11 @@ function test_command_list_installed_kernels()
   local count=0
 
   declare -a expected_out=(
-    "" # Extra espace in the beginning
-    "5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux"
+    '' # Extra espace in the beginning
+    '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
-  output=$(list_installed_kernels "1" "$SHUNIT_TMPDIR")
+  output=$(list_installed_kernels '1' "$SHUNIT_TMPDIR")
   while read -r out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
@@ -344,7 +344,7 @@ function test_install_kernel_vm()
     "cp -v .config $path_prefix/boot/config-$name"
     "cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
-    "vm_umount"
+    'vm_umount'
     'update_debian_boot_loader_mock'
   )
 

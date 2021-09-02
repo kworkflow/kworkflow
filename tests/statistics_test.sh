@@ -45,8 +45,8 @@ function test_statistics()
   local msg
 
   declare -a expected_cmd=(
-    "You have disable_statistics_data_track marked as 'yes'"
-    "If you want to see the statistics, change this option to 'no'"
+    'You have disable_statistics_data_track marked as "yes"'
+    'If you want to see the statistics, change this option to "no"'
   )
 
   configurations[disable_statistics_data_track]='yes'

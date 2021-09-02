@@ -1,6 +1,6 @@
 #!/bin/bash
 
-KWORKFLOW=${KWORKFLOW:-"kw"}
+KWORKFLOW=${KWORKFLOW:-'kw'}
 
 # Global paths
 
@@ -75,7 +75,7 @@ function kw()
 
         vm_mount "$@"
         local ret="$?"
-        alert_completion "kw mount" "$1"
+        alert_completion 'kw mount' "$1"
         return "$ret"
       )
       ;;
@@ -85,7 +85,7 @@ function kw()
 
         vm_umount "$@"
         local ret="$?"
-        alert_completion "kw umount" "$1"
+        alert_completion 'kw umount' "$1"
         return "$ret"
       )
       ;;
@@ -102,7 +102,7 @@ function kw()
 
         kernel_build '' "$@"
         local ret="$?"
-        alert_completion "kw build" "$1"
+        alert_completion 'kw build' "$1"
         return "$ret"
       )
       ;;
@@ -112,7 +112,7 @@ function kw()
 
         kernel_deploy "$@"
         local ret="$?"
-        alert_completion "kw deploy" "$1"
+        alert_completion 'kw deploy' "$1"
         return "$ret"
       )
       ;;
@@ -123,7 +123,7 @@ function kw()
 
         kernel_build && kernel_deploy "$@"
         local ret="$?"
-        alert_completion "kw db" "$1"
+        alert_completion 'kw db' "$1"
         return "$ret"
       )
       ;;
@@ -248,7 +248,7 @@ function kw()
       (
         include "$KW_LIB_DIR/help.sh"
 
-        complain "Invalid option"
+        complain 'Invalid option'
         kworkflow_help
         return 1
       )

@@ -47,17 +47,17 @@ function test_vm_mount()
     {
       printf '%s\n' 'anything'
     }
-    vm_mount "TEST_MODE"
+    vm_mount 'TEST_MODE'
   )
   ret="$?"
-  expected_ret="125"
+  expected_ret='125'
   assertEquals "($LINENO) - Expected 125" "$expected_ret" "$ret"
 
-  output=$(vm_mount "TEST_MODE" "$qemu_path" "$mount_point")
+  output=$(vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
   ret="$?"
   assertTrue "($LINENO)" "$ret"
 
-  output=$(vm_mount "TEST_MODE" "$qemu_path" "$mount_point")
+  output=$(vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   load_configuration "$KW_CONFIG_SAMPLE"

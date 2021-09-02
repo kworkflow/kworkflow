@@ -3,7 +3,7 @@
 include './src/deploy.sh'
 include './tests/utils.sh'
 
-FAKE_KERNEL="tests/.tmp"
+FAKE_KERNEL='tests/.tmp'
 
 # Some of the functions invoked by kw need to be mocked; otherwise, we cannot
 # test all the elements in the function. The following functions try to mimic
