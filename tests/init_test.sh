@@ -52,7 +52,7 @@ function test_init_kw()
   fi
 
   expect='Initialization aborted!'
-  output=$(echo 'n' | init_kw)
+  output=$(printf '%s\n' 'n' | init_kw)
   assertEquals "($LINENO): The init proccess didn't abort correctly" "$expect" "$output"
 
   rm -rf "${path:?}"/*

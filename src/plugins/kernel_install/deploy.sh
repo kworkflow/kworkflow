@@ -54,6 +54,6 @@ case "$1" in
     kernel_uninstall "$@"
     ;;
   *)
-    echo "Unknown operation"
+    printf '%s\n' 'Unknown operation'
     ;;
 esac

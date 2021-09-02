@@ -109,7 +109,7 @@ function test_alert_completion_visual_alert()
   local output
   local expected="TESTING COMMAND"
 
-  configurations["visual_alert_command"]="/bin/echo \$COMMAND"
+  configurations['visual_alert_command']='/bin/printf "%s\n" "$COMMAND"'
   output="$(alert_completion "$expected" "--alert=v")"
   assertEquals "Variable v should exist." "$expected" "$output"
 }
@@ -119,7 +119,7 @@ function test_alert_completion_sound_alert()
   local output
   local expected="TESTING COMMAND"
 
-  configurations["sound_alert_command"]="/bin/echo \$COMMAND"
+  configurations['sound_alert_command']='/bin/printf "%s\n" "$COMMAND"'
   output="$(alert_completion "$expected" "--alert=s")"
   assertEquals "Variable s should exist." "$expected" "$output"
 }

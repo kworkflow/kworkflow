@@ -5,7 +5,7 @@
 # empty string returns an empty string.
 function chop()
 {
-  echo "${@%?}"
+  printf '%s\n' "${@%?}"
 }
 
 # @@ String that we want to get the last character
@@ -14,7 +14,7 @@ function chop()
 # Returns the last character from the string provided in the string parameter.
 function last_char()
 {
-  echo "${1: -1}"
+  printf '%s\n' "${1: -1}"
 }
 
 # Check if a string is a number (it ignores spaces after and before the number)
@@ -40,7 +40,7 @@ function str_is_a_number()
 # String length
 function str_length()
 {
-  echo "${#1}"
+  printf '%s\n' "${#1}"
 }
 
 # Trim string based on string lenght.
@@ -55,7 +55,7 @@ function str_trim()
   local str="$1"
   local size="$2"
 
-  echo "${str:0:size}"
+  printf '%s\n' "${str:0:size}"
 }
 
 # Remove extra spaces from the beginning and end of the string
@@ -70,7 +70,7 @@ function str_strip()
 
   str="$*"
 
-  echo "$str" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
+  printf '%s\n' "$str" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
 # Remove substring on the left side. If the string whose substring should be
@@ -87,5 +87,5 @@ function str_remove_prefix()
   local str="$1"
   local str_remove="$2"
 
-  echo "${str##"$str_remove"}"
+  printf '%s\n' "${str##"$str_remove"}"
 }

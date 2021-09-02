@@ -8,13 +8,14 @@ declare -r PATH_TO_TESTS_EXTERNALS="tests/external"
 
 function show_help()
 {
-  echo "Usage: $0 [help] [list] [test tfile1 tfile2 ... tfilen] [prepare [-f|--force-update]]"
-  echo "Run tests for kworkflow."
-  printf "Example: %s test kw_test\n\n" "$0"
-  echo "  help - displays this help message"
-  echo "  list - lists all test files under tests/"
-  echo "  test - runs the given test files"
-  echo "  prepare - prepare environment for tests. -f will update environment, even if already prepared."
+  printf '%s\n' "Usage: $0 [help] [list] [test <tfile1> ...] [prepare [-f|--force-update]]" \
+    'Run tests for kworkflow.' \
+    "Example: $0 test kw_test" \
+    '' \
+    '  help - displays this help message' \
+    '  list - lists all test files under tests/' \
+    '  test - runs the given test files' \
+    '  prepare - prepare environment for tests. -f will update environment, even if already prepared.'
 }
 
 function download_stuff()
@@ -48,8 +49,7 @@ function get_external_scripts()
     CHECKPATCH_SPELLING
     MAINTAINER_URL)
 
-  say "Downloading external scripts..."
-  echo
+  say $'Downloading external scripts...\n'
 
   mkdir -p "$PATH_TO_TESTS_EXTERNALS"
   for url in "${DOWNLOAD_URLS[@]}"; do
@@ -96,7 +96,7 @@ function report_results()
   local test_failure_list="$5"
 
   if [[ "$total" -eq 0 ]]; then
-    echo 'No test files.'
+    printf '%s\n' 'No test files.'
   elif [[ "$success" -eq "$total" ]]; then
     success "$SEPARATOR"
     success "Total: $total test file(s)"
@@ -112,8 +112,7 @@ function report_results()
     fi
 
     if [[ -n "$test_failure_list" ]]; then
-      echo
-      complain 'Take a look at:'
+      complain $'\nTake a look at:'
       IF=' ' read -r -a test_failure_array <<< "$test_failure_list"
       for failed in "${test_failure_array[@]}"; do
         complain "-> $failed"

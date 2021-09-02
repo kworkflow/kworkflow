@@ -7,7 +7,7 @@ include './tests/utils.sh'
 
 function which_distro_mock()
 {
-  echo 'debian'
+  printf '%s\n' 'debian'
 }
 
 function setupMockFunctions()

@@ -31,22 +31,22 @@ function test_ask_yN()
 {
   local count=0
 
-  output=$(echo 'y' | ask_yN "Test message")
+  output=$(printf '%s\n' 'y' | ask_yN 'Test message')
   assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
 
-  output=$(echo 'Y' | ask_yN "Test message")
+  output=$(printf '%s\n' 'Y' | ask_yN 'Test message')
   assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
 
-  output=$(echo 'Yes' | ask_yN "Test message")
+  output=$(printf '%s\n' 'Yes' | ask_yN 'Test message')
   assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
 
-  output=$(echo 'Sim' | ask_yN "Test message")
+  output=$(printf '%s\n' 'Sim' | ask_yN 'Test message')
   assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
 
-  output=$(echo 'No' | ask_yN "Test message")
+  output=$(printf '%s\n' 'No' | ask_yN 'Test message')
   assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
 
-  output=$(echo 'N' | ask_yN "Test message")
+  output=$(printf '%s\n' 'N' | ask_yN 'Test message')
   assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
 }
 
@@ -256,23 +256,23 @@ function test_vm_update_boot_loader_arch()
 # Mock funtions for install tests
 function generate_debian_temporary_root_file_system()
 {
-  echo 'generate_debian_temporary_root_file_system_mock'
+  printf '%s\n' 'generate_debian_temporary_root_file_system_mock'
 }
 
 function update_debian_boot_loader()
 {
-  echo 'update_debian_boot_loader_mock'
+  printf '%s\n' 'update_debian_boot_loader_mock'
 }
 
 function findmnt_mock()
 {
-  echo "TARGET SOURCE         FSTYPE OPTIONS"
-  echo "/home  /dev/lala ext4   rw,relatime"
+  printf '%s\n' 'TARGET SOURCE         FSTYPE OPTIONS'
+  printf '%s\n' '/home  /dev/lala ext4   rw,relatime'
 }
 
 function vm_umount()
 {
-  echo "vm_umount"
+  printf '%s\n' 'vm_umount'
 }
 
 function test_install_kernel_remote()

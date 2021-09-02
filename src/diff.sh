@@ -46,7 +46,7 @@ function diff_manager()
   test_mode="${diff_options['TEST_MODE']}"
 
   if [[ "$test_mode" == "TEST_MODE" ]]; then
-    echo "$target_1 $target_2 $interactive"
+    printf '%s\n' "$target_1 $target_2 $interactive"
     return 0
   fi
 

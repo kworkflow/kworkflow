@@ -20,7 +20,7 @@ function alert_completion()
   local opts
 
   if [[ $# -gt 1 && "$ALERT_OPT" =~ ^--alert= ]]; then
-    opts="$(echo "$ALERT_OPT" | sed s/--alert=//)"
+    opts="$(printf '%s\n' "$ALERT_OPT" | sed s/--alert=//)"
   else
     opts="${configurations[alert]}"
   fi
@@ -66,13 +66,13 @@ function colored_print()
     if [ -t 1 ]; then
       printf "$colored_format" "$message"
     else
-      echo -n "$message"
+      printf '%s' "$message"
     fi
   else
     if [ -t 1 ]; then
       printf "$colored_format\n" "$message"
     else
-      echo "$message"
+      printf '%s\n' "$message"
     fi
   fi
 }
@@ -116,8 +116,8 @@ function ask_yN()
 
   read -r -p "$message [y/N] " response
   if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-    echo "1"
+    printf '%s\n' '1'
   else
-    echo "0"
+    printf '%s\n' '0'
   fi
 }

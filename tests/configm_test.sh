@@ -27,7 +27,7 @@ function setUp()
     return
   }
   touch .config
-  echo "$CONTENT" > .config
+  printf '%s\n' "$CONTENT" > .config
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
@@ -340,7 +340,7 @@ function test_get_config()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  output=$(echo 'y' | get_config "$NAME_1")
+  output=$(printf '%s\n' 'y' | get_config "$NAME_1")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   # Case 2: There's no local .config file

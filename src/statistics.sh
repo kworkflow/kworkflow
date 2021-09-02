@@ -119,7 +119,7 @@ function calculate_average()
 
   avg=$((sum / count))
 
-  echo "$avg"
+  printf '%s\n' "$avg"
 }
 
 # Get the total of data in a list
@@ -132,7 +132,7 @@ function calculate_total_of_data()
 {
   local list_of_values="$1"
 
-  echo "$list_of_values" | wc -w
+  printf '%s\n' "$list_of_values" | wc -w
 }
 
 # Find the highest value in a list of numbers.
@@ -150,7 +150,7 @@ function max_value()
     [[ "$value" -gt "$max" ]] && max="$value"
   done
 
-  echo "$max"
+  printf '%s\n' "$max"
 }
 
 # Find the lowest value in a list of numbers.
@@ -169,7 +169,7 @@ function min_value()
     [[ "$value" -lt "$min" ]] && min="$value"
   done
 
-  echo "$min"
+  printf '%s\n' "$min"
 }
 
 # Print results of "Total Max Min Average" organized in columns.
@@ -208,7 +208,7 @@ function basic_data_process()
   local min
 
   for option in "${statistics_opt[@]}"; do
-    values=$(echo -e "$all_data" | grep "$option" | cut -d' ' -f2-)
+    values=$(echo -e "$all_data" | grep "$option" | cut -d' ' -f2-) # TODO
     [[ -z "$values" ]] && continue
 
     # Calculate values

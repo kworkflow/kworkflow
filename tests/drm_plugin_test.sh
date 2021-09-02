@@ -58,8 +58,8 @@ function test_gui_control()
 {
   local gui_on_cmd='systemctl isolate graphical.target'
   local gui_off_cmd='systemctl isolate multi-user.target'
-  local bind_cmd='for i in /sys/class/vtconsole/*/bind; do echo 1 > $i; done; sleep 0.5'
-  local unbind_cmd='for i in /sys/class/vtconsole/*/bind; do echo 0 > $i; done; sleep 0.5'
+  local bind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 1 > $i; done; sleep 0.5'
+  local unbind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 0 > $i; done; sleep 0.5'
   local output
   local ID
 

@@ -31,7 +31,7 @@ function init_env()
 # then prefixed by "> "
 function prefix_multiline()
 {
-  echo "$@" | sed -E "s/^/> /g"
+  printf '%s\n' "$@" | sed -E 's/^/> /g'
 }
 
 # Compare strings with multiple lines and prefix them with "> "
@@ -46,8 +46,8 @@ function multilineAssertEquals()
     shift
   fi
 
-  left=$'\n'"$(echo "$1" | sed -E "s/^/> /g")"$'\n'
-  right=$'\n'"$(echo "$2" | sed -E "s/^/> /g")"$'\n'
+  left=$'\n'"$(printf '%s\n' "$1" | sed -E 's/^/> /g')"$'\n'
+  right=$'\n'"$(printf '%s\n' "$2" | sed -E 's/^/> /g')"$'\n'
 
   if [ -n "$message" ]; then
     assertEquals "$message" "$left" "$right"
@@ -260,7 +260,7 @@ function assert_equals_helper()
 function create_invalid_file_path()
 {
   invalid_path="$RANDOM/$RANDOM/$RANDOM/xptolala"
-  echo "$invalid_path"
+  printf '%s\n' "$invalid_path"
 }
 
 function invoke_shunit()
@@ -271,7 +271,8 @@ function invoke_shunit()
   elif [[ -d ./tests/shunit2 ]]; then
     . ./tests/shunit2/shunit2
   else
-    echo -e "Can't find shunit2.\nDo you have it installed (or downloaded it to ./tests/shunit2)?"
+    printf '%s\n' 'Cannot find shunit2.' \
+      'Do you have it installed (or downloaded it to ./tests/shunit2)?'
     return 1
   fi
 }

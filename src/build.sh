@@ -19,12 +19,12 @@ function build_info()
   kernel_version=$(get_kernel_version "$flag")
 
   say "Kernel source information"
-  echo -e "\tName: $kernel_name"
-  echo -e "\tVersion: $kernel_version"
+  printf '%s\n' "  Name: $kernel_name" \
+    "  Version: $kernel_version"
 
   if [[ -f '.config' ]]; then
     compiled_modules=$(grep -c '=m' .config)
-    echo -e "\tTotal modules to be compiled: $compiled_modules"
+    printf '%s\n' "  Total modules to be compiled: $compiled_modules"
   fi
 }
 

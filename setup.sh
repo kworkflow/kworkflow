@@ -129,7 +129,7 @@ function cmd_output_manager()
   if [[ -z "$unsilent_flag" ]]; then
     cmd="$cmd >/dev/null"
   else
-    echo "$cmd"
+    printf '%s\n' "$cmd"
   fi
 
   eval "$cmd"

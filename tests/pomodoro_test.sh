@@ -112,7 +112,7 @@ function test_calculate_missing_time()
 
 function get_timestamp_sec_mock()
 {
-  echo 3332232700
+  printf '%s\n' '3332232700'
 }
 
 function test_show_active_pomodoro_timebox()
@@ -236,8 +236,8 @@ function test_register_data_for_report()
   assertTrue 'Date file was not created' '[[ -f "$KW_POMODORO_DATA/$year_month/$today" ]]'
 
   data=$(cat "$KW_POMODORO_DATA/$year_month/$today")
-  tag=$(echo "$data" | cut -d',' -f1)
-  timer=$(echo "$data" | cut -d',' -f2)
+  tag=$(printf '%s\n' "$data" | cut -d',' -f1)
+  timer=$(printf '%s\n' "$data" | cut -d',' -f2)
 
   assert_equals_helper 'Label did not match' "$LINENO" "$tag" "${options_values['TAG']}"
   assert_equals_helper 'Timer did not match' "$LINENO" "$timer" "${options_values['TIMER']}"
@@ -246,7 +246,7 @@ function test_register_data_for_report()
   options_values['DESCRIPTION']="$sample_str"
   output=$(register_data_for_report)
   data=$(cat "$KW_POMODORO_DATA/$year_month/$today")
-  description=$(echo "$data" | cut -d',' -f4)
+  description=$(printf '%s\n' "$data" | cut -d',' -f4)
 
   assert_equals_helper 'Label did not match' "$LINENO" "$sample_str" "${options_values['DESCRIPTION']}"
 }
@@ -289,7 +289,7 @@ function test_is_tag_already_registered()
   is_tag_already_registered ''
   assertNotEquals "$LINENO: We should not get a success" "$?" 0
 
-  echo 'Tag 0' >> "$KW_POMODORO_TAG_LIST"
+  printf '%s\n' 'Tag 0' >> "$KW_POMODORO_TAG_LIST"
   is_tag_already_registered 'Tag 0'
   assertEquals "$LINENO: We expect to find Tag 0" "$?" 0
 }

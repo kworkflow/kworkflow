@@ -61,7 +61,7 @@ function save_config_file()
   fi
 
   if [[ -n "$description" ]]; then
-    echo "$description" > "$metadata_dir/$name"
+    printf '%s\n' "$description" > "$metadata_dir/$name"
   fi
 
   cp "$original_path/.config" "$dot_configs_dir/$configs_dir/$name"
@@ -88,8 +88,7 @@ function list_configs()
     exit 0
   fi
 
-  printf "%-30s | %-30s\n" "Name" "Description"
-  echo
+  printf '%-30s | %-30s\n' 'Name' $'Description\n'
   for filename in "$dot_configs_dir/$metadata_dir"/*; do
     [[ ! -f "$filename" ]] && continue
     name=$(basename "$filename")
