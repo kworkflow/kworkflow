@@ -1,0 +1,3 @@
+sendemail.smtpserver=smtp.codeaurora.org
+sendemail.smtpencryption=tls
+sendemail.smtpserverport=465

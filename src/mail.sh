@@ -35,6 +35,10 @@ function mail_main()
     exit
   fi
 
+  if [[ -n "${options_values['TEMPLATE']}" ]]; then
+    template_setup
+  fi
+
   is_inside_work_tree
   if [[ "$?" -gt 0 && "${options_values['SCOPE']}" != 'global' ]]; then
     complain 'Not in a git repository, aborting setup!'
@@ -368,7 +372,7 @@ function print_configs()
 function validate_setup_opt()
 {
   if [[ "${options_values['SETUP']}" == 0 ]]; then
-    complain 'You provided a flag that should only be used with `--setup`.'
+    complain 'You provided a flag that should only be used with `--setup` or `--template`.'
     complain 'Please check your command and try again.'
     mail_help
     exit 95 # ENOTSUP
@@ -377,13 +381,68 @@ function validate_setup_opt()
   return 0
 }
 
+# This function loads and applies default config values based on the given
+# template
+#
+# @template: name of the chosen template
+#
+# Returns:
+# Returns non-zero if missing any required configuration; 0 otherwise
+function template_setup()
+{
+  local template="${options_values['TEMPLATE']:1}" # removes colon
+  local -a available_templates
+
+  if [[ -z "$template" ]]; then
+    mapfile -t available_templates < <(find "$KW_ETC_DIR/mail_templates" -type f -printf '%f\n' | sort -d)
+    available_templates+=('exit')
+
+    say 'You may choose one of the following templates to start your configuration.'
+    printf '(enter the corresponding number to choose)\n'
+    select user_choice in "${available_templates[@]^}"; do
+      [[ "$user_choice" == 'Exit' ]] && exit
+
+      template="${user_choice,,}"
+      break
+    done
+  fi
+
+  load_template "$template"
+}
+
+# Loads the values from the template file to the options_values array
+#
+# @template: name of the template to be loaded
+#
+# Returns: 22 if template is not found
+function load_template()
+{
+  local template="$1"
+  local index
+  local option
+  local value
+  local template_path
+
+  template_path=$(join_path "$KW_ETC_DIR/mail_templates" "$template")
+
+  if [[ ! -f "$template_path" ]]; then
+    complain "Invalid template: $template"
+    exit 22 # EINVAL
+  fi
+
+  while IFS='=' read -r option value; do
+    index="$option"
+    options_values["$index"]="$value"
+  done < "$template_path"
+}
+
 function parse_mail_options()
 {
   local index
   local option
   local setup_token=0
   local short_options='t,f,v,l,'
-  local long_options='setup,local,global,force,verify,list,'
+  local long_options='setup,local,global,force,verify,template::,list,'
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -399,6 +458,7 @@ function parse_mail_options()
   options_values['SETUP']=0
   options_values['FORCE']=0
   options_values['VERIFY']=0
+  options_values['TEMPLATE']=''
   options_values['SCOPE']='local'
   options_values['CMD_SCOPE']=''
 
@@ -433,6 +493,12 @@ function parse_mail_options()
         option="$(str_remove_prefix "$1" '--')"
         index="sendemail.$option"
         options_values["$index"]="$2"
+        shift 2
+        ;;
+      --template)
+        option="$(str_strip "${2,,}")"
+        options_values['SETUP']=1
+        options_values['TEMPLATE']=":$option" # colon sets the option
         shift 2
         ;;
       --local)
@@ -478,5 +544,6 @@ function mail_help()
   printf '%s\n' 'kw mail:' \
     '  mail (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
     '  mail (-v | --verify) - Check if required configurations are set' \
-    '  mail (-l | --list) - List the configurable options'
+    '  mail (-l | --list) - List the configurable options' \
+    '  mail --template[=<template>] - Set send-email configs based on <template>'
 }

@@ -8,7 +8,16 @@ function oneTimeSetUp()
   declare -gr ORIGINAL_DIR="$PWD"
   declare -gr FAKE_GIT="$SHUNIT_TMPDIR/fake_git/"
 
+  export KW_ETC_DIR="$SHUNIT_TMPDIR/etc/"
+
   mkdir -p "$FAKE_GIT"
+  mkdir -p "$KW_ETC_DIR/mail_templates/"
+
+  touch "$KW_ETC_DIR/mail_templates/test1"
+  printf '%s\n' 'sendemail.smtpserver=smtp.test1.com' > "$KW_ETC_DIR/mail_templates/test1"
+
+  touch "$KW_ETC_DIR/mail_templates/test2"
+  printf '%s\n' 'sendemail.smtpserver=smtp.test2.com' > "$KW_ETC_DIR/mail_templates/test2"
 
   cd "$FAKE_GIT" || {
     ret="$?"
@@ -141,6 +150,18 @@ function test_mail_parser()
   parse_mail_options '--verify'
   expected_result=1
   assert_equals_helper 'Set verify flag' "$LINENO" "${options_values['VERIFY']}" "$expected_result"
+
+  parse_mail_options '--template'
+  expected_result=':'
+  assert_equals_helper 'Template without options' "$LINENO" "${options_values['TEMPLATE']}" "$expected_result"
+
+  parse_mail_options '--template=test'
+  expected_result=':test'
+  assert_equals_helper 'Set template flag' "$LINENO" "${options_values['TEMPLATE']}" "$expected_result"
+
+  parse_mail_options '--template=  Test '
+  expected_result=':test'
+  assert_equals_helper 'Set template flag, case and spaces' "$LINENO" "${options_values['TEMPLATE']}" "$expected_result"
 
   expected=''
   assert_equals_helper 'Unset local or global flag' "$LINENO" "${options_values['CMD_SCOPE']}" "$expected"
@@ -409,6 +430,60 @@ function test_mail_setup()
     fail "($LINENO): Failed to move back to original dir"
     exit "$ret"
   }
+}
+
+function test_load_template()
+{
+  local output
+  local expected
+  local ret
+
+  output=$(load_template 'invalid' &> /dev/null)
+  ret="$?"
+  expected=22
+  assert_equals_helper 'Invalid template' "$LINENO" "$ret" "$expected"
+
+  load_template 'test1'
+  expected='smtp.test1.com'
+  assert_equals_helper 'Load template 1' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+
+  load_template 'test2'
+  expected='smtp.test2.com'
+  assert_equals_helper 'Load template 2' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+}
+
+function test_template_setup()
+{
+  local output
+  local expected
+
+  local -a expected_results=(
+    'You may choose one of the following templates to start your configuration.'
+    '(enter the corresponding number to choose)'
+    '1) Test1'
+    '2) Test2'
+    '3) Exit'
+    '#?'
+  )
+
+  # empty template flag should trigger menu
+  output=$(printf '1\n' | template_setup 2>&1)
+  # couldn't find a way to test the loaded values
+  compare_command_sequence 'expected_results' "$output" "$LINENO"
+
+  options_values['TEMPLATE']=':test1'
+
+  template_setup
+  expected='smtp.test1.com'
+  assert_equals_helper 'Load template 1' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+
+  options_values['TEMPLATE']=':test2'
+
+  template_setup
+  expected='smtp.test2.com'
+  assert_equals_helper 'Load template 2' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+
+  return 0
 }
 
 # This test can only be done on a local scope, as we have no control over the

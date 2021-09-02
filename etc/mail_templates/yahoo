@@ -1,0 +1,3 @@
+sendemail.smtpserver=smtp.mail.yahoo.com
+sendemail.smtpencryption=tls
+sendemail.smtpserverport=465
