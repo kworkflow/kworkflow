@@ -9,6 +9,7 @@ SYNOPSIS
 | *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
 | *kw mail* (-v | \--verify) [\--local | \--global]
 | *kw mail* (-l | \--list)
+| *kw mail* \--template[=<template>] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
 
 DESCRIPTION
 ===========
@@ -46,6 +47,11 @@ OPTIONS
 
 -v, \--verify:
   Verify that all the settings needed are set and valid.
+
+\--template[=<template>]:
+  This loads the default configuration values based on the given <template>.
+  If no template is given the user will be shown the available templates to
+  choose from.
 
 -l, \--list:
   Lists the settings that mail uses.

@@ -44,8 +44,8 @@ function _kw_autocomplete()
   kw_options['init']='--arch --force --remote --target'
 
   kw_options['mail']='--setup --local --global --force --verify --list --email
-                     --name --smtpuser --smtpencryption --smtpserver 
-                     --smtpserverport --smtppass'
+                     --name --smtpuser --smtpencryption --smtpserver
+                     --smtpserverport --smtppass --template'
 
   kw_options['maintainers']='--authors --update-patch'
   kw_options['m']="${kw_options['mantainers']}"
