@@ -163,71 +163,44 @@ function test_cp2remote()
   local port='2222'
   local user='kw'
   local flag='TEST_MODE'
-  declare -a expected_cmd=()
+  local rsync_params='--include="*/" --exclude="*"'
+  local expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync' $rsync_params"
 
   # Load default configureation, because we want to test default values
-  output=$(cp2remote "$flag" "$src" "$dst" "$remote" "$port" "$user")
-  expected_command=(
-    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
-  )
+  output=$(cp2remote "$flag" "$src" "$dst" "$rsync_params" "$remote" "$port" "$user")
+  assert_equals_helper 'Standard Rsync' "$LINENO" "$expected_cmd_str" "$output"
 
-  compare_command_sequence 'expected_command' "$output" "$LINENO"
-
+  # Default src
   src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  expected_command=(
-    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
-  )
+  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync' "
+  output=$(cp2remote "$flag" '' "$dst" '' "$remote" "$port" "$user")
+  assert_equals_helper 'Default src' "$LINENO" "$expected_cmd_str" "$output"
 
-  output=$(cp2remote "$flag" '' "$dst" "$remote" "$port" "$user")
-  compare_command_sequence 'expected_command' "$output" "$LINENO"
-
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
+  # Default src and dst
   dst="$REMOTE_KW_DEPLOY"
-  expected_command=(
-    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
-  )
+  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync' "
 
-  output=$(cp2remote "$flag" '' '' "$remote" "$port" "$user")
-  compare_command_sequence 'expected_command' "$output" "$LINENO"
+  output=$(cp2remote "$flag" '' '' '' "$remote" "$port" "$user")
+  assert_equals_helper 'Default src and dst' "$LINENO" "$expected_cmd_str" "$output"
 
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  dst="$REMOTE_KW_DEPLOY"
+  # Default src, dst, and remote
   remote='127.0.0.1'
-  expected_command=(
-    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root $dst\""
-  )
+  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync' "
 
-  output=$(cp2remote "$flag" '' '' '' "$port" "$user")
-  compare_command_sequence 'expected_command' "$output" "$LINENO"
+  output=$(cp2remote "$flag" '' '' '' '' "$port" "$user")
+  assert_equals_helper 'Default src, dst, and remote' "$LINENO" "$expected_cmd_str" "$output"
 
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  dst="$REMOTE_KW_DEPLOY"
-  remote='127.0.0.1'
+  # Default port
   port='3333'
-  expected_command=(
-    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@$remote sudo \"chown -R root:root $dst\""
-  )
+  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync' "
+  output=$(cp2remote "$flag" '' '' '' '' '' "$user")
+  assert_equals_helper 'Default src, dst, remote, and port' "$LINENO" "$expected_cmd_str" "$output"
 
-  output=$(cp2remote "$flag" '' '' '' '' "$user")
-  compare_command_sequence 'expected_command' "$output" "$LINENO"
-
-  src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  dst="$REMOTE_KW_DEPLOY"
-  remote='127.0.0.1'
-  port='3333'
+  # Default user
   user='juca'
-  expected_command=(
-    "rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@$remote sudo \"chown -R root:root $dst\""
-  )
-
-  output=$(cp2remote "$flag" '' '' '' '' '')
-  compare_command_sequence 'expected_command' "$output" "$LINENO"
+  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync' "
+  output=$(cp2remote "$flag" '' '' '' '' '' '')
+  assert_equals_helper 'Default src, dst, remote, port, and user' "$LINENO" "$expected_cmd_str" "$output"
 }
 
 function test_which_distro()

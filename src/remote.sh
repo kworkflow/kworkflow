@@ -69,9 +69,10 @@ function cp2remote()
   local flag=${1:-'HIGHLIGHT_CMD'}
   local src=${2:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
   local dst=${3:-"$REMOTE_KW_DEPLOY"}
-  local remote=${4:-${remote_parameters['REMOTE_IP']}}
-  local port=${5:-${remote_parameters['REMOTE_PORT']}}
-  local user=${6:-${remote_parameters['REMOTE_USER']}}
+  local rsync_params="$4"
+  local remote=${5:-${remote_parameters['REMOTE_IP']}}
+  local port=${6:-${remote_parameters['REMOTE_PORT']}}
+  local user=${7:-${remote_parameters['REMOTE_USER']}}
 
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
     rsync_target="'ssh -F ${configurations['ssh_configfile']}' $src ${configurations['hostname']}:$dst"

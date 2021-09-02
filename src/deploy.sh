@@ -327,13 +327,13 @@ function prepare_remote_dir()
 
   # Send the specific deploy script as a root
   cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
-    "$DISTRO_DEPLOY_SCRIPT" \
+    "$DISTRO_DEPLOY_SCRIPT" '' \
     "$remote" "$port" "$user"
   cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/remote_deploy.sh" \
-    "$REMOTE_KW_DEPLOY/" \
+    "$REMOTE_KW_DEPLOY/" '' \
     "$remote" "$port" "$user"
   cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/utils.sh" \
-    "$REMOTE_KW_DEPLOY/" \
+    "$REMOTE_KW_DEPLOY/" '' \
     "$remote" "$port" "$user"
 }
 
