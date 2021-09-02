@@ -75,7 +75,7 @@ function setup_pomodoro()
   touch "$KW_POMODORO_DATA/$year_month_dir/$today"
   touch "$KW_POMODORO_TAG_LIST"
 
-  echo "$KW_POMODORO_DATA/$year_month_dir/$today"
+  printf '%s\n' "$KW_POMODORO_DATA/$year_month_dir/$today"
 }
 
 # tag,timebox,start,description
@@ -94,7 +94,7 @@ function register_data_for_report()
     data_line="$data_line,${options_values['DESCRIPTION']}"
   fi
 
-  echo "$data_line" >> "$save_to"
+  printf '%s\n' "$data_line" >> "$save_to"
 }
 
 # Register a new tag if it is not yet defined.
@@ -109,7 +109,7 @@ function register_tag()
   setup_pomodoro > /dev/null
 
   if ! is_tag_already_registered "$tag"; then
-    echo "$tag" >> "$KW_POMODORO_TAG_LIST"
+    printf '%s\n' "$tag" >> "$KW_POMODORO_TAG_LIST"
   fi
 }
 
@@ -167,7 +167,7 @@ function translate_id_to_tag()
 
   result=$(sed "$id"'q;d' "$KW_POMODORO_TAG_LIST")
   [[ -z "$result" ]] && return 22 # EINVAL
-  echo "$result"
+  printf '%s\n' "$result"
   return 0
 }
 
@@ -179,7 +179,7 @@ function translate_id_to_tag()
 function register_timebox()
 {
   local timestamp="$1"
-  echo "$timestamp,${options_values['TIMER']}" >> "$POMODORO_LOG_FILE"
+  printf '%s\n' "$timestamp,${options_values['TIMER']}" >> "$POMODORO_LOG_FILE"
 }
 
 # When a timebox finishes, this function removes the section-time from the log
@@ -257,7 +257,7 @@ function calculate_missing_time()
     missing_time=0
   fi
 
-  echo "$missing_time"
+  printf '%s\n' "$missing_time"
 }
 
 # This function inspects the Pomodoro file, and based on each line, information
@@ -275,8 +275,8 @@ function show_active_pomodoro_timebox()
   if [[ -f "$POMODORO_LOG_FILE" ]]; then
     while read -r line; do
       # Get data from file
-      timestamp=$(echo "$line" | cut -d',' -f1)
-      timebox=$(echo "$line" | cut -d',' -f2)
+      timestamp=$(printf '%s\n' "$line" | cut -d',' -f1)
+      timebox=$(printf '%s\n' "$line" | cut -d',' -f2)
 
       # Calculate and process output
       timestamp_to_date=$(date_to_format "@$timestamp" '+%H:%M:%S[%Y/%m/%d]')

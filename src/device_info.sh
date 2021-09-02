@@ -59,7 +59,7 @@ function get_ram()
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
   case "$target" in
     1) # VM_TARGET
-      ram="$(echo "${configurations[qemu_hw_options]}" | sed -r 's/.*-m ?([0-9]+).*/\1/')"
+      ram="$(printf '%s\n' "${configurations[qemu_hw_options]}" | sed -r 's/.*-m ?([0-9]+).*/\1/')"
       ram="$(numfmt --from-unit=M --to-unit=K "$ram")"
       ;;
     2) # LOCAL_TARGET
@@ -71,7 +71,7 @@ function get_ram()
   esac
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
-    echo "$ram"
+    printf '%s\n' "$ram"
     return 0
   fi
 
@@ -115,14 +115,14 @@ function get_cpu()
   device_info_data['cpu_model']="$cpu_model"
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
-    echo "$cpu_model"
-    echo "$cpu_frequency"
+    printf '%s\n' "$cpu_model" \
+      "$cpu_frequency"
     return 0
   fi
 
-  cpu_currently=$(echo "$cpu_frequency" | grep 'CPU MHz')
-  cpu_max=$(echo "$cpu_frequency" | grep 'CPU max MHz')
-  cpu_min=$(echo "$cpu_frequency" | grep 'CPU min MHz')
+  cpu_currently=$(printf '%s\n' "$cpu_frequency" | grep 'CPU MHz')
+  cpu_max=$(printf '%s\n' "$cpu_frequency" | grep 'CPU max MHz')
+  cpu_min=$(printf '%s\n' "$cpu_frequency" | grep 'CPU min MHz')
 
   cpu_currently=${cpu_currently//[!0-9,.]/}
   cpu_max=${cpu_max//[!0-9,.]/}
@@ -167,13 +167,13 @@ function get_disk()
   esac
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
-    echo "$info"
+    printf '%s\n' "$info"
     return 0
   fi
 
-  fs="$(echo "$info" | cut -d' ' -f1)"
-  size="$(echo "$info" | cut -d' ' -f2)"
-  mount="$(echo "$info" | cut -d' ' -f6)"
+  fs="$(printf '%s\n' "$info" | cut -d' ' -f1)"
+  size="$(printf '%s\n' "$info" | cut -d' ' -f2)"
+  mount="$(printf '%s\n' "$info" | cut -d' ' -f6)"
 
   device_info_data['disk_size']="$size"
   device_info_data['root_path']="$fs"
@@ -243,8 +243,8 @@ function get_gpu()
       pci_addresses=$(cmd_manager "$flag" "$cmd_pci_address")
       for g in $pci_addresses; do
         gpu_info=$(cmd_manager "$flag" "lspci -v -s $g")
-        gpu_name=$(echo "$gpu_info" | sed -nr '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
-        gpu_provider=$(echo "$gpu_info" | sed -nr '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
+        gpu_name=$(printf '%s\n' "$gpu_info" | sed -nr '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
+        gpu_provider=$(printf '%s\n' "$gpu_info" | sed -nr '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
         gpus["$g"]="$gpu_name;$gpu_provider"
       done
       ;;
@@ -252,8 +252,8 @@ function get_gpu()
       pci_addresses=$(cmd_remotely "$cmd_pci_address" "$flag" "$ip" "$port")
       for g in $pci_addresses; do
         gpu_info=$(cmd_remotely "lspci -v -s $g" "$flag" "$ip" "$port")
-        gpu_name=$(echo "$gpu_info" | sed -nr '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
-        gpu_provider=$(echo "$gpu_info" | sed -nr '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
+        gpu_name=$(printf '%s\n' "$gpu_info" | sed -nr '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
+        gpu_provider=$(printf '%s\n' "$gpu_info" | sed -nr '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
         gpus["$g"]="$gpu_name;$gpu_provider"
       done
       ;;
@@ -292,8 +292,8 @@ function get_motherboard()
   esac
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
-    echo "$cmd_name"
-    echo "$cmd_vendor"
+    printf '%s\n' "$cmd_name" \
+      "$cmd_vendor"
     return 0
   fi
 
@@ -337,7 +337,7 @@ function get_chassis()
   esac
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
-    echo "$cmd"
+    printf '%s\n' "$cmd"
     return 0
   fi
 
@@ -353,8 +353,8 @@ function get_img_info()
   local img_type
 
   img_info=$(file "${configurations[qemu_path_image]}")
-  img_size=$(echo "$img_info" | sed -r 's/.*: .+, ([0-9]+) bytes/\1/')
-  img_type=$(echo "$img_info" | sed -r 's/.*: (.+),.+/\1/')
+  img_size=$(printf '%s\n' "$img_info" | sed -r 's/.*: .+, ([0-9]+) bytes/\1/')
+  img_type=$(printf '%s\n' "$img_info" | sed -r 's/.*: (.+),.+/\1/')
 
   # The variable img_size stores the image size in bytes. It has to be converted
   # to kB when we store it in the device_info_data variable.
@@ -465,8 +465,8 @@ function show_data()
   if [[ -n "${gpus[*]}" ]]; then
     say 'GPU:'
     for g in "${!gpus[@]}"; do
-      printf '  Model: %s\n' "$(echo "${gpus[$g]}" | cut -d';' -f1)"
-      printf '  Provider: %s\n' "$(echo "${gpus[$g]}" | cut -d';' -f2-)"
+      printf '  Model: %s\n' "$(printf '%s\n' "${gpus[$g]}" | cut -d';' -f1)"
+      printf '  Provider: %s\n' "$(printf '%s\n' "${gpus[$g]}" | cut -d';' -f2-)"
     done
   fi
 }

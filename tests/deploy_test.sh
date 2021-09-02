@@ -10,22 +10,22 @@ FAKE_KERNEL="tests/.tmp"
 # some of these functions behaviour.
 function which_distro_mock()
 {
-  echo "debian"
+  printf '%s\n' 'debian'
 }
 
 function get_kernel_release_mock()
 {
-  echo '5.4.0-rc7-test'
+  printf '%s\n' '5.4.0-rc7-test'
 }
 
 function get_kernel_version_mock()
 {
-  echo '5.4.0-rc7'
+  printf '%s\n' '5.4.0-rc7'
 }
 
 function root_id_mock()
 {
-  echo "0"
+  printf '%s\n' '0'
 }
 
 function setUp()

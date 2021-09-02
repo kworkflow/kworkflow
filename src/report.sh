@@ -85,7 +85,7 @@ function expand_time_labels()
       ;;
   esac
 
-  echo "$time_label"
+  printf '%s\n' "$time_label"
 }
 
 function timebox_to_sec()
@@ -109,7 +109,7 @@ function timebox_to_sec()
       ;;
   esac
 
-  echo "$time_value"
+  printf '%s\n' "$time_value"
 }
 
 # Group day data in the tags_details and tags_metadata. Part of the process
@@ -136,10 +136,10 @@ function grouping_day_data()
 
   # details, total focus time
   while read -r line; do
-    tag=$(echo "$line" | cut -d ',' -f1)
-    timebox=$(echo "$line" | cut -d ',' -f2)
-    start_time=$(echo "$line" | cut -d ',' -f3)
-    details=$(echo "$line" | cut -d ',' -f4)
+    tag=$(printf '%s\n' "$line" | cut -d ',' -f1)
+    timebox=$(printf '%s\n' "$line" | cut -d ',' -f2)
+    start_time=$(printf '%s\n' "$line" | cut -d ',' -f3)
+    details=$(printf '%s\n' "$line" | cut -d ',' -f4)
 
     time_label=$(expand_time_labels "$timebox")
     [[ "$?" != 0 ]] && continue
@@ -151,8 +151,8 @@ function grouping_day_data()
 
     # Preparing metadata: total timebox in sec, total repetition
     timebox_sec=$(timebox_to_sec "$timebox")
-    total_time_box_sec=$(echo "${tags_metadata["$tag"]}" | cut -d ',' -f1)
-    total_repetition=$(echo "${tags_metadata["$tag"]}" | cut -d ',' -f2)
+    total_time_box_sec=$(printf '%s\n' "${tags_metadata["$tag"]}" | cut -d ',' -f1)
+    total_repetition=$(printf '%s\n' "${tags_metadata["$tag"]}" | cut -d ',' -f2)
 
     timebox_sec=$((timebox_sec + total_time_box_sec))
     total_repetition=$((total_repetition + 1))
@@ -189,8 +189,8 @@ function grouping_month_data()
   local month
   local current_day
 
-  year=$(echo "$target_month" | cut -d '/' -f1)
-  month=$(echo "$target_month" | cut -d '/' -f2)
+  year=$(printf '%s\n' "$target_month" | cut -d '/' -f1)
+  month=$(printf '%s\n' "$target_month" | cut -d '/' -f2)
   month_total_days=$(days_in_the_month "$month" "$year")
 
   for ((day = 1; day <= month_total_days; day++)); do
@@ -252,31 +252,30 @@ function show_data
   local tag_repetition=0
   local total_focus_time=0
 
-  echo "# Report: $date"
+  printf '%s\n' "# Report: $date"
 
   for tag in "${!tags_metadata[@]}"; do
-    tag_time=$(echo "${tags_metadata[$tag]}" | cut -d ',' -f1)
-    tag_repetition=$(echo "${tags_metadata[$tag]}" | cut -d ',' -f2)
+    tag_time=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f1)
+    tag_repetition=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f2)
 
     total_focus_time=$((tag_time + total_focus_time))
     total_repetition=$((total_repetition + tag_repetition))
   done
 
   show_total_work_hours "$total_focus_time"
-  echo " * Total focus section: $total_repetition"
-  echo
+  printf '%s\n\n' " * Total focus section: $total_repetition"
 
   for tag in "${!tags_details[@]}"; do
-    echo "## $tag"
-    total_time=$(echo "${tags_metadata[$tag]}" | cut -d ',' -f1)
-    total_repetition=$(echo "${tags_metadata[$tag]}" | cut -d ',' -f2)
+    printf '%s\n' "## $tag"
+    total_time=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f1)
+    total_repetition=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f2)
 
     total_time=$(sec_to_format "$total_time")
-    echo " - Total focus time: $total_time"
-    echo " - Total repetitions: $total_repetition"
-    echo
-    echo "Summary:"
-    echo -e "${tags_details[$tag]}"
+    printf '%s\n' " - Total focus time: $total_time" \
+      " - Total repetitions: $total_repetition" \
+      '' \
+      'Summary:'
+    echo -e "${tags_details[$tag]}" # TODO
   done
 }
 

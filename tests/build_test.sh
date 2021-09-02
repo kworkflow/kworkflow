@@ -3,12 +3,12 @@ include './tests/utils.sh'
 
 function get_kernel_release_mock()
 {
-  echo '5.4.0-rc7-test'
+  printf '%s\n' '5.4.0-rc7-test'
 }
 
 function get_kernel_version_mock()
 {
-  echo '5.4.0-rc7'
+  printf '%s\n' '5.4.0-rc7'
 }
 
 oneTimeSetUp()

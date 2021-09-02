@@ -71,7 +71,7 @@ function execute_checkpatch()
     file="$current_file"
 
     if [[ ! -e "$file" ]]; then
-      echo "$file does not exist."
+      printf '%s\n' "$file does not exist."
       continue
     fi
 

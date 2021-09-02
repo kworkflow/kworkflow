@@ -82,9 +82,10 @@ function vm_up()
   fi
 
   say "Starting Qemu with: "
-  echo "${configurations[virtualizer]} ${configurations[qemu_hw_options]}" \
-    "${configurations[qemu_net_options]}" \
-    "${configurations[qemu_path_image]}"
+  printf '%s' "${configurations[virtualizer]} " \
+    "${configurations[qemu_hw_options]} " \
+    "${configurations[qemu_net_options]} " \
+    "${configurations[qemu_path_image]}" $'\n'
 
   cmd="${configurations[virtualizer]} ${configurations[qemu_hw_options]}"
   cmd+=" ${configurations[qemu_net_options]}"

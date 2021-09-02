@@ -79,17 +79,17 @@ function test_restore_config()
   cp "$KW_DATA_DIR/configs/metadata/config-test" "$KW_DATA_DIR/configs/metadata/config-2"
   cp "$KW_DATA_DIR/configs/configs/config-test" "$decompress_path/configs/configs/config-2"
   cp "$KW_DATA_DIR/configs/metadata/config-test" "$decompress_path/configs/metadata/config-2"
-  echo '# This line is different' >> "$decompress_path/configs/configs/config-2"
+  printf '%s\n' '# This line is different' >> "$decompress_path/configs/configs/config-2"
 
   config_2_last_line=$(tail -n 1 "$KW_DATA_DIR/configs/configs/config-2")
-  output=$(echo 'n' | restore_config)
-  assertEquals "$LINENO" "$(echo "$output" | head -n 1)" 'It looks like that the file config-2 differs from the backup version.'
+  output=$(printf '%s\n' 'n' | restore_config)
+  assertEquals "$LINENO" "$(printf '%s\n' "$output" | head -n 1)" 'It looks like that the file config-2 differs from the backup version.'
 
   # Since we answered no above, we expect config-2 to remain the same
   assertEquals "$LINENO" "$config_2_last_line" "$(tail -n 1 "$KW_DATA_DIR/configs/configs/config-2")"
 
-  output=$(echo 'y' | restore_config)
-  assertEquals "$LINENO" "$(echo "$output" | head -n 1)" 'It looks like that the file config-2 differs from the backup version.'
+  output=$(printf '%s\n' 'y' | restore_config)
+  assertEquals "$LINENO" "$(printf '%s\n' "$output" | head -n 1)" 'It looks like that the file config-2 differs from the backup version.'
 
   # Now config-2 should be changed, as we said yes above
   config_2_last_line=$(tail -n 1 "$KW_DATA_DIR/configs/configs/config-2")
@@ -110,19 +110,19 @@ function test_restore_data_from_dir()
   cp -r tests/samples/pomodoro_data/2021 "$decompress_path/pomodoro/"
 
   # Test duplicate files
-  echo '# This line is different' >> "$decompress_path/pomodoro/2021/04/04"
+  printf '%s\n' '# This line is different' >> "$decompress_path/pomodoro/2021/04/04"
 
-  output=$(echo '2' | restore_data_from_dir 'pomodoro')
+  output=$(printf '%s\n' '2' | restore_data_from_dir 'pomodoro')
   assertNotEquals "$LINENO" '# This line is different' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 
-  output=$(echo '1' | restore_data_from_dir 'pomodoro')
+  output=$(printf '%s\n' '1' | restore_data_from_dir 'pomodoro')
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
   assertEquals "$LINENO" '# This line is different' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 
   expected_cmd+=("patching file $KW_DATA_DIR/pomodoro/2021/04/04")
 
-  echo '# Another different line' >> "$decompress_path/pomodoro/2021/04/04"
-  output=$(echo '3' | restore_data_from_dir 'pomodoro')
+  printf '%s\n' '# Another different line' >> "$decompress_path/pomodoro/2021/04/04"
+  output=$(printf '%s\n' '3' | restore_data_from_dir 'pomodoro')
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
   assertEquals "$LINENO" '# Another different line' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 }

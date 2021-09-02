@@ -173,7 +173,7 @@ function test_grouping_week_data()
   for ((i = 10; i < 17; i++)); do
     day_path="$SHUNIT_TMPDIR/$fake_base_data/$i"
     touch "$day_path"
-    echo "$i,20m,06:00:40,Tag $i description" > "$day_path"
+    printf '%s\n' "$i,20m,06:00:40,Tag $i description" > "$day_path"
   done
 
   grouping_week_data '1815/12/10'
@@ -213,7 +213,7 @@ function test_grouping_month_data()
   for ((i = 1; i <= month_total_days; i++)); do
     day_path="$SHUNIT_TMPDIR/$fake_base_data/"$(printf "%02d\n" "$i")
     touch "$day_path"
-    echo "$i,20m,06:00:40,Tag $i description" > "$day_path"
+    printf '%s\n' "$i,20m,06:00:40,Tag $i description" > "$day_path"
   done
 
   grouping_month_data '1815/12'
@@ -254,7 +254,7 @@ function test_grouping_year_data()
       current_day=$(printf "%02d\n" "$day")
       day_path="$SHUNIT_TMPDIR/$month_path/$current_day"
       touch "$day_path"
-      echo "$month_path-$day,20m,06:00:40,Tag $month_path-$day description" > "$day_path"
+      printf '%s\n' "$month_path-$day,20m,06:00:40,Tag $month_path-$day description" > "$day_path"
     done
   done
 

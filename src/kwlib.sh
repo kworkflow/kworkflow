@@ -20,7 +20,7 @@ declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd' 'xz
 # Returns:
 # Return a "string" corresponding to the position number and a code value that
 # specify the result (useful for checking if something went wrong). In case of
-# error, "string" is displayed in the echo command and EINVAL code is
+# error, "string" is displayed in the printf command and EINVAL code is
 # returned.Probably, you want to execute this function is a subshell and save
 # the output in a variable.
 function get_based_on_delimiter()
@@ -33,18 +33,18 @@ function get_based_on_delimiter()
 
   delimiter=${delimiter:-":"}
 
-  output=$(echo "$string" | grep -i "$delimiter")
+  output=$(printf '%s\n' "$string" | grep -i "$delimiter")
   if [[ "$?" != 0 ]]; then
-    echo "$string"
+    printf '%s\n' "$string"
     return 22 # EINVAL
   fi
 
-  output=$(echo "$string" | cut -d "$delimiter" -f"$position")
+  output=$(printf '%s\n' "$string" | cut -d "$delimiter" -f"$position")
   if [[ -z "$output" ]]; then
     output="$string"
     ret=22 # EINVAL
   fi
-  echo "$output"
+  printf '%s\n' "$output"
   return "$ret"
 }
 
@@ -148,7 +148,7 @@ function find_kernel_root()
     done
   fi
 
-  echo "$kernel_root"
+  printf '%s\n' "$kernel_root"
 }
 
 # Get the kernel release based on the command kernelrelease.
@@ -242,7 +242,7 @@ function join_path()
 
   joined="${target_path%%+(/)}/$member"
 
-  echo "$joined" | tr -s '/'
+  printf '%s\n' "$joined" | tr -s '/'
 }
 
 # This function tries to identify the OS distribution. In order to make it work
@@ -276,12 +276,12 @@ function detect_distro()
 
   # ArchLinux family
   if [[ "$distro" =~ "arch" ]] || [[ "$distro" =~ "manjaro" ]]; then
-    echo "arch"
+    printf '%s\n' 'arch'
   # Debian family
   elif [[ "$distro" =~ "debian" ]] || [[ "$distro" =~ "ubuntu" ]]; then
-    echo "debian"
+    printf '%s\n' 'debian'
   else
-    echo "none"
+    printf '%s\n' 'none'
   fi
 }
 
@@ -344,7 +344,7 @@ function store_statistics_data()
 
   [[ ! -f "$day_path" || -z "$label" || -z "$value" ]] && return 22 # EINVAL
 
-  echo "$label $value" >> "$day_path"
+  printf '%s\n' "$label $value" >> "$day_path"
 }
 
 # This function checks if a certain command can be run
@@ -523,5 +523,5 @@ function get_file_name_from_path()
 {
   local file_path="$1"
 
-  echo "${file_path##*/}"
+  printf '%s\n' "${file_path##*/}"
 }

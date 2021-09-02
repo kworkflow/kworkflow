@@ -13,21 +13,19 @@ function cmd_manager()
       ;;
     WARNING)
       shift 1
-      echo "WARNING"
-      echo "$@"
+      printf '%s\n' 'WARNING' "$@"
       ;;
     SUCCESS)
       shift 1
-      echo "SUCCESS"
-      echo "$@"
+      printf '%s\n' 'SUCCESS' "$@"
       ;;
     TEST_MODE)
       shift 1
-      echo "$@"
+      printf '%s\n' "$@"
       return 0
       ;;
     *)
-      echo "$@"
+      printf '%s\n' "$@"
       ;;
   esac
 
@@ -40,9 +38,9 @@ function ask_yN()
 
   read -r -p "$message [y/N] " response
   if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-    echo "1"
+    printf '%s\n' '1'
   else
-    echo "0"
+    printf '%s\n' '0'
   fi
 }
 
@@ -67,11 +65,11 @@ function list_installed_kernels()
 
   if [[ "$?" != 0 ]]; then
     if ! [[ -r "$grub_cfg" ]]; then
-      echo "For showing the available kernel in your system we have to take" \
-        "a look at '/boot/grub/grub.cfg', however, it looks like that" \
-        "that you have no read permission."
+      printf '%s' 'For showing the available kernel in your system we have ' \
+        'to take a look at "/boot/grub/grub.cfg", however, it looks like ' \
+        ' you have no read permission.' $'\n'
       if [[ $(ask_yN "Do you want to proceed with sudo?") =~ "0" ]]; then
-        echo "List kernel operation aborted"
+        printf '%s\n' 'List kernel operation aborted'
         return 0
       fi
       super=1
@@ -82,7 +80,7 @@ function list_installed_kernels()
     output=$(sudo awk -F\' '/menuentry / {print $2}' "$grub_cfg")
   fi
 
-  output=$(echo "$output" | grep recovery -v | grep with | awk -F" " '{print $NF}')
+  output=$(printf '%s\n' "$output" | grep recovery -v | grep with | awk -F" " '{print $NF}')
 
   while read -r kernel; do
     if [[ -f "$prefix/boot/vmlinuz-$kernel" ]]; then
@@ -90,15 +88,15 @@ function list_installed_kernels()
     fi
   done <<< "$output"
 
-  echo
+  printf '%s\n' ''
 
   if [[ "$single_line" != 1 ]]; then
     printf '%s\n' "${available_kernels[@]}"
   else
-    echo -n "${available_kernels[0]}"
+    printf '%s' "${available_kernels[0]}"
     available_kernels=("${available_kernels[@]:1}")
     printf ',%s' "${available_kernels[@]}"
-    echo ""
+    printf '%s\n' ''
   fi
 
   return 0
@@ -132,7 +130,7 @@ function install_modules()
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then
-    echo "Warning: Couldn't extract module archive."
+    printf '%s\n' 'Warning: Could not extract module archive.'
   fi
 }
 
@@ -216,7 +214,7 @@ function vm_update_boot_loader()
 
     # TODO: The below line is here for test purpose. We need a better way to
     # do that.
-    [[ "$flag" == 'TEST_MODE' ]] && echo "$cmd"
+    [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
 
     say "Done."
   else
@@ -238,43 +236,43 @@ function do_uninstall()
   local libpath="$prefix/var/lib/initramfs-tools/$target"
 
   if [ -z "$target" ]; then
-    echo "No parameter, nothing to do"
+    printf '%s\n' 'No parameter, nothing to do'
     exit 0
   fi
 
   if [ -f "$kernelpath" ]; then
-    echo "Removing: $kernelpath"
+    printf '%s\n' "Removing: $kernelpath"
     cmd_manager "$flag" "rm $kernelpath"
   else
-    echo "Can't find $kernelpath"
+    printf '%s\n' "Can't find $kernelpath"
   fi
 
   if [ -f "$kernelpath.old" ]; then
-    echo "Removing: $kernelpath.old"
+    printf '%s\n' "Removing: $kernelpath.old"
     cmd_manager "$flag" "rm $kernelpath.old"
   else
-    echo "Can't find $kernelpath.old"
+    printf '%s\n' "Can't find $kernelpath.old"
   fi
 
   if [ -f "$initrdpath" ]; then
-    echo "Removing: $initrdpath"
+    printf '%s\n' "Removing: $initrdpath"
     cmd_manager "$flag" "rm -rf $initrdpath"
   else
-    echo "Can't find $initrdpath"
+    printf '%s\n' "Can't find $initrdpath"
   fi
 
   if [[ -d "$modulespath" && "$modulespath" != "/lib/modules" ]]; then
-    echo "Removing: $modulespath"
+    printf '%s\n' "Removing: $modulespath"
     cmd_manager "$flag" "rm -rf $modulespath"
   else
-    echo "Can't find $modulespath"
+    printf '%s\n' "Can't find $modulespath"
   fi
 
   if [ -f "$libpath" ]; then
-    echo "Removing: $libpath"
+    printf '%s\n' "Removing: $libpath"
     cmd_manager "$flag" "rm -rf $libpath"
   else
-    echo "Can't find $libpath"
+    printf '%s\n' "Can't find $libpath"
   fi
 }
 
@@ -286,18 +284,18 @@ function kernel_uninstall()
   local flag="$4"
 
   if [[ -z "$kernel" ]]; then
-    echo "Invalid argument"
+    printf '%s\n' 'Invalid argument'
     exit 22 #EINVAL
   fi
 
   IFS=', ' read -r -a kernel_names <<< "$kernel"
   for kernel in "${kernel_names[@]}"; do
-    echo "Removing: $kernel"
+    printf '%s\n' "Removing: $kernel"
     do_uninstall "$kernel" "" "$flag"
   done
 
   # Each distro script should implement update_boot_loader
-  echo "update_boot_loader $kernel $local_deploy $flag"
+  printf '%s\n' "update_boot_loader $kernel $local_deploy $flag"
   update_boot_loader "$kernel" "$local_deploy" "$flag"
 
   # Reboot
@@ -326,7 +324,7 @@ function install_kernel()
   fi
 
   if [[ -z "$name" ]]; then
-    echo "Invalid name"
+    printf '%s\n' 'Invalid name'
     return 22
   fi
 

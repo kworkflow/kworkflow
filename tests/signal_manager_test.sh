@@ -20,7 +20,7 @@ function setUp()
 
 function write_to_file()
 {
-  echo "$test_phrase" > "$file_name"
+  printf '%s\n' "$test_phrase" > "$file_name"
 }
 
 function test_default_handler()
@@ -31,7 +31,7 @@ function test_default_handler()
   {
     signal_manager default_interrupt_handler SIGINT SIGTERM
     sleep infinity &
-    echo $! > sleep_pid
+    printf '%s\n' $! > sleep_pid
     kill -s SIGUSR1 $$ # Send SIGUSR1 to parent process
     wait $!            # wait for SIGTERM
   } > out.tmp &
@@ -46,7 +46,7 @@ function test_default_handler()
   {
     signal_manager default_interrupt_handler SIGINT SIGTERM
     sleep infinity &
-    echo $! > sleep_pid
+    printf '%s\n' $! > sleep_pid
     kill -s SIGUSR1 $$ # Send SIGUSR1 to parent process
     wait $!            # wait for SIGINT
   } > out.tmp &
@@ -60,11 +60,11 @@ function test_non_signal()
 {
   local ret
 
-  signal_manager echo SIGNONEXISTENT
+  signal_manager : SIGNONEXISTENT
   ret="$?"
   assertFalse "($LINENO) Should have received an error." "$ret"
 
-  signal_manager echo 'HUP SIG'
+  signal_manager : 'HUP SIG'
   ret="$?"
   assertFalse "($LINENO) Should have received an error." "$ret"
 }
@@ -96,11 +96,11 @@ function test_signal_reset()
   signal_manager_reset
   output="$(trap -p)"
 
-  echo "$output" | grep -q "trap -- 'default_interrupt_handler' SIGINT"
+  printf '%s\n' "$output" | grep -q "trap -- 'default_interrupt_handler' SIGINT"
   ret="$?"
   assertTrue "($LINENO) Default handler not set." "$ret"
 
-  echo "$output" | grep -q "trap -- 'default_interrupt_handler' SIGTERM"
+  printf '%s\n' "$output" | grep -q "trap -- 'default_interrupt_handler' SIGTERM"
   ret="$?"
   assertTrue "($LINENO) Default handler not set." "$ret"
 }
@@ -111,18 +111,18 @@ function test_add_two_signals()
   local -r output="$(trap)"
   local ret
 
-  echo "$output" | grep -q "trap -- 'write_to_file' SIGINT"
+  printf '%s\n' "$output" | grep -q "trap -- 'write_to_file' SIGINT"
   ret="$?"
   assertTrue "($LINENO) Trap not set" "$ret"
 
-  echo "$output" | grep -q "trap -- 'write_to_file' SIGTERM"
+  printf '%s\n' "$output" | grep -q "trap -- 'write_to_file' SIGTERM"
   ret="$?"
   assertTrue "($LINENO) Trap not set" "$ret"
 }
 
 function test_compound_signal()
 {
-  signal_manager 'echo something; ls'
+  signal_manager 'printf "%s\n" something; ls'
   ret="$?"
   assertFalse "($LINENO) Compound command accepted" "$ret"
 }

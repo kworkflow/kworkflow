@@ -31,7 +31,7 @@ function print_files_authors()
         printed_authors_separator=true
       fi
       say -n "$(basename "$file"): "
-      echo "$authors"
+      printf '%s\n' "$authors"
     fi
   done
 }
@@ -166,7 +166,7 @@ function execute_get_maintainer()
   else
     say "HERE:"
   fi
-  echo "$script_output"
+  printf '%s\n' "$script_output"
 
   if $print_authors; then
     print_files_authors "$FILE_OR_DIR"

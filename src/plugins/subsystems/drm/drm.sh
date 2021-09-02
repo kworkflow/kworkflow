@@ -43,7 +43,7 @@ function drm_manager()
   remote="${remote_parameters['REMOTE']}"
 
   if [[ "$test_mode" == "TEST_MODE" ]]; then
-    echo "$target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
+    printf '%s\n' "$target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
     return 0
   fi
 
@@ -178,7 +178,7 @@ function convert_module_info()
     return 22 # EINVAL
   fi
 
-  echo "$final_command"
+  printf '%s\n' "$final_command"
 }
 
 # This function is responsible for turn on and off the graphic interface based
@@ -216,7 +216,7 @@ function gui_control()
   # If the user does not override the turn on/off command we use the default
   # systemctl
   gui_control_cmd=${gui_control_cmd:-"systemctl isolate $isolate_target"}
-  bind_control_cmd='for i in /sys/class/vtconsole/*/bind; do echo '$vt_console' > $i; done; sleep 0.5'
+  bind_control_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" '$vt_console' > $i; done; sleep 0.5' # is this right?
 
   case "$target" in
     2) # LOCAL TARGET
@@ -278,8 +278,8 @@ function get_available_connectors()
 
   while read -r card; do
     card=$(basename "$card")
-    key=$(echo "$card" | grep card | cut -d- -f1)
-    value=$(echo "$card" | grep card | cut -d- -f2)
+    key=$(printf '%s\n' "$card" | grep card | cut -d- -f1)
+    value=$(printf '%s\n' "$card" | grep card | cut -d- -f2)
     [[ "$key" == "$value" ]] && continue
 
     if [[ -n "$key" && -n "$value" ]]; then
@@ -295,11 +295,11 @@ function get_available_connectors()
   for card in "${!cards[@]}"; do
     connectors="${cards[$card]}"
 
-    echo "[$target_label] ${card^} supports:"
+    printf '%s\n' "[$target_label] ${card^} supports:"
 
     IFS=',' read -r -a connectors <<< "${cards[$card]}"
     for conn in "${connectors[@]}"; do
-      echo -e " $conn"
+      echo -e " $conn" # TODO
     done
 
   done
@@ -317,7 +317,7 @@ function get_supported_mode_per_connector()
   local port
   local remote
 
-  cmd="for f in $SYSFS_CLASS_DRM/*/modes;"' do c=$(cat $f) && [[ ! -z $c ]] && echo "$f:\n$c\n"; done'
+  cmd="for f in $SYSFS_CLASS_DRM/*/modes;"' do c=$(cat $f) && [[ ! -z $c ]] && printf "%s\n" "$f:" "$c" ""; done'
 
   case "$target" in
     2) # LOCAL TARGET
@@ -343,7 +343,7 @@ function get_supported_mode_per_connector()
   modes=${modes//sys\/class\/drm\//}
 
   say "Modes per card"
-  echo -e "$modes"
+  echo -e "$modes" # TODO
 }
 
 function drm_parser_options()

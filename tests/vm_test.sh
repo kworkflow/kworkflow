@@ -45,7 +45,7 @@ function test_vm_mount()
   output=$(
     function findmnt()
     {
-      echo "anything"
+      printf '%s\n' 'anything'
     }
     vm_mount "TEST_MODE"
   )

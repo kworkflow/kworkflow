@@ -1,4 +1,4 @@
 function test2()
 {
-  echo 'output of test2'
+  printf '%s\n' 'output of test2'
 }

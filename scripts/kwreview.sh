@@ -10,7 +10,7 @@ function get_shellcheck_exclude()
   if [[ ! -f "$travis_file" ]]; then
     travis_file="../$travis_file"
     if [[ ! -f "$travis_file" ]]; then
-      echo "Please call kwreview from kw's root folder"
+      printf '%s\n' "Please call kwreview from kw's root folder"
       exit 125 # ECANCELED
     fi
   fi
@@ -134,31 +134,31 @@ function parse_args()
 
 function print_help()
 {
-  echo "Usage: kwreview [OPTIONS] [FILES]"
-  echo "Print formatting diff and linter revision for kw's bash files."
-  echo "If FILES are supplied, analyse them. If not, analyse all shell files"
-  echo "which differ from branch unstable."
-  echo
-  echo "-h, --help               display this help message"
-  echo "-b, --branch=BRANCH      compare to git revision BRANCH instead of"
-  echo "                         unstable (ignored if -t or -g are supplied)"
-  echo "-t, --working-tree       compare against working tree"
-  echo "-g, --staging-area       compare against staging area"
-  echo "-p, --path=PATH          consider files in PATH"
-  echo "-e, --exclude=PATH       exclude files in PATH"
-  echo "                         examine files provided as arguments disregarding"
-  echo "                         the VCS"
-  echo "-s, --shellcheck-exclude=EXCLUDE"
-  echo "                         ignore the comma separated list of"
-  echo "                         shellcheck warnings and suggestions EXCLUDE"
-  echo "                         (default: ${opt['shellcheck_exclude_default']})"
-  echo "-a, --all                don't exclude any shellcheck codes"
-  echo "-w, --shfmt-inplace      change formatting in files"
-  echo "    --shfmt-only         run formatter only"
-  echo "    --shellcheck-only    run linter only"
-  echo "    --filter-mode        choose reviewdog's filter mode (added,"
-  echo "                         diff_context, file or nofilter"
-  echo "-l, --list               list files subject to analysis and exit"
+  printf '%s\n' 'Usage: kwreview [<options>] [<files>]' \
+    "Print formatting diff and linter revision for kw's bash files." \
+    'If <files> are supplied, analyse them. If not, analyse all shell files' \
+    'which differ from branch unstable.' \
+    '' \
+    '-h, --help               display this help message' \
+    '-b, --branch=<branch>    compare to git revision <branch> instead of' \
+    '                         unstable (ignored if -t or -g are supplied)' \
+    '-t, --working-tree       compare against working tree' \
+    '-g, --staging-area       compare against staging area' \
+    '-p, --path=<path>        consider files in <path>' \
+    '-e, --exclude=<path>     exclude files in <path>' \
+    '                         examine files provided as arguments disregarding' \
+    '                         the VCS' \
+    '-s, --shellcheck-exclude=EXCLUDE' \
+    '                         ignore the comma separated list of' \
+    '                         shellcheck warnings and suggestions EXCLUDE' \
+    "                         (default: ${opt['shellcheck_exclude_default']})" \
+    '-a, --all                do not exclude any shellcheck codes' \
+    '-w, --shfmt-inplace      change formatting in files' \
+    '    --shfmt-only         run formatter only' \
+    '    --shellcheck-only    run linter only' \
+    "    --filter-mode        choose reviewdog's filter mode (added," \
+    '                         diff_context, file or nofilter)' \
+    '-l, --list               list files subject to analysis and exit'
 }
 
 # List all files changed since opt['branch'] (unstable by default)
@@ -215,7 +215,7 @@ function list()
 {
   if [[ "${opt['list']}" = 'TRUE' ]]; then
     for file in "${analysed_files[@]}"; do
-      echo "$file"
+      printf '%s\n' "$file"
     done
     exit 0
   fi
@@ -224,13 +224,13 @@ function list()
 function check_dependencies()
 {
   if ! type shfmt > /dev/null 2>&1; then
-    echo 'shfmt not found!'
+    printf '%s\n' 'shfmt not found!'
     exit 125 # ECANCELED
   elif ! type shellcheck > /dev/null 2>&1; then
-    echo 'shellcheck not found!'
+    printf '%s\n' 'shellcheck not found!'
     exit 125 # ECANCELED
   elif ! type reviewdog > /dev/null 2>&1; then
-    echo 'reviewdog not found!'
+    printf '%s\n' 'reviewdog not found!'
     exit 125 # ECANCELED
   fi
 }
@@ -274,7 +274,7 @@ function kwreview()
   get_analysed_files
 
   if [[ ${#analysed_files[@]} -eq 0 ]]; then
-    echo "No files to evaluate. Exiting..."
+    printf '%s\n' 'No files to evaluate. Exiting...'
     exit 1
   fi
 

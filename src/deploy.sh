@@ -330,7 +330,7 @@ function kernel_uninstall()
 
   case "$target" in
     1) # VM_TARGET
-      echo "UNINSTALL VM"
+      printf '%s\n' 'UNINSTALL VM'
       ;;
     2) # LOCAL_TARGET
       distro=$(detect_distro "/")
