@@ -109,14 +109,20 @@ function kernel_deploy()
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
-  if [[ "$target" == "$VM_TARGET" ]]; then
-    vm_mount
-    ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      complain 'Please shutdown or umount your VM to continue.'
-      exit "$ret"
-    fi
-  fi
+  case "$target" in
+    1) # VM_TARGET
+      vm_mount
+      ret="$?"
+      if [[ "$ret" != 0 ]]; then
+        complain 'Please shutdown or umount your VM to continue.'
+        exit "$ret"
+      fi
+      ;;
+    3) # REMOTE_TARGET
+      prepare_host_deploy_dir
+      prepare_remote_dir
+      ;;
+  esac
 
   # NOTE: If we deploy a new kernel image that does not match with the modules,
   # we can break the boot. For security reason, every time we want to deploy a
@@ -274,24 +280,16 @@ function parse_deploy_options()
 # prepares such a directory.
 function prepare_host_deploy_dir()
 {
-  if [[ -z "$KW_CACHE_DIR" ]]; then
-    complain "\$KW_CACHE_DIR isn't set. The kw directory at home may not exist"
-    return 22
+  # If all the required paths already exist, let's not waste time
+  if [[ -d "$KW_CACHE_DIR" && -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" &&
+    -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
+    return
   fi
 
-  # We should expect the setup.sh script create the directory $HOME/kw.
-  # However, does not hurt check for it and create in any case
-  if [[ ! -d "$KW_CACHE_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR"
-  fi
-
-  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
-  fi
-
-  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
-  fi
+  # In case we need to create some of the basic directories
+  mkdir -p "$KW_CACHE_DIR"
+  mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
+  mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
 }
 
 # To deploy a new kernel or module, we have to prepare a directory in the
@@ -307,13 +305,15 @@ function prepare_host_deploy_dir()
 # @flag How to display a command, default is SILENT
 function prepare_remote_dir()
 {
-  local remote="$1"
-  local port="$2"
-  local user="$3"
+  local remote="${1:-${remote_parameters['REMOTE_IP']}}"
+  local port="${2:-${remote_parameters['REMOTE_PORT']}}"
+  local user="${3:-${remote_parameters['REMOTE_USER']}}"
   local flag="$4"
   local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
   local distro_info=''
   local distro=''
+
+  flag=${flag:-'SILENT'}
 
   distro_info=$(which_distro "$remote" "$port" "$user")
   distro=$(detect_distro '/' "$distro_info")
@@ -380,8 +380,6 @@ function run_list_installed_kernels()
       local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --list_kernels $single_line"
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
-
-      prepare_remote_dir "$remote" "$port" '' "$flag"
 
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
@@ -474,6 +472,10 @@ function cleanup()
 # machine.
 #
 # @target Target machine
+#
+# Note:
+# This function supposes that prepare_host_deploy_dir and prepare_remote_dir
+# were invoked before.
 function modules_install()
 {
   local flag="$1"
@@ -501,14 +503,9 @@ function modules_install()
       cmd_manager "$flag" "$cmd"
       ;;
     3) # REMOTE_TARGET
-      # 1. Preparation steps
-      prepare_host_deploy_dir
-
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
       user="${remote_parameters['REMOTE_USER']}"
-
-      prepare_remote_dir "$remote" "$port" "$user" "$flag"
 
       # 2. Send files modules
       modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
@@ -556,7 +553,9 @@ function modules_install_to()
 # @name Kernel name to be deployed.
 #
 # Note:
-# Take a look at the available kernel plugins at: src/plugins/kernel_install
+# * Take a look at the available kernel plugins at: src/plugins/kernel_install
+# * This function supposes that prepare_host_deploy_dir and prepare_remote_dir
+# were invoked before.
 function run_kernel_install()
 {
   local reboot="$1"

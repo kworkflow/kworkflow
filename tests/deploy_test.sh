@@ -97,7 +97,6 @@ function setupRemote()
 
 function tearDown()
 {
-  unset KW_CACHE_DIR
   configurations=()
 
   rm -rf "$FAKE_KERNEL"
@@ -378,10 +377,6 @@ function test_kernel_modules()
   # 7. Install modules in the target
 
   declare -a expected_cmd=(
-    "$dir_kw_deploy"       # prepare_host_dir
-    "$rsync_debian"        # Send debian deploy script
-    "$rsync_deploy"        # Send generic deploy script
-    "$rsync_utils"         # Send utils script
     "$make_install_cmd"    # make install
     "$expected_output"     # Release output
     "$compress_cmd"        # Prepare tarball
@@ -486,20 +481,8 @@ function test_list_remote_kernels()
 {
   local count=0
   local original="$PWD"
-  local remote_access='juca@127.0.0.1'
-  local remote_path='/root/kw_deploy'
-  local ssh_cmd='ssh -p 3333'
-  local rsync_cmd="rsync -e '$ssh_cmd'"
-  local rsync_flags="-LrlptD --rsync-path='sudo rsync'"
-  local kernel_install_path='tests/.tmp/kernel_install'
-
-  # Create remote directory
-  local dir_kw_deploy="$ssh_cmd $remote_access sudo \"mkdir -p $remote_path\""
 
   # Rsync script command
-  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh $rsync_flags"
-  local rsync_deploy="$rsync_cmd $kernel_install_path/remote_deploy.sh $remote_access:$remote_path/ $rsync_flags"
-  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ $rsync_flags"
   local remote_list_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"bash /root/kw_deploy/remote_deploy.sh --list_kernels 0\""
 
   # For this test we expected:
@@ -510,10 +493,6 @@ function test_list_remote_kernels()
   # 4. Copy utils script
   # 5. List command
   declare -a expected_cmd=(
-    "$dir_kw_deploy"
-    "$rsync_debian"
-    "$rsync_deploy"
-    "$rsync_utils"
     "$remote_list_cmd"
   )
 
@@ -734,18 +713,11 @@ function test_prepare_host_deploy_dir()
   local output
   local ret
 
+  # Check if we correctly create new directories
   prepare_host_deploy_dir
-
-  assertTrue "($LINENO): kw dir was not created" '[[ -d $KW_CACHE_DIR ]]'
-  assertTrue "($LINENO): kw local dir was not created" '[[ -d $KW_CACHE_DIR/$LOCAL_REMOTE_DIR ]]'
+  assertTrue "($LINENO): Cache dir not created" '[[ -d $KW_CACHE_DIR ]]'
+  assertTrue "($LINENO): Local dir not created" '[[ -d $KW_CACHE_DIR/$LOCAL_REMOTE_DIR ]]'
   assertTrue "($LINENO): Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR ]]'
-
-  # Let's make sure that we clean everything
-  tearDown
-
-  output=$(prepare_host_deploy_dir)
-  ret="$?"
-  assertEquals "($LINENO): Expected an error" 22 "$ret"
 }
 
 function test_prepare_remote_dir()
