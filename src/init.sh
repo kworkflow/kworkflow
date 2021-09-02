@@ -58,7 +58,7 @@ function init_kw()
         complain 'This arch was not found in the arch directory'
         complain 'You can use --force next time if you want to proceed anyway'
         say 'Available architectures:'
-        find "$PWD/arch" -maxdepth 1 -mindepth 1 -type d -printf '%f\n'
+        find "$PWD/arch" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort -d
       fi
     fi
 
