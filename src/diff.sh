@@ -45,7 +45,7 @@ function diff_manager()
   interactive="${diff_options['INTERACTIVE']}"
   test_mode="${diff_options['TEST_MODE']}"
 
-  if [[ "$test_mode" == "TEST_MODE" ]]; then
+  if [[ "$test_mode" == 'TEST_MODE' ]]; then
     printf '%s\n' "$target_1 $target_2 $interactive"
     return 0
   fi
@@ -64,8 +64,8 @@ function diff_parser_options()
 {
   local raw_options="$*"
 
-  diff_options["INTERACTIVE"]=1
-  diff_options["HELP"]=0
+  diff_options['INTERACTIVE']=1
+  diff_options['HELP']=0
 
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
@@ -108,7 +108,7 @@ function diff_side_by_side()
 
   columns=$(tput cols)
   diff_cmd="diff -y --color=always --width=$columns"
-  flag=${flag:-""}
+  flag=${flag:-''}
 
   if [[ ! -f "$file_1" || ! -f "$file_2" ]]; then
     complain "Make sure that $file_1 and $file_2 are a valid files"

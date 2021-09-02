@@ -39,7 +39,7 @@ Jane Doe <jane@email.com>,kernel@list.org"
 
 # Same as above but when the maintainers list is already in the patch
 CORRECT_TMP_PATCH_ALREADY_IN_MSG="=========================================================
-Maintainers already in \"To:\" field of update_patch_test.patch"
+Maintainers already in 'To:' field of update_patch_test.patch"
 
 FAKE_KERNEL="tests/.tmp"
 

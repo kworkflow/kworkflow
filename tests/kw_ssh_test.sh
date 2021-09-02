@@ -90,8 +90,8 @@ function test_kw_ssh_script()
   local msg
 
   ret=$(kw_ssh test_mode -s "/not/a/valid/path/xpto" 2>&1)
-  msg="$NO_SUCH_FILE: \"/not/a/valid/path/xpto\""
-  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
+  msg="$NO_SUCH_FILE: /not/a/valid/path/xpto"
+  assertTrue "($LINENO): We expected a substring '$msg', but we got '$ret'" \
     '[[ $ret =~ "$msg" ]]'
 
   ret=$(kw_ssh test_mode -s "$TEST_PATH/dmesg" 2>&1)

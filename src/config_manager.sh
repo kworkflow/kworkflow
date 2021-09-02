@@ -36,7 +36,7 @@ function save_config_file()
   local -r dot_configs_dir="$KW_DATA_DIR/configs"
 
   if [[ ! -f "$original_path/.config" ]]; then
-    complain "There's no .config file in the current directory"
+    complain 'There is no .config file in the current directory'
     exit 2 # ENOENT
   fi
 
@@ -53,8 +53,8 @@ function save_config_file()
   if [[ ! -f "$metadata_dir/$name" ]]; then
     touch "$metadata_dir/$name"
   elif [[ "$force" != 1 ]]; then
-    if [[ $(ask_yN "$name already exists. Update?") =~ "0" ]]; then
-      complain "Save operation aborted"
+    if [[ $(ask_yN "$name already exists. Update?") =~ '0' ]]; then
+      complain 'Save operation aborted'
       cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
       exit 0
     fi
@@ -84,7 +84,7 @@ function list_configs()
   local content
 
   if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
-    say "There's no tracked .config file"
+    say 'There is no tracked .config file'
     exit 0
   fi
 
@@ -93,7 +93,7 @@ function list_configs()
     [[ ! -f "$filename" ]] && continue
     name=$(basename "$filename")
     content=$(cat "$filename")
-    printf "%-30s | %-30s\n" "$name" "$content"
+    printf '%-30s | %-30s\n' "$name" "$content"
   done
 }
 
@@ -123,7 +123,7 @@ function basic_config_validations()
 
   if [[ "$force" != 1 ]]; then
     warning "$message"
-    if [[ $(ask_yN "Are you sure that you want to proceed?") =~ "0" ]]; then
+    if [[ $(ask_yN 'Are you sure that you want to proceed?') =~ '0' ]]; then
       complain "$operation operation aborted"
       exit 0
     fi
@@ -147,7 +147,7 @@ function get_config()
   local target="$1"
   local force="$2"
   local -r dot_configs_dir="$KW_DATA_DIR/configs/configs"
-  local -r msg="This operation will override the current .config file"
+  local -r msg='This operation will override the current .config file'
 
   force=${force:-0}
 
@@ -175,7 +175,7 @@ function remove_config()
   local -r dot_configs_dir="$KW_DATA_DIR/configs"
   local -r msg="This operation will remove $target from kw management"
 
-  basic_config_validations "$target" "$force" "Remove" "$msg"
+  basic_config_validations "$target" "$force" 'Remove' "$msg"
 
   cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
   git rm "$configs_dir/$target" "$dot_configs_dir/$metadata_dir/$target" > /dev/null 2>&1
@@ -217,7 +217,7 @@ function execute_config_manager()
       name_config="$1"
       # Validate string name
       if [[ "$name_config" =~ ^- || -z "${name_config// /}" ]]; then
-        complain "Invalid argument"
+        complain 'Invalid argument'
         exit 22 # EINVAL
       fi
       # Shift name and get '-d'
@@ -230,7 +230,7 @@ function execute_config_manager()
     --get)
       shift # Skip '--get' option
       if [[ -z "$1" ]]; then
-        complain "Invalid argument"
+        complain 'Invalid argument'
         return 22 # EINVAL
       fi
 
@@ -239,14 +239,14 @@ function execute_config_manager()
     --remove | -rm)
       shift # Skip '--rm' option
       if [[ -z "$1" ]]; then
-        complain "Invalid argument"
+        complain 'Invalid argument'
         return 22 # EINVAL
       fi
 
       remove_config "$1" "$force"
       ;;
     *)
-      complain "Unknown option"
+      complain 'Unknown option'
       exit 22 #EINVAL
       ;;
   esac

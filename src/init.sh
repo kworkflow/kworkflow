@@ -17,7 +17,7 @@ declare -gA options_values
 function init_kw()
 {
   local config_file_template="$KW_ETC_DIR/kworkflow_template.config"
-  local name="kworkflow.config"
+  local name='kworkflow.config'
 
   if [[ "$1" =~ -h|--help ]]; then
     init_help "$1"
@@ -48,7 +48,7 @@ function init_kw()
   if [[ -f "$config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
     cp "$config_file_template" "$PWD/$KW_DIR/$name"
-    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e "/^#?.*/d" \
+    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' \
       "$PWD/$KW_DIR/$name"
 
     if [[ -n "${options_values['ARCH']}" ]]; then

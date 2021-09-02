@@ -13,9 +13,9 @@ function update_arch_boot_loader()
   local name="$1"
   local target="$2"
   local flag="$3"
-  local cmd_init="dracut --regenerate-all -f"
+  local cmd_init='dracut --regenerate-all -f'
   local setup_grub=": write /boot/grub/device.map '(hd0,1) /dev/sda'"
-  local grub_install="grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda"
+  local grub_install='grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda'
 
   update_boot_loader "$name" 'arch' "$target" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
 }
@@ -26,8 +26,8 @@ function generate_arch_temporary_root_file_system()
   local target="$2"
   local flag="$3"
   local path_prefix="$4"
-  local cmd=""
-  local sudo_cmd=""
+  local cmd=''
+  local sudo_cmd=''
   local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
 
   if [[ "$target" == 'local' ]]; then
@@ -38,7 +38,7 @@ function generate_arch_temporary_root_file_system()
   if [[ "$target" != 'remote' ]]; then
     cmd="$sudo_cmd cp -v $LOCAL_KW_ETC $path_prefix/etc/mkinitcpio.d/$name.preset"
     cmd_manager "$flag" "$cmd"
-    cmd="$sudo_cmd sed -i -e \"s/NAME/$name/g\" \"$path_prefix/etc/mkinitcpio.d/$name.preset\""
+    cmd="$sudo_cmd sed -i -e 's/NAME/$name/g' '$path_prefix/etc/mkinitcpio.d/$name.preset'"
     cmd_manager "$flag" "$cmd"
   else
     cmd="cp -v $name.preset $path_prefix/etc/mkinitcpio.d/"

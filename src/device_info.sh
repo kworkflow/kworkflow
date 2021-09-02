@@ -341,7 +341,7 @@ function get_chassis()
     return 0
   fi
 
-  device_info_data['chassis']="${chassis_table[(($chassis_type - 1))]}"
+  device_info_data['chassis']="${chassis_table[((chassis_type - 1))]}"
 }
 
 # This function populates the img_size and img_type values from the
@@ -399,7 +399,7 @@ function learn_device()
     vm_umount > /dev/null
     ret="$?"
     if [[ "$ret" != 0 ]]; then
-      complain "We couldn't unmount your VM."
+      complain 'We could not unmount your VM.'
       exit "$ret"
     fi
     get_img_info

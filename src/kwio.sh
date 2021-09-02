@@ -26,23 +26,21 @@ function alert_completion()
   fi
 
   while read -rN 1 option; do
-    if [ "$option" == "v" ]; then
+    if [ "$option" == 'v' ]; then
       if command_exists "${configurations[visual_alert_command]}"; then
         eval "${configurations[visual_alert_command]} &"
       else
-        warning "The following command set in the visual_alert_command variable" \
-          "couldn't be run:"
+        warning 'The following command set in the visual_alert_command variable could not be run:'
         warning "${configurations[visual_alert_command]}"
-        warning "Check if the necessary packages are installed."
+        warning 'Check if the necessary packages are installed.'
       fi
-    elif [ "$option" == "s" ]; then
+    elif [ "$option" == 's' ]; then
       if command_exists "${configurations[sound_alert_command]}"; then
         eval "${configurations[sound_alert_command]} &"
       else
-        warning "The following command set in the sound_alert_command variable" \
-          "couldn't be run:"
+        warning 'The following command set in the sound_alert_command variable could not be run:'
         warning "${configurations[sound_alert_command]}"
-        warning "Check if the necessary packages are installed."
+        warning 'Check if the necessary packages are installed.'
       fi
     fi
   done <<< "$opts"
@@ -61,7 +59,7 @@ function colored_print()
   local message="${*:2}"
   local colored_format="${!1}"
 
-  if [[ $# -ge 2 && $2 = "-n" ]]; then
+  if [[ $# -ge 2 && $2 = '-n' ]]; then
     message="${*:3}"
     if [ -t 1 ]; then
       printf "$colored_format" "$message"

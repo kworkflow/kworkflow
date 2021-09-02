@@ -15,7 +15,7 @@ get_valid_signals
 # This functions prints the default message when interrupting kw
 function default_interrupt_handler()
 {
-  say $'\n'Oh no! An interruption! See ya...
+  say $'\nOh no! An interruption! See ya...'
 }
 
 # This function adds a new signal handler to an arbitrary signal

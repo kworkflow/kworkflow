@@ -68,7 +68,7 @@ function list_installed_kernels()
       printf '%s' 'For showing the available kernel in your system we have ' \
         'to take a look at "/boot/grub/grub.cfg", however, it looks like ' \
         ' you have no read permission.' $'\n'
-      if [[ $(ask_yN "Do you want to proceed with sudo?") =~ "0" ]]; then
+      if [[ $(ask_yN 'Do you want to proceed with sudo?') =~ '0' ]]; then
         printf '%s\n' 'List kernel operation aborted'
         return 0
       fi
@@ -108,9 +108,9 @@ function reboot_machine()
   local local="$2"
   local flag="$3"
 
-  [[ "$local" == 'local' ]] && sudo_cmd="sudo -E"
+  [[ "$local" == 'local' ]] && sudo_cmd='sudo -E'
 
-  if [[ "$reboot" == "1" ]]; then
+  if [[ "$reboot" == '1' ]]; then
     cmd="$sudo_cmd reboot"
     cmd_manager "$flag" "$cmd"
   fi
@@ -146,7 +146,7 @@ function update_boot_loader()
   local flag="$7"
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd="sudo -E"
+    sudo_cmd='sudo -E'
   fi
 
   cmd_grub="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
@@ -184,10 +184,10 @@ function vm_update_boot_loader()
   local mount_root=': mount /dev/sda1 /'
   local mkdir_init=': mkdir-p /etc/initramfs-tools'
 
-  flag=${flag:-"SILENT"}
+  flag=${flag:-'SILENT'}
 
   if [[ -z "$distro" ]]; then
-    complain "No distro specified. We are unable to deploy"
+    complain 'No distro specified. We are unable to deploy'
     return 22 # EINVAL
   fi
 
@@ -197,7 +197,7 @@ function vm_update_boot_loader()
       $setup_grub : command '$grub_install' : command '$cmd_grub'"
 
   if [[ "$distro" == 'arch' ]]; then
-    local mkdir_grub=": mkdir-p /boot/grub"
+    local mkdir_grub=': mkdir-p /boot/grub'
 
     cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
         $mount_root : command '$cmd_init' \
@@ -207,7 +207,7 @@ function vm_update_boot_loader()
 
   if [[ -f "${configurations[qemu_path_image]}" ]]; then
     warning " -> Updating initramfs and grub for $name on VM. This can take a few minutes."
-    cmd_manager "$flag" "sleep 0.5s"
+    cmd_manager "$flag" 'sleep 0.5s'
     {
       cmd_manager "$flag" "$cmd"
     } 1> /dev/null # No visible stdout but still shows errors
@@ -216,7 +216,7 @@ function vm_update_boot_loader()
     # do that.
     [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
 
-    say "Done."
+    say 'Done.'
   else
     complain "There is no VM in ${configurations[qemu_path_image]}"
     return 125 # ECANCELED
@@ -320,7 +320,7 @@ function install_kernel()
   target=${target:-'remote'}
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd="sudo -E"
+    sudo_cmd='sudo -E'
   fi
 
   if [[ -z "$name" ]]; then
@@ -335,7 +335,7 @@ function install_kernel()
       # Copy config file
       cmd_manager "$flag" "cp -v .config $path_prefix/boot/config-$name"
     else
-      complain "Did you check if your VM is mounted?"
+      complain 'Did you check if your VM is mounted?'
       return 125 # ECANCELED
     fi
   fi
@@ -347,7 +347,7 @@ function install_kernel()
   fi
 
   if [[ "$target" != 'remote' ]]; then
-    [[ -z "$architecture" ]] && architecture="x86_64"
+    [[ -z "$architecture" ]] && architecture='x86_64'
     cmd="$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   else
@@ -357,7 +357,7 @@ function install_kernel()
 
   # Each distro has their own way to generate their temporary root file system.
   # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
-  cmd="generate_$distro""_temporary_root_file_system"
+  cmd="generate_${distro}_temporary_root_file_system"
   eval "$cmd" "$name" "$target" "$flag" "$path_prefix"
 
   # If VM is mounted, umount before update boot loader
@@ -369,7 +369,7 @@ function install_kernel()
   eval "update_$distro""_boot_loader $name $target $flag"
 
   # Reboot
-  if [[ "$target" != 'vm' && "$reboot" == "1" ]]; then
+  if [[ "$target" != 'vm' && "$reboot" == '1' ]]; then
     cmd="$sudo_cmd reboot"
     cmd_manager "$flag" "$cmd"
   fi

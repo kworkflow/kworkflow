@@ -38,7 +38,7 @@ function test_generate_arch_temporary_root_file_system()
   sudo_cmd='sudo -E'
   declare -a cmd_sequence=(
     "$sudo_cmd cp -v $LOCAL_KW_ETC $path_prefix/etc/mkinitcpio.d/$name.preset"
-    "$sudo_cmd sed -i -e \"s/NAME/$name/g\" \"$path_prefix/etc/mkinitcpio.d/$name.preset\""
+    "$sudo_cmd sed -i -e 's/NAME/$name/g' '$path_prefix/etc/mkinitcpio.d/$name.preset'"
     "$sudo_cmd mkinitcpio -p $name"
   )
 
@@ -58,7 +58,7 @@ function test_generate_arch_temporary_root_file_system()
   sudo_cmd=''
   declare -a cmd_sequence=(
     "cp -v $LOCAL_KW_ETC $path_prefix/etc/mkinitcpio.d/$name.preset"
-    "sed -i -e \"s/NAME/$name/g\" \"$path_prefix/etc/mkinitcpio.d/$name.preset\""
+    "sed -i -e 's/NAME/$name/g' '$path_prefix/etc/mkinitcpio.d/$name.preset'"
   )
 
   output=$(generate_arch_temporary_root_file_system "$name" 'vm' 'TEST_MODE' '')

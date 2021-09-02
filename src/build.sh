@@ -18,7 +18,7 @@ function build_info()
   kernel_name=$(get_kernel_release "$flag")
   kernel_version=$(get_kernel_version "$flag")
 
-  say "Kernel source information"
+  say 'Kernel source information'
   printf '%s\n' "  Name: $kernel_name" \
     "  Version: $kernel_version"
 
@@ -82,7 +82,7 @@ function kernel_build()
   fi
 
   if ! is_kernel_root "$PWD"; then
-    complain "Execute this command in a kernel tree."
+    complain 'Execute this command in a kernel tree.'
     exit 125 # ECANCELED
   fi
 
@@ -102,9 +102,9 @@ function kernel_build()
   runtime=$((end - start))
 
   if [[ "$ret" != 0 ]]; then
-    statistics_manager "build_failure" "$runtime"
+    statistics_manager 'build_failure' "$runtime"
   else
-    statistics_manager "build" "$runtime"
+    statistics_manager 'build' "$runtime"
   fi
 
   return "$ret"
@@ -117,7 +117,7 @@ function parse_build_options()
   local doc_type
 
   options="$(getopt \
-    --name "kw build" \
+    --name 'kw build' \
     --options "$short_options" \
     --longoptions "$long_options" \
     -- "$@")"

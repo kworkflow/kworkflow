@@ -22,7 +22,7 @@ function execute_checkpatch()
   # output. It could be nice if we can add another option just for this sort
   # of check.
 
-  local options='--no-tree --color=always --strict '
+  local options='--no-tree --color=always --strict'
   local -r original_working_dir="$PWD"
   local kernel_root
   local cmd_script
@@ -62,7 +62,7 @@ function execute_checkpatch()
   if is_a_patch "$FILE_OR_DIR_CHECK"; then
     FLIST="$FILE_OR_DIR_CHECK"
   else
-    options="--terse $options --file "
+    options="--terse $options --file"
   fi
 
   cmd_script="perl scripts/checkpatch.pl $options"

@@ -107,7 +107,7 @@ function test_multiple_files_output()
 
 function test_run_checkpatch_in_a_path()
 {
-  local cmd="perl scripts/checkpatch.pl --no-tree --color=always --strict"
+  local cmd='perl scripts/checkpatch.pl --no-tree --color=always --strict'
   local patch_path="$TMP_TEST_DIR/samples/test.patch"
   local patch_path="$SHUNIT_TMPDIR/samples/test.patch"
   local output
@@ -120,7 +120,7 @@ function test_run_checkpatch_in_a_path()
   declare -a expected_cmd=(
     "$base_msg"
     "$SEPARATOR"
-    "$cmd  $real_path"
+    "$cmd $real_path"
   )
 
   output=$(execute_checkpatch "$patch_path" 'TEST_MODE' 2>&1)
@@ -129,7 +129,7 @@ function test_run_checkpatch_in_a_path()
 
 function test_run_checkpatch_in_a_file()
 {
-  local cmd="perl scripts/checkpatch.pl --terse --no-tree --color=always --strict  --file"
+  local cmd='perl scripts/checkpatch.pl --terse --no-tree --color=always --strict --file'
   local patch_path="$SHUNIT_TMPDIR/samples/codestyle_correct.c"
   local output
   local real_path
@@ -141,7 +141,7 @@ function test_run_checkpatch_in_a_file()
   declare -a expected_cmd=(
     "$base_msg"
     "$SEPARATOR"
-    "$cmd  $real_path"
+    "$cmd $real_path"
   )
 
   output=$(execute_checkpatch "$patch_path" 'TEST_MODE' 2>&1)

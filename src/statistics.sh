@@ -13,7 +13,7 @@ declare -ga statistics_opt=('deploy' 'build' 'list' 'uninstall' 'build_failure' 
 # This variable is shared between function, for this reason, it is NOT SAFE to
 # parallelize code inside this file. We use this array a temporary data
 # container to be pass through other functions.
-declare -gA shared_data=(["deploy"]='' ["build"]='' ["list"]='' ["uninstall"]='' ["build_failure"]='' ["Modules_deploy"]='')
+declare -gA shared_data=(['deploy']='' ['build']='' ['list']='' ['uninstall']='' ['build_failure']='' ['Modules_deploy']='')
 
 function statistics()
 {
@@ -31,8 +31,8 @@ function statistics()
   shift 1 # Remove the first option, i.e., --day, --week, or --year
 
   if [[ "${configurations[disable_statistics_data_track]}" == 'yes' ]]; then
-    say "You have disable_statistics_data_track marked as 'yes'"
-    say "If you want to see the statistics, change this option to 'no'"
+    say 'You have disable_statistics_data_track marked as "yes"'
+    say 'If you want to see the statistics, change this option to "no"'
     return
   fi
 
@@ -261,7 +261,7 @@ function day_statistics()
 function week_statistics()
 {
   local first="$1"
-  local all_data=""
+  local all_data=''
 
   first=${first:-$(get_today_info '+%Y/%m/%d')}
 

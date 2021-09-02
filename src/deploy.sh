@@ -67,13 +67,13 @@ function kernel_deploy()
   uninstall="${options_values['UNINSTALL']}"
 
   if [[ "$list" == 1 || "$single_line" == 1 ]]; then
-    say "Available kernels:"
+    say 'Available kernels:'
     start=$(date +%s)
-    list_installed_kernels "" "$single_line" "$target"
+    list_installed_kernels '' "$single_line" "$target"
     end=$(date +%s)
 
     runtime=$((end - start))
-    statistics_manager "list" "$runtime"
+    statistics_manager 'list' "$runtime"
     return "$?"
   fi
 
@@ -83,12 +83,12 @@ function kernel_deploy()
     end=$(date +%s)
 
     runtime=$((end - start))
-    statistics_manager "uninstall" "$runtime"
+    statistics_manager 'uninstall' "$runtime"
     return "$?"
   fi
 
   if ! is_kernel_root "$PWD"; then
-    complain "Execute this command in a kernel tree."
+    complain 'Execute this command in a kernel tree.'
     exit 125 # ECANCELED
   fi
 
@@ -98,7 +98,7 @@ function kernel_deploy()
     vm_mount
     ret="$?"
     if [[ "$ret" != 0 ]]; then
-      complain "Please shutdown or umount your VM to continue."
+      complain 'Please shutdown or umount your VM to continue.'
       exit "$ret"
     fi
   fi
@@ -117,12 +117,12 @@ function kernel_deploy()
     # Update name: release + alias
     name=$(make kernelrelease)
 
-    kernel_install "$reboot" "$name" "" "$target"
+    kernel_install "$reboot" "$name" '' "$target"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
-    statistics_manager "deploy" "$runtime"
+    statistics_manager 'deploy' "$runtime"
   else
-    statistics_manager "Modules_deploy" "$runtime"
+    statistics_manager 'Modules_deploy' "$runtime"
   fi
 
   if [[ "$target" == "$VM_TARGET" ]]; then
@@ -272,14 +272,14 @@ function list_installed_kernels()
   local remote
   local port
 
-  flag=${flag:-"SILENT"}
+  flag=${flag:-'SILENT'}
 
   case "$target" in
     1) # VM_TARGET
       vm_mount
 
       if [ "$?" != 0 ]; then
-        complain "Did you check if your VM is running?"
+        complain 'Did you check if your VM is running?'
         return 125 # ECANCELED
       fi
 
@@ -297,7 +297,7 @@ function list_installed_kernels()
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
 
-      prepare_remote_dir "$remote" "$port" "" "$flag"
+      prepare_remote_dir "$remote" "$port" '' "$flag"
 
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
@@ -326,17 +326,17 @@ function kernel_uninstall()
   local remote
   local port
 
-  flag=${flag:-""}
+  flag=${flag:-''}
 
   case "$target" in
     1) # VM_TARGET
       printf '%s\n' 'UNINSTALL VM'
       ;;
     2) # LOCAL_TARGET
-      distro=$(detect_distro "/")
+      distro=$(detect_distro '/')
 
-      if [[ "$distro" =~ "none" ]]; then
-        complain "Unfortunately, there's no support for the target distro"
+      if [[ "$distro" =~ 'none' ]]; then
+        complain 'Unfortunately, there is no support for the target distro'
         exit 95 # ENOTSUP
       fi
 
@@ -352,7 +352,7 @@ function kernel_uninstall()
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
 
-      prepare_remote_dir "$remote" "$port" "" "$flag"
+      prepare_remote_dir "$remote" "$port" '' "$flag"
 
       # Deploy
       # TODO
@@ -405,7 +405,7 @@ function modules_install()
       distro=$(detect_distro "${configurations[mount_point]}/")
 
       if [[ "$distro" =~ 'none' ]]; then
-        complain "Unfortunately, there's no support for the target distro"
+        complain 'Unfortunately, there is no support for the target distro'
         vm_umount
         exit 95 # ENOTSUP
       fi
@@ -413,7 +413,7 @@ function modules_install()
       modules_install_to "${configurations[mount_point]}" "$flag"
       ;;
     2) # LOCAL_TARGET
-      cmd="sudo -E make modules_install"
+      cmd='sudo -E make modules_install'
       cmd_manager "$flag" "$cmd"
       ;;
     3) # REMOTE_TARGET
@@ -456,7 +456,7 @@ function modules_install_to()
   local install_to="$1"
   local flag="$2"
 
-  flag=${flag:-""}
+  flag=${flag:-''}
 
   local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   set +e
@@ -493,7 +493,7 @@ function kernel_install()
   kernel_name=${kernel_name:-'nothing'}
   mkinitcpio_name=${mkinitcpio_name:-'nothing'}
   name=${name:-'kw'}
-  flag=${flag:-""}
+  flag=${flag:-''}
 
   if [[ "$reboot" == 0 ]]; then
     reboot_default="${configurations[reboot_after_deploy]}"
@@ -504,10 +504,10 @@ function kernel_install()
 
   if [[ ! -f "arch/$arch_target/boot/$kernel_img_name" ]]; then
     # Try to infer the kernel image name
-    kernel_img_name=$(find "arch/$arch_target/boot/" -name "*Image" 2> /dev/null)
+    kernel_img_name=$(find "arch/$arch_target/boot/" -name '*Image' 2> /dev/null)
     if [[ -z "$kernel_img_name" ]]; then
       complain "We could not find a valid kernel image at arch/$arch_target/boot"
-      complain "Please, check your compilation and/or the option kernel_img_name inside kworkflow.config"
+      complain 'Please, check your compilation and/or the option kernel_img_name inside kworkflow.config'
       exit 125 # ECANCELED
     fi
     warning "kw inferred arch/$arch_target/boot/$kernel_img_name as a kernel image"
@@ -518,7 +518,7 @@ function kernel_install()
       distro=$(detect_distro "${configurations[mount_point]}/")
 
       if [[ "$distro" =~ 'none' ]]; then
-        complain "Unfortunately, there's no support for the target distro"
+        complain 'Unfortunately, there is no support for the target distro'
         vm_umount
         exit 95 # ENOTSUP
       fi
@@ -529,10 +529,10 @@ function kernel_install()
       return "$?"
       ;;
     2) # LOCAL_TARGET
-      distro=$(detect_distro "/")
+      distro=$(detect_distro '/')
 
-      if [[ "$distro" =~ "none" ]]; then
-        complain "Unfortunately, there's no support for the target distro"
+      if [[ "$distro" =~ 'none' ]]; then
+        complain 'Unfortunately, there is no support for the target distro'
         exit 95 # ENOTSUP
       fi
 
@@ -560,7 +560,7 @@ function kernel_install()
       user="${remote_parameters['REMOTE_USER']}"
 
       distro_info=$(which_distro "$remote" "$port" "$user")
-      distro=$(detect_distro "/" "$distro_info")
+      distro=$(detect_distro '/' "$distro_info")
 
       cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
         "$REMOTE_KW_DEPLOY" \
