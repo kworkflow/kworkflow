@@ -12,13 +12,6 @@ LOCAL_TO_DEPLOY_DIR='to_deploy'
 # the new deploy.
 REMOTE_KW_DEPLOY='/root/kw_deploy'
 
-# We have a generic script named `distro_deploy.sh` that handles the essential
-# operation of installing a new kernel; it depends on "kernel_install" plugin
-# for work as expected
-DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
-DEPLOY_SCRIPT="$KW_PLUGINS_DIR/kernel_install/remote_deploy.sh"
-DEPLOY_SCRIPT_SUPPORT="$KW_PLUGINS_DIR/kernel_install/utils.sh"
-
 declare -gA remote_parameters
 
 # This function is responsible for executing a command in a remote machine.
@@ -113,73 +106,6 @@ function which_distro()
 
   cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
   cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user"
-}
-
-# Kw can deploy a new kernel image or modules (or both) in a target machine
-# based on a Linux repository; however, we need a place for adding the
-# intermediaries archives that we will send to a remote device. This function
-# prepares such a directory.
-function prepare_host_deploy_dir()
-{
-  if [[ -z "$KW_CACHE_DIR" ]]; then
-    complain '$KW_CACHE_DIR is not set. The kw directory at home may not exist'
-    return 22
-  fi
-
-  # We should expect the setup.sh script create the directory $HOME/kw.
-  # However, does not hurt check for it and create in any case
-  if [[ ! -d "$KW_CACHE_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR"
-  fi
-
-  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
-  fi
-
-  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
-  fi
-}
-
-# To deploy a new kernel or module, we have to prepare a directory in the
-# remote machine that will accommodate a set of files that we need to update
-# the kernel. This function checks if we support the target distribution and
-# finally prepared the remote machine for receiving the new kernel. Finally, it
-# creates a "/root/kw_deploy" directory inside the remote machine and prepare
-# it for deploy.
-#
-# @remote IP address of the target machine
-# @port Destination for sending the file
-# @user User in the host machine. Default value is "root"
-# @flag How to display a command, default is SILENT
-function prepare_remote_dir()
-{
-  local remote="$1"
-  local port="$2"
-  local user="$3"
-  local flag="$4"
-  local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
-  local distro_info=''
-  local distro=''
-
-  distro_info=$(which_distro "$remote" "$port" "$user")
-  distro=$(detect_distro '/' "$distro_info")
-
-  if [[ $distro =~ 'none' ]]; then
-    complain 'Unfortunately, there is no support for the target distro'
-    exit 95 # ENOTSUP
-  fi
-
-  cmd_remotely "$kw_deploy_cmd" "$flag" "$remote" "$port" "$user"
-
-  # Send the specific deploy script as a root
-  cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
-    "$DISTRO_DEPLOY_SCRIPT" \
-    "$remote" "$port" "$user"
-  cp2remote "$flag" "$DEPLOY_SCRIPT" "$REMOTE_KW_DEPLOY/" \
-    "$remote" "$port" "$user"
-  cp2remote "$flag" "$DEPLOY_SCRIPT_SUPPORT" "$REMOTE_KW_DEPLOY/" \
-    "$remote" "$port" "$user"
 }
 
 # Populate remote info

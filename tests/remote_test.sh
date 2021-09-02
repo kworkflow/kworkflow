@@ -38,7 +38,6 @@ function oneTimeSetUp()
   export KW_CACHE_DIR="$FAKE_KW"
   export KW_PLUGINS_DIR="$FAKE_KW"
   export DEPLOY_SCRIPT="$FAKE_KW/$kernel_install_path/deploy.sh"
-  export DEPLOY_SCRIPT_SUPPORT="$FAKE_KW/$kernel_install_path/utils.sh"
   export KW_ETC_DIR="$TEST_PATH"
   export modules_path="$FAKE_KW/$kernel_install_path/lib/modules"
   export INVALID_ARG='Invalid arguments'
@@ -261,51 +260,6 @@ function test_which_distro()
   output=$(which_distro '' '' '' "$flag")
   expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
   assertEquals "Command did not match ($ID)" "$expected_str" "$output"
-}
-
-function test_preapre_host_deploy_dir()
-{
-  local output
-  local ret
-
-  prepare_host_deploy_dir
-
-  assertTrue "($LINENO): Check if kw dir was created" '[[ -d $KW_CACHE_DIR ]]'
-  assertTrue "($LINENO): Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_REMOTE_DIR ]]'
-  assertTrue "($LINENO): Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR ]]'
-
-  oneTimeTearDown
-
-  output=$(prepare_host_deploy_dir)
-  ret="$?"
-  assertEquals "($LINENO): Expected an error" 22 "$ret"
-
-  oneTimeSetUp
-}
-
-function test_prepare_remote_dir()
-{
-  local cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
-  local remote='172.16.224.1'
-  local user='root'
-  local port='2222'
-  local flag='TEST_MODE'
-  local count=0
-
-  declare -a expected_cmd_sequence=(
-    "ssh -p 2222 root@172.16.224.1 sudo \"mkdir -p /root/kw_deploy\""
-    "rsync -e 'ssh -p 2222' $FAKE_KW/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
-    "rsync -e 'ssh -p 2222' $FAKE_KW/kernel_install/deploy.sh root@172.16.224.1:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
-    "rsync -e 'ssh -p 2222' $FAKE_KW/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
-    "ssh -p $port ${user}@${remote} sudo \"chown -R root:root /root/kw_deploy/\""
-  )
-
-  setupMockFunctions
-
-  output=$(prepare_remote_dir "$remote" "$port" "$user" "$flag")
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
-  tearDownMockFunctions
 }
 
 invoke_shunit
