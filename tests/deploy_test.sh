@@ -53,7 +53,7 @@ function setUp()
   export KW_CACHE_DIR="$test_path"
   export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
-  export KW_PLUGINS_DIR="$PWD/src/plugins/"
+  export KW_PLUGINS_DIR="$PWD/src/plugins"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
 
   mkdir "$test_path/$LOCAL_TO_DEPLOY_DIR"
@@ -84,7 +84,6 @@ function setupRemote()
   export KW_CACHE_DIR="$test_path"
   export KW_PLUGINS_DIR="$test_path"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
-  export DEPLOY_SCRIPT_SUPPORT="$test_path/$kernel_install_path/utils.sh"
   export modules_path="$test_path/$kernel_install_path/lib/modules"
   rm -rf "$test_path"
 
@@ -728,6 +727,45 @@ function test_parse_deploy_options()
   assertEquals "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
   assertEquals "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
   assertEquals "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
+}
+
+function test_prepare_host_deploy_dir()
+{
+  local output
+  local ret
+
+  prepare_host_deploy_dir
+
+  assertTrue "($LINENO): kw dir was not created" '[[ -d $KW_CACHE_DIR ]]'
+  assertTrue "($LINENO): kw local dir was not created" '[[ -d $KW_CACHE_DIR/$LOCAL_REMOTE_DIR ]]'
+  assertTrue "($LINENO): Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR ]]'
+
+  # Let's make sure that we clean everything
+  tearDown
+
+  output=$(prepare_host_deploy_dir)
+  ret="$?"
+  assertEquals "($LINENO): Expected an error" 22 "$ret"
+}
+
+function test_prepare_remote_dir()
+{
+  local cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
+  local remote='172.16.224.1'
+  local user='root'
+  local port='2222'
+  local flag='TEST_MODE'
+  local count=0
+
+  declare -a expected_cmd_sequence=(
+    "ssh -p 2222 root@172.16.224.1 sudo \"mkdir -p /root/kw_deploy\""
+    "rsync -e 'ssh -p 2222' $KW_PLUGINS_DIR/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p 2222' $KW_PLUGINS_DIR/kernel_install/remote_deploy.sh root@172.16.224.1:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
+    "rsync -e 'ssh -p 2222' $KW_PLUGINS_DIR/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
+  )
+
+  output=$(prepare_remote_dir "$remote" "$port" "$user" "$flag")
+  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
 }
 
 invoke_shunit

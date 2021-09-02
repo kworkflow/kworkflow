@@ -20,6 +20,21 @@ include "$KW_LIB_DIR/vm.sh" # It includes kw_config_loader.sh and kwlib.sh
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
+# To make the deploy to a remote machine straightforward, we create a directory
+# on the host that will be used for centralizing files required for the new
+# deploy.
+REMOTE_KW_DEPLOY='/root/kw_deploy'
+
+# We now have a kw directory visible for users in the home directory, which is
+# used for saving temporary files to be deployed in the target machine.
+LOCAL_TO_DEPLOY_DIR='to_deploy'
+LOCAL_REMOTE_DIR='remote'
+
+# We have a generic script named `distro_deploy.sh` that handles the essential
+# operation of installing a new kernel; it depends on "kernel_install" plugin
+# to work as expected
+DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
+
 # Hash containing user options
 declare -gA options_values
 
@@ -251,6 +266,75 @@ function parse_deploy_options()
       return 22 # EINVAL
       ;;
   esac
+}
+
+# Kw can deploy a new kernel image or modules (or both) in a target machine
+# based on a Linux repository; however, we need a place for adding the
+# intermediary archives that we will send to a remote device. This function
+# prepares such a directory.
+function prepare_host_deploy_dir()
+{
+  if [[ -z "$KW_CACHE_DIR" ]]; then
+    complain "\$KW_CACHE_DIR isn't set. The kw directory at home may not exist"
+    return 22
+  fi
+
+  # We should expect the setup.sh script create the directory $HOME/kw.
+  # However, does not hurt check for it and create in any case
+  if [[ ! -d "$KW_CACHE_DIR" ]]; then
+    mkdir -p "$KW_CACHE_DIR"
+  fi
+
+  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
+    mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
+  fi
+
+  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
+    mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
+  fi
+}
+
+# To deploy a new kernel or module, we have to prepare a directory in the
+# remote machine that will accommodate a set of files that we need to update
+# the kernel. This function checks if we support the target distribution and
+# finally prepared the remote machine for receiving the new kernel. Finally, it
+# creates a "/root/kw_deploy" directory inside the remote machine and prepare
+# it for deploy.
+#
+# @remote IP address of the target machine
+# @port Destination for sending the file
+# @user User in the host machine. Default value is "root"
+# @flag How to display a command, default is SILENT
+function prepare_remote_dir()
+{
+  local remote="$1"
+  local port="$2"
+  local user="$3"
+  local flag="$4"
+  local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
+  local distro_info=''
+  local distro=''
+
+  distro_info=$(which_distro "$remote" "$port" "$user")
+  distro=$(detect_distro '/' "$distro_info")
+
+  if [[ $distro =~ "none" ]]; then
+    complain "Unfortunately, there's no support for the target distro"
+    exit 95 # ENOTSUP
+  fi
+
+  cmd_remotely "$kw_deploy_cmd" "$flag" "$remote" "$port" "$user"
+
+  # Send the specific deploy script as a root
+  cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
+    "$DISTRO_DEPLOY_SCRIPT" \
+    "$remote" "$port" "$user"
+  cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/remote_deploy.sh" \
+    "$REMOTE_KW_DEPLOY/" \
+    "$remote" "$port" "$user"
+  cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/utils.sh" \
+    "$REMOTE_KW_DEPLOY/" \
+    "$remote" "$port" "$user"
 }
 
 # This function list all the available kernels in a VM, local, and remote
