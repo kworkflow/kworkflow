@@ -9,21 +9,27 @@ function vm_mount()
   local guestmount_cmd
   local ret
 
-  flag=${flag:-"SILENT"}
+  if [[ "$1" =~ -h|--help ]]; then
+    vm_help "$1" 'mount'
+    exit 0
+  fi
+
+  flag=${flag:-'SILENT'}
   qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
   mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
 
-  [[ $(findmnt "$mount_point_path") ]] && return 125
+  if [[ -n "$(findmnt "$mount_point_path")" ]]; then
+    return 125 # ECANCELED
+  fi
 
-  mkdir -p $mount_point_path
+  mkdir -p "$mount_point_path"
 
   say "Mount $qemu_img_path in $mount_point_path"
 
   guestmount_cmd="guestmount -a $qemu_img_path -i $mount_point_path 2>&1"
   cmd_manager "$flag" "$guestmount_cmd"
   if [[ "$ret" ]]; then
-    complain "Something went wrong when tried to mount $qemu_img_path" \
-      "in $mount_point_path"
+    complain "Something went wrong when tried to mount $qemu_img_path in $mount_point_path"
     return "$ret"
   fi
 
@@ -38,7 +44,12 @@ function vm_umount()
   local guestumount_cmd
   local ret
 
-  flag=${flag:-"SILENT"}
+  if [[ "$1" =~ -h|--help ]]; then
+    vm_help "$1" 'umount'
+    exit 0
+  fi
+
+  flag=${flag:-'SILENT'}
   qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
   mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
 
@@ -49,8 +60,7 @@ function vm_umount()
     cmd_manager "$flag" "$guestumount_cmd"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
-      complain "Something went wrong when tried to unmount $qemu_img_path" \
-        "in $mount_point_path"
+      complain "Something went wrong when tried to unmount $qemu_img_path in $mount_point_path"
       return "$ret"
     fi
     return 0
@@ -61,12 +71,36 @@ function vm_umount()
 
 function vm_up()
 {
-  say "Starting Qemu with: "
-  echo "${configurations[virtualizer]} ${configurations[qemu_hw_options]}" \
-    "${configurations[qemu_net_options]}" \
-    "${configurations[qemu_path_image]}"
+  local cmd
+  local flag='SILENT'
 
-  ${configurations[virtualizer]} ${configurations[qemu_hw_options]} \
-    ${configurations[qemu_net_options]} \
-    ${configurations[qemu_path_image]}
+  if [[ "$1" =~ -h|--help ]]; then
+    vm_help "$1" 'up'
+    exit 0
+  fi
+
+  say 'Starting Qemu with:'
+  printf '%s' "${configurations[virtualizer]} " \
+    "${configurations[qemu_hw_options]} " \
+    "${configurations[qemu_net_options]} " \
+    "${configurations[qemu_path_image]}" $'\n'
+
+  cmd="${configurations[virtualizer]} ${configurations[qemu_hw_options]}"
+  cmd+=" ${configurations[qemu_net_options]}"
+  cmd+=" ${configurations[qemu_path_image]}"
+
+  cmd_manager "$flag" "$cmd"
+}
+
+function vm_help()
+{
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man "$2"
+    return
+  fi
+  printf '%s\n' 'kw (mount | umount | up):' \
+    '  mo | mount - Mount VM' \
+    '  um | umount - Unmount VM' \
+    '  u | up - Start VM'
 }

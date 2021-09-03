@@ -1,21 +1,18 @@
 #!/bin/bash
 
 include './src/diff.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest "diff_side_by_side_Test"
-  suite_addTest "diff_manager_Test"
-}
-
-function diff_side_by_side_Test()
+function test_diff_side_by_side()
 {
   local ID
-  local columns=$(tput cols)
   local file_1="$SAMPLES_DIR/MAINTAINERS"
   local file_2="$SAMPLES_DIR/dmesg"
-  local diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2 | less -R"
+  local columns
+  local diff_cmd
+
+  columns=$(tput cols)
+  diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2 | less -R"
 
   declare -a expected_cmd=(
     "$diff_cmd"
@@ -23,7 +20,7 @@ function diff_side_by_side_Test()
 
   ID=1
   output=$(diff_side_by_side "$file_1" "$file_2" 1 'TEST_MODE')
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   ID=2
   diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2"
@@ -32,7 +29,7 @@ function diff_side_by_side_Test()
   )
 
   output=$(diff_side_by_side "$file_1" "$file_2" 0 'TEST_MODE')
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   ID=3
   output=$(diff_side_by_side 'an_invalid_file' "$file_2" 0 'TEST_MODE')
@@ -45,7 +42,7 @@ function diff_side_by_side_Test()
 
 }
 
-function diff_manager_Test()
+function test_diff_manager()
 {
   local ID
   local file_1="$SAMPLES_DIR/MAINTAINERS"

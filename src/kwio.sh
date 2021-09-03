@@ -1,5 +1,4 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
-
 declare -gr BLUECOLOR='\033[1;34;49m%s\033[m'
 declare -gr REDCOLOR='\033[1;31;49m%s\033[m'
 declare -gr YELLOWCOLOR='\033[1;33;49m%s\033[m'
@@ -21,32 +20,30 @@ function alert_completion()
   local opts
 
   if [[ $# -gt 1 && "$ALERT_OPT" =~ ^--alert= ]]; then
-    opts="$(echo $ALERT_OPT | sed s/--alert=//)"
+    opts="$(printf '%s\n' "$ALERT_OPT" | sed s/--alert=//)"
   else
     opts="${configurations[alert]}"
   fi
 
-  grep -o . <<< "$opts" | while read option; do
-    if [ "$option" == "v" ]; then
-      if command_exists "${configurations[visual_alert_command]} &"; then
+  while read -rN 1 option; do
+    if [ "$option" == 'v' ]; then
+      if command_exists "${configurations[visual_alert_command]}"; then
         eval "${configurations[visual_alert_command]} &"
       else
-        warning "The following command set in the visual_alert_command variable" \
-          "couldn't be run:"
+        warning 'The following command set in the visual_alert_command variable could not be run:'
         warning "${configurations[visual_alert_command]}"
-        warning "Check if the necessary packages are installed."
+        warning 'Check if the necessary packages are installed.'
       fi
-    elif [ "$option" == "s" ]; then
-      if command_exists "${configurations[sound_alert_command]} &"; then
+    elif [ "$option" == 's' ]; then
+      if command_exists "${configurations[sound_alert_command]}"; then
         eval "${configurations[sound_alert_command]} &"
       else
-        warning "The following command set in the sound_alert_command variable" \
-          "couldn't be run:"
+        warning 'The following command set in the sound_alert_command variable could not be run:'
         warning "${configurations[sound_alert_command]}"
-        warning "Check if the necessary packages are installed."
+        warning 'Check if the necessary packages are installed.'
       fi
     fi
-  done
+  done <<< "$opts"
 }
 
 # Print colored message. This function verifies if stdout
@@ -56,23 +53,24 @@ function alert_completion()
 # the color to be used and two optional params:
 #   - the option '-n', to not output the trailing newline
 #   - text message to be printed
-#
+#shellcheck disable=SC2059
 function colored_print()
 {
-  local message="${@:2}"
+  local message="${*:2}"
+  local colored_format="${!1}"
 
-  if [[ $# -ge 2 && $2 = "-n" ]]; then
-    message="${@:3}"
+  if [[ $# -ge 2 && $2 = '-n' ]]; then
+    message="${*:3}"
     if [ -t 1 ]; then
-      printf ${!1} "$message"
+      printf "$colored_format" "$message"
     else
-      echo -n "$message"
+      printf '%s' "$message"
     fi
   else
     if [ -t 1 ]; then
-      printf "${!1}\n" "$message"
+      printf "$colored_format\n" "$message"
     else
-      echo "$message"
+      printf '%s\n' "$message"
     fi
   fi
 }
@@ -112,12 +110,12 @@ function success()
 # yourself in the code.
 function ask_yN()
 {
-  local message=$@
+  local message="$*"
 
   read -r -p "$message [y/N] " response
   if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-    echo "1"
+    printf '%s\n' '1'
   else
-    echo "0"
+    printf '%s\n' '0'
   fi
 }

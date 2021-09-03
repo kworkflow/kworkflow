@@ -47,6 +47,7 @@ extensions = [
     #'sphinx.ext.imgmath',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinx.ext.graphviz',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -146,8 +147,26 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'kernelworkflow', 'KernelWorkflow Documentation',
-     [author], 1)
+    ('man/kw', 'kw', 'KernelWorkflow Documentation', [author], 1),
+    ('man/features/backup', 'backup', 'save and restore kw data', [author], 1),
+    ('man/features/build', 'build', 'build the kernel', [author], 1),
+    ('man/features/codestyle', 'codestyle', 'checkpatch wrapper', [author], 1),
+    ('man/features/configm', 'configm', 'config manager', [author], 1),
+    ('man/features/deploy', 'deploy', 'deploy the kernel', [author], 1),
+    ('man/features/device', 'device', 'hardware information', [author], 1),
+    ('man/features/diff', 'diff', 'useful diff wrapper', [author], 1),
+    ('man/features/drm', 'drm', 'drm subsystem support', [author], 1),
+    ('man/features/explore', 'explore', 'git grep wrapper', [author], 1),
+    ('man/features/init', 'init', 'initialize kworkflow.config', [author], 1),
+    ('man/features/maintainers', 'maintainers', 'display module maintainers', [author], 1),
+    ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
+    ('man/features/pomodoro', 'pomodoro', 'pomodoro style time management', [author], 1),
+    ('man/features/report', 'report', 'user data report support', [author], 1),
+    ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
+    ('man/features/statistics', 'statistics', 'statistics about kw', [author], 1),
+    ('man/features/umount', 'umount', 'command for unmounting a QEMU VM', [author], 1),
+    ('man/features/up', 'up', 'command for starting a QEMU VM', [author], 1),
+    ('man/features/vars', 'vars', 'view kw config values', [author], 1),
 ]
 
 
@@ -159,7 +178,7 @@ man_pages = [
 texinfo_documents = [
     (master_doc, 'KernelWorkflow', 'KernelWorkflow Documentation',
      author, 'KernelWorkflow',
-    'Inglorious kernel developer workflow scripts.', 'Miscellaneous'),
+    'Inglorious kernel developer workflow tool', 'Miscellaneous'),
 ]
 
 

@@ -1,110 +1,91 @@
 #!/bin/bash
 
 . ./src/plugins/kernel_install/utils.sh --source-only
-. ./tests/utils --source-only
+. ./tests/utils.sh --source-only
 . ./src/kwio.sh --source-only
-
-function suite()
-{
-  suite_addTest "human_list_installed_kernels_Test"
-  suite_addTest "comman_list_installed_kernels_Test"
-  suite_addTest "cmd_manager_Test"
-  suite_addTest "ask_yN_Test"
-  suite_addTest "reboot_machine_Test"
-  suite_addTest "do_uninstall_cmd_sequence_Test"
-  suite_addTest 'install_modules_Test'
-  suite_addTest 'vm_update_boot_loader_debian_Test'
-  suite_addTest 'vm_update_boot_loader_arch_Test'
-  suite_addTest 'install_kernel_remote_Test'
-  suite_addTest 'install_kernel_local_Test'
-  suite_addTest 'install_kernel_vm_Test'
-}
 
 declare -r TEST_ROOT_PATH="$PWD"
 
 function setUp()
 {
-  rm -rf "$TMP_TEST_DIR"
-
   local current_path="$PWD"
 
-  mk_fake_boot "$TMP_TEST_DIR"
+  mk_fake_boot "$SHUNIT_TMPDIR"
 }
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
-function cmd_manager_Test()
+function test_cmd_manager()
 {
   local count=0
   local current_path="$PWD"
 
-  output=$(cmd_manager "TEST_MODE" "ls something")
-  assert_equals_helper "TEST_MODE" "$LINENO" "ls something" "$output"
+  output=$(cmd_manager 'TEST_MODE' 'ls something')
+  assert_equals_helper 'TEST_MODE' "$LINENO" 'ls something' "$output"
 }
 
-function ask_yN_Test()
+function test_ask_yN()
 {
   local count=0
-  local current_path="$PWD"
 
-  output=$(echo 'y' | ask_yN "Test message")
-  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+  output=$(printf '%s\n' 'y' | ask_yN 'Test message')
+  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
 
-  output=$(echo 'Y' | ask_yN "Test message")
-  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+  output=$(printf '%s\n' 'Y' | ask_yN 'Test message')
+  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
 
-  output=$(echo 'Yes' | ask_yN "Test message")
-  assert_equals_helper "TEST_MODE" "$LINENO" "1" "$output"
+  output=$(printf '%s\n' 'Yes' | ask_yN 'Test message')
+  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
 
-  output=$(echo 'Sim' | ask_yN "Test message")
-  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+  output=$(printf '%s\n' 'Sim' | ask_yN 'Test message')
+  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
 
-  output=$(echo 'No' | ask_yN "Test message")
-  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+  output=$(printf '%s\n' 'No' | ask_yN 'Test message')
+  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
 
-  output=$(echo 'N' | ask_yN "Test message")
-  assert_equals_helper "TEST_MODE" "$LINENO" "0" "$output"
+  output=$(printf '%s\n' 'N' | ask_yN 'Test message')
+  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
 }
 
-function human_list_installed_kernels_Test()
+function test_human_list_installed_kernels()
 {
   local count=0
 
   declare -a expected_out=(
-    "" # Extra espace in the beginning
-    "5.5.0-rc2-VKMS+"
-    "5.6.0-rc2-AMDGPU+"
-    "linux"
+    '' # Extra espace in the beginning
+    '5.5.0-rc2-VKMS+'
+    '5.6.0-rc2-AMDGPU+'
+    'linux'
   )
 
-  output=$(list_installed_kernels "0" "$TMP_TEST_DIR")
-  while read out; do
+  output=$(list_installed_kernels '0' "$SHUNIT_TMPDIR")
+  while read -r out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
   done <<< "$output"
 }
 
-function comman_list_installed_kernels_Test()
+function test_command_list_installed_kernels()
 {
   local count=0
 
   declare -a expected_out=(
-    "" # Extra espace in the beginning
-    "5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux"
+    '' # Extra espace in the beginning
+    '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
-  output=$(list_installed_kernels "1" "$TMP_TEST_DIR")
-  while read out; do
+  output=$(list_installed_kernels '1' "$SHUNIT_TMPDIR")
+  while read -r out; do
     assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
     ((count++))
   done <<< "$output"
 
 }
 
-function reboot_machine_Test()
+function test_reboot_machine()
 {
   output=$(reboot_machine '1' '' 'TEST_MODE')
   assert_equals_helper 'Enable reboot in a non-local machine' "$LINENO" ' reboot' "$output"
@@ -119,7 +100,7 @@ function reboot_machine_Test()
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
 }
 
-function do_uninstall_cmd_sequence_Test()
+function test_do_uninstall_cmd_sequence()
 {
   local target='xpto'
   local prefix="./test"
@@ -139,10 +120,13 @@ function do_uninstall_cmd_sequence_Test()
   )
 
   output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # Good sequence
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   mkdir -p "$prefix"
   mk_fake_remote_system "$prefix" "$target"
 
@@ -160,7 +144,7 @@ function do_uninstall_cmd_sequence_Test()
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # Partial sequence
   rm "$kernelpath.old"
@@ -177,12 +161,15 @@ function do_uninstall_cmd_sequence_Test()
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
-  cd "$TEST_ROOT_PATH"
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
-function install_modules_Test()
+function test_install_modules()
 {
   local module_target='5.9.0-rc5-NEW-VRR-TRACK+.tar'
   local cmd
@@ -192,7 +179,7 @@ function install_modules_Test()
   assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
 }
 
-function vm_update_boot_loader_debian_Test()
+function test_vm_update_boot_loader_debian()
 {
   local name='xpto'
   local cmd_grub='grub-mkconfig -o /boot/grub/grub.cfg'
@@ -226,10 +213,10 @@ function vm_update_boot_loader_debian_Test()
 
   output=$(vm_update_boot_loader "$name" 'debian' "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" 'TEST_MODE')
 
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
-function vm_update_boot_loader_arch_Test()
+function test_vm_update_boot_loader_arch()
 {
   local name='xpto'
   local cmd_grub='grub-mkconfig -o /boot/grub/grub.cfg'
@@ -263,32 +250,32 @@ function vm_update_boot_loader_arch_Test()
 
   output=$(vm_update_boot_loader "$name" 'arch' "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" 'TEST_MODE')
 
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
 # Mock funtions for install tests
 function generate_debian_temporary_root_file_system()
 {
-  echo 'generate_debian_temporary_root_file_system_mock'
+  printf '%s\n' 'generate_debian_temporary_root_file_system_mock'
 }
 
 function update_debian_boot_loader()
 {
-  echo 'update_debian_boot_loader_mock'
+  printf '%s\n' 'update_debian_boot_loader_mock'
 }
 
 function findmnt_mock()
 {
-  echo "TARGET SOURCE         FSTYPE OPTIONS"
-  echo "/home  /dev/lala ext4   rw,relatime"
+  printf '%s\n' 'TARGET SOURCE         FSTYPE OPTIONS'
+  printf '%s\n' '/home  /dev/lala ext4   rw,relatime'
 }
 
-function vm_umount
+function vm_umount()
 {
-  echo "vm_umount"
+  printf '%s\n' 'vm_umount'
 }
 
-function install_kernel_remote_Test()
+function test_install_kernel_remote()
 {
   local name='5.9.0-rc5-TEST'
   local kernel_image_name='bzImage'
@@ -310,10 +297,10 @@ function install_kernel_remote_Test()
     'reboot'
   )
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
-function install_kernel_local_Test()
+function test_install_kernel_local()
 {
   local name='5.9.0-rc5-TEST'
   local kernel_image_name='bzImage'
@@ -333,43 +320,49 @@ function install_kernel_local_Test()
   )
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
-function install_kernel_vm_Test()
+function test_install_kernel_vm()
 {
   local name='5.9.0-rc5-TEST'
   local kernel_image_name='bzImage'
   local reboot='1'
   local architecture='x86_64'
   local target='vm'
-  local flag='TEST_MODE'
-  local path_prefix="$TMP_TEST_DIR"
+  local path_prefix="$SHUNIT_TMPDIR"
 
   # Setup this specific test
-  touch "$TMP_TEST_DIR/boot/vmlinuz-$name"
-  touch "$TMP_TEST_DIR/.config"
-  touch "$TMP_TEST_DIR/virty.qcow2"
-  configurations[mount_point]="$TMP_TEST_DIR"
+  touch "$SHUNIT_TMPDIR/boot/vmlinuz-$name"
+  touch "$SHUNIT_TMPDIR/.config"
+  touch "$SHUNIT_TMPDIR/virty.qcow2"
+  rm -rf "${SHUNIT_TMPDIR:?}"/boot
+  configurations[mount_point]="$SHUNIT_TMPDIR"
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
     "cp -v .config $path_prefix/boot/config-$name"
     "cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
-    "vm_umount"
+    'vm_umount'
     'update_debian_boot_loader_mock'
   )
 
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   shopt -s expand_aliases
   alias findmnt='findmnt_mock'
   alias vm_umount='vm_umount'
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence cmd_sequence[@] "$output" "$LINENO"
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
-  cd "$TEST_ROOT_PATH"
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit

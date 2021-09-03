@@ -3,31 +3,20 @@
 . ./src/plugins/kernel_install/utils.sh --source-only
 . ./src/plugins/kernel_install/debian.sh --source-only
 . ./src/kwio.sh --source-only
-. ./tests/utils --source-only
-
-function suite()
-{
-  suite_addTest 'update_debian_boot_loader_Test'
-}
-
-declare -r TEST_ROOT_PATH="$PWD"
+. ./tests/utils.sh --source-only
 
 function setUp()
 {
-  rm -rf "$TMP_TEST_DIR"
-
-  local current_path="$PWD"
-
-  mk_fake_boot "$TMP_TEST_DIR"
+  mk_fake_boot "$SHUNIT_TMPDIR"
   # parse_configuration "$KW_CONFIG_SAMPLE"
 }
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
-function update_debian_boot_loader_Test()
+function test_update_debian_boot_loader()
 {
   output=$(update_debian_boot_loader 'xpto' '' 'TEST_MODE')
   cmd=' grub-mkconfig -o /boot/grub/grub.cfg'

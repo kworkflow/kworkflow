@@ -13,86 +13,83 @@ declare -ga statistics_opt=('deploy' 'build' 'list' 'uninstall' 'build_failure' 
 # This variable is shared between function, for this reason, it is NOT SAFE to
 # parallelize code inside this file. We use this array a temporary data
 # container to be pass through other functions.
-declare -gA shared_data=(["deploy"]='' ["build"]='' ["list"]='' ["uninstall"]='' ["build_failure"]='' ["Modules_deploy"]='')
+declare -gA shared_data=(['deploy']='' ['build']='' ['list']='' ['uninstall']='' ['build_failure']='' ['Modules_deploy']='')
 
 function statistics()
 {
-  local info_request="$1"
-  local day=$(get_today_info '+%d')
-  local year_month_dir=$(get_today_info '+%Y/%m')
-  local date_param
+  local target="$1"
+  local day
+  local week
+  local month
+  local year
 
-  if [[ "$1" == -h ]]; then
-    statistics_help
+  if [[ "$1" =~ -h|--help ]]; then
+    statistics_help "$1"
     exit 0
   fi
 
   shift 1 # Remove the first option, i.e., --day, --week, or --year
-  local date_param="$@"
 
-  if [[ ${configurations[disable_statistics_data_track]} == 'yes' ]]; then
-    say "You have disable_statistics_data_track marked as 'yes'"
-    say "If you want to see the statistics, change this option to 'no'"
+  if [[ "${configurations[disable_statistics_data_track]}" == 'yes' ]]; then
+    say 'You have disable_statistics_data_track marked as "yes"'
+    say 'If you want to see the statistics, change this option to "no"'
     return
   fi
 
   # Default to day
-  if [[ -z "$info_request" ]]; then
-    info_request="--day"
+  if [[ -z "$target" ]]; then
+    target='--day'
   fi
 
-  if [[ -z "$date_param" ]]; then
-    date_param=$(get_today_info '+%Y/%m/%d')
-  fi
-
-  case "$info_request" in
+  case "$target" in
     --day)
-      if [[ -z "$date_param" ]]; then
-        target_day="$KW_DATA_DIR/statistics/$year_month_dir/$day"
-      else
-        target_day="$KW_DATA_DIR/statistics/$(date_to_format "$date_param")"
+      day=$(get_today_info '+%Y/%m/%d')
+      if [[ -n "$*" ]]; then
+        day=$(date_to_format "$*" '+%Y/%m/%d')
         if [[ "$?" != 0 ]]; then
-          complain "Invalid parameter: $date_param"
+          complain "Invalid parameter: $*"
           return 22 # EINVAL
         fi
       fi
-      day_statistics "$target_day"
+      day_statistics "$day"
       ;;
     --week)
-      local first_week_day=$(get_week_beginning_day)
-
-      if [[ ! -z "$@" ]]; then
-        first_week_day=$(get_week_beginning_day "$date_param")
+      # First day of the week
+      week=$(get_week_beginning_day)
+      if [[ -n "$*" ]]; then
+        week=$(get_week_beginning_day "$*")
+        if [[ "$?" != 0 ]]; then
+          complain "Invalid parameter: $*"
+          return 22 # EINVAL
+        fi
       fi
-
-      week_statistics "$first_week_day"
+      week_statistics "$week"
       ;;
     --month)
-      if [[ ! -z "$@" ]]; then
-        # First month of the month
-        year_month_dir=$(date_to_format "$@/01" '+%Y/%m')
+      month=$(get_today_info '+%Y/%m')
+      if [[ -n "$*" ]]; then
+        # First day of the month
+        month=$(date_to_format "$*/01" '+%Y/%m')
         if [[ "$?" != 0 ]]; then
-          complain "Invalid parameter: $@"
+          complain "Invalid parameter: $*"
           return 22 # EINVAL
         fi
       fi
-      month_statistics "$year_month_dir"
+      month_statistics "$month"
       ;;
     --year)
-      local year=$(date +%Y)
-
-      if [[ ! -z "$@" ]]; then
-        year=$(date_to_format "$@/01/01" +%Y)
+      year=$(date +%Y)
+      if [[ -n "$*" ]]; then
+        year=$(date_to_format "$*/01/01" +%Y)
         if [[ "$?" != 0 ]]; then
-          complain "Invalid parameter: $@"
+          complain "Invalid parameter: $*"
           return 22 # EINVAL
         fi
       fi
-
       year_statistics "$year"
       ;;
     *)
-      complain "Invalid parameter: $info_request"
+      complain "Invalid parameter: $target"
       return 22 # EINVAL
       ;;
   esac
@@ -122,7 +119,7 @@ function calculate_average()
 
   avg=$((sum / count))
 
-  echo "$avg"
+  printf '%s\n' "$avg"
 }
 
 # Get the total of data in a list
@@ -135,7 +132,7 @@ function calculate_total_of_data()
 {
   local list_of_values="$1"
 
-  echo "$list_of_values" | wc -w
+  printf '%s\n' "$list_of_values" | wc -w
 }
 
 # Find the highest value in a list of numbers.
@@ -153,7 +150,7 @@ function max_value()
     [[ "$value" -gt "$max" ]] && max="$value"
   done
 
-  echo "$max"
+  printf '%s\n' "$max"
 }
 
 # Find the lowest value in a list of numbers.
@@ -172,16 +169,17 @@ function min_value()
     [[ "$value" -lt "$min" ]] && min="$value"
   done
 
-  echo "$min"
+  printf '%s\n' "$min"
 }
 
 # Print results of "Total Max Min Average" organized in columns.
 #
 # Note: This function relies on a global variable named shared_data.
+#shellcheck disable=SC2059,SC2086
 function print_basic_data()
 {
-  local header_format="%20s %4s %8s %12s\n"
-  local row_format="%-14s %5d %s %s %s\n"
+  local header_format='%20s %4s %8s %12s\n'
+  local row_format='%-14s %5d %s %s %s\n'
 
   printf "$header_format" Total Max Min Average
   for option in "${statistics_opt[@]}"; do
@@ -202,29 +200,28 @@ function print_basic_data()
 # This function fill out the shared array `shared_data`
 function basic_data_process()
 {
-  local all_data="$@"
-  # Calculate build value
-  local build_values
-  local avg_build
-  local total_build
+  local all_data="$*"
+  # Calculate values from each operation
+  local avg_operation
+  local total_operation
   local max
   local min
 
   for option in "${statistics_opt[@]}"; do
-    values=$(echo -e "$all_data" | grep "$option" | cut -d' ' -f2-)
+    values=$(echo -e "$all_data" | grep "$option" | cut -d' ' -f2-) # TODO
     [[ -z "$values" ]] && continue
 
     # Calculate values
-    avg_build=$(calculate_average "$values")
-    total_build=$(calculate_total_of_data "$values")
+    avg_operation=$(calculate_average "$values")
+    total_operation=$(calculate_total_of_data "$values")
     max=$(max_value "$values")
     min=$(min_value "$values" "$max")
 
     ## Format values
     max=$(sec_to_format "$max")
     min=$(sec_to_format "$min")
-    avg=$(sec_to_format "$avg_build")
-    shared_data["$option"]="$total_build $max $min $avg"
+    avg=$(sec_to_format "$avg_operation")
+    shared_data["$option"]="$total_operation $max $min $avg"
   done
 }
 
@@ -232,20 +229,22 @@ function basic_data_process()
 # target day passed via parameter. At the end, it prints the result in the
 # terminal.
 #
+# @date Target day
 # @day_path Path to the target day
 function day_statistics()
 {
-  local day_path="$1"
+  local date="$1"
+  local day_path="$KW_DATA_DIR/statistics/$date"
 
   if [[ ! -f "$day_path" ]]; then
-    say "Currently, kw does not have any data for the present date."
+    say 'Currently, kw does not have any data for the present date.'
     return 0
   fi
 
   # Check if the day file is empty
   data=$(cat "$day_path")
   if [[ -z "$data" ]]; then
-    say "There is no data in the kw records"
+    say 'There is no data in the kw records'
     return 0
   fi
 
@@ -262,9 +261,7 @@ function day_statistics()
 function week_statistics()
 {
   local first="$1"
-  local current_week_day_num=$(get_today_info '+%u')
-  local week_begin=$(date -d "$date -$current_week_day_num days" +"%d")
-  local all_data=""
+  local all_data=''
 
   first=${first:-$(get_today_info '+%Y/%m/%d')}
 
@@ -291,37 +288,47 @@ function week_statistics()
 
 function month_statistics()
 {
-  local month_path="$KW_DATA_DIR/statistics/$1"
+  local month="$1"
+  local month_path="$KW_DATA_DIR/statistics/$month"
   local all_data=""
+  local pretty_month
+  local current_path
 
   if [[ ! -d "$month_path" ]]; then
-    say "Currently, kw does not have any data for the present month."
+    say 'Currently, kw does not have any data for the present month.'
     return 0
   fi
 
-  for day in $(ls $month_path); do
-    all_file_data=$(cat "$month_path/$day")
+  current_path=$(pwd)
+  cd "$month_path" || exit_msg 'It was not possible to move to month dir'
+  shopt -s nullglob
+  for day in *; do
+    all_file_data=$(cat "$day")
     [[ -z "$all_file_data" ]] && continue
 
     all_data="${all_data}${all_file_data}\n"
   done
+  cd "$current_path" || exit_msg 'It was not possible to move back from month dir'
 
   if [[ -z "$all_data" ]]; then
-    say "Sorry, kw does not have any record for $1"
+    say "Sorry, kw does not have any record for $month"
     return 0
   fi
 
-  local pretty_month=$(date_to_format "$1/01" '+%B')
+  pretty_month=$(date_to_format "$1/01" '+%B')
   basic_data_process "$all_data"
-  say "$pretty_month summary ($1/01)"
+  say "$pretty_month summary ($month/01)"
   print_basic_data
 }
 
 function year_statistics()
 {
   local year="$1"
-  if [[ ! -d "$KW_DATA_DIR/statistics/$year" ]]; then
-    say "Currently, kw does not have any data for the requested year."
+  local year_path="$KW_DATA_DIR/statistics/$year"
+  local all_year_file
+
+  if [[ ! -d "$year_path" ]]; then
+    say 'Currently, kw does not have any data for the requested year.'
     return 0
   fi
 
@@ -344,9 +351,15 @@ function year_statistics()
 
 function statistics_help()
 {
-  echo -e "kw statistics:\n" \
-    "\tstatistics [--day [YEAR/MONTH/DAY]]\n" \
-    "\tstatistics [--week [YEAR/MONTH/DAY]]\n" \
-    "\tstatistics [--month [YEAR/MONTH]]\n" \
-    "\tstatistics [--year [YEAR]]"
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'statistics'
+    return
+  fi
+  printf '%s\n' 'kw statistics:' \
+    '  statistics - Statistics for current date' \
+    '  statistics --day [<year>/<month>/<day>] - Statistics of given day' \
+    '  statistics --week [<year>/<month>/<day>] - Statistics of given week' \
+    '  statistics --month [<year>/<month>] - Statistics of given month' \
+    '  statistics --year [<year>] - Statistics of given year'
 }

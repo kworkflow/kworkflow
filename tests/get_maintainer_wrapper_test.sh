@@ -1,17 +1,9 @@
 #!/bin/bash
 
 include './src/get_maintainer_wrapper.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
 # TODO: make execute_get_maintainer's tests cover more corner cases?
-
-function suite()
-{
-  suite_addTest "print_files_authors_Test"
-  suite_addTest "print_files_authors_from_dir_Test"
-  suite_addTest "execute_get_maintainer_Test"
-  suite_addTest "execute_get_maintainer_patch_Test"
-}
 
 # The following variables hold the the lines print_files_authors should
 # print when given the file samples/print_file_author_test_dir directory
@@ -47,7 +39,7 @@ Jane Doe <jane@email.com>,kernel@list.org"
 
 # Same as above but when the maintainers list is already in the patch
 CORRECT_TMP_PATCH_ALREADY_IN_MSG="=========================================================
-Maintainers already in \"To:\" field of update_patch_test.patch"
+Maintainers already in 'To:' field of update_patch_test.patch"
 
 FAKE_KERNEL="tests/.tmp"
 
@@ -62,12 +54,18 @@ function oneTimeSetUp()
   cp -f tests/samples/MAINTAINERS "$FAKE_KERNEL"/MAINTAINERS
   cp -f tests/external/get_maintainer.pl "$FAKE_KERNEL"/scripts/
   cp -f tests/samples/update_patch_test{_model,}{,2}.patch "$FAKE_KERNEL"/
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   touch fs/some_file
   git init --quiet
   git add fs/some_file
   git commit --quiet -m "Test message"
-  cd "$original_dir"
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function oneTimeTearDown()
@@ -75,19 +73,19 @@ function oneTimeTearDown()
   rm -rf "$FAKE_KERNEL"
 }
 
-function print_files_authors_Test()
+function test_print_files_authors()
 {
   local -r ret=$(print_files_authors "tests/samples/print_file_author_test_dir/code1.c")
   multilineAssertEquals "$ret" "$CORRECT_FILE_MSG"
 }
 
-function print_files_authors_from_dir_Test()
+function test_print_files_authors_from_dir()
 {
   local -r ret=$(print_files_authors "tests/samples/print_file_author_test_dir")
   multilineAssertEquals "$ret" "$CORRECT_DIR_MSG"
 }
 
-function execute_get_maintainer_Test()
+function test_execute_get_maintainer()
 {
   local ret
   local -r original_dir="$PWD"
@@ -95,27 +93,38 @@ function execute_get_maintainer_Test()
   ret="$(execute_get_maintainer tests/.tmp)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret="$(execute_get_maintainer .)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   ret="$(execute_get_maintainer fs)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
 
-  cd fs
+  cd fs || {
+    fail "($LINENO) It was not possible to move to fs directory"
+    return
+  }
   ret="$(execute_get_maintainer ..)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   ret="$(execute_get_maintainer .)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
-  cd "$original_dir"
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
-function execute_get_maintainer_patch_Test()
+function test_execute_get_maintainer_patch()
 {
-
   local original_dir="$PWD"
-  cd "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ret="$(execute_get_maintainer update_patch_test.patch)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
@@ -142,7 +151,10 @@ function execute_get_maintainer_patch_Test()
   multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH2_MSG"
   assertFileEquals update_patch_test{,_model}2.patch
 
-  cd "$original_dir"
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit

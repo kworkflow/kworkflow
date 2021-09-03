@@ -1,0 +1,14 @@
+digraph dev_cycle {
+    node [fontname = "arial"]
+    edge [fontname = "arial" arrowhead = "none"]
+    {
+        node [margin=0 fontcolor=blue shape=ellipse style=filled]
+        master [fillcolor=yellow label="Master"]
+        unstable [fillcolor=yellow label="Unstable"]
+    }
+    "Bug fixes" -> "Patch";
+    "New features" -> "Patch";
+    "Etc." -> "Patch";
+    "Patch" -> unstable [label=" PR" arrowhead = "vee"];
+    unstable -> master [label=" Merge" arrowhead = "vee"];
+}

@@ -4,74 +4,73 @@
 . src/kwlib.sh --source-only
 
 # List of dependences per distro
-arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx imagemagick graphviz python-virtualenv texlive-bin librsvg)
-debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc imagemagick graphviz dvipng python3-venv latexmk librsvg2-bin texlive-xetex python3-sphinx python3-dask-sphinx-theme)
+arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx imagemagick graphviz python-virtualenv texlive-bin librsvg bzip2 lzip lzop zstd xz)
+debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc imagemagick graphviz dvipng python3-venv latexmk librsvg2-bin texlive-xetex python3-sphinx python3-dask-sphinx-theme bzip2 lzip xz-utils lzop zstd)
 
 SILENT=1
 VERBOSE=0
 FORCE=0
-PREFIX="${PREFIX:-$HOME/.local}"
 
-declare -r app_name="kw"
+declare -r app_name='kw'
 
 ##
 ## Following are the install paths
 ##
 # Paths used during the installation process
-declare -r kwbinpath="$PREFIX/bin/kw"
-declare -r binpath="$PREFIX/bin"
-declare -r libdir="$PREFIX/lib/$app_name"
-declare -r sharedir="$PREFIX/share/"
-declare -r sharedocdir="$sharedir/doc"
-declare -r sharemandir="$sharedir/man"
-declare -r sharesounddir="$sharedir/sound/kw"
-declare -r etcdir="$PREFIX/etc/kw"
-# User specific data
-declare -r datadir="$HOME/.$app_name"
-declare -r cachedir="$HOME/.cache/$app_name"
+declare -r kwbinpath="$HOME/.local/bin/$app_name"
+declare -r binpath="$HOME/.local/bin"
+declare -r libdir="$HOME/.local/lib/$app_name"
+declare -r sharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
+declare -r docdir="$sharedir/doc"
+declare -r mandir="$sharedir/man"
+declare -r sounddir="$sharedir/sound"
+declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
+declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
+declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
 
 ##
 ## Source code references
 ##
-declare -r SRCDIR="src"
-declare -r MAN="documentation/man/"
-declare -r CONFIG_DIR="etc"
-declare -r INSTALLTO="$PREFIX"
-declare -r KW_CACHE_DIR="$HOME/.cache/$app_name"
+declare -r SRCDIR='src'
+declare -r MAN='documentation/man/'
+declare -r CONFIG_DIR='etc'
+declare -r KW_CACHE_DIR="$cachedir"
 
-declare -r SOUNDS="sounds"
-declare -r BASH_AUTOCOMPLETE="bash_autocomplete"
-declare -r DOCUMENTATION="documentation"
+declare -r SOUNDS='sounds'
+declare -r BASH_AUTOCOMPLETE='bash_autocomplete'
+declare -r DOCUMENTATION='documentation'
 
-declare -r CONFIGS_PATH="configs"
+declare -r CONFIGS_PATH='configs'
 
 function check_dependencies()
 {
-  local distro=$(detect_distro "/")
-  local package_list=""
-  local cmd=""
+  local package_list=''
+  local cmd=''
+  local distro
 
-  if [[ "$distro" =~ "arch" ]]; then
+  distro=$(detect_distro '/')
+
+  if [[ "$distro" =~ 'arch' ]]; then
     for package in "${arch_packages[@]}"; do
       installed=$(pacman -Qs "$package" > /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
     done
     cmd="pacman -S $package_list"
-  elif [[ "$distro" =~ "debian" ]]; then
+  elif [[ "$distro" =~ 'debian' ]]; then
     for package in "${debian_packages[@]}"; do
-      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c "ok installed")
+      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
     done
     cmd="apt install $package_list"
   else
-    warning "Unfortunately, we do not have official support for your distro (yet)"
-    warning "Please, try to find the following packages: ${arch_packages[@]}"
+    warning 'Unfortunately, we do not have official support for your distro (yet)'
+    warning "Please, try to find the following packages: ${arch_packages[*]}"
     return 0
   fi
 
-  if [[ ! -z "$package_list" ]]; then
+  if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ "0" ]]; then
+      if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ '0' ]]; then
         return 0
       fi
     fi
@@ -85,12 +84,12 @@ function check_dependencies()
 # migration from the old version to the new one.
 function remove_kw_from_PATH_variable()
 {
-  local new_path=""
+  local new_path=''
   local needs_update=0
 
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
   for path in "${ALL_PATHS[@]}"; do
-    if [[ "$path" =~ "/kw" ]]; then
+    if [[ "$path" =~ '/kw' ]]; then
       needs_update=1
       continue
     fi
@@ -107,14 +106,14 @@ function remove_kw_from_PATH_variable()
 
 function update_path()
 {
-  local new_path=""
+  local shellrc=${1:-'.bashrc'}
 
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
   for path in "${ALL_PATHS[@]}"; do
     [[ "$path" -ef "$binpath" ]] && return
   done
 
-  echo "PATH=$HOME/.local/bin:\$PATH # kw" >> "$HOME/.bashrc"
+  safe_append "PATH=$HOME/.local/bin:\$PATH # kw" "$HOME/$shellrc"
 }
 
 function update_current_bash()
@@ -130,7 +129,7 @@ function cmd_output_manager()
   if [[ -z "$unsilent_flag" ]]; then
     cmd="$cmd >/dev/null"
   else
-    echo "$cmd"
+    printf '%s\n' "$cmd"
   fi
 
   eval "$cmd"
@@ -139,33 +138,66 @@ function cmd_output_manager()
 
 function usage()
 {
-  say "usage: ./setup.sh option"
-  say ""
-  say "Where option may be one of the following:"
-  say "--help      | -h     Display this usage message"
+  say 'usage: ./setup.sh option'
+  say ''
+  say 'Where option may be one of the following:'
+  say '--help      | -h     Display this usage message'
   say "--install   | -i     Install $app_name"
   say "--uninstall | -u     Uninstall $app_name"
-  say "--verbose            Explain what is being done"
-  say "--force              Never prompt"
+  say '--verbose            Explain what is being done'
+  say '--force              Never prompt'
   say "--completely-remove  Remove $app_name and all files under its responsibility"
   say "--docs               Build $app_name's documentation as HTML pages into ./build"
 }
 
 function confirm_complete_removal()
 {
-  warning "This operation will completely remove all files related to kw,"
-  warning "including the kernel '.config' files under its controls."
-  if [[ $(ask_yN "Do you want to proceed?") =~ "0" ]]; then
+  warning 'This operation will completely remove all files related to kw,'
+  warning 'including the kernel '.config' files under its controls.'
+  if [[ $(ask_yN 'Do you want to proceed?') =~ '0' ]]; then
     exit 0
   fi
 }
 
+# This function moves the folders from the old directory structure to
+# folders of the new one.
+function legacy_folders()
+{
+  local prefix="$HOME/.local"
+
+  if [[ -d "$HOME/.kw" ]]; then
+    say 'Found an obsolete installation of kw:'
+    say "Moving files in $HOME/.kw/ to $datadir..."
+    rsync -a "$HOME/.kw/" "$datadir"
+
+    rm -rf "$HOME/.kw"
+  fi
+
+  [[ -d "$prefix/share/doc" ]] && rm -rf "$prefix/share/doc"
+  [[ -f "$prefix/share/man/kw.rst" ]] && rm -rf "$prefix/share/man/kw.rst"
+  [[ -d "$prefix/share/sound/kw" ]] && rm -rf "$prefix/share/sound/kw"
+  [[ -d "$prefix/share/man" ]] && rm -rf "$prefix/share/man"
+  [[ -d "$prefix/share/sound" ]] && rm -rf "$prefix/share/sound"
+
+  # Legacy global config
+  if [[ -d "$prefix/etc/kw/" ]]; then
+    say "Moving $prefix/etc/kw to $etcdir..."
+    rsync -a "$prefix/etc/kw/" "$etcdir"
+    # We already check "$prefix"
+    # shellcheck disable=SC2115
+    rm -rf "$prefix/etc"
+  fi
+
+}
+
 function clean_legacy()
 {
-  local trash=$(mktemp -d)
   local completely_remove="$1"
-
   local toDelete="$app_name"
+  local trash
+
+  trash=$(mktemp -d)
+
   eval "sed -i '/\<$toDelete\>/d' $HOME/.bashrc"
 
   # Remove kw binary
@@ -175,19 +207,19 @@ function clean_legacy()
   [[ -d "$libdir" ]] && mv "$libdir" "$trash/lib"
 
   # Remove doc dir
-  [[ -d "$sharedocdir" ]] && mv "$sharedocdir" "$trash"
+  [[ -d "$docdir" ]] && mv "$docdir" "$trash"
 
   # Remove man
-  [[ -d "$sharemandir" ]] && mv "$sharemandir" "$trash"
+  [[ -d "$mandir" ]] && mv "$mandir" "$trash"
 
   # Remove sound files
-  [[ -d "$sharesounddir" ]] && mv "$sharesounddir" "$trash/sound"
+  [[ -d "$sounddir" ]] && mv "$sounddir" "$trash/sound"
 
   # Remove etc files
   [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
 
   # Completely remove user data
-  if [[ "$completely_remove" =~ "-d" ]]; then
+  if [[ "$completely_remove" =~ '-d' ]]; then
     mv "$datadir" "$trash/userdata"
     return 0
   fi
@@ -208,11 +240,11 @@ function setup_config_file()
 {
   local config_files_path="$etcdir"
   local config_file_template="$config_files_path/kworkflow_template.config"
-  local global_config_name="kworkflow.config"
+  local global_config_name='kworkflow.config'
 
   if [[ -f "$config_file_template" ]]; then
     cp "$config_file_template" "$config_files_path/$global_config_name"
-    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sharesounddir,g" \
+    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sounddir,g" \
       -e "/^#?.*/d" "$config_files_path/$global_config_name"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
@@ -237,7 +269,7 @@ function ASSERT_IF_NOT_EQ_ZERO()
 # Synchronize .vim and .vimrc with repository.
 function synchronize_files()
 {
-  verbose=""
+  verbose=''
 
   [[ "$VERBOSE" == 1 ]] && verbose=1
 
@@ -246,33 +278,33 @@ function synchronize_files()
   cmd_output_manager "cp $app_name $binpath" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
 
-  sed -i -e "s,##KW_INSTALL_PREFIX_TOKEN##,$PREFIX/,g" "$binpath/$app_name"
-  sed -i -e "/##BEGIN-DEV-MODE##/,/##END-DEV-MODE##/ d" "$binpath/$app_name"
-
   # Lib files
   mkdir -p "$libdir"
   cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
 
   # Sound files
-  mkdir -p "$sharesounddir"
-  cmd_output_manager "rsync -vr $SOUNDS/ $sharesounddir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sharesounddir' failed" "$?"
+  mkdir -p "$sounddir"
+  cmd_output_manager "rsync -vr $SOUNDS/ $sounddir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sounddir' failed" "$?"
+  ## TODO: Remove me one day
+  # Old kworkflow.config uses complete.wav instead of bell
+  ln -s "$sounddir/bell.wav" "$sounddir/complete.wav"
 
   # Documentation files
-  mkdir -p "$sharedocdir"
-  cmd_output_manager "rsync -vr $DOCUMENTATION/ $sharedocdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $sharedocdir' failed" "$?"
+  mkdir -p "$docdir"
+  cmd_output_manager "rsync -vr $DOCUMENTATION/ $docdir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
 
   # man file
-  mkdir -p "$sharemandir"
-  cmd_output_manager "rsync -vr $MAN $sharemandir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $sharemandir' failed" "$?"
+  mkdir -p "$mandir"
+  cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
 
   # etc files
   mkdir -p "$etcdir"
   cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR $INSTALLTO' failed" "$?"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
 
   # User data
   mkdir -p "$datadir"
@@ -281,49 +313,63 @@ function synchronize_files()
 
   # Copy and setup global config file
   setup_config_file
-  ASSERT_IF_NOT_EQ_ZERO "Config file failed" "$?"
+  ASSERT_IF_NOT_EQ_ZERO 'Config file failed' "$?"
 
-  if command_exists "bash"; then
+  if command_exists 'bash'; then
     # Add tabcompletion to bashrc
     if [[ -f "$HOME/.bashrc" || -L "$HOME/.bashrc" ]]; then
-      append_bashcompletion ".bashrc"
+      append_bashcompletion '.bashrc'
       update_path
     else
-      warning "Unable to find a .bashrc file."
+      warning 'Unable to find a .bashrc file.'
     fi
   fi
 
-  if command_exists "zsh"; then
+  if command_exists 'zsh'; then
     # Add tabcompletion to zshrc
     if [[ -f "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
-      echo "# Enable bash completion for zsh" >> "$HOME/.zshrc"
-      echo "autoload bashcompinit && bashcompinit" >> "$HOME/.zshrc"
-      append_bashcompletion ".zshrc"
+      local zshcomp=$'# Enable bash completion for zsh\n'
+      zshcomp+='autoload bashcompinit && bashcompinit'
+
+      safe_append "$zshcomp" "$HOME/.zshrc"
+      append_bashcompletion '.zshrc'
+      update_path '.zshrc'
     else
-      warning "Unable to find a .zshrc file."
+      warning 'Unable to find a .zshrc file.'
     fi
   fi
 
   say "$SEPARATOR"
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
-  say "$app_name installed into $PREFIX"
-  warning " -> For a better experience with kw, please, open a new terminal."
+  say "$app_name installed into $HOME"
+  warning ' -> For a better experience with kw, please, open a new terminal.'
 }
 
 function append_bashcompletion()
 {
   local shellrc="$1"
+  local msg="# $app_name"$'\n'"source $libdir/$BASH_AUTOCOMPLETE.sh"
 
-  echo "# $app_name" >> "$HOME/$shellrc"
-  echo "source $libdir/$BASH_AUTOCOMPLETE.sh" >> "$HOME/$shellrc"
+  safe_append "$msg" "$HOME/$shellrc"
+}
+
+function safe_append()
+{
+  if [[ $(grep -c -x "$1" "$2") == 0 ]]; then
+    printf '%s\n' "$1" >> "$2"
+  fi
 }
 
 function update_version()
 {
-  local head_hash=$(git rev-parse --short HEAD)
-  local branch_name=$(git rev-parse --short --abbrev-ref HEAD)
-  local base_version=$(cat "$libdir/VERSION" | head -n 1)
+  local head_hash
+  local branch_name
+  local base_version
+
+  head_hash=$(git rev-parse --short HEAD)
+  branch_name=$(git rev-parse --short --abbrev-ref HEAD)
+  base_version=$(head -n 1 "$libdir/VERSION")
 
   cat > "$libdir/VERSION" << EOF
 $base_version
@@ -335,12 +381,14 @@ EOF
 function install_home()
 {
   # Check Dependencies
-  say "Checking dependencies ..."
+  say 'Checking dependencies ...'
   check_dependencies
+  # Move old folder structure to new one
+  legacy_folders
   # First clean old installation
   clean_legacy
   # Synchronize source files
-  say "Installing ..."
+  say 'Installing ...'
   synchronize_files
   # Update version based on the current branch
   update_version
@@ -349,16 +397,12 @@ function install_home()
 # Options
 for arg; do
   shift
-  if [ "$arg" = "--verbose" ]; then
+  if [ "$arg" = '--verbose' ]; then
     VERBOSE=1
     continue
   fi
-  if [ "$arg" = "--force" ]; then
+  if [ "$arg" = '--force' ]; then
     FORCE=1
-    continue
-  fi
-  if [[ "$arg" =~ "--prefix=" ]]; then
-    PREFIX=${arg#*=}
     continue
   fi
   set -- "$@" "$arg"
@@ -371,7 +415,7 @@ case "$1" in
     ;;
   --uninstall | -u)
     clean_legacy
-    say "kw was removed."
+    say 'kw was removed.'
     ;;
     # ATTENTION: This option is dangerous because it completely removes all files
     # related to kw, e.g., '.config' file under kw controls. For this reason, we do
@@ -379,7 +423,7 @@ case "$1" in
     # operation.
   --completely-remove)
     confirm_complete_removal
-    clean_legacy "-d"
+    clean_legacy '-d'
     ;;
   --help | -h)
     usage
@@ -388,7 +432,7 @@ case "$1" in
     sphinx-build -nW -b html documentation/ build
     ;;
   *)
-    complain "Invalid number of arguments"
+    complain 'Invalid number of arguments'
     usage
     exit 1
     ;;

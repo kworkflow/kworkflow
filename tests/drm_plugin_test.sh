@@ -2,22 +2,11 @@
 
 include './src/plugins/subsystems/drm/drm.sh'
 include './src/kwlib.sh'
-include './tests/utils'
-
-function suite()
-{
-  suite_addTest "gui_control_Test"
-  suite_addTest "drm_manager_Test"
-  suite_addTest "get_supported_mode_per_connector_Test"
-  #suite_addTest "get_available_connectors_Test"
-  suite_addTest "module_control_Test"
-  suite_addTest "convert_module_info_Test"
-}
+include './tests/utils.sh'
 
 function setUp()
 {
   # Create a temporary directory for holding different config file
-  local -r current_path="$PWD"
   rm -rf "$TMP_TEST_DIR"
   mkdir -p "$TMP_TEST_DIR"
 
@@ -33,57 +22,53 @@ function setUp()
 function tearDown()
 {
   configurations=()
+  configurations[ssh_user]=juca
 
   rm -rf "$TMP_TEST_DIR"
 }
 
-function drm_manager_Test()
+function test_drm_manager()
 {
-  local ID
+  local output
 
   parse_configuration "$TMP_TEST_DIR/kworkflow.config"
 
-  ID=1
   output=$(drm_manager test_mode --remote --gui-on)
-  expected_result="3 1 0 127.0.0.1:3333"
-  assertEquals "($ID) Remote and --gui-on:" "$expected_result" "$output"
+  expected_result='3 1 0 127.0.0.1 3333'
+  assertEquals "($LINENO) Remote and --gui-on:" "$expected_result" "$output"
 
-  ID=2
   output=$(drm_manager test_mode --remote --gui-off)
-  expected_result="3 0 1 127.0.0.1:3333"
-  assertEquals "($ID) Remote and --gui-off:" "$expected_result" "$output"
+  expected_result='3 0 1 127.0.0.1 3333'
+  assertEquals "($LINENO) Remote and --gui-off:" "$expected_result" "$output"
 
-  ID=3
   output=$(drm_manager test_mode --gui-on)
-  expected_result="3 1 0 127.0.0.1:3333"
-  assertEquals "($ID) just --gui-on:" "$expected_result" "$output"
+  expected_result='3 1 0 127.0.0.1 3333'
+  assertEquals "($LINENO) just --gui-on:" "$expected_result" "$output"
 
-  ID=4
   output=$(drm_manager test_mode --gui-off)
-  expected_result="3 0 1 127.0.0.1:3333"
-  assertEquals "($ID) just --gui-off:" "$expected_result" "$output"
+  expected_result='3 0 1 127.0.0.1 3333'
+  assertEquals "($LINENO) just --gui-off:" "$expected_result" "$output"
 
   # Invalid options
-  ID=5
   output=$(drm_manager test_mode --vm --gui-on)
-  assertEquals "($ID) Should not accept --vm:" "$?" "22"
+  assertEquals "($LINENO) Should not accept --vm:" "$?" 22
 }
 
-function gui_control_Test()
+function test_gui_control()
 {
   local gui_on_cmd='systemctl isolate graphical.target'
   local gui_off_cmd='systemctl isolate multi-user.target'
-  local bind_cmd='for i in /sys/class/vtconsole/*/bind; do echo 1 > $i; done; sleep 0.5'
-  local unbind_cmd='for i in /sys/class/vtconsole/*/bind; do echo 0 > $i; done; sleep 0.5'
+  local bind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 1 > $i; done; sleep 0.5'
+  local unbind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 0 > $i; done; sleep 0.5'
   local output
   local ID
 
   tearDown # We want to test the default cases first
   # REMOTE = 3
   ID=1
-  ssh_part='ssh -p 8888 root@127.0.0.1'
-  full_turn_on_gui_cmd="$ssh_part \"$gui_on_cmd\""
-  full_bind_cmd="$ssh_part '$bind_cmd'"
+  ssh_part="ssh -p 8888 juca@127.0.0.1"
+  full_turn_on_gui_cmd="$ssh_part sudo \"$gui_on_cmd\""
+  full_bind_cmd="$ssh_part 'sudo bash -c '\''$bind_cmd'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_on_gui_cmd"
@@ -91,11 +76,11 @@ function gui_control_Test()
   )
 
   output=$(gui_control 'ON' '3' '127.0.0.1:8888' 'TEST_MODE')
-  compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
 
   ID=2
-  full_turn_off_gui_cmd="$ssh_part \"$gui_off_cmd\""
-  full_unbind_cmd="$ssh_part '$unbind_cmd'"
+  full_turn_off_gui_cmd="$ssh_part sudo \"$gui_off_cmd\""
+  full_unbind_cmd="$ssh_part 'sudo bash -c '\''$unbind_cmd'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_off_gui_cmd"
@@ -103,16 +88,16 @@ function gui_control_Test()
   )
 
   output=$(gui_control 'OFF' '3' '127.0.0.1:8888' 'TEST_MODE')
-  compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
 
   ID=3
   # Test with config file
   parse_configuration "$KW_CONFIG_SAMPLE"
 
   gui_off_cmd='turn off'
-  ssh_part='ssh -p 22 root@localhost'
-  full_turn_off_gui_cmd="$ssh_part \"$gui_off_cmd\""
-  full_unbind_cmd="$ssh_part '$unbind_cmd'"
+  ssh_part="ssh -p 3333 juca@127.0.0.1"
+  full_turn_off_gui_cmd="$ssh_part sudo \"$gui_off_cmd\""
+  full_unbind_cmd="$ssh_part 'sudo bash -c '\''$unbind_cmd'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_off_gui_cmd"
@@ -120,12 +105,12 @@ function gui_control_Test()
   )
 
   output=$(gui_control 'OFF' '3' '' 'TEST_MODE')
-  compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
 
   ID=4
   gui_on_cmd='turn on'
-  full_turn_on_gui_cmd="$ssh_part \"$gui_on_cmd\""
-  full_bind_cmd="$ssh_part '$bind_cmd'"
+  full_turn_on_gui_cmd="$ssh_part sudo \"$gui_on_cmd\""
+  full_bind_cmd="$ssh_part 'sudo bash -c '\''$bind_cmd'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_on_gui_cmd"
@@ -133,34 +118,10 @@ function gui_control_Test()
   )
 
   output=$(gui_control 'ON' '3' '' 'TEST_MODE')
-  compare_command_sequence expected_cmd_seq[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
 }
 
-function get_available_connectors_Test()
-{
-  local ID
-  export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
-
-  declare -a expected_output=(
-    "[local] Card1 supports:"
-    "DP"
-    "DP"
-    "HDMI"
-    "DP"
-    "[local] Card0 supports:"
-    "DP"
-    "DP"
-    "DP"
-    "HDMI"
-    "DVI"
-  )
-
-  ID=1
-  output=$(get_available_connectors 2)
-  compare_command_sequence expected_output[@] "$output" "$ID"
-}
-
-function get_supported_mode_per_connector_Test()
+function test_get_supported_mode_per_connector()
 {
   declare -a expected_output=(
     "Modes per card"
@@ -195,13 +156,14 @@ function get_supported_mode_per_connector_Test()
 
   export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
   output=$(get_supported_mode_per_connector 2)
-  compare_command_sequence expected_output[@] "$output" "$ID"
+  compare_command_sequence 'expected_output' "$output" "$ID"
 }
 
-function module_control_Test()
+function test_module_control()
 {
   local ID
-  local default_ssh="ssh -p 22 root@localhost"
+  local default_ssh
+  default_ssh="ssh -p 3333 juca@127.0.0.1 sudo"
 
   ID=1
   expected="sudo bash -c \"modprobe  amdgpu\""
@@ -251,9 +213,9 @@ function module_control_Test()
   output=$(module_control "UNLOAD" "3" "" "amdgpu;vkms" "TEST_MODE")
   assertEquals "$ID - Load modules with parameters" "$expected" "$output"
 }
-#compare_command_sequence expected_cmd[@] "$output" "$ID"
+#compare_command_sequence 'expected_cmd' "$output" "$ID"
 
-function convert_module_info_Test()
+function test_convert_module_info()
 {
   local ID
 

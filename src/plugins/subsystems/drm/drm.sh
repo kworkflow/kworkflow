@@ -2,11 +2,10 @@
 . "$KW_LIB_DIR/remote.sh" --source-only
 . "$KW_LIB_DIR/kwlib.sh" --source-only
 
-declare -gr LOAD='LOAD'
 declare -gr UNLOAD='UNLOAD'
 declare -gA drm_options_values
 
-SYSFS_CLASS_DRM="/sys/class/drm"
+SYSFS_CLASS_DRM='/sys/class/drm'
 
 function drm_manager()
 {
@@ -19,9 +18,14 @@ function drm_manager()
   local unload_module
   local test_mode
 
+  if [[ "$*" =~ -h|--help ]]; then
+    drm_help "$*"
+    exit 0
+  fi
+
   drm_parser_options "$@"
   if [[ "$?" -gt 0 ]]; then
-    complain "Invalid option: ${drm_options_values['ERROR']}  $target $gui_on $gui_off $remote"
+    complain "Invalid option: ${drm_options_values['ERROR']} $target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
     drm_help
     return 22
   fi
@@ -32,35 +36,36 @@ function drm_manager()
   conn_available="${drm_options_values['CONN_AVAILABLE']}"
   modes_available="${drm_options_values['MODES_AVAILABLE']}"
   help_opt="${drm_options_values['HELP']}"
-  remote="${drm_options_values['REMOTE']}"
   test_mode="${drm_options_values['TEST_MODE']}"
   load_module="${drm_options_values['LOAD_MODULE']}"
   unload_module="${drm_options_values['UNLOAD_MODULE']}"
 
-  if [[ "$test_mode" == "TEST_MODE" ]]; then
-    echo "$target $gui_on $gui_off $remote"
+  remote="${remote_parameters['REMOTE']}"
+
+  if [[ "$test_mode" == 'TEST_MODE' ]]; then
+    printf '%s\n' "$target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
     return 0
   fi
 
-  if [[ ! -z "$load_module" ]]; then
-    module_control "LOAD" "$target" "$remote" "$load_module"
+  if [[ -n "$load_module" ]]; then
+    module_control 'LOAD' "$target" "$remote" "$load_module"
     if [[ "$?" != 0 ]]; then
       return 22
     fi
   fi
 
   if [[ "$gui_on" == 1 ]]; then
-    gui_control "ON" "$target" "$remote"
+    gui_control 'ON' "$target" "$remote"
   fi
 
   if [[ "$gui_off" == 1 ]]; then
-    gui_control "OFF" "$target" "$remote"
+    gui_control 'OFF' "$target" "$remote"
   fi
 
-  if [[ ! -z "$unload_module" ]]; then
+  if [[ -n "$unload_module" ]]; then
     # For unload DRM drivers, we need to make sure that we turn off user GUI
-    [[ "$gui_off" != 1 ]] && gui_control "OFF" "$target" "$remote"
-    module_control "UNLOAD" "$target" "$remote" "$unload_module"
+    [[ "$gui_off" != 1 ]] && gui_control 'OFF' "$target" "$remote"
+    module_control 'UNLOAD' "$target" "$remote" "$unload_module"
   fi
 
   if [[ "$conn_available" == 1 ]]; then
@@ -92,10 +97,12 @@ function module_control()
   local parameters="$4"
   local flag="$5"
   local module_cmd=""
+  local remote
+  local port
 
   module_cmd=$(convert_module_info "$operation" "$parameters")
   if [[ "$?" != 0 ]]; then
-    complain "Wrong parameter in --[un]load-module="
+    complain 'Wrong parameter in --[un]load-module='
     return 22
   fi
 
@@ -104,8 +111,8 @@ function module_control()
       cmd_manager "$flag" "sudo bash -c \"$module_cmd\""
       ;;
     3) # REMOTE
-      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
+      remote=$(get_based_on_delimiter "$unformatted_remote" ':' 1)
+      port=$(get_based_on_delimiter "$unformatted_remote" ':' 2)
 
       cmd_remotely "$module_cmd" "$flag" "$remote" "$port"
       ;;
@@ -124,7 +131,7 @@ function convert_module_info()
 {
   local unload="$1"
   shift
-  local raw_modules_str="$@"
+  local raw_modules_str="$*"
   local parameters_str=""
   local final_command=""
   local remove_flag=""
@@ -132,24 +139,24 @@ function convert_module_info()
   local first_time=1
 
   if [[ "$unload" == "$UNLOAD" ]]; then
-    remove_flag="-r"
+    remove_flag='-r'
   else
-    remove_flag=""
+    remove_flag=''
   fi
 
   IFS=';' read -r -a modules <<< "$raw_modules_str"
   # Target event. e.g.: amdgpu_dm or amdgpu
   for module in "${modules[@]}"; do
-    parameters_str=""
+    parameters_str=''
     module_str="modprobe $remove_flag $module"
 
     if [[ "$module" =~ .*':'.* ]]; then
       module_str="modprobe $remove_flag "
-      module_str+=$(cut -d ":" -f1 <<< "$module")
+      module_str+=$(cut -d ':' -f1 <<< "$module")
 
       if [[ "$unload" != "$UNLOAD" ]]; then
         # Capture module parameters
-        specific_parameters_str=$(cut -d ":" -f2 <<< "$module")
+        specific_parameters_str=$(cut -d ':' -f2 <<< "$module")
         IFS=',' read -r -a parameters_array <<< "$specific_parameters_str"
         for specific_parameter in "${parameters_array[@]}"; do
           parameters_str+="$specific_parameter "
@@ -171,7 +178,7 @@ function convert_module_info()
     return 22 # EINVAL
   fi
 
-  echo "$final_command"
+  printf '%s\n' "$final_command"
 }
 
 # This function is responsible for turn on and off the graphic interface based
@@ -193,8 +200,10 @@ function gui_control()
   local gui_control_cmd
   local vt_console
   local isolate_target
+  local remote
+  local port
 
-  if [[ "$operation" == "ON" ]]; then
+  if [[ "$operation" == 'ON' ]]; then
     isolate_target='graphical.target'
     vt_console=1
     gui_control_cmd="${configurations[gui_on]}"
@@ -207,7 +216,7 @@ function gui_control()
   # If the user does not override the turn on/off command we use the default
   # systemctl
   gui_control_cmd=${gui_control_cmd:-"systemctl isolate $isolate_target"}
-  bind_control_cmd='for i in /sys/class/vtconsole/*/bind; do echo '$vt_console' > $i; done; sleep 0.5'
+  bind_control_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" '$vt_console' > $i; done; sleep 0.5' # is this right?
 
   case "$target" in
     2) # LOCAL TARGET
@@ -217,12 +226,12 @@ function gui_control()
       cmd_manager "$flag" "$bind_control_cmd"
       ;;
     3) # REMOTE TARGET
-      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
-      remote=$(get_based_on_delimiter "$remote" "@" 2)
+      remote=$(get_based_on_delimiter "$unformatted_remote" ':' 1)
+      port=$(get_based_on_delimiter "$unformatted_remote" ':' 2)
+      remote=$(get_based_on_delimiter "$remote" '@' 2)
 
       cmd_remotely "$gui_control_cmd" "$flag" "$remote" "$port"
-      cmd_remotely "$bind_control_cmd" "$flag" "$remote" "$port" "root" "1"
+      cmd_remotely "$bind_control_cmd" "$flag" "$remote" "$port" '' '1'
       ;;
   esac
 }
@@ -241,6 +250,9 @@ function get_available_connectors()
   local value
   local connectors
   local i
+  local remote
+  local port
+  local find_conn_cmd
   declare -A cards
 
   case "$target" in
@@ -251,26 +263,26 @@ function get_available_connectors()
         complain "We cannot access $SYSFS_CLASS_DRM"
         return "$ret" # ENOENT
       fi
-      target_label="local"
+      target_label='local'
       ;;
     3) # REMOTE TARGET
-      local find_conn_cmd="find $SYSFS_CLASS_DRM -name 'card*'"
-      local remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      local port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
-      remote=$(get_based_on_delimiter "$remote" "@" 2)
+      find_conn_cmd="find $SYSFS_CLASS_DRM -name 'card*'"
+      remote=$(get_based_on_delimiter "$unformatted_remote" ':' 1)
+      port=$(get_based_on_delimiter "$unformatted_remote" ':' 2)
+      remote=$(get_based_on_delimiter "$remote" '@' 2)
 
-      cards_raw_list=$(cmd_remotely "$find_conn_cmd" "SILENT" "$remote" "$port")
-      target_label="remote"
+      cards_raw_list=$(cmd_remotely "$find_conn_cmd" 'SILENT' "$remote" "$port")
+      target_label='remote'
       ;;
   esac
 
-  while read card; do
+  while read -r card; do
     card=$(basename "$card")
-    key=$(echo "$card" | grep card | cut -d- -f1)
-    value=$(echo "$card" | grep card | cut -d- -f2)
+    key=$(printf '%s\n' "$card" | grep card | cut -d- -f1)
+    value=$(printf '%s\n' "$card" | grep card | cut -d- -f2)
     [[ "$key" == "$value" ]] && continue
 
-    if [[ ! -z "$key" && ! -z "$value" ]]; then
+    if [[ -n "$key" && -n "$value" ]]; then
       list_of_values="${cards[$key]}"
       if [[ -z "$list_of_values" ]]; then
         cards["$key"]="$value"
@@ -281,14 +293,13 @@ function get_available_connectors()
   done <<< "$cards_raw_list"
 
   for card in "${!cards[@]}"; do
-    i=1
     connectors="${cards[$card]}"
 
-    echo "[$target_label] ${card^} supports:"
+    printf '%s\n' "[$target_label] ${card^} supports:"
 
     IFS=',' read -r -a connectors <<< "${cards[$card]}"
     for conn in "${connectors[@]}"; do
-      echo -e " $conn"
+      echo -e " $conn" # TODO
     done
 
   done
@@ -306,7 +317,7 @@ function get_supported_mode_per_connector()
   local port
   local remote
 
-  cmd="for f in $SYSFS_CLASS_DRM/*/modes;"' do c=$(cat $f) && [[ ! -z $c ]] && echo "$f:\n$c\n"; done'
+  cmd="for f in $SYSFS_CLASS_DRM/*/modes;"' do c=$(cat $f) && [[ ! -z $c ]] && printf "%s\n" "$f:" "$c" ""; done'
 
   case "$target" in
     2) # LOCAL TARGET
@@ -315,58 +326,58 @@ function get_supported_mode_per_connector()
         complain "We cannot access $SYSFS_CLASS_DRM"
         return "$ret" # ENOENT
       fi
-      modes=$(eval $cmd)
-      target_label="local"
+      modes=$(eval "$cmd")
+      target_label='local'
       ;;
     3) # REMOTE TARGET
-      remote=$(get_based_on_delimiter "$unformatted_remote" ":" 1)
-      port=$(get_based_on_delimiter "$unformatted_remote" ":" 2)
-      remote=$(get_based_on_delimiter "$remote" "@" 2)
+      remote=$(get_based_on_delimiter "$unformatted_remote" ':' 1)
+      port=$(get_based_on_delimiter "$unformatted_remote" ':' 2)
+      remote=$(get_based_on_delimiter "$remote" '@' 2)
 
-      modes=$(cmd_remotely "$cmd" "SILENT" "$remote" "$port" "root" "1")
-      target_label="remote"
+      modes=$(cmd_remotely "$cmd" 'SILENT' "$remote" "$port" 'root' '1')
+      target_label='remote'
       ;;
   esac
 
   modes=${modes//\/modes/}
   modes=${modes//sys\/class\/drm\//}
 
-  say "Modes per card"
-  echo -e "$modes"
+  say 'Modes per card'
+  echo -e "$modes" # TODO
 }
 
 function drm_parser_options()
 {
-  local raw_options="$@"
+  local raw_options="$*"
   local flag=0
   local remote
 
-  drm_options_values["GUI_ON"]=0
-  drm_options_values["GUI_OFF"]=0
-  drm_options_values["CONN_AVAILABLE"]=0
-  drm_options_values["HELP"]=0
+  drm_options_values['GUI_ON']=0
+  drm_options_values['GUI_OFF']=0
+  drm_options_values['CONN_AVAILABLE']=0
+  drm_options_values['HELP']=0
 
   # Set basic default values
-  if [[ ! -z ${configurations[default_deploy_target]} ]]; then
+  if [[ -n ${configurations[default_deploy_target]} ]]; then
     local config_file_deploy_target=${configurations[default_deploy_target]}
-    drm_options_values["TARGET"]=${deploy_target_opt[$config_file_deploy_target]}
+    drm_options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
     # VM is not a valid case for drm option
-    if [[ "${drm_options_values["TARGET"]}" == "$VM_TARGET" ]]; then
-      drm_options_values["TARGET"]="$LOCAL_TARGET"
+    if [[ "${drm_options_values['TARGET']}" == "$VM_TARGET" ]]; then
+      drm_options_values['TARGET']="$LOCAL_TARGET"
     fi
   else
-    drm_options_values["TARGET"]="$LOCAL_TARGET"
+    drm_options_values['TARGET']="$LOCAL_TARGET"
   fi
 
-  remote=$(get_remote_info)
+  populate_remote_info ''
   if [[ "$?" == 22 ]]; then
-    drm_options_values["ERROR"]="$remote"
+    options_values['ERROR']="$remote"
     return 22 # EINVAL
   fi
 
-  drm_options_values["REMOTE"]="$remote"
+  drm_options_values['REMOTE']="$remote"
 
-  IFS=' ' read -r -a options <<< $raw_options
+  IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
     if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
       module_parameter=0
@@ -374,56 +385,56 @@ function drm_parser_options()
 
       case "$option" in
         --remote)
-          drm_options_values["TARGET"]="$REMOTE_TARGET"
+          drm_options_values['TARGET']="$REMOTE_TARGET"
           continue
           ;;
         --local)
-          drm_options_values["TARGET"]="$LOCAL_TARGET"
+          drm_options_values['TARGET']="$LOCAL_TARGET"
           continue
           ;;
         --gui-on)
-          drm_options_values["GUI_ON"]=1
+          drm_options_values['GUI_ON']=1
           continue
           ;;
         --gui-off)
-          drm_options_values["GUI_OFF"]=1
+          drm_options_values['GUI_OFF']=1
           continue
           ;;
         --load-module=* | -lm=*)
-          drm_options_values["LOAD_MODULE"]=$(cut -d "=" -f2- <<< "$option")
+          drm_options_values['LOAD_MODULE']=$(cut -d '=' -f2- <<< "$option")
           module_parameter=1
           if [[ -z "${drm_options_values['LOAD_MODULE']}" ]]; then
-            drm_options_values["ERROR"]="You need to specify at least one module name when using --load-module"
+            drm_options_values['ERROR']='You need to specify at least one module name when using --load-module'
             return 22
           fi
           continue
           ;;
         --unload-module=* | -um=*)
-          drm_options_values["UNLOAD_MODULE"]=$(cut -d "=" -f2- <<< "$option")
+          drm_options_values['UNLOAD_MODULE']=$(cut -d '=' -f2- <<< "$option")
           unmodule_parameter=1
           if [[ -z "${drm_options_values['UNLOAD_MODULE']}" ]]; then
-            drm_options_values["ERROR"]="You need to specify a module name when using --unload-module"
+            drm_options_values['ERROR']='You need to specify a module name when using --unload-module'
             return 22
           fi
           continue
           ;;
         --conn-available)
-          drm_options_values["CONN_AVAILABLE"]=1
+          drm_options_values['CONN_AVAILABLE']=1
           continue
           ;;
         --modes)
-          drm_options_values["MODES_AVAILABLE"]=1
+          drm_options_values['MODES_AVAILABLE']=1
           break
           ;;
         --help | -h | help)
-          drm_options_values["HELP"]=1
+          drm_options_values['HELP']=1
           break
           ;;
         test_mode)
-          drm_options_values["TEST_MODE"]="TEST_MODE"
+          drm_options_values['TEST_MODE']='TEST_MODE'
           ;;
         *)
-          drm_options_values["ERROR"]="$option"
+          drm_options_values['ERROR']="$option"
           return 22 # EINVAL
           ;;
       esac
@@ -431,27 +442,31 @@ function drm_parser_options()
       # Handle other sub-parameters
       if [[ "${drm_options_values['TARGET']}" == "$REMOTE_TARGET" &&
         "$module_parameter" != 1 && "$unload_module" != 1 ]]; then
-        drm_options_values["REMOTE"]=$(get_remote_info "$option")
+        populate_remote_info "$option"
+        if [[ "$?" == 22 ]]; then
+          drm_options_values['ERROR']="$option"
+          return 22
+        fi
       fi
 
       if [[ "$module_parameter" == 1 ]]; then
-        drm_options_values["LOAD_MODULE"]+=" $option"
+        drm_options_values['LOAD_MODULE']+=" $option"
       fi
 
       if [[ "$unmodule_parameter" == 1 ]]; then
-        drm_options_values["UNLOAD_MODULE"]+=" $option"
+        drm_options_values['UNLOAD_MODULE']+=" $option"
       fi
     fi
   done
 
-  case "${drm_options_values["TARGET"]}" in
+  case "${drm_options_values['TARGET']}" in
     2 | 3) ;;
 
     *)
-      if [[ "${drm_options_values["TARGET"]}" == 1 ]]; then
-        msg=" The option --vm is not valid for drm plugin, use --remote or --local"
+      if [[ "${drm_options_values['TARGET']}" == 1 ]]; then
+        msg=' The option --vm is not valid for drm plugin, use --remote or --local'
       fi
-      drm_options_values["ERROR"]="remote option$msg"
+      drm_options_values['ERROR']="remote option$msg"
       return 22
       ;;
   esac
@@ -459,11 +474,16 @@ function drm_parser_options()
 
 function drm_help()
 {
-  echo -e "Usage: kw drm [options]:\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --load-module=|-lm='MODULE[:PARAM1,PARAM2][;MODULE:...][;...]\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --unload-module=|-um='MODULE[;MODULE;...]\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --gui-on\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --gui-off\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --conn-available\n" \
-    "\tdrm [--remote [REMOTE:PORT]] --modes"
+  if [[ "$1" =~ --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'drm'
+    return
+  fi
+  printf '%s\n' 'Usage: kw drm [options]:' \
+    '  drm [--local | --remote [<remote>:<port>]] (-lm|--load-module)=<module>[:<param1>,<param2>][;<module>:...][;...]' \
+    '  drm [--local | --remote [<remote>:<port>]] (-um|--unload-module)=<module>[;<module>;...]' \
+    '  drm [--local | --remote [<remote>:<port>]] --gui-on' \
+    '  drm [--local | --remote [<remote>:<port>]] --gui-off' \
+    '  drm [--local | --remote [<remote>:<port>]] --conn-available' \
+    '  drm [--local | --remote [<remote>:<port>]] --modes'
 }

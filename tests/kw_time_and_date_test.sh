@@ -1,15 +1,7 @@
 #!/bin/bash
 
 include './src/kw_time_and_date.sh'
-include './tests/utils'
-
-function suite()
-{
-  suite_addTest 'sec_to_format_Test'
-  suite_addTest 'get_today_info_Test'
-  suite_addTest 'get_week_beginning_day_Test'
-  suite_addTest 'date_to_format_Test'
-}
+include './tests/utils.sh'
 
 function setUp()
 {
@@ -18,7 +10,7 @@ function setUp()
   pre_formated_sec="00:30:46"
 }
 
-function sec_to_format_Test()
+function test_sec_to_format()
 {
   formatted_time=$(sec_to_format "$pre_total_sec")
   assertEquals "($LINENO)" "$formatted_time" "$pre_formated_sec"
@@ -33,10 +25,11 @@ function sec_to_format_Test()
   assertEquals "($LINENO)" "$formatted_time" '46'
 }
 
-function get_today_info_Test()
+function test_get_today_info()
 {
-  local today=$(date +%Y/%m/%d)
+  local today
 
+  today=$(date +%Y/%m/%d)
   formated_today=$(get_today_info '+%Y/%m/%d')
   assert_equals_helper 'Today info did not match' "$LINENO" "$today" "$formated_today"
 
@@ -45,7 +38,7 @@ function get_today_info_Test()
   assert_equals_helper 'No parameter' "$LINENO" "$today" "$formated_today"
 }
 
-function get_week_beginning_day_Test()
+function test_get_week_beginning_day()
 {
   local ref_week='2021/05/19'
   local first_week_day='2021/05/16'
@@ -66,7 +59,7 @@ function get_week_beginning_day_Test()
   assert_equals_helper 'The first day of this week' "$LINENO" "$first_week_day" "$week_day"
 }
 
-function date_to_format_Test()
+function test_date_to_format()
 {
   local formatted_date
 
@@ -79,6 +72,47 @@ function date_to_format_Test()
   formatted_date=$(date_to_format)
   today=$(date '+%Y/%m/%d')
   assert_equals_helper 'Today' "$LINENO" "$formatted_date" "$today"
+}
+
+function test_days_in_the_month()
+{
+  local total_days
+  local this_year
+  local this_month
+  local this_month_total_days
+  local ret
+
+  total_days=$(days_in_the_month 2 2021)
+  assert_equals_helper 'We expect 28 days' "$LINENO" "$total_days" 28
+
+  # Leap year, February has 29 days
+  total_days=$(days_in_the_month 2 2016)
+  assert_equals_helper 'We expect 29 days' "$LINENO" "$total_days" 29
+
+  total_days=$(days_in_the_month 2 300)
+  assert_equals_helper 'We expect 28 days' "$LINENO" "$total_days" 28
+
+  # Leap year, February has 29 days
+  total_days=$(days_in_the_month 2 1600)
+  assert_equals_helper 'We expect 29 days' "$LINENO" "$total_days" 29
+
+  total_days=$(days_in_the_month 1 2016)
+  assert_equals_helper 'We expect 31 days' "$LINENO" "$total_days" 31
+
+  total_days=$(days_in_the_month 6 2021)
+  assert_equals_helper 'We expect 30 days' "$LINENO" "$total_days" 30
+
+  total_days=$(days_in_the_month 8 2021)
+  assert_equals_helper 'We expect 31 days' "$LINENO" "$total_days" 31
+
+  # Empty year should be converted to the present year
+  total_days=$(days_in_the_month 8)
+  assert_equals_helper 'Use this year' "$LINENO" "$total_days" 31
+
+  # An invalid month
+  days_in_the_month 333
+  ret="$?"
+  assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
 }
 
 invoke_shunit

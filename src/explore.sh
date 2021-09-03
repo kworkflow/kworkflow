@@ -31,7 +31,7 @@ function explore()
       explore_files_under_git "$@"
       ;;
     *)
-      complain "Invalid parameter"
+      complain 'Invalid parameter'
       exit 22 # EINVAL
       ;;
   esac
@@ -52,12 +52,12 @@ function explore_parser()
   local option="$1"
 
   if [[ "$#" -eq 0 ]]; then
-    complain "Expected string or parameter. See man for detail."
+    complain 'Expected string or parameter. See man for detail.'
     exit 22 # EINVAL
   fi
 
-  if [[ "$1" == -h ]]; then
-    explore_help
+  if [[ "$1" =~ -h|--help ]]; then
+    explore_help "$1"
     exit 0
   fi
 
@@ -83,12 +83,16 @@ function explore_parser()
 
 function explore_help()
 {
-  echo -e "kw explore:\n" \
-    "\texplore,e STRING [PATH] - Search for STRING based in PATH (./ by default) \n" \
-    "\texplore,e \"STR SRT\" [PATH] - Search for strings only in files under git control\n" \
-    "\texplore,e --log,-l STRING - Search for STRING on git log\n" \
-    "\texplore,e --grep,-g STRING - Search for STRING using the GNU grep tool\n" \
-    "\texplore,e --all,-a STRING - Search for all STRING match under or not of git management."
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'explore'
+    return
+  fi
+  printf '%s\n' 'kw explore:' \
+    '  explore,e <string> [<path>] - Search for <string> based in <path> (./ by default)' \
+    '  explore,e --log,-l <string> - Search for <string> on git log' \
+    '  explore,e --grep,-g <string> - Search for <string> using the GNU grep tool' \
+    '  explore,e --all,-a <string> - Search for all <string> match under or not of git management.'
 }
 
 # This function is responsible for handling the search in the log history.
@@ -103,17 +107,17 @@ function explore_git_log()
   local path="$2"
   local flag="$3"
 
-  flag=${flag:-"SILENT"}
-  path=${path:-""}
+  flag=${flag:-'SILENT'}
+  path=${path:-''}
 
-  cmd_manager "$flag" "git log --grep=\"$search_string\" $path"
+  cmd_manager "$flag" "git log --grep='$search_string' $path"
 }
 
 # This function searches string in files under git control.
 #
 # @regex Specifies the regex that we want to search in the files
 # @path Narrow down the search
-# @flag How to display a command, the default value is "SILENT". For more
+# @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/kwlib.sh` function `cmd_manager`
 function explore_files_under_git()
 {
@@ -122,12 +126,12 @@ function explore_files_under_git()
   local flag="$3"
 
   # Silent by default
-  flag=${flag:-"SILENT"}
+  flag=${flag:-'SILENT'}
 
   # If user only set regex value
-  path=${path:-"."}
+  path=${path:-'.'}
 
-  cmd_manager "$flag" "git grep -e \"$regex\" -nI $path"
+  cmd_manager "$flag" "git grep -e '$regex' -nI $path"
 }
 
 # This function uses git grep tool to search string in files under or not git
@@ -136,7 +140,7 @@ function explore_files_under_git()
 #
 # @regex Specifies the regex that we want to search in the files
 # @path Narrow down the search
-# @flag How to display a command, the default value is "SILENT". For more
+# @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/kwlib.sh` function `cmd_manager`
 function explore_all_files_git()
 {
@@ -145,12 +149,12 @@ function explore_all_files_git()
   local flag="$3"
 
   # Silent by default
-  flag=${flag:-"SILENT"}
+  flag=${flag:-'SILENT'}
 
   # If user only set regex value
-  path=${path:-"."}
+  path=${path:-'.'}
 
-  cmd_manager "$flag" "git grep --no-index -e \"$regex\" -nI $path"
+  cmd_manager "$flag" "git grep --no-index -e '$regex' -nI $path"
 }
 
 # This function allows the use of gnu grep utility to manages the search for
@@ -158,7 +162,7 @@ function explore_all_files_git()
 #
 # @regex Specifies the regex that we want to search in the files
 # @path Narrow down the search
-# @flag How to display a command, the default value is "SILENT". For more
+# @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/kwlib.sh` function `cmd_manager`
 function explore_files_gnu_grep()
 {
@@ -167,10 +171,10 @@ function explore_files_gnu_grep()
   local flag="$3"
 
   # Silent by default
-  flag=${flag:-"SILENT"}
+  flag=${flag:-'SILENT'}
 
   # If user only set regex value
-  path=${path:-"."}
+  path=${path:-'.'}
 
-  cmd_manager "$flag" "grep --color -nrI $path -e \"$regex\""
+  cmd_manager "$flag" "grep --color -nrI $path -e '$regex'"
 }

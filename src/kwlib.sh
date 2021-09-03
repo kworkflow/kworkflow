@@ -1,5 +1,9 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
 
+# Array with compression programs accepted by tar
+declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
+  'xz' 'auto-compress')
+
 # A common task used inside kw is a string separation based on a delimiter, for
 # this reason, this function tries to handle this scenario by getting a
 # delimiter character followed by the position that the users want to retrieve.
@@ -16,7 +20,7 @@
 # Returns:
 # Return a "string" corresponding to the position number and a code value that
 # specify the result (useful for checking if something went wrong). In case of
-# error, "string" is displayed in the echo command and EINVAL code is
+# error, "string" is displayed in the printf command and EINVAL code is
 # returned.Probably, you want to execute this function is a subshell and save
 # the output in a variable.
 function get_based_on_delimiter()
@@ -24,23 +28,23 @@ function get_based_on_delimiter()
   local string="$1"
   local delimiter="$2"
   local position="$3"
-  local output=""
+  local output=''
   local ret=0
 
-  delimiter=${delimiter:-":"}
+  delimiter=${delimiter:-':'}
 
-  output=$(echo "$string" | grep -i "$delimiter")
+  output=$(printf '%s\n' "$string" | grep -i "$delimiter")
   if [[ "$?" != 0 ]]; then
-    echo "$string"
+    printf '%s\n' "$string"
     return 22 # EINVAL
   fi
 
-  output=$(echo "$string" | cut -d "$delimiter" -f"$position")
+  output=$(printf '%s\n' "$string" | cut -d "$delimiter" -f"$position")
   if [[ -z "$output" ]]; then
     output="$string"
     ret=22 # EINVAL
   fi
-  echo "$output"
+  printf '%s\n' "$output"
   return "$ret"
 }
 
@@ -101,28 +105,13 @@ function cmd_manager()
 # True if given dir is a kernel tree root and false otherwise.
 function is_kernel_root()
 {
-  local -r DIR="$@"
+  local -r DIR="$*"
 
   # The following files are some of the files expected to be at a linux
   # tree root and not expected to change. Their presence (or abscense)
   # is used to tell if a directory is a linux tree root or not. (They
   # are the same ones used by get_maintainer.pl)
-  if [[ -f "${DIR}/COPYING" &&
-    -f "${DIR}/CREDITS" &&
-    -f "${DIR}/Kbuild" &&
-    -e "${DIR}/MAINTAINERS" &&
-    -f "${DIR}/Makefile" &&
-    -f "${DIR}/README" &&
-    -d "${DIR}/Documentation" &&
-    -d "${DIR}/arch" &&
-    -d "${DIR}/include" &&
-    -d "${DIR}/drivers" &&
-    -d "${DIR}/fs" &&
-    -d "${DIR}/init" &&
-    -d "${DIR}/ipc" &&
-    -d "${DIR}/kernel" &&
-    -d "${DIR}/lib" &&
-    -d "${DIR}/scripts" ]]; then
+  if [[ -f "${DIR}/COPYING" && -f "${DIR}/CREDITS" && -f "${DIR}/Kbuild" && -e "${DIR}/MAINTAINERS" && -f "${DIR}/Makefile" && -f "${DIR}/README" && -d "${DIR}/Documentation" && -d "${DIR}/arch" && -d "${DIR}/include" && -d "${DIR}/drivers" && -d "${DIR}/fs" && -d "${DIR}/init" && -d "${DIR}/ipc" && -d "${DIR}/kernel" && -d "${DIR}/lib" && -d "${DIR}/scripts" ]]; then
     return 0
   fi
   return 1
@@ -137,12 +126,12 @@ function is_kernel_root()
 # an empty string if no root was found.
 function find_kernel_root()
 {
-  local -r FILE_OR_DIR="$@"
+  local -r FILE_OR_DIR="$*"
   local current_dir
-  local kernel_root=""
+  local kernel_root=''
 
   if [[ -f "$FILE_OR_DIR" ]]; then
-    current_dir="$(dirname $FILE_OR_DIR)"
+    current_dir="$(dirname "$FILE_OR_DIR")"
   else
     current_dir="$FILE_OR_DIR"
   fi
@@ -150,8 +139,8 @@ function find_kernel_root()
   if is_kernel_root "$current_dir"; then
     kernel_root="$current_dir"
   else
-    while [[ "$current_dir" != "." && "$current_dir" != "/" ]]; do
-      current_dir="$(dirname $current_dir)"
+    while [[ "$current_dir" != '.' && "$current_dir" != '/' ]]; do
+      current_dir="$(dirname "$current_dir")"
       if is_kernel_root "$current_dir"; then
         kernel_root="$current_dir"
         break
@@ -159,7 +148,41 @@ function find_kernel_root()
     done
   fi
 
-  echo "$kernel_root"
+  printf '%s\n' "$kernel_root"
+}
+
+# Get the kernel release based on the command kernelrelease.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Note: Make sure that you called is_kernel_root before trying to execute this
+# function.
+function get_kernel_release()
+{
+  local flag="$1"
+  local cmd='make kernelrelease'
+
+  flag=${flag:-'SILENT'}
+
+  cmd_manager "$flag" "$cmd"
+}
+
+# Get the kernel version name.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Note: Make sure that you called is_kernel_root before trying to execute this
+# function.
+function get_kernel_version()
+{
+  local flag="$1"
+  local cmd='make kernelversion'
+
+  flag=${flag:-'SILENT'}
+
+  cmd_manager "$flag" "$cmd"
 }
 
 # Checks if the given path is a patch file
@@ -170,25 +193,26 @@ function find_kernel_root()
 # True if given path is a patch file and false otherwise.
 function is_a_patch()
 {
-  local -r FILE_PATH="$@"
+  local -r FILE_PATH="$*"
+  local file_content
 
   if [[ ! -f "$FILE_PATH" ]]; then
     return 1
   fi
 
-  local file_content=$(cat "$FILE_PATH")
+  file_content=$(cat "$FILE_PATH")
 
   # The following array stores strings that are expected to be present
   # in a patch file. The absence of any of these strings makes the
   # given file be considered NOT a patch
   local -ar PATCH_EXPECTED_STRINGS=(
-    "diff --git"
-    "---"
-    "@@"
+    'diff --git'
+    '---'
+    '@@'
   )
 
   for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
-    if [[ ! "$file_content" =~ "$expected_str" ]]; then
+    if [[ ! "$file_content" =~ $expected_str ]]; then
       return 1
     fi
   done
@@ -218,7 +242,7 @@ function join_path()
 
   joined="${target_path%%+(/)}/$member"
 
-  echo "$(echo "$joined" | tr -s '/')"
+  printf '%s\n' "$joined" | tr -s '/'
 }
 
 # This function tries to identify the OS distribution. In order to make it work
@@ -239,23 +263,25 @@ function detect_distro()
 {
   local root_path="$1"
   local str_check="$2"
-  local etc_path=$(join_path $root_path /etc)
-  local distro="none"
+  local distro='none'
+  local etc_path
 
-  if [[ ! -z "$str_check" ]]; then
+  etc_path=$(join_path "$root_path" /etc)
+
+  if [[ -n "$str_check" ]]; then
     distro="$str_check"
   elif [[ -d $etc_path ]]; then
-    distro=$(cat $etc_path/*-release | grep -w ID | cut -d = -f 2)
+    distro=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
   fi
 
   # ArchLinux family
-  if [[ "$distro" =~ "arch" ]] || [[ "$distro" =~ "manjaro" ]]; then
-    echo "arch"
+  if [[ "$distro" =~ 'arch' ]] || [[ "$distro" =~ 'manjaro' ]]; then
+    printf '%s\n' 'arch'
   # Debian family
-  elif [[ "$distro" =~ "debian" ]] || [[ "$distro" =~ "ubuntu" ]]; then
-    echo "debian"
+  elif [[ "$distro" =~ 'debian' ]] || [[ "$distro" =~ 'ubuntu' ]]; then
+    printf '%s\n' 'debian'
   else
-    echo "none"
+    printf '%s\n' 'none'
   fi
 }
 
@@ -272,11 +298,15 @@ function statistics_manager()
 {
   local label="$1"
   local value="$2"
-  local day=$(date +%d)
-  local year_month_dir=$(date +%Y/%m)
-  local day_path="$KW_DATA_DIR/statistics/$year_month_dir/$day"
+  local day
+  local year_month_dir
+  local day_path
 
-  elapsed_time=$(date -d@$value -u +%H:%M:%S)
+  day=$(date +%d)
+  year_month_dir=$(date +%Y/%m)
+  day_path="$KW_DATA_DIR/statistics/$year_month_dir/$day"
+
+  elapsed_time=$(date -d@"$value" -u +%H:%M:%S)
   say "-> Execution time: $elapsed_time"
 
   [[ ${configurations[disable_statistics_data_track]} == 'yes' ]] && return
@@ -314,7 +344,7 @@ function store_statistics_data()
 
   [[ ! -f "$day_path" || -z "$label" || -z "$value" ]] && return 22 # EINVAL
 
-  echo "$label $value" >> "$day_path"
+  printf '%s\n' "$label $value" >> "$day_path"
 }
 
 # This function checks if a certain command can be run
@@ -323,10 +353,175 @@ function store_statistics_data()
 function command_exists()
 {
   local command="$1"
+  #shellcheck disable=SC2206 #FIXME: see issue #388
   local package=($command)
 
-  if [[ -x "$(command -v $package)" ]]; then
+  if [[ -x "$(command -v "${package[@]}")" ]]; then
     return 0
   fi
   return 22 # EINVAL
+}
+
+# This function exits with a custom error message
+#
+# @err The error code to be used on exit, it takes the return code of the
+#        last command executed as default
+# @msg The custom message to be displayed
+function exit_msg()
+{
+  local err=${2:-"$?"}
+  local msg=${1:-'Something went wrong!'}
+
+  complain "$msg"
+  exit "$err"
+}
+
+# This function parses command line arguments. Each option may be
+# followed by a one colon to indicate it has a required argument, and by
+# two colons to indicate it has an optional argument. If any errors are
+# found, this will print an error message to stderr indicating it.
+#
+# @short_options Short options to be accepted
+# @long_options Long options to be accepted
+# @{@:2} Arguments to be parsed
+#
+# Returns:
+# Parsed command line arguments.
+function kw_parse()
+{
+  local short_options="$1"
+  local long_options="$2"
+  shift 2
+
+  getopt -q --options "$short_options" \
+    --longoptions "$long_options" \
+    -- "$@"
+}
+
+# This function gets the error messages for a kw_parse call. The same
+# arguments passed to kw_parse should be passed to this function.
+#
+# @name Name to be prefixed in error messages
+# @short_options Short options to be accepted
+# @long_options Long options to be accepted
+# @{@:2} Arguments to be parsed
+#
+# Returns:
+# Error messages separated by a newline and prefixed with @name
+function kw_parse_get_errors()
+{
+  local name="$1"
+  local short_options="$2"
+  local long_options="$3"
+  shift 3
+
+  {
+    getopt --name "$name" \
+      --options "$short_options" \
+      --longoptions "$long_options" \
+      -- "$@" > /dev/null
+  } 2>&1
+}
+
+# This function compresses a given path to a .tar.gz file
+#
+# @go_to_path_to_compress Directory to go into
+# @file_path Where the compressed directory will be stored
+# @compression_type compression program used
+# @dir_name The directory to be compressed, inside go_to_path_to_compress
+# @flag How to display (or not) the command used
+function generate_tarball()
+{
+  local go_to_path_to_compress="$1"
+  local file_path="$2"
+  local compression_type="$3"
+  local dir_name="$4"
+  local flag="$5"
+  local ret
+  local cmd
+
+  flag=${flag:-'SILENT'}
+  dir_name=${dir_name:-'.'}
+
+  if [[ ! -d "$go_to_path_to_compress" ]]; then
+    complain "$go_to_path_to_compress" 'does not exist'
+    exit 22 #EINVAL
+  fi
+
+  if [[ -n "$compression_type" ]]; then
+    if [[ "${compression_programs[*]}" =~ $compression_type ]]; then
+      compression_type="--$compression_type"
+    else
+      complain 'Invalid compression type:' "$compression_type"
+      return 22 # EINVAL
+    fi
+  fi
+
+  compression_type=${compression_type:-'--auto-compress'}
+
+  # -C: Go to $go_to_path_to_compress directory
+  # -cf: Compress the directory named $dir_name (inside $go_to_path_to_compress) to
+  #      $file_path
+  cmd="tar -C $go_to_path_to_compress $compression_type -cf $file_path $dir_name"
+  cmd_manager "$flag" "$cmd"
+
+  ret="$?"
+
+  if [[ "$ret" != 0 ]]; then
+    complain 'Error archiving modules.'
+    exit "$ret"
+  fi
+}
+
+# This function extracts a .tar.gz file to a given path
+#
+# @file_to_extract The path to the file to extract from
+# @path Where to extract the file
+# @compression_type compression program used
+# @flag How to display (or not) the command used
+function extract_tarball()
+{
+  local file_to_extract="$1"
+  local path="$2"
+  local compression_type="$3"
+  local flag="$4"
+  local cmd
+
+  flag=${flag:-'SILENT'}
+
+  if [[ ! -f "$file_to_extract" ]]; then
+    complain 'We could not find' "$file_to_extract"
+    exit 22 #EINVAL
+  fi
+
+  if [[ ! -d "$path" ]]; then
+    complain "$path" 'does not exist'
+    exit 22 #EINVAL
+  fi
+
+  if [[ -n "$compression_type" ]]; then
+    if [[ "${compression_programs[*]}" =~ $compression_type ]]; then
+      compression_type="--$compression_type"
+    else
+      complain 'Invalid compression type:' "$compression_type"
+      return 22 # EINVAL
+    fi
+  fi
+
+  compression_type=${compression_type:-'--auto-compress'}
+
+  cmd="tar $compression_type -xf $file_to_extract -C $path"
+  cmd_manager "$flag" "$cmd"
+}
+
+# Given a file path, this function returns only the file name. For instance, for
+# a file path 'documents/file.txt', it returns file.txt. If the file path is
+# empty, then this function returns an empty string.
+#
+# @ file_path: path to a file
+function get_file_name_from_path()
+{
+  local file_path="$1"
+
+  printf '%s\n' "${file_path##*/}"
 }

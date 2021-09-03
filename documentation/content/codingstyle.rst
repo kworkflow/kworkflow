@@ -2,6 +2,8 @@
   kw coding style
 =====================
 
+.. _coding-style:
+
 .. contents::
    :depth: 1
    :local:
@@ -19,6 +21,7 @@ style, for this reason, we copied-and-pasted many pieces from both projects.
 .. _Git: https://github.com/git/git/blob/master/Documentation/CodingGuidelines#L41
 .. _Linux: https://github.com/torvalds/linux/blob/master/Documentation/process/coding-style.rst
 
+.. _shfmt-label:
 
 shfmt
 _____
@@ -200,7 +203,7 @@ is not reliable across platforms.
 How to include/import files
 ---------------------------
 Do not source code using `.` or `source`. We have a helper function for that
-named `kw_include` in `include.sh` and it should be used any and everytime a
+named `include` in `kw_include.sh` and it should be used any and everytime a
 file needs to be sourced, `. file.sh --source-only` should only be used to
 source `include.sh` itself. The `include` function guarantees us that no file
 will be sourced twice, making the kw dev life easier with one thing less to
@@ -210,22 +213,47 @@ Test name
 ---------
 
 Tests are an important part of kw, we only accept new features with tests, and
-we prefer bug fixes that came with tests. For trying to keep the test
+we prefer bug fixes that come with tests. For trying to keep the test
 comprehensible, we adopt the following pattern for naming a test::
 
-    target_function_name_[an_option_description]_Test
+    test_target_function_name_[an_optional_description]()
 
-To better illustrate this definition, see the below example::
+To better illustrate this definition, see the example below::
 
-    detect_distro_Test
+    function test_detect_distro()
 
 This function name indicates that we are testing `detect_distro` function.
 Another example::
 
-    save_config_file_check_description_Test
+    function test_save_config_file_check_description()
 
 The function `save_config_file` is tested with a focus on description
 validation.
+
+Resources for tests
+-------------------
+
+We encourage the use of the following features offered by shunit2, kworkflow's
+unit test framework.
+
+ - Functions `oneTimeSetUp` and `oneTimeTearDown`: If defined, these functions
+   will be called once before and after any tests are run, respectively. Notice
+   that shunit2 is sourced once for each test file, so the scope of
+   these functions is effectively the test file (e.g. `help_test.sh`) in
+   which they are defined.
+ - Functions `setUp` and `tearDown`: If defined, these functions will be
+   called before and after each test (i.e. a test function) is run, respectively.
+ - Shunit2 offers a temporary directory that will be cleaned upon it's exit. The
+   path to this directory is stored in the variable `SHUNIT_TMPDIR`. Note
+   however that this directory is not cleaned up between tests, so you may
+   need to clear it in the `tearDown` function.
+
+We also encourage each assertion in each test to be identified with the variable
+`LINENO`. This variable expands to the line number currently being executed.
+This way the origin of an error message can quickly be identified by a
+developer. For example::
+
+   assertEquals "($LINENO)" "$output" "$expected_output"
 
 Help functions
 --------------
@@ -234,6 +262,17 @@ function should be located as close as possible to the feature they document;
 ideally, we want it in the same file. For example, you should find details on
 using the `build` option in the mk.sh, and for `configm` in the file
 config_manager.sh.
+
+Handling Signals
+----------------
+It is natural for commands to set global variables or to create temporary files
+during their execution. However, all commands should expect to receive signals
+and be able to properly handle them. If you implement a new feature, take some
+time to check if it pollutes the environment. If it does, make sure to handle
+it's de-pollution upon receiving a SIGINT or a SIGTERM: an interrupted command
+should always leave the environment in the same state as it was prior to its
+invocation. Convenience functions for this purpose (setting and resetting
+handlers for arbitrary signals) are implemented in `src/signal_manager`.
 
 Conclusion
 ----------

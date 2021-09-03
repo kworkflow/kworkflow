@@ -1,31 +1,25 @@
 #!/bin/bash
 
 include './src/pomodoro.sh'
-include './tests/utils'
-
-function suite()
-{
-  suite_addTest 'register_timebox_Test'
-  suite_addTest 'remove_completed_timebox_Test'
-  suite_addTest 'calculate_missing_time_Test'
-  suite_addTest 'show_active_pomodoro_timebox_Test'
-  suite_addTest 'pomodoro_parser_Test'
-}
+include './tests/utils.sh'
 
 function setUp()
 {
-  mkdir "$TMP_TEST_DIR"
-  export POMODORO_LOG_FILE="$TMP_TEST_DIR/pomodoro_current.log"
+  mkdir -p "$TMP_TEST_DIR"
+  export POMODORO_LOG_FILE="$SHUNIT_TMPDIR/pomodoro_current.log"
+  export KW_POMODORO_DATA="$SHUNIT_TMPDIR/pomodoro"
+  export KW_POMODORO_TAG_LIST="$KW_POMODORO_DATA/tags"
 
   touch "$POMODORO_LOG_FILE"
 }
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
+  mkdir -p "$SHUNIT_TMPDIR"
 }
 
-function register_timebox_Test()
+function test_register_timebox()
 {
   local timebox='3332232557'
   local output
@@ -50,10 +44,10 @@ function register_timebox_Test()
   register_timebox '433222557'
 
   output=$(cat "$POMODORO_LOG_FILE")
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
 }
 
-function remove_completed_timebox_Test()
+function test_remove_completed_timebox()
 {
   # Register a bunch of data
   options_values['TIMER']='30m'
@@ -72,7 +66,7 @@ function remove_completed_timebox_Test()
 
   remove_completed_timebox '433222557'
   output=$(cat "$POMODORO_LOG_FILE")
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
 
   remove_completed_timebox '933222557'
   output=$(cat "$POMODORO_LOG_FILE")
@@ -88,7 +82,7 @@ function remove_completed_timebox_Test()
   assert_equals_helper 'Line was not removed' "$LINENO" '' "$output"
 }
 
-function calculate_missing_time_Test()
+function test_calculate_missing_time()
 {
   local output
 
@@ -118,10 +112,10 @@ function calculate_missing_time_Test()
 
 function get_timestamp_sec_mock()
 {
-  echo 3332232700
+  printf '%s\n' '3332232700'
 }
 
-function show_active_pomodoro_timebox_Test()
+function test_show_active_pomodoro_timebox()
 {
   local timestamp='3332232557'
   local timestamp_to_date
@@ -137,7 +131,7 @@ function show_active_pomodoro_timebox_Test()
   output=$(show_active_pomodoro_timebox)
 
   timestamp_to_date=$(date_to_format "@$timestamp" '+%H:%M:%S[%Y/%m/%d]')
-  diff_time=$((3332232700 - $timestamp))
+  diff_time=$((3332232700 - timestamp))
   elapsed_time=$(sec_to_format "$diff_time")
   missing_time=$(calculate_missing_time "${options_values['TIMER']}" "$diff_time")
   missing_time=$(sec_to_format "$missing_time")
@@ -149,10 +143,14 @@ function show_active_pomodoro_timebox_Test()
   )
 
   output=$(show_active_pomodoro_timebox)
-  compare_command_sequence expected_content[@] "$output" "($LINENO)"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+
+  rm "$POMODORO_LOG_FILE"
+  output=$(show_active_pomodoro_timebox 2>&1)
+  assert_equals_helper 'We should have no output' "$LINENO" "$output" ''
 }
 
-function pomodoro_parser_Test()
+function test_pomodoro_parser()
 {
   local output
 
@@ -174,8 +172,154 @@ function pomodoro_parser_Test()
   output=$(pomodoro_parser '--set-timer uum')
   assert_equals_helper 'No a number' "$LINENO" "$?" '22'
 
-  pomodoro_parser '--current'
+  pomodoro_parser '--list'
   assert_equals_helper 'Show current timebox' "$LINENO" "${options_values['SHOW_TIMER']}" '1'
+
+  pomodoro_parser '--tag Something is here'
+  assert_equals_helper 'Get tag' "$LINENO" "${options_values['TAG']}" 'Something is here'
+
+  pomodoro_parser '--tag    Extra  space   '
+  assert_equals_helper 'Handle extra space failed' "$LINENO" "${options_values['TAG']}" 'Extra space'
+
+  output=$(pomodoro_parser '--description lala lalala')
+  assert_equals_helper 'Description requires tag' "$LINENO" "$?" '22'
+
+  str_sample='This is just a simple description'
+  pomodoro_parser "--tag Extra space -d $str_sample"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
+
+  str_sample_spaces='            This is just a simple description    '
+  pomodoro_parser "--tag Extra space -d $str_sample_spaces"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
+
+  apostrophe="Let's try something with apostrophe (I'm, you're, we're)"
+  pomodoro_parser "--tag apostrophe -d $apostrophe"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$apostrophe"
+
+  str_sample='Does --comment --lal -u -x xpto-bla and xpto--blablbal'
+  pomodoro_parser "--tag Extra space -d $str_sample"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
+
+  str_sample='--com --lal -u -x xpo-la x--bl'
+  pomodoro_parser "--tag $str_sample"
+  assert_equals_helper 'Get description' "$LINENO" "${options_values['TAG']}" "$str_sample"
+}
+
+function test_setup_pomodoro()
+{
+  local output
+  local year_month
+  local today
+
+  year_month=$(date '+%Y/%m')
+  today=$(date '+%d')
+
+  output=$(setup_pomodoro)
+  assertTrue 'Date file was not created' '[[ -f "$KW_POMODORO_DATA/$year_month/$today" ]]'
+}
+
+function test_register_data_for_report()
+{
+  local output
+  local year_month
+  local today
+  local description
+  local sample_str
+
+  year_month=$(date '+%Y/%m')
+  today=$(date '+%d')
+
+  options_values['TAG']='Test 12'
+  options_values['TIMER']='30m'
+  output=$(register_data_for_report)
+
+  assertTrue 'Date file was not created' '[[ -f "$KW_POMODORO_DATA/$year_month/$today" ]]'
+
+  data=$(cat "$KW_POMODORO_DATA/$year_month/$today")
+  tag=$(printf '%s\n' "$data" | cut -d',' -f1)
+  timer=$(printf '%s\n' "$data" | cut -d',' -f2)
+
+  assert_equals_helper 'Label did not match' "$LINENO" "$tag" "${options_values['TAG']}"
+  assert_equals_helper 'Timer did not match' "$LINENO" "$timer" "${options_values['TIMER']}"
+  rm "$KW_POMODORO_DATA/$year_month/$today"
+  sample_str='Simple description'
+  options_values['DESCRIPTION']="$sample_str"
+  output=$(register_data_for_report)
+  data=$(cat "$KW_POMODORO_DATA/$year_month/$today")
+  description=$(printf '%s\n' "$data" | cut -d',' -f4)
+
+  assert_equals_helper 'Label did not match' "$LINENO" "$sample_str" "${options_values['DESCRIPTION']}"
+}
+
+function test_register_tag()
+{
+  local output
+
+  # We need basic setup for tags
+  setup_pomodoro > /dev/null
+  declare -a expected_content=(
+    'tag 1'
+    'tag 2'
+  )
+
+  register_tag 'tag 1'
+  register_tag 'tag 2'
+  output=$(cat "$KW_POMODORO_TAG_LIST")
+
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+
+  # Try to register the same tag
+  register_tag 'tag 2'
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+
+  # Try to register an empty tag
+  register_tag ''
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+}
+
+function test_is_tag_already_registered()
+{
+  # We need basic setup for test this function
+  setup_pomodoro > /dev/null
+  touch "$KW_POMODORO_TAG_LIST"
+
+  is_tag_already_registered 'Tag 0'
+  assertNotEquals "$LINENO: We should not get a success" "$?" 0
+
+  is_tag_already_registered ''
+  assertNotEquals "$LINENO: We should not get a success" "$?" 0
+
+  printf '%s\n' 'Tag 0' >> "$KW_POMODORO_TAG_LIST"
+  is_tag_already_registered 'Tag 0'
+  assertEquals "$LINENO: We expect to find Tag 0" "$?" 0
+}
+
+function test_translate_id_to_tag()
+{
+  local output
+
+  setup_pomodoro > /dev/null
+
+  translate_id_to_tag ''
+  assert_equals_helper 'Empty string should be detected' "$LINENO" "$?" '22'
+
+  register_tag 'tag 1'
+  register_tag 'tag 2'
+  register_tag 'tag 3'
+  register_tag 'tag 4'
+
+  for i in {1..4}; do
+    output=$(translate_id_to_tag "$i")
+    expected="tag $i"
+    assert_equals_helper 'We expect to find a tag' "$LINENO: ($i)" "$output" "$expected"
+  done
+
+  # Try to get an ID out of range
+  translate_id_to_tag 65
+  assert_equals_helper 'Out of range' "$LINENO" "$?" '22'
+
+  translate_id_to_tag -2
+  assert_equals_helper 'Out of range' "$LINENO" "$?" '22'
 }
 
 invoke_shunit

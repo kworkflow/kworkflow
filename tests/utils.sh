@@ -31,7 +31,7 @@ function init_env()
 # then prefixed by "> "
 function prefix_multiline()
 {
-  echo "$@" | sed -E "s/^/> /g"
+  printf '%s\n' "$@" | sed -E 's/^/> /g'
 }
 
 # Compare strings with multiple lines and prefix them with "> "
@@ -46,8 +46,8 @@ function multilineAssertEquals()
     shift
   fi
 
-  left=$'\n'"$(echo "$1" | sed -E "s/^/> /g")"$'\n'
-  right=$'\n'"$(echo "$2" | sed -E "s/^/> /g")"$'\n'
+  left=$'\n'"$(printf '%s\n' "$1" | sed -E 's/^/> /g')"$'\n'
+  right=$'\n'"$(printf '%s\n' "$2" | sed -E 's/^/> /g')"$'\n'
 
   if [ -n "$message" ]; then
     assertEquals "$message" "$left" "$right"
@@ -216,21 +216,25 @@ function mk_fake_boot()
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #
-# @expected Command sequence as an array
+# @_expected Name of the array variable containing expected strings
 # @result_to_compare A raw output from the string
 # @ID An ID identification
 function compare_command_sequence()
 {
-  declare -a expected=("${!1}")
+  # This variable name must be unique
+  local -n _expected="$1"
   local result_to_compare="$2"
   local ID="$3"
   local count=0
 
   ID=${ID:-0}
 
-  while read f; do
-    if [[ "${expected[$count]}" != "${f}" ]]; then
-      fail "($ID) $count - Expected cmd \"${expected[$count]}\" to be \"${f}\""
+  while read -r f; do
+    if [[ "${_expected[$count]}" != "${f}" ]]; then
+      fail "($ID) $count
+Expected: \"${_expected[$count]}\"
+but got:  \"${f}\"
+"
     fi
     ((count++))
   done <<< "$result_to_compare"
@@ -240,11 +244,15 @@ function assert_equals_helper()
 {
   local msg="$1"
   local line="$2"
+  # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
+  # shellcheck disable=SC2178
   local expected="$3"
   local target="$4"
 
   line=${line:-'Unknown line'}
 
+  # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
+  # shellcheck disable=2128
   assertEquals "line $line: $msg" "$target" "$expected"
 }
 
@@ -252,7 +260,7 @@ function assert_equals_helper()
 function create_invalid_file_path()
 {
   invalid_path="$RANDOM/$RANDOM/$RANDOM/xptolala"
-  echo "$invalid_path"
+  printf '%s\n' "$invalid_path"
 }
 
 function invoke_shunit()
@@ -263,7 +271,8 @@ function invoke_shunit()
   elif [[ -d ./tests/shunit2 ]]; then
     . ./tests/shunit2/shunit2
   else
-    echo -e "Can't find shunit2.\nDo you have it installed (or downloaded it to ./tests/shunit2)?"
+    printf '%s\n' 'Cannot find shunit2.' \
+      'Do you have it installed (or downloaded it to ./tests/shunit2)?'
     return 1
   fi
 }

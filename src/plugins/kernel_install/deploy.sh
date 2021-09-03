@@ -30,7 +30,7 @@
 #    architecture="$4"
 #    flag="$5"
 target_kw_deploy="$HOME/kw_deploy"
-cd "$target_kw_deploy"
+cd "$target_kw_deploy" || exit_msg 'It was not possible to move to deploy dir'
 
 # Load specific distro script
 . distro_deploy.sh --source-only
@@ -54,6 +54,6 @@ case "$1" in
     kernel_uninstall "$@"
     ;;
   *)
-    echo "Unknown operation"
+    printf '%s\n' 'Unknown operation'
     ;;
 esac

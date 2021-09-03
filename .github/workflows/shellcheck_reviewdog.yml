@@ -1,0 +1,20 @@
+name: shellcheck-reviewdog
+on:
+  [push, pull_request]
+jobs:
+  shellcheck:
+    name: runner / shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: shellcheck
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          level: info
+          filter_mode: added # This determines the scope of what reviewdog will report
+          fail_on_error: true
+          path: "."
+          pattern: "*.sh"
+          shellcheck_flags: "--external-sources --shell=bash --exclude=SC2016,SC2181,SC2034,SC2154,SC2001,SC1090,SC1091,SC2120"

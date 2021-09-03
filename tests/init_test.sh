@@ -1,54 +1,136 @@
 #!/bin/bash
 
 include './src/init.sh'
-include './tests/utils'
-
-function suite()
-{
-  suite_addTest "init_kw_Test"
-}
-
-FAKE_DIR="tests/.tmp"
-FAKE_CONFIG_PATH="$FAKE_DIR/.config"
+include './tests/utils.sh'
 
 function setUp()
 {
-  export KW_ETC_DIR="tests/samples"
-  export KW_SHARE_SOUND_DIR="tests/samples/share/sound/kw"
-  export HOME="$FAKE_DIR"
+  export KW_ETC_DIR="$PWD/tests/samples"
+  export KW_SOUND_DIR="$PWD/tests/samples/share/sound/kw"
+  export HOME="$SHUNIT_TMPDIR"
   export USER="kw_test"
   export KWORKFLOW="kw_dir_test"
-  export PWD="$FAKE_CONFIG_PATH/$KWORKFLOW"
-  mkdir -p "$FAKE_DIR"
-  mkdir -p "$FAKE_CONFIG_PATH/$KWORKFLOW"
+  export PWD="$SHUNIT_TMPDIR/$KWORKFLOW"
+  mkdir -p "$SHUNIT_TMPDIR/$KWORKFLOW"
 }
 
-function tearDown()
+function test_init_kw()
 {
-  rm -rf "$FAKE_DIR"
-}
-
-function init_kw_Test()
-{
-  local ID
   local kworkflow_content
-  local output=$(init_kw)
-  local path_config="$FAKE_CONFIG_PATH/$KWORKFLOW/kworkflow.config"
+  local path="$SHUNIT_TMPDIR/$KWORKFLOW/$KW_DIR"
+  local path_config="$path/kworkflow.config"
+  local output
 
-  kworkflow_content=$(cat "$path_config" | grep "$USER" -o | head -n 1)
+  declare -a expected_content=(
+    'This arch was not found in the arch directory'
+    'You can use --force next time if you want to proceed anyway'
+    'Available architectures:'
+    'arm64'
+    'x86_64'
+    "Initialized kworkflow directory in $SHUNIT_TMPDIR/$KWORKFLOW/$KW_DIR based on $USER data"
+  )
 
-  ID=1
-  assertEquals "($ID)" "$USER" "$kworkflow_content"
-
-  ID=2
-  kworkflow_content=$(cat "$path_config" | grep "$KW_SHARE_SOUND_DIR" -o | head -n 1)
-  assertEquals "($ID)" "$KW_SHARE_SOUND_DIR" "$kworkflow_content"
-
-  ID=3
-  export KW_ETC_DIR="break/on/purpose"
   output=$(init_kw)
+  assertEquals "($LINENO):" 'This command should be run in a kernel tree.' "$output"
+
+  mk_fake_kernel_root "$SHUNIT_TMPDIR/$KWORKFLOW/"
+  cd "$SHUNIT_TMPDIR/$KWORKFLOW/" || {
+    fail "($LINENO): It was not possible to move to temporary directory"
+    return
+  }
+
+  output=$(init_kw)
+  kworkflow_content=$(grep "$USER" -o "$path_config" | head -n 1)
+  assertEquals "($LINENO): USERKW wasn't updated to $USER" "$USER" "$kworkflow_content"
+
+  kworkflow_content=$(grep "$KW_SOUND_DIR" -o "$path_config" | head -n 1)
+  assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SOUND_DIR" "$KW_SOUND_DIR" "$kworkflow_content"
+
+  output=$(init_kw --force)
+  if [[ ! -f "$path_config.old" ]]; then
+    fail "($LINENO) We expected to find a 'kworkflow.config.old' file."
+  fi
+
+  expect='Initialization aborted!'
+  output=$(printf '%s\n' 'n' | init_kw)
+  assertEquals "($LINENO): The init proccess didn't abort correctly" "$expect" "$output"
+
+  rm -rf "${path:?}"/*
+  output=$(init_kw --arch arm64)
+  kworkflow_content=$(grep arch= "$path_config")
+  assertEquals "($LINENO):" 'arch=arm64' "$kworkflow_content"
+
+  rm -rf "${path:?}"/*
+  output=$(init_kw --arch baroque)
+  kworkflow_content=$(grep arch= "$path_config")
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+
+  output=$(init_kw --arch baroque --force)
+  kworkflow_content=$(grep arch= "$path_config")
+  assertEquals "($LINENO):" 'arch=baroque' "$kworkflow_content"
+
+  rm -rf "${path:?}"/*
+  output=$(init_kw --remote juca@123.456.789.123:2222)
+  kworkflow_content=$(grep ssh_user= "$path_config")
+  assertEquals "($LINENO)" 'ssh_user=juca' "$kworkflow_content"
+
+  kworkflow_content=$(grep ssh_ip= "$path_config")
+  assertEquals "($LINENO)" 'ssh_ip=123.456.789.123' "$kworkflow_content"
+
+  kworkflow_content=$(grep ssh_port= "$path_config")
+  assertEquals "($LINENO)" 'ssh_port=2222' "$kworkflow_content"
+
+  rm -rf "${path:?}"/*
+  expected_content=('Something went wrong with the remote option'
+    'Invalid remote: :8888')
+  output=$(init_kw --remote ':8888')
+  assertEquals "($LINENO)" '22' "$?"
+  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+
+  rm -rf "${path:?}"/*
+  output=$(init_kw --target local)
+  kworkflow_content=$(grep default_deploy_target= "$path_config")
+  assertEquals "($LINENO)" 'default_deploy_target=local' "$kworkflow_content"
+
+  rm -rf "${path:?}"/*
+  output=$(init_kw --target dartboard | head -n 1)
+  kworkflow_content=$(grep default_deploy_target= "$path_config")
+  assertEquals "($LINENO)" 'Target can only be vm, local or remote.' "$output"
+
+  export KW_ETC_DIR="break/on/purpose"
+  output=$(init_kw -f) # avoids the overwrite prompt
   ret="$?"
-  assertEquals "($ID) We forced an error and expected to catch it" "2" "$ret"
+  assertEquals "($LINENO): We forced an error and expected to catch it" "2" "$ret"
+}
+
+function test_parse_init_options()
+{
+  unset options_values
+  declare -gA options_values
+  parse_init_options --force
+  assertEquals "($LINENO):" '1' "${options_values['FORCE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_init_options --arch arm
+  assertEquals "($LINENO):" 'arm' "${options_values['ARCH']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_init_options --not-valid
+  assertEquals "($LINENO)" '22' "$?"
+
+  unset options_values
+  unset remote_parameters
+  declare -gA options_values
+  declare -gA remote_parameters
+  parse_init_options --remote 'user@127.0.2.1:8888'
+  assertEquals "($LINENO):" 'user@127.0.2.1:8888' "${options_values['REMOTE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_init_options --target remote
+  assertEquals "($LINENO):" 'remote' "${options_values['TARGET']}"
 }
 
 invoke_shunit

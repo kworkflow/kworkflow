@@ -1,9 +1,8 @@
 #!/bin/bash
 
 include './src/config_manager.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
-LS_TITLE="Name\t\tDescription"
 COMMAND_MSG_UNKNOWN="Unknown option"
 COMMAND_MSG_INVALID_ARG="Invalid argument"
 COMMAND_NO_SUCH_FILE="No such file or directory"
@@ -19,47 +18,33 @@ readonly NAME_2="test_save_2"
 readonly DESCRIPTION_1="This is the first description"
 readonly DESCRIPTION_2="Hi, I'm the second description"
 
-readonly LS_NO_FILES="There's no tracked .config file"
-
-function suite()
-{
-  suite_addTest "execute_config_manager_SAVE_fails_Test"
-  suite_addTest "save_config_file_check_save_failures_Test"
-  suite_addTest "save_config_file_check_directories_creation_Test"
-  suite_addTest "save_config_file_check_saved_config_Test"
-  suite_addTest "save_config_file_check_description_Test"
-  suite_addTest "save_config_file_check_git_save_schema_Test"
-  suite_addTest "save_config_file_check_force_Test"
-  suite_addTest "list_config_check_when_there_is_no_config_Test"
-  suite_addTest "list_config_normal_output_Test"
-  suite_addTest "get_config_with_force_Test"
-  suite_addTest "get_config_Test"
-  suite_addTest "execute_config_manager_get_config_invalid_option_Test"
-  suite_addTest "execute_config_manager_remove_that_should_fail_Test"
-  suite_addTest "remove_config_Test"
-}
-
 function setUp()
 {
   local -r current_path="$PWD"
 
-  rm -rf "$TMP_TEST_DIR"
-
-  mkdir -p "$TMP_TEST_DIR"
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   touch .config
-  echo "$CONTENT" > .config
-  cd "$current_path"
-  KW_DATA_DIR="$current_path/$TMP_TEST_DIR"
+  printf '%s\n' "$CONTENT" > .config
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+
+  mkdir "$SHUNIT_TMPDIR/configs"
+  KW_DATA_DIR="$SHUNIT_TMPDIR"
   configs_path="$KW_DATA_DIR/configs"
 }
 
 function tearDown()
 {
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
+  mkdir -p "$SHUNIT_TMPDIR"
 }
 
-function execute_config_manager_SAVE_fails_Test()
+function test_execute_config_manager_SAVE_fails()
 {
   local msg_prefix=" --save"
 
@@ -91,14 +76,16 @@ function execute_config_manager_SAVE_fails_Test()
   assert_equals_helper "$msg_prefix -f" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
 }
 
-function save_config_file_check_save_failures_Test()
+function test_save_config_file_check_save_failures()
 {
   local current_path="$PWD"
-  local force=0
   local ret=0
 
   # Test without config file -> should fail
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   rm -f .config
   ret=$(save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1")
   assert_equals_helper 'No .config file should return ENOENT' "$LINENO" "$?" "2"
@@ -109,17 +96,26 @@ function save_config_file_check_save_failures_Test()
   assert_equals_helper "Should return ENOENT, because '.config' != '.configuration'" "$LINENO" "$?" "2"
   rm .configuration
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
-function save_config_file_check_directories_creation_Test()
+function test_save_config_file_check_directories_creation()
 {
   local current_path="$PWD"
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   # Check if all the expected files were created
   assertTrue "$LINENO: The configs dir was not created" '[[ -d $configs_path ]]'
@@ -128,114 +124,157 @@ function save_config_file_check_directories_creation_Test()
   assertTrue "$LINENO: The configs dir is not available" '[[ -d $configs_path/configs ]]'
 }
 
-function save_config_file_check_saved_config_Test()
+function test_save_config_file_check_saved_config()
 {
   local current_path="$PWD"
   local ret=0
   local msg
+  local tmp
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   msg="Failed to find $NAME_1"
   assertTrue "$LINENO: $msg" '[[ -f $configs_path/configs/$NAME_1 ]]'
   msg="Failed the metadata related to $NAME_1"
   assertTrue "$LINENO: $msg" '[[ -f $configs_path/metadata/$NAME_1 ]]'
 
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_2)
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   msg="Failed to find $NAME_2"
   assertTrue "$LINENO: $msg" '[[ -f $configs_path/configs/$NAME_2 ]]'
   msg="Failed the metadata related to $NAME_2"
   assertTrue "$LINENO: $msg" '[[ -f $configs_path/metadata/$NAME_2 ]]'
 
-  local tmp=$(cat $configs_path/configs/$NAME_2)
+  tmp=$(cat "$configs_path/configs/$NAME_2")
   msg="Content in the file does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $CONTENT ]]'
 }
 
-function save_config_file_check_description_Test()
+function test_save_config_file_check_description()
 {
   local current_path="$PWD"
   local ret=0
   local msg
+  local tmp
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
-  local tmp=$(cat $configs_path/metadata/$NAME_1)
+  tmp=$(cat "$configs_path/metadata/$NAME_1")
   msg="The description content for $NAME_1 does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_1 ]]'
 
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
-  tmp=$(cat $configs_path/metadata/$NAME_2)
+  tmp=$(cat "$configs_path/metadata/$NAME_2")
   msg="The description content for $NAME_2 does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_2 ]]'
 }
 
-function save_config_file_check_git_save_schema_Test()
+function test_save_config_file_check_git_save_schema()
 {
   local current_path="$PWD"
   local ret=0
-  local config_files_path="$current_path/$TMP_TEST_DIR"
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "configs"
+  cd "configs" || {
+    fail "($LINENO) It was not possible to move to configs directory"
+    return
+  }
   ret=$(git rev-list --all --count)
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from configs directory"
+    return
+  }
 
   assertTrue "$LINENO: We expected 2 commits, but we got $ret" '[[ $ret = "2" ]]'
 }
 
-function save_config_file_check_force_Test()
+function test_save_config_file_check_force()
 {
   local current_path="$PWD"
   local ret=0
-  local config_files_path="$current_path/$TMP_TEST_DIR"
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
   assertTrue "$LINENO: We expected no changes" '[[ $ret =~ Warning ]]'
 }
 
-function list_config_check_when_there_is_no_config_Test()
+function test_list_config_check_when_there_is_no_config()
 {
   local current_path="$PWD"
   local ret=0
-  local config_files_path="$current_path/$TMP_TEST_DIR"
 
   # There's no configs yet, initialize it
   ret=$(list_configs)
   assertTrue "$LINENO: We expected no changes" '[[ $ret =~ $LS_NO_FILES ]]'
 }
 
-function list_config_normal_output_Test()
+function test_list_config_normal_output()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
   local ret=0
   local msg
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $YES_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   # There's no configs yet, initialize it
   ret=$(list_configs)
@@ -258,7 +297,7 @@ function list_config_normal_output_Test()
   assertTrue "$LINENO:$msg" '[[ $ret =~ $DESCRIPTION_2 ]]'
 }
 
-function execute_config_manager_get_config_invalid_option_Test()
+function test_execute_config_manager_get_config_invalid_option()
 {
   local msg_prefix=" --get"
 
@@ -272,10 +311,9 @@ function execute_config_manager_get_config_invalid_option_Test()
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function get_config_Test()
+function test_get_config()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
   local ret=0
   local msg="This operation will override the current .config file"
   local replace_msg="Current config file updated based on $NAME_1"
@@ -286,56 +324,85 @@ function get_config_Test()
   )
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   # Case 1: We already have a local config, pop up with replace question
-  cd "$TMP_TEST_DIR"
-  output=$(echo 'y' | get_config "$NAME_1")
-  compare_command_sequence expected_output[@] "$output" "$LINENO"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+  output=$(printf '%s\n' 'y' | get_config "$NAME_1")
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   # Case 2: There's no local .config file
   rm -f .config
   output=$(get_config "$NAME_1")
   ret=$(cat .config)
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 }
 
-function get_config_with_force_Test()
+function test_get_config_with_force()
 {
   local current_path="$PWD"
-  local config_files_path="$current_path/$TMP_TEST_DIR"
   local ret=0
 
   # There's no configs yet, initialize it
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   # Case 1: There's no local .config file
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   rm -f .config
   get_config "$NAME_1" 1 > /dev/null 2>&1
   ret=$(cat .config)
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 
   # Case 2: There's a .config file
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   get_config "$NAME_2" 1 > /dev/null 2>&1
   ret=$(cat .config)
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
   assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 }
 
-function execute_config_manager_remove_that_should_fail_Test()
+function test_execute_config_manager_remove_that_should_fail()
 {
   local msg_prefix=" -rm"
 
@@ -349,29 +416,34 @@ function execute_config_manager_remove_that_should_fail_Test()
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
-function remove_config_Test()
+function test_remove_config()
 {
   local current_path="$PWD"
   local ret=0
-  local config_files_path="$current_path/$TMP_TEST_DIR"
 
-  cd "$TMP_TEST_DIR"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  ret=$(ls configs/configs -1 | wc -l)
+  ret=$(find configs/configs -mindepth 1 -type f | wc -l)
   # Case 1: We should have two files
   assertTrue "We expected , 2 files but got $ret" '[[ $ret = "2" ]]'
 
   # Case 2: Remove one config file
   remove_config "$NAME_1" 1 > /dev/null 2>&1
-  ret=$(ls configs/configs -1 | wc -l)
+  ret=$(find configs/configs -mindepth 1 -type f | wc -l)
   assertTrue "$LINENO: We expected , 1 files but got $ret" '[[ $ret = "1" ]]'
 
   # Case 2: Remove all config files
   remove_config "$NAME_2" 1 > /dev/null 2>&1
   assertTrue "$LINENO: We expected no file related to config" '[[ ! -f configs/configs ]]'
 
-  cd "$current_path"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit

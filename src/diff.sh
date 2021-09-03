@@ -6,15 +6,15 @@ declare -gA diff_options
 
 function diff_manager()
 {
-  local files_paths=${@: -2}
+  local files_paths=${*: -2}
   local interactive
   local target_1
   local target_2
 
   IFS=' ' read -r -a files <<< "$files_paths"
   for file in "${files[@]}"; do
-    if [[ '--help' == "$file" || '-h' == "$file" ]]; then
-      diff_help
+    if [[ "$file" =~ -h|--help ]]; then
+      diff_help "$file"
       return 0
     fi
 
@@ -38,15 +38,15 @@ function diff_manager()
   fi
 
   if [[ "${diff_options['HELP']}" == 1 ]]; then
-    diff_help
+    diff_help "$@"
     return 0
   fi
 
   interactive="${diff_options['INTERACTIVE']}"
   test_mode="${diff_options['TEST_MODE']}"
 
-  if [[ "$test_mode" == "TEST_MODE" ]]; then
-    echo "$target_1 $target_2 $interactive"
+  if [[ "$test_mode" == 'TEST_MODE' ]]; then
+    printf '%s\n' "$target_1 $target_2 $interactive"
     return 0
   fi
 
@@ -62,10 +62,10 @@ function diff_manager()
 # In case of successful return 0, otherwise, return 22.
 function diff_parser_options()
 {
-  local raw_options="$@"
+  local raw_options="$*"
 
-  diff_options["INTERACTIVE"]=1
-  diff_options["HELP"]=0
+  diff_options['INTERACTIVE']=1
+  diff_options['HELP']=0
 
   IFS=' ' read -r -a options <<< "$raw_options"
   for option in "${options[@]}"; do
@@ -74,7 +74,7 @@ function diff_parser_options()
         diff_options['INTERACTIVE']=0
         continue
         ;;
-      --help | -h | help)
+      --help | -h)
         diff_options['HELP']=1
         continue
         ;;
@@ -103,10 +103,12 @@ function diff_side_by_side()
   local file_2="$2"
   local interactive="$3"
   local flag="$4"
-  local columns=$(tput cols)
-  local diff_cmd="diff -y --color=always --width=$columns"
+  local diff_cmd
+  local columns
 
-  flag=${flag:-""}
+  columns=$(tput cols)
+  diff_cmd="diff -y --color=always --width=$columns"
+  flag=${flag:-''}
 
   if [[ ! -f "$file_1" || ! -f "$file_2" ]]; then
     complain "Make sure that $file_1 and $file_2 are a valid files"
@@ -123,7 +125,12 @@ function diff_side_by_side()
 
 function diff_help()
 {
-  echo -e "Usage: kw diff [options] FILES:\n" \
-    "\tdiff FILE1 FILE2" \
-    "\tdiff --no-interactive FILE1 FILE2"
+  if [[ "$*" =~ --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'diff'
+    return
+  fi
+  printf '%s\n' 'kw diff:' \
+    '  diff <file1> <file2>                  - interactive diff' \
+    '  diff --no-interactive <file1> <file2> - static diff'
 }

@@ -1,36 +1,23 @@
 #!/bin/bash
 
-include './tests/utils'
+include './tests/utils.sh'
 include './src/vm.sh'
-
-function suite()
-{
-  suite_addTest "vm_mount_Test"
-  suite_addTest "vm_umount_Test"
-}
-
-declare -r test_path="tests/.tmp"
 
 function setUp()
 {
-  local -r current_path="$PWD"
-
-  rm -rf "$test_path"
-
-  mkdir -p $test_path
-
-  cp -f tests/samples/kworkflow.config $test_path
+  mkdir -p "$SHUNIT_TMPDIR/.kw/"
+  cp -f tests/samples/kworkflow.config "$SHUNIT_TMPDIR/.kw/"
 }
 
 function tearDown()
 {
-  rm -rf "$test_path"
+  rm -rf "$SHUNIT_TMPDIR"
+  mkdir -p "$SHUNIT_TMPDIR"
 }
 
-function vm_mount_Test()
+function test_vm_mount()
 {
-  local ID
-  local mount_point="$test_path/lala"
+  local mount_point="$SHUNIT_TMPDIR/lala"
   local qemu_path="/any/path"
   local -r current_path="$PWD"
   local ret
@@ -47,42 +34,49 @@ function vm_mount_Test()
     "$guestmount_cmd"
   )
 
+  tearDown
   setUp
 
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
-  ID=1
-  output=$(vm_mount "TEST_MODE")
+  output=$(
+    function findmnt()
+    {
+      printf '%s\n' 'anything'
+    }
+    vm_mount 'TEST_MODE'
+  )
   ret="$?"
-  expected_ret="125"
-  assertEquals "($ID) - Expected 125" "$expected_ret" "$ret"
+  expected_ret='125'
+  assertEquals "($LINENO) - Expected 125" "$expected_ret" "$ret"
 
-  ID=2
-  output=$(vm_mount "TEST_MODE" "$qemu_path" "$mount_point")
+  output=$(vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
   ret="$?"
-  assertTrue "($ID)" "$ret"
+  assertTrue "($LINENO)" "$ret"
 
-  ID=3
-  output=$(vm_mount "TEST_MODE" "$qemu_path" "$mount_point")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  output=$(vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   load_configuration "$KW_CONFIG_SAMPLE"
 
-  ID=4
   say_msg="Mount ${configurations[qemu_path_image]} in $mount_point"
   guestmount_cmd="guestmount -a ${configurations[qemu_path_image]} -i $mount_point 2>&1"
   expected_cmd[0]="$say_msg"
   expected_cmd[1]="$guestmount_cmd"
 
   output=$(vm_mount "TEST_MODE" "" "$mount_point")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
-  cd "$current_path"
-
-  tearDown
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
-function vm_umount_Test()
+function test_vm_umount()
 {
   local ID
   local mount_point="/"
@@ -101,9 +95,10 @@ function vm_umount_Test()
     "$guestmount_cmd"
   )
 
-  setUp
-
-  cd "$test_path"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   ID=1
   output=$(vm_umount "TEST_MODE")
@@ -118,11 +113,12 @@ function vm_umount_Test()
 
   ID=3
   output=$(vm_umount "TEST_MODE" "" "$mount_point")
-  compare_command_sequence expected_cmd[@] "$output" "$ID"
+  compare_command_sequence 'expected_cmd' "$output" "$ID"
 
-  cd "$current_path"
-
-  tearDown
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit

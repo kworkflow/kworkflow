@@ -1,0 +1,4 @@
+function test2()
+{
+  printf '%s\n' 'output of test2'
+}

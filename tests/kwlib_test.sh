@@ -2,55 +2,44 @@
 
 include './src/get_maintainer_wrapper.sh'
 include './src/kwlib.sh'
-include './tests/utils'
+include './tests/utils.sh'
 
-function suite()
+function oneTimeSetUp()
 {
-  suite_addTest "is_kernel_root_Test"
-  suite_addTest "cmd_manager_check_test_mode_option_Test"
-  suite_addTest "cmd_manager_check_silent_option_Test"
-  suite_addTest "cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test"
-  suite_addTest "detect_distro_Test"
-  suite_addTest "join_path_Test"
-  suite_addTest "find_kernel_root_Test"
-  suite_addTest "is_a_patch_Test"
-  suite_addTest "get_based_on_delimiter_Test"
-  suite_addTest "store_statistics_data_Test"
-  suite_addTest "update_statistics_database_Test"
-  suite_addTest "statistics_manager_Test"
-  suite_addTest "command_exists_Test"
+  KW_DATA_DIR="$SHUNIT_TMPDIR"
+  TARGET_YEAR_MONTH="2020/05"
+  FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
+  FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
+  FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
+  ORIGINAL_DIR="$PWD"
 }
-
-KW_DATA_DIR="tests/.tmp"
-TARGET_YEAR_MONTH="2020/05"
-FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
-FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
-FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
 
 function setupFakeOSInfo()
 {
-  mkdir -p tests/.tmp/detect_distro/{arch,manjaro,debian,ubuntu}/etc
-  cp -f tests/samples/os/arch/* tests/.tmp/detect_distro/arch/etc
-  cp -f tests/samples/os/debian/* tests/.tmp/detect_distro/debian/etc
-  cp -f tests/samples/os/manjaro/* tests/.tmp/detect_distro/manjaro/etc
-  cp -f tests/samples/os/ubuntu/* tests/.tmp/detect_distro/ubuntu/etc
+  mkdir -p "$SHUNIT_TMPDIR"/detect_distro/{arch,manjaro,debian,ubuntu}/etc
+  cp -f tests/samples/os/arch/* "$SHUNIT_TMPDIR/detect_distro/arch/etc"
+  cp -f tests/samples/os/debian/* "$SHUNIT_TMPDIR/detect_distro/debian/etc"
+  cp -f tests/samples/os/manjaro/* "$SHUNIT_TMPDIR/detect_distro/manjaro/etc"
+  cp -f tests/samples/os/ubuntu/* "$SHUNIT_TMPDIR/detect_distro/ubuntu/etc"
 }
 
 function setupPatch()
 {
   mkdir -p "$FAKE_STATISTICS_MONTH_PATH"
   touch "$FAKE_STATISTICS_DAY_PATH"
-  cp -f tests/samples/test.patch tests/.tmp/
+  cp -f tests/samples/test.patch "$SHUNIT_TMPDIR"
 }
 
 function setupFakeKernelRepo()
 {
-  # This creates tests/.tmp which should mock a kernel tree root. A .git
-  # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
+  # This makes $SHUNIT_TMPDIR should mock a kernel tree root. A .git
+  # dir is also created inside $SHUNIT_TMPDIR so that get_maintainer.pl thinks
   # it is a git repo. This is done in order to avoid some warnings that
   # get_maintainer.pl prints when no .git is found.
-  mkdir -p "tests/.tmp"
-  cd "tests/.tmp"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   touch "COPYING"
   touch "CREDITS"
   touch "Kbuild"
@@ -67,29 +56,38 @@ function setupFakeKernelRepo()
   mkdir -p "lib"
   mkdir -p "scripts"
   mkdir -p ".git"
-  cd ../../
-  cp -f tests/samples/MAINTAINERS tests/.tmp/MAINTAINERS
-  cp -f tests/external/get_maintainer.pl tests/.tmp/scripts/
+  cd "$ORIGINAL_DIR" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
+  cp -f tests/samples/MAINTAINERS "$SHUNIT_TMPDIR/MAINTAINERS"
+  cp -f tests/external/get_maintainer.pl "$SHUNIT_TMPDIR/scripts/"
 }
 
-function tearDownSetup()
+function tearDown()
 {
   rm -rf "$FAKE_STATISTICS_PATH"
+  cd "$ORIGINAL_DIR" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
 }
 
-function is_kernel_root_Test()
+function test_is_kernel_root()
 {
   setupFakeKernelRepo
-  is_kernel_root "tests/.tmp"
+  is_kernel_root "$SHUNIT_TMPDIR"
   [[ "$?" != 0 ]] && fail "Failed to check if a directory is a kernel root."
-  tearDownSetup
   true # Reset return value
 }
 
-function cmd_manager_check_silent_option_Test()
+function test_cmd_manager_check_silent_option()
 {
   setupFakeKernelRepo
-  cd "tests/.tmp"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(cmd_manager SILENT ls)
 
   assertFalse "We used SILENT mode, we should not find ls" '[[ $ret =~ ls ]]'
@@ -103,17 +101,17 @@ function cmd_manager_check_silent_option_Test()
   ret=$(cmd_manager SILENT help pwd)
   assertTrue "We expected to find -P" '[[ $ret =~ -P ]]'
   assertTrue "We expected to find -L" '[[ $ret =~ -L ]]'
-
-  cd ../../
-  tearDownSetup
 }
 
 # The difference between say, complain, warning, and success it is the color
 # because of this we test all of them together
-function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test()
+function test_cmdManagerSAY_COMPLAIN_WARNING_SUCCESS()
 {
   setupFakeKernelRepo
-  cd "tests/.tmp"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
   ret=$(cmd_manager ls)
 
   assertTrue "We expected to find the ls command" '[[ $ret =~ ls ]]'
@@ -137,12 +135,9 @@ function cmdManagerSAY_COMPLAIN_WARNING_SUCCESS_Test()
   assertTrue "We expected to find MAINTAINERS" '[[ $ret =~ MAINTAINERS ]]'
   assertTrue "We expected to find arch" '[[ $ret =~ arch ]]'
   assertTrue "We expected to find scripts" '[[ $ret =~ scripts ]]'
-
-  cd ../../
-  tearDownSetup
 }
 
-function cmd_manager_check_test_mode_option_Test()
+function test_cmd_manager_check_test_mode_option()
 {
   ret=$(cmd_manager TEST_MODE pwd)
   assertEquals "Expected pwd, but we got $ret" "$ret" "pwd"
@@ -151,36 +146,38 @@ function cmd_manager_check_test_mode_option_Test()
   assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
 }
 
-function detect_distro_Test()
+function test_detect_distro()
 {
   setupFakeOSInfo
-  local root_path="tests/.tmp/detect_distro/arch"
-  local ret=$(detect_distro $root_path)
+  local root_path="$SHUNIT_TMPDIR/detect_distro/arch"
+  local ret
 
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "arch"
 
-  root_path="tests/.tmp/detect_distro/debian"
-  ret=$(detect_distro $root_path)
+  root_path="$SHUNIT_TMPDIR/detect_distro/debian"
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "debian"
 
-  root_path="tests/.tmp/detect_distro/manjaro"
-  ret=$(detect_distro $root_path)
+  root_path="$SHUNIT_TMPDIR/detect_distro/manjaro"
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "arch"
 
-  root_path="tests/.tmp/detect_distro/ubuntu"
-  ret=$(detect_distro $root_path)
+  root_path="$SHUNIT_TMPDIR/detect_distro/ubuntu"
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "debian"
 
-  root_path="tests/.tmp/detect_distro/debian/etc/lala"
-  ret=$(detect_distro $root_path)
+  root_path="$SHUNIT_TMPDIR/detect_distro/debian/etc/lala"
+  ret=$(detect_distro "$root_path")
   assertEquals "We got $ret." "$ret" "none"
 }
 
-function join_path_Test()
+function test_join_path()
 {
   local base="/lala/xpto"
-  local ret=$(join_path "/lala" "///xpto")
+  local ret
 
+  ret=$(join_path "/lala" "///xpto")
   assertEquals "Expect /lala/xpto" "$ret" "$base"
 
   ret=$(join_path "/lala" "/xpto////")
@@ -196,35 +193,33 @@ function join_path_Test()
   assertEquals "Expect /lala/" "$ret" "/lala/"
 }
 
-function find_kernel_root_Test()
+function test_find_kernel_root()
 {
   setupFakeKernelRepo
 
-  local fake_path="tests/.tmp/lala/xpto"
-  mkdir -p $fake_path
-  local kernel_path=$(find_kernel_root $fake_path)
+  local fake_path="$SHUNIT_TMPDIR/lala/xpto"
+  mkdir -p "$fake_path"
+  local kernel_path
 
-  assertEquals "We expected to find a kernel path" "$kernel_path" "tests/.tmp"
+  kernel_path=$(find_kernel_root "$fake_path")
+  assertEquals "We expected to find a kernel path" "$kernel_path" "$SHUNIT_TMPDIR"
 
   kernel_path=$(find_kernel_root "/tmp")
   assertEquals "We should not find a path" "$kernel_path" ""
 
   kernel_path=$(find_kernel_root "test/")
   assertEquals "We should not find a path" "$kernel_path" ""
-
-  tearDownSetup
 }
 
-function is_a_patch_Test()
+function test_is_a_patch()
 {
   setupPatch
-  is_a_patch "tests/.tmp/test.patch"
+  is_a_patch "$SHUNIT_TMPDIR/test.patch"
   [[ "$?" != 0 ]] && fail "Failed to check if a file is a patch."
-  tearDownSetup
   true # Reset return value
 }
 
-function get_based_on_delimiter_Test()
+function test_get_based_on_delimiter()
 {
   local ID
   local ip_port_str="IP:PORT"
@@ -283,7 +278,7 @@ function get_based_on_delimiter_Test()
 
 }
 
-function store_statistics_data_Test()
+function test_store_statistics_data()
 {
   local ID
   local fake_day_path="$FAKE_STATISTICS_DAY_PATH"
@@ -309,11 +304,9 @@ function store_statistics_data_Test()
   store_statistics_data "$fake_day_path"
   ret="$?"
   assertEquals "($ID) - " "22" "$ret"
-
-  tearDownSetup
 }
 
-function update_statistics_database_Test()
+function test_update_statistics_database()
 {
   local ID
 
@@ -327,15 +320,16 @@ function update_statistics_database_Test()
   update_statistics_database "$TARGET_YEAR_MONTH" ""
   ret="$?"
   assertEquals "($ID) - " "22" "$ret"
-
-  tearDownSetup
 }
 
-function statistics_manager_Test()
+function test_statistics_manager()
 {
   local ID
-  local this_year_and_month=$(date +%Y/%m)
-  local today=$(date +%d)
+  local this_year_and_month
+  local today
+
+  this_year_and_month=$(date +%Y/%m)
+  today=$(date +%d)
 
   setupPatch
 
@@ -350,14 +344,14 @@ function statistics_manager_Test()
   stored_value=$(cat "$FAKE_STATISTICS_PATH/$this_year_and_month/$today")
   assertEquals "($ID) - " "values 33" "$stored_value"
 
-  tearDownSetup
+  tearDown
 
   ID=4
   configurations['disable_statistics_data_track']='yes'
   assertTrue "($ID) Database day" '[[ ! -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
 }
 
-function command_exists_Test()
+function test_command_exists()
 {
   local fake_command="a-non-existent-command -p"
   local real_command="mkdir"
@@ -369,6 +363,135 @@ function command_exists_Test()
   output=$(command_exists "$real_command")
   ret="$?"
   assertEquals "$LINENO - We expected 0 as a return" 0 "$ret"
+}
+
+function test_exit_msg()
+{
+  local default_msg='Something went wrong!'
+  local custom_msg='Custom error message.'
+
+  # The `:` operation always returns 0, giving us consistent outputs
+  output=$(: && exit_msg)
+  ret="$?"
+  assertEquals "($LINENO) We expected the default msg" "$default_msg" "$output"
+  assertEquals "($LINENO) We expected 0 as a return" 0 "$ret"
+
+  output=$(: && exit_msg "$custom_msg")
+  ret="$?"
+  assertEquals "($LINENO) We expected the custom msg" "$custom_msg" "$output"
+  assertEquals "($LINENO) We expected 0 as a return" 0 "$ret"
+
+  output=$(: && exit_msg '' 3)
+  ret="$?"
+  assertEquals "($LINENO) We expected the default msg" "$default_msg" "$output"
+  assertEquals "($LINENO) We expected 3 as a return" 3 "$ret"
+
+  output=$(: && exit_msg "$custom_msg" 3)
+  ret="$?"
+  assertEquals "($LINENO) We expected the custom msg" "$custom_msg" "$output"
+  assertEquals "($LINENO) We expected 3 as a return" 3 "$ret"
+}
+
+function test_kw_parse()
+{
+  local long_options='xpto:,foo,bar'
+  local short_options='x:,f,b'
+  local out
+  local expected
+
+  out="$(kw_parse "$short_options" "$long_options" --xpto 1 --foo --bar biz)"
+  expected=" --xpto '1' --foo --bar -- 'biz'"
+  assertEquals "($LINENO)" "$expected" "$out"
+}
+
+function test_kw_parse_get_errors()
+{
+  local long_options='xpto:,foo,bar'
+  local short_options='x:,f,b'
+  local out
+  local -a expected_output
+
+  out="$(kw_parse_get_errors 'kw' "$short_options" "$long_options" --fee --bar biz --xpto)"
+  expected_output=(
+    "kw: unrecognized option '--fee'"
+    "kw: option '--xpto' requires an argument"
+  )
+  compare_command_sequence 'expected_output' "$out" "$LINENO"
+}
+
+function test_generate_tarball()
+{
+  local path_to_compress="$SHUNIT_TMPDIR/files"
+  local file_path="$SHUNIT_TMPDIR/compressed.tar.gz"
+  local output
+
+  mkdir -p "$SHUNIT_TMPDIR/files"
+  touch "$SHUNIT_TMPDIR/files/file1"
+  touch "$SHUNIT_TMPDIR/files/file2"
+
+  declare -a expected_files=(
+    './'
+    './file1'
+    './file2'
+  )
+
+  output=$(generate_tarball "$path_to_compress" "$file_path" 'gzip' '' 'SUCCESS')
+  assertEquals "($LINENO)" "tar -C $path_to_compress --gzip -cf $file_path ." "$output"
+
+  assertTrue 'Compressed file was not created' "[[ -f $SHUNIT_TMPDIR/compressed.tar.gz ]]"
+
+  output=$(tar -taf "$file_path" | sort -d)
+  compare_command_sequence expected_files "$output" "$LINENO"
+
+  output=$(generate_tarball "$SHUNIT_TMPDIR/vacation/photos" "$file_path" 'gzip' '' 'SUCCESS')
+  assertEquals "($LINENO)" "$SHUNIT_TMPDIR/vacation/photos does not exist" "$output"
+
+  output=$(generate_tarball "$path_to_compress" "$file_path" 'zipper')
+  assertEquals "($LINENO)" 'Invalid compression type: zipper' "$output"
+
+  output=$(generate_tarball "$path_to_compress" "$SHUNIT_TMPDIR/file/file" 2> /dev/null)
+  assertEquals "($LINENO)" 'Error archiving modules.' "$output"
+}
+
+function test_extract_tarball()
+{
+  local file="$SHUNIT_TMPDIR/compressed.tar.gz"
+  local output
+
+  output=$(extract_tarball "$file" "$SHUNIT_TMPDIR" 'gzip' 'SUCCESS')
+  assertEquals "($LINENO)" "tar --gzip -xf $file -C $SHUNIT_TMPDIR" "$output"
+
+  assertTrue 'Extraction not done' "[[ -f $SHUNIT_TMPDIR/file1 ]] && [[ -f $SHUNIT_TMPDIR/file2 ]]"
+
+  output=$(extract_tarball "$SHUNIT_TMPDIR/i/dont/exist.tar" "$SHUNIT_TMPDIR")
+  assertEquals "($LINENO)" "We could not find $SHUNIT_TMPDIR/i/dont/exist.tar" "$output"
+
+  output=$(extract_tarball "$file" "$SHUNIT_TMPDIR/me/neither")
+  assertEquals "($LINENO)" "$SHUNIT_TMPDIR/me/neither does not exist" "$output"
+
+  output=$(extract_tarball "$file" "$SHUNIT_TMPDIR" 'zipper' 'SUCCESS')
+  assertEquals "($LINENO)" 'Invalid compression type: zipper' "$output"
+}
+
+function test_get_file_name_from_path()
+{
+  local file_path='documents/file.txt'
+  local output
+  local expected_result='file.txt'
+
+  output=$(get_file_name_from_path "$file_path")
+  assertEquals "($LINENO)" "$expected_result" "$output"
+
+  file_path='/pictures/vacation/path/photo.png'
+  expected_result='photo.png'
+  output=$(get_file_name_from_path "$file_path")
+  assertEquals "($LINENO)" "$expected_result" "$output"
+
+  output=$(get_file_name_from_path '')
+  assertEquals "($LINENO) Should have returned an empty string" '' "$output"
+
+  output=$(get_file_name_from_path 'pictures/vacation/')
+  assertEquals "($LINENO) Should have returned an empty string" '' "$output"
 }
 
 invoke_shunit

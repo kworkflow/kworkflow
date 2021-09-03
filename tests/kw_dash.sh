@@ -1,13 +1,8 @@
 #!/bin/bash
 
-include './tests/utils'
+include './tests/utils.sh'
 
-function suite()
-{
-  suite_addTest "check_dash_integration_with_kw_Test"
-}
-
-function check_dash_integration_with_kw_Test()
+function test_check_dash_integration_with_kw()
 {
   ./tests/_kw_dash.dsh
   if [ $? -ne 0 ]; then
