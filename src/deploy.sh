@@ -92,6 +92,12 @@ function kernel_deploy()
     return "$?"
   fi
 
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    prepare_host_deploy_dir
+    #shellcheck disable=SC2119
+    prepare_remote_dir
+  fi
+
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
     run_kernel_uninstall "$target" "$reboot" "$uninstall" "$flag"
@@ -109,20 +115,14 @@ function kernel_deploy()
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
-  case "$target" in
-    1) # VM_TARGET
-      vm_mount
-      ret="$?"
-      if [[ "$ret" != 0 ]]; then
-        complain 'Please shutdown or umount your VM to continue.'
-        exit "$ret"
-      fi
-      ;;
-    3) # REMOTE_TARGET
-      prepare_host_deploy_dir
-      prepare_remote_dir
-      ;;
-  esac
+  if [[ "$target" == "$VM_TARGET" ]]; then
+    vm_mount
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain 'Please shutdown or umount your VM to continue.'
+      exit "$ret"
+    fi
+  fi
 
   # NOTE: If we deploy a new kernel image that does not match with the modules,
   # we can break the boot. For security reason, every time we want to deploy a
@@ -312,6 +312,10 @@ function prepare_remote_dir()
   local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
   local distro_info=''
   local distro=''
+  local remote_deploy_path="$KW_PLUGINS_DIR/kernel_install/remote_deploy.sh"
+  local util_path="$KW_PLUGINS_DIR/kernel_install/utils.sh"
+  local target_deploy_path="$KW_PLUGINS_DIR/kernel_install/"
+  local files_to_send
 
   flag=${flag:-'SILENT'}
 
@@ -323,18 +327,14 @@ function prepare_remote_dir()
     exit 95 # ENOTSUP
   fi
 
-  cmd_remotely "$kw_deploy_cmd" "$flag" "$remote" "$port" "$user"
+  target_deploy_path=$(join_path "$target_deploy_path" "$distro.sh")
+  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh}"
 
-  # Send the specific deploy script as a root
-  cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
-    "$DISTRO_DEPLOY_SCRIPT" '' \
-    "$remote" "$port" "$user"
-  cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/remote_deploy.sh" \
-    "$REMOTE_KW_DEPLOY/" '' \
-    "$remote" "$port" "$user"
-  cp2remote "$flag" "$KW_PLUGINS_DIR/kernel_install/utils.sh" \
-    "$REMOTE_KW_DEPLOY/" '' \
-    "$remote" "$port" "$user"
+  # Send required scripts for running the deploy inside the target machine
+  # Note: --archive will force the creation of /root/kw_deploy in case it does
+  # not exits
+  cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" \
+    '--archive' "$remote" "$port" "$user"
 }
 
 # This function list all the available kernels in a VM, local, and remote
@@ -433,8 +433,6 @@ function run_kernel_uninstall()
     3) # REMOTE_TARGET
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
-
-      prepare_remote_dir "$remote" "$port" '' "$flag"
 
       # Deploy
       # TODO

@@ -481,20 +481,8 @@ function test_list_remote_kernels()
 {
   local count=0
   local original="$PWD"
-
   # Rsync script command
   local remote_list_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"bash /root/kw_deploy/remote_deploy.sh --list_kernels 0\""
-
-  # For this test we expected:
-  #
-  # 1. Prepare remote
-  # 2. Copy debian script
-  # 3. Copy deploy script
-  # 4. Copy utils script
-  # 5. List command
-  declare -a expected_cmd=(
-    "$remote_list_cmd"
-  )
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -504,7 +492,7 @@ function test_list_remote_kernels()
   setupRemote
 
   output=$(run_list_installed_kernels 'TEST_MODE' 0 3)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  assert_equals_helper 'Standard list' "$LINENO" "$remote_list_cmd" "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -517,30 +505,12 @@ function test_kernel_uninstall()
   local original="$PWD"
   local remote_access='juca@127.0.0.1'
   local remote_path='/root/kw_deploy'
-  local ssh_cmd='ssh -p 3333'
-  local rsync_cmd="rsync -e '$ssh_cmd'"
-  local rsync_flags="-LrlptD --rsync-path='sudo rsync'"
-  local kernel_install_path='tests/.tmp/kernel_install'
   local kernel_list='5.5.0-rc7,5.6.0-rc8,5.7.0-rc2'
   local single_kernel='5.7.0-rc2'
 
-  # Create remote directory
-  local dir_kw_deploy="$ssh_cmd $remote_access sudo \"mkdir -p $remote_path\""
-
   # Rsync script command
   local cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 0 remote $kernel_list TEST_MODE"
-  local rsync_debian="$rsync_cmd $kernel_install_path/debian.sh $remote_access:$remote_path/distro_deploy.sh $rsync_flags"
-  local rsync_deploy="$rsync_cmd $kernel_install_path/remote_deploy.sh $remote_access:$remote_path/ $rsync_flags"
-  local rsync_utils="$rsync_cmd $kernel_install_path/utils.sh $remote_access:$remote_path/ $rsync_flags"
   local run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-
-  declare -a expected_cmd=(
-    "$dir_kw_deploy"
-    "$rsync_debian"
-    "$rsync_deploy"
-    "$rsync_utils"
-    "$run_kernel_uninstall_cmd"
-  )
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -553,23 +523,18 @@ function test_kernel_uninstall()
   options_values['REMOTE_IP']='127.0.0.1'
   options_values['REMOTE_PORT']=3333
   output=$(run_kernel_uninstall 3 0 "$kernel_list" 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
-
+  assert_equals_helper 'Standard uninstall' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
   # Reboot
   output=$(run_kernel_uninstall 3 1 "$kernel_list" 'TEST_MODE')
   cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 1 remote $kernel_list TEST_MODE"
-  kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-  expected_cmd[4]="$kernel_uninstall_cmd"
-
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
+  assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 
   # Single kernel
   output=$(run_kernel_uninstall 3 1 "$single_kernel" 'TEST_MODE')
   cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel 1 remote $single_kernel TEST_MODE"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
-  expected_cmd[4]="$run_kernel_uninstall_cmd"
-
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -722,22 +687,20 @@ function test_prepare_host_deploy_dir()
 
 function test_prepare_remote_dir()
 {
-  local cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
   local remote='172.16.224.1'
   local user='root'
   local port='2222'
   local flag='TEST_MODE'
-  local count=0
+  local to_copy="{remote_deploy.sh,utils.sh,debian.sh}"
+  local rsync_flags="-LrlptD --rsync-path='sudo rsync'"
+  local scripts_path="$KW_PLUGINS_DIR/kernel_install"
+  local target_address="$user@$remote"
+  local expected_cmd
 
-  declare -a expected_cmd_sequence=(
-    "ssh -p 2222 root@172.16.224.1 sudo \"mkdir -p /root/kw_deploy\""
-    "rsync -e 'ssh -p 2222' $KW_PLUGINS_DIR/kernel_install/debian.sh root@172.16.224.1:/root/kw_deploy/distro_deploy.sh -LrlptD --rsync-path='sudo rsync'"
-    "rsync -e 'ssh -p 2222' $KW_PLUGINS_DIR/kernel_install/remote_deploy.sh root@172.16.224.1:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
-    "rsync -e 'ssh -p 2222' $KW_PLUGINS_DIR/kernel_install/utils.sh root@172.16.224.1:/root/kw_deploy/ -LrlptD --rsync-path='sudo rsync'"
-  )
+  expected_cmd="rsync -e 'ssh -p 2222' $scripts_path/$to_copy $target_address:/root/kw_deploy $rsync_flags --archive"
 
   output=$(prepare_remote_dir "$remote" "$port" "$user" "$flag")
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
+  assert_equals_helper 'Infer kernel image' "$LINENO" "$expected_cmd" "$output"
 }
 
 invoke_shunit
