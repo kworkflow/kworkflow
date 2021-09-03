@@ -299,7 +299,7 @@ function get_available_connectors()
 
     IFS=',' read -r -a connectors <<< "${cards[$card]}"
     for conn in "${connectors[@]}"; do
-      echo -e " $conn" # TODO
+      printf '%s\n' " $conn"
     done
 
   done
@@ -343,7 +343,7 @@ function get_supported_mode_per_connector()
   modes=${modes//sys\/class\/drm\//}
 
   say 'Modes per card'
-  echo -e "$modes" # TODO
+  printf '%s\n' "$modes"
 }
 
 function drm_parser_options()

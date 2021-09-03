@@ -147,7 +147,7 @@ function grouping_day_data()
     end_time=$(date --date="$start_time $time_label" +%H:%M:%S)
 
     [[ -n "$details" ]] && details=": $details"
-    tags_details["$tag"]+=" * [$start_time-$end_time][$timebox]$details\n"
+    tags_details["$tag"]+=" * [$start_time-$end_time][$timebox]$details"$'\n'
 
     # Preparing metadata: total timebox in sec, total repetition
     timebox_sec=$(timebox_to_sec "$timebox")
@@ -275,7 +275,7 @@ function show_data
       " - Total repetitions: $total_repetition" \
       '' \
       'Summary:'
-    echo -e "${tags_details[$tag]}" # TODO
+    printf '%s\n' "${tags_details[$tag]}"
   done
 }
 
