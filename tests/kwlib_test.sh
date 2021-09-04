@@ -534,4 +534,150 @@ function test_get_file_name_from_path()
   assertEquals "($LINENO) Should have returned an empty string" '' "$output"
 }
 
+function test_is_inside_work_tree()
+{
+  local expected
+  local output
+  local ret
+
+  cd "$SHUNIT_TMPDIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move to temp directory"
+    return "$ret"
+  }
+
+  output=$(is_inside_work_tree 'TEST_MODE')
+  expected='git rev-parse --is-inside-work-tree &> /dev/null'
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(is_inside_work_tree '')
+  ret="$?"
+  assert_equals_helper 'Not in a git work tree, should fail' "$LINENO" 128 "$ret"
+
+  mk_fake_git
+
+  output=$(is_inside_work_tree '')
+  ret="$?"
+  assert_equals_helper 'Inside a git work tree' "$LINENO" 0 "$ret"
+
+  rm -rf .git
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move back from temp directory"
+    return "$ret"
+  }
+}
+
+function test_get_all_git_config()
+{
+  local expected
+  local output
+  local ret
+
+  cd "$SHUNIT_TMPDIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move to temp directory"
+    return "$ret"
+  }
+
+  output=$(get_all_git_config test-config '' 'TEST_MODE' | sort -d)
+  # expected='git config --get-all --show-scope -- test-config'
+  expected=$'global\t'"git config --get-all --global test-config"$'\n'
+  expected+=$'local\t'"git config --get-all --local test-config"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_all_git_config test-config 'local' 'TEST_MODE')
+  expected=$'local\tgit config --get-all --local test-config'
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  # only possible test at a global scope, as we have limited control over
+  # the user's system
+  output=$(get_all_git_config test-config 'global' 'TEST_MODE')
+  expected=$'global\tgit config --get-all --global test-config'
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  mk_fake_git
+
+  output=$(get_all_git_config user.name)
+  expected='Xpto Lala'
+  assertTrue "($LINENO): Expected to find user Xpto Lala" '[[ $output =~ $expected ]]'
+
+  output=$(get_all_git_config user.name 'local')
+  expected='Xpto Lala'
+  assertTrue "($LINENO): Expected to find user Xpto Lala" '[[ $output =~ $expected ]]'
+
+  output=$(get_all_git_config user.email)
+  expected='test@email.com'
+  assertTrue "($LINENO): Expected to find email test@email.com" '[[ $output =~ $expected ]]'
+
+  output=$(get_all_git_config test.config)
+  expected='value'
+  assertTrue "($LINENO): Expected to find test value" '[[ $output =~ $expected ]]'
+
+  rm -rf .git
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move back from temp directory"
+    return "$ret"
+  }
+}
+
+function test_get_git_config_regex()
+{
+  local expected
+  local output
+  local ret
+
+  cd "$SHUNIT_TMPDIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move to temp directory"
+    return "$ret"
+  }
+
+  output=$(get_git_config_regex test-config '' 'TEST_MODE' | sort -d)
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"$'\n'
+  expected+=$'local\t'"git config --get-regexp --local 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_git_config_regex test-config 'local' 'TEST_MODE')
+  expected=$'local\t'"git config --get-regexp --local 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  # only possible test with at global scope, as we have limited control over
+  # the user's system
+  output=$(get_git_config_regex test-config 'global' 'TEST_MODE')
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  mk_fake_git
+
+  output=$(get_git_config_regex name)
+  expected='Xpto Lala'
+  assertTrue "($LINENO): Expected to find name" '[[ $output =~ $expected ]]'
+
+  output=$(get_git_config_regex email)
+  expected='test@email.com'
+  assertTrue "($LINENO): Expected to find email" '[[ $output =~ $expected ]]'
+
+  output=$(get_git_config_regex user)
+  expected='name'
+  assertTrue "($LINENO): Expected to find name" '[[ $output =~ $expected ]]'
+  expected='email'
+  assertTrue "($LINENO): Expected to find email" '[[ $output =~ $expected ]]'
+
+  output=$(get_git_config_regex test.config)
+  expected='value'
+  assertTrue "($LINENO): Expected to find test value" '[[ $output =~ $expected ]]'
+
+  rm -rf .git
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move back from temp directory"
+    return "$ret"
+  }
+}
+
 invoke_shunit

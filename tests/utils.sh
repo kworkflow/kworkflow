@@ -216,6 +216,23 @@ function mk_fake_boot()
   cp -r "$REPO_ROOT_PATH/$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
 }
 
+function mk_fake_git()
+{
+  local -r path="$PWD"
+
+  git init -q "$path"
+
+  touch "$path/first_file"
+  printf '%s\n' 'This is the first file.' > "$path/first_file"
+
+  git add first_file
+  git commit -q -m 'Initial commit'
+
+  git config --local user.name 'Xpto Lala'
+  git config --local user.email 'test@email.com'
+  git config --local test.config value
+}
+
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #

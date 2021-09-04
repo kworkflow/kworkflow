@@ -542,3 +542,79 @@ function get_file_name_from_path()
 
   printf '%s\n' "${file_path##*/}"
 }
+
+# Checks if the command is being run inside a git work-tree
+#
+# @flag: How to display (or not) the command used
+#
+# Returns:
+# 0 if is inside a git work-tree root and 128 otherwise.
+function is_inside_work_tree()
+{
+  local flag="$1"
+  local cmd='git rev-parse --is-inside-work-tree &> /dev/null'
+
+  flag=${flag:-'SILENT'}
+
+  cmd_manager "$flag" "$cmd"
+}
+
+# Get all instances of a given git config with their scope
+#
+# @config: Given configuration to get the values of
+# @scope:  Limit search to given scope
+# @flag:   How to display (or not) the command used
+# @output: Array to store the values at a given scope
+# @scp:    Used to go through all scopes
+#
+# Returns:
+# All values of the given config with their respective scopes
+function get_all_git_config()
+{
+  local config="$1"
+  local scope="$2"
+  local flag="$3"
+  local cmd='git config --get-all'
+  local -A output
+  local scp
+
+  flag=${flag:-'SILENT'}
+
+  for scp in {'global','local'}; do
+    if [[ -z "$scope" || "$scope" == "$scp" ]]; then
+      output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp $config" | sed -E "s/^/$scp\t/g")"
+    fi
+  done
+
+  printf '%s\n' "${output[@]}"
+}
+
+# Get all instances of a given git config with their scope
+#
+# @regexp: Given regular expression to find associated values
+# @scope:  Limit search to given scope
+# @flag:   How to display (or not) the command used
+# @output: Array to store the values at a given scope
+# @scp:    Used to go through all scopes
+#
+# Returns:
+# All config values that match the given regular expression
+function get_git_config_regex()
+{
+  local regexp="$1"
+  local scope="$2"
+  local flag="$3"
+  local cmd='git config --get-regexp'
+  local -A output
+  local scp
+
+  flag=${flag:-'SILENT'}
+
+  for scp in {'global','local'}; do
+    if [[ -z "$scope" || "$scope" == "$scp" ]]; then
+      output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp '$regexp'" | sed -E "s/^/$scp\t/g")"
+    fi
+  done
+
+  printf '%s\n' "${output[@]}"
+}
