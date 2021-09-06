@@ -187,36 +187,85 @@ function get_disk()
 function get_os()
 {
   local target="$1"
-  local flag="$2"
-  local ip="$3"
-  local port="$4"
-  local cmd
+  local ip="$2"
+  local port="$3"
   local os
-  local desktop_env
-  local ux_regx='\"gnome-shell$|kde|mate|cinnamon|lxsession|openbox$\"'
 
-  flag=${flag:-'SILENT'}
   target=${target:-"${device_options['target']}"}
   ip=${ip:-"${device_options['ip']}"}
   port=${port:-"${device_options['port']}"}
-  cmd="ps -A | grep -v dev | grep -io -E -m1 $ux_regx"
+
   case "$target" in
     1) # VM_TARGET
       os=$(detect_distro "${configurations[mount_point]}")
-      desktop_env=$(find "${configurations[mount_point]}/usr/share/xsessions" -type f -printf '%f ' | sed -r 's/\.desktop//g')
       ;;
     2) # LOCAL_TARGET
       os=$(detect_distro '/')
-      desktop_env=$(cmd_manager "$flag" "$cmd")
       ;;
     3) # REMOTE_TARGET
       os=$(which_distro "$ip" "$port")
-      desktop_env=$(cmd_remotely "$cmd" "$flag" "$ip" "$port")
       ;;
   esac
 
   device_info_data['os']="$os"
-  device_info_data['desktop_environment']="$desktop_env"
+}
+
+# This function populates the desktop environment variables from the
+# device_info_data variable.
+#
+# @target Target machine
+# @remote IP address of the target machine
+# @port Destination for sending the file
+function get_desktop_environment()
+{
+  local target="$1"
+  local remote="$2"
+  local port="$3"
+  local cmd
+  local desktop_env
+  local formatted_de='unidentified'
+  local ux_regx="'gnome-shell$|kde|mate|cinnamon|lxsession|openbox$'"
+
+  flag=${flag:-'SILENT'}
+  target=${target:-"${device_options['target']}"}
+  remote=${remote:-"${device_options['ip']}"}
+  port=${port:-"${device_options['port']}"}
+  cmd="ps -A | grep -v dev | grep -io -E -m1 $ux_regx"
+
+  case "$target" in
+    1) # VM_TARGET
+      desktop_env=$(find "${configurations[mount_point]}/usr/share/xsessions" -type f -printf '%f ' | sed -r 's/\.desktop//g')
+      ;;
+    2) # LOCAL_TARGET
+      desktop_env=$(cmd_manager "$flag" "$cmd")
+      ;;
+    3) # REMOTE_TARGET
+      desktop_env=$(cmd_remotely "$cmd" "$flag" "$remote" "$port")
+      ;;
+  esac
+
+  case "$desktop_env" in
+    gnome-shell)
+      formatted_de='gnome'
+      ;;
+    lxsession)
+      formatted_de='lxde'
+      ;;
+    openbox)
+      formatted_de='openbox'
+      ;;
+    kde)
+      formatted_de='kde'
+      ;;
+    mate)
+      formatted_de='mate'
+      ;;
+    cinnamon)
+      formatted_de='cinnamon'
+      ;;
+  esac
+
+  device_info_data['desktop_environment']="$formatted_de"
 }
 
 # This function populates the gpu associative array with the vendor and
@@ -391,7 +440,8 @@ function learn_device()
   get_ram "$target" "$flag"
   get_cpu "$target" "$flag"
   get_disk "$target" "$flag"
-  get_os "$target" "$flag"
+  get_os "$target" "$ip" "$port"
+  get_desktop_environment "$target" "$ip" "$port"
   get_gpu "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
