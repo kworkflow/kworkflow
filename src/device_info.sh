@@ -193,12 +193,13 @@ function get_os()
   local cmd
   local os
   local desktop_env
+  local ux_regx='\"gnome-shell$|kde|mate|cinnamon|lxsession|openbox$\"'
 
   flag=${flag:-'SILENT'}
   target=${target:-"${device_options['target']}"}
   ip=${ip:-"${device_options['ip']}"}
   port=${port:-"${device_options['port']}"}
-  cmd="find /usr/share/xsessions -type f -printf '%f ' | sed -r 's/\.desktop//g'"
+  cmd="ps -A | grep -v dev | grep -io -E -m1 $ux_regx"
   case "$target" in
     1) # VM_TARGET
       os=$(detect_distro "${configurations[mount_point]}")
