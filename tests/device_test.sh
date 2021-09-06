@@ -132,4 +132,76 @@ function test_display_data()
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 }
 
+function detect_distro_mock()
+{
+  printf '%s\n' 'lala'
+}
+
+function which_distro_mock()
+{
+  printf '%s\n' 'xpto'
+}
+
+function test_get_os()
+{
+  local cmd
+
+  # Check local deploy
+  shopt -s expand_aliases
+  alias detect_distro='detect_distro_mock'
+  get_os "$LOCAL_TARGET"
+  assertEquals "($LINENO)" 'lala' "${device_info_data['os']}"
+
+  # VM
+  get_os "$VM_TARGET"
+  assertEquals "($LINENO)" 'lala' "${device_info_data['os']}"
+
+  # Remote
+  alias which_distro='which_distro_mock'
+  get_os "$REMOTE_TARGET"
+  assertEquals "($LINENO)" 'xpto' "${device_info_data['os']}"
+}
+
+function ps_mock()
+{
+  printf '%s\n' "$1"
+}
+
+function test_get_desktop_environment()
+{
+  local cmd
+  local output
+
+  shopt -s expand_aliases
+
+  # Check local deploy and some DE variations
+  alias ps='ps_mock lxsession'
+  get_desktop_environment "$LOCAL_TARGET"
+  assertEquals "($LINENO)" 'lxde' "${device_info_data['desktop_environment']}"
+
+  alias ps='ps_mock kde'
+  get_desktop_environment "$LOCAL_TARGET"
+  assertEquals "($LINENO)" 'kde' "${device_info_data['desktop_environment']}"
+
+  alias ps='ps_mock mate'
+  get_desktop_environment "$LOCAL_TARGET"
+  assertEquals "($LINENO)" 'mate' "${device_info_data['desktop_environment']}"
+
+  alias ps='ps_mock cinnamon'
+  get_desktop_environment "$LOCAL_TARGET"
+  assertEquals "($LINENO)" 'cinnamon' "${device_info_data['desktop_environment']}"
+
+  alias ps='ps_mock openbox'
+  get_desktop_environment "$LOCAL_TARGET"
+  assertEquals "($LINENO)" 'openbox' "${device_info_data['desktop_environment']}"
+
+  alias ps='ps_mock gnome-shell'
+  get_desktop_environment "$LOCAL_TARGET"
+  assertEquals "($LINENO)" 'gnome' "${device_info_data['desktop_environment']}"
+
+  alias ps='ps_mock something'
+  get_desktop_environment "$LOCAL_TARGET"
+  assertEquals "($LINENO)" 'unidentified' "${device_info_data['desktop_environment']}"
+}
+
 invoke_shunit
