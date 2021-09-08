@@ -239,7 +239,7 @@ function show_total_work_hours()
   minutes=$((work_hours_sec % 3600 / 60))
   seconds=$((work_hours_sec % 60))
 
-  printf ' * Total focus hours: %02d:%02d:%02d\n' "$hours" "$minutes" "$seconds"
+  printf ' * Total hours of focus: %02d:%02d:%02d\n' "$hours" "$minutes" "$seconds"
 }
 
 # Show report data after processing.
@@ -263,7 +263,7 @@ function show_data
   done
 
   show_total_work_hours "$total_focus_time"
-  printf '%s\n\n' " * Total focus section: $total_repetition"
+  printf '%s\n\n' " * Total focus session(s): $total_repetition"
 
   for tag in "${!tags_details[@]}"; do
     printf '%s\n' "## $tag"
@@ -274,8 +274,8 @@ function show_data
     printf '%s\n' " - Total focus time: $total_time" \
       " - Total repetitions: $total_repetition" \
       '' \
-      'Summary:'
-    printf '%s\n' "${tags_details[$tag]}"
+      'Summary:' \
+      "${tags_details[$tag]}"
   done
 }
 
