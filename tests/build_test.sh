@@ -1,3 +1,5 @@
+#!/bin/bash
+
 include './src/build.sh'
 include './tests/utils.sh'
 
