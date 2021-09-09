@@ -1,5 +1,6 @@
 # This file deals with functions related to hardware information
 
+include "$KW_LIB_DIR/kw_string.sh"
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/vm.sh"
@@ -324,20 +325,37 @@ function get_motherboard()
   local mb_vendor
   local cmd_name
   local cmd_vendor
+  local fallback_name_cmd="cat /proc/cpuinfo | grep Model | cut -d ':' -f2"
+  local fallback_vendor_cmd="cat /proc/cpuinfo | grep Hardware | cut -d ':' -f2"
 
   ip=${ip:-"${device_options['ip']}"}
   port=${port:-"${device_options['port']}"}
   flag=${flag:-'SILENT'}
   cmd_name='[ -f /sys/devices/virtual/dmi/id/board_name ] && cat /sys/devices/virtual/dmi/id/board_name'
   cmd_vendor='[ -f /sys/devices/virtual/dmi/id/board_vendor ] && cat /sys/devices/virtual/dmi/id/board_vendor'
+
   case "$target" in
     2) # LOCAL_TARGET
       mb_name=$(cmd_manager "$flag" "$cmd_name")
       mb_vendor=$(cmd_manager "$flag" "$cmd_vendor")
+
+      # Fallback
+      [[ -z "$mb_name" ]] && mb_name=$(cmd_manager "$flag" "$fallback_name_cmd")
+      [[ -z "$mb_vendor" ]] && mb_vendor=$(cmd_manager "$flag" "$fallback_vendor_cmd")
+
       ;;
     3) # REMOTE_TARGET
       mb_name=$(cmd_remotely "$cmd_name" "$flag" "$ip" "$port")
       mb_vendor=$(cmd_remotely "$cmd_vendor" "$flag" "$ip" "$port")
+
+      # Fallback
+      if [[ -z "$mb_name" ]]; then
+        mb_name=$(cmd_remotely "$fallback_name_cmd" "$flag" "$ip" "$port")
+      fi
+
+      if [[ -z "$mb_vendor" ]]; then
+        mb_vendor=$(cmd_remotely "$fallback_vendor_cmd" "$flag" "$ip" "$port")
+      fi
       ;;
   esac
 
@@ -347,8 +365,8 @@ function get_motherboard()
     return 0
   fi
 
-  device_info_data['motherboard_name']="$mb_name"
-  device_info_data['motherboard_vendor']="$mb_vendor"
+  device_info_data['motherboard_name']=$(str_strip "$mb_name")
+  device_info_data['motherboard_vendor']=$(str_strip "$mb_vendor")
 }
 
 # This function gets the chassis type of the target machine.
@@ -360,8 +378,10 @@ function get_chassis()
   local flag="$2"
   local ip="$3"
   local port="$4"
-  local cmd
-  local chassis_type
+  local dmi_cmd
+  local chassis_type=2 # Unknown
+  local dmi_file_path='/sys/devices/virtual/dmi/id/chassis_type'
+  local dmi_check_cmd="test -f $dmi_file_path"
 
   declare -a chassis_table=('Other' 'Unknown' 'Desktop' 'Low Profile Desktop'
     'Pizza Box' 'Mini Tower' 'Tower' 'Portable' 'Laptop' 'Notebook' 'Hand Held'
@@ -373,21 +393,27 @@ function get_chassis()
   ip=${ip:-"${device_options['ip']}"}
   port=${port:-"${device_options['port']}"}
   flag=${flag:-'SILENT'}
-  cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
+  dmi_cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
+
   case "$target" in
     1) # VM_TARGET
       chassis_type=25
       ;;
     2) # LOCAL_TARGET
-      chassis_type=$(cmd_manager "$flag" "$cmd")
+      if [[ -f "$dmi_file_path" ]]; then
+        chassis_type=$(cmd_manager "$flag" "$dmi_cmd")
+      fi
       ;;
     3) # REMOTE_TARGET
-      chassis_type=$(cmd_remotely "$cmd" "$flag" "$ip" "$port")
+      cmd_remotely "test -f $dmi_file_path" "$flag" "$ip" "$port"
+      if [[ "$?" == 0 ]]; then
+        chassis_type=$(cmd_remotely "$dmi_cmd" "$flag" "$ip" "$port")
+      fi
       ;;
   esac
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$cmd"
+    printf '%s\n' "$dmi_cmd"
     return 0
   fi
 
