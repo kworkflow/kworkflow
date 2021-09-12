@@ -189,7 +189,7 @@ elif [[ "$1" == 'list' ]]; then
     say "$index) ${test_name}"
   done
 elif [[ "$1" == 'test' ]]; then
-  strip_path "${*:2}"
+  strip_path "${@:2}"
   run_tests
 elif [[ "$1" == 'prepare' ]]; then
   if [[ "$#" -gt 1 && ("$2" == '--force-update' || "$2" == '-f') ]]; then
