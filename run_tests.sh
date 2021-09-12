@@ -199,7 +199,6 @@ elif [[ "$1" == 'prepare' ]]; then
 
   if [[ "$check_files" -eq 17 ]]; then
     say 'You are ready to run the unit test'
-    return 0
   fi
 else
   show_help
