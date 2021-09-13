@@ -75,7 +75,7 @@ language = None
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'sphinx'
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -83,7 +83,14 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+try:
+    import sphinx_book_theme
+    html_theme = 'sphinx_book_theme'
+except ImportError:
+    sys.stderr.write('We could not find Book theme, try: pip install sphinx_book_theme. For now, kw will assume the default theme - Alabaster\n')
+    html_theme = 'alabaster'
+
+html_favicon = 'favicon.ico'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the

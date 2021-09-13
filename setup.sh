@@ -4,8 +4,10 @@
 . src/kwlib.sh --source-only
 
 # List of dependences per distro
-arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx imagemagick graphviz python-virtualenv texlive-bin librsvg bzip2 lzip lzop zstd xz)
-debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc imagemagick graphviz dvipng python3-venv latexmk librsvg2-bin texlive-xetex python3-sphinx python3-dask-sphinx-theme bzip2 lzip xz-utils lzop zstd)
+arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx imagemagick graphviz python-virtualenv texlive-bin librsvg bzip2 lzip lzop zstd xz python-pip)
+debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc imagemagick graphviz dvipng python3-venv latexmk librsvg2-bin texlive-xetex python3-sphinx python3-dask-sphinx-theme python3-pip bzip2 lzip xz-utils lzop zstd)
+
+pip_packages=(sphinx-book-theme)
 
 SILENT=1
 VERBOSE=0
@@ -45,6 +47,7 @@ declare -r CONFIGS_PATH='configs'
 function check_dependencies()
 {
   local package_list=''
+  local pip_package_list=''
   local cmd=''
   local distro
 
@@ -61,20 +64,30 @@ function check_dependencies()
       installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
     done
-    cmd="apt install $package_list"
+    cmd="apt install -y $package_list"
   else
     warning 'Unfortunately, we do not have official support for your distro (yet)'
     warning "Please, try to find the following packages: ${arch_packages[*]}"
     return 0
   fi
 
+  for package in "${pip_packages[@]}"; do
+    pip list | grep -F "$package" > /dev/null
+    [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
+  done
+
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ '0' ]]; then
+      if [[ $(ask_yN "Can we install the following dependencies $package_list $pip_package_list?") =~ '0' ]]; then
         return 0
       fi
     fi
+
+    # Install system package
     eval "sudo $cmd"
+    # Install pip packages
+    cmd="pip install $pip_package_list"
+    eval "$cmd"
   fi
 }
 
@@ -429,6 +442,7 @@ case "$1" in
     usage
     ;;
   --docs)
+    check_dependencies
     sphinx-build -nW -b html documentation/ build
     ;;
   *)
