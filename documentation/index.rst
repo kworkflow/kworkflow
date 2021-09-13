@@ -25,6 +25,7 @@ Check out our tutorials to see how you can use kw.
    :maxdepth: 1
    :caption: Tutorials:
 
+   tutorials/configm
    tutorials/buildlinux
    tutorials/setup
 
