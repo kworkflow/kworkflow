@@ -3,12 +3,6 @@
 . src/kwio.sh --source-only
 . src/kwlib.sh --source-only
 
-# List of dependences per distro
-arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx imagemagick graphviz python-virtualenv texlive-bin librsvg bzip2 lzip lzop zstd xz python-pip)
-debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc imagemagick graphviz dvipng python3-venv latexmk librsvg2-bin texlive-xetex python3-sphinx python3-dask-sphinx-theme python3-pip bzip2 lzip xz-utils lzop zstd)
-
-pip_packages=(sphinx-book-theme)
-
 SILENT=1
 VERBOSE=0
 FORCE=0
@@ -54,27 +48,28 @@ function check_dependencies()
   distro=$(detect_distro '/')
 
   if [[ "$distro" =~ 'arch' ]]; then
-    for package in "${arch_packages[@]}"; do
+    while IFS='' read -r package; do
       installed=$(pacman -Qs "$package" > /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
-    done
+    done < "$CONFIG_DIR/arch.dependencies"
     cmd="pacman -S $package_list"
   elif [[ "$distro" =~ 'debian' ]]; then
-    for package in "${debian_packages[@]}"; do
+    while IFS='' read -r package; do
       installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
-    done
+    done < "$CONFIG_DIR/debian.dependencies"
     cmd="apt install -y $package_list"
   else
     warning 'Unfortunately, we do not have official support for your distro (yet)'
-    warning "Please, try to find the following packages: ${arch_packages[*]}"
+    warning 'Please, try to find the following packages:'
+    warning "$(cat "$CONFIG_DIR/arch.dependencies")"
     return 0
   fi
 
-  for package in "${pip_packages[@]}"; do
+  while IFS='' read -r package; do
     pip list | grep -F "$package" > /dev/null
     [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
-  done
+  done < "$CONFIG_DIR/pip.dependencies"
 
   if [[ -n "$package_list" ]] || [[ -n "$pip_package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
