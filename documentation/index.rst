@@ -29,10 +29,9 @@ Check out our tutorials to see how you can use kw.
    :maxdepth: 1
    :caption: Tutorials:
 
-   tutorials/buildlinux
-   tutorials/configm
    tutorials/setup
    tutorials/buildlinux
+   tutorials/configm
    tutorials/pomodoro-report
 
 kw Man
