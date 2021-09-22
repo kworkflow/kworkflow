@@ -76,7 +76,7 @@ function check_dependencies()
     [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
   done
 
-  if [[ -n "$package_list" ]]; then
+  if [[ -n "$package_list" ]] || [[ -n "$pip_package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
       if [[ $(ask_yN "Can we install the following dependencies $package_list $pip_package_list?") =~ '0' ]]; then
         return 0
@@ -86,8 +86,12 @@ function check_dependencies()
     # Install system package
     eval "sudo $cmd"
     # Install pip packages
-    cmd="pip install $pip_package_list"
-    eval "$cmd"
+    if [[ -n "$pip_package_list" ]]; then
+      cmd="pip install $pip_package_list"
+      eval "$cmd"
+    fi
+    # ! Maybe this is better:
+    # [[ -n "$pip_install" ]] && eval "pip install $pip_package_list"
   fi
 }
 
