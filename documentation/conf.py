@@ -87,7 +87,7 @@ try:
     import sphinx_book_theme
     html_theme = 'sphinx_book_theme'
 except ImportError:
-    sys.stderr.write('We could not find Book theme, try: pip install sphinx_book_theme. For now, kw will assume the default theme - Alabaster\n')
+    sys.stderr.write('We could not find Book theme, try: pip install sphinx-book-theme. For now, kw will assume the default theme - Alabaster\n')
     html_theme = 'alabaster'
 
 html_favicon = 'favicon.ico'
