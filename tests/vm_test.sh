@@ -1,6 +1,7 @@
 #!/bin/bash
 
 include './tests/utils.sh'
+include './src/kw_config_loader.sh'
 include './src/vm.sh'
 
 function setUp()
@@ -41,7 +42,7 @@ function test_vm_mount()
 
   function uname()
   {
-    echo '5.1'
+    printf '5.1'
   }
 
   tearDown
@@ -112,7 +113,7 @@ function test_vm_mount()
   expected_cmd[0]="$say_msg"
   expected_cmd[1]="$guestmount_cmd"
 
-  output=$(vm_mount "TEST_MODE" "" "$mount_point")
+  output=$(vm_mount 'TEST_MODE' '' "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   cd "$current_path" || {
@@ -123,7 +124,6 @@ function test_vm_mount()
 
 function test_vm_umount()
 {
-  local ID
   local mount_point="/"
   local -r current_path="$PWD"
   local ret
@@ -145,25 +145,66 @@ function test_vm_umount()
     return
   }
 
-  ID=1
-  output=$(vm_umount "TEST_MODE")
+  output=$(vm_umount 'TEST_MODE')
   ret="$?"
   expected_ret="125"
-  assertEquals "($ID) - Expected 125" "$expected_ret" "$ret"
+  assertEquals "($LINENO)" "$expected_ret" "$ret"
 
-  ID=2
-  output=$(vm_umount "TEST_MODE" "" "$mount_point")
+  output=$(vm_umount 'TEST_MODE' '' "$mount_point")
   ret="$?"
-  assertTrue "($ID): We got: $ret" "$ret"
+  assertTrue "($LINENO)" "$ret"
 
-  ID=3
-  output=$(vm_umount "TEST_MODE" "" "$mount_point")
-  compare_command_sequence 'expected_cmd' "$output" "$ID"
+  output=$(vm_umount 'TEST_MODE' '' "$mount_point")
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
+}
+
+function test_vm_parse_options()
+{
+  unset options_values
+  declare -gA options_values
+  local output
+  local option_output
+
+  # test default options
+  parse_vm_options
+  assertEquals "($LINENO)" '' "${options_values['MOUNT']}"
+  assertEquals "($LINENO)" '' "${options_values['UMOUNT']}"
+  assertEquals "($LINENO)" '' "${options_values['UP']}"
+
+  # test individual options
+  unset options_values
+  declare -gA options_values
+  parse_vm_options --mount
+  assertEquals "($LINENO)" '1' "${options_values['MOUNT']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_vm_options --umount
+  assertEquals "($LINENO)" '1' "${options_values['UMOUNT']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_vm_options --up
+  assertEquals "($LINENO)" '1' "${options_values['UP']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_vm_options --alert=v
+  assertEquals "($LINENO)" '--alert=v' "${options_values['ALERT_COMPLETION']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_vm_options --alert=s
+  assertEquals "($LINENO)" '--alert=s' "${options_values['ALERT_COMPLETION']}"
+
+  parse_vm_options --mispelled
+  assertEquals "($LINENO)" 22 "$?"
+  assertEquals "($LINENO)" "kw vm: unrecognized option '--mispelled'" "${options_values['ERROR']}"
 }
 
 invoke_shunit

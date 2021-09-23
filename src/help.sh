@@ -27,14 +27,12 @@ function kworkflow_help()
     '  init - Initialize kworkflow config file' \
     '  maintainers,m - Get maintainers and mailing list' \
     '  man - Show manual pages' \
-    '  mount,mo - Mount partition with qemu-nbd' \
     '  pomodoro,p - kw pomodoro support' \
     '  ssh,s - SSH support' \
     '  statistics - Provide basic statistics related to daily development' \
-    '  umount,um - Umount partition created with qemu-nbd' \
-    '  up,u - Wake up vm' \
     '  vars - Show variables' \
-    '  version,--version,-v - show kw version'
+    '  version,--version,-v - show kw version' \
+    '  vm - Set of commands to work with QEMU VMs'
 }
 
 # Display the man documentation that is built on install
