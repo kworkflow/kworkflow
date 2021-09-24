@@ -29,7 +29,7 @@ function execute_config_manager()
 
   if [[ -z "$*" ]]; then
     list_configs
-    exit 0
+    return "$?"
   fi
 
   if [[ "$1" =~ -h|--help ]]; then
@@ -51,27 +51,27 @@ function execute_config_manager()
 
   if [[ -n "${options_values['SAVE']}" ]]; then
     save_config_file "$force" "$name_config" "$description_config"
-    return
+    return "$?"
   fi
 
   if [[ -n "${options_values['LIST']}" ]]; then
     list_configs
-    return
+    return "$?"
   fi
 
   if [[ -n "${options_values['GET']}" ]]; then
     get_config "${options_values['GET']}" "$force"
-    return
+    return "$?"
   fi
 
   if [[ -n "${options_values['REMOVE']}" ]]; then
     remove_config "${options_values['REMOVE']}" "$force"
-    return
+    return "$?"
   fi
 
   if [[ -n "${options_values['FETCH']}" ]]; then
     fetch_config "$flag" "$force" "${options_values['OUTPUT']}" "$optimize" "${options_values['TARGET']}"
-    return
+    return "$?"
   fi
 }
 
@@ -95,7 +95,7 @@ function save_config_file()
 
   if [[ ! -f "$original_path/.config" ]]; then
     complain 'There is no .config file in the current directory'
-    exit 2 # ENOENT
+    return 2 # ENOENT
   fi
 
   if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
@@ -114,7 +114,7 @@ function save_config_file()
     if [[ $(ask_yN "$name already exists. Update?") =~ '0' ]]; then
       complain 'Save operation aborted'
       cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
-      exit 0
+      return 0
     fi
   fi
 
@@ -216,7 +216,7 @@ function fetch_config()
       else
         if ! is_kernel_root "$PWD"; then
           complain 'This command should be run in a kernel tree.'
-          exit 125 # ECANCELED
+          return 125 # ECANCELED
         fi
 
         arch=$(uname -m)
@@ -239,7 +239,7 @@ function fetch_config()
       ret="$?"
       if [[ "$ret" != 0 ]]; then
         warning 'We could not retrieve the config file'
-        exit "$ret"
+        return "$ret"
       fi
 
       mods=$(cmd_manager "$flag" 'lsmod')
@@ -255,7 +255,7 @@ function fetch_config()
         ret="$?"
         if [[ "$ret" != 0 ]]; then
           warning 'We could not retrieve the config file'
-          exit "$ret"
+          return "$ret"
         fi
 
         remote2host "/tmp/kw/$output" "$PWD" "$ip" "$port" "$user" "$flag"
@@ -266,14 +266,14 @@ function fetch_config()
         ret="$?"
         if [[ "$ret" != 0 ]]; then
           warning 'We could not retrieve the config file'
-          exit "$ret"
+          return "$ret"
         fi
 
         remote2host "/tmp/kw/$output" "$PWD" "$ip" "$port" "$user" "$flag"
       else
         if ! is_kernel_root "$PWD"; then
           complain 'This command should be run in a kernel tree.'
-          exit 125 # ECANCELED
+          return 125 # ECANCELED
         fi
 
         arch=$(cmd_remotely 'uname -m' "$flag" "$ip" "$port" "$user")
@@ -289,7 +289,7 @@ function fetch_config()
         ret="$?"
         if [[ "$ret" != 0 ]]; then
           warning 'We could not retrieve the config file'
-          exit "$ret"
+          return "$ret"
         fi
       fi
 
@@ -301,7 +301,7 @@ function fetch_config()
   if [[ -n "$optimize" ]]; then
     if ! is_kernel_root "$PWD"; then
       complain 'This command should be run in a kernel tree.'
-      exit 125 # ECANCELED
+      return 125 # ECANCELED
     fi
 
     printf "%s" "$mods" > "$KW_CACHE_DIR/lsmod"
@@ -344,7 +344,7 @@ function list_configs()
 
   if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
     say 'There is no tracked .config file'
-    exit 0
+    return 0
   fi
 
   printf '%-30s | %-30s\n' 'Name' $'Description\n'
