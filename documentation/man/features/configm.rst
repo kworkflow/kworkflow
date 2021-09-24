@@ -14,7 +14,9 @@ SYNOPSIS
 DESCRIPTION
 ===========
 The **configm** command manages different versions of the project's **.config**
-file. It provides the save, load, remove, and list operations of such files.
+file. It provides the save, load, remove, and list operations of such files. By
+default, if the user does not provide any parameter, the configm will list all
+configs under kw management.
 
 OPTIONS
 =======
@@ -26,7 +28,8 @@ OPTIONS
   **kw** will issue a warning; ``-f`` will suppress this message.
 
 -l, \--list:
-  Lists all the **.config** file versions available.
+  Lists all the **.config** file versions available. If the user does not
+  provide any command option, kw will assume the list option.
 
 \--get <name> [-f | \--force]:
   Get a config file based on the *<name>* and paste it in the current

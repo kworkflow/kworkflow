@@ -9,6 +9,72 @@ declare -gr configs_dir='configs'
 declare -gA options_values
 declare -g root='/'
 
+# This function handles the options available in 'configm'.
+#
+# @* This parameter expects a list of parameters, such as '-n', '-d', and '-f'.
+#
+# Returns:
+# Return 0 if everything ends well, otherwise return an errno code.
+function execute_config_manager()
+{
+  local name_config
+  local description_config
+  local force
+  local flag='SILENT'
+  local optimize
+  local user
+  local remote
+  local ip
+  local port
+
+  if [[ -z "$*" ]]; then
+    list_configs
+    exit 0
+  fi
+
+  if [[ "$1" =~ -h|--help ]]; then
+    config_manager_help "$1"
+    exit 0
+  fi
+
+  parse_configm_options "$@"
+
+  if [[ "$?" -gt 0 ]]; then
+    complain "${options_values['ERROR']}"
+    exit 22 # EINVAL
+  fi
+
+  name_config="${options_values['SAVE']}"
+  description_config="${options_values['DESCRIPTION']}"
+  force="${options_values['FORCE']}"
+  optimize="${options_values['OPTIMIZE']}"
+
+  if [[ -n "${options_values['SAVE']}" ]]; then
+    save_config_file "$force" "$name_config" "$description_config"
+    return
+  fi
+
+  if [[ -n "${options_values['LIST']}" ]]; then
+    list_configs
+    return
+  fi
+
+  if [[ -n "${options_values['GET']}" ]]; then
+    get_config "${options_values['GET']}" "$force"
+    return
+  fi
+
+  if [[ -n "${options_values['REMOVE']}" ]]; then
+    remove_config "${options_values['REMOVE']}" "$force"
+    return
+  fi
+
+  if [[ -n "${options_values['FETCH']}" ]]; then
+    fetch_config "$flag" "$force" "${options_values['OUTPUT']}" "$optimize" "${options_values['TARGET']}"
+    return
+  fi
+}
+
 # This function handles the save operation of kernel's '.config' file. It
 # checks if the '.config' exists and saves it using git (dir.:
 # <kw_install_path>/configs)
@@ -381,67 +447,6 @@ function remove_config()
   if [ ! "$(ls "$dot_configs_dir")" ]; then
     rm -rf "/tmp/$configs_dir"
     mv "$dot_configs_dir" /tmp
-  fi
-}
-
-# This function handles the options available in 'configm'.
-#
-# @* This parameter expects a list of parameters, such as '-n', '-d', and '-f'.
-#
-# Returns:
-# Return 0 if everything ends well, otherwise return an errno code.
-function execute_config_manager()
-{
-  local name_config
-  local description_config
-  local force
-  local flag='SILENT'
-  local optimize
-  local user
-  local remote
-  local ip
-  local port
-
-  if [[ -z "$*" ]]; then
-    complain 'Please, provide an argument'
-    config_manager_help
-    exit 22 # EINVAL
-  fi
-
-  parse_configm_options "$@"
-
-  if [[ "$?" -gt 0 ]]; then
-    exit 22 # EINVAL
-  fi
-
-  name_config="${options_values['SAVE']}"
-  description_config="${options_values['DESCRIPTION']}"
-  force="${options_values['FORCE']}"
-  optimize="${options_values['OPTIMIZE']}"
-
-  if [[ -n "${options_values['SAVE']}" ]]; then
-    save_config_file "$force" "$name_config" "$description_config"
-    return
-  fi
-
-  if [[ -n "${options_values['LIST']}" ]]; then
-    list_configs
-    return
-  fi
-
-  if [[ -n "${options_values['GET']}" ]]; then
-    get_config "${options_values['GET']}" "$force"
-    return
-  fi
-
-  if [[ -n "${options_values['REMOVE']}" ]]; then
-    remove_config "${options_values['REMOVE']}" "$force"
-    return
-  fi
-
-  if [[ -n "${options_values['FETCH']}" ]]; then
-    fetch_config "$flag" "$force" "${options_values['OUTPUT']}" "$optimize" "${options_values['TARGET']}"
-    return
   fi
 }
 
