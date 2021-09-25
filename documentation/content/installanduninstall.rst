@@ -1,6 +1,6 @@
-===========================
-  Install and Remove `kw`
-===========================
+=======================
+Install and Remove `kw`
+=======================
 
 .. _install-and-remove-kw:
 
@@ -13,34 +13,25 @@
 
 Package Dependencies
 --------------------
-You have to figure out the correct package name in your distro for the
-following dependencies:
+We currently support *arch* and *debian* for automatic dependencies
+installation. These are the current dependencies for *arch*:
 
-* libguestfs
-* Qemu
-* Bash >= 4.4
-* git
-* tar
-* python-docutils
-* rsync
+.. include:: ../dependencies/arch.dependencies
+   :literal:
 
-If you want to use the default alert system (for commands that may take longer
-to run), you also have to install:
+These are the current dependencies for *debian*:
 
-* paplay
-* notify-send or dunst
+.. include:: ../dependencies/debian.dependencies
+   :literal:
 
-For development, you will need:
+If you want to build the documentation as it is displayed on our website you
+also need this pip package:
 
-* dash
-* shunit2
-
-For getting the Sphinx Documentation:
-
-* Sphinx
+.. include:: ../dependencies/pip.dependencies
+   :literal:
 
 .. note::
-   Our base support is Ubuntu LTS. I.e., the dependency packages installed in
+   Our base support is Ubuntu LTS. i.e., the dependency packages installed in
    your system should be at least as new as those present in Ubuntu LTS.
 
 Recommendations

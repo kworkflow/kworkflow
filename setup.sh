@@ -51,42 +51,47 @@ function check_dependencies()
     while IFS='' read -r package; do
       installed=$(pacman -Qs "$package" > /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
-    done < "$CONFIG_DIR/arch.dependencies"
+    done < "$DOCUMENTATION/dependencies/arch.dependencies"
     cmd="pacman -S $package_list"
   elif [[ "$distro" =~ 'debian' ]]; then
     while IFS='' read -r package; do
       installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
-    done < "$CONFIG_DIR/debian.dependencies"
+    done < "$DOCUMENTATION/dependencies/debian.dependencies"
     cmd="apt install -y $package_list"
   else
     warning 'Unfortunately, we do not have official support for your distro (yet)'
     warning 'Please, try to find the following packages:'
-    warning "$(cat "$CONFIG_DIR/arch.dependencies")"
+    warning "$(cat "$DOCUMENTATION/dependencies/arch.dependencies")"
     return 0
   fi
 
   while IFS='' read -r package; do
     pip list | grep -F "$package" > /dev/null
     [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
-  done < "$CONFIG_DIR/pip.dependencies"
+  done < "$DOCUMENTATION/dependencies/pip.dependencies"
 
-  if [[ -n "$package_list" ]] || [[ -n "$pip_package_list" ]]; then
+  if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies $package_list $pip_package_list?") =~ '0' ]]; then
+      if [[ $(ask_yN "Can we install the following dependencies $package_list?") =~ '0' ]]; then
         return 0
       fi
     fi
 
-    # Install system package
+    # Install system packages
     eval "sudo $cmd"
-    # Install pip packages
-    if [[ -n "$pip_package_list" ]]; then
-      cmd="pip install $pip_package_list"
-      eval "$cmd"
+  fi
+
+  if [[ -n "$pip_package_list" ]]; then
+    if [[ "$FORCE" == 0 ]]; then
+      if [[ $(ask_yN "Can we install the following pip dependencies $pip_package_list?") =~ '0' ]]; then
+        return 0
+      fi
     fi
-    # ! Maybe this is better:
-    # [[ -n "$pip_install" ]] && eval "pip install $pip_package_list"
+
+    # Install pip packages
+    cmd="pip install $pip_package_list"
+    eval "$cmd"
   fi
 }
 
