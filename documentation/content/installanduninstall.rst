@@ -14,21 +14,18 @@ Install and Remove `kw`
 Package Dependencies
 --------------------
 We currently support *arch* and *debian* for automatic dependencies
-installation. These are the current dependencies for *arch*:
+installation. These are the current dependencies for *Arch*:
 
-.. include:: ../dependencies/arch.dependencies
-   :literal:
+   .. include:: ../dependencies/arch.dependencies
 
-These are the current dependencies for *debian*:
+These are the current dependencies for *Debian*:
 
-.. include:: ../dependencies/debian.dependencies
-   :literal:
+   .. include:: ../dependencies/debian.dependencies
 
 If you want to build the documentation as it is displayed on our website you
 also need this pip package:
 
-.. include:: ../dependencies/pip.dependencies
-   :literal:
+   .. include:: ../dependencies/pip.dependencies
 
 .. note::
    Our base support is Ubuntu LTS. i.e., the dependency packages installed in
