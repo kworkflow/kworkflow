@@ -8,6 +8,7 @@ SYNOPSIS
 ========
 | *kw* (*g* | *configm*) [(-s | \--save) <name> [(-d | \--description) <description>] [-f | \--force]]
 | *kw* (*g* | *configm*) [-l | \--list]
+| *kw* (*g* | *configm*) [\--fetch [(-o | \--output) <filename>] [-f | \--force] [\--optimize] [\--remote [<remote>:<port>]]]:
 | *kw* (*g* | *configm*) [\--get <name> [-f | \--force]]
 | *kw* (*g* | *configm*) [(-r | \--remove) <name> [-f | \--force]]
 
@@ -42,7 +43,7 @@ OPTIONS
   will remove the config file from kw management. The user can suppress this
   warning by using ``-f``.
 
-\--fetch [(-o | --output) <filename>] [-f | --force] [--optimize] [--remote [<remote>:<port>]]:
+\--fetch [(-o | \--output) <filename>] [-f | \--force] [\--optimize] [\--remote [<remote>:<port>]]:
   This option fetches a .config file from a target machine to your current
   directory. If another .config is found in this directory, then it will ask you
   whether you want to replace it or not. If you use the force option, the
