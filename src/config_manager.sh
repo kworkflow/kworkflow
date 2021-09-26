@@ -8,6 +8,7 @@ declare -gr metadata_dir='metadata'
 declare -gr configs_dir='configs'
 declare -gA options_values
 declare -g root='/'
+declare -g PROC_CONFIG_PATH='/proc/config.gz'
 
 # This function handles the options available in 'configm'.
 #
@@ -159,7 +160,164 @@ function cleanup()
   exit 0
 }
 
-# This function retrieves a .config file.
+# This function attempts to get the config file from /proc/config.gz. It first
+# checks if this file is available and not empty; if this function cannot find
+# /proc/config.gz, it will attempt to load the configs modules and try again.
+# For the remote option, this function reads from remote_parameters directly.
+#
+# @flag How to display a command, the default value is "SILENT". For more
+#   options see `src/kwlib.sh` function `cmd_manager`.
+# @output File name to save the config file.
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+#
+# Return:
+# In case of successful return 0, otherwise, return 95.
+function get_config_from_proc()
+{
+  local flag="$1"
+  local output="$2"
+  local target="$3"
+  local user="${remote_parameters['REMOTE_USER']}"
+  local ip="${remote_parameters['REMOTE_IP']}"
+  local port="${remote_parameters['REMOTE_PORT']}"
+  local ret
+  local -r CMD_LOAD_CONFIG_MODULE="modprobe -q configs && [ -s $PROC_CONFIG_PATH ]"
+  local CMD_GET_CONFIG="zcat /proc/config.gz > $output"
+
+  [[ "$target" == 3 ]] && CMD_GET_CONFIG="zcat /proc/config.gz > /tmp/$output"
+
+  case "$target" in
+    1) # VM
+      # We do not support this option with VM
+      return 95
+      ;;
+    2) # LOCAL
+      # Try to find /proc/config, if we cannot find, attempt to load the module
+      # and try it again. If we fail, give of of using /proc/config
+      if [[ ! -f "$PROC_CONFIG_PATH" ]]; then
+        cmd_manager "$flag" "sudo $CMD_LOAD_CONFIG_MODULE"
+        [[ "$?" != 0 ]] && return 95 # Operation not supported
+      fi
+
+      cmd_manager "$flag" "$CMD_GET_CONFIG"
+      return 0
+      ;;
+    3) # REMOTE
+      cmd_remotely "[ -f $PROC_CONFIG_PATH ]" "$flag" "$ip" "$port" "$user"
+      if [[ "$?" != 0 ]]; then
+        cmd_remotely "$CMD_LOAD_CONFIG_MODULE" "$flag" "$ip" "$port" "$user"
+        [[ "$?" != 0 ]] && return 95 # Operation not supported
+      fi
+
+      cmd_remotely "$CMD_GET_CONFIG" "$flag" "$ip" "$port" "$user"
+      [[ "$?" != 0 ]] && return 95 # Operation not supported
+      remote2host "$flag" "/tmp/$output" "$PWD"
+      return 0
+      ;;
+  esac
+
+  return 95 # ENOTSUP
+}
+
+# Usually, this function is used as the fallback from get_config_from_proc,
+# which will try to retrieve the config file from the standard /boot folder.
+#
+# @flag How to display a command, the default value is "SILENT". For more
+#   options see `src/kwlib.sh` function `cmd_manager`.
+# @output File name to save the config file.
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+#
+# Return:
+# In case of successful return 0, otherwise, return 95.
+function get_config_from_boot()
+{
+  local flag="$1"
+  local output="$2"
+  local target="$3"
+  local kernel_release
+  local user="${remote_parameters['REMOTE_USER']}"
+  local ip="${remote_parameters['REMOTE_IP']}"
+  local port="${remote_parameters['REMOTE_PORT']}"
+  local cmd
+
+  case "$target" in
+    1) # VM
+      # TODO: We can support VM in this scenario
+      return 95 # We do not support this option with VM
+      ;;
+    2) # LOCAL
+      cmd="cp ${root}boot/config-$(uname -r) $output 2>/dev/null"
+      cmd_manager "$flag" "$cmd"
+      [[ "$?" != 0 ]] && return 95 # ENOTSUP
+      return 0
+      ;;
+    3) # REMOTE
+      kernel_release=$(cmd_remotely 'uname -r' "$flag")
+      cmd_remotely "[ -f ${root}boot/config-$kernel_release ]" "$flag"
+      [[ "$?" != 0 ]] && return 95 # ENOTSUP
+
+      remote2host "$flag" "${root}boot/config-$kernel_release" "$PWD"
+      return 0
+      ;;
+  esac
+
+  return 95 # ENOTSUP
+}
+
+# Usually, this function is used as a final fallback to retrieve a config file.
+# This function uses the default defconfig and the kw config files to generate
+# the new config file.
+#
+# @flag How to display a command, the default value is "SILENT". For more
+#   options see `src/kwlib.sh` function `cmd_manager`.
+# @output File name to save the config file.
+#
+# Return:
+# In case of successful return 0, otherwise, return 125.
+function get_config_from_defconfig()
+{
+  local flag="$1"
+  local output="$2"
+  local cross_compile
+  local arch
+  local ret
+  local cmd='make defconfig'
+
+  if ! is_kernel_root "$PWD"; then
+    complain 'This command should be run in a kernel tree.'
+    return 125 # ECANCELED
+  fi
+
+  cross_compile=${configurations[cross_compile]}
+  arch=${configurations[arch]}
+  # TODO: Right now, the below variable has no meaning and will be empty. Let's
+  # expand the config file to enable developers to define ASIC targets.
+  asic=${configurations[asic]}
+
+  # Build command
+  [[ -n "$arch" ]] && cmd+=" ARCH=$arch"
+  [[ -n "$cross_compile" ]] && cmd+=" CROSS_COMPILE=$cross_compile"
+  [[ -n "$asic" ]] && cmd+=" $asic\_defconfig"
+
+  # If the --output option is passed, we don't want to override the current
+  # config
+  if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
+    cmd+=" && mv $PWD/.config $output && mv $KW_CACHE_DIR/config/.config $PWD/.config"
+  fi
+
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return "$ret"
+  fi
+}
+
+# This function manages how kw retrieves and handle .config file. For trying to
+# retrieve the config file, this function tries three different approaches:
+#
+# 1. /proc/config.gz
+# 2. /boot/config-*
+# 3. defconfig
 #
 # @flag How to display a command.
 # @force Force option. If it's set, it will ignore the warning if there's
@@ -201,108 +359,45 @@ function fetch_config()
     cp "$PWD/$output" "$KW_CACHE_DIR/config"
   fi
 
+  # If --output is provided, we need to backup the current config file
   if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
     cp "$PWD/.config" "$KW_CACHE_DIR/config"
   fi
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
-  case "$target" in
-    2) # LOCAL_TARGET
-      if [[ -f "${root}proc/config.gz" ]] && command_exists 'zcat'; then
-        cmd="zcat /proc/config.gz > $output"
-      elif [[ -f "${root}boot/config-$(uname -r)" ]]; then
-        cmd="cp /boot/config-$(uname -r) $output"
-      else
-        if ! is_kernel_root "$PWD"; then
-          complain 'This command should be run in a kernel tree.'
-          return 125 # ECANCELED
-        fi
+  # 1. Try to get the info from /proc/config.gz
+  get_config_from_proc "$flag" "$output" "$target"
+  ret="$?"
 
-        arch=$(uname -m)
-        warning 'We are retrieving a .config file based on' "$arch"
-        cmd="make defconfig ARCH=$arch"
+  # 2. Try to get the info from /boot
+  if [[ "$ret" != 0 ]]; then
+    get_config_from_boot "$flag" "$output" "$target"
+    ret="$?"
+  fi
 
-        # By default 'make defconfig' writes to .config without worrying if
-        # there is another .config in the current directory. In order to avoid
-        # overwriting, we check the existence of .config and whether we're
-        # allowed to overwrite it or not.
-        # If there is a .config and we are not supposed to overwrite it, then we
-        # move it to KW_CACHE_DIR, run 'make defconfig', and then move it back.
-        if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
-          cmd+=" && mv $PWD/.config $output && mv $KW_CACHE_DIR/config/.config $PWD/.config"
-        fi
-      fi
-
-      cmd_manager "$flag" "$cmd"
-
-      ret="$?"
-      if [[ "$ret" != 0 ]]; then
-        warning 'We could not retrieve the config file'
-        return "$ret"
-      fi
-
-      mods=$(cmd_manager "$flag" 'lsmod')
-      ;;
-    3) # REMOTE_TARGET
-      kernel_release=$(cmd_remotely 'uname -r' "$flag" "$ip" "$port" "$user")
-      cmd_remotely 'mkdir -p /tmp/kw' "$flag" "$ip" "$port" "$user"
-
-      if cmd_remotely '[ -f /proc/config.gz ]' "$flag" "$ip" "$port" "$user"; then
-        cmd="zcat /proc/config.gz > /tmp/kw/$output"
-        cmd_remotely "$cmd" "$flag" "$ip" "$port" "$user"
-
-        ret="$?"
-        if [[ "$ret" != 0 ]]; then
-          warning 'We could not retrieve the config file'
-          return "$ret"
-        fi
-
-        remote2host "/tmp/kw/$output" "$PWD" "$ip" "$port" "$user" "$flag"
-      elif cmd_remotely "[ -f /boot/config-$kernel_release ]" "$flag" "$ip" "$port" "$user"; then
-        cmd="cp /boot/config-$kernel_release /tmp/kw/$output"
-        cmd_remotely "$cmd" "$flag" "$ip" "$port" "$user"
-
-        ret="$?"
-        if [[ "$ret" != 0 ]]; then
-          warning 'We could not retrieve the config file'
-          return "$ret"
-        fi
-
-        remote2host "/tmp/kw/$output" "$PWD" "$ip" "$port" "$user" "$flag"
-      else
-        if ! is_kernel_root "$PWD"; then
-          complain 'This command should be run in a kernel tree.'
-          return 125 # ECANCELED
-        fi
-
-        arch=$(cmd_remotely 'uname -m' "$flag" "$ip" "$port" "$user")
-        warning 'We are retrieving a .config file based on' "$arch"
-        cmd="make defconfig ARCH=$arch"
-
-        if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
-          cmd+=" && mv $PWD/.config $output && mv $KW_CACHE_DIR/config/.config $PWD/.config"
-        fi
-
-        cmd_manager "$flag" "$cmd"
-
-        ret="$?"
-        if [[ "$ret" != 0 ]]; then
-          warning 'We could not retrieve the config file'
-          return "$ret"
-        fi
-      fi
-
-      cmd_remotely 'rm -rf /tmp/kw' "$flag" "$ip" "$port" "$user"
-      mods=$(cmd_remotely 'lsmod' "$flag" "$ip" "$port" "$user")
-      ;;
-  esac
+  # 3. Get the config from defconfig
+  [[ "$ret" != 0 ]] && get_config_from_defconfig "$flag" "$output"
+  [[ "$?" == 125 ]] && return 125 # ECANCELED
 
   if [[ -n "$optimize" ]]; then
     if ! is_kernel_root "$PWD"; then
       complain 'This command should be run in a kernel tree.'
       return 125 # ECANCELED
     fi
+
+    case "$target" in
+      1) # VM
+        complain 'kw does not support config optimization for VM'
+        return 95 # ENOTSUP
+        ;;
+      2) # LOCAL
+        mods=$(cmd_manager "$flag" 'lsmod')
+        ;;
+      3) # REMOTE
+        mods=$(cmd_remotely 'lsmod' "$flag" "$ip" "$port" "$user")
+        ;;
+    esac
 
     printf "%s" "$mods" > "$KW_CACHE_DIR/lsmod"
 
