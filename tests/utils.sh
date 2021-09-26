@@ -1,5 +1,6 @@
 #!/bin/bash
 
+REPO_ROOT_PATH="$PWD"
 TEST_DIR="tests"
 SAMPLES_DIR="$TEST_DIR/samples"
 EXTERNAL_DIR="$TEST_DIR/external"
@@ -209,10 +210,10 @@ function mock_target_machine()
 
 function mk_fake_boot()
 {
-  local -r FAKE_BOOT_DIR="$1"
+  local -r FAKE_BOOT_DIR=${1:-'./'}
 
   mkdir -p "$FAKE_BOOT_DIR"
-  cp -r "$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
+  cp -r "$REPO_ROOT_PATH/$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
 }
 
 # This function expects an array of string with the command sequence and a

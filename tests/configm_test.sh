@@ -39,12 +39,14 @@ function setUp()
   configs_path="$KW_DATA_DIR/configs"
 
   parse_configuration "$KW_CONFIG_SAMPLE"
+  declare -la expected_cmd=()
 }
 
 function tearDown()
 {
   rm -rf "$SHUNIT_TMPDIR"
   mkdir -p "$SHUNIT_TMPDIR"
+  unset expected_cmd
 }
 
 function test_execute_config_manager_SAVE_fails()
@@ -457,6 +459,141 @@ function test_cleanup()
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 }
 
+function test_get_config_from_proc()
+{
+  local -r current_path="$PWD"
+  local output
+  declare -la expected_cmd=()
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  get_config_from_proc 'TEST_MODE' '' 1
+  assert_equals_helper 'proc/config.gz is not supported for VM' "$LINENO" "$?" 95
+
+  # 2) Local
+  declare -la expected_cmd=(
+    'sudo modprobe -q configs && [ -s /proc/config.gz ]'
+    'zcat /proc/config.gz > .config'
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Creating a fake proc
+  mkdir "proc"
+  touch "proc/config.gz"
+  export PROC_CONFIG_PATH="proc/config.gz"
+
+  expected_cmd=()
+  declare -a expected_cmd=(
+    'zcat /proc/config.gz > .config'
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # 3) Remote
+  unset expected_cmd
+  declare -a expected_cmd=(
+    'ssh -p 3333 juca@127.0.0.1 sudo "[ -f proc/config.gz ]"'
+    'ssh -p 3333 juca@127.0.0.1 sudo "zcat /proc/config.gz > /tmp/.config"'
+    'rsync -e "ssh -p 3333" juca@127.0.0.1:/tmp/.config '"$PWD"
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' '.config' 3)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Removing fake proc
+  rm -rf 'proc'
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_from_boot()
+{
+  local -r current_path="$PWD"
+  local output
+
+  function uname()
+  {
+    echo '5.5.0-rc2-VKMS+'
+  }
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  get_config_from_boot 'TEST_MODE' '' 1
+  assert_equals_helper 'We do not support VM yet' "$LINENO" "$?" 95
+
+  # Preparing
+  export root="./"
+
+  # LOCAL
+  get_config_from_boot 'SILENT' '.config' 2
+  assert_equals_helper 'We do not have a config file' "$LINENO" "$?" 95
+
+  mk_fake_boot
+  get_config_from_boot 'SILENT' '.config' 2
+  assert_equals_helper 'We did not copy the target file' "$LINENO" "$?" 0
+
+  # REMOTE: We need integration test to cover remote in this case
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_from_defconfig()
+{
+  local -r current_path="$PWD"
+  local output
+  local single_cmd
+
+  get_config_from_defconfig 'TEST_MODE' '.config' > /dev/null
+  assert_equals_helper 'We should fail if we are not in the kernel' "$LINENO" "$?" 125
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mk_fake_kernel_root "$PWD"
+  # Case with different config
+  single_cmd='make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-'
+  single_cmd+=" && mv $PWD/.config lala && mv $PWD/cache/config/.config $PWD/.config"
+  output=$(get_config_from_defconfig 'TEST_MODE' 'lala')
+  assert_equals_helper 'Config file backup' "$LINENO" "$output" "$single_cmd"
+
+  # Case with cross-compile
+  single_cmd='make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-'
+  output=$(get_config_from_defconfig 'TEST_MODE' '.config')
+  assert_equals_helper 'Cross compile failed' "$LINENO" "$output" "$single_cmd"
+
+  configurations[arch]=''
+  output=$(get_config_from_defconfig 'TEST_MODE' '.config')
+  single_cmd='make defconfig CROSS_COMPILE=aarch64-linux-gnu-'
+  assert_equals_helper 'No arch' "$LINENO" "$output" "$single_cmd"
+
+  configurations[cross_compile]=''
+  output=$(get_config_from_defconfig 'TEST_MODE' '.config')
+  single_cmd='make defconfig'
+  assert_equals_helper 'No arch' "$LINENO" "$output" "$single_cmd"
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 function test_fetch_config()
 {
   local output
@@ -481,11 +618,18 @@ function test_fetch_config()
     return
   }
 
+  # Check error message when run optimize outside kernel structure
+  output=$(echo y | fetch_config 'TEST_MODE' '' '' 1)
+  assert_equals_helper 'No fake kernel should be here' "$LINENO" "$output" \
+    'This command should be run in a kernel tree.'
+
+  # Retrieve config using local
   mk_fake_kernel_root "$PWD"
 
   expected_output=(
-    'We are retrieving a .config file based on x86'
-    'make defconfig ARCH=x86'
+    # Note: since we are creating a faking /proc, we dropped '/'.
+    'sudo modprobe -q configs && [ -s proc/config.gz ]'
+    'zcat /proc/config.gz > .config'
     'Successfully retrieved .config'
   )
   output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
@@ -495,8 +639,10 @@ function test_fetch_config()
     'zcat /proc/config.gz > .config'
     'Successfully retrieved .config'
   )
+
   mkdir "${root}proc"
   touch "${root}proc/config.gz"
+  export PROC_CONFIG_PATH="${root}proc/config.gz"
   output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
@@ -519,15 +665,11 @@ function test_fetch_config()
     'Successfully retrieved newconfig'
   )
 
-  output=$(fetch_config 'TEST_MODE' '' newconfig '' "$LOCAL_TARGET")
+  output=$(fetch_config 'TEST_MODE' '' 'newconfig' '' "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   # Optimized
   rm -rf "${root:?}/"*
-
-  output=$(echo y | fetch_config 'TEST_MODE' '' '' 1)
-  assert_equals_helper 'No fake kernel should be here' "$LINENO" "$output" \
-    'This command should be run in a kernel tree.'
 
   mk_fake_kernel_root "$PWD"
 

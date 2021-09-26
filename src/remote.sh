@@ -97,12 +97,12 @@ function cp2remote()
 # @user: User in the remote machine
 function remote2host()
 {
-  local src="$1"
-  local dst="$2"
-  local ip="$3"
-  local port="$4"
-  local user="$5"
-  local flag=${6:-"HIGHLIGHT_CMD"}
+  local flag=${1:-"HIGHLIGHT_CMD"}
+  local src="$2"
+  local dst="$3"
+  local ip=${4:-${configurations[ssh_ip]}}
+  local port=${5:-${configurations[ssh_port]}}
+  local user=${6:-${configurations[ssh_user]}}
 
   cmd_manager "$flag" "rsync -e \"ssh -p $port\" $user@$ip:$src $dst"
 }
