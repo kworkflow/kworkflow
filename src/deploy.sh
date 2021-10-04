@@ -621,7 +621,7 @@ function run_kernel_install()
       fi
 
       # Copy .config
-      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name$" ]]; then
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
         cp "$PWD/.config" "${configurations[mount_point]}/boot/config-$name"
       else
         complain 'Undefined .config file for the target kernel. Consider using kw bd'
@@ -647,7 +647,7 @@ function run_kernel_install()
       fi
 
       # Copy .config
-      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name$" ]]; then
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
         cp "$PWD/.config" "/boot/config-$name"
       else
         complain 'Undefined .config file for the target kernel. Consider using kw bd'
@@ -681,7 +681,7 @@ function run_kernel_install()
         "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/vmlinuz-$name"
 
       # Copy .config
-      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name$" ]]; then
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
         cp2remote "$flag" "$PWD/.config" "/boot/config-$name"
       else
         complain 'Undefined .config file for the target kernel. Consider using kw bd'
@@ -709,5 +709,5 @@ function deploy_help()
     '  deploy (--modules | -m) - install only modules' \
     '  deploy (--uninstall | -u) <kernel-name>,... - uninstall given kernels' \
     '  deploy (--list | -l) - list kernels' \
-    '  deploy (--ls-line | -s) - list kernels separeted by commas'
+    '  deploy (--ls-line | -s) - list kernels separated by commas'
 }
