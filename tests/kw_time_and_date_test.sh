@@ -85,6 +85,9 @@ function test_days_in_the_month()
   total_days=$(days_in_the_month 2 2021)
   assert_equals_helper 'We expect 28 days' "$LINENO" "$total_days" 28
 
+  total_days=$(days_in_the_month 02 2021)
+  assert_equals_helper 'We expect 28 days' "$LINENO" "$total_days" 28
+
   # Leap year, February has 29 days
   total_days=$(days_in_the_month 2 2016)
   assert_equals_helper 'We expect 29 days' "$LINENO" "$total_days" 29
@@ -102,6 +105,12 @@ function test_days_in_the_month()
   total_days=$(days_in_the_month 6 2021)
   assert_equals_helper 'We expect 30 days' "$LINENO" "$total_days" 30
 
+  total_days=$(days_in_the_month 9 2021)
+  assert_equals_helper 'We expect 30 days' "$LINENO" "$total_days" 30
+
+  total_days=$(days_in_the_month 09 2021)
+  assert_equals_helper 'We expect 30 days' "$LINENO" "$total_days" 30
+
   total_days=$(days_in_the_month 8 2021)
   assert_equals_helper 'We expect 31 days' "$LINENO" "$total_days" 31
 
@@ -111,6 +120,18 @@ function test_days_in_the_month()
 
   # An invalid month
   days_in_the_month 333
+  ret="$?"
+  assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
+
+  days_in_the_month -5
+  ret="$?"
+  assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
+
+  days_in_the_month -09
+  ret="$?"
+  assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
+
+  days_in_the_month -009
   ret="$?"
   assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
 }
