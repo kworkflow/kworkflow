@@ -50,9 +50,9 @@ function get_week_beginning_day()
 
   format=${format:-'+%Y/%m/%d'}
   date_param=${date_param:-$(date '+%Y/%m/%d')}
-  week_day_num=$(date -d "$date_param" '+%u')
+  week_day_num=$(date -d "$date_param" '+%u' 2> /dev/null)
 
-  date --date="${date_param} - ${week_day_num} day" "$format"
+  date --date="${date_param} - ${week_day_num} day" "$format" 2> /dev/null
 }
 
 # Convert a value to a specific date format. If uses do not provide any format,
@@ -70,7 +70,7 @@ function date_to_format()
 
   format=${format:-'+%Y/%m/%d'}
   value=${value:-$(date "$format")}
-  date -d "$value" "$format"
+  date -d "$value" "$format" 2> /dev/null
 }
 
 # Return the total number of days in a specific month.
