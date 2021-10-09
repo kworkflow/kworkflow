@@ -417,14 +417,17 @@ function install_kernel()
   eval "update_$distro""_boot_loader $name $target $flag"
 
   # Registering a new kernel
-  [[ ! -f "$INSTALLED_KERNELS_PATH" ]] && touch "$INSTALLED_KERNELS_PATH"
+  if [[ ! -f "$INSTALLED_KERNELS_PATH" ]]; then
+    cmd_manager "$flag" "touch $INSTALLED_KERNELS_PATH"
+  fi
 
   # See shellcheck warning SC2024: sudo doesn't affect redirects. That
   # is why we use tee. Also note that the stdin is passed to the eval
   # inside cmd_manager.
-  cmd="sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
-  grep -Fxq "$name" "$INSTALLED_KERNELS_PATH"
+  cmd="grep -Fxq $name $INSTALLED_KERNELS_PATH"
+  cmd_manager "$flag" "$cmd"
   if [[ "$?" != 0 ]]; then
+    cmd="sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     echo "$name" | cmd_manager "$flag" "$cmd"
   fi
 

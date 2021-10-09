@@ -461,6 +461,8 @@ function test_kernel_install_local()
   local cmd_cp_kernel_img="sudo -E cp -v arch/arm64/boot/Image /boot/vmlinuz-test"
   local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
   local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
+  local cmd_touch_kernel_log="touch $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+  local cmd_grep_list="grep -Fxq test $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
   local cmd_reboot="sudo -E reboot"
   local cmd_register_kernel="sudo tee -a '$REMOTE_KW_DEPLOY/INSTALLED_KERNELS' > /dev/null"
   local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
@@ -471,14 +473,17 @@ function test_kernel_install_local()
     "$cmd_cp_kernel_img"
     "$cmd_update_initramfs"
     "$cmd_update_grub"
-    "$cmd_register_kernel"
+    "$cmd_touch_kernel_log"
+    "$cmd_grep_list"
+    #"$cmd_register_kernel"
     "$cmd_reboot"
   )
 
   # ATTENTION: $FAKE_KERNEL got two levels deep (tests/.tmp); for this reason,
   # we have to update KW_PLUGINS_DIR for this test for making sure that we use a
   # real plugin.
-  export KW_PLUGINS_DIR="../../src/plugins"
+  export KW_PLUGINS_DIR='../../src/plugins'
+
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
@@ -487,7 +492,7 @@ function test_kernel_install_local()
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
-  # Make sure that we are not running as a root user
+  ## Make sure that we are not running as a root user
   alias id='root_id_mock;true'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
   ret="$?"

@@ -93,6 +93,12 @@ function kernel_deploy()
   uninstall="${options_values['UNINSTALL']}"
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
 
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    prepare_host_deploy_dir
+    #shellcheck disable=SC2119
+    prepare_remote_dir
+  fi
+
   if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
     say 'Available kernels:'
     start=$(date +%s)
@@ -102,12 +108,6 @@ function kernel_deploy()
     runtime=$((end - start))
     statistics_manager 'list' "$runtime"
     return "$?"
-  fi
-
-  if [[ "$target" == "$REMOTE_TARGET" ]]; then
-    prepare_host_deploy_dir
-    #shellcheck disable=SC2119
-    prepare_remote_dir
   fi
 
   if [[ -n "$uninstall" ]]; then
