@@ -404,9 +404,11 @@ function test_install_kernel_remote()
     "cp -v vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'update_debian_boot_loader_mock'
-    "sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
+    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     'reboot'
   )
+
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
@@ -427,7 +429,8 @@ function test_install_kernel_local()
     "$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'update_debian_boot_loader_mock'
-    "sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
+    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     "$sudo_cmd reboot"
   )
 
@@ -458,7 +461,8 @@ function test_install_kernel_vm()
     'generate_debian_temporary_root_file_system_mock'
     'vm_umount'
     'update_debian_boot_loader_mock'
-    "sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
+    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
   )
 
   cd "$SHUNIT_TMPDIR" || {
