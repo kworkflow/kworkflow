@@ -30,6 +30,7 @@ OPTIONS
     --smtpserver     <domain>
     --smtpserverport <port>
     --smtpencryption <encryption>
+    --smtppass       <password>
 
 \--local:
   Forces the commands to be run at a local scope. If nothing is passed all
