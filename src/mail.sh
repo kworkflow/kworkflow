@@ -420,13 +420,7 @@ function mail_help()
     exit
   fi
   printf '%s\n' 'kw mail:' \
-    '  mail (-t | --setup) [--local | --global] [-f | --force] - Configure mailing functionality, choose at least one:' \
-    '    --name <name>' \
-    '    --email <email>' \
-    '    --smtpuser <email>' \
-    '    --smtpserver <domain>' \
-    '    --smtpserverport <port>' \
-    '    --smtpencryption <encryption>' \
+    '  mail (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
     '  mail (-v | --verify) - Check if required configurations are set' \
     '  mail (-l | --list) - List the configurable options'
 }
