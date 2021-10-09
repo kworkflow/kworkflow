@@ -127,17 +127,21 @@ function test_mail_parser()
   local ret
 
   # Invalid options
-  parse_mail_options '--smtpencryption' 'tlst' &> /dev/null
+  parse_mail_options '-t' '--smtpencryption' 'tlst' &> /dev/null
   expected=''
   assert_equals_helper 'Encryption should be blank' "$LINENO" "${options_values['SMTPENCRYPTION']}" "$expected"
 
-  parse_mail_options '--email' 'not_an_email' &> /dev/null
+  parse_mail_options '-t' '--email' 'not_an_email' &> /dev/null
   expected=''
   assert_equals_helper 'Invalid email, should be blank' "$LINENO" "${options_values['user.email']}" "$expected"
 
-  parse_mail_options '--smtpuser'
+  parse_mail_options '-t' '--smtpuser'
   ret="$?"
   assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
+
+  output=$(parse_mail_options '--name' 'Xpto')
+  ret="$?"
+  assert_equals_helper 'Option without --setup' "$LINENO" "$ret" 95
 
   parse_mail_options '--smtpLalaXpto' 'lala xpto'
   ret="$?"
@@ -175,35 +179,35 @@ function test_mail_parser()
   assert_equals_helper 'Set global flag' "$LINENO" "${options_values['SCOPE']}" "$expected"
   assert_equals_helper 'Set global flag' "$LINENO" "${options_values['CMD_SCOPE']}" "$expected"
 
-  parse_mail_options '--name' 'Xpto Lala'
+  parse_mail_options '-t' '--name' 'Xpto Lala'
   expected='Xpto Lala'
   assert_equals_helper 'Set name' "$LINENO" "${options_values['user.name']}" "$expected"
 
-  parse_mail_options '--email' 'test@email.com'
+  parse_mail_options '-t' '--email' 'test@email.com'
   expected='test@email.com'
   assert_equals_helper 'Set email' "$LINENO" "${options_values['user.email']}" "$expected"
 
-  parse_mail_options '--smtpuser' 'test@email.com'
+  parse_mail_options '-t' '--smtpuser' 'test@email.com'
   expected='test@email.com'
   assert_equals_helper 'Set smtp user' "$LINENO" "${options_values['sendemail.smtpuser']}" "$expected"
 
-  parse_mail_options '--smtpencryption' 'tls'
+  parse_mail_options '-t' '--smtpencryption' 'tls'
   expected='tls'
   assert_equals_helper 'Set smtp encryption to tls' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
 
-  parse_mail_options '--smtpencryption' 'ssl'
+  parse_mail_options '-t' '--smtpencryption' 'ssl'
   expected='ssl'
   assert_equals_helper 'Set smtp encryption to ssl' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
 
-  parse_mail_options '--smtpserver' 'test.email.com'
+  parse_mail_options '-t' '--smtpserver' 'test.email.com'
   expected='test.email.com'
   assert_equals_helper 'Set smtp server' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
 
-  parse_mail_options '--smtpserverport' '123'
+  parse_mail_options '-t' '--smtpserverport' '123'
   expected='123'
   assert_equals_helper 'Set smtp serverport' "$LINENO" "${options_values['sendemail.smtpserverport']}" "$expected"
 
-  parse_mail_options '--smtppass' 'verySafePass'
+  parse_mail_options '-t' '--smtppass' 'verySafePass'
   expected='verySafePass'
   assert_equals_helper 'Set smtp pass' "$LINENO" "${options_values['sendemail.smtppass']}" "$expected"
 }
@@ -341,7 +345,7 @@ function test_mail_setup()
   }
 
   # prepare options for testing
-  parse_mail_options '--force' '--smtpencryption' 'ssl' '--smtppass' 'verySafePass' \
+  parse_mail_options '-t' '--force' '--smtpencryption' 'ssl' '--smtppass' 'verySafePass' \
     '--email' 'test@email.com' '--name' 'Xpto Lala' \
     '--smtpuser' 'test@email.com' '--smtpserver' 'test.email.com'
 
@@ -351,7 +355,7 @@ function test_mail_setup()
   unset options_values
   declare -gA options_values
 
-  parse_mail_options '--local' '--smtpserverport' '123'
+  parse_mail_options '-t' '--local' '--smtpserverport' '123'
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --local sendemail.smtpserverport '123'"
@@ -361,7 +365,7 @@ function test_mail_setup()
   declare -gA options_values
 
   # we need to force in case the user has set config at a global scope
-  parse_mail_options '--force' '--global' '--smtppass' 'verySafePass'
+  parse_mail_options '-t' '--force' '--global' '--smtppass' 'verySafePass'
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --global sendemail.smtppass 'verySafePass'"
@@ -377,13 +381,13 @@ function test_mail_setup()
   declare -gA options_values
 
   # we need to force in case the user has set config at a global scope
-  parse_mail_options '--smtppass' 'verySafePass'
+  parse_mail_options '-t' '--smtppass' 'verySafePass'
 
   output=$(mail_setup 'TEST_MODE')
   ret="$?"
   assert_equals_helper 'Should fail outside of git repo' "$LINENO" "$ret" 22
 
-  parse_mail_options '--force' '--global'
+  parse_mail_options '-t' '--force' '--global'
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --global sendemail.smtppass 'verySafePass'"
@@ -432,7 +436,7 @@ function test_mail_verify()
   declare -gA set_confs
 
   # fulfill required options
-  parse_mail_options '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
+  parse_mail_options '-t' '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
     'test.email.com' '--smtpserverport' '123'
   mail_setup &> /dev/null
   get_configs
@@ -457,7 +461,7 @@ function test_mail_verify()
   declare -gA set_confs
 
   # complete all the settings
-  parse_mail_options '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
+  parse_mail_options '-t' '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
     'test.email.com' '--smtpserverport' '123' '--smtpencryption' 'ssl' \
     '--smtppass' 'verySafePass'
   mail_setup &> /dev/null
@@ -481,7 +485,7 @@ function test_mail_verify()
     'Current value is: ./fake_server/'
   )
 
-  parse_mail_options '--local' '--smtpserver' './fake_server/'
+  parse_mail_options '-t' '--local' '--smtpserver' './fake_server/'
   mail_setup &> /dev/null
   get_configs
 
@@ -528,7 +532,7 @@ function test_mail_list()
     exit "$ret"
   }
 
-  parse_mail_options '--force' '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
+  parse_mail_options '-t' '--force' '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
     'test.email.com' '--smtpserverport' '123' '--smtpencryption' 'ssl' \
     '--smtppass' 'verySafePass'
   mail_setup &> /dev/null
