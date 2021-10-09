@@ -51,6 +51,7 @@ function mail_main()
 function mail_setup()
 {
   local flag="$1"
+  local confs=0
 
   flag=${flag:-'SILENT'}
 
@@ -64,8 +65,13 @@ function mail_setup()
   for option in "${!options_values[@]}"; do
     if [[ "$option" =~ smtp|user\.(email|name) ]]; then
       check_add_config "$flag" "$option"
+      confs=1
     fi
   done
+
+  if [[ "$confs" == 0 ]]; then
+    warning 'No configuration options were given, no options were set.'
+  fi
 
   return 0
 }
@@ -331,6 +337,21 @@ function print_configs()
   done
 }
 
+# Complain and exit if user tries to pass configuration options before the
+# '--setup' flag
+function validate_setup_opt()
+{
+  local option="$1"
+
+  if [[ "${options_values['SETUP']}" == 0 ]]; then
+    complain "The '$option' flag should only be used after the '--setup' flag."
+    complain 'Please check your command and try again.'
+    return 95 # ENOTSUP
+  fi
+
+  return 0
+}
+
 function parse_mail_options()
 {
   local index
@@ -368,16 +389,19 @@ function parse_mail_options()
         shift
         ;;
       --email | --name)
+        validate_setup_opt "$1" || exit 95 # ENOTSUP
         option="$(str_remove_prefix "$1" '--')"
         index="user.$option"
         validate_email "$option" "$2" && options_values["$index"]="$2"
         shift 2
         ;;
       --smtpencryption)
+        validate_setup_opt "$1" || exit 95 # ENOTSUP
         validate_encryption "$2"
         shift 2
         ;;
       --smtp*)
+        validate_setup_opt "$1" || exit 95 # ENOTSUP
         option="$(str_remove_prefix "$1" '--')"
         index="sendemail.$option"
         validate_email "$option" "$2" && options_values["$index"]="$2"
