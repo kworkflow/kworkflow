@@ -630,6 +630,7 @@ function test_fetch_config()
     # Note: since we are creating a faking /proc, we dropped '/'.
     'sudo modprobe -q configs && [ -s proc/config.gz ]'
     'zcat /proc/config.gz > .config'
+    'make olddefconfig'
     'Successfully retrieved .config'
   )
   output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
@@ -637,6 +638,7 @@ function test_fetch_config()
 
   expected_output=(
     'zcat /proc/config.gz > .config'
+    'make olddefconfig'
     'Successfully retrieved .config'
   )
 
@@ -662,6 +664,7 @@ function test_fetch_config()
 
   expected_output=(
     'zcat /proc/config.gz > newconfig'
+    'make olddefconfig'
     'Successfully retrieved newconfig'
   )
 
@@ -681,6 +684,7 @@ function test_fetch_config()
   touch "${root}proc/config.gz"
   expected_output=(
     'zcat /proc/config.gz > .config'
+    'make olddefconfig'
     "make localmodconfig LSMOD=$KW_CACHE_DIR/lsmod"
     'Successfully retrieved .config'
   )
@@ -694,6 +698,7 @@ function test_fetch_config()
     "ssh -p 1234 mary@localhost sudo \"zcat /proc/config.gz > /tmp/kw/.config\""
     "rsync -e \"ssh -p 1234\" mary@localhost:/tmp/kw/.config $PWD"
     "ssh -p 1234 mary@localhost sudo \"rm -rf /tmp/kw\""
+    'make olddefconfig'
     'Successfully retrieved .config'
   )
 

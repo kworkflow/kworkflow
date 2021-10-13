@@ -380,6 +380,11 @@ function fetch_config()
   [[ "$ret" != 0 ]] && get_config_from_defconfig "$flag" "$output"
   [[ "$?" == 125 ]] && return 125 # ECANCELED
 
+  # Let's ensure that we keep all of the options from the old .config and set
+  # new options to their default values.
+  cmd='make olddefconfig'
+  cmd_manager "$flag" "$cmd"
+
   if [[ -n "$optimize" ]]; then
     if ! is_kernel_root "$PWD"; then
       complain 'This command should be run in a kernel tree.'
