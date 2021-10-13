@@ -224,7 +224,7 @@ function kw()
       (
         include "$KW_LIB_DIR/debug.sh"
 
-        debug_manager "$@"
+        debug_main "$@"
       )
       ;;
     mail)

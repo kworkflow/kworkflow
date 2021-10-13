@@ -23,7 +23,7 @@ declare -gr KW_DEBUG='kw_debug'
 #
 # Return:
 # Return 0 in a normal case or an errno code.
-function debug_manager()
+function debug_main()
 {
   local remote
   local flag='SILENT'
@@ -36,12 +36,6 @@ function debug_manager()
   local disable=''
   local list=''
   local follow=''
-  local follow_log_file=''
-  local redirect_mode=''
-  local ret=''
-  local screen_nick
-  local screen_cmd
-  local screen_end_cmd
 
   parser_debug_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -58,6 +52,51 @@ function debug_manager()
   disable="${options_values['DISABLE']}"
   list="${options_values['LIST']}"
   follow="${options_values['FOLLOW']}"
+
+  if [[ -n "$event" ]]; then
+    event_trace "$target" "$flag" "$event" "$keep_history" "$follow" "$user_cmd" "$list"
+    return "$?"
+  fi
+
+  if [[ "$test_mode" == 'TEST_MODE' ]]; then
+    echo "${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $target $event $user_cmd"
+    return 0
+  fi
+}
+
+# This function manages the trace event.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @event: Raw string with event syntax
+# @keep_history: If set to a value different from empty or 0, it will create a
+# directory structure for keeping the trace history. Otherwise, it will create
+# a single file per trace type.
+# @follow: Follow log in real-time.
+# @user_cmd: User specific command.
+# @list: List events.
+#
+# Return:
+# In case of an error, returns an errno code.
+function event_trace()
+{
+  local target="$1"
+  local flag="$2"
+  local event="$3"
+  local keep_history="$4"
+  local follow="$5"
+  local user_cmd="$6"
+  local list="$7"
+  local redirect_mode=''
+  local base_log_path
+  local disable_cmd
+  local command
+  local screen_cmd
+  local screen_nick
+  local screen_end_cmd
+  local follow_log_file
+  local ret
 
   convert_event_syntax_to_sys_path_hash "$event"
   ret="$?"
@@ -139,10 +178,7 @@ function debug_manager()
       ;;
   esac
 
-  if [[ "$test_mode" == 'TEST_MODE' ]]; then
-    echo "${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $target $event $user_cmd"
-    return 0
-  fi
+  return 0
 }
 
 # This function sets up all files/directories that will keep the trace
