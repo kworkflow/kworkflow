@@ -31,6 +31,7 @@ function debug_main()
   local test_mode=''
   local target=''
   local event=''
+  local dmesg=''
   local user_cmd=''
   local keep_history=''
   local disable=''
@@ -47,6 +48,7 @@ function debug_main()
   test_mode="${options_values['TEST_MODE']}"
   target="${options_values['TARGET']}"
   event="${options_values['EVENT']}"
+  dmesg="${options_values['DMESG']}"
   user_cmd="${options_values['CMD']}"
   keep_history="${options_values['HISTORY']}"
   disable="${options_values['DISABLE']}"
@@ -58,10 +60,54 @@ function debug_main()
     return "$?"
   fi
 
+  if [[ -n "$dmesg" ]]; then
+    dmesg_debug "$target" "$flag" "$keep_history" "$follow" "$user_cmd"
+    return "$?"
+  fi
+
   if [[ "$test_mode" == 'TEST_MODE' ]]; then
     echo "${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $target $event $user_cmd"
     return 0
   fi
+}
+
+# This function is responsible for handling dmesg logs.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @keep_history: If set to a value different from empty or 0, it will create a
+# @follow: Follow log in real-time.
+# @user_cmd: User specific command.
+#
+# Return:
+# In case of an error, returns an errno code.
+function dmesg_debug()
+{
+  local target="$1"
+  local flag="$2"
+  local keep_history="$3"
+  local follow="$4"
+  local user_cmd="$5"
+  local cmd='dmesg --human --color=always --nopager'
+
+  case "$target" in
+    2) # LOCAL
+      cmd_manager "$flag" "$cmd" "$redirect_mode" "$follow_log_file"
+      ;;
+    3 | 1) # REMOTE && VM
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+      local user="${remote_parameters['REMOTE_USER']}"
+
+      if [[ "$target" == 1 ]]; then
+        say 'Target is a VM'
+        # TODO: We should check if the VM is up and running
+      fi
+
+      cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user" '' "$follow_log_file"
+      ;;
+  esac
 }
 
 # This function manages the trace event.
@@ -442,8 +488,8 @@ function parser_debug_options()
   local long_options
   local transition_variables
 
-  long_options='remote:,event:,cmd:,local,history,disable,list,follow,help'
-  short_options='f,e,c,h,d,l,k'
+  long_options='remote:,event:,dmesg,cmd:,local,history,disable,list,follow,help'
+  short_options='f,e,g,c,h,d,l,k'
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
 
@@ -455,6 +501,7 @@ function parser_debug_options()
 
   options_values['TARGET']=''
   options_values['EVENT']=''
+  options_values['DMESG']=0
   options_values['CMD']=''
   options_values['HISTORY']=0
   options_values['DISABLE']=0
@@ -499,6 +546,10 @@ function parser_debug_options()
       --event | -e)
         options_values['EVENT']+="$2"
         shift 2
+        ;;
+      --dmesg | -g)
+        options_values['DMESG']=1
+        shift
         ;;
       --cmd | -c)
         options_values['CMD']+="$2"
@@ -553,6 +604,7 @@ function debug_help()
     '  debug (--history | -k) - Store trace logs in a file' \
     '  debug (--follow | -f) - Follow traces in real-time' \
     '  debug (--cmd | -c) "command" - Trace log while running a command in the target.' \
+    '  debug (--dmesg | -g) - Collect the dmesg log' \
     '  debug (--event | -e) "<syntax>" - Trace specific event' \
     '  You can combine some of the above options'
 }
