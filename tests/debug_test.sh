@@ -312,6 +312,9 @@ function test_build_event_command_string()
 #debug [--remote [REMOTE:PORT]] --cmd=\"COMMAND\"\n" \
 function test_parser_debug_options()
 {
+  local event_str
+  local fake_cmd='modprobe amdgpu'
+
   configurations['default_deploy_target']=3 # REMOTE
 
   # Validate remote option
@@ -337,9 +340,47 @@ function test_parser_debug_options()
   assert_equals_helper 'Expected follow' "$LINENO" "${options_values['FOLLOW']}" 1
 
   # Validate event
-  local event_str='amdgpu_dm:dc_something[x>3]'
+  event_str='amdgpu_dm:dc_something[x>3]'
   parser_debug_options --event "$event_str"
   assert_equals_helper 'Expected event' "$LINENO" "${options_values['EVENT']}" "$event_str"
+
+  # Validate disable event
+  parser_debug_options --event "$event_str" --disable
+  assert_equals_helper 'Expected event' "$LINENO" "${options_values['DISABLE']}" 1
+
+  # Validate disable event
+  parser_debug_options --event "$event_str" --cmd "$fake_cmd"
+  assert_equals_helper 'Expected event' "$LINENO" "${options_values['CMD']}" "$fake_cmd"
+
+  # Check local option
+  parser_debug_options --local --event "$event_str" --disable
+  assert_equals_helper 'Expected event' "$LINENO" "${options_values['TARGET']}" 2
+
+  # Check test_mode
+  parser_debug_options test_mode
+  assert_equals_helper 'Expected event' "$LINENO" "${options_values['TEST_MODE']}" 'TEST_MODE'
+
+  # Validate dmesg
+  parser_debug_options --dmesg
+  assert_equals_helper 'Expected dmesg' "$LINENO" "${options_values['DMESG']}" 1
+
+}
+
+function test_dmesg_debug()
+{
+  local output
+  local expected_cmd
+  local std_dmesg='dmesg --human --color=always'
+  local std_ssh='ssh -p 3333 juca@127.0.0.1'
+
+  # Basic behavior
+  output=$(dmesg_debug 2 'TEST_MODE' '' '' '')
+  expected_cmd="$std_dmesg --nopager"
+  assert_equals_helper 'Expected dmesg command' "$LINENO" "$expected_cmd" "$output"
+
+  output=$(dmesg_debug 3 'TEST_MODE' '' '' '')
+  expected_cmd="$std_ssh sudo \"$std_dmesg --nopager\""
+  assert_equals_helper 'Expected dmesg command' "$LINENO" "$expected_cmd" "$output"
 }
 
 invoke_shunit

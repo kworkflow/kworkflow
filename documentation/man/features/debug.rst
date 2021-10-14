@@ -7,6 +7,7 @@ kw-debug
 SYNOPSIS
 ========
 | *kw* (*debug*) [(-e | \--event) <event-syntax> [(-d | \--disable)] [(-k | \--history)] [(-f | \--follow)] ]
+| *kw* (*debug*) [(-g | \--dmesg)
 | *kw* (*debug*) [(-l | \--list)] [(-e | \--event)]
 | *kw* (*debug*) [(-h | \--help)]
 
@@ -44,15 +45,24 @@ Notice that users have a flexible way of defining the events they want to trace
 by using the event syntax. Additionally, the debug option provides other
 features that simplify the work with debug data from Linux Kernel.
 
+DMESG LOG
+---------
+
+Dmesg log is vital for debugging issues in the Linux kernel, and kw debug
+provides the \--dmesg option to help developers quickly collect this
+information. Notice that this feature work in the local and remote context.
+
 OPTIONS
 =======
 -d, \--disable:
-  Disable all events specified inside *--event ""*.
+  Disable all events specified inside *--event ""*. This feature does not apply
+  to \--dmesg option.
 
 -l, \--list:
   If used together with the event option, it will list all available events. If
   a specific event is informed via *\--events "<event>"*, this option will only
-  list specific events related to the "<event>".
+  list specific events related to the "<event>".  This feature does not apply
+  to \--dmesg option.
 
 -k, \--history:
   Create a debug directory that keeps track of all debugs made by the users. It
@@ -62,9 +72,9 @@ OPTIONS
   Real time output.
 
 -c, \--cmd:
-  If this parameter is used, the following sequence will happen: (1) Enable
-  specific trace, (2) collect trace in background, (3) run the command, (4)
-  disable traces.
+  If this parameter is used combined with \--event, the following sequence will
+  happen: (1) Enable specific trace, (2) collect trace in background, (3) run
+  the command, (4) disable traces.
 
 
 EXAMPLES
@@ -103,3 +113,7 @@ target trace, execute a specific command, disable the trace at the end, and
 bring the log to the host machine::
 
   kw debug --event "amdgpu_dm:amdgpu_dm_dce_clocks_state[sclk_khz > 0]" --cmd "DO SOMETHING"
+
+If you want to see the dmesg log from the target machine, you can use::
+
+  kw debug --dmesg
