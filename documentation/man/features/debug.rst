@@ -118,6 +118,6 @@ If you want to see the dmesg log from the target machine, you can use::
 
   kw debug --dmesg
 
-For keeping following the dmesg log, you can use::
+For keeping following the dmesg log and save it locally, you can use::
 
-  kw debug --dmesg --follow
+  kw debug --dmesg --follow --history

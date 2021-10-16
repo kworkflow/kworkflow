@@ -37,6 +37,7 @@ function debug_main()
   local disable=''
   local list=''
   local follow=''
+  local base_log_path
 
   parser_debug_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -55,13 +56,16 @@ function debug_main()
   list="${options_values['LIST']}"
   follow="${options_values['FOLLOW']}"
 
+  # Base path for saving log files
+  base_log_path=$(prepare_log_database "$keep_history")
+
   if [[ -n "$event" ]]; then
-    event_trace "$target" "$flag" "$event" "$keep_history" "$follow" "$user_cmd" "$list"
+    event_trace "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list"
     return "$?"
   fi
 
   if [[ -n "$dmesg" ]]; then
-    dmesg_debug "$target" "$flag" "$keep_history" "$follow" "$user_cmd"
+    dmesg_debug "$target" "$flag" "$base_log_path" "$follow" "$user_cmd"
     return "$?"
   fi
 
@@ -86,9 +90,11 @@ function dmesg_debug()
 {
   local target="$1"
   local flag="$2"
-  local keep_history="$3"
+  local base_log_path="$3"
   local follow="$4"
   local user_cmd="$5"
+  local redirect_mode=''
+  local save_following_log=''
   local cmd='dmesg --human --color=always'
 
   if [[ -n "$follow" ]]; then
@@ -97,9 +103,18 @@ function dmesg_debug()
     cmd="$cmd --nopager"
   fi
 
+  # Capture data
+  if [[ -n "$base_log_path" ]]; then
+    touch "$base_log_path/dmesg"
+    echo > "$base_log_path/dmesg"
+    save_following_log="$base_log_path/dmesg"
+  fi
+
   case "$target" in
     2) # LOCAL
-      cmd_manager "$flag" "$cmd" "$redirect_mode" "$follow_log_file"
+      [[ -n "$save_following_log" ]] && redirect_mode='KW_REDIRECT_MODE'
+
+      cmd_manager "$flag" "$cmd" "$redirect_mode" "$save_following_log"
       ;;
     3 | 1) # REMOTE && VM
       local remote="${remote_parameters['REMOTE_IP']}"
@@ -111,7 +126,7 @@ function dmesg_debug()
         # TODO: We should check if the VM is up and running
       fi
 
-      cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user" '' "$follow_log_file"
+      cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user" '' "$save_following_log"
       ;;
   esac
 }
@@ -136,7 +151,7 @@ function event_trace()
   local target="$1"
   local flag="$2"
   local event="$3"
-  local keep_history="$4"
+  local base_log_path="$4"
   local follow="$5"
   local user_cmd="$6"
   local list="$7"
@@ -147,7 +162,7 @@ function event_trace()
   local screen_cmd
   local screen_nick
   local screen_end_cmd
-  local follow_log_file
+  local save_following_log
   local ret
 
   convert_event_syntax_to_sys_path_hash "$event"
@@ -162,14 +177,18 @@ function event_trace()
   command=$(build_event_command_string '')
 
   # Capture data
-  base_log_path=$(prepare_log_database "$keep_history")
+  if [[ -n "$base_log_path" ]]; then
+    touch "$base_log_path/event"
+    echo > "$base_log_path/event"
+    save_following_log="$base_log_path/event"
+  fi
+
   if [[ "$follow" == 1 ]]; then
-    follow_log_file="$base_log_path/event"
     command="$command && cat $TRACE_PIPE"
   fi
 
   if [[ -n "$user_cmd" ]]; then
-    follow_log_file="$base_log_path/event"
+    save_following_log="$base_log_path/event"
     screen_nick=$(get_today_info '+kw_%Y_%m_%d-%H_%M_%S')
     screen_cmd="screen -L -Logfile ~/$screen_nick -dmS $screen_nick cat $TRACE_PIPE"
     screen_end_cmd="screen -S $screen_nick -X quit"
@@ -189,17 +208,17 @@ function event_trace()
   case "$target" in
     2) # LOCAL
       if [[ "$list" == "$LIST_OPTION" ]]; then
-        list_output=$(cmd_manager "SILENT" "$follow_log_file" "sudo bash -c \"$command\"")
+        list_output=$(cmd_manager "SILENT" "$save_following_log" "sudo bash -c \"$command\"")
         show_list "$list_output" "$event"
         return "$ret"
       fi
 
-      [[ -n "$follow_log_file" ]] && redirect_mode='KW_REDIRECT_MODE'
+      [[ -n "$save_following_log" ]] && redirect_mode='KW_REDIRECT_MODE'
 
-      cmd_manager "$flag" "sudo bash -c \"$command\"" "$redirect_mode" "$follow_log_file"
+      cmd_manager "$flag" "sudo bash -c \"$command\"" "$redirect_mode" "$save_following_log"
 
       if [[ -n "$user_cmd" ]]; then
-        command="sudo cp /root/$screen_nick $follow_log_file && sudo chown $USER:$USER $follow_log_file"
+        command="sudo cp /root/$screen_nick $save_following_log && sudo chown $USER:$USER $save_following_log"
         cmd_manager "$flag" "$command"
       fi
       ;;
@@ -220,11 +239,11 @@ function event_trace()
         return "$ret"
       fi
 
-      cmd_remotely "$command" "$flag" "$remote" "$port" "$user" '' "$follow_log_file"
+      cmd_remotely "$command" "$flag" "$remote" "$port" "$user" '' "$save_following_log"
 
       # If we used --cmd, we need to retrieve the log
       if [[ -n "$user_cmd" ]]; then
-        command="scp -P $port $user@$remote:~/$screen_nick $follow_log_file"
+        command="scp -P $port $user@$remote:~/$screen_nick $save_following_log"
         cmd_manager "$flag" "$command"
       fi
       ;;
@@ -255,34 +274,33 @@ function prepare_log_database()
   local new_id=0
   local log_path="$debug_files_dir"
 
-  keep_history=${keep_history:-'0'}
-  mkdir -p "$debug_files_dir"
-
-  if [[ "$keep_history" != 0 ]]; then
-    output=$(ls -A "$debug_files_dir")
-    if [[ -n "$output" ]]; then
-      id=0
-      # Find the latest id
-      for dir in "$debug_files_dir"/*; do
-        tmp_id=$(basename "$dir" | cut -d_ -f1)
-        # Check if is a number
-        if ! str_is_a_number "$tmp_id"; then
-          continue
-        fi
-
-        [[ "$tmp_id" -gt "$new_id" ]] && new_id="$tmp_id"
-      done
-      ((id++))
-    fi
-    ((new_id++))
-    dir_id=$(date +"$new_id"_%Y-%m-%d)
-    log_path=$(join_path "$log_path" "$dir_id")
-
-    mkdir -p "$log_path"
+  if [[ -z "$keep_history" ]]; then
+    echo ''
+    return 0
   fi
 
-  touch "$log_path/event"
-  echo > "$log_path/event"
+  mkdir -p "$debug_files_dir"
+
+  output=$(ls -A "$debug_files_dir")
+  if [[ -n "$output" ]]; then
+    id=0
+    # Find the latest id
+    for dir in "$debug_files_dir"/*; do
+      tmp_id=$(basename "$dir" | cut -d_ -f1)
+      # Check if is a number
+      if ! str_is_a_number "$tmp_id"; then
+        continue
+      fi
+
+      [[ "$tmp_id" -gt "$new_id" ]] && new_id="$tmp_id"
+    done
+    ((id++))
+  fi
+  ((new_id++))
+  dir_id=$(date +"$new_id"_%Y-%m-%d)
+  log_path=$(join_path "$log_path" "$dir_id")
+
+  mkdir -p "$log_path"
 
   echo "$log_path"
 }
@@ -509,7 +527,7 @@ function parser_debug_options()
   options_values['EVENT']=''
   options_values['DMESG']=0
   options_values['CMD']=''
-  options_values['HISTORY']=0
+  options_values['HISTORY']=''
   options_values['DISABLE']=0
   options_values['LIST']=''
   options_values['FOLLOW']=''

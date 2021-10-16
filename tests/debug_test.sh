@@ -64,12 +64,7 @@ function test_prepare_log_database()
   }
 
   output=$(prepare_log_database)
-  assertTrue "($LINENO) Expected to find $KW_DEBUG folder" '[[ -d "$PWD/$KW_DEBUG" ]]'
-
-  assertTrue "($LINENO) Expected to find $KW_DEBUG/event file" '[[ -f "$PWD/$KW_DEBUG/event" ]]'
-
-  output=$(cat "$PWD/$KW_DEBUG/event")
-  assertEquals "($LINENO) We expected an empty file, but we got '$output'" "$output" ''
+  assertTrue "($LINENO) Expected an empty string" '[[ -z "$output" ]]'
 
   dir_id=$(date +1_%Y-%m-%d)
   output=$(prepare_log_database 1)
@@ -79,22 +74,16 @@ function test_prepare_log_database()
   output=$(prepare_log_database 1)
   assertTrue "($LINENO) Expected to find $KW_DEBUG/$dir_id folder" '[[ -d "$PWD/$KW_DEBUG/$dir_id" ]]'
 
-  assertTrue "($LINENO) Expected to find $KW_DEBUG/$dir_id/event file" '[[ -f "$PWD/$KW_DEBUG/event" ]]'
-  assertTrue "($LINENO) Expected to find $KW_DEBUG/event file" '[[ -f "$PWD/$KW_DEBUG/event" ]]'
-
   # Try after 10
   for i in 3 4 5 6 7 8 9 10 11 12; do
     dir_id=$(date "+$i""_%Y-%m-%d")
-    mkdir "$PWD/$KW_DEBUG/$dir_id"
+    mkdir -p "$PWD/$KW_DEBUG/$dir_id"
   done
 
   dir_id=$(date +13_%Y-%m-%d)
   output=$(prepare_log_database 1)
 
   assertTrue "($LINENO) Expected to find $KW_DEBUG/$dir_id folder" '[[ -d "$PWD/$KW_DEBUG/$dir_id" ]]'
-
-  assertTrue "($LINENO) Expected to find $KW_DEBUG/$dir_id/event file" '[[ -f "$PWD/$KW_DEBUG/event" ]]'
-  assertTrue "($LINENO) Expected to find $KW_DEBUG/event file" '[[ -f "$PWD/$KW_DEBUG/event" ]]'
 
   mkdir -p "$PWD/$KW_DEBUG/add_noise"
   dir_id=$(date +3_%Y-%m-%d)
@@ -389,6 +378,35 @@ function test_dmesg_debug()
   output=$(dmesg_debug 2 'TEST_MODE' '' 1 '')
   expected_cmd="$std_dmesg --follow"
   assert_equals_helper '[local] Expected to find follow param' "$LINENO" "$expected_cmd" "$output"
+
+  # Check history
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mkdir 'kw_debug'
+
+  output=$(dmesg_debug 2 'TEST_MODE' 'kw_debug' '' '')
+  expected_cmd="$std_dmesg --nopager | tee kw_debug/dmesg"
+  assert_equals_helper '[local] We expected a log file' "$LINENO" "$expected_cmd" "$output"
+
+  output=$(dmesg_debug 2 'TEST_MODE' 'kw_debug' 1 '')
+  expected_cmd="$std_dmesg --follow | tee kw_debug/dmesg"
+  assert_equals_helper '[local] Log file with follow' "$LINENO" "$expected_cmd" "$output"
+
+  # Check if was created a dmesg file
+  assertTrue "($LINENO) Expected to find kw_debug/dmesg file" '[[ -f "$PWD/kw_debug/dmesg" ]]'
+
+  output=$(dmesg_debug 3 'TEST_MODE' 'kw_debug' 1 '')
+  expected_cmd="$std_ssh sudo \"$std_dmesg --follow\" | tee kw_debug/dmesg"
+  assert_equals_helper '[remote] Log file created' "$LINENO" "$expected_cmd" "$output"
+
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
 }
 
 invoke_shunit
