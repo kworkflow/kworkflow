@@ -381,6 +381,14 @@ function test_dmesg_debug()
   output=$(dmesg_debug 3 'TEST_MODE' '' '' '')
   expected_cmd="$std_ssh sudo \"$std_dmesg --nopager\""
   assert_equals_helper 'Expected dmesg command' "$LINENO" "$expected_cmd" "$output"
+
+  output=$(dmesg_debug 3 'TEST_MODE' '' 1 '')
+  expected_cmd="$std_ssh sudo \"$std_dmesg --follow\""
+  assert_equals_helper '[remote] Expected to find follow param' "$LINENO" "$expected_cmd" "$output"
+
+  output=$(dmesg_debug 2 'TEST_MODE' '' 1 '')
+  expected_cmd="$std_dmesg --follow"
+  assert_equals_helper '[local] Expected to find follow param' "$LINENO" "$expected_cmd" "$output"
 }
 
 invoke_shunit

@@ -7,7 +7,7 @@ kw-debug
 SYNOPSIS
 ========
 | *kw* (*debug*) [(-e | \--event) <event-syntax> [(-d | \--disable)] [(-k | \--history)] [(-f | \--follow)] ]
-| *kw* (*debug*) [(-g | \--dmesg)
+| *kw* (*debug*) [(-g | \--dmesg) [(-f | \--follow)] ]
 | *kw* (*debug*) [(-l | \--list)] [(-e | \--event)]
 | *kw* (*debug*) [(-h | \--help)]
 
@@ -117,3 +117,7 @@ bring the log to the host machine::
 If you want to see the dmesg log from the target machine, you can use::
 
   kw debug --dmesg
+
+For keeping following the dmesg log, you can use::
+
+  kw debug --dmesg --follow
