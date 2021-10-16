@@ -89,7 +89,13 @@ function dmesg_debug()
   local keep_history="$3"
   local follow="$4"
   local user_cmd="$5"
-  local cmd='dmesg --human --color=always --nopager'
+  local cmd='dmesg --human --color=always'
+
+  if [[ -n "$follow" ]]; then
+    cmd="$cmd --follow"
+  else
+    cmd="$cmd --nopager"
+  fi
 
   case "$target" in
     2) # LOCAL
