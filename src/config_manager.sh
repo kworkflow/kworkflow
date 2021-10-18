@@ -1,7 +1,6 @@
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/remote.sh"
-include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
 declare -gr metadata_dir='metadata'
@@ -559,7 +558,7 @@ function parse_configm_options()
   local options
 
   long_options='save:,list,get:,remove:,force,description:,fetch,output:,optimize,remote:'
-  short_options='s:,l,r:,d:,h,f,o:'
+  short_options='s:,l,r:,d:,f,o:'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -596,10 +595,6 @@ function parse_configm_options()
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
-      -h)
-        config_manager_help "$1"
-        exit 0
-        ;;
       --force | -f)
         options_values['FORCE']=1
         shift
@@ -610,11 +605,11 @@ function parse_configm_options()
           complain 'Invalid argument'
           return 22 # EINVAL
         fi
-        options_values['SAVE']+="$2"
+        options_values['SAVE']="$2"
         shift 2
         ;;
       --description | -d)
-        options_values['DESCRIPTION']+="$*"
+        options_values['DESCRIPTION']="$2"
         shift 2
         ;;
       --list | -l)
@@ -622,11 +617,11 @@ function parse_configm_options()
         shift
         ;;
       --get)
-        options_values['GET']+="$2"
+        options_values['GET']="$2"
         shift 2
         ;;
       --remove | -r)
-        options_values['REMOVE']+="$2"
+        options_values['REMOVE']="$2"
         shift 2
         ;;
       --fetch)
@@ -634,7 +629,7 @@ function parse_configm_options()
         shift
         ;;
       --output | -o)
-        options_values['OUTPUT']+="$2"
+        options_values['OUTPUT']="$2"
         shift 2
         ;;
       --optimize)
@@ -642,7 +637,7 @@ function parse_configm_options()
         shift
         ;;
       --remote)
-        options_values['TARGET']=$REMOTE_TARGET
+        options_values['TARGET']="$REMOTE_TARGET"
         shift
         populate_remote_info "$1"
         if [[ "$?" == 22 ]]; then
