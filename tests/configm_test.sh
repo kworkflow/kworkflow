@@ -3,19 +3,19 @@
 include './src/config_manager.sh'
 include './tests/utils.sh'
 
-COMMAND_MSG_UNKNOWN="Unknown option"
-COMMAND_MSG_INVALID_ARG="Invalid argument"
-COMMAND_NO_SUCH_FILE="No such file or directory"
+COMMAND_MSG_UNKNOWN='Unknown option'
+COMMAND_MSG_INVALID_ARG='Invalid argument'
+COMMAND_NO_SUCH_FILE='No such file or directory'
 
-readonly YES_FORCE="1"
-readonly NO_FORCE="0"
+readonly YES_FORCE='1'
+readonly NO_FORCE='0'
 
-readonly CONTENT="The content"
+readonly CONTENT='The content'
 
-readonly NAME_1="test_save_1"
-readonly NAME_2="test_save_2"
+readonly NAME_1='test_save_1'
+readonly NAME_2='test_save_2'
 
-readonly DESCRIPTION_1="This is the first description"
+readonly DESCRIPTION_1='This is the first description'
 readonly DESCRIPTION_2="Hi, I'm the second description"
 
 function setUp()
@@ -712,6 +712,88 @@ function test_fetch_config()
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
+}
+
+function test_configm_parser()
+{
+  unset options_values
+  declare -gA options_values
+  local expected
+  local ret
+
+  # Invalid options
+  parse_configm_options '--save'
+  ret="$?"
+  parse_configm_options '-s'
+  ret=$((ret + $?))
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+
+  parse_configm_options '--remove'
+  ret="$?"
+  parse_configm_options '-r'
+  ret=$((ret + $?))
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+
+  parse_configm_options '--description'
+  ret="$?"
+  parse_configm_options '-d'
+  ret=$((ret + $?))
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+
+  parse_configm_options '--output'
+  ret="$?"
+  parse_configm_options '-o'
+  ret=$((ret + $?))
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+
+  parse_configm_options '--get'
+  ret="$?"
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
+
+  parse_configm_options '--remote'
+  ret="$?"
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
+
+  parse_configm_options '--LalaXpto' 'lala xpto'
+  ret="$?"
+  assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
+
+  parse_configm_options '--wrongOption' 'lala xpto'
+  ret="$?"
+  assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
+
+  # valid options
+  parse_configm_options '--force'
+  expected=1
+  assert_equals_helper 'Set force flag' "$LINENO" "${options_values['FORCE']}" "$expected"
+
+  parse_configm_options '-s' "$NAME_1" '-d' "$DESCRIPTION_1"
+  assert_equals_helper 'Set save options' "$LINENO" "${options_values['SAVE']}" "$NAME_1"
+  assert_equals_helper 'Set description options' "$LINENO" "${options_values['DESCRIPTION']}" "$DESCRIPTION_1"
+
+  parse_configm_options '--get' "$NAME_1"
+  assert_equals_helper 'Set get flag' "$LINENO" "${options_values['GET']}" "$NAME_1"
+
+  parse_configm_options '--remove' "$NAME_1"
+  assert_equals_helper 'Set remove flag' "$LINENO" "${options_values['REMOVE']}" "$NAME_1"
+
+  parse_configm_options '--list'
+  expected=1
+  assert_equals_helper 'Set list flag' "$LINENO" "${options_values['LIST']}" "$expected"
+
+  parse_configm_options '--fetch'
+  expected=1
+  assert_equals_helper 'Set fetch flag' "$LINENO" "${options_values['FETCH']}" "$expected"
+
+  parse_configm_options '--output' "$NAME_1"
+  assert_equals_helper 'Set output flag' "$LINENO" "${options_values['OUTPUT']}" "$NAME_1"
+
+  parse_configm_options '--remote' "$NAME_1"
+  assert_equals_helper 'Set remote flag' "$LINENO" "${options_values['TARGET']}" 3
+
+  parse_configm_options '--optimize'
+  expected=1
+  assert_equals_helper 'Set optimize flag' "$LINENO" "${options_values['OPTIMIZE']}" "$expected"
 }
 
 invoke_shunit
