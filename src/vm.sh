@@ -2,6 +2,94 @@ include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
 declare -g prefix='/'
+declare -gA options_values
+
+function vm()
+{
+  if [[ -z "$*" ]]; then
+    complain 'Please, provide an argument'
+    vm_help
+    exit 22 #EINVAL
+  fi
+
+  vm_parser "$@"
+  shift
+
+  if [[ -n "${options_values['OPERATION']}" ]]; then
+    if [[ "${options_values['OPERATION']}" = "MOUNT" ]]; then
+      vm_mount "$@"
+    fi
+
+    if [[ "${options_values['OPERATION']}" = "UMOUNT" ]]; then
+      vm_umount "$@"
+    fi
+
+    if [[ "${options_values['OPERATION']}" = "UP" ]]; then
+      vm_up "$@"
+    fi
+  fi
+}
+
+function vm_parser()
+{
+  local raw_options="$*"
+  local operation=0
+
+  if [[ "$1" =~ -h|--help ]]; then
+    vm_help "$1" 'vm'
+    exit 0
+  fi
+
+  options_values['OPERATION']=''
+  options_values['QEMU_IMG']=''
+  options_values['MOUNT_POINT']=''
+
+  IFS=' ' read -r -a options <<< "$raw_options"
+
+  for option in "${options[@]}"; do
+    if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
+      case "$option" in
+        --mount)
+          options_values['OPERATION']="MOUNT"
+          operation=1
+          continue
+          ;;
+        --umount)
+          options_values['OPERATION']="UMOUNT"
+          operation=1
+          continue
+          ;;
+        --up)
+          options_values['OPERATION']="UP"
+          continue
+          ;;
+        *)
+          complain "Invalid option: $option"
+          vm_help
+          exit 22 #EINVAL
+          ;;
+      esac
+    else
+      if [[ "$operation" == 1 ]]; then
+
+        if [[ -z ${options_values['QEMU_IMG']} ]]; then
+          options_values['QEMU_IMG']="$option"
+
+        elif [[ -z ${options_values['MOUNT_POINT']} ]]; then
+          options_values['MOUNT_POINT']="$option"
+          operation=0
+
+        fi
+      fi
+    fi
+  done
+
+  # Invalid options
+  if [[ "$operation" == 1 && (-z ${options_values['QEMU_IMG']} || -z ${options_values['MOUNT_POINT']}) ]]; then
+    complain "--${options_values['OPERATION'],,} requires two parameters"
+    exit 125 #ECANCELED
+  fi
+}
 
 function vm_mount()
 {
@@ -13,7 +101,7 @@ function vm_mount()
   local distro
 
   if [[ "$1" =~ -h|--help ]]; then
-    vm_help "$1" 'mount'
+    vm_help "$1" 'vm'
     exit 0
   fi
 
@@ -62,7 +150,7 @@ function vm_umount()
   local ret
 
   if [[ "$1" =~ -h|--help ]]; then
-    vm_help "$1" 'umount'
+    vm_help "$1" 'vm'
     exit 0
   fi
 
@@ -92,7 +180,7 @@ function vm_up()
   local flag='SILENT'
 
   if [[ "$1" =~ -h|--help ]]; then
-    vm_help "$1" 'up'
+    vm_help "$1" 'vm'
     exit 0
   fi
 
@@ -116,8 +204,8 @@ function vm_help()
     kworkflow_man "$2"
     return
   fi
-  printf '%s\n' 'kw (mount | umount | up):' \
-    '  mo | mount - Mount VM' \
-    '  um | umount - Unmount VM' \
-    '  u | up - Start VM'
+  printf '%s\n' 'kw vm (--mount | --umount | --up):' \
+    '  --mount - Mount VM' \
+    '  --umount - Unmount VM' \
+    '  --up - Start VM'
 }

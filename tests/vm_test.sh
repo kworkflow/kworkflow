@@ -68,7 +68,7 @@ function test_vm_mount()
     "$guestmount_cmd"
   )
 
-  output=$(echo y | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  output=$(echo y | vm --mount 'TEST_MODE' "$qemu_path" "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Suppose it's not debian
@@ -76,7 +76,7 @@ function test_vm_mount()
   cp -f "$tests/samples/os/arch/"* "$prefix/etc"
 
   expected_cmd[1]="sudo chmod +r ${prefix}boot/vmlinuz-$(uname -r)"
-  output=$(echo y | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  output=$(echo y | vm --mount 'TEST_MODE' "$qemu_path" "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Adding back read permission
@@ -92,17 +92,17 @@ function test_vm_mount()
     {
       printf '%s\n' 'anything'
     }
-    vm_mount 'TEST_MODE'
+    vm --mount 'TEST_MODE'
   )
   ret="$?"
   expected_ret='125'
   assertEquals "($LINENO) - Expected 125" "$expected_ret" "$ret"
 
-  output=$(vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  output=$(vm --mount 'TEST_MODE' "$qemu_path" "$mount_point")
   ret="$?"
   assertTrue "($LINENO)" "$ret"
 
-  output=$(vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  output=$(vm --mount 'TEST_MODE' "$qemu_path" "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   load_configuration "$KW_CONFIG_SAMPLE"
@@ -112,7 +112,7 @@ function test_vm_mount()
   expected_cmd[0]="$say_msg"
   expected_cmd[1]="$guestmount_cmd"
 
-  output=$(vm_mount "TEST_MODE" "" "$mount_point")
+  output=$(vm --mount "TEST_MODE" "" "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   cd "$current_path" || {
@@ -146,18 +146,18 @@ function test_vm_umount()
   }
 
   ID=1
-  output=$(vm_umount "TEST_MODE")
+  output=$(vm --umount "TEST_MODE")
   ret="$?"
   expected_ret="125"
   assertEquals "($ID) - Expected 125" "$expected_ret" "$ret"
 
   ID=2
-  output=$(vm_umount "TEST_MODE" "" "$mount_point")
+  output=$(vm --umount "TEST_MODE" "" "$mount_point")
   ret="$?"
   assertTrue "($ID): We got: $ret" "$ret"
 
   ID=3
-  output=$(vm_umount "TEST_MODE" "" "$mount_point")
+  output=$(vm --umount "TEST_MODE" "" "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$ID"
 
   cd "$current_path" || {

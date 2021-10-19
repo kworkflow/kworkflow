@@ -69,31 +69,14 @@ function kw()
         return "$?"
       )
       ;;
-    mount | mo)
+    vm)
       (
         include "$KW_LIB_DIR/vm.sh"
 
-        vm_mount "$@"
+        vm "$@"
         local ret="$?"
-        alert_completion 'kw mount' "$1"
+        alert_completion 'kw vm' "$1"
         return "$ret"
-      )
-      ;;
-    umount | um)
-      (
-        include "$KW_LIB_DIR/vm.sh"
-
-        vm_umount "$@"
-        local ret="$?"
-        alert_completion 'kw umount' "$1"
-        return "$ret"
-      )
-      ;;
-    up | u)
-      (
-        include "$KW_LIB_DIR/vm.sh"
-
-        vm_up "$@"
       )
       ;;
     build | b)

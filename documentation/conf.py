@@ -166,14 +166,12 @@ man_pages = [
     ('man/features/explore', 'explore', 'git grep wrapper', [author], 1),
     ('man/features/init', 'init', 'initialize kworkflow.config', [author], 1),
     ('man/features/maintainers', 'maintainers', 'display module maintainers', [author], 1),
-    ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
     ('man/features/pomodoro', 'pomodoro', 'pomodoro style time management', [author], 1),
     ('man/features/report', 'report', 'user data report support', [author], 1),
     ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
     ('man/features/statistics', 'statistics', 'statistics about kw', [author], 1),
-    ('man/features/umount', 'umount', 'command for unmounting a QEMU VM', [author], 1),
-    ('man/features/up', 'up', 'command for starting a QEMU VM', [author], 1),
     ('man/features/vars', 'vars', 'view kw config values', [author], 1),
+    ('man/features/vm', 'vm', 'command for managing a QEMU VM', [author], 1)
 ]
 
 

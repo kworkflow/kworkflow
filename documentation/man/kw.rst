@@ -39,9 +39,7 @@ manage this VM. In this section, you can find all commands available in **kw**
 to manage many daily tasks related to QEMU VM operation. Notice that some
 rules are specific for the Linux Kernel project.
 
-  | :ref:`kw-mount<mount-doc>`
-  | :ref:`kw-umount<umount-doc>`
-  | :ref:`kw-up<up-doc>`
+  | :ref:`kw-vm<vm-doc>`
 
 COMMANDS FOR DEPLOY NEW KERNEL IMAGE AND MODULE
 -----------------------------------------------
