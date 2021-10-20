@@ -30,12 +30,18 @@ function test_get_today_info()
   local today
 
   today=$(date +%Y/%m/%d)
-  formated_today=$(get_today_info '+%Y/%m/%d')
-  assert_equals_helper 'Today info did not match' "$LINENO" "$today" "$formated_today"
+  formatted_today=$(get_today_info '+%Y/%m/%d')
+  assert_equals_helper 'Today info did not match' "$LINENO" "$today" "$formatted_today"
 
-  formated_today=$(get_today_info)
   today=$(date)
-  assert_equals_helper 'No parameter' "$LINENO" "$today" "$formated_today"
+  formatted_today=$(get_today_info)
+
+  if [[ "$today" != "$formatted_today" ]]; then
+    today=$(date)
+    formatted_today=$(get_today_info)
+  fi
+
+  assert_equals_helper 'No parameter' "$LINENO" "$today" "$formatted_today"
 }
 
 function test_get_week_beginning_day()
