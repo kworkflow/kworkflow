@@ -28,13 +28,22 @@ function test_sec_to_format()
 function test_get_today_info()
 {
   local today
+  local today_double_check
 
   today=$(date +%Y/%m/%d)
   formated_today=$(get_today_info '+%Y/%m/%d')
   assert_equals_helper 'Today info did not match' "$LINENO" "$today" "$formated_today"
 
-  formated_today=$(get_today_info)
   today=$(date)
+  formated_today=$(get_today_info)
+  today_double_check=$(date)
+
+  if [[ "$today" != "$today_double_check" ]]; then
+    today=$(date)
+    formated_today=$(get_today_info)
+    today_double_check=$(date)
+  fi
+
   assert_equals_helper 'No parameter' "$LINENO" "$today" "$formated_today"
 }
 
