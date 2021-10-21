@@ -7,7 +7,7 @@ kw-debug
 SYNOPSIS
 ========
 | *kw* (*debug*) [(-e | \--event) <event-syntax> [(-d | \--disable)] [(-k | \--history)] [(-f | \--follow)] ]
-| *kw* (*debug*) [(-g | \--dmesg) [(-f | \--follow)] ]
+| *kw* (*debug*) [(-g | \--dmesg) [(-f | \--follow)] [(-c | \--cmd) "COMMAND"] ]
 | *kw* (*debug*) [(-l | \--list)] [(-e | \--event)]
 | *kw* (*debug*) [(-h | \--help)]
 
@@ -74,7 +74,8 @@ OPTIONS
 -c, \--cmd:
   If this parameter is used combined with \--event, the following sequence will
   happen: (1) Enable specific trace, (2) collect trace in background, (3) run
-  the command, (4) disable traces.
+  the command, (4) disable traces. When used with \--dmesg, kw will (1) clean
+  the dmesg log, (2) run the command, (3) and collect the log.
 
 
 EXAMPLES
@@ -121,3 +122,8 @@ If you want to see the dmesg log from the target machine, you can use::
 For keeping following the dmesg log and save it locally, you can use::
 
   kw debug --dmesg --follow --history
+
+Let's say that you want to run a command in a remote machine and collect the
+dmesg log after the command execution, you can use::
+
+  kw debug --dmesg --cmd "/home/user/specific_app"

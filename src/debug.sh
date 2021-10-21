@@ -10,6 +10,7 @@ include "$KW_LIB_DIR/remote.sh"
 # Hash containing user options
 declare -gA options_values
 declare -gA events_hash
+declare -gA interrupt_data_hash
 
 declare -gr TRACING_BASE_PATH='/sys/kernel/debug/tracing'
 declare -gr TRACING_ON="$TRACING_BASE_PATH/tracing_on"
@@ -93,14 +94,18 @@ function dmesg_debug()
   local base_log_path="$3"
   local follow="$4"
   local user_cmd="$5"
-  local redirect_mode=''
+  local std_dmesg_cmd='dmesg --human --color=always'
   local save_following_log=''
-  local cmd='dmesg --human --color=always'
+  local redirect_mode=''
+  local cmd
+  local user_cmd
+  local screen_id
+  local screen_cmd
 
   if [[ -n "$follow" ]]; then
-    cmd="$cmd --follow"
+    cmd="$std_dmesg_cmd --follow"
   else
-    cmd="$cmd --nopager"
+    cmd="$std_dmesg_cmd --nopager"
   fi
 
   # Capture data
@@ -108,6 +113,18 @@ function dmesg_debug()
     touch "$base_log_path/dmesg"
     echo > "$base_log_path/dmesg"
     save_following_log="$base_log_path/dmesg"
+  fi
+
+  # User command
+  if [[ -n "$user_cmd" ]]; then
+    cmd="dmesg --clear && $user_cmd && $cmd"
+
+    if [[ -n "$follow" ]]; then
+      screen_id=$(get_today_info '+kw_%Y_%m_%d-%H_%M_%S')
+      screen_cmd="screen -dmS $screen_id $user_cmd"
+      interrupt_data_hash['DMESG']="screen -S $screen_id -X quit > /dev/null"
+      cmd="dmesg --clear && $screen_cmd && $std_dmesg_cmd --follow"
+    fi
   fi
 
   case "$target" in
@@ -525,7 +542,7 @@ function parser_debug_options()
 
   options_values['TARGET']=''
   options_values['EVENT']=''
-  options_values['DMESG']=0
+  options_values['DMESG']=''
   options_values['CMD']=''
   options_values['HISTORY']=''
   options_values['DISABLE']=0
