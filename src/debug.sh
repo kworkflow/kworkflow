@@ -73,7 +73,7 @@ function debug_main()
   fi
 
   if [[ "$test_mode" == 'TEST_MODE' ]]; then
-    echo "${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $target $event $user_cmd"
+    printf '%s\n' "${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $target $event $user_cmd"
     return 0
   fi
 }
@@ -113,7 +113,7 @@ function dmesg_debug()
   # Capture data
   if [[ -n "$base_log_path" ]]; then
     touch "$base_log_path/dmesg"
-    echo > "$base_log_path/dmesg"
+    printf '\n' > "$base_log_path/dmesg"
     save_following_log="$base_log_path/dmesg"
   fi
 
@@ -198,7 +198,7 @@ function event_trace()
   # Capture data
   if [[ -n "$base_log_path" ]]; then
     touch "$base_log_path/event"
-    echo > "$base_log_path/event"
+    printf '\n' > "$base_log_path/event"
     save_following_log="$base_log_path/event"
   fi
 
@@ -292,7 +292,7 @@ function prepare_log_database()
   local log_path="$debug_files_dir"
 
   if [[ -z "$keep_history" ]]; then
-    echo ''
+    printf '%s\n' ''
     return 0
   fi
 
@@ -319,7 +319,7 @@ function prepare_log_database()
 
   mkdir -p "$log_path"
 
-  echo "$log_path"
+  printf '%s\n' "$log_path"
 }
 
 # Show trace options
@@ -397,11 +397,11 @@ function build_event_command_string()
   local global_trace
 
   enable=${enable:-'1'}
-  global_trace="echo $enable > $TRACING_ON"
+  global_trace="printf '%s\n' $enable > $TRACING_ON"
 
   # Enable events
   for event in "${!events_hash[@]}"; do
-    local current_event_enable="echo $enable > $event/enable"
+    local current_event_enable="printf '%s\n' $enable > $event/enable"
     local filter="${events_hash[$event]}"
 
     if [[ -n "$list" ]]; then
@@ -415,13 +415,13 @@ function build_event_command_string()
     fi
 
     if [[ -n "$filter" ]]; then
-      filter="echo '$filter' > $event/filter"
+      filter="printf '%s\n' '$filter' > $event/filter"
       set_filters+="$filter;"
     fi
 
     # If disable, clean filters
     if [[ "$enable" != 1 && -n "$event" ]]; then
-      filter="echo '0' > $event/filter"
+      filter="printf '%s\n' '0' > $event/filter"
       set_filters+="$filter;"
     fi
 
@@ -433,13 +433,13 @@ function build_event_command_string()
   done
 
   if [[ -n "$list" ]]; then
-    echo "$list_events"
+    printf '%s\n' "$list_events"
   else
     if [[ "$enable" != 1 ]]; then
       [[ -n "$set_filters" ]] && global_trace+=" && $set_filters $enable_events"
-      echo "$global_trace"
+      printf '%s\n' "$global_trace"
     else
-      echo "$set_filters $enable_events && $global_trace"
+      printf '%s\n' "$set_filters $enable_events && $global_trace"
     fi
   fi
 }

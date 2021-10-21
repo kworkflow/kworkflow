@@ -104,7 +104,7 @@ function test_list_unmanaged_kernels()
   local -a expected
   local -a available_kernels=()
 
-  echo -n '' > "$INSTALLED_KERNELS_PATH"
+  printf '%s' '' > "$INSTALLED_KERNELS_PATH"
 
   expected=(
     "sudo mkdir -p $REMOTE_KW_DEPLOY"

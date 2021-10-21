@@ -177,7 +177,7 @@ function test_convert_event_syntax_to_sys_path_hash()
   # Checking filter
   output=$(
     IFS=$'\n'
-    echo "${events_hash[*]}"
+    printf '%s\n' "${events_hash[*]}"
   )
   assertTrue "($LINENO) Did not find 'sclk_khz > 1'" '[[ "$output" =~ "sclk_khz > 0" ]]'
 
@@ -189,7 +189,7 @@ function test_convert_event_syntax_to_sys_path_hash()
   # Checking filter
   output=$(
     IFS=$'\n'
-    echo "${events_hash[*]}"
+    printf '%s\n' "${events_hash[*]}"
   )
   array_of_values=("${events_hash[*]}")
   compare_array_values expected_multiple_filters array_of_values "$LINENO"
@@ -198,7 +198,7 @@ function test_convert_event_syntax_to_sys_path_hash()
   convert_event_syntax_to_sys_path_hash "$no_specific_event"
   output=$(
     IFS=$'\n'
-    echo "${!events_hash[*]}"
+    printf '%s\n' "${!events_hash[*]}"
   )
   assertTrue "($LINENO) Expected to find the root event 'amdgpu_dm'" '[[ "$output" =~ "$EVENT_BASE_PATH/amdgpu_dm" ]]'
 
@@ -214,7 +214,7 @@ function test_convert_event_syntax_to_sys_path_hash()
   ret="$?"
   output=$(
     IFS=$'\n'
-    echo "${!events_hash[*]}"
+    printf '%s\n' "${!events_hash[*]}"
   )
   assertEquals "($LINENO) Wrong syntax:" "$output" ''
   assertEquals "($LINENO) Return error:" "$ret" 22
@@ -224,7 +224,7 @@ function test_convert_event_syntax_to_sys_path_hash()
   ret="$?"
   output=$(
     IFS=$'\n'
-    echo "${!events_hash[*]}"
+    printf '%s\n' "${!events_hash[*]}"
   )
   assertEquals "($LINENO) Wrong syntax:" "$output" ''
   assertEquals "($LINENO) Return error:" "$ret" 22
@@ -243,13 +243,13 @@ function test_build_event_command_string()
     ["$dummy_path/filter2"]='x < 42')
 
   declare -a expected_string_command=(
-    "echo 'x > 42' > /sys/kernel/debug/tracing/dummy/filter1/filter"
-    "echo 'x < 42' > /sys/kernel/debug/tracing/dummy/filter2/filter"
-    'echo 1 > /sys/kernel/debug/tracing/dummy/filter1/enable'
-    'echo 1 > /sys/kernel/debug/tracing/dummy/filter2/enable'
-    'echo 1 > /sys/kernel/debug/tracing/dummy/test2/enable'
-    'echo 1 > /sys/kernel/debug/tracing/dummy/test1/enable'
-    'echo 1 > /sys/kernel/debug/tracing/dummy/test1/enable && echo 1 > /sys/kernel/debug/tracing/tracing_on'
+    "printf '%s\n' 'x > 42' > /sys/kernel/debug/tracing/dummy/filter1/filter"
+    "printf '%s\n' 'x < 42' > /sys/kernel/debug/tracing/dummy/filter2/filter"
+    "printf '%s\n' 1 > /sys/kernel/debug/tracing/dummy/filter1/enable"
+    "printf '%s\n' 1 > /sys/kernel/debug/tracing/dummy/filter2/enable"
+    "printf '%s\n' 1 > /sys/kernel/debug/tracing/dummy/test2/enable"
+    "printf '%s\n' 1 > /sys/kernel/debug/tracing/dummy/test1/enable"
+    "printf '%s\n' 1 > /sys/kernel/debug/tracing/dummy/test1/enable && printf '%s\n' 1 > /sys/kernel/debug/tracing/tracing_on"
   )
 
   cd "$SHUNIT_TMPDIR" || {
@@ -258,7 +258,7 @@ function test_build_event_command_string()
   }
 
   output=$(build_event_command_string '')
-  output=$(echo "$output" | sed -r 's/;/\n/g' | sed -r 's/^\s//g')
+  output=$(printf '%s\n' "$output" | sed -r 's/;/\n/g' | sed -r 's/^\s//g')
   IFS=$'\n' read -rd '' -a commands_array <<< "$output"
 
   compare_array_values expected_string_command commands_array "$LINENO"
@@ -272,19 +272,19 @@ function test_build_event_command_string()
     ["$dummy_path/filter2"]='')
 
   declare -a expected_string_command_disable=(
-    "echo '0' > /sys/kernel/debug/tracing/dummy/filter1/filter"
-    "echo '0' > /sys/kernel/debug/tracing/dummy/filter2/filter"
-    "echo '0' > /sys/kernel/debug/tracing/dummy/test2/filter"
-    "echo '0' > /sys/kernel/debug/tracing/dummy/test1/filter"
-    'echo 0 > /sys/kernel/debug/tracing/dummy/filter1/enable'
-    'echo 0 > /sys/kernel/debug/tracing/dummy/filter2/enable'
-    'echo 0 > /sys/kernel/debug/tracing/dummy/test2/enable'
-    'echo 0 > /sys/kernel/debug/tracing/dummy/test1/enable'
-    "echo 0 > /sys/kernel/debug/tracing/tracing_on && echo '0' > /sys/kernel/debug/tracing/dummy/filter1/filter"
+    "printf '%s\n' '0' > /sys/kernel/debug/tracing/dummy/filter1/filter"
+    "printf '%s\n' '0' > /sys/kernel/debug/tracing/dummy/filter2/filter"
+    "printf '%s\n' '0' > /sys/kernel/debug/tracing/dummy/test2/filter"
+    "printf '%s\n' '0' > /sys/kernel/debug/tracing/dummy/test1/filter"
+    "printf '%s\n' 0 > /sys/kernel/debug/tracing/dummy/filter1/enable"
+    "printf '%s\n' 0 > /sys/kernel/debug/tracing/dummy/filter2/enable"
+    "printf '%s\n' 0 > /sys/kernel/debug/tracing/dummy/test2/enable"
+    "printf '%s\n' 0 > /sys/kernel/debug/tracing/dummy/test1/enable"
+    "printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on && printf '%s\n' '0' > /sys/kernel/debug/tracing/dummy/filter1/filter"
   )
 
   output=$(build_event_command_string '' 0)
-  output=$(echo "$output" | sed -r 's/;/\n/g' | sed -r 's/^\s//g')
+  output=$(printf '%s\n' "$output" | sed -r 's/;/\n/g' | sed -r 's/^\s//g')
   IFS=$'\n' read -rd '' -a commands_array <<< "$output"
   compare_array_values expected_string_command_disable commands_array "$LINENO"
 
@@ -358,7 +358,7 @@ function test_parser_debug_options()
 # Mock function
 function get_today_info()
 {
-  echo 'kw_2021_10_22-07_34_07'
+  printf 'kw_2021_10_22-07_34_07'
 }
 
 function test_dmesg_debug()
@@ -471,7 +471,7 @@ function test_stop_debug()
 
   declare -a expected_cmd_sequence=(
     'Disabling events in the target machine : 1'
-    'sudo bash -c "echo 0 > /sys/kernel/debug/tracing/tracing_on"'
+    "sudo bash -c \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on\""
   )
   compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
 
@@ -481,7 +481,7 @@ function test_stop_debug()
 
   declare -a expected_cmd_sequence=(
     'Disabling events in the target machine : 1'
-    "$std_ssh sudo \"echo 0 > /sys/kernel/debug/tracing/tracing_on\""
+    "$std_ssh sudo \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on\""
   )
   compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
 
