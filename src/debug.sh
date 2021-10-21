@@ -60,6 +60,8 @@ function debug_main()
   # Base path for saving log files
   base_log_path=$(prepare_log_database "$keep_history")
 
+  signal_manager 'stop_debug' || warning 'Was not able to set signal handler'
+
   if [[ -n "$event" ]]; then
     event_trace "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list"
     return "$?"
@@ -219,8 +221,6 @@ function event_trace()
   if [[ -n "$list" ]]; then
     command=$(build_event_command_string "$list")
   fi
-
-  signal_manager 'stop_tracer' || warning 'Was not able to set signal handler'
 
   case "$target" in
     2) # LOCAL
@@ -420,7 +420,7 @@ function build_event_command_string()
     fi
 
     # If disable, clean filters
-    if [[ "$enable" != 1 ]]; then
+    if [[ "$enable" != 1 && -n "$event" ]]; then
       filter="echo '0' > $event/filter"
       set_filters+="$filter;"
     fi
@@ -436,7 +436,8 @@ function build_event_command_string()
     echo "$list_events"
   else
     if [[ "$enable" != 1 ]]; then
-      echo "$global_trace && $set_filters $enable_events"
+      [[ -n "$set_filters" ]] && global_trace+=" && $set_filters $enable_events"
+      echo "$global_trace"
     else
       echo "$set_filters $enable_events && $global_trace"
     fi
@@ -499,26 +500,54 @@ function convert_event_syntax_to_sys_path_hash()
   fi
 }
 
-function stop_tracer()
+function stop_debug()
 {
-  if [[ -v options_values['FOLLOW'] ]]; then
-    if [[ -v options_values['EVENT'] ]]; then
-      say "Disabling events in the target machine : ${options_values['EVENT']}"
-      disable_cmd=$(build_event_command_string '' 0)
+  local flag="$1"
+  local remote
+  local port
+  local user
+  local disable_cmd
+  local stop_dmesg_cmd
+  local target
 
-      case "${options_values['TARGET']}" in
-        2) # LOCAL
-          cmd_manager 'SILENT' "sudo bash -c \"$disable_cmd\""
-          ;;
-        3 | 1) # REMOTE && VM
-          local remote="${remote_parameters['REMOTE_IP']}"
-          local port="${remote_parameters['REMOTE_PORT']}"
-          local user="${remote_parameters['REMOTE_USER']}"
+  flag=${flag:-'SILENT'}
 
-          cmd_remotely "$disable_cmd" 'SILENT' "$remote" "$port" "$user"
-          ;;
-      esac
-    fi
+  # We only need to take action when following log
+  [[ -z "${options_values['FOLLOW']}" ]] && return 0
+
+  target="${options_values['TARGET']}"
+
+  if [[ "$target" == 3 || "$target" == 1 ]]; then
+    remote="${remote_parameters['REMOTE_IP']}"
+    port="${remote_parameters['REMOTE_PORT']}"
+    user="${remote_parameters['REMOTE_USER']}"
+  fi
+
+  if [[ -n "${options_values['EVENT']}" ]]; then
+    say "Disabling events in the target machine : ${options_values['EVENT']}"
+    disable_cmd=$(build_event_command_string '' 0)
+
+    case "$target" in
+      2) # LOCAL
+        cmd_manager "$flag" "sudo bash -c \"$disable_cmd\""
+        ;;
+      3 | 1) # REMOTE && VM
+        cmd_remotely "$disable_cmd" "$flag" "$remote" "$port" "$user"
+        ;;
+    esac
+  fi
+
+  if [[ -n "${options_values['DMESG']}" ]]; then
+    stop_dmesg_cmd="${interrupt_data_hash['DMESG']}"
+
+    case "$target" in
+      2) # LOCAL
+        cmd_manager "$flag" "$stop_dmesg_cmd"
+        ;;
+      3 | 1) # REMOTE && VM
+        cmd_remotely "$stop_dmesg_cmd" "$flag" "$remote" "$port" "$user"
+        ;;
+    esac
   fi
 }
 

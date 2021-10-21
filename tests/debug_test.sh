@@ -452,4 +452,55 @@ function test_dmesg_debug()
   }
 }
 
+function test_stop_debug()
+{
+  local output
+  local -a expected_cmd_sequence
+  local std_ssh='ssh -p 3333 juca@127.0.0.1'
+
+  #Not a follow option
+  output=$(stop_debug 'TEST_MODE')
+  assert_equals_helper 'We should return 0' "$LINENO" '' "$output"
+
+  # Event: Local
+  options_values['DMESG']=''
+  options_values['FOLLOW']=1
+  options_values['EVENT']=1
+  options_values['TARGET']=2
+  output=$(stop_debug 'TEST_MODE')
+
+  declare -a expected_cmd_sequence=(
+    'Disabling events in the target machine : 1'
+    'sudo bash -c "echo 0 > /sys/kernel/debug/tracing/tracing_on"'
+  )
+  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
+
+  # Event: Remote
+  options_values['TARGET']=3
+  output=$(stop_debug 'TEST_MODE')
+
+  declare -a expected_cmd_sequence=(
+    'Disabling events in the target machine : 1'
+    "$std_ssh sudo \"echo 0 > /sys/kernel/debug/tracing/tracing_on\""
+  )
+  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
+
+  # Dmesg: Local
+  options_values['EVENT']=''
+  options_values['DMESG']=1
+  options_values['TARGET']=2
+  interrupt_data_hash['DMESG']="screen -S XPTO-LA -X quit > /dev/null"
+
+  output=$(stop_debug 'TEST_MODE')
+  assert_equals_helper 'Stop local dmesg' "$LINENO" "${interrupt_data_hash['DMESG']}" "$output"
+
+  # Dmesg: Remote
+  options_values['TARGET']=3
+  interrupt_data_hash['DMESG']="screen -S XPTO-LA -X quit > /dev/null"
+  external_cmd="$std_ssh sudo \"${interrupt_data_hash['DMESG']}\""
+
+  output=$(stop_debug 'TEST_MODE')
+  assert_equals_helper 'Stop remote dmesg' "$LINENO" "$external_cmd" "$output"
+}
+
 invoke_shunit
