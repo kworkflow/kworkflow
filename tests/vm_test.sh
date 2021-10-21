@@ -69,7 +69,7 @@ function test_vm_mount()
     "$guestmount_cmd"
   )
 
-  output=$(echo y | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  output=$(printf '%s\n' 'y' | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Suppose it's not debian
@@ -77,7 +77,7 @@ function test_vm_mount()
   cp -f "$tests/samples/os/arch/"* "$prefix/etc"
 
   expected_cmd[1]="sudo chmod +r ${prefix}boot/vmlinuz-$(uname -r)"
-  output=$(echo y | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
+  output=$(printf '%s\n' 'y' | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Adding back read permission

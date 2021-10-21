@@ -522,7 +522,7 @@ function test_get_config_from_boot()
 
   function uname()
   {
-    echo '5.5.0-rc2-VKMS+'
+    printf '%s\n' '5.5.0-rc2-VKMS+'
   }
 
   cd "$SHUNIT_TMPDIR" || {
@@ -610,7 +610,7 @@ function test_fetch_config()
 
   function uname()
   {
-    echo x86
+    printf '%s\n' 'x86'
   }
 
   cd "$root" || {
@@ -619,7 +619,7 @@ function test_fetch_config()
   }
 
   # Check error message when run optimize outside kernel structure
-  output=$(echo y | fetch_config 'TEST_MODE' '' '' 1)
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' 1)
   assert_equals_helper 'No fake kernel should be here' "$LINENO" "$output" \
     'This command should be run in a kernel tree.'
 
@@ -651,11 +651,11 @@ function test_fetch_config()
   touch "$root/.config"
 
   # Say no to overwriting the file
-  output=$(echo n | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
+  output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
 
   # Say yes to overwriting the file
-  output=$(echo y | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   # Now using the --force option
@@ -676,7 +676,7 @@ function test_fetch_config()
 
   mk_fake_kernel_root "$PWD"
 
-  output=$(echo n | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
+  output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
   assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
 
   rm "$PWD/.config"
@@ -689,7 +689,7 @@ function test_fetch_config()
     'Successfully retrieved .config'
   )
 
-  output=$(echo y | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
   compare_command_sequence 'expected_output' "$output" "$LINENO"
 
   expected_output=(
@@ -706,7 +706,7 @@ function test_fetch_config()
   remote_parameters['REMOTE_USER']='mary'
   remote_parameters['REMOTE_IP']='localhost'
   remote_parameters['REMOTE_PORT']='1234'
-  output=$(echo y | fetch_config 'TEST_MODE' '' '' '' "$REMOTE_TARGET")
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$REMOTE_TARGET")
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"

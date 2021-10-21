@@ -69,14 +69,14 @@ function list_installed_kernels()
     if [[ -d "$prefix/boot/grub/" ]]; then
       list_installed_kernels_based_on_grub "$prefix" 'available_kernels'
     else
-      echo "Could not find grub installed. Cannot list all installed kernels"
+      printf '%s\n' 'Could not find grub installed. Cannot list all installed kernels'
       return 95 # ENOTSUP
     fi
   else
     readarray -t available_kernels < "$INSTALLED_KERNELS_PATH"
     if [[ "${#available_kernels[@]}" -eq 0 ]]; then
-      echo 'None of the installed kernels are managed by kw.' \
-        'Pass --list-all|-a to see all installed kernels'
+      printf '%s\n' 'None of the installed kernels are managed by kw.' \
+        'Pass --list-all|-a to see all installed kernels.'
       return 0
     fi
   fi
@@ -85,7 +85,7 @@ function list_installed_kernels()
     printf '%s\n' "${available_kernels[@]}"
   else
     local IFS=','
-    echo "${available_kernels[*]}"
+    printf '%s\n' "${available_kernels[*]}"
   fi
 
   return 0
@@ -304,10 +304,10 @@ function do_uninstall()
   fi
 
   if [ -f "$configpath" ]; then
-    echo "Removing: $configpath"
+    printf '%s\n' "Removing: $configpath"
     cmd_manager "$flag" "rm $configpath"
   else
-    echo "Can't find $configpath"
+    printf '%s\n' "Can't find $configpath"
   fi
 }
 
@@ -330,7 +330,7 @@ function kernel_uninstall()
   cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
   cmd_manager "$flag" "$cmd"
   if [[ "$?" && -z "$force" ]]; then
-    echo 'Kernel not managed by kw. Use --force/-f to uninstall anyway.'
+    printf '%s\n' 'Kernel not managed by kw. Use --force/-f to uninstall anyway.'
     exit 22 # EINVAL
   fi
 
@@ -428,7 +428,7 @@ function install_kernel()
   cmd_manager "$flag" "$cmd"
   if [[ "$?" != 0 ]]; then
     cmd="sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
-    echo "$name" | cmd_manager "$flag" "$cmd"
+    printf '%s\n' "$name" | cmd_manager "$flag" "$cmd"
   fi
 
   # Reboot
