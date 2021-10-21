@@ -355,12 +355,20 @@ function test_parser_debug_options()
 
 }
 
+# Mock function
+function get_today_info()
+{
+  echo 'kw_2021_10_22-07_34_07'
+}
+
 function test_dmesg_debug()
 {
   local output
   local expected_cmd
   local std_dmesg='dmesg --human --color=always'
   local std_ssh='ssh -p 3333 juca@127.0.0.1'
+  local igt_cmd_sample='$HOME/igt-gpu-tools/build/tests/kms_plane --run-subtest plane-position-covered'
+  local cmd_intermediary
 
   # Basic behavior
   output=$(dmesg_debug 2 'TEST_MODE' '' '' '')
@@ -402,6 +410,41 @@ function test_dmesg_debug()
   output=$(dmesg_debug 3 'TEST_MODE' 'kw_debug' 1 '')
   expected_cmd="$std_ssh sudo \"$std_dmesg --follow\" | tee kw_debug/dmesg"
   assert_equals_helper '[remote] Log file created' "$LINENO" "$expected_cmd" "$output"
+
+  # Check cmd option
+  # Local
+  # --cmd "SOMETHING"
+  output=$(dmesg_debug 2 'TEST_MODE' '' '' "$igt_cmd_sample")
+  expected_cmd="dmesg --clear && $igt_cmd_sample && $std_dmesg --nopager"
+  assert_equals_helper '[local] dmesg with CMD' "$LINENO" "$expected_cmd" "$output"
+
+  # --cmd "SOMETHING" --history
+  output=$(dmesg_debug 2 'TEST_MODE' 'kw_debug' '' "$igt_cmd_sample")
+  expected_cmd="dmesg --clear && $igt_cmd_sample && $std_dmesg --nopager | tee kw_debug/dmesg"
+  assert_equals_helper '[local] dmesg with CMD' "$LINENO" "$expected_cmd" "$output"
+
+  # --cmd "SOMETHING" --follow --history
+  output=$(dmesg_debug 2 'TEST_MODE' 'kw_debug' 1 "$igt_cmd_sample")
+  cmd_intermediary="screen -dmS kw_2021_10_22-07_34_07 $igt_cmd_sample"
+  expected_cmd="dmesg --clear && $cmd_intermediary && $std_dmesg --follow | tee kw_debug/dmesg"
+  assert_equals_helper '[local] dmesg with CMD' "$LINENO" "$expected_cmd" "$output"
+
+  # Remote
+  # --remote --cmd "SOMETHING"
+  output=$(dmesg_debug 3 'TEST_MODE' '' '' "$igt_cmd_sample")
+  expected_cmd="$std_ssh sudo \"dmesg --clear && $igt_cmd_sample && $std_dmesg --nopager\""
+  assert_equals_helper '[remote]' "$LINENO" "$expected_cmd" "$output"
+
+  # --remote --cmd "SOMETHING" --history
+  output=$(dmesg_debug 3 'TEST_MODE' 'kw_debug' '' "$igt_cmd_sample")
+  expected_cmd="$std_ssh sudo \"dmesg --clear && $igt_cmd_sample && $std_dmesg --nopager\" | tee kw_debug/dmesg"
+  assert_equals_helper '[remote]' "$LINENO" "$expected_cmd" "$output"
+
+  # --cmd "SOMETHING" --follow --history
+  output=$(dmesg_debug 3 'TEST_MODE' 'kw_debug' 1 "$igt_cmd_sample")
+  cmd_intermediary="screen -dmS kw_2021_10_22-07_34_07 $igt_cmd_sample"
+  expected_cmd="$std_ssh sudo \"dmesg --clear && $cmd_intermediary && $std_dmesg --follow\" | tee kw_debug/dmesg"
+  assert_equals_helper '[remote]' "$LINENO" "$expected_cmd" "$output"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"
