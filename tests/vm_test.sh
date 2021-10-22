@@ -163,6 +163,28 @@ function test_vm_umount()
   }
 }
 
+function test_vm_up()
+{
+  local output=''
+  local virtualizer='qemu-system-x86_64'
+  local qemu_hw_options='-enable-kvm -daemonize -smp 2 -m 1024'
+  local qemu_net_options='-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW'
+  local qemu_path='/home/USERKW/p/virty.qcow2'
+
+  parse_configuration "$SAMPLES_DIR/kworkflow_template.config"
+
+  local cmd_vm_up="$virtualizer $qemu_hw_options $qemu_net_options $qemu_path"
+
+  declare -a expected_cmd=(
+    'Starting Qemu with:'
+    "$cmd_vm_up"
+    "$cmd_vm_up"
+  )
+
+  output=$(vm_up 'TEST_MODE')
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+}
+
 function test_vm_parse_options()
 {
   unset options_values

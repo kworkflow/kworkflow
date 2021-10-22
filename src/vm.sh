@@ -121,7 +121,7 @@ function vm_umount()
 function vm_up()
 {
   local cmd
-  local flag='SILENT'
+  local flag=${1:-'SILENT'}
 
   say 'Starting Qemu with:'
   printf '%s' "${configurations[virtualizer]} " \
