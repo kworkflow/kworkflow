@@ -23,7 +23,8 @@ function include()
   varname="$(realpath "$filepath")"
   varname="${varname#"$KW_LIB_DIR/"}" # leave path until KW_LIB_DIR
   varname="${varname//\//_}"          # change bars to underlines
-  varname="${varname%.*}"             # remove extension
+  varname="${varname//\./_}"          # change dots into underscores
+  varname="${varname// /_}"           # change spaces into underscores
   varname="${varname^^}_IMPORTED"     # capitalize and append "_IMPORTED"
 
   if [[ -v "${varname}" ]]; then
@@ -31,5 +32,8 @@ function include()
   fi
 
   declare -g "${varname}"=1
+
+  [[ "$?" != 0 ]] && return 22 # EINVAL
+
   . "$filepath" --source-only
 }
