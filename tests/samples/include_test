@@ -1,4 +1,0 @@
-function test1()
-{
-  printf '%s\n' 'output of test1'
-}
