@@ -309,15 +309,22 @@ function synchronize_files()
   # Old kworkflow.config uses complete.wav instead of bell
   ln -s "$sounddir/bell.wav" "$sounddir/complete.wav"
 
-  # Documentation files
-  mkdir -p "$docdir"
-  cmd_output_manager "rsync -vr $DOCUMENTATION/ $docdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
-
   # man file
   mkdir -p "$mandir"
   cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
+
+  if [[ -d '/usr/local/man/' ]]; then
+    cmd_output_manager "gzip -k $mandir/kw.1" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "'gzip -k $mandir/kw.1' failed" "$?"
+
+    sudo mkdir -p "/usr/local/man/man1/"
+    cmd_output_manager "sudo mv $mandir/kw.1.gz /usr/local/man/man1/kw.1.gz" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "'sudo mv $mandir/kw.1.gz /usr/local/man/man1/kw.1.gz' failed" "$?"
+
+    cmd_output_manager "sudo mandb" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "'sudo mandb' failed" "$?"
+  fi
 
   # etc files
   mkdir -p "$etcdir"
