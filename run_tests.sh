@@ -175,7 +175,7 @@ check_files="$?"
 #shellcheck disable=SC2086
 if [[ "$#" -eq 0 ]]; then
   check_required_files
-  files_list=$(find ./tests -name '*_test.sh' | grep --invert-match '/shunit2/')
+  files_list=$(find ./tests -name '*_test.sh' | grep -Ev 'samples/.*|/shunit2/')
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
   strip_path $files_list
