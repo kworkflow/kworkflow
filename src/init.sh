@@ -37,6 +37,17 @@ function init_kw()
     return 22 # EINVAL
   fi
 
+  if [[ "${options_values['INTERACTIVE']}" ]]; then
+    interactive_init
+
+    #TODO: Help to setup git;
+
+    #TODO: Help to setup kworkflow.config;
+
+    #TODO: Check for required;
+
+  fi
+
   if [[ -f "$PWD/$KW_DIR/$name" ]]; then
     if [[ -n "${options_values['FORCE']}" ||
       $(ask_yN 'It looks like you already have a kw config file. Do you want to overwrite it?') =~ '1' ]]; then
@@ -112,8 +123,8 @@ function set_config_value()
 
 function parse_init_options()
 {
-  local long_options='arch:,remote:,target:,force'
-  local short_options='a:,r:,t:,f'
+  local long_options='arch:,remote:,target:,force,interactive'
+  local short_options='a:,r:,t:,f,i'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -125,6 +136,7 @@ function parse_init_options()
 
   options_values['ARCH']=''
   options_values['FORCE']=''
+  options_values['INTERACTIVE']=''
 
   eval "set -- $options"
 
@@ -146,6 +158,10 @@ function parse_init_options()
       --force | -f)
         shift
         options_values['FORCE']=1
+        ;;
+      --interactive | -i)
+        options_values['INTERACTIVE']=1
+        shift
         ;;
       --)
         shift
@@ -170,7 +186,8 @@ function init_help()
     '  init - Creates a kworkflow.config file in the current directory.' \
     '  init --arch <arch> - Set the arch field in the kworkflow.config file.' \
     '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
-    '  init --target <target> Set the default_deploy_target field in the kworkflow.config file'
+    '  init --target <target> - Set the default_deploy_target field in the kworkflow.config file' \
+    '  init --interactive - Perform first time setup in an interactive manner. Recommended for new users.'
 }
 
 # This function creates a new ssh key.
@@ -201,4 +218,95 @@ function create_ssh_key()
 
   mkdir -p "$ssh_dir"
   ssh-keygen -q -t rsa -f "$path"
+}
+
+# This function configures KW in an interactive way
+# by explaining the core configurations required and
+# asking for user input for some configuration decisions.
+# This option is intended for new users.
+#
+# Exit code:
+# ENODATA     : Interaction text could not be loaded.
+# ECANCELED   : User interruption.
+# EINPROGRESS : User selected not implemented feature
+function interactive_init()
+{
+  local ssh_keys
+  local key_name ssh_dir
+  local ssh_user ssh_ip
+
+  load_module_text "$KW_LIB_DIR/strings/init.txt"
+
+  if [[ "$?" -ne 0 ]]; then
+    complain '[ERROR]:src/init.sh:interactive_init: Failed to load module text.'
+    exit 61 # ENODATA
+  fi
+
+  say "${module_text_dictionary['text_interactive_start']}"
+  if [[ $(ask_yN '>>> Do you want to continue?') -ne 1 ]]; then
+    exit 125 # ECANCELED
+  fi
+
+  say "${module_text_dictionary['text_ssh_start']}"
+  if [[ $(ask_yN '>>> Do you want to continue?') -ne 1 ]]; then
+    exit 125 # ECANCELED
+  fi
+
+  say "${module_text_dictionary['text_ssh_lookup']}"
+
+  ssh_keys=$(find "$HOME/.ssh" -type f -name "*.pub")
+
+  if [[ -n "$ssh_keys" ]]; then
+    say "${module_text_dictionary['text_ssh_keys']}"
+  fi
+
+  #TODO: Fix cases and make code more efficient
+  select item in 'Create new LOCAL RSA key for KW' 'Create new GLOBAL RSA key for KW' $ssh_keys; do
+    if [[ -n "$item" ]]; then
+      case "$REPLY" in
+        1 | 2)
+          #Local or Global
+          say 'Creating new SSH key...'
+          warning 'If you type in the name of a key that already exists,'
+          warning 'you will be prompted to confirm that you wish to overwrite the key.'
+          warning 'Proceed with caution. We do not recommend you overwrite your key.'
+          say 'Please, type in the name of your new key:'
+          read -r -p 'Key: ' key_name
+          warning 'SSH will ask you for a password.'
+          warning 'Make sure you remember it for later use.'
+          ;;&
+        1) ssh_dir="$PWD/$KW_DIR/ssh" ;;
+        2) ssh_dir="$HOME/.ssh" ;;
+        *)
+          complain '[ERROR]:src/init:interactive_init: Feature not implemented (yet)'
+          exit 115 # EINPROGRESS
+          #TODO: Add the path to the chosen key to KW config (Different issue).
+          #Picked key
+          ;;
+      esac
+
+      create_ssh_key "$ssh_dir" "$key_name"
+
+      if [[ "$?" =~ "0" ]]; then
+        success "Created new key at $ssh_dir/$key_name.pub"
+      else
+        complain 'Failed to create new key.'
+      fi
+      #TODO: Test this
+
+      break
+    fi
+  done
+
+  if [[ $(ask_yN 'Would you like to configure a SSH connection to a remote machine?') -eq 1 ]]; then
+    say "${module_text_dictionary['text_remote_start']}"
+    read -r -p 'USER      (root): ' ssh_user
+    read -r -p 'IP   (localhost): ' ssh_ip
+    options_values['REMOTE']="${ssh_user:-root}@${ssh_ip:-127.0.0.1}:22"
+  fi
+  #TODO: Help to setup git;
+
+  #TODO: Help to setup kworkflow.config;
+
+  #TODO: Check for required;
 }

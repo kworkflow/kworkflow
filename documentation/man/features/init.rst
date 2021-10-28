@@ -29,6 +29,12 @@ OPTIONS
   Set the variable `default_deploy_target` from **kworkflow.config** to
   *<target>*, which can be any of vm, local or remote.
 
+\--interactive:
+  Initiates interactive setup mode. In this mode, kw will suggest a series of
+  configurations, explaining their purpose and recommending default options.
+  User confirmation and input is required to configure every feature.
+  Recommended for first time users.
+
 EXAMPLES
 ========
 For these examples, we suppose that the kernel directory is your current

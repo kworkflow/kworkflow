@@ -1,0 +1,40 @@
+[text_interactive_start]:
+Welcome to the interactive mode! We will ask you a series of questions regarding
+how do you want to configure kernel workflow. Before each question there will be
+a brief explanation of the feature and why it is used. This is not exhaustive,
+we recommend you search for more information online. Please follow the prompts
+to continue.
+
+
+[text_ssh_start]:
+We will now setup SSH. SSH stands for Secure Shell and is a networking protocol
+used for operating network services securely over an unsecured network. This is
+useful if you want to deploy a kernel remotely or inside a virtual machine (VM).
+Deploying in a remote machine or VM is recommended so you do not break your own
+kernel. For a tutorial on how to setup a VM compatible with KW refer to:
+https://flusp.ime.usp.br/others/use-qemu-to-play-with-linux/ KW will now attempt
+to automatically locate SSH. If your Linux distribution is not Debian or Arch
+this will likely fail. We do not support any other distributions (yet). We
+strongly recommend using one of these distributions to work with KW.
+
+
+[text_ssh_lookup]:
+SSH requires a RSA key to establish secure connections.
+We will now verify if your system has a RSA key available.
+We can create a local key or a global key.
+Local keys will be stored in kw's directory.
+Global keys will be stored in $HOME/.ssh/
+Global keys will be visible to other programs.
+
+
+[text_ssh_keys]:
+We found some ssh keys. We will list them
+and if you wish you can select one of them
+for kw's use by pressing the associated number
+followed by ENTER.
+
+
+[text_remote_start]:
+Please input your remote user and ip.
+If you press enter without typing anything, we will
+use the default values: root for user and localhost for ip.
