@@ -150,7 +150,14 @@ function kw()
         execute_config_manager "$@"
       )
       ;;
-    help | h)
+    help | --help)
+      (
+        include "$KW_LIB_DIR/help.sh"
+
+        kworkflow_man
+      )
+      ;;
+    h | -h)
       (
         include "$KW_LIB_DIR/help.sh"
 
