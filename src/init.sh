@@ -35,6 +35,63 @@ function init_kw()
     return 22 # EINVAL
   fi
 
+  if [[ "${options_values['INTERACTIVE']}" ]]; then
+
+    local cmd=''
+    local distro=''
+    local has_ssh
+    local installed
+
+    distro=$(detect_distro '/')
+
+    case "$distro" in
+      none)
+        warning "We do not support your distro (yet). We cannot check if SSH is installed."
+        if [[ $(ask_yN "Do you wish to proceed without configuring SSH?" =~ '0') ]]; then
+          exit 0
+        fi
+        ;;
+      arch)
+        pacman -Qe openssh > /dev/null
+        if [[ "$?" != 0 ]]; then
+          #not found
+          cmd='pacman -S openssh'
+        fi
+        ;;
+      debian)
+        installed=$(dpkg-query -W --showformat='${Status}\n' openssh-client 2> /dev/null | grep -c 'ok installed')
+        if [[ "$installed" -eq 0 ]]; then
+          #not found
+          cmd='apt install openssh-client'
+        fi
+        ;;
+    esac
+
+    if [[ -n "$cmd" ]]; then
+      if [[ $(ask_yN 'SSH was not found in this system, would you like to install it?') =~ '1' ]]; then
+        eval "sudo $cmd"
+      fi
+    fi
+
+    if [[ $(ask_yN 'Would you like to create a new SSH key for kw?') -eq 1 ]]; then
+      warning 'Creating new SSH key...We strongly recommend you do not overwrite any of your keys:'
+      eval "ssh-keygen -t rsa"
+    fi
+
+    if [[ $(ask_yN 'Would you like to configurate a SSH connection to a remote machine?') -eq 1 ]]; then
+      local arg
+      say 'Please input your remote user, ip and port.'
+      warning 'Follow this format: <user>@<ip>:<port>'
+      read -r arg
+      options_values['REMOTE']="$arg"
+    fi
+    #TODO: Help to setup git;
+
+    #TODO: Help to setup kworkflow.config;
+
+    #TODO: Check for required;
+  fi
+
   if [[ -f "$PWD/$KW_DIR/$name" ]]; then
     if [[ -n "${options_values['FORCE']}" ||
       $(ask_yN 'It looks like you already have a kw config file. Do you want to overwrite it?') =~ '1' ]]; then
@@ -110,8 +167,8 @@ function set_config_value()
 
 function parse_init_options()
 {
-  local long_options='arch:,remote:,target:,force'
-  local short_options='a:,r:,t:,f'
+  local long_options='arch:,remote:,target:,force,interactive'
+  local short_options='a:,r:,t:,f,i'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -144,6 +201,10 @@ function parse_init_options()
       --force | -f)
         shift
         options_values['FORCE']=1
+        ;;
+      --interactive | -i)
+        options_values['INTERACTIVE']=1
+        shift
         ;;
       --)
         shift
