@@ -94,6 +94,12 @@ function kernel_deploy()
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
 
   if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    # Check connection before try to work with remote
+    is_ssh_connection_configured "$flag"
+    if [[ "$?" != 0 ]]; then
+      ssh_connection_failure_message
+      exit 101 # ENETUNREACH
+    fi
     prepare_host_deploy_dir
     #shellcheck disable=SC2119
     prepare_remote_dir

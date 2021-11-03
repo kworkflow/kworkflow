@@ -14,6 +14,26 @@ REMOTE_KW_DEPLOY='/root/kw_deploy'
 
 declare -gA remote_parameters
 
+function is_ssh_connection_configured()
+{
+  local flag=${1:-'SILENT'}
+  local remote=${2:-${configurations[ssh_ip]}}
+  local port=${3:-${configurations[ssh_port]}}
+  local user=${4:-${configurations[ssh_user]}}
+  local ssh_cmd="ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p $port $user@$remote exit"
+
+  cmd_manager "$flag" "$ssh_cmd"
+}
+
+function ssh_connection_failure_message
+{
+  complain 'We could not reach the remote machine by using:'
+  complain " User: ${remote_parameters['REMOTE_IP']}"
+  complain " User: ${remote_parameters['REMOTE_USER']}"
+  complain " Port: ${remote_parameters['REMOTE_PORT']}"
+  complain 'Please ensure that the above info is correct and check if your public key is in the remote machine.'
+}
+
 # This function is responsible for executing a command in a remote machine.
 #
 # @command Command to be executed inside the remote machine

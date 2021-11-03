@@ -344,6 +344,15 @@ function fetch_config()
 
   output=${output:-'.config'}
 
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    # Check connection before try to work with remote
+    is_ssh_connection_configured "$flag"
+    if [[ "$?" != 0 ]]; then
+      ssh_connection_failure_message
+      exit 101 # ENETUNREACH
+    fi
+  fi
+
   # Folder to store files in case there's an interruption and we need to return
   # things to the state they were before or in case we need a place to store
   # files temporarily.

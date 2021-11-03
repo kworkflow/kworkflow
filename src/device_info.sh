@@ -30,11 +30,24 @@ declare -gA device_options
 function device_info()
 {
   local ret
+  local target
+
   device_info_parser "$@"
 
   ret="$?"
   if [[ "$ret" != 0 ]]; then
     return "$ret"
+  fi
+
+  target="${device_options['target']}"
+
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    # Check connection before try to work with remote
+    is_ssh_connection_configured 'SILENT'
+    if [[ "$?" != 0 ]]; then
+      ssh_connection_failure_message
+      exit 101 # ENETUNREACH
+    fi
   fi
 
   learn_device "${device_options['target']}"
