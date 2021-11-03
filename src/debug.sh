@@ -66,6 +66,15 @@ function debug_main()
 
   signal_manager 'stop_debug' || warning 'Was not able to set signal handler'
 
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    # Check connection before try to work with remote
+    is_ssh_connection_configured "$flag"
+    if [[ "$?" != 0 ]]; then
+      ssh_connection_failure_message
+      exit 101 # ENETUNREACH
+    fi
+  fi
+
   if [[ -n "$event" ]]; then
     event_trace "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list"
     return "$?"

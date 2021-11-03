@@ -35,6 +35,12 @@ function kw_ssh()
   cmd=${options_values['CMD']}
   flag=${options_values['TEST_MODE']}
 
+  is_ssh_connection_configured "$flag"
+  if [[ "$?" != 0 ]]; then
+    ssh_connection_failure_message
+    exit 101 # ENETUNREACH
+  fi
+
   if [[ -n "${options_values['SCRIPT']}" ]]; then
     if [[ ! -f "$script_path" ]]; then
       complain "No such file: $script_path"

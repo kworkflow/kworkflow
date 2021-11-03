@@ -39,12 +39,20 @@ function drm_manager()
   test_mode="${drm_options_values['TEST_MODE']}"
   load_module="${drm_options_values['LOAD_MODULE']}"
   unload_module="${drm_options_values['UNLOAD_MODULE']}"
-
   remote="${remote_parameters['REMOTE']}"
 
   if [[ "$test_mode" == 'TEST_MODE' ]]; then
     printf '%s\n' "$target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
     return 0
+  fi
+
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    # Check connection before try to work with remote
+    is_ssh_connection_configured "$flag"
+    if [[ "$?" != 0 ]]; then
+      ssh_connection_failure_message
+      exit 101 # ENETUNREACH
+    fi
   fi
 
   if [[ -n "$load_module" ]]; then
