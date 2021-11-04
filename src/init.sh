@@ -229,5 +229,6 @@ function init_help()
     '  init - Creates a kworkflow.config file in the current directory.' \
     '  init --arch <arch> - Set the arch field in the kworkflow.config file.' \
     '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
-    '  init --target <target> Set the default_deploy_target field in the kworkflow.config file'
+    '  init --target <target> Set the default_deploy_target field in the kworkflow.config file' \
+    '  init --interactive - Perform first time setup in an interactive manner. Recommended for new users.'
 }
