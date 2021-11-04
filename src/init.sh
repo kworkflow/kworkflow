@@ -39,6 +39,13 @@ function init_kw()
 
   if [[ "${options_values['INTERACTIVE']}" ]]; then
 
+    say 'Welcome to the interactive mode!'     
+    say 'We will ask you a series of questions regarding how do you want to configure kernel workflow.'
+    say 'Before each question there will be a brief explanation of the feature and why it is used.'
+    say 'This is not exhaustive, we recommend you search for more information online.'
+    say 'Please follow the prompts to continue.'
+    echo 
+    
     local cmd=''
     local distro=''
     local has_ssh
@@ -46,10 +53,23 @@ function init_kw()
 
     distro=$(detect_distro '/')
 
+    say 'We will now setup SSH.'
+    say 'SSH stands for Secure Shell and is a networking protocol used for' 
+    say 'operating network services securely over an unsecured network.'
+    say 'This is useful if you want to deploy a kernel remotely or inside a virtual machine (VM).'
+    say 'Deploying in a remote machine or VM is recommended so you do not break your own kernel.'
+    say 'For a tutorial on how to setup a VM compatible with KW refer to:' 
+    say 'https://flusp.ime.usp.br/others/use-qemu-to-play-with-linux/'
+    say 'KW will now attempt to automatically locate SSH.'
+    warning 'If your Linux distribution is not Debian or Arch this will likely fail.'
+    warning 'We do not support any other distributions (yet).'
+    warning 'We strongly recommend using one of these distributions to work with KW.'
+    echo
+
     case "$distro" in
       none)
         warning "We do not support your distro (yet). We cannot check if SSH is installed."
-	if [[ $(ask_yN "Do you wish to proceed without configuring SSH?") =~ '0' ]]; then
+	      if [[ $(ask_yN "Do you wish to proceed without configuring SSH?") =~ '0' ]]; then
           exit 0
         fi
         ;;
