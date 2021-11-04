@@ -26,7 +26,9 @@ function init_kw()
 
   if ! is_kernel_root "$PWD"; then
     complain 'This command should be run in a kernel tree.'
-    exit 125 # ECANCELED
+    if [[ $(ask_yN "Do you want to continue?") =~ '0' ]]; then
+    	exit 125 # ECANCELED
+    fi
   fi
 
   parse_init_options "$@"
@@ -47,7 +49,7 @@ function init_kw()
     case "$distro" in
       none)
         warning "We do not support your distro (yet). We cannot check if SSH is installed."
-        if [[ $(ask_yN "Do you wish to proceed without configuring SSH?" =~ '0') ]]; then
+	if [[ $(ask_yN "Do you wish to proceed without configuring SSH?") =~ '0' ]]; then
           exit 0
         fi
         ;;
