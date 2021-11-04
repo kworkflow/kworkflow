@@ -25,8 +25,10 @@ function init_kw()
   fi
 
   if ! is_kernel_root "$PWD"; then
-    complain 'This command should be run in a kernel tree.'
-    exit 125 # ECANCELED
+    warning 'This command should be run in a kernel tree.'
+    if [[ $(ask_yN 'Do you want to continue?') =~ '0' ]]; then
+      exit 125 # ECANCELED
+    fi
   fi
 
   parse_init_options "$@"

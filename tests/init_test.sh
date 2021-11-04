@@ -30,7 +30,7 @@ function test_init_kw()
     "Initialized kworkflow directory in $SHUNIT_TMPDIR/$KWORKFLOW/$KW_DIR based on $USER data"
   )
 
-  output=$(init_kw)
+  output=$(printf 'n' | init_kw)
   assertEquals "($LINENO):" 'This command should be run in a kernel tree.' "$output"
 
   mk_fake_kernel_root "$SHUNIT_TMPDIR/$KWORKFLOW/"
