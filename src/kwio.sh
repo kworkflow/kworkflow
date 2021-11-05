@@ -119,3 +119,41 @@ function ask_yN()
     printf '%s\n' '0'
   fi
 }
+
+# Asks for user input
+#
+# @message A string with the message to be displayed to the user.
+# @default_option String with default answer to be used if no input is given.
+# @show_default A string that defines if the default value will be printed to
+#               the user. Any non-empty value causes this behavior to be false.
+# @flag String to mark special conditions in this function. To activate the test
+#       mode, set this to 'TEST_MODE'.
+#
+# Return:
+# The user answer, guaranteed not to be empty.
+# Note: this function does not verify the given answer. You have to handle this
+# somewhere else.
+function ask_with_default()
+{
+  local message="$1"
+  local default_option="$2"
+  local show_default="$3"
+  local flag="$4"
+  local value
+
+  if [[ -z "$show_default" ]]; then
+    message+=" ($default_option)"
+  fi
+  message+=': '
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$message"
+
+  read -r -p "$message" response
+
+  if [[ "$?" -ne 0 || -z "$response" ]]; then
+    printf '%s\n' "$default_option"
+    return
+  fi
+
+  printf '%s\n' "$response"
+}
