@@ -47,29 +47,6 @@ function test_cmd_manager()
   assert_equals_helper 'TEST_MODE' "$LINENO" 'ls something' "$output"
 }
 
-function test_ask_yN()
-{
-  local count=0
-
-  output=$(printf '%s\n' 'y' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
-
-  output=$(printf '%s\n' 'Y' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
-
-  output=$(printf '%s\n' 'Yes' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
-
-  output=$(printf '%s\n' 'Sim' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
-
-  output=$(printf '%s\n' 'No' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
-
-  output=$(printf '%s\n' 'N' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
-}
-
 function test_human_list_installed_kernels()
 {
   declare -a expected_out=(

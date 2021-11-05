@@ -153,4 +153,88 @@ function test_ask_with_default()
   assert_equals_helper "$assert_equals_message" "$LINENO" "$expected_output" "$output"
 }
 
+function test_ask_yN()
+{
+  local assert_equals_message=''
+
+  assert_equals_message='Default answer: no, user answer: y'
+  output=$(printf 'y\n' | ask_yN 'Test message')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '1' "$output"
+
+  assert_equals_message='Default answer: no, user answer: Y'
+  output=$(printf 'Y\n' | ask_yN 'Test message')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '1' "$output"
+
+  assert_equals_message='Default answer: no, user answer: Yes'
+  output=$(printf 'Yes\n' | ask_yN 'Test message')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '1' "$output"
+
+  assert_equals_message='Default answer: no, user answer: invalid (sim)'
+  output=$(printf 'Sim\n' | ask_yN 'Test message')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  assert_equals_message='Default answer: no, user answer: No'
+  output=$(printf 'No\n' | ask_yN 'Test message')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  assert_equals_message='Default answer: no, user answer: N'
+  output=$(printf 'N\n' | ask_yN 'Test message')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  # Tests with default option selected
+  assert_equals_message='Default answer: N, user answer: y'
+  output=$(printf 'y\n' | ask_yN 'Test message' 'N')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '1' "$output"
+
+  assert_equals_message='Default answer: y, user answer: Y'
+  output=$(printf 'Y\n' | ask_yN 'Test message' 'y')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '1' "$output"
+
+  assert_equals_message='Default answer: y, user answer: default'
+  output=$(printf '\n' | ask_yN 'Test message' 'y')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '1' "$output"
+
+  assert_equals_message='Default answer: Y, user answer: n'
+  output=$(printf 'n\n' | ask_yN 'Test message' 'Y')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  assert_equals_message='Default answer: n, user answer: N'
+  output=$(printf 'N\n' | ask_yN 'Test message' 'n')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  assert_equals_message='Default answer: n, user anser: default'
+  output=$(printf '\n' | ask_yN 'Test message' 'n')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  # Invalid default
+  assert_equals_message='Default answer: invalid (lala), user answer: default'
+  output=$(printf '\n' | ask_yN 'Test message' 'lala')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  assert_equals_message='Default answer: invalid (lala), user answer: n'
+  output=$(printf 'n\n' | ask_yN 'Test message' 'lala')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  assert_equals_message='Default answer: invalid (lala), user answer: y'
+  output=$(printf 'y\n' | ask_yN 'Test message' 'lala')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '1' "$output"
+
+  assert_equals_message='Default answer: invalid (lalaYes), user answer: default (no)'
+  output=$(printf '\n' | ask_yN 'Test message' 'lalaYes')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  assert_equals_message='Default answer: invalid (lalaNo), user answer: default (no)'
+  output=$(printf '\n' | ask_yN 'Test message' 'lalaNo')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  # Invalid answer
+  assert_equals_message='Default answer: invalid (lala), user answer: no (invalid: lalaYes)'
+  output=$(printf 'lalaYes\n' | ask_yN 'Test message' 'lala')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+
+  assert_equals_message='Default answer: invalid (lala), user answer: no (invalid: lalano)'
+  output=$(printf 'lalano\n' | ask_yN 'Test message' 'lala')
+  assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+}
+
 invoke_shunit
