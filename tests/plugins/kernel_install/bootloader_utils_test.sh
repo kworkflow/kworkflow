@@ -5,6 +5,39 @@ include './tests/utils.sh'
 
 declare -r TEST_ROOT_PATH="$PWD"
 
+declare -a fake_dev
+
+function setUp()
+{
+  # Let's create a fake /dev path
+  mkdir -p "$SHUNIT_TMPDIR/dev"
+
+  fake_dev=(
+    "$SHUNIT_TMPDIR/dev/nvme0n1p1"
+    "$SHUNIT_TMPDIR/dev/nvme0n1p2"
+    "$SHUNIT_TMPDIR/dev/mmcblk0p1"
+    "$SHUNIT_TMPDIR/dev/sda"
+    "$SHUNIT_TMPDIR/dev/sdb"
+    "$SHUNIT_TMPDIR/dev/hda"
+  )
+
+  # SSD, NVME, HD, SD card
+  for dev_path in "${fake_dev[@]}"; do
+    touch "$dev_path"
+  done
+
+  # Add some noise to the /dev file
+  mkdir -p "$SHUNIT_TMPDIR/dev/sdh"
+  mkdir -p "$SHUNIT_TMPDIR/dev/hdz"
+
+  export DEV_PATH="$SHUNIT_TMPDIR/dev"
+}
+
+function tearDown()
+{
+  rm -rf "$SHUNIT_TMPDIR"
+}
+
 # Keep in mind that this is a very artificial mock function for `df
 # --output='source,target'`. Despite the inconsistencies in the output, the
 # core idea is to use this output to validate multiple possibilities around
@@ -61,6 +94,13 @@ function test_discover_device_and_partition()
     assert_equals_helper 'Expected same device' "$LINENO" \
       "${device_to_mount_point[$device]}" "${expected_partitions[$device]}"
   done
+}
+
+function test_discover_all_hard_drive()
+{
+  # These values came from the setup
+  discover_all_hard_drive
+  compare_array_values fake_dev available_hard_driver_system "$LINENO"
 }
 
 invoke_shunit
