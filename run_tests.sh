@@ -133,7 +133,7 @@ function run_tests()
   local test_failure_list=''
 
   for current_test in "${TESTS[@]}"; do
-    target=$(find ./tests -name "*$current_test*.sh")
+    target=$(find ./tests -name "$current_test*.sh")
     if [[ -f "$target" ]]; then
       say "Running test [${current_test}]"
       say "$SEPARATOR"
