@@ -67,3 +67,40 @@ function discover_all_hard_drive()
     ((index++))
   done <<< "$output"
 }
+
+# This function tries to identify the partition table type by reading the first
+# four bytes from the target hard drive.
+#
+# @hard_driver: Reference to a /dev/HARD_DRIVER
+#
+# Return:
+# Return the partition type. If we get MSDos, treat it as a hint but do not
+# rely on it because it can also mean that we could not correctly identify the
+# output.
+#
+# See:
+# https://en.wikipedia.org/wiki/Design_of_the_FAT_file_system
+function partition_table_type()
+{
+  local hard_driver="$1"
+  local hexdump_info
+
+  [[ -z "$hard_driver" ]] && return 0
+
+  # Let's read the FS information sector
+  hexdump_info=$(hexdump -v -s 512 -n 4 -e '"%_u"' "$hard_driver")
+  case "$hexdump_info" in
+    'EMBR')
+      printf '%s' 'EMBR'
+      ;;
+    'EFI ')
+      printf '%s' 'EFI'
+      ;;
+    'RRaA')
+      printf '%s' 'RRaA'
+      ;;
+    *)
+      printf '%s' 'MSDos'
+      ;;
+  esac
+}

@@ -33,6 +33,12 @@ function setUp()
   export DEV_PATH="$SHUNIT_TMPDIR/dev"
 }
 
+function create_binary_file()
+{
+  local input="$1"
+  local save_to="$2"
+}
+
 function tearDown()
 {
   rm -rf "$SHUNIT_TMPDIR"
@@ -101,6 +107,25 @@ function test_discover_all_hard_drive()
   # These values came from the setup
   discover_all_hard_drive
   compare_array_values fake_dev available_hard_driver_system "$LINENO"
+}
+
+function test_partition_table_type()
+{
+  local -r first_512_binaries_base_path='tests/samples/first_set_of_bytes_from_disk'
+  local output
+
+  # Check a standard GRUB2 in an x86 machine
+  output=$(partition_table_type "$first_512_binaries_base_path/grub2_x86")
+  assertEquals "($LINENO): Expected EFI" 'EFI' "$output"
+
+  # Check a system with Syslinux - This is commonly found in ChromeOS dev systems
+  output=$(partition_table_type "$first_512_binaries_base_path/syslinux_x86")
+  assertEquals "($LINENO): Expected EFI" 'EFI' "$output"
+
+  # Check in the Raspberry pi 4 first set of bytes
+  output=$(partition_table_type "$first_512_binaries_base_path/rpi4")
+  assertEquals "($LINENO): Expected EFI" 'RRaA' "$output"
+
 }
 
 invoke_shunit
