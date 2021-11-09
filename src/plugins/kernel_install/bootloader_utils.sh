@@ -28,7 +28,7 @@ function discover_device_and_partition()
   # Let's populate device_to_partition
   while IFS= read -r line; do
     device=$(echo "$line" | cut -d ' ' -f1)
-    mount_on=$(echo "$line" | cut -d ' ' -f2)
+    mount_on=$(echo "$line" | rev | cut -d' ' -f1 | rev)
     device_to_mount_point["$device"]="$mount_on"
   done <<< "$output"
 }
@@ -103,4 +103,148 @@ function partition_table_type()
       printf '%s' 'MSDos'
       ;;
   esac
+}
+
+# MBR is not so common these days, but we still find it in ChromeOS
+# (development mode) and some embedded systems. This function is responsible
+# for checking if a disk has an MBR partition, and if we have it, we extract
+# some information that might be useful for identifying the bootloader
+# information.
+#
+# Note: This function was heavily inspired by the bootinfoscript tool and
+# multiple sources. See the below references:
+# - https://en.wikipedia.org/wiki/Master_boot_record
+# - https://www.suse.com/c/making-sense-hexdump/
+# - https://neosmart.net/wiki/mbr-boot-process/
+# - https://www.pixelbeat.org/docs/disk/
+function identify_mbr_per_partition()
+{
+  local hard_drive="$1"
+  local raw_mbr_512=''
+  local boot_code_bytes=''
+  local boot_code_80_81_bytes=''
+  local bootloader_type=''
+
+  # Dump all MBR data (512 bytes) to a single variable
+  raw_mbr_512=$(hexdump -v -n 512 -e '/1 "%02x"' "${hard_drive}")
+
+  # We have some special case where bytes 0x80 to 0x81 will describe
+  # the bootloader version
+  boot_code_80_81_bytes="${raw_mbr_512:256:4}"
+
+  # Inspect the first 4 bytes
+  boot_code_bytes="${raw_mbr_512:0:4}"
+
+  case "$boot_code_bytes" in
+    eb48) # Grub Legacy
+      bootloader_type='Grub-Legacy'
+      ;;
+    eb4c | eb63) # Grub2 - 1.96, 1.97, 1.99
+      bootloader_type='Grub2'
+      ;;
+    33ed)
+      case "$boot_code_80_81_bytes" in
+        407c | 83e1)
+          # ISOhybrid Syslinux 4.04 and higher
+          # ISOhybrid with partition support Syslinux 4.04 and higher
+          bootloader_type='ISOhybrid-Syslinux-4_04-and-higher'
+          ;;
+      esac
+      ;;
+    fabe)
+      bootloader_type='No-boot-loader?'
+      ;;
+    # Bootloaders are not handled yet due to the lack of a use case.
+    # In order: BootIt-NG, GAG, Testdisk, ReactOS, Lilo, MS-DOS-3.30 to Windows-95.A,
+    # Paragon, Solaris, Truecrypt-Boot-Loader, XOSL, Plop, HP-Gateway
+    fceb | fc33 | fc31 | fafc | faeb | fa33 | eb31 | eb04 | ea1e | ea05 | b800 | 33ff)
+      bootloader_type='NOT_SUPPORTED_YET'
+      ;;
+    0000) # It does not have MBR bootloader, it should be something different
+      bootloader_type=''
+      printf '%s' "$bootloader_type"
+      return
+      ;;
+  esac
+
+  # If we already identified the bootloader, there is no reason to search more
+  if [[ -n "$bootloader_type" ]]; then
+    printf '%s' "$bootloader_type"
+    return
+  fi
+
+  boot_code_bytes="${raw_mbr_512:0:6}"
+
+  # Let's check the first 3 bytes
+  case "$boot_code_bytes" in
+    33c08e)
+      bootloader_type='Windows'
+      ;;
+    33c0fa)
+      # ChromeOS will fall here
+      bootloader_type='Syslinux-MBR-4_04-and-higher'
+      ;;
+    33c090 | eb5e00 | eb5e80 | eb5e90)
+      # Bootloaders are not handled yet due to the lack of a use case.
+      # In order: DiskCryptor, fbinst, Grub4Dos, WEE
+      bootloader_type='NOT_SUPPORTED_YET'
+      ;;
+    fa31c0 | fa31ed)
+      # Look at bytes 0x80-0x81 to be more specific about the Syslinux variant/version.
+      case "$boot_code_80_81_bytes" in
+        # ISOhybrid syslinux 3.72, 3.73, 3.74, 3.80
+        0069 | e879 | 0fb6 | 407c | 83e1 | b6c6 | fbc0)
+          # From 0fb6 to fbc0:
+          # 1. ISOhybrid with partition support Syslinux 3.82-3.86
+          # 2. ISOhybrid Syslinux 3.82-4.03
+          # 3. ISOhybrid with partition support Syslinux 4.00 to 4.03
+          # 4. ISOhybrid with partition support Syslinux 4.81
+          # 5. ISOhybrid Syslinux 4.81
+          bootloader_type='ISOhybrid-Syslinux'
+          ;;
+        # Syslinux MBR 3.61 to 4.03, 3.36 to 3.51, 3.00 to 3.35, 3.52 to 3.60
+        7c66 | 7cb8 | b442 | bb00)
+          bootloader_type='Syslinux-MBR-3_35-4_03'
+          ;;
+      esac
+      ;;
+    fa31c9)
+      bootloader_type='Master-Boot-LoaDeR'
+      ;;
+  esac
+
+  if [[ -n "$bootloader_type" ]]; then
+    printf '%s' "$bootloader_type"
+    return
+  fi
+
+  boot_code_bytes="${raw_mbr_512:0:8}"
+
+  case "$boot_code_bytes" in
+    fab80000)
+      bootloader_type='FreeDOS-eXtended-FDisk'
+      ;;
+    fab8*)
+      bootloader_type='No-boot-loader'
+      ;;
+  esac
+
+  if [[ -n "$bootloader_type" ]]; then
+    printf '%s' "$bootloader_type"
+    return
+  fi
+
+  boot_code_bytes="${raw_mbr_512:0:16}"
+
+  case "$boot_code_bytes" in
+    31c08ed0bc007c8e)
+      bootloader_type='SUSE-generic-MBR'
+      ;;
+    31c08ed0bc007cfb)
+      bootloader_type='Acer-PQService-MBR'
+      ;;
+  esac
+
+  printf '%s' "$bootloader_type"
+  return
 }
