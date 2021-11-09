@@ -128,4 +128,18 @@ function test_partition_table_type()
 
 }
 
+function test_identify_mbr_per_partition()
+{
+  local -r first_512_binaries_base_path='tests/samples/first_set_of_bytes_from_disk'
+  local output
+
+  # Standard x86 machine
+  output=$(identify_mbr_per_partition "$first_512_binaries_base_path/grub2_x86")
+  assertEquals "($LINENO): No MBR" '' "$output"
+
+  # ChromeOS
+  output=$(identify_mbr_per_partition "$first_512_binaries_base_path/syslinux_x86")
+  assertEquals "($LINENO): Syslinux MBR" 'Syslinux-MBR-4_04-and-higher' "$output"
+}
+
 invoke_shunit
