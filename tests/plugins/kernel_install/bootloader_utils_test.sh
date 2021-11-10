@@ -9,6 +9,9 @@ declare -a fake_dev
 
 function setUp()
 {
+  local count=0
+  local bootloader_file=''
+
   # Let's create a fake /dev path
   mkdir -p "$SHUNIT_TMPDIR/dev"
 
@@ -31,6 +34,36 @@ function setUp()
   mkdir -p "$SHUNIT_TMPDIR/dev/hdz"
 
   export DEV_PATH="$SHUNIT_TMPDIR/dev"
+
+  # Create fake grub path
+  bootloader_file="$SHUNIT_TMPDIR/GRUB_FILES"
+  mkdir -p "$bootloader_file"
+  for file in "${GRUB[@]}"; do
+    file="$bootloader_file/$file"
+    mkdir -p "${file%/*}" && touch "$file"
+
+    [[ "$count" -lt 5 ]] && break
+    ((count++))
+  done
+
+  # Create fake syslinux path
+  bootloader_file="$SHUNIT_TMPDIR/SYSLINUX_FILES"
+  mkdir -p "$bootloader_file"
+  count=0
+  for file in "${SYSLINUX[@]}"; do
+    file="$bootloader_file/$file"
+    mkdir -p "${file%/*}" && touch "$file"
+    [[ "$count" -lt 3 ]] && break
+    ((count++))
+  done
+
+  # Create fake rpi path
+  bootloader_file="$SHUNIT_TMPDIR/RPI_FILES"
+  mkdir -p "$bootloader_file"
+  for file in "${RPI_BOOTLOADER[@]}"; do
+    file="$bootloader_file/$file"
+    mkdir -p "${file%/*}" && touch "$file"
+  done
 }
 
 function create_binary_file()
@@ -140,6 +173,20 @@ function test_identify_mbr_per_partition()
   # ChromeOS
   output=$(identify_mbr_per_partition "$first_512_binaries_base_path/syslinux_x86")
   assertEquals "($LINENO): Syslinux MBR" 'Syslinux-MBR-4_04-and-higher' "$output"
+}
+
+function test_identify_bootloader_from_files()
+{
+  local output
+
+  output=$(identify_bootloader_from_files "$SHUNIT_TMPDIR/GRUB_FILES")
+  assertEquals "($LINENO): Expected Grub" 'GRUB' "$output"
+
+  output=$(identify_bootloader_from_files "$SHUNIT_TMPDIR/SYSLINUX_FILES")
+  assertEquals "($LINENO): Expected Syslinux" 'SYSLINUX' "$output"
+
+  output=$(identify_bootloader_from_files "$SHUNIT_TMPDIR/RPI_FILES")
+  assertEquals "($LINENO): Expected Raspberry Pi" 'RPI_BOOTLOADER' "$output"
 }
 
 invoke_shunit
