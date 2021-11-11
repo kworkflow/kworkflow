@@ -32,6 +32,7 @@ function debug_main()
   local test_mode=''
   local target=''
   local event=''
+  local ftrace=''
   local dmesg=''
   local user_cmd=''
   local keep_history=''
@@ -50,6 +51,7 @@ function debug_main()
   test_mode="${options_values['TEST_MODE']}"
   target="${options_values['TARGET']}"
   event="${options_values['EVENT']}"
+  ftrace="${options_values['FTRACE']}"
   dmesg="${options_values['DMESG']}"
   user_cmd="${options_values['CMD']}"
   keep_history="${options_values['HISTORY']}"
@@ -69,6 +71,11 @@ function debug_main()
 
   if [[ -n "$dmesg" ]]; then
     dmesg_debug "$target" "$flag" "$base_log_path" "$follow" "$user_cmd"
+    return "$?"
+  fi
+
+  if [[ -n "$ftrace" ]]; then
+    ftrace_debug "$target" "$flag" "$ftrace" "$base_log_path" "$follow" "$user_cmd" "$list"
     return "$?"
   fi
 
@@ -267,6 +274,83 @@ function event_trace()
   esac
 
   return 0
+}
+
+# Function dedicated to handling how we capture the ftrace options and display
+# them to our users.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Output all data in a list format
+function ftrace_list()
+{
+  local target="$1"
+  local flag="$2"
+  local raw_data=''
+  local index=1
+  local ret
+  local cmd_list="cat $TRACING_BASE_PATH/available_tracers"
+
+  case "$target" in
+    2) # LOCAL
+      raw_data=$(cmd_manager "$flag" "sudo -E $cmd_list")
+      ret="$?"
+      ;;
+    3 | 1) # REMOTE && VM
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+      local user="${remote_parameters['REMOTE_USER']}"
+
+      if [[ "$target" == 1 ]]; then
+        say 'Target is a VM'
+        # TODO: We should check if the VM is up and running
+      fi
+
+      raw_data=$(cmd_remotely "$cmd_list" "$flag" "$remote" "$port" "$user")
+      ret="$?"
+      ;;
+  esac
+
+  [[ "$ret" != 0 ]] && return "$ret"
+
+  IFS=' ' read -r -a ftrace_options <<< "$raw_data"
+  for ftrace_available in "${ftrace_options[@]}"; do
+    printf ' %d. %s\n' "$index" "$ftrace_available"
+    ((index++))
+  done
+}
+
+# This is the function responsible for managing ftrace tasks.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @ftrace_syntax: Raw string with event syntax
+# @keep_history: If set to a value different from empty or 0, it will create a
+# directory structure for keeping the trace history. Otherwise, it will create
+# a single file per trace type.
+# @follow: Follow log in real-time.
+# @user_cmd: User specific command.
+# @list: List events.
+function ftrace_debug()
+{
+  local target="$1"
+  local flag="$2"
+  local ftrace_syntax="$3"
+  local base_log_path="$4"
+  local follow="$5"
+  local user_cmd="$6"
+  local list="$7"
+  local raw_list=''
+  local ret
+
+  if [[ -n "$list" || "$ftrace_syntax" == 1 ]]; then
+    ftrace_list "$target" "$flag"
+    return "$?"
+  fi
 }
 
 # This function sets up all files/directories that will keep the trace
@@ -558,8 +642,8 @@ function parser_debug_options()
   local long_options
   local transition_variables
 
-  long_options='remote:,event:,dmesg,cmd:,local,history,disable,list,follow,help'
-  short_options='f,e,g,c,h,d,l,k'
+  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list,follow,help'
+  short_options='f,e,t,g,c,h,d,l,k'
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
 
@@ -571,6 +655,7 @@ function parser_debug_options()
 
   options_values['TARGET']=''
   options_values['EVENT']=''
+  options_values['FTRACE']=''
   options_values['DMESG']=''
   options_values['CMD']=''
   options_values['HISTORY']=''
@@ -615,6 +700,10 @@ function parser_debug_options()
         ;;
       --event | -e)
         options_values['EVENT']+="$2"
+        shift 2
+        ;;
+      --ftrace | -t)
+        options_values['FTRACE']+="$2"
         shift 2
         ;;
       --dmesg | -g)
@@ -676,5 +765,6 @@ function debug_help()
     '  debug (--cmd | -c) "command" - Trace log while running a command in the target.' \
     '  debug (--dmesg | -g) - Collect the dmesg log' \
     '  debug (--event | -e) "<syntax>" - Trace specific event' \
+    '  debug (--ftrace | -t) "<syntax>" - Use ftrace to identify code path' \
     '  You can combine some of the above options'
 }

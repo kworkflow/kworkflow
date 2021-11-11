@@ -6,10 +6,11 @@ kw-debug
 
 SYNOPSIS
 ========
-| *kw* (*debug*) [(-e | \--event) <event-syntax> [(-d | \--disable)] [(-k | \--history)] [(-f | \--follow)] ]
-| *kw* (*debug*) [(-g | \--dmesg) [(-f | \--follow)] [(-c | \--cmd) "COMMAND"] ]
-| *kw* (*debug*) [(-l | \--list)] [(-e | \--event)]
-| *kw* (*debug*) [(-h | \--help)]
+| *kw* *debug* [(-e | \--event) <event-syntax> [(-d | \--disable)] [(-k | \--history)] [(-f | \--follow)] ]
+| *kw* *debug* [(-t | \--ftrace)]
+| *kw* *debug* [(-g | \--dmesg) [(-f | \--follow)] [(-c | \--cmd) "COMMAND"] ]
+| *kw* *debug* [(-l | \--list)] [(-e | \--event)]
+| *kw* *debug* [(-h | \--help)]
 
 DESCRIPTION
 ===========
@@ -44,6 +45,14 @@ Let's detail the above syntax step-by-step:
 Notice that users have a flexible way of defining the events they want to trace
 by using the event syntax. Additionally, the debug option provides other
 features that simplify the work with debug data from Linux Kernel.
+
+FTRACE TRACE
+------------
+
+The kernel provides a feature named ftrace that enables developers to have a
+high-level view of the code execution. Kw wraps this feature under the
+`\--ftrace` option. If the user does not provide any output, kw will display
+all available ftrace options.
 
 DMESG LOG
 ---------

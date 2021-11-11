@@ -353,6 +353,69 @@ function test_parser_debug_options()
   parser_debug_options --dmesg
   assert_equals_helper 'Expected dmesg' "$LINENO" "${options_values['DMESG']}" 1
 
+  # Validate ftrace
+  parser_debug_options --ftrace
+  assert_equals_helper 'Expected ftrace failure' "$LINENO" "$?" 22
+
+  parser_debug_options --list --ftrace
+  assert_equals_helper 'Expected ftrace failure' "$LINENO" "$?" 22
+}
+
+function test_ftrace_list()
+{
+  local output
+  local expected_cmd
+
+  declare -a expected_cmd=(
+    '1. hwlat'
+    '2. blk'
+    '3. mmiotrace'
+    '4. function_graph'
+    '5. wakeup_dl'
+    '6. wakeup_rt'
+    '7. wakeup'
+    '8. function'
+    '9. nop'
+  )
+
+  # Let's overwrite cmd_manager behavior temporarily
+  function cmd_manager()
+  {
+    printf '%s\n' 'hwlat blk mmiotrace function_graph wakeup_dl wakeup_rt wakeup function nop'
+  }
+
+  function cmd_remotely()
+  {
+    printf '%s\n' 'hwlat blk mmiotrace function_graph wakeup_dl wakeup_rt wakeup function nop'
+  }
+
+  # Local
+  output=$(ftrace_list 2)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Remote
+  output=$(ftrace_list 3)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # VM
+  output=$(ftrace_list 1)
+  declare -a expected_cmd=(
+    'Target is a VM'
+    '1. hwlat'
+    '2. blk'
+    '3. mmiotrace'
+    '4. function_graph'
+    '5. wakeup_dl'
+    '6. wakeup_rt'
+    '7. wakeup'
+    '8. function'
+    '9. nop'
+  )
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Let's reload cmd_manager
+  source 'src/kwlib.sh' --source-only
+  source 'src/remote.sh' --source-only
 }
 
 # Mock function
