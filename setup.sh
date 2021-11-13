@@ -7,6 +7,7 @@ include "$KW_LIB_DIR/kwlib.sh"
 SILENT=1
 VERBOSE=0
 FORCE=0
+SKIPCHECKS=0
 
 declare -r app_name='kw'
 
@@ -162,6 +163,7 @@ function usage()
   say '--help      | -h     Display this usage message'
   say "--install   | -i     Install $app_name"
   say "--uninstall | -u     Uninstall $app_name"
+  say '--skip-checks        Skip checks (use this when packaging)'
   say '--verbose            Explain what is being done'
   say '--force              Never prompt'
   say "--completely-remove  Remove $app_name and all files under its responsibility"
@@ -399,8 +401,10 @@ EOF
 function install_home()
 {
   # Check Dependencies
-  say 'Checking dependencies ...'
-  check_dependencies
+  if [[ "$SKIPCHECKS" == 0 ]]; then
+    say 'Checking dependencies ...'
+    check_dependencies
+  fi
   # Move old folder structure to new one
   legacy_folders
   # First clean old installation
@@ -421,6 +425,10 @@ for arg; do
   fi
   if [ "$arg" = '--force' ]; then
     FORCE=1
+    continue
+  fi
+  if [ "$arg" = '--skip-checks' ]; then
+    SKIPCHECKS=1
     continue
   fi
   set -- "$@" "$arg"
