@@ -21,6 +21,7 @@ function oneTimeSetUp()
     "$KW_INC_TEST_HIDDEN_PATH/include_test.sh"
     "$KW_INC_TEST_SPACED_PATH/include_spaced.sh"
     "$KW_INC_TEST_PATH/include_test.sh"
+    "$KW_INC_TEST_PATH/include-dashed.sh"
   )
 
   touch "${test_files[@]}"
@@ -93,6 +94,12 @@ function test_include_hidden_files()
 function test_include_spaced_path()
 {
   include "$KW_INC_TEST_SPACED_PATH/include_spaced.sh"
+  assertEquals "($LINENO)" 0 "$?"
+}
+
+function test_include_dashed_path()
+{
+  include "$KW_INC_TEST_PATH/include-dashed.sh"
   assertEquals "($LINENO)" 0 "$?"
 }
 
