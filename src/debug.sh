@@ -16,6 +16,8 @@ declare -gr TRACING_BASE_PATH='/sys/kernel/debug/tracing'
 declare -gr TRACING_ON="$TRACING_BASE_PATH/tracing_on"
 declare -gr EVENT_BASE_PATH="$TRACING_BASE_PATH/events"
 declare -gr TRACE_PIPE="$TRACING_BASE_PATH/trace_pipe"
+declare -gr FTRACE_CURRENT_PATH="$TRACING_BASE_PATH/current_tracer"
+declare -gr FTRACE_FILTER="$TRACING_BASE_PATH/set_ftrace_filter"
 
 declare -gr KW_DEBUG='kw_debug'
 
@@ -75,7 +77,7 @@ function debug_main()
   fi
 
   if [[ -n "$ftrace" ]]; then
-    ftrace_debug "$target" "$flag" "$ftrace" "$base_log_path" "$follow" "$user_cmd" "$list"
+    ftrace_debug "$target" "$flag" "$ftrace" "$base_log_path" "$follow" "$user_cmd" "$list" "$disable"
     return "$?"
   fi
 
@@ -344,6 +346,7 @@ function ftrace_debug()
   local follow="$5"
   local user_cmd="$6"
   local list="$7"
+  local disable="$8"
   local raw_list=''
   local ret
 
@@ -351,6 +354,117 @@ function ftrace_debug()
     ftrace_list "$target" "$flag"
     return "$?"
   fi
+
+  # Build basic trace command
+  cmd_ftrace=$(build_ftrace_command_string "$ftrace_syntax" "$disable")
+
+  case "$target" in
+    2) # LOCAL
+      cmd_manager "$flag" "$cmd_ftrace"
+      ret="$?"
+      ;;
+    3 | 1) # REMOTE && VM
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+      local user="${remote_parameters['REMOTE_USER']}"
+
+      if [[ "$target" == 1 ]]; then
+        say 'Target is a VM'
+        # TODO: We should check if the VM is up and running
+      fi
+
+      cmd_remotely "$cmd_ftrace" "$flag" "$remote" "$port" "$user"
+      ret="$?"
+      ;;
+  esac
+
+  if [[ "$ret" != 0 ]]; then
+    complain "Fail to enable ftrace: $ftrace_syntax"
+    complain 'Hint: try to use a wildcard in the filter'
+    return "$ret"
+  fi
+}
+
+# This function is responsible for building the ftrace string that represents
+# the command executed in the target machine.
+#
+# @ftrace_syntax
+#
+# Return:
+# A string with the final command is composed.
+function build_ftrace_command_string()
+{
+  local ftrace_syntax="$1"
+  local ftrace_disable="$2"
+  local char_repetition
+  local ftrace_filters
+  local ftrace_type
+  local cmd_disable_ftrace="echo 0 > $TRACING_ON"
+  local cmd_enable_ftrace="echo 1 > $TRACING_ON"
+  local cmd_ftrace="$cmd_disable_ftrace"
+  declare -a filter_list
+
+  if [[ -n "$ftrace_disable" ]]; then
+    cmd_ftrace+=" && echo '' > $FTRACE_FILTER"
+    printf '%s' "$cmd_ftrace"
+    return
+  fi
+
+  if [[ -z "$ftrace_syntax" ]]; then
+    complain 'Invalid option: empty --ftrace input'
+    exit 22 # EINVAL
+  fi
+
+  # Pre-process user input by dropping all extra space
+  ftrace_syntax=$(str_drop_all_spaces "$ftrace_syntax")
+
+  # Let's check if we have filters or not
+  char_repetition=$(str_count_char_repetition "$ftrace_syntax" ':')
+
+  if [[ "$char_repetition" -gt 1 || "$char_repetition" -lt 0 ]]; then
+    complain 'Invalid syntax:'
+    complain 'Please, use the syntax: <ftrace_type>[:filter[,filter, ...]]'
+    exit 22 # EINVAL
+  fi
+
+  # Set ftrace type
+  ftrace_type=$(printf '%s' "$ftrace_syntax" | cut -d ':' -f1)
+  ftrace_type=$(str_strip "$ftrace_type")
+  cmd_ftrace+=" && echo '$ftrace_type' > $FTRACE_CURRENT_PATH"
+
+  # We have filters
+  if [[ "$char_repetition" -eq 1 ]]; then
+    ftrace_filters=$(printf '%s' "$ftrace_syntax" | cut -d ':' -f2)
+    char_repetition=$(str_count_char_repetition "$ftrace_filters" ',')
+
+    if [[ -z "$ftrace_filters" ]]; then
+      complain 'Invalid syntax:'
+      complain 'If you use ":", you must specify a filter'
+      exit 22
+    fi
+
+    # We have multiple filters
+    if [[ "$char_repetition" -gt 0 ]]; then
+      IFS=',' read -r -a filter_list <<< "$ftrace_filters"
+      if [[ -z "${filter_list[*]}" ]]; then
+        complain 'Invalid syntax:'
+        complain 'If you use "," make sure that you add a filter after that'
+        exit 22
+      fi
+    else # single filter
+      filter_list[0]="$ftrace_filters"
+    fi
+  fi
+
+  # Set ftrace filters
+  for filter in "${filter_list[@]}"; do
+    cmd_ftrace+=" && echo '$filter' >> $FTRACE_FILTER"
+  done
+
+  # Enable traces
+  cmd_ftrace+=" && $cmd_enable_ftrace"
+
+  printf '%s' "$cmd_ftrace"
 }
 
 # This function sets up all files/directories that will keep the trace
@@ -764,7 +878,7 @@ function debug_help()
     '  debug (--follow | -f) - Follow traces in real-time' \
     '  debug (--cmd | -c) "command" - Trace log while running a command in the target.' \
     '  debug (--dmesg | -g) - Collect the dmesg log' \
-    '  debug (--event | -e) "<syntax>" - Trace specific event' \
-    '  debug (--ftrace | -t) "<syntax>" - Use ftrace to identify code path' \
+    '  debug (--event | -e) [--disable] "<syntax>" - Trace specific event' \
+    '  debug (--ftrace | -t) [--disable] "<syntax>" - Use ftrace to identify code path' \
     '  You can combine some of the above options'
 }

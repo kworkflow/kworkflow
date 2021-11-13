@@ -244,4 +244,45 @@ function test_str_remove_duplicates()
   assert_equals_helper 'Expected empty string to remain empty' "$LINENO" "$expected" "$output"
 }
 
+function test_str_count_char_repetition()
+{
+  local output
+
+  output=$(str_count_char_repetition 'we*have*three*asterisks' '*')
+  assert_equals_helper 'Expected 3' "$LINENO" 3 "$output"
+
+  output=$(str_count_char_repetition 'we have one*asterisks' ' ')
+  assert_equals_helper 'Expected 2' "$LINENO" 2 "$output"
+
+  output=$(str_count_char_repetition 'we have one*asterisks' '-')
+  assert_equals_helper 'Expected 0' "$LINENO" 0 "$output"
+
+  # Corner-cases
+  output=$(str_count_char_repetition 'we have one*asterisks' '')
+  assert_equals_helper 'Expected 0' "$LINENO" 21 "$output"
+
+  output=$(str_count_char_repetition 'we have one*asterisks' '    ')
+  assert_equals_helper 'Expected 0' "$LINENO" 2 "$output"
+
+  output=$(str_count_char_repetition 'we have one*asterisks' 'h   ')
+  assert_equals_helper 'Expected 0' "$LINENO" 1 "$output"
+}
+
+function test_str_drop_all_spaces()
+{
+  local output
+
+  output=$(str_drop_all_spaces '    la    lu  -   xpto    ')
+  assert_equals_helper 'Expected lalu-xpto' "$LINENO" 'lalu-xpto' "$output"
+
+  output=$(str_drop_all_spaces '    xpto    ')
+  assert_equals_helper 'Expected xpto' "$LINENO" 'xpto' "$output"
+
+  output=$(str_drop_all_spaces 'nospace')
+  assert_equals_helper 'Expected same string' "$LINENO" 'nospace' "$output"
+
+  output=$(str_drop_all_spaces '        ')
+  assert_equals_helper 'Expected empty' "$LINENO" '' "$output"
+}
+
 invoke_shunit

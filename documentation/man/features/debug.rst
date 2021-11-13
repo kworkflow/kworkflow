@@ -54,6 +54,22 @@ high-level view of the code execution. Kw wraps this feature under the
 `\--ftrace` option. If the user does not provide any output, kw will display
 all available ftrace options.
 
+The ftrace debug feature provides different trace algorithms (you can see all
+options by using the `\--list` option) and simplifies the output. The
+`\--ftrace` option wraps these two configurations by using the following
+syntax:
+
+ **ftrace_type[:filter[,filter, ...]]**
+
+Let's take a close look at the above syntax:
+
+* *ftrace_type*: Use this option to indicate the ftrace algorithm that you
+  want to use.
+
+* *filter*: Ftrace allows users to filter its output. This option sets
+  specific function names or even a pattern filtered by ftrace; notice that you
+  can pass multiple filters separated by commas.
+
 DMESG LOG
 ---------
 
@@ -64,8 +80,8 @@ information. Notice that this feature work in the local and remote context.
 OPTIONS
 =======
 -d, \--disable:
-  Disable all events specified inside *--event ""*. This feature does not apply
-  to \--dmesg option.
+  Disable all events specified inside `\--event ""` and `\--ftrace`. This
+  feature does not apply to `\--dmesg` option.
 
 -l, \--list:
   If used together with the event option, it will list all available events. If

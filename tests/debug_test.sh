@@ -359,6 +359,101 @@ function test_parser_debug_options()
 
   parser_debug_options --list --ftrace
   assert_equals_helper 'Expected ftrace failure' "$LINENO" "$?" 22
+
+  ftrace_str='something:another,thing'
+  parser_debug_options --ftrace="$ftrace_str"
+  assert_equals_helper 'Expected ftrace syntax' "$LINENO" "${options_values['FTRACE']}" "$ftrace_str"
+
+  ftrace_str='something:'
+  parser_debug_options --ftrace="$ftrace_str"
+  assert_equals_helper 'Expected ftrace setup' "$LINENO" "${options_values['FTRACE']}" "$ftrace_str"
+
+  ftrace_str='something:  la, llu,    xpto'
+  parser_debug_options --ftrace="$ftrace_str"
+  assert_equals_helper 'Expected ftrace string' "$LINENO" "${options_values['FTRACE']}" "$ftrace_str"
+}
+
+function test_build_ftrace_command_string()
+{
+  local output
+  local expected_cmd
+  local disable_trace='echo 0 > /sys/kernel/debug/tracing/tracing_on'
+  local enable_trace='echo 1 > /sys/kernel/debug/tracing/tracing_on'
+  local current_tracer='/sys/kernel/debug/tracing/current_tracer'
+  local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
+
+  # function_graph
+  output=$(build_ftrace_command_string 'function_graph')
+  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer && $enable_trace"
+  assert_equals_helper 'Expected to enable function_graph' "$LINENO" "$output" "$expected_cmd"
+
+  output=$(build_ftrace_command_string '    function_graph        ')
+  assert_equals_helper 'Expected to enable function_graph' "$LINENO" "$output" "$expected_cmd"
+
+  # function_graph: -> Should fail
+  output=$(build_ftrace_command_string 'function_graph:  ')
+  ret="$?"
+  assert_equals_helper 'Expected a failure' "$LINENO" 22 "$ret"
+
+  # function_graph:, -> Should fail
+  output=$(build_ftrace_command_string 'function_graph:,')
+  ret="$?"
+  assert_equals_helper 'Expected a failure' "$LINENO" 22 "$ret"
+
+  # function_graph:amdgpu_dm*
+  output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*')
+  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
+  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd+=" && $enable_trace"
+  assert_equals_helper 'Expected amdgpu_dm filters' "$LINENO" "$output" "$expected_cmd"
+
+  # function_graph:amdgpu_dm*,dc_*,drm_test
+  output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*,dc_*,drm_test')
+  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
+  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd+=" && echo 'dc_*' >> $ftracer_filter"
+  expected_cmd+=" && echo 'drm_test' >> $ftracer_filter"
+  expected_cmd+=" && $enable_trace"
+  assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$output" "$expected_cmd"
+
+  # function_graph: amdgpu_dm*,   dc_*
+  output=$(build_ftrace_command_string 'function_graph: amdgpu_dm*,   dc_*')
+  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
+  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd+=" && echo 'dc_*' >> $ftracer_filter"
+  expected_cmd+=" && $enable_trace"
+  assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$output" "$expected_cmd"
+
+  # Empty
+  output=$(build_ftrace_command_string '')
+  ret="$?"
+  assert_equals_helper 'Expected a failure' "$LINENO" 22 "$ret"
+
+  # Disable
+  output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*' 1)
+  expected_cmd="$disable_trace && echo '' > $ftracer_filter"
+  assert_equals_helper 'Expected disable command' "$LINENO" "$output" "$expected_cmd"
+}
+
+function test_ftrace_debug()
+{
+  local output
+  local expected_cmd
+  local disable_trace='echo 0 > /sys/kernel/debug/tracing/tracing_on'
+  local enable_trace='echo 1 > /sys/kernel/debug/tracing/tracing_on'
+  local current_tracer='/sys/kernel/debug/tracing/current_tracer'
+  local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
+
+  # Local machine
+  output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*')
+  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
+  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter && $enable_trace"
+  assert_equals_helper 'Expected command' "$LINENO" "$output" "$expected_cmd"
+
+  # Remote
+  output=$(ftrace_debug 3 'TEST_MODE' 'function_graph:amdgpu_dm*')
+  expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd\""
+  assert_equals_helper 'Expected remote command' "$LINENO" "$output" "$expected_cmd"
 }
 
 function test_ftrace_list()

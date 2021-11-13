@@ -144,3 +144,38 @@ function str_remove_duplicates()
 
   printf '%s\n' "$str" | tr -s "$char"
 }
+
+# This function expects a string and a character that will be used as a
+# reference to count how many times the character appears in the string. Based
+# on the second parameter, we can have the following behaviors:
+# 1. Valid char: Count how many times char is found in the string.
+# 2. Empty char: it will return the total of characters in the string.
+# 3. Multiple chars: It will take only the first character and ignore the rest.
+#
+# @str: Target string
+# @char: Character reference
+#
+# Return:
+# Return the number of occurencies of char inside the string.
+function str_count_char_repetition()
+{
+  local str="$1"
+  local char="${2:0:1}"
+  local matches
+
+  matches="${str//[^$char]/}"
+  printf '%s' "${#matches}"
+}
+
+# Drop all spaces from the string
+#
+# @str: Target string
+#
+# Return:
+# Return a string without space
+function str_drop_all_spaces()
+{
+  local str="$*"
+
+  printf '%s' "$str" | tr --delete ' '
+}
