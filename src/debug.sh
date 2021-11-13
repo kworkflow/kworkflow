@@ -358,6 +358,10 @@ function ftrace_debug()
   # Build basic trace command
   cmd_ftrace=$(build_ftrace_command_string "$ftrace_syntax" "$disable")
 
+  if [[ "$follow" == 1 && -z "$disable" ]]; then
+    cmd_ftrace="$cmd_ftrace && cat $TRACE_PIPE"
+  fi
+
   case "$target" in
     2) # LOCAL
       cmd_manager "$flag" "$cmd_ftrace"
@@ -773,7 +777,7 @@ function parser_debug_options()
   options_values['DMESG']=''
   options_values['CMD']=''
   options_values['HISTORY']=''
-  options_values['DISABLE']=0
+  options_values['DISABLE']=''
   options_values['LIST']=''
   options_values['FOLLOW']=''
 

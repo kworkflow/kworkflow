@@ -439,10 +439,12 @@ function test_ftrace_debug()
 {
   local output
   local expected_cmd
+  local expected_cmd_base
   local disable_trace='echo 0 > /sys/kernel/debug/tracing/tracing_on'
   local enable_trace='echo 1 > /sys/kernel/debug/tracing/tracing_on'
   local current_tracer='/sys/kernel/debug/tracing/current_tracer'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
+  local trace_pip='/sys/kernel/debug/tracing/trace_pipe'
 
   # Local machine
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*')
@@ -450,10 +452,16 @@ function test_ftrace_debug()
   expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter && $enable_trace"
   assert_equals_helper 'Expected command' "$LINENO" "$output" "$expected_cmd"
 
+  expected_cmd_base="$expected_cmd"
   # Remote
   output=$(ftrace_debug 3 'TEST_MODE' 'function_graph:amdgpu_dm*')
-  expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd\""
+  expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd_base\""
   assert_equals_helper 'Expected remote command' "$LINENO" "$output" "$expected_cmd"
+
+  # Follow
+  output=$(ftrace_debug 3 'TEST_MODE' 'function_graph:amdgpu_dm*' '' 1)
+  expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd_base && cat $trace_pip\""
+  assert_equals_helper 'Expected follow' "$LINENO" "$output" "$expected_cmd"
 }
 
 function test_ftrace_list()
