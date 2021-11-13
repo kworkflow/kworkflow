@@ -97,12 +97,12 @@ Global Configuration File
 -------------------------
 
 All the default configurations adopted by kworflow can be seen at
-`~/.local/etc/kw/kworkflow.config`; this config file has a comment on each
-configuration option. Finally, it is essential to highlight that kw loads the
-default configurations; next, it tries to find a local configuration file
-(detailed ahead) and overwrites the global options with the ones read from the
-local config file. In summary, the local config has higher precedence than the
-global config.
+`$XDG_CONFIG_HOME/kw/kworkflow_template.config`; this config file has a comment
+on each configuration option. Finally, it is essential to highlight that kw
+loads the default configurations; next, it tries to find a local configuration
+file (detailed ahead) and overwrites the global options with the ones read from
+the local config file. In summary, the local config has higher precedence than
+the global config.
 
 Local Configuration File
 ------------------------
@@ -111,7 +111,7 @@ Kw allows you to have a specific set of configuration per project. For example,
 if you have a particular kernel tree named ‘drm-work’ and want a different
 configuration from the default you can follow these steps:
 
-1. `~/.local/etc/kw/kworkflow.config` to
+1. copy your config file (i.e. `$XDG_CONFIG_HOME/kw/kworkflow.config`) to
    `/path/to/your/kernel/tree/drm-work/kworkflow.config`
 
 .. note::
