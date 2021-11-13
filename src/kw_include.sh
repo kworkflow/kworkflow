@@ -25,6 +25,7 @@ function include()
   varname="${varname//\//_}"          # change bars to underlines
   varname="${varname//\./_}"          # change dots into underscores
   varname="${varname// /_}"           # change spaces into underscores
+  varname="${varname//-/_}"           # change dashes into underscores
   varname="${varname^^}_IMPORTED"     # capitalize and append "_IMPORTED"
 
   if [[ -v "${varname}" ]]; then
