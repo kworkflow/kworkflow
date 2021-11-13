@@ -65,10 +65,11 @@ Configuring kw
 --------------
 Kw works with three levels of configuration files: global, user, and local. The
 `global` configuration file contains the default values for options and may be
-in ``~/.local/etc/kw/kworkflow.config`` or in
-``/etc/kworkflow/kworkflow.config``, depending on the installation method. The
-`user` configuration file is valid for a single user and lives in
-``~/.kw/kworkflow.config``.
+in any of the folders listed in ``echo "$XDG_CONFIG_DIRS"`` where, for each
+folder ``FOLDER``, the config file has to be located in
+``$FOLDER/kw/kworkflow.config``. The `user` configuration file is valid for a
+single user and lives in ``$XDG_CONFIG_HOME/kw/kworkflow.config``
+(hint: ``$XDG_CONFIG_HOME`` is usually located at ``~/.config`` by default).
 
 At last, the `local` option is specific to a directory. You can run::
 
@@ -79,10 +80,12 @@ from there, it will use that configuration file. This is useful, for example,
 if you work with more than one kernel repository and would like **kw** to behave
 differently for each one of them.
 
-Actually, **kw** always parses all three levels of configurations, but local has
-precedence over user, which has precedence over global. This means you could
-use a local **kworkflow.config** to only override specific options, leaving the
-rest as defined in the global configuration file.
+Actually, **kw** always parses all three levels of configurations, but local
+has precedence over user, which has precedence over global, and then every
+folder in the ``XDG_CONFIG_DIRS`` list is also parsed with precedence inversely
+proportional to its place on the list. This means you could use a local
+**kworkflow.config** to only override specific options, leaving the rest as
+defined in the global configuration file.
 
 When configuring kw, you might want to start looking at theses options:
  * ``ssh_ip`` and ``ssh_port`` define the IP address and port kw will use when
