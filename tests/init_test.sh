@@ -93,7 +93,7 @@ function test_init_kw()
   assertEquals "($LINENO)" 'default_deploy_target=local' "$kworkflow_content"
 
   rm -rf "${path:?}"/*
-  output=$(init_kw --target dartboard | head -n 1)
+  output=$(init_kw --target dartboard | tail -n +1 | head -n 1)
   kworkflow_content=$(grep default_deploy_target= "$path_config")
   assertEquals "($LINENO)" 'Target can only be vm, local or remote.' "$output"
 
