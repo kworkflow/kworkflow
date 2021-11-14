@@ -106,7 +106,10 @@ function diff_side_by_side()
   local diff_cmd
   local columns
 
-  columns=$(tput cols)
+  # In case TERM is gibberish tput won't work properly
+  # specify dummy terminal option to manage that
+  [[ "$TERM" == '' || "$TERM" == 'dumb' ]] && TPUTTERM=' -T xterm-256color'
+  columns=$(eval tput"${TPUTTERM}" cols)
   diff_cmd="diff -y --color=always --width=$columns"
   flag=${flag:-''}
 
