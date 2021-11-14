@@ -333,13 +333,15 @@ function test_kernel_install_x86_64()
 
   # Test kernel image infer
   configurations['kernel_img_name']=''
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' | head -1)
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
+    tail -n +1 | head -1)
   expected_msg='kw inferred arch/x86_64/boot/arch/x86_64/boot/bzImage as a kernel image'
   assert_equals_helper "Infer kernel image" "$LINENO" "$expected_msg" "$output"
 
   # Test failures
   rm -rf arch/x86_64/
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' | head -1)
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
+    tail -n +1 | head -1)
   expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
   assertEquals "($LINENO): " "$output" "$expected_msg"
   assert_equals_helper "Could not find a valid image" "$LINENO" "$expected_msg" "$output"
