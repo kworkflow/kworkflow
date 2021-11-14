@@ -152,3 +152,8 @@ Let's say that you want to run a command in a remote machine and collect the
 dmesg log after the command execution, you can use::
 
   kw debug --dmesg --cmd "/home/user/specific_app"
+
+Suppose that you have an AMD and you want to track the display manager's
+behavior. You can use the below command to achieve this goal::
+
+  kw debug --ftrace="function_graph:amdgpu_dm*" --follow --history

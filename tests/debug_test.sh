@@ -444,7 +444,8 @@ function test_ftrace_debug()
   local enable_trace='echo 1 > /sys/kernel/debug/tracing/tracing_on'
   local current_tracer='/sys/kernel/debug/tracing/current_tracer'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
-  local trace_pip='/sys/kernel/debug/tracing/trace_pipe'
+  local trace_pipe='/sys/kernel/debug/tracing/trace_pipe'
+  local default_ssh='ssh -p 3333 juca@127.0.0.1 sudo'
 
   # Local machine
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*')
@@ -460,8 +461,35 @@ function test_ftrace_debug()
 
   # Follow
   output=$(ftrace_debug 3 'TEST_MODE' 'function_graph:amdgpu_dm*' '' 1)
-  expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd_base && cat $trace_pip\""
+  expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd_base && cat $trace_pipe\""
   assert_equals_helper 'Expected follow' "$LINENO" "$output" "$expected_cmd"
+
+  # History
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mkdir 'kw_debug'
+
+  output=$(ftrace_debug 2 'TEST_MODE' 'function_graph: amdgpu_dm*' 'kw_debug')
+  expected_cmd="$expected_cmd_base | tee kw_debug/ftrace"
+  assert_equals_helper '[local] We expected a log file' "$LINENO" "$expected_cmd" "$output"
+  # Check if was created a ftrace file
+  assertTrue "($LINENO) Expected to find kw_debug/ftrace file" '[[ -f "$PWD/kw_debug/ftrace" ]]'
+
+  output=$(ftrace_debug 2 'TEST_MODE' 'function_graph: amdgpu_dm*' 'kw_debug' 1)
+  expected_cmd="$expected_cmd_base && cat $trace_pipe | tee kw_debug/ftrace"
+  assert_equals_helper '[local] We expected a log file' "$LINENO" "$expected_cmd" "$output"
+
+  output=$(ftrace_debug 3 'TEST_MODE' 'function_graph: amdgpu_dm*' 'kw_debug' 1)
+  expected_cmd="$default_ssh \"$expected_cmd_base && cat $trace_pipe\" | tee kw_debug/ftrace"
+  assert_equals_helper '[remote] We expected a log file' "$LINENO" "$expected_cmd" "$output"
+
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
 }
 
 function test_ftrace_list()
@@ -623,6 +651,8 @@ function test_stop_debug()
   local output
   local -a expected_cmd_sequence
   local std_ssh='ssh -p 3333 juca@127.0.0.1'
+  local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
+  local disable_trace="echo 0 > /sys/kernel/debug/tracing/tracing_on && echo '' > $ftracer_filter"
 
   #Not a follow option
   output=$(stop_debug 'TEST_MODE')
@@ -630,6 +660,7 @@ function test_stop_debug()
 
   # Event: Local
   options_values['DMESG']=''
+  options_values['FTRACE']=''
   options_values['FOLLOW']=1
   options_values['EVENT']=1
   options_values['TARGET']=2
@@ -651,8 +682,31 @@ function test_stop_debug()
   )
   compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
 
+  # Ftrace: Local
+  options_values['EVENT']=''
+  options_values['DMESG']=''
+  options_values['TARGET']=2
+  options_values['FTRACE']=1
+
+  declare -a expected_cmd_sequence=(
+    'Disabling ftrace in the target machine'
+    "sudo bash -c \"$disable_trace\""
+  )
+  output=$(stop_debug 'TEST_MODE')
+  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
+
+  # Ftrace: Remote
+  options_values['TARGET']=3
+  declare -a expected_cmd_sequence=(
+    'Disabling ftrace in the target machine'
+    "$std_ssh sudo \"$disable_trace\""
+  )
+  output=$(stop_debug 'TEST_MODE')
+  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
+
   # Dmesg: Local
   options_values['EVENT']=''
+  options_values['FTRACE']=''
   options_values['DMESG']=1
   options_values['TARGET']=2
   interrupt_data_hash['DMESG']="screen -S XPTO-LA -X quit > /dev/null"

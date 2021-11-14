@@ -348,6 +348,8 @@ function ftrace_debug()
   local list="$7"
   local disable="$8"
   local raw_list=''
+  local save_following_log
+  local redirect_mode
   local ret
 
   if [[ -n "$list" || "$ftrace_syntax" == 1 ]]; then
@@ -358,13 +360,23 @@ function ftrace_debug()
   # Build basic trace command
   cmd_ftrace=$(build_ftrace_command_string "$ftrace_syntax" "$disable")
 
+  # Capture data
+  if [[ -n "$base_log_path" ]]; then
+    touch "$base_log_path/ftrace"
+    printf '\n' > "$base_log_path/ftrace"
+    save_following_log="$base_log_path/ftrace"
+  fi
+
+  # Follow
   if [[ "$follow" == 1 && -z "$disable" ]]; then
     cmd_ftrace="$cmd_ftrace && cat $TRACE_PIPE"
   fi
 
   case "$target" in
     2) # LOCAL
-      cmd_manager "$flag" "$cmd_ftrace"
+      [[ -n "$save_following_log" ]] && redirect_mode='KW_REDIRECT_MODE'
+
+      cmd_manager "$flag" "$cmd_ftrace" "$redirect_mode" "$save_following_log"
       ret="$?"
       ;;
     3 | 1) # REMOTE && VM
@@ -377,13 +389,14 @@ function ftrace_debug()
         # TODO: We should check if the VM is up and running
       fi
 
-      cmd_remotely "$cmd_ftrace" "$flag" "$remote" "$port" "$user"
+      cmd_remotely "$cmd_ftrace" "$flag" "$remote" "$port" "$user" '' "$save_following_log"
       ret="$?"
       ;;
   esac
 
-  if [[ "$ret" != 0 ]]; then
-    complain "Fail to enable ftrace: $ftrace_syntax"
+  # 130 - Owner died happens during the interruption
+  if [[ "$ret" != 0 && "$ret" != 130 ]]; then
+    complain "Fail to enable ftrace: $ftrace_syntax - $ret"
     complain 'Hint: try to use a wildcard in the filter'
     return "$ret"
   fi
@@ -728,6 +741,20 @@ function stop_debug()
   if [[ -n "${options_values['EVENT']}" ]]; then
     say "Disabling events in the target machine : ${options_values['EVENT']}"
     disable_cmd=$(build_event_command_string '' 0)
+
+    case "$target" in
+      2) # LOCAL
+        cmd_manager "$flag" "sudo bash -c \"$disable_cmd\""
+        ;;
+      3 | 1) # REMOTE && VM
+        cmd_remotely "$disable_cmd" "$flag" "$remote" "$port" "$user"
+        ;;
+    esac
+  fi
+
+  if [[ -n "${options_values['FTRACE']}" ]]; then
+    say 'Disabling ftrace in the target machine'
+    disable_cmd=$(build_ftrace_command_string '' 1)
 
     case "$target" in
       2) # LOCAL
