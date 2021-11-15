@@ -218,6 +218,9 @@ function get_configs()
     # this removes the prefix of the string
     value="${set_values["$((i + 1))"]#* }"
 
+    # hide user password; not particularly safe solution
+    [[ "$option" =~ 'smtppass' ]] && value='********'
+
     if [[ "${essential_config_options[*]}" =~ "$option".* ]]; then
       set_confs["${scope}_$option"]="$value"
     fi

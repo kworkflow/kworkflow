@@ -239,7 +239,7 @@ function test_get_configs()
   assert_equals_helper 'Checking local email' "$LINENO" "$output" "$expected"
 
   output=${set_confs['local_sendemail.smtppass']}
-  expected='safePass'
+  expected='********'
   assert_equals_helper 'Checking local smtppass' "$LINENO" "$output" "$expected"
 
   cd "$ORIGINAL_DIR" || {
@@ -523,7 +523,7 @@ function test_mail_list()
     'SMTPENCRYPTION'
     '[local: ssl]'
     'SMTPPASS'
-    '[local: verySafePass]'
+    '[local: ********]'
   )
 
   cd "$FAKE_GIT" || {
