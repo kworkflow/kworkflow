@@ -226,6 +226,7 @@ function test_get_configs()
 
   options_values['CMD_SCOPE']=''
 
+  git config --local sendemail.smtpuser ''
   git config --local sendemail.smtppass safePass
 
   get_configs
@@ -241,6 +242,12 @@ function test_get_configs()
   output=${set_confs['local_sendemail.smtppass']}
   expected='********'
   assert_equals_helper 'Checking local smtppass' "$LINENO" "$output" "$expected"
+
+  output=${set_confs['local_sendemail.smtpuser']}
+  expected='<empty>'
+  assert_equals_helper 'Checking local smtpuser' "$LINENO" "$output" "$expected"
+
+  git config --local --unset sendemail.smtpuser
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"

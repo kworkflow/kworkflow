@@ -218,6 +218,9 @@ function get_configs()
     # this removes the prefix of the string
     value="${set_values["$((i + 1))"]#* }"
 
+    # it's possible to set an option to nothing, this takes that into account
+    [[ -z "$value" ]] && value='<empty>'
+
     # hide user password; not particularly safe solution
     [[ "$option" =~ 'smtppass' ]] && value='********'
 
