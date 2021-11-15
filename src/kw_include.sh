@@ -10,12 +10,11 @@ function include()
   local filepath="$1"
   local varname
 
-  if [[ ! -e "$filepath" ]]; then
-    printf '%s\n' "File $filepath could not be found, check your file path."
-    return 2 # ENOENT
-  fi
-
   if [[ ! -r "$filepath" ]]; then
+    if [[ ! -e "$filepath" ]]; then
+      printf '%s\n' "File $filepath could not be found, check your file path."
+      return 2 # ENOENT
+    fi
     printf '%s\n' "File $filepath could not be read, check your file permissions."
     return 1 # EPERM
   fi
