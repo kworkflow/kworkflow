@@ -234,6 +234,29 @@ function get_configs()
   done
 }
 
+# Checks which configs from the given list are not set.
+#
+# @_config_options: reference to array containing the relevant options
+#
+# Returns:
+# Array with the missing configs
+function missing_options()
+{
+  local -n _config_options="$1"
+  local -a missing_conf
+  local index=0
+
+  for config in "${_config_options[@]}"; do
+    # a space is added to the end of the list to mark word boundaries
+    if [[ ! "${!set_confs[*]} " =~ (local|global)_"$config"[[:space:]] ]]; then
+      missing_conf["$index"]="$config"
+      ((index++))
+    fi
+  done
+
+  printf '%s\n' "${missing_conf[@]}"
+}
+
 # This function checks that the required and recommended options to use
 # git send-email have been set. It does not validate the options values, only
 # that a value has been set.
@@ -247,8 +270,6 @@ function get_configs()
 # Returns 22 if missing any required configuration; 0 otherwise
 function mail_verify()
 {
-  local count=0
-  local count_opt=0
   local -a missing_conf
   local -a missing_opt_conf
   local cmd_scope=${options_values['CMD_SCOPE']}
@@ -263,21 +284,11 @@ function mail_verify()
     fi
   done
 
-  for config in "${optional_config_options[@]}"; do
-    if [[ ! "${!set_confs[*]} " =~ (local|global)_"$config"[[:space:]] ]]; then
-      missing_opt_conf["$count_opt"]="$config"
-      count_opt=$((count_opt + 1))
-    fi
-  done
+  mapfile -t missing_opt_conf < <(missing_options 'optional_config_options')
 
-  for config in "${essential_config_options[@]}"; do
-    if [[ ! "${!set_confs[*]} " =~ (local|global)_"$config"[[:space:]] ]]; then
-      missing_conf["$count"]="$config"
-      count=$((count + 1))
-    fi
-  done
+  mapfile -t missing_conf < <(missing_options 'essential_config_options')
 
-  if [[ "$count" -gt 0 ]]; then
+  if [[ "${#missing_conf}" -gt 0 ]]; then
     complain 'Missing configurations required for send-email:'
     printf '  %s\n' "${missing_conf[@]}"
     return 22
@@ -296,7 +307,7 @@ function mail_verify()
     success " <${set_confs['global_user.email']}>"
   fi
 
-  if [[ "$count_opt" -gt 0 ]]; then
+  if [[ "${#missing_opt_conf}" -gt 0 ]]; then
     printf '%s\n' ''
     say 'If you encounter problems you might need to configure these options:'
     printf '  %s\n' "${missing_opt_conf[@]}"

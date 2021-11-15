@@ -256,6 +256,35 @@ function test_get_configs()
   }
 }
 
+function test_missing_options()
+{
+  local -a output
+  local -a expected_arr
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
+  parse_mail_options --local
+  get_configs
+
+  mapfile -t output < <(missing_options 'essential_config_options')
+  expected_arr=('sendemail.smtpuser' 'sendemail.smtpserver' 'sendemail.smtpserverport')
+  compare_array_values 'expected_arr' 'output' "$LINENO"
+
+  mapfile -t output < <(missing_options 'optional_config_options')
+  expected_arr=('sendemail.smtpencryption')
+  compare_array_values 'expected_arr' 'output' "$LINENO"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+}
+
 function test_add_config()
 {
   local output
