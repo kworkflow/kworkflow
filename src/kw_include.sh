@@ -8,7 +8,7 @@
 function include()
 {
   local filepath="$1"
-  local varname
+  local fullpath
 
   if [[ ! -r "$filepath" ]]; then
     if [[ ! -e "$filepath" ]]; then
@@ -19,21 +19,16 @@ function include()
     return 1 # EPERM
   fi
 
-  varname="$(realpath "$filepath")"
-  varname="${varname#"$KW_LIB_DIR/"}" # leave path until KW_LIB_DIR
-  varname="${varname//\//_}"          # change bars to underlines
-  varname="${varname//\./_}"          # change dots into underscores
-  varname="${varname// /_}"           # change spaces into underscores
-  varname="${varname//-/_}"           # change dashes into underscores
-  varname="${varname^^}_IMPORTED"     # capitalize and append "_IMPORTED"
+  fullpath="$(realpath "$filepath")"
 
-  if [[ -v "${varname}" ]]; then
-    return 0
+  if [[ -v KW_INCLUDES_SET ]]; then
+    [[ -v KW_INCLUDED_PATHS["$fullpath"] ]] && return 0
+
+    KW_INCLUDED_PATHS["$fullpath"]=1
+  else
+    declare -g KW_INCLUDES_SET=1
+    declare -gA KW_INCLUDED_PATHS=(["$fullpath"]=1)
   fi
-
-  declare -g "${varname}"=1
-
-  [[ "$?" != 0 ]] && return 22 # EINVAL
 
   . "$filepath" --source-only
 }
