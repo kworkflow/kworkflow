@@ -474,18 +474,20 @@ function test_get_config_from_proc()
   assert_equals_helper 'proc/config.gz is not supported for VM' "$LINENO" "$?" 95
 
   # 2) Local
+  # Mocking non-existent proc
+  mkdir 'proc'
+  export PROC_CONFIG_PATH='proc/config.gz'
+
   declare -la expected_cmd=(
-    'sudo modprobe -q configs && [ -s /proc/config.gz ]'
+    'sudo modprobe -q configs && [ -s proc/config.gz ]'
     'zcat /proc/config.gz > .config'
   )
 
   output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
-  # Creating a fake proc
-  mkdir "proc"
+  # Creating a fake config
   touch "proc/config.gz"
-  export PROC_CONFIG_PATH="proc/config.gz"
 
   expected_cmd=()
   declare -a expected_cmd=(
