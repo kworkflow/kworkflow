@@ -97,11 +97,11 @@ OPTIONS
   Real time output.
 
 -c, \--cmd:
-  If this parameter is used combined with \--event, the following sequence will
-  happen: (1) Enable specific trace, (2) collect trace in background, (3) run
-  the command, (4) disable traces. When used with \--dmesg, kw will (1) clean
-  the dmesg log, (2) run the command, (3) and collect the log.
-
+  If this parameter is used combined with `\--event` or `\--ftrace`, the
+  following sequence will happen: (1) Enable specific trace, (2) collect trace
+  in background, (3) run the command, (4) disable traces. When used with
+  `\--dmesg`, kw will (1) clean the dmesg log, (2) run the command, (3) and
+  collect the log.
 
 EXAMPLES
 ========
@@ -157,3 +157,7 @@ Suppose that you have an AMD and you want to track the display manager's
 behavior. You can use the below command to achieve this goal::
 
   kw debug --ftrace="function_graph:amdgpu_dm*" --follow --history
+
+If you want to run a command and capture the ftrace, you can use::
+
+  kw debug --ftrace="function_graph:amdgpu_dm_*" --cmd="/root/igt-build/tests/kms_atomic --run-subtest test-only" --history

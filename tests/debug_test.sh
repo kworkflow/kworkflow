@@ -446,6 +446,8 @@ function test_ftrace_debug()
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
   local trace_pipe='/sys/kernel/debug/tracing/trace_pipe'
   local default_ssh='ssh -p 3333 juca@127.0.0.1 sudo'
+  local screen_command
+  local screen_id
 
   # Local machine
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*')
@@ -485,6 +487,22 @@ function test_ftrace_debug()
   output=$(ftrace_debug 3 'TEST_MODE' 'function_graph: amdgpu_dm*' 'kw_debug' 1)
   expected_cmd="$default_ssh \"$expected_cmd_base && cat $trace_pipe\" | tee kw_debug/ftrace"
   assert_equals_helper '[remote] We expected a log file' "$LINENO" "$expected_cmd" "$output"
+
+  # Test cmd option; unfortunately, it is a horrible command sequence.
+  expected_cmd="$expected_cmd_base"
+  screen_id='kw_2021_10_22-07_34_07' # We mocked this value
+  screen_command="screen -L -Logfile ~/$screen_id -dmS $screen_id cat $trace_pipe"
+  expected_cmd+=" && $screen_command && ./root/something && $disable_trace"
+  expected_cmd+=" && echo '' > /sys/kernel/debug/tracing/set_ftrace_filter"
+  screen_command="screen -S $screen_id -X quit > /dev/null"
+  expected_cmd+=" && $screen_command | tee kw_debug/ftrace"
+  USER='MOCK'
+  declare -a expected_cmd_seq=(
+    "$expected_cmd"
+    "sudo cp /root/kw_2021_10_22-07_34_07 kw_debug/ftrace && sudo chown $USER:$USER kw_debug/ftrace"
+  )
+  output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*' 'kw_debug' '' './root/something')
+  compare_command_sequence 'expected_cmd_seq' "$output" "$LINENO"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"

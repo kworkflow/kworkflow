@@ -26,6 +26,9 @@ function _kw_autocomplete()
                          --description --output --optimize --remote'
   kw_options['g']="${kw_options['configm']}"
 
+  kw_options['debug']='--local --remote --event --ftrace --dmesg --cmd
+                       --history --disable --list --follow --help'
+
   kw_options['deploy']='--force --list --list-all --local --ls-line --modules
                         --reboot --remote --uninstall --vm'
   kw_options['d']="${kw_options['deploy']}"

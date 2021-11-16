@@ -372,12 +372,27 @@ function ftrace_debug()
     cmd_ftrace="$cmd_ftrace && cat $TRACE_PIPE"
   fi
 
+  # Handling command
+  if [[ -n "$user_cmd" && -z "$disable" ]]; then
+    save_following_log="$base_log_path/ftrace"
+    screen_nick=$(get_today_info '+kw_%Y_%m_%d-%H_%M_%S')
+    screen_cmd="screen -L -Logfile ~/$screen_nick -dmS $screen_nick cat $TRACE_PIPE"
+    screen_end_cmd="screen -S $screen_nick -X quit > /dev/null"
+    disable_cmd=$(build_ftrace_command_string '' 1)
+    cmd_ftrace="$cmd_ftrace && $screen_cmd && $user_cmd && $disable_cmd && $screen_end_cmd"
+  fi
+
   case "$target" in
     2) # LOCAL
       [[ -n "$save_following_log" ]] && redirect_mode='KW_REDIRECT_MODE'
 
       cmd_manager "$flag" "$cmd_ftrace" "$redirect_mode" "$save_following_log"
       ret="$?"
+
+      if [[ -n "$user_cmd" ]]; then
+        cmd_ftrace="sudo cp /root/$screen_nick $save_following_log && sudo chown $USER:$USER $save_following_log"
+        cmd_manager "$flag" "$cmd_ftrace"
+      fi
       ;;
     3 | 1) # REMOTE && VM
       local remote="${remote_parameters['REMOTE_IP']}"
@@ -391,6 +406,12 @@ function ftrace_debug()
 
       cmd_remotely "$cmd_ftrace" "$flag" "$remote" "$port" "$user" '' "$save_following_log"
       ret="$?"
+
+      # If we used --cmd, we need to retrieve the log
+      if [[ -n "$user_cmd" ]]; then
+        cmd_ftrace="scp -P $port $user@$remote:~/$screen_nick $save_following_log"
+        cmd_manager "$flag" "$cmd_ftrace"
+      fi
       ;;
   esac
 
