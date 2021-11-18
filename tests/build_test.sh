@@ -17,6 +17,7 @@ oneTimeSetUp()
 {
   original_dir="$PWD"
   FAKE_KERNEL="$SHUNIT_TMPDIR"
+  KW_DATA_DIR="$SHUNIT_TMPDIR"
   mk_fake_kernel_root "$FAKE_KERNEL"
 
   parse_configuration "$KW_CONFIG_SAMPLE"
