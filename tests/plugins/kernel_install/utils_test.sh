@@ -26,9 +26,12 @@ function oneTimeTearDown()
 
 function setUp()
 {
-  local current_path="$PWD"
-
   mk_fake_boot "$SHUNIT_TMPDIR"
+
+  # Creating fake installed kernels
+  touch "$INSTALLED_KERNELS_PATH"
+  echo '5.5.0-rc2-VKMS+' >> "$INSTALLED_KERNELS_PATH"
+  echo '5.6.0-rc2-AMDGPU+' >> "$INSTALLED_KERNELS_PATH"
 }
 
 function tearDown()
@@ -39,7 +42,6 @@ function tearDown()
 function test_cmd_manager()
 {
   local count=0
-  local current_path="$PWD"
 
   output=$(cmd_manager 'TEST_MODE' 'ls something')
   assert_equals_helper 'TEST_MODE' "$LINENO" 'ls something' "$output"
@@ -155,18 +157,31 @@ function test_kernel_uninstall_unmanaged()
   local -a expected
 
   expected=(
+    '' # TODO: Figure out why we have these extra spaces here
     "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    ''
     "sudo touch '$INSTALLED_KERNELS_PATH'"
+    ''
     "sudo grep -q 'kname' '$INSTALLED_KERNELS_PATH'"
-    'Kernel not managed by kw. Use --force/-f to uninstall anyway.'
+    'kname not managed by kw. Use --force/-f to uninstall anyway.'
   )
 
   # Test unmanaged
-  output=$(kernel_uninstall '0' 'local' 'kname' 'TEST_MODE')
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  output=$(kernel_uninstall '0' 'local' 'kname')
   compare_command_sequence 'expected' "$output" "$LINENO"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
-function test_kernel_uninstall_managed()
+function test_kernel_force_uninstall_unmanaged()
 {
   local target='xpto'
   local prefix="./test"
@@ -191,12 +206,63 @@ function test_kernel_uninstall_managed()
     "Can't find $modulespath"
     "Can't find $libpath"
     "Can't find /boot/config-$target"
+    "sudo sed -i '/xpto/d' '$INSTALLED_KERNELS_PATH'"
     "update_boot_loader xpto local TEST_MODE"
     "grub-mkconfig -o /boot/grub/grub.cfg"
-    "sudo sed -i '/xpto/d' '$INSTALLED_KERNELS_PATH'"
   )
 
   output=$(kernel_uninstall 0 'local' 'xpto' 'TEST_MODE' 1)
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_remove_managed_kernel()
+{
+  local target='xpto'
+  local prefix="./test"
+  local kernelpath="/boot/vmlinuz-$target"
+  local initrdpath="/boot/initrd.img-$target"
+  local modulespath="/lib/modules/$target"
+  local libpath="/var/lib/initramfs-tools/$target"
+  local kernel_name='5.5.0-rc2-VKMS+'
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  local -a cmd_sequence=(
+    '' # TODO: Figure out why we have these extra spaces here
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    ''
+    "sudo touch '$INSTALLED_KERNELS_PATH'"
+    ''
+    "sudo grep -q '$kernel_name' '$INSTALLED_KERNELS_PATH'"
+    "Removing: $kernel_name"
+    "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name"
+    ''
+    "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name"
+    "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
+    ''
+    "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
+    "Can't find $SHUNIT_TMPDIR//boot/initrd.img-$kernel_name"
+    "Can't find $SHUNIT_TMPDIR//lib/modules/$kernel_name"
+    "Can't find $SHUNIT_TMPDIR//var/lib/initramfs-tools/$kernel_name"
+    "Removing: $SHUNIT_TMPDIR//boot/config-$kernel_name"
+    ''
+    "rm $SHUNIT_TMPDIR//boot/config-$kernel_name"
+    ''
+    "sudo sed -i '/$kernel_name/d' '$INSTALLED_KERNELS_PATH'"
+    "update_boot_loader $kernel_name local"
+    ''
+    "grub-mkconfig -o /boot/grub/grub.cfg"
+  )
+
+  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' '' '' "$SHUNIT_TMPDIR/")
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   cd "$TEST_ROOT_PATH" || {

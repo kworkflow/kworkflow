@@ -542,7 +542,7 @@ function test_kernel_uninstall()
   local single_kernel='5.7.0-rc2'
 
   # Rsync script command
-  local cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel '' '0' remote '$kernel_list' 'TEST_MODE' ''"
+  local cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel '0' remote '$kernel_list' 'TEST_MODE' ''"
   local run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
 
   cd "$FAKE_KERNEL" || {
@@ -559,14 +559,14 @@ function test_kernel_uninstall()
   assert_equals_helper 'Standard uninstall' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
   # Reboot
   output=$(run_kernel_uninstall 3 1 "$kernel_list" 'TEST_MODE')
-  cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel '' '1' remote '$kernel_list' 'TEST_MODE' ''"
+  cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel '1' remote '$kernel_list' 'TEST_MODE' ''"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
   assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 
   # Single kernel
   output=$(run_kernel_uninstall 3 1 "$single_kernel" 'TEST_MODE')
 
-  cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel '' '1' remote '$single_kernel' 'TEST_MODE' ''"
+  cmd="bash $remote_path/remote_deploy.sh --uninstall_kernel '1' remote '$single_kernel' 'TEST_MODE' ''"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$cmd\""
   assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 
