@@ -7,6 +7,7 @@ function oneTimeSetUp()
 {
   declare -gr ORIGINAL_DIR="$PWD"
   declare -gr FAKE_GIT="$SHUNIT_TMPDIR/fake_git/"
+  declare -ga test_config_opts=('test0' 'test1' 'test2' 'user.name' 'sendemail.smtpuser')
 
   export KW_ETC_DIR="$SHUNIT_TMPDIR/etc/"
 
@@ -162,6 +163,10 @@ function test_mail_parser()
   parse_mail_options '--template=  Test '
   expected_result=':test'
   assert_equals_helper 'Set template flag, case and spaces' "$LINENO" "${options_values['TEMPLATE']}" "$expected_result"
+
+  parse_mail_options '--interactive'
+  expected_result='parser'
+  assert_equals_helper 'Set interactive flag' "$LINENO" "${options_values['INTERACTIVE']}" "$expected_result"
 
   expected=''
   assert_equals_helper 'Unset local or global flag' "$LINENO" "${options_values['CMD_SCOPE']}" "$expected"
@@ -424,6 +429,127 @@ function test_mail_setup()
   output=$(mail_setup 'TEST_MODE')
   expected="git config --global sendemail.smtppass 'verySafePass'"
   assert_equals_helper 'Testing global option outside git' "$LINENO" "$output" "$expected"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+}
+
+function test_interactive_prompt()
+{
+  local expected
+  local output
+
+  local -a inputs=(
+    ''          # test essential check
+    'y'         # skip test0
+    'value1'    # input test1
+    'Lala Xpto' # input name
+    'n'         # don't accept change
+    'Lala Xpto' # input name
+    'y'         # accept change
+    'n'         # don't change smtpuser
+  )
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
+  parse_mail_options
+  options_values['test2']='value2'
+  options_values['sendemail.smtpuser']='test@email.com'
+  smtpuser_autoset=1
+  get_configs
+
+  output="$(printf '%s\n' "${inputs[@]}" | interactive_prompt 'test_config_opts')"
+  smtpuser_autoset=0
+
+  expected='Skipping test0...'
+  assertTrue "($LINENO) Testing test0 skipped" '[[ $output =~ "$expected" ]]'
+
+  expected='[local] Setup your test1:'
+  assertTrue "($LINENO) Testing test1" '[[ $output =~ "$expected" ]]'
+
+  expected='[local] Setup your test2:'
+  assertTrue "($LINENO) test2 shouldn't prompt" '[[ ! $output =~ "$expected" ]]'
+
+  expected='[local] Setup your name:'
+  assertTrue "($LINENO) Testing user.name" '[[ $output =~ "$expected" ]]'
+
+  expected='Xpto Lala --> Lala Xpto'
+  assertTrue "($LINENO) Testing user.name proposed" '[[ $output =~ "$expected" ]]'
+
+  expected='kw will set this option to test@email.com'
+  assertTrue "($LINENO) Testing smtpuser autoset" '[[ $output =~ "$expected" ]]'
+
+  # Testing options_values is not working, I suspect it has something to do with
+  # the way bash handles variables and subshells
+  # TODO: fix these tests
+  # expected='value1'
+  # assert_equals_helper 'Testing test1 value' "$LINENO" "${options_values['test1']}" "$expected"
+
+  # expected='value2'
+  # assert_equals_helper 'Testing test2 value' "$LINENO" "${options_values['test2']}" "$expected"
+
+  # expected='Lala Xpto'
+  # assert_equals_helper 'Testing user.name value' "$LINENO" "${options_values['user.name']}" "$expected"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+}
+
+function test_interactive_setup()
+{
+  local expected
+  local output
+  local ret
+
+  local -a inputs=(
+    'y'             # list
+    'y'             # accept name change
+    ''              # user.email
+    'user@smtp.com' # smtpuser
+    'server'        # smtpserver
+    '123'           # smtpserverport
+    'ssl'           # smtpencryption
+    ''              # smtppass
+  )
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
+  parse_mail_options '-i' '--name' 'Lala Xpto'
+  get_configs
+
+  output=$(printf '%s\n' "${inputs[@]}" | interactive_setup 'TEST_MODE' 2>&1)
+
+  expected="[local: Xpto Lala]"
+  assertTrue "($LINENO) Testing user.name on list" '[[ $output =~ "$expected" ]]'
+
+  expected="[local] 'user.name' was set to: Lala Xpto"
+  assertTrue "($LINENO) Testing user.name config" '[[ $output =~ "$expected" ]]'
+
+  expected="[local] 'sendemail.smtpuser' was set to: user@smtp.com"
+  assertTrue "($LINENO) Testing sendemail.smtpuser config" '[[ $output =~ "$expected" ]]'
+
+  expected="[local] 'sendemail.smtpserver' was set to: server"
+  assertTrue "($LINENO) Testing sendemail.smtpserver config" '[[ $output =~ "$expected" ]]'
+
+  expected="[local] 'sendemail.smtpserverport' was set to: 123"
+  assertTrue "($LINENO) Testing sendemail.smtpserverport config" '[[ $output =~ "$expected" ]]'
+
+  expected="[local] 'sendemail.smtpencryption' was set to: ssl"
+  assertTrue "($LINENO) Testing smtpencryption config" '[[ $output =~ "$expected" ]]'
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"

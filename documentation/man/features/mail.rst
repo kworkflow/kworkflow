@@ -7,6 +7,7 @@ kw-mail
 SYNOPSIS
 ========
 | *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
+| *kw mail* (-i | \--interactive) [\--local | \--global]
 | *kw mail* (-v | \--verify) [\--local | \--global]
 | *kw mail* (-l | \--list)
 | *kw mail* \--template[=<template>] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
@@ -32,6 +33,10 @@ OPTIONS
     --smtpserverport <port>
     --smtpencryption <encryption>
     --smtppass       <password>
+
+-i, \--interactive:
+  Interactively prompt the user for the values of the options. Recommended for
+  inexperienced users.
 
 \--local:
   Forces the commands to be run at a local scope. If nothing is passed all

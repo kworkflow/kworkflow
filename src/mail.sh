@@ -10,6 +10,9 @@ include "$KW_LIB_DIR/kw_string.sh"
 declare -gA options_values
 declare -gA set_confs
 
+# flag that indicates if smtpuser was set based on user.email
+declare -g smtpuser_autoset=0
+
 declare -ga essential_config_options=('user.name' 'user.email'
   'sendemail.smtpuser' 'sendemail.smtpserver' 'sendemail.smtpserverport')
 declare -ga optional_config_options=('sendemail.smtpencryption' 'sendemail.smtppass')
@@ -44,6 +47,11 @@ function mail_main()
     complain 'Not in a git repository, aborting setup!'
     say 'To apply settings globally rerun with "--global" flag.'
     exit 22 # EINVAL
+  fi
+
+  if [[ -n "${options_values['INTERACTIVE']}" ]]; then
+    interactive_setup ''
+    exit
   fi
 
   if [[ "${options_values['SETUP']}" == 1 ]]; then
@@ -143,7 +151,7 @@ function validate_encryption()
   fi
 
   warning "Invalid encryption '$value', you must choose between 'ssl' or 'tls'."
-  warning 'Skipping this setting. This defaults to plain smtp.'
+  warning 'Empty value defaults to plain smtp.'
 
   return 22 # EINVAL
 }
@@ -383,7 +391,8 @@ function print_configs()
 function validate_setup_opt()
 {
   if [[ "${options_values['SETUP']}" == 0 ]]; then
-    complain 'You provided a flag that should only be used with `--setup` or `--template`.'
+    complain -n 'You provided a flag that should only be used with '
+    complain '`--setup`, `--template` or `--interactive`.'
     complain 'Please check your command and try again.'
     mail_help
     exit 95 # ENOTSUP
@@ -447,13 +456,163 @@ function load_template()
   done < "$template_path"
 }
 
+# This function prompts the user for the config values needed to setup the mail
+# capabilities.
+#
+# @flag:       Flag to control the behavior of 'cmd_manager'
+# @curr_scope: The scope being edited
+# @cmd_scope:  The scope being imposed on the command
+#
+# Returns:
+# 0 if successful; non-zero otherwise
+function interactive_setup()
+{
+  local flag="$1"
+  local curr_scope="${options_values['SCOPE']}"
+  local cmd_scope="${options_values['CMD_SCOPE']}"
+  local confs=0
+
+  flag=${flag:-'SILENT'}
+
+  success 'Welcome to the interactive setup of the mail capabilities.'$'\n'
+
+  [[ "$(ask_yN 'Do you wish to list the currently set values?')" == '1' ]] && mail_list
+  printf '\n'
+
+  say 'We will start with the essential configuration options!'$'\n'
+
+  interactive_prompt 'essential_config_options'
+
+  say 'These are the optional configuration options.'$'\n'
+
+  interactive_prompt 'optional_config_options' false
+
+  for option in "${essential_config_options[@]}" "${optional_config_options[@]}"; do
+    if [[ -n "${options_values["$option"]}" ]]; then
+      add_config "$option" "${options_values["$option"]}" "$cmd_scope" "$flag"
+
+      if [[ "$?" == 0 ]]; then
+        success -n "  [$curr_scope] '$option' was set to: "
+        printf '%s\n' "${options_values["$option"]}"
+        confs=1
+      fi
+    fi
+  done
+
+  if [[ "$confs" == 0 ]]; then
+    warning 'No configuration options were set.'
+  fi
+
+  return 0
+}
+
+# This function prompts the user for the config values needed to setup the mail
+# capabilities and adds them to the options_values array
+#
+# @_config_options: reference to the array with the options to be prompted for
+# @essential:       should we insist on setting the option
+#
+# Returns:
+# Nothing
+function interactive_prompt()
+{
+  local -n _config_options="$1"
+  local essential="${2:-true}"
+  local curr_scope="${options_values['SCOPE']}"
+  local -A values
+  local value
+  local prompt
+
+  for option in "${_config_options[@]}"; do
+    config_values 'values' "$option"
+
+    if [[ -z "${values['loaded']}" ||
+      (-n "${values["$curr_scope"]}" && "${values['loaded']}" != "${values["$curr_scope"]}") ||
+      ("$option" == 'sendemail.smtpuser' && "$smtpuser_autoset" == 1) ]]; then
+
+      warning "[$curr_scope] Setup your ${option#*.}:"
+
+      prompt="Enter new ${option#*.}"
+      if [[ -n "${values["$curr_scope"]}" ]]; then
+        prompt+=" [default: ${values["$curr_scope"]}]"
+      elif [[ -n "${values['global']}" ]]; then
+        prompt+=" [default: ${values['global']}]"
+      fi
+
+      while true; do
+        if [[ "$option" == 'sendemail.smtpuser' && "$smtpuser_autoset" == 1 ]]; then
+          warning "  kw will set this option to ${values['loaded']}"
+          if [[ "$(ask_yN "  Do you want to change it?")" == 0 ]]; then
+            printf '\n'
+            break
+          fi
+          values['loaded']=''
+        fi
+
+        if [[ -z "${values['loaded']}" ]]; then
+          read -r -p "  $prompt: " value
+
+          if [[ -n "$value" && "$option" =~ 'user.email'|'sendemail.smtpuser' ]]; then
+            validate_email "$value" || continue
+          fi
+
+          if [[ -n "$value" && "$option" == 'sendemail.smtpencryption' ]]; then
+            validate_encryption "$value" || continue
+          fi
+
+          values['loaded']="$value"
+          [[ "$option" == 'sendemail.smtpuser' ]] && smtpuser_autoset=2 # manual
+          printf '\n'
+        fi
+
+        if [[ -n "${values['loaded']}" && -n "${values["$curr_scope"]}" &&
+          "${values['loaded']}" != "${values["$curr_scope"]}" ]]; then
+
+          warning '  Proposed change:'
+          warning -n "    [$curr_scope | $option]: "
+          printf '%s' "${values["$curr_scope"]}"
+          warning -n ' --> '
+          printf '%s\n\n' "${values['loaded']}"
+
+          if [[ "$(ask_yN 'Do you accept this change?')" == 0 ]]; then
+            values['loaded']=''
+            continue
+          fi
+        fi
+
+        if [[ "$essential" == true ]]; then
+          if [[ -z "${values['loaded']}" &&
+            -z "${values['local']}" && -z "${values['global']}" ]]; then
+
+            warning "You are about to skip an essential config ($option)"
+            [[ "$(ask_yN '  Do you wish to proceed?')" == 0 ]] && continue
+
+            complain "  Skipping $option..."$'\n'
+          fi
+        fi
+
+        break
+      done
+
+      options_values["$option"]="${values['loaded']}"
+      if [[ "$option" == 'user.email' && -n "${values['loaded']}" &&
+        -z "${options_values['sendemail.smtpuser']}" ]]; then
+        options_values['sendemail.smtpuser']="${values['loaded']}"
+        smtpuser_autoset=1
+      fi
+
+      say "$SEPARATOR"$'\n'
+    fi
+  done
+}
+
 function parse_mail_options()
 {
   local index
   local option
   local setup_token=0
-  local short_options='t,f,v,l,'
-  local long_options='setup,local,global,force,verify,template::,list,'
+  local short_options='t,f,v,i,l,'
+  local long_options='setup,local,global,force,verify,template::,interactive,list,'
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -470,6 +629,7 @@ function parse_mail_options()
   options_values['FORCE']=0
   options_values['VERIFY']=0
   options_values['TEMPLATE']=''
+  options_values['INTERACTIVE']=''
   options_values['SCOPE']='local'
   options_values['CMD_SCOPE']=''
 
@@ -488,6 +648,7 @@ function parse_mail_options()
       --email)
         if [[ -z "${options_values['sendemail.smtpuser']}" ]]; then
           options_values['sendemail.smtpuser']="$2"
+          smtpuser_autoset=1
         fi
         ;& # this continues executing the code for --name
       --name)
@@ -509,6 +670,7 @@ function parse_mail_options()
         option="$(str_remove_prefix "$1" '--')"
         index="sendemail.$option"
         options_values["$index"]="$2"
+        [[ "$option" == 'smtpuser' ]] && smtpuser_autoset=2 # manual
         shift 2
         ;;
       --template)
@@ -516,6 +678,11 @@ function parse_mail_options()
         options_values['SETUP']=1
         options_values['TEMPLATE']=":$option" # colon sets the option
         shift 2
+        ;;
+      --interactive | -i)
+        options_values['SETUP']=1
+        options_values['INTERACTIVE']='parser'
+        shift
         ;;
       --local)
         options_values['SCOPE']='local'
@@ -559,6 +726,7 @@ function mail_help()
   fi
   printf '%s\n' 'kw mail:' \
     '  mail (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
+    '  mail (-i | --interactive) - Setup interactively' \
     '  mail (-v | --verify) - Check if required configurations are set' \
     '  mail (-l | --list) - List the configurable options' \
     '  mail --template[=<template>] - Set send-email configs based on <template>'
