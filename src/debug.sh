@@ -76,7 +76,7 @@ function debug_main()
   fi
 
   if [[ -n "$event" ]]; then
-    event_trace "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list"
+    event_debug "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list"
     return "$?"
   fi
 
@@ -183,7 +183,7 @@ function dmesg_debug()
 #
 # Return:
 # In case of an error, returns an errno code.
-function event_trace()
+function event_debug()
 {
   local target="$1"
   local flag="$2"
