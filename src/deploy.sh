@@ -476,7 +476,8 @@ function run_kernel_uninstall()
       # TODO
       # It would be better if `cmd_remotely` handle the extra space added by
       # line break with `\`; this may allow us to break a huge line like this.
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --uninstall_kernel '' '$reboot' remote '$kernels_target' '$flag' '$force'"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --uninstall_kernel '$reboot' remote '$kernels_target' '$flag' '$force'"
+
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac

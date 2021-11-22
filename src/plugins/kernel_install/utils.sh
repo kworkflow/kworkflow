@@ -1,4 +1,4 @@
-declare -g REMOTE_KW_DEPLOY="/root/kw_deploy"
+declare -g REMOTE_KW_DEPLOY='/root/kw_deploy'
 declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
 
 # ATTENTION:
@@ -263,51 +263,51 @@ function do_uninstall()
   local libpath="$prefix/var/lib/initramfs-tools/$target"
   local configpath="$prefix/boot/config-$target"
 
-  if [ -z "$target" ]; then
+  if [[ -z "$target" ]]; then
     printf '%s\n' 'No parameter, nothing to do'
     exit 0
   fi
 
-  if [ -f "$kernelpath" ]; then
-    printf '%s\n' "Removing: $kernelpath"
+  if [[ -f "$kernelpath" ]]; then
+    printf ' %s\n' "Removing: $kernelpath"
     cmd_manager "$flag" "rm $kernelpath"
   else
-    printf '%s\n' "Can't find $kernelpath"
+    printf ' %s\n' "Can't find $kernelpath"
   fi
 
-  if [ -f "$kernelpath.old" ]; then
-    printf '%s\n' "Removing: $kernelpath.old"
+  if [[ -f "$kernelpath.old" ]]; then
+    printf ' %s\n' "Removing: $kernelpath.old"
     cmd_manager "$flag" "rm $kernelpath.old"
   else
-    printf '%s\n' "Can't find $kernelpath.old"
+    printf ' %s\n' "Can't find $kernelpath.old"
   fi
 
-  if [ -f "$initrdpath" ]; then
-    printf '%s\n' "Removing: $initrdpath"
+  if [[ -f "$initrdpath" ]]; then
+    printf ' %s\n' "Removing: $initrdpath"
     cmd_manager "$flag" "rm -rf $initrdpath"
   else
-    printf '%s\n' "Can't find $initrdpath"
+    printf ' %s\n' "Can't find $initrdpath"
   fi
 
   if [[ -d "$modulespath" && "$modulespath" != "/lib/modules" ]]; then
-    printf '%s\n' "Removing: $modulespath"
+    printf ' %s\n' "Removing: $modulespath"
     cmd_manager "$flag" "rm -rf $modulespath"
   else
-    printf '%s\n' "Can't find $modulespath"
+    printf ' %s\n' "Can't find $modulespath"
   fi
 
-  if [ -f "$libpath" ]; then
-    printf '%s\n' "Removing: $libpath"
+  if [[ -f "$libpath" ]]; then
+    printf ' %s\n' "Removing: $libpath"
     cmd_manager "$flag" "rm -rf $libpath"
   else
-    printf '%s\n' "Can't find $libpath"
+    printf ' %s\n' "Can't find $libpath"
   fi
 
-  if [ -f "$configpath" ]; then
-    printf '%s\n' "Removing: $configpath"
+  if [[ -f "$configpath" ]]; then
+    printf ' %s\n' "Removing: $configpath"
     cmd_manager "$flag" "rm $configpath"
   else
-    printf '%s\n' "Can't find $configpath"
+    printf ' %s\n' "Can't find $configpath"
   fi
 }
 
@@ -318,36 +318,44 @@ function kernel_uninstall()
   local kernel="$3"
   local flag="$4"
   local force="$5"
+  local prefix="$6"
+  local update_grub=0
 
   cmd_manager "$flag" "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
   cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
+
+  kernel=$(printf '%s' "$kernel" | tr --delete ' ')
 
   if [[ -z "$kernel" ]]; then
     printf '%s\n' 'Invalid argument'
     exit 22 #EINVAL
   fi
 
-  cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
-  cmd_manager "$flag" "$cmd"
-  if [[ "$?" && -z "$force" ]]; then
-    printf '%s\n' 'Kernel not managed by kw. Use --force/-f to uninstall anyway.'
-    exit 22 # EINVAL
-  fi
-
   IFS=', ' read -r -a kernel_names <<< "$kernel"
   for kernel in "${kernel_names[@]}"; do
+    cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
+    cmd_manager "$flag" "$cmd"
+    if [[ "$?" != 0 && -z "$force" ]]; then
+      printf '%s\n' "$kernel not managed by kw. Use --force/-f to uninstall anyway."
+      continue # EINVAL
+    fi
+
     printf '%s\n' "Removing: $kernel"
-    do_uninstall "$kernel" "" "$flag"
+    do_uninstall "$kernel" "$prefix" "$flag"
+
+    # Clean from the log
+    cmd_manager "$flag" "sudo sed -i '/$kernel/d' '$INSTALLED_KERNELS_PATH'"
+    ((update_grub++))
   done
 
   # Each distro script should implement update_boot_loader
-  printf '%s\n' "update_boot_loader $kernel $local_deploy $flag"
-  update_boot_loader "$kernel" "$local_deploy" '' '' '' '' "$flag"
+  if [[ "$update_grub" -gt 0 ]]; then
+    printf '%s\n' "update_boot_loader $kernel $local_deploy $flag"
+    update_boot_loader "$kernel" "$local_deploy" '' '' '' '' "$flag"
 
-  cmd_manager "$flag" "sudo sed -i '/$kernel/d' '$INSTALLED_KERNELS_PATH'"
-
-  # Reboot
-  reboot_machine "$reboot" "$local_deploy" "$flag"
+    # Reboot
+    reboot_machine "$reboot" "$local_deploy" "$flag"
+  fi
 }
 
 # Install kernel
