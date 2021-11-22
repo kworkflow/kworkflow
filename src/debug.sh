@@ -75,6 +75,13 @@ function debug_main()
     fi
   fi
 
+  # --list change the behaviour inside event, for this reason let's ignore
+  # list if event is set
+  if [[ -n "$list" && -z "$event" ]]; then
+    list_debug "$target" "$list" "$flag"
+    return
+  fi
+
   if [[ -n "$event" ]]; then
     event_debug "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list"
     return "$?"
@@ -94,6 +101,52 @@ function debug_main()
     printf '%s\n' "${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $target $event $user_cmd"
     return 0
   fi
+}
+
+# List debug options for ftrace and event.
+#
+# @target: Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
+# @list_target: List debug options
+# @flag: How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Return 22 in case of invalid option
+function list_debug()
+{
+  local target="$1"
+  local list_target="$2"
+  local flag="$3"
+  local char_repetition
+  local specific_event
+
+  # List all options
+  if [[ "$list_target" == 1 ]]; then
+    say "Ftrace options:"
+    ftrace_list "$target" "$flag"
+    say "Event options:"
+    event_debug "$target" "$flag" '' '' '' '' 1
+    return 0
+  fi
+
+  char_repetition=$(str_count_char_repetition "$list_target" ':')
+  if [[ "$char_repetition" -ge 1 ]]; then
+    specific_event=$(printf '%s' "$list_target" | cut -d ':' -f2)
+    list_target=$(printf '%s' "$list_target" | cut -d ':' -f1)
+  fi
+
+  case "$list_target" in
+    events)
+      event_debug "$target" "$flag" "$specific_event" '' '' '' 1
+      ;;
+    ftrace)
+      ftrace_list "$target" "$flag"
+      ;;
+    *)
+      complain "Invalid option: $list_target. Do you mean events or ftrace?"
+      return 22 # EINVAL
+      ;;
+  esac
 }
 
 # This function is responsible for handling dmesg logs.
@@ -817,7 +870,7 @@ function parser_debug_options()
   local long_options
   local transition_variables
 
-  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list,follow,help'
+  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list::,follow,help'
   short_options='f,e,t,g,c,h,d,l,k'
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
@@ -898,8 +951,14 @@ function parser_debug_options()
         shift
         ;;
       --list | -l)
-        options_values['LIST']=1
-        shift
+        # Handling optional parameter
+        if [[ -z "$2" ]]; then
+          options_values['LIST']=1
+          shift 2
+        else
+          options_values['LIST']="$2"
+          shift 2
+        fi
         ;;
       --follow | -f)
         options_values['FOLLOW']=1
@@ -934,7 +993,7 @@ function debug_help()
   printf '%s\n' 'kw debug:' \
     '  debug - kw debug utilities' \
     '  debug (--remote <remote>:<port> | --local | --vm) - choose target' \
-    '  debug (--list | -l) - List trace options' \
+    '  debug (--list | -l)[=(<ftrace> | <event>)] - List trace options' \
     '  debug (--history | -k) - Store trace logs in a file' \
     '  debug (--follow | -f) - Follow traces in real-time' \
     '  debug (--cmd | -c) "command" - Trace log while running a command in the target.' \
