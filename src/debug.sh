@@ -83,7 +83,7 @@ function debug_main()
   fi
 
   if [[ -n "$event" ]]; then
-    event_debug "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list"
+    event_debug "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list" "$disable"
     return "$?"
   fi
 
@@ -245,6 +245,7 @@ function event_debug()
   local follow="$5"
   local user_cmd="$6"
   local list="$7"
+  local disable="$8"
   local redirect_mode=''
   local base_log_path
   local disable_cmd
@@ -277,7 +278,7 @@ function event_debug()
     command="$command && cat $TRACE_PIPE"
   fi
 
-  if [[ -n "$user_cmd" ]]; then
+  if [[ -n "$user_cmd" && -z "$disable" ]]; then
     save_following_log="$base_log_path/event"
     screen_nick=$(get_today_info '+kw_%Y_%m_%d-%H_%M_%S')
     screen_cmd="screen -L -Logfile ~/$screen_nick -dmS $screen_nick cat $TRACE_PIPE"
@@ -295,14 +296,14 @@ function event_debug()
 
   case "$target" in
     2) # LOCAL
-      if [[ "$list" == "$LIST_OPTION" ]]; then
-        list_output=$(cmd_manager "SILENT" "$save_following_log" "sudo bash -c \"$command\"")
+      if [[ -n "$list" ]]; then
+        flag=${flag:-'SILENT'}
+        list_output=$(cmd_manager "$flag" "$save_following_log" "sudo bash -c \"$command\"")
         show_list "$list_output" "$event"
         return "$ret"
       fi
 
       [[ -n "$save_following_log" ]] && redirect_mode='KW_REDIRECT_MODE'
-
       cmd_manager "$flag" "sudo bash -c \"$command\"" "$redirect_mode" "$save_following_log"
 
       if [[ -n "$user_cmd" ]]; then
@@ -719,7 +720,7 @@ function build_event_command_string()
 
     # If disable, clean filters
     if [[ "$enable" != 1 && -n "$event" ]]; then
-      filter="printf '%s\n' '0' > $event/filter"
+      filter="printf '0\n' > $event/filter"
       set_filters+="$filter;"
     fi
 

@@ -3,10 +3,20 @@
 include './src/debug.sh'
 include './tests/utils.sh'
 
+original_dir="$PWD"
+default_ssh='ssh -p 3333 juca@127.0.0.1'
+debug_on="printf '%s\n' 1 > /sys/kernel/debug/tracing/tracing_on"
+debug_off="printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on"
+event_path='/sys/kernel/debug/tracing/events'
+trace_pipe_path='/sys/kernel/debug/tracing/trace_pipe'
+disable_amdgpu_dm_event="printf '%s\n' 0 > $event_path/amdgpu_dm/enable"
+enable_amdgpu_dm_event="printf '%s\n' 1 > $event_path/amdgpu_dm/enable"
+disable_amdgpu_dm_filter="printf '0\n' > $event_path/amdgpu_dm/filter"
+igt_cmd_sample='$HOME/igt-gpu-tools/build/tests/kms_plane --run-subtest plane-position-covered'
+
 function setUp
 {
-  original_dir="$PWD"
-
+  # Default config
   parse_configuration "$KW_CONFIG_SAMPLE"
 
   # Create a mock folder for /sys/kernel/debug/tracing/events
@@ -657,6 +667,71 @@ function test_dmesg_debug()
   cmd_intermediary="screen -dmS kw_2021_10_22-07_34_07 $igt_cmd_sample"
   expected_cmd="$std_ssh sudo \"dmesg --clear && $cmd_intermediary && $std_dmesg --follow\" | tee kw_debug/dmesg"
   assert_equals_helper '[remote]' "$LINENO" "$expected_cmd" "$output"
+
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
+}
+
+function test_event_debug()
+{
+  local expected_cmd="$default_ssh sudo \" $enable_amdgpu_dm_event && $debug_on\""
+  local ret
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mkdir 'kw_debug'
+
+  # Failure case
+  output=$(event_debug 3 'TEST_MODE' 'lala;:')
+  ret="$?"
+  assert_equals_helper 'Invalid syntax' "$LINENO" "$ret" 22
+
+  # List
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' '' '' '' 1)
+  ret="$?"
+  assert_equals_helper 'List' "$LINENO" "$ret" 0
+
+  output=$(event_debug 2 'TEST_MODE' 'amdgpu_dm' '' '' '' 1)
+  ret="$?"
+  assert_equals_helper 'List' "$LINENO" "$ret" 0
+
+  # Simple case
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm')
+  assert_equals_helper 'Expected to enable amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
+
+  expected_cmd="sudo bash -c \" $enable_amdgpu_dm_event && $debug_on\""
+  output=$(event_debug 2 'TEST_MODE' 'amdgpu_dm')
+  assert_equals_helper 'Expected to enable amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
+
+  # Follow
+  expected_cmd="$default_ssh sudo \" $enable_amdgpu_dm_event && $debug_on && cat $trace_pipe_path\""
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' '' 1)
+  assert_equals_helper 'Expected to follow amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
+
+  # Disable
+  expected_cmd="$default_ssh sudo \"$debug_off && $disable_amdgpu_dm_filter; $disable_amdgpu_dm_event\""
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' '' 1 '' '' 1)
+  assert_equals_helper 'Expected to disable amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
+
+  # CMD
+  # TODO: This is super ugly, let's rework this in the future
+  expected_cmd="$enable_amdgpu_dm_event && $debug_on"
+  expected_cmd+=" && screen -L -Logfile ~/kw_2021_10_22-07_34_07 -dmS kw_2021_10_22-07_34_07"
+  expected_cmd+=" cat $trace_pipe_path && $igt_cmd_sample"
+  expected_cmd+=" && $debug_off && $disable_amdgpu_dm_filter; $disable_amdgpu_dm_event"
+  expected_cmd+=" && screen -S kw_2021_10_22-07_34_07 -X quit"
+  declare -a expected_cmd_seq=(
+    "$default_ssh sudo \" $expected_cmd\" | tee kw_debug/event"
+    'scp -P 3333 juca@127.0.0.1:~/kw_2021_10_22-07_34_07 kw_debug/event'
+  )
+
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' 'kw_debug' '' "$igt_cmd_sample")
+  compare_command_sequence 'expected_cmd_seq' "$output" "$LINENO"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"
