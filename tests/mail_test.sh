@@ -285,6 +285,36 @@ function test_missing_options()
   }
 }
 
+function test_config_values()
+{
+  local -A output
+  local -A expected
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
+  get_configs
+
+  options_values['user.name']='Loaded Name'
+
+  config_values 'output' 'user.name'
+
+  expected['local']='Xpto Lala'
+  expected['loaded']='Loaded Name'
+
+  assert_equals_helper 'Checking local name' "$LINENO" "${output['local']}" "${expected['local']}"
+  assert_equals_helper 'Checking loaded name' "$LINENO" "${output['loaded']}" "${expected['loaded']}"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+}
+
 function test_add_config()
 {
   local output
@@ -336,11 +366,11 @@ function test_check_add_config()
 
   options_values['user.name']='Lala Xpto'
 
-  output=$(printf '%s\n' 'n' | check_add_config 'TEST_MODE' 'user.name')
+  output=$(printf 'n\n' | check_add_config 'TEST_MODE' 'user.name')
   ret="$?"
   assert_equals_helper 'Operation should be cancelled' "$LINENO" "$ret" 125
 
-  output=$(printf '%s\n' 'y' | check_add_config 'TEST_MODE' 'user.name' | tail -n 1)
+  output=$(printf 'y\n' | check_add_config 'TEST_MODE' 'user.name' | tail -n 1)
   expected="git config --local user.name 'Lala Xpto'"
   assert_equals_helper 'Testing confirmation' "$LINENO" "$output" "$expected"
 
