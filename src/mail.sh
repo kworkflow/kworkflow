@@ -126,11 +126,10 @@ function validate_email()
 # the configuration
 #
 # @option:     The option being edited
-# @value:      The value to update the option to
 # @curr_scope: The scope being edited
 # @cmd_scope:  The scope being imposed on the commands
-# @set_option: The relevant index to access set_confs
 # @scope:      Used to go through local and global scopes
+# @values:     Array to store relevant values for each option
 #
 # Return:
 # Returns 0 if successful; non-zero otherwise
@@ -138,27 +137,28 @@ function check_add_config()
 {
   local flag="$1"
   local option="$2"
-  local value="${options_values["$option"]}"
   local curr_scope="${options_values['SCOPE']}"
   local cmd_scope="${options_values['CMD_SCOPE']}"
-  local set_option="${curr_scope}_$option"
   local scope
+  local -A values
+
+  config_values 'values' "$option"
 
   flag=${flag:-'SILENT'}
 
   if [[ "${options_values['FORCE']}" == 0 ]]; then
-    if [[ -n "${set_confs["$set_option"]}" && "$value" != "${set_confs["$set_option"]}" ]]; then
+    if [[ -n "${values["$curr_scope"]}" && "${values['loaded']}" != "${values["$curr_scope"]}" ]]; then
       warning "The configuration $option is already set with the following value(s):"
       for scope in {'global','local'}; do
-        if [[ -n "${set_confs["${scope}_$option"]}" ]]; then
+        if [[ -n "${values["$scope"]}" ]]; then
           warning -n "  [$scope]: "
-          printf '%s\n' "${set_confs["${scope}_$option"]}"
+          printf '%s\n' "${values["$scope"]}"
         fi
       done
 
       printf '%s\n' '' "You are currently editing at the [$curr_scope] scope." \
         'If you continue the value at this scope will be overwritten.' \
-        "The new value will be '$value'"
+        "The new value will be '${values['loaded']}'"
 
       if [[ "$(ask_yN 'Do you wish to proceed?')" == 0 ]]; then
         complain "Skipping $option..."
@@ -167,11 +167,31 @@ function check_add_config()
     fi
   fi
 
-  add_config "$option" "$value" "$cmd_scope" "$flag"
+  add_config "$option" "${values['loaded']}" "$cmd_scope" "$flag"
 
   if [[ "$?" == 0 && "$flag" != 'TEST_MODE' ]]; then
-    success "$option at the [$curr_scope] scope was successfully set to '$value'"
+    success "$option at the [$curr_scope] scope was successfully set to '${values['loaded']}'"
   fi
+}
+
+# Gets the values associated to a certain config option and puts them in the
+# given array.
+#
+# @_values: reference to the associative array to store the values
+# @option: the config option to get the values from
+#
+# Returns: Nothing
+function config_values()
+{
+  local -n _values="$1"
+  local option="$2"
+  local scope
+
+  for scope in {'global','local'}; do
+    _values["$scope"]="${set_confs["${scope}_$option"]}"
+  done
+
+  _values['loaded']="${options_values["$option"]}"
 }
 
 function add_config()
