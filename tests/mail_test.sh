@@ -328,6 +328,12 @@ function test_check_add_config()
   expected="git config --local sendemail.smtpserverport '123'"
   assert_equals_helper 'Testing serverport option' "$LINENO" "$output" "$expected"
 
+  options_values['user.name']='Xpto Lala'
+
+  output=$(check_add_config 'TEST_MODE' 'user.name')
+  expected="git config --local user.name 'Xpto Lala'"
+  assert_equals_helper 'Testing config with same value' "$LINENO" "$output" "$expected"
+
   options_values['user.name']='Lala Xpto'
 
   output=$(printf '%s\n' 'n' | check_add_config 'TEST_MODE' 'user.name')

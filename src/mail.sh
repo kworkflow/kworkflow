@@ -130,7 +130,7 @@ function validate_email()
 # @curr_scope: The scope being edited
 # @cmd_scope:  The scope being imposed on the commands
 # @set_option: The relevant index to access set_confs
-# @scp:        Used to go through all scopes
+# @scope:      Used to go through local and global scopes
 #
 # Return:
 # Returns 0 if successful; non-zero otherwise
@@ -142,18 +142,17 @@ function check_add_config()
   local curr_scope="${options_values['SCOPE']}"
   local cmd_scope="${options_values['CMD_SCOPE']}"
   local set_option="${curr_scope}_$option"
-  local scp
-  local cmd
+  local scope
 
   flag=${flag:-'SILENT'}
 
   if [[ "${options_values['FORCE']}" == 0 ]]; then
-    if [[ -n "${set_confs["$set_option"]}" ]]; then
+    if [[ -n "${set_confs["$set_option"]}" && "$value" != "${set_confs["$set_option"]}" ]]; then
       warning "The configuration $option is already set with the following value(s):"
-      for scp in {'global','local'}; do
-        if [[ -n "${set_confs["${scp}_$option"]}" ]]; then
-          warning -n "  [$scp]: "
-          printf '%s\n' "${set_confs["${scp}_$option"]}"
+      for scope in {'global','local'}; do
+        if [[ -n "${set_confs["${scope}_$option"]}" ]]; then
+          warning -n "  [$scope]: "
+          printf '%s\n' "${set_confs["${scope}_$option"]}"
         fi
       done
 
