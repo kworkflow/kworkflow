@@ -415,12 +415,14 @@ function template_setup()
 
   if [[ -z "$template" ]]; then
     mapfile -t available_templates < <(find "$KW_ETC_DIR/mail_templates" -type f -printf '%f\n' | sort -d)
-    available_templates+=('exit')
+    [[ -n "${options_values['INTERACTIVE']}" ]] && available_templates+=('skip template')
+    available_templates+=('exit kw mail')
 
     say 'You may choose one of the following templates to start your configuration.'
     printf '(enter the corresponding number to choose)\n'
     select user_choice in "${available_templates[@]^}"; do
-      [[ "$user_choice" == 'Exit' ]] && exit
+      [[ "$user_choice" =~ ^Skip ]] && return
+      [[ "$user_choice" =~ ^Exit ]] && exit
 
       template="${user_choice,,}"
       break
@@ -428,6 +430,11 @@ function template_setup()
   fi
 
   load_template "$template"
+
+  if [[ -z "${options_values['NO_INTERACTIVE']}" &&
+    -z "${options_values['INTERACTIVE']}" ]]; then
+    options_values['INTERACTIVE']='template'
+  fi
 }
 
 # Loads the values from the template file to the options_values array
@@ -474,18 +481,27 @@ function interactive_setup()
 
   flag=${flag:-'SILENT'}
 
-  success 'Welcome to the interactive setup of the mail capabilities.'$'\n'
+  if [[ "${options_values['INTERACTIVE']}" == 'parser' ]]; then
+    success 'Welcome to the interactive setup of the mail capabilities.'$'\n'
 
-  [[ "$(ask_yN 'Do you wish to list the currently set values?')" == '1' ]] && mail_list
-  printf '\n'
+    [[ "$(ask_yN 'Do you wish to list the currently set values?')" == '1' ]] && mail_list
+    printf '\n'
 
-  say 'We will start with the essential configuration options!'$'\n'
+    if [[ -z "${options_values['TEMPLATE']}" ]]; then
+      template_setup
+      printf '\n'
+    fi
+
+    say 'We will start with the essential configuration options!'$'\n'
+  fi
 
   interactive_prompt 'essential_config_options'
 
-  say 'These are the optional configuration options.'$'\n'
+  if [[ "${options_values['INTERACTIVE']}" != 'template' ]]; then
+    say 'These are the optional configuration options.'$'\n'
 
-  interactive_prompt 'optional_config_options' false
+    interactive_prompt 'optional_config_options' false
+  fi
 
   for option in "${essential_config_options[@]}" "${optional_config_options[@]}"; do
     if [[ -n "${options_values["$option"]}" ]]; then
@@ -611,8 +627,8 @@ function parse_mail_options()
   local index
   local option
   local setup_token=0
-  local short_options='t,f,v,i,l,'
-  local long_options='setup,local,global,force,verify,template::,interactive,list,'
+  local short_options='t,f,v,i,l,n,'
+  local long_options='setup,local,global,force,verify,template::,interactive,no-interactive,list,'
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -630,6 +646,7 @@ function parse_mail_options()
   options_values['VERIFY']=0
   options_values['TEMPLATE']=''
   options_values['INTERACTIVE']=''
+  options_values['NO_INTERACTIVE']=''
   options_values['SCOPE']='local'
   options_values['CMD_SCOPE']=''
 
@@ -681,7 +698,7 @@ function parse_mail_options()
         ;;
       --interactive | -i)
         options_values['SETUP']=1
-        options_values['INTERACTIVE']='parser'
+        [[ -z "${options_values['NO_INTERACTIVE']}" ]] && options_values['INTERACTIVE']='parser'
         shift
         ;;
       --local)
@@ -700,6 +717,10 @@ function parse_mail_options()
         ;;
       --force | -f)
         options_values['FORCE']=1
+        ;&
+      --no-interactive | -n)
+        options_values['INTERACTIVE']=''
+        options_values['NO_INTERACTIVE']=1
         shift
         ;;
       --)
@@ -729,5 +750,5 @@ function mail_help()
     '  mail (-i | --interactive) - Setup interactively' \
     '  mail (-v | --verify) - Check if required configurations are set' \
     '  mail (-l | --list) - List the configurable options' \
-    '  mail --template[=<template>] - Set send-email configs based on <template>'
+    '  mail --template[=<template>] [-n] - Set send-email configs based on <template>'
 }

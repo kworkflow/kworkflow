@@ -168,6 +168,10 @@ function test_mail_parser()
   expected_result='parser'
   assert_equals_helper 'Set interactive flag' "$LINENO" "${options_values['INTERACTIVE']}" "$expected_result"
 
+  parse_mail_options '--no-interactive'
+  expected_result=1
+  assert_equals_helper 'Set no-interactive flag' "$LINENO" "${options_values['NO_INTERACTIVE']}" "$expected_result"
+
   expected=''
   assert_equals_helper 'Unset local or global flag' "$LINENO" "${options_values['CMD_SCOPE']}" "$expected"
 
@@ -513,10 +517,10 @@ function test_interactive_setup()
 
   local -a inputs=(
     'y'             # list
+    '1'             # pick first template; loads smtpserver
     'y'             # accept name change
     ''              # user.email
     'user@smtp.com' # smtpuser
-    'server'        # smtpserver
     '123'           # smtpserverport
     'ssl'           # smtpencryption
     ''              # smtppass
@@ -533,6 +537,8 @@ function test_interactive_setup()
 
   output=$(printf '%s\n' "${inputs[@]}" | interactive_setup 'TEST_MODE' 2>&1)
 
+  # printf '***\n%s\n***' "$output" 1>&2
+
   expected="[local: Xpto Lala]"
   assertTrue "($LINENO) Testing user.name on list" '[[ $output =~ "$expected" ]]'
 
@@ -542,7 +548,7 @@ function test_interactive_setup()
   expected="[local] 'sendemail.smtpuser' was set to: user@smtp.com"
   assertTrue "($LINENO) Testing sendemail.smtpuser config" '[[ $output =~ "$expected" ]]'
 
-  expected="[local] 'sendemail.smtpserver' was set to: server"
+  expected="[local] 'sendemail.smtpserver' was set to: smtp.test1.com"
   assertTrue "($LINENO) Testing sendemail.smtpserver config" '[[ $output =~ "$expected" ]]'
 
   expected="[local] 'sendemail.smtpserverport' was set to: 123"
@@ -588,7 +594,7 @@ function test_template_setup()
     '(enter the corresponding number to choose)'
     '1) Test1'
     '2) Test2'
-    '3) Exit'
+    '3) Exit kw mail'
     '#?'
   )
 

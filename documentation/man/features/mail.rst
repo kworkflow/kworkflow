@@ -10,7 +10,7 @@ SYNOPSIS
 | *kw mail* (-i | \--interactive) [\--local | \--global]
 | *kw mail* (-v | \--verify) [\--local | \--global]
 | *kw mail* (-l | \--list)
-| *kw mail* \--template[=<template>] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
+| *kw mail* \--template[=<template>] [-n | \--no-interactive] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
 
 DESCRIPTION
 ===========
@@ -38,6 +38,9 @@ OPTIONS
   Interactively prompt the user for the values of the options. Recommended for
   inexperienced users.
 
+-n, \--no-interactive:
+  Inhibits interactive properties, particularly from the template option.
+
 \--local:
   Forces the commands to be run at a local scope. If nothing is passed all
   changes will be applied locally, but the listing and verification will happen
@@ -47,8 +50,8 @@ OPTIONS
   Same as ``--local`` but in the global scope.
 
 -f, \--force:
-  Forces the configurations to be added, regardles of conflicts with the
-  current values already set in the system.
+  Forces the configurations to be added, regardless of conflicts with the
+  current values already set in the system. Implies ``--no-interactive``.
 
 -v, \--verify:
   Verify that all the settings needed are set and valid.
