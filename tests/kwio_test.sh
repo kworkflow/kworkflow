@@ -237,4 +237,24 @@ function test_ask_yN()
   assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
 }
 
+function test_load_module_text()
+{
+  path="$PWD/tests/samples/load_module_text_test_samples/"
+
+  load_module_text "$path/file_correct" > /dev/null
+  assertEquals 'Should work without any errors.' 0 "$?"
+
+  load_module_text "$path/file_wrong_key" > /dev/null
+  assertEquals 'This file has invalid keys, this should return multiple errors.' 129 "$?"
+
+  load_module_text "$path/file_without_key" > /dev/null
+  assertEquals 'This file has no keys, this should return an error.' 126 "$?"
+
+  load_module_text "$path/file_does_not_exist_(do not create)" > /dev/null
+  assertEquals 'This file does not exist, this should return an error.' 2 "$?"
+
+  load_module_text "$path/file_empty" > /dev/null
+  assertEquals 'This file is empty, this should return an error.' 61 "$?"
+}
+
 invoke_shunit

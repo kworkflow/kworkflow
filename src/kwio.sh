@@ -172,3 +172,77 @@ function ask_with_default()
 
   printf '%s\n' "$response"
 }
+
+# Load text from a file into a dictionary. The file that
+# will be read must have a key before a body of text to
+# name that particular body of text, as in this example:
+#
+# [KEY]:
+# text
+#
+# @path  the full path of the text file to be loaded
+#        as the first argument.
+#
+# KEY must be non-empty, alphanumeric and between square brackets followed by a
+# colon. The global array string_file can then be queried by key as in
+# ${string_file[KEY]} to obtain the string. KEY should be named according
+# to its respective module for compatibility. That is, if we have modules A and B,
+# name A's keys as [KEY_A] and B's keys as [KEY_B]. This makes it so the modules
+# keys will be compatible with each other
+#
+# Return:
+# SUCCESS      : In case of success.
+# EKEYREJECTED : If an invalid key is found, prints the line with a bad key.
+# ENOKEY       : If a key is not found.
+# ENOENT       : If @path is invalid, or is not a text file.
+# ENODATA      : If the file given in @path is empty.
+function load_module_text()
+{
+  local path="$1"
+  local key=''
+  local line_counter=0
+  local error=0 # SUCCESS
+  local key_set=0
+
+  # Associative array to read strings from files
+  unset module_text_dictionary
+  declare -gA module_text_dictionary
+
+  if [[ ! -f "$path" ]]; then
+    complain "[ERROR]:$path: Does not exist or is not a text file."
+    return 2 # ENOENT
+  fi
+
+  if [[ ! -s "$path" ]]; then
+    complain "[ERROR]:$path: File is empty."
+    return 61 # ENODATA
+  fi
+
+  while read -r line; do
+    ((line_counter++))
+    if [[ "$line" =~ ^\[(.*)\]:$ ]]; then
+      key=$(printf '%s' "$line" | grep -o -E '\w+')
+      if [[ -z "$key" ]]; then
+        error=129 # EKEYREJECTED
+        complain "[ERROR]:$path:$line_counter: keys should be alphanum chars"
+        continue
+      fi
+
+      if [[ -n "${module_text_dictionary[$key]}" ]]; then
+        warning "[WARNING]:$path:$line_counter: overwriting '$key' key."
+      fi
+
+      key_set=1
+      module_text_dictionary["$key"]=''
+    elif [[ -n "$key" ]]; then
+      module_text_dictionary["$key"]+=$'\n'"$line"
+    fi
+  done < "$path"
+
+  if [[ "$key_set" -eq 0 ]]; then
+    error=126 # ENOKEY
+    complain "[ERROR]:$path: no key found"
+  fi
+
+  return "$error"
+}
