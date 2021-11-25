@@ -23,3 +23,5 @@ zstd
 bc
 git-email
 sqlite3
+openssh-server
+openssh-client
