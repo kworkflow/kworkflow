@@ -1,0 +1,20 @@
+[key]:
+This key is fine.
+
+[k1y3]:
+This is also fine. 
+
+[~???????????????\\\\\\]:
+This should give an error.
+
+[So, how are you]:
+This should not work.
+
+[]]:
+This also should not work.
+
+[[]:
+Neither this.
+
+[[]]:
+Neither this.

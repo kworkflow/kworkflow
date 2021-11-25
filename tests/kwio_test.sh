@@ -10,6 +10,8 @@ include './src/kwlib.sh'
 # the function will return before the background commands finish.
 
 declare -A configurations
+declare -g load_module_text_path="$PWD/tests/samples/load_module_text_test_samples/"
+
 sound_file="$PWD/tests/.kwio_test_aux/sound.file"
 visual_file="$PWD/tests/.kwio_test_aux/visual.file"
 
@@ -235,6 +237,88 @@ function test_ask_yN()
   assert_equals_message='Default answer: invalid (lala), user answer: no (invalid: lalano)'
   output=$(printf 'lalano\n' | ask_yN 'Test message' 'lala')
   assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
+}
+
+function test_load_module_text_good_files()
+{
+  load_module_text "$load_module_text_path/file_correct"
+  assertEquals 'Should work without any errors.' 0 "$?"
+
+  assertEquals 'Key1' 'Hello, there! How are you? I hope you are enjoying reading this test suit!' "${module_text_dictionary[key1]}"
+  assertEquals 'Key2' 'Hey, you still there? []' "${module_text_dictionary[key2]}"
+  assertEquals 'Key3' 'This should work with multiple lines.
+Line 1
+Line 2
+Line 3
+Line 4
+Line 5' "${module_text_dictionary[key3]}"
+  assertEquals 'Key4' 'done.' "${module_text_dictionary[key4]}"
+  assertEquals 'Key5' '' "${module_text_dictionary[key5]}"
+  assertEquals 'Key6' '
+
+
+
+
+The one above should have an empty value.
+' "${module_text_dictionary[key6]}"
+  assertEquals 'Key7' '
+This value should be ok
+' "${module_text_dictionary[key7]}"
+}
+
+function test_load_module_text_bad_keys()
+{
+  local expected
+  local received
+
+  expected="\
+[ERROR]:$load_module_text_path/file_wrong_key:7: Keys should be alphanum chars.
+[ERROR]:$load_module_text_path/file_wrong_key:10: Keys should be alphanum chars.
+[ERROR]:$load_module_text_path/file_wrong_key:13: Keys should be alphanum chars.
+[ERROR]:$load_module_text_path/file_wrong_key:16: Keys should be alphanum chars.
+[ERROR]:$load_module_text_path/file_wrong_key:19: Keys should be alphanum chars."
+  received=$(load_module_text "$load_module_text_path/file_wrong_key")
+
+  assertEquals 'This file has invalid keys, this should return multiple errors.' 129 "$?"
+  assertEquals 'The ERROR message is not consistent with the error code or is incomplete.' "$expected" "$received"
+}
+
+function test_load_module_text_invalid_files()
+{
+  local expected
+  local received
+
+  expected="[ERROR]:$load_module_text_path/file_without_key: No key found."
+  received=$(load_module_text "$load_module_text_path/file_without_key")
+  assertEquals 'This file has no keys, this should return an error.' 126 "$?"
+  assertEquals 'The ERROR message is not consistent with the error code or is incomplete.' "$expected" "$received"
+
+  expected="[ERROR]:$load_module_text_path/file_empty: File is empty."
+  received=$(load_module_text "$load_module_text_path/file_empty")
+  assertEquals 'This file is empty, this should return an error.' 61 "$?"
+  assertEquals 'The ERROR message is not consistent with the error code or is incomplete.' "$expected" "$received"
+}
+
+function test_load_module_text_no_files()
+{
+  local expected
+  local received
+
+  expected="[ERROR]:$load_module_text_path/file_does_not_exist_(do not create): Does not exist or is not a text file."
+  received=$(load_module_text "$load_module_text_path/file_does_not_exist_(do not create)")
+  assertEquals 'This file does not exist, this should return an error.' 2 "$?"
+  assertEquals 'The ERROR message is not consistent with the error code or is incomplete.' "$expected" "$received"
+}
+
+function test_load_module_text_repeated_keys()
+{
+  local expected
+  local received
+
+  expected="[WARNING]:$load_module_text_path/file_repeated_keys:9: Overwriting 'Sagan' key."
+  received=$(load_module_text "$load_module_text_path/file_repeated_keys")
+  assertEquals 'Although we received warnings, the function should exit with SUCCESS' 0 "$?"
+  assertEquals 'The ERROR message is not consistent with the error code or is incomplete.' "$expected" "$received"
 }
 
 invoke_shunit
