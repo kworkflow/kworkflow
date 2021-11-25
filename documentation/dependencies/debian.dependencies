@@ -22,3 +22,5 @@ lzop
 zstd
 bc
 git-email
+openssh-server
+openssh-client

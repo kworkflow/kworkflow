@@ -172,3 +172,33 @@ function init_help()
     '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
     '  init --target <target> Set the default_deploy_target field in the kworkflow.config file'
 }
+
+# This function creates a new ssh key.
+#
+# @ssh_dir  : directory where the key will be stored.
+# @key_name : this is the name of the key, usually
+#             used to avoid overwriting keys.
+#             If not given, defaults to "kw_ssh_key".
+#
+# Returns:
+# ENOTDIR                   : a file named @ssh_dir already exists and
+#                             is not a directory.
+# EEXISTS                   : key already exists.
+# ssh-keygen's return value : returns ssh-keygen's value if @ssh_dir is valid.
+function create_ssh_key()
+{
+  local ssh_dir="$1"
+  local key_name="${2:-kw_ssh_key}"
+  local path="$ssh_dir/$key_name"
+
+  if [[ -e "$ssh_dir" && ! -d "$ssh_dir" ]]; then
+    return 20 # ENOTDIR
+  fi
+
+  if [[ -e "$path" ]]; then
+    return 17 # EEXISTS
+  fi
+
+  mkdir -p "$ssh_dir"
+  ssh-keygen -q -t rsa -f "$path"
+}
