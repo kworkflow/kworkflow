@@ -44,46 +44,37 @@ function tearDown()
 
 function test_validate_encryption()
 {
-  local expected
-  local output
   local ret
 
   # invalid values
-  expected=''
-
   validate_encryption 'xpto' &> /dev/null
   ret="$?"
-  assert_equals_helper 'Encryption should be blank' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
   validate_encryption 'rsa' &> /dev/null
   ret="$?"
-  assert_equals_helper 'Encryption should be blank' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
   validate_encryption 'tlss' &> /dev/null
   ret="$?"
-  assert_equals_helper 'Encryption should be blank' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
   validate_encryption 'ssll' &> /dev/null
   ret="$?"
-  assert_equals_helper 'Encryption should be blank' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
   validate_encryption &> /dev/null
   ret="$?"
-  assert_equals_helper 'Encryption should be blank' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
   # valid values
   validate_encryption 'ssl'
-  expected='ssl'
-  assert_equals_helper 'Encryption should be ssl' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
+  ret="$?"
+  assert_equals_helper 'Expected no error for ssl' "$LINENO" "$ret" 0
 
   validate_encryption 'tls'
-  expected='tls'
-  assert_equals_helper 'Encryption should be tls' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
+  ret="$?"
+  assert_equals_helper 'Expected no error for tls' "$LINENO" "$ret" 0
 }
 
 function test_validate_email()
@@ -93,29 +84,24 @@ function test_validate_email()
   local ret
 
   # invalid values
-  output="$(validate_email 'email' 'invalid email')"
+  output="$(validate_email 'invalid email')"
   ret="$?"
   expected='Invalid email: invalid email'
   assert_equals_helper 'Invalid email was passed' "$LINENO" "$output" "$expected"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
-  output="$(validate_email 'smtpuser' 'invalid email')"
+  output="$(validate_email 'lalala')"
   ret="$?"
-  expected='Invalid smtpuser: invalid email'
+  expected='Invalid email: lalala'
   assert_equals_helper 'Invalid email was passed' "$LINENO" "$output" "$expected"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
   # valid values
-  validate_email 'email' 'test@email.com'
+  validate_email 'test@email.com'
   ret="$?"
   assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
 
-  validate_email 'smtpuser' 'test@email.com'
-  ret="$?"
-  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
-
-  # non-emails should be a success
-  validate_email 'name' 'Xpto Lala'
+  validate_email 'test123@serious.gov'
   ret="$?"
   assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
 }
@@ -127,14 +113,6 @@ function test_mail_parser()
   local ret
 
   # Invalid options
-  parse_mail_options '-t' '--smtpencryption' 'tlst' &> /dev/null
-  expected=''
-  assert_equals_helper 'Encryption should be blank' "$LINENO" "${options_values['SMTPENCRYPTION']}" "$expected"
-
-  parse_mail_options '-t' '--email' 'not_an_email' &> /dev/null
-  expected=''
-  assert_equals_helper 'Invalid email, should be blank' "$LINENO" "${options_values['user.email']}" "$expected"
-
   parse_mail_options '-t' '--smtpuser'
   ret="$?"
   assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22

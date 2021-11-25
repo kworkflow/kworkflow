@@ -77,6 +77,14 @@ function mail_setup()
     config_values 'values' "$option"
 
     if [[ -n "${values['loaded']}" ]]; then
+      if [[ "$option" =~ 'user.email'|'sendemail.smtpuser' ]]; then
+        validate_email "${values['loaded']}" || continue
+      fi
+
+      if [[ "$option" == 'sendemail.smtpencryption' ]]; then
+        validate_encryption "${values['loaded']}" || continue
+      fi
+
       if [[ "${options_values['FORCE']}" == 0 ]]; then
         if [[ -n "${values["$curr_scope"]}" && "${values['loaded']}" != "${values["$curr_scope"]}" ]]; then
           printf '\n'
@@ -127,7 +135,6 @@ function validate_encryption()
   local value="$1"
 
   if [[ "$value" =~ ^(ssl|tls)$ ]]; then
-    options_values['sendemail.smtpencryption']="$value"
     return 0
   fi
 
@@ -147,14 +154,11 @@ function validate_encryption()
 # Returns 0 if valid; 22 if invalid
 function validate_email()
 {
-  local option="$1"
-  local value="$2"
+  local value="$1"
 
-  if [[ "$option" =~ ^(email|smtpuser)$ ]]; then
-    if [[ ! "$value" =~ ^[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+$ ]]; then
-      complain "Invalid $option: $value"
-      return 22 #EINVAL
-    fi
+  if [[ ! "$value" =~ ^[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+$ ]]; then
+    complain "Invalid email: $value"
+    return 22 #EINVAL
   fi
 
   return 0
@@ -363,12 +367,11 @@ function print_configs()
 # '--setup' flag
 function validate_setup_opt()
 {
-  local option="$1"
-
   if [[ "${options_values['SETUP']}" == 0 ]]; then
-    complain "The '$option' flag should only be used after the '--setup' flag."
+    complain 'You provided a flag that should only be used with `--setup`.'
     complain 'Please check your command and try again.'
-    return 95 # ENOTSUP
+    mail_help
+    exit 95 # ENOTSUP
   fi
 
   return 0
@@ -378,6 +381,7 @@ function parse_mail_options()
 {
   local index
   local option
+  local setup_token=0
   local short_options='t,f,v,l,'
   local long_options='setup,local,global,force,verify,list,'
 
@@ -411,22 +415,24 @@ function parse_mail_options()
         shift
         ;;
       --email | --name)
-        validate_setup_opt "$1" || exit 95 # ENOTSUP
+        setup_token=1
         option="$(str_remove_prefix "$1" '--')"
         index="user.$option"
-        validate_email "$option" "$2" && options_values["$index"]="$2"
+        options_values["$index"]="$2"
         shift 2
         ;;
       --smtpencryption)
-        validate_setup_opt "$1" || exit 95 # ENOTSUP
-        validate_encryption "$2"
+        setup_token=1
+        option="$(str_remove_prefix "$1" '--')"
+        index="sendemail.$option"
+        options_values["$index"]="$2"
         shift 2
         ;;
       --smtp*)
-        validate_setup_opt "$1" || exit 95 # ENOTSUP
+        setup_token=1
         option="$(str_remove_prefix "$1" '--')"
         index="sendemail.$option"
-        validate_email "$option" "$2" && options_values["$index"]="$2"
+        options_values["$index"]="$2"
         shift 2
         ;;
       --local)
@@ -456,6 +462,10 @@ function parse_mail_options()
         ;;
     esac
   done
+
+  if [[ "$setup_token" == 1 ]]; then
+    validate_setup_opt
+  fi
 }
 
 function mail_help()
