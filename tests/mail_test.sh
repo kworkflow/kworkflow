@@ -334,67 +334,6 @@ function test_add_config()
   assert_equals_helper 'Testing serverport option' "$LINENO" "$output" "$expected"
 }
 
-function test_check_add_config()
-{
-  local output
-  local expected
-  local ret
-
-  cd "$FAKE_GIT" || {
-    ret="$?"
-    fail "($LINENO): Failed to move to fake git repo"
-    exit "$ret"
-  }
-
-  get_configs
-
-  options_values['FORCE']=0
-  options_values['SCOPE']='local'
-  options_values['CMD_SCOPE']='local'
-
-  options_values['sendemail.smtpserverport']='123'
-
-  output=$(check_add_config 'TEST_MODE' 'sendemail.smtpserverport')
-  expected="git config --local sendemail.smtpserverport '123'"
-  assert_equals_helper 'Testing serverport option' "$LINENO" "$output" "$expected"
-
-  options_values['user.name']='Xpto Lala'
-
-  output=$(check_add_config 'TEST_MODE' 'user.name')
-  expected="git config --local user.name 'Xpto Lala'"
-  assert_equals_helper 'Testing config with same value' "$LINENO" "$output" "$expected"
-
-  options_values['user.name']='Lala Xpto'
-
-  output=$(printf 'n\n' | check_add_config 'TEST_MODE' 'user.name')
-  ret="$?"
-  assert_equals_helper 'Operation should be cancelled' "$LINENO" "$ret" 125
-
-  output=$(printf 'y\n' | check_add_config 'TEST_MODE' 'user.name' | tail -n 1)
-  expected="git config --local user.name 'Lala Xpto'"
-  assert_equals_helper 'Testing confirmation' "$LINENO" "$output" "$expected"
-
-  options_values['FORCE']=1
-
-  output=$(check_add_config 'TEST_MODE' 'user.name')
-  expected="git config --local user.name 'Lala Xpto'"
-  assert_equals_helper 'Testing forced execution' "$LINENO" "$output" "$expected"
-
-  # global tests must use the force option
-  options_values['SCOPE']='global'
-  options_values['CMD_SCOPE']='global'
-
-  output=$(check_add_config 'TEST_MODE' 'user.name')
-  expected="git config --global user.name 'Lala Xpto'"
-  assert_equals_helper 'Testing global scope' "$LINENO" "$output" "$expected"
-
-  cd "$ORIGINAL_DIR" || {
-    ret="$?"
-    fail "($LINENO): Failed to move back to original dir"
-    exit "$ret"
-  }
-}
-
 function test_mail_setup()
 {
   local expected
@@ -427,11 +366,39 @@ function test_mail_setup()
   unset options_values
   declare -gA options_values
 
+  get_configs
+
+  parse_mail_options '-t' '--name' 'Xpto Lala'
+
+  output=$(mail_setup 'TEST_MODE')
+  expected="git config -- user.name 'Xpto Lala'"
+  assert_equals_helper 'Testing config with same value' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '-t' '--name' 'Lala Xpto'
+
+  output=$(printf 'n\n' | mail_setup 'TEST_MODE' | tail -n 1)
+  expected='No configuration options were set.'
+  assert_equals_helper 'Operation should be skipped' "$LINENO" "$output" "$expected"
+
+  output=$(printf 'y\n' | mail_setup 'TEST_MODE' | tail -n 1)
+  expected="git config -- user.name 'Lala Xpto'"
+  assert_equals_helper 'Testing confirmation' "$LINENO" "$output" "$expected"
+
+  unset options_values
+  declare -gA options_values
+
   parse_mail_options '-t' '--local' '--smtpserverport' '123'
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --local sendemail.smtpserverport '123'"
   assert_equals_helper 'Testing serverport option' "$LINENO" "$output" "$expected"
+
+  options_values['sendemail.smtpserverport']=''
+  options_values['user.name']='Xpto Lala'
+
+  output=$(mail_setup 'TEST_MODE')
+  expected="git config --local user.name 'Xpto Lala'"
+  assert_equals_helper 'Testing config with same value' "$LINENO" "$output" "$expected"
 
   unset options_values
   declare -gA options_values
@@ -453,13 +420,7 @@ function test_mail_setup()
   declare -gA options_values
 
   # we need to force in case the user has set config at a global scope
-  parse_mail_options '-t' '--smtppass' 'verySafePass'
-
-  output=$(mail_setup 'TEST_MODE')
-  ret="$?"
-  assert_equals_helper 'Should fail outside of git repo' "$LINENO" "$ret" 22
-
-  parse_mail_options '-t' '--force' '--global'
+  parse_mail_options '-t' '--force' '--global' '--smtppass' 'verySafePass'
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --global sendemail.smtppass 'verySafePass'"

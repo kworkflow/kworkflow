@@ -28,32 +28,12 @@ function mail_main()
     return 22 # EINVAL
   fi
 
+  get_configs
+
   if [[ "${options_values['VERIFY']}" == 1 ]]; then
-    get_configs
     mail_verify ''
     exit
   fi
-
-  if [[ "${options_values['SETUP']}" == 1 ]]; then
-    get_configs
-    mail_setup ''
-    exit
-  fi
-
-  return 0
-}
-
-# This function deals with configuring the options used by `git send-email`
-# to send patches by email
-#
-# Return:
-# returns 0 if successful, exits with 1 otherwise
-function mail_setup()
-{
-  local flag="$1"
-  local confs=0
-
-  flag=${flag:-'SILENT'}
 
   is_inside_work_tree
   if [[ "$?" -gt 0 && "${options_values['SCOPE']}" != 'global' ]]; then
@@ -62,15 +42,74 @@ function mail_setup()
     exit 22 # EINVAL
   fi
 
-  for option in "${!options_values[@]}"; do
-    if [[ "$option" =~ smtp|user\.(email|name) ]]; then
-      check_add_config "$flag" "$option"
+  if [[ "${options_values['SETUP']}" == 1 ]]; then
+    mail_setup ''
+    exit
+  fi
+
+  return 0
+}
+
+# This function deals with configuring the options used by `git send-email`
+# to send patches by email. It adds the loaded configuration options supplied
+# by the user. It checks if the given option is already set and if needed
+# prompts the user to replace, or ignore the value.
+#
+# @flag:       Flag to control the behavior of 'cmd_manager'
+# @curr_scope: The scope being edited
+# @cmd_scope:  The scope being imposed on the commands
+# @values:     Array to store relevant values for each option
+# @confs:      Signals if no option was set
+#
+# Return:
+# returns 0 if successful, exits with 1 otherwise
+function mail_setup()
+{
+  local flag="$1"
+  local curr_scope="${options_values['SCOPE']}"
+  local cmd_scope="${options_values['CMD_SCOPE']}"
+  local -A values
+  local confs=0
+
+  flag=${flag:-'SILENT'}
+
+  for option in "${essential_config_options[@]}" "${optional_config_options[@]}"; do
+    config_values 'values' "$option"
+
+    if [[ -n "${values['loaded']}" ]]; then
+      if [[ "${options_values['FORCE']}" == 0 ]]; then
+        if [[ -n "${values["$curr_scope"]}" && "${values['loaded']}" != "${values["$curr_scope"]}" ]]; then
+          printf '\n'
+          warning "'$option' is already set at this scope."
+          say "  Proposed change [$curr_scope]:"
+          printf '    %s' "${values["$curr_scope"]}"
+          say -n ' --> '
+          printf '%s\n\n' "${values['loaded']}"
+
+          if [[ "$(ask_yN '  Do you wish to proceed?')" == 0 ]]; then
+            options_values["$option"]=''
+            complain "  Skipping $option..."
+            continue
+          fi
+        fi
+      fi
+    fi
+  done
+
+  for option in "${essential_config_options[@]}" "${optional_config_options[@]}"; do
+    if [[ -n "${options_values["$option"]}" ]]; then
+      add_config "$option" "${options_values["$option"]}" "$cmd_scope" "$flag"
+
+      if [[ "$?" == 0 && "$flag" != 'TEST_MODE' ]]; then
+        success -n "[$curr_scope] '$option' was set to: "
+        printf '%s\n' "${options_values["$option"]}"
+      fi
       confs=1
     fi
   done
 
   if [[ "$confs" == 0 ]]; then
-    warning 'No configuration options were given, no options were set.'
+    warning 'No configuration options were set.'
   fi
 
   return 0
@@ -119,59 +158,6 @@ function validate_email()
   fi
 
   return 0
-}
-
-# This function adds the supplied configuration option. It first checks if the
-# given option has been set, then prompts the user to replace, add, or ignore
-# the configuration
-#
-# @option:     The option being edited
-# @curr_scope: The scope being edited
-# @cmd_scope:  The scope being imposed on the commands
-# @scope:      Used to go through local and global scopes
-# @values:     Array to store relevant values for each option
-#
-# Return:
-# Returns 0 if successful; non-zero otherwise
-function check_add_config()
-{
-  local flag="$1"
-  local option="$2"
-  local curr_scope="${options_values['SCOPE']}"
-  local cmd_scope="${options_values['CMD_SCOPE']}"
-  local scope
-  local -A values
-
-  config_values 'values' "$option"
-
-  flag=${flag:-'SILENT'}
-
-  if [[ "${options_values['FORCE']}" == 0 ]]; then
-    if [[ -n "${values["$curr_scope"]}" && "${values['loaded']}" != "${values["$curr_scope"]}" ]]; then
-      warning "The configuration $option is already set with the following value(s):"
-      for scope in {'global','local'}; do
-        if [[ -n "${values["$scope"]}" ]]; then
-          warning -n "  [$scope]: "
-          printf '%s\n' "${values["$scope"]}"
-        fi
-      done
-
-      printf '%s\n' '' "You are currently editing at the [$curr_scope] scope." \
-        'If you continue the value at this scope will be overwritten.' \
-        "The new value will be '${values['loaded']}'"
-
-      if [[ "$(ask_yN 'Do you wish to proceed?')" == 0 ]]; then
-        complain "Skipping $option..."
-        return 125 # ECANCELED
-      fi
-    fi
-  fi
-
-  add_config "$option" "${values['loaded']}" "$cmd_scope" "$flag"
-
-  if [[ "$?" == 0 && "$flag" != 'TEST_MODE' ]]; then
-    success "$option at the [$curr_scope] scope was successfully set to '${values['loaded']}'"
-  fi
 }
 
 # Gets the values associated to a certain config option and puts them in the
