@@ -203,7 +203,7 @@ function kw()
       (
         include "$KW_LIB_DIR/report.sh"
 
-        report "$@"
+        report_main "$@"
       )
       ;;
     device)
