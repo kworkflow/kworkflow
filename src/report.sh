@@ -12,15 +12,20 @@ declare -gA options_values
 declare -gA tags_details
 declare -gA tags_metadata
 
-function report()
+function report_main()
 {
   local target_time
   local ret
 
-  report_parse "$@"
-  ret="$?"
-  if [[ "$ret" != 0 ]]; then
-    return "$ret"
+  if [[ "$1" =~ -h|--help ]]; then
+    report_help "$1"
+    exit
+  fi
+
+  parse_report_options "$@"
+  if [[ "$?" -gt 0 ]]; then
+    complain "${options_values['ERROR']}"
+    return 22 # EINVAL
   fi
 
   if [[ -n "${options_values['DAY']}" ]]; then
@@ -300,19 +305,18 @@ function save_data_to()
   show_data > "$path"
 }
 
-function report_parse()
+function parse_report_options()
 {
-  local raw_options="$*"
-  local day
-  local week
-  local month
-  local year
-  local output
-  local reference=0
+  local reference_count=0
+  local long_options='day::,week::,month::,year::,output:'
+  local short_options='o:'
+  local options
 
-  if [[ "$1" =~ -h|--help ]]; then
-    report_help "$1"
-    exit 0
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw report' "$short_options" \
+      "$long_options" "$@")"
+    return 22 # EINVAL
   fi
 
   options_values['DAY']=''
@@ -321,99 +325,85 @@ function report_parse()
   options_values['YEAR']=''
   options_values['OUTPUT']=''
 
-  IFS=' ' read -r -a options <<< "$raw_options"
-  for option in "${options[@]}"; do
-    if [[ "$option" =~ ^(--.*|-.*|test_mode) ]]; then
-      output=0
-      case "$option" in
-        --day)
+  eval "set -- $options"
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --day)
+        if [[ -n "$2" ]]; then
+          options_values['DAY']=$(date_to_format "$2" '+%Y/%m/%d')
+          if [[ "$?" != 0 ]]; then
+            complain "$2 is an invalid date"
+            return 22 # EINVAL
+          fi
+        else
           options_values['DAY']=$(get_today_info '+%Y/%m/%d')
-          day=1
-          reference+=1
-          continue
-          ;;
-        --week)
+        fi
+
+        reference_count+=1
+        shift 2
+        ;;
+      --week)
+        if [[ -n "$2" ]]; then
+          options_values['WEEK']=$(get_week_beginning_day "$2")
+          if [[ "$?" != 0 ]]; then
+            complain "$2 is an invalid date"
+            return 22 # EINVAL
+          fi
+        else
           options_values['WEEK']=$(get_week_beginning_day)
-          week=1
-          reference+=1
-          continue
-          ;;
-        --month)
+        fi
+
+        reference_count+=1
+        shift 2
+        ;;
+      --month)
+        if [[ -n "$2" ]]; then
+          options_values['MONTH']=$(date_to_format "$2/01" '+%Y/%m')
+          if [[ "$?" != 0 ]]; then
+            complain "$2 is an invalid date"
+            return 22 # EINVAL
+          fi
+        else
           options_values['MONTH']=$(get_today_info '+%Y/%m')
-          month=1
-          reference+=1
-          continue
-          ;;
-        --year)
+        fi
+
+        reference_count+=1
+        shift 2
+        ;;
+      --year)
+        if [[ -n "$2" ]]; then
+          options_values['YEAR']=$(date_to_format "$2/01/01" +%Y)
+          if [[ "$?" != 0 ]]; then
+            complain "$2 is an invalid date"
+            return 22 # EINVAL
+          fi
+        else
           options_values['YEAR']=$(date +%Y)
-          year=1
-          reference+=1
-          continue
-          ;;
-        --output | -o)
-          options_values['OUTPUT']="$option"
-          day=0
-          week=0
-          month=0
-          year=0
-          output=1
-          continue
-          ;;
-        *)
-          complain "Invalid option: $option"
-          report_help
-          return 22 # EINVAL
-          ;;
-      esac
-    else
-      if [[ "$day" == 1 ]]; then
-        day=0
-        if [[ -n "$option" ]]; then
-          options_values['DAY']=$(date_to_format "$option" '+%Y/%m/%d')
-          if [[ "$?" != 0 ]]; then
-            complain "Invalid parameter: $option"
-            return 22 # EINVAL
-          fi
         fi
-      elif [[ "$week" == 1 ]]; then
-        # First day of the week
-        week=0
-        if [[ -n "$option" ]]; then
-          options_values['WEEK']=$(get_week_beginning_day "$option")
-          if [[ "$?" != 0 ]]; then
-            complain "Invalid parameter: $option"
-            return 22 # EINVAL
-          fi
-        fi
-      elif [[ "$month" == 1 ]]; then
-        month=0
-        if [[ -n "$option" ]]; then
-          # First day of the month
-          options_values['MONTH']=$(date_to_format "$option/01" '+%Y/%m')
-          if [[ "$?" != 0 ]]; then
-            complain "Invalid parameter: $option"
-            return 22 # EINVAL
-          fi
-        fi
-      elif [[ "$year" == 1 ]]; then
-        year=0
-        if [[ -n "$option" ]]; then
-          options_values['YEAR']=$(date_to_format "$option/01/01" +%Y)
-          if [[ "$?" != 0 ]]; then
-            complain "Invalid parameter: $option"
-            return 22 # EINVAL
-          fi
-        fi
-      elif [[ "$output" == 1 ]]; then
-        options_values['OUTPUT']="$option"
-      fi
-    fi
+
+        reference_count+=1
+        shift 2
+        ;;
+      --output | -o)
+        options_values['OUTPUT']="$2"
+        shift 2
+        ;;
+      --)
+        shift
+        ;;
+      *)
+        options_values['ERROR']="Unrecognized argument: $1"
+        return 22 # EINVAL
+        shift
+        ;;
+    esac
   done
 
-  if [[ "$reference" -gt 1 ]]; then
+  if [[ "$reference_count" -gt 1 ]]; then
     complain 'Please, only use a single time reference'
     return 22
-  elif [[ "$reference" == 0 ]]; then
+  elif [[ "$reference_count" == 0 ]]; then
     # If no option, set day as a default
     options_values['DAY']=$(get_today_info '+%Y/%m/%d')
   fi
@@ -427,9 +417,9 @@ function report_help()
     return
   fi
   printf '%s\n' 'kw report:' \
-    '  report [--day [<year>/<month>/<day>]] - Report of the day' \
-    '  report [--week [<year>/<month>/<day>]] - Report of the week' \
-    '  report [--month [<year>/<month>]] - Report of the month' \
-    '  report [--year [<year>]] - Report fo the year' \
+    '  report [--day[=<year>/<month>/<day>]] - Report of the day' \
+    '  report [--week[=<year>/<month>/<day>]] - Report of the week' \
+    '  report [--month[=<year>/<month>]] - Report of the month' \
+    '  report [--year[=<year>]] - Report fo the year' \
     '  report [--output <path>] - Save report to <path>'
 }
