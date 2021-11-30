@@ -12,6 +12,7 @@ declare -g KW_POMODORO_DATA="$KW_DATA_DIR/pomodoro"
 declare -gA options_values
 declare -gA tags_details
 declare -gA tags_metadata
+declare -g statistics_data
 
 function report_main()
 {
@@ -29,32 +30,24 @@ function report_main()
     return 22 # EINVAL
   fi
 
-  if [[ "${options_values['STATISTICS']}" == 1 ]]; then
-    show_statistics
-    return
-  elif [[ -n "${options_values['DAY']}" ]]; then
-    grouping_day_data "${options_values['DAY']}"
-    target_time="${options_values['DAY']}"
-  elif [[ -n "${options_values['WEEK']}" ]]; then
-    target_time="${options_values['WEEK']}"
-    grouping_week_data "${options_values['WEEK']}"
-  elif [[ -n "${options_values['MONTH']}" ]]; then
-    target_time="${options_values['MONTH']}"
-    grouping_month_data "${options_values['MONTH']}"
-  elif [[ -n "${options_values['YEAR']}" ]]; then
-    target_time="${options_values['YEAR']}"
-    grouping_year_data "${options_values['YEAR']}"
+  if [[ -n "${options_values['STATISTICS']}" ]]; then
+    run_statistics
+  fi
+
+  if [[ -n "${options_values['POMODORO']}" ]]; then
+    run_pomodoro
   fi
 
   if [[ -z "${options_values['OUTPUT']}" ]]; then
-    show_data "$target_time"
+    [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time"
+    [[ -n "${options_values['STATISTICS']}" ]] && show_statistics
   else
     save_data_to "${options_values['OUTPUT']}"
   fi
 }
 
 # Call the statistics based on the options_values
-function show_statistics()
+function run_statistics()
 {
   if [[ "${configurations[disable_statistics_data_track]}" == 'yes' ]]; then
     say 'You have disable_statistics_data_track marked as "yes"'
@@ -63,13 +56,36 @@ function show_statistics()
   fi
 
   if [[ -n "${options_values['DAY']}" ]]; then
-    day_statistics "${options_values['DAY']}"
+    statistics_data=$(day_statistics "${options_values['DAY']}")
   elif [[ -n "${options_values['WEEK']}" ]]; then
-    week_statistics "${options_values['WEEK']}"
+    statistics_data=$(week_statistics "${options_values['WEEK']}")
   elif [[ -n "${options_values['MONTH']}" ]]; then
-    month_statistics "${options_values['MONTH']}"
+    statistics_data=$(month_statistics "${options_values['MONTH']}")
   elif [[ -n "${options_values['YEAR']}" ]]; then
-    year_statistics "${options_values['YEAR']}"
+    statistics_data=$(year_statistics "${options_values['YEAR']}")
+  fi
+}
+
+function show_statistics()
+{
+  printf "# Statistics: %s\n" "$date"
+  printf "%s\n\n" "$statistics_data"
+}
+
+function run_pomodoro()
+{
+  if [[ -n "${options_values['DAY']}" ]]; then
+    target_time="${options_values['DAY']}"
+    grouping_day_data "$target_time"
+  elif [[ -n "${options_values['WEEK']}" ]]; then
+    target_time="${options_values['WEEK']}"
+    grouping_week_data "$target_time"
+  elif [[ -n "${options_values['MONTH']}" ]]; then
+    target_time="${options_values['MONTH']}"
+    grouping_month_data "$target_time"
+  elif [[ -n "${options_values['YEAR']}" ]]; then
+    target_time="${options_values['YEAR']}"
+    grouping_year_data "$target_time"
   fi
 }
 
@@ -326,14 +342,16 @@ function save_data_to()
     exit "$ret"
   fi
 
-  show_data > "$path"
+  truncate -s 0 "$path"
+  [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "$path"
+  [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "$path"
 }
 
 function parse_report_options()
 {
   local reference_count=0
-  local long_options='day::,week::,month::,year::,output:,statistics'
-  local short_options='o:,s'
+  local long_options='day::,week::,month::,year::,output:,statistics,pomodoro,all'
+  local short_options='o:,s,p,a'
   local options
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -349,6 +367,7 @@ function parse_report_options()
   options_values['YEAR']=''
   options_values['OUTPUT']=''
   options_values['STATISTICS']=''
+  options_values['POMODORO']=''
 
   eval "set -- $options"
 
@@ -418,6 +437,15 @@ function parse_report_options()
         options_values['STATISTICS']=1
         shift
         ;;
+      --pomodoro | -p)
+        options_values['POMODORO']=1
+        shift
+        ;;
+      --all | -a)
+        options_values['STATISTICS']=1
+        options_values['POMODORO']=1
+        shift
+        ;;
       --)
         shift
         ;;
@@ -429,9 +457,9 @@ function parse_report_options()
     esac
   done
 
-  if [[ -n "${options_values['STATISTICS']}" ]] && [[ -n "${options_values['OUTPUT']}" ]]; then
-    options_values['ERROR']='--output cannot be used with --statistics.'
-    return 22 # EINVAL
+  if [[ -z "${options_values['STATISTICS']}" && -z "${options_values['POMODORO']}" ]]; then
+    options_values['STATISTICS']=1
+    options_values['POMODORO']=1
   fi
 
   if [[ "$reference_count" -gt 1 ]]; then
@@ -451,14 +479,12 @@ function report_help()
     return
   fi
   printf '%s\n' 'kw report:' \
-    '  report [--day[=<year>/<month>/<day>]] - Report of the day' \
-    '  report [--week[=<year>/<month>/<day>]] - Report of the week' \
-    '  report [--month[=<year>/<month>]] - Report of the month' \
-    '  report [--year[=<year>]] - Report fo the year' \
-    '  report [--output <path>] - Save report to <path>' \
-    '  report [--statistics] - Statistics for current date' \
-    '  report [--statistics [--day[=<year>/<month>/<day>]] - Statistics of given day' \
-    '  report [--statistics [--week[=<year>/<month>/<day>]] - Statistics of given week' \
-    '  report [--statistics [--month[=<month>/<day>]] - Statistics of given month' \
-    '  report [--statistics [--year[=<year>]] - Statistics of given year'
+    '  report (-p | --pomodoro) [--day | --week | --month | --year] - Pomodoro report for current date' \
+    '  report (-s | --statistics) [--day | --week | --month | --year] - Statistics for current date' \
+    '  report (-a | --all) [--day | --week | --month | --year] - Display all the information for the current date' \
+    '  report [--day[=<year>/<month>/<day>]] - Display all the information for the specified day' \
+    '  report [--week[=<year>/<month>/<day>]] - Display all the information for the specified week' \
+    '  report [--month[=<year>/<month>]] - Display all the information for the specified month' \
+    '  report [--year[=<year>]] - Display all the information for the specified year' \
+    '  report [--output <path>] - Save report to <path>'
 }
