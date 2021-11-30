@@ -17,6 +17,23 @@ DESCRIPTION
 Pomodoro feature. This feature intends to keep all procedures related to data
 processing that will end up as a report for the user.
 
+Another help feature is the ``--statistics | -s`` option that keeps track of 
+metadata regarding utilization of features. This data is used to show **kw** 
+usage statistics. In summary, this feature keeps track of:
+
+1. **Build**
+
+2. **Deploy** (included list and uninstall)
+
+For all the data tracked by **kw**, users can retrieve the total amount of time
+spent by a specific command, the average time consumed by the feature and the
+shortest and highest time required for executing the feature. All of this
+information can be retrieved by the ``--statistics | -s`` option, the suboptions 
+define the levels of granularity.
+
+The collection of the data processed and displayed by `--statistics` is optional 
+and can be disabled by disabling `disable_statistics_data_track` option in `kworkflow.config`.
+
 OPTIONS
 =======
 \--day[=<year>/<month>/<day>]:
@@ -39,11 +56,17 @@ OPTIONS
 \--year[=<year>]:
   Exhibits the current year summary if the user does not specify *<year>*.
 
+\--statistics:
+  Display statistics for the current date. You can choose the date and range
+  with date options. 
+
 \--output <file-path>:
   Save the output of the report to *<file-path>*.
 
 EXAMPLES
 ========
+> First of all, for these examples, we suppose that you have the disable_statistics_data_track option in your kworkflow.config enabled for a while.
+
 You can see data related to your kw usage by using the report option, see
 some examples below:
 
@@ -53,9 +76,19 @@ some examples below:
   kw report --month
   kw report --year
 
+  kw report --statistics --day
+  kw report --statistics --week
+  kw report --statistics --month
+  kw report --statistics --year
+
 You can also request a specific day, week, month, or year. For example::
 
   kw report --day=2020/05/12
   kw report --week=2020/02/29
   kw report --month=2020/04
   kw report --year=1984
+
+  kw report --statistics --day=2020/05/12
+  kw report --statistics --week=2020/02/29
+  kw report --statistics --month=2020/04
+  kw report --statistics --year=1984

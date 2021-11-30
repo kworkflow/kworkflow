@@ -15,7 +15,7 @@ function _kw_autocomplete()
 
   kw_options['kw']='backup bd build clear-cache codestyle configm debug deploy
                     device diff drm explore help init maintainers mail man mount
-                    pomodoro report ssh statistics umount up vars version'
+                    pomodoro report ssh umount up vars version'
 
   kw_options['backup']='--restore --force --help'
 
@@ -53,13 +53,11 @@ function _kw_autocomplete()
   kw_options['pomodoro']='--description --list --set-timer --tag'
   kw_options['p']="${kw_options['pomodoro']}"
 
-  kw_options['report']='--day --month --output --week --year'
+  kw_options['report']='--day --month --output --week --year --statistics'
   kw_options['r']="${kw_options['report']}"
 
   kw_options['ssh']='--command --script'
   kw_options['s']="${kw_options['ssh']}"
-
-  kw_options['statistics']='--day --month --week --year'
 
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
 

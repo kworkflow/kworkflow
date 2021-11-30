@@ -40,50 +40,6 @@ function setUp()
   )
 }
 
-function test_statistics()
-{
-  local msg
-
-  declare -a expected_cmd=(
-    'You have disable_statistics_data_track marked as "yes"'
-    'If you want to see the statistics, change this option to "no"'
-  )
-
-  configurations[disable_statistics_data_track]='yes'
-  output=$(statistics --)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
-
-  configurations[disable_statistics_data_track]='no'
-
-  output=$(statistics --invalid-option)
-  msg='Invalid parameter: --invalid-option'
-  assertEquals "($LINENO)" "$msg" "$output"
-
-  output=$(statistics --day not_a_day 2> /dev/null)
-  msg='Invalid parameter: not_a_day'
-  assertEquals "($LINENO)" "$msg" "$output"
-
-  output=$(statistics --month 13 2> /dev/null)
-  msg='Invalid parameter: 13'
-  assertEquals "($LINENO)" "$msg" "$output"
-
-  output=$(statistics --month not_a_month 2> /dev/null)
-  msg='Invalid parameter: not_a_month'
-  assertEquals "($LINENO)" "$msg" "$output"
-
-  output=$(statistics --year -2021 2> /dev/null)
-  msg='Invalid parameter: -2021'
-  assertEquals "($LINENO)" "$msg" "$output"
-
-  output=$(statistics --year not_a_year 2> /dev/null)
-  msg='Invalid parameter: not_a_year'
-  assertEquals "($LINENO)" "$msg" "$output"
-
-  output=$(statistics)
-  msg='Currently, kw does not have any data for the present date.'
-  assertEquals "($LINENO)" "$msg" "$output"
-}
-
 function test_calculate_average()
 {
   avg=$(calculate_average "10")

@@ -172,7 +172,6 @@ man_pages = [
     ('man/features/pomodoro', 'pomodoro', 'pomodoro style time management', [author], 1),
     ('man/features/report', 'report', 'user data report support', [author], 1),
     ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
-    ('man/features/statistics', 'statistics', 'statistics about kw', [author], 1),
     ('man/features/vars', 'vars', 'view kw config values', [author], 1),
     ('man/features/vm', 'vm', 'commands to work with QEMU VMs', [author], 1),
 ]

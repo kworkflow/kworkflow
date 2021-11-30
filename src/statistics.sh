@@ -15,87 +15,6 @@ declare -ga statistics_opt=('deploy' 'build' 'list' 'uninstall' 'build_failure' 
 # container to be pass through other functions.
 declare -gA shared_data=(['deploy']='' ['build']='' ['list']='' ['uninstall']='' ['build_failure']='' ['Modules_deploy']='')
 
-function statistics()
-{
-  local target="$1"
-  local day
-  local week
-  local month
-  local year
-
-  if [[ "$1" =~ -h|--help ]]; then
-    statistics_help "$1"
-    exit 0
-  fi
-
-  shift 1 # Remove the first option, i.e., --day, --week, or --year
-
-  if [[ "${configurations[disable_statistics_data_track]}" == 'yes' ]]; then
-    say 'You have disable_statistics_data_track marked as "yes"'
-    say 'If you want to see the statistics, change this option to "no"'
-    return
-  fi
-
-  # Default to day
-  if [[ -z "$target" ]]; then
-    target='--day'
-  fi
-
-  case "$target" in
-    --day)
-      day=$(get_today_info '+%Y/%m/%d')
-      if [[ -n "$*" ]]; then
-        day=$(date_to_format "$*" '+%Y/%m/%d')
-        if [[ "$?" != 0 ]]; then
-          complain "Invalid parameter: $*"
-          return 22 # EINVAL
-        fi
-      fi
-      day_statistics "$day"
-      ;;
-    --week)
-      # First day of the week
-      week=$(get_week_beginning_day)
-      if [[ -n "$*" ]]; then
-        week=$(get_week_beginning_day "$*")
-        if [[ "$?" != 0 ]]; then
-          complain "Invalid parameter: $*"
-          return 22 # EINVAL
-        fi
-      fi
-      week_statistics "$week"
-      ;;
-    --month)
-      month=$(get_today_info '+%Y/%m')
-      if [[ -n "$*" ]]; then
-        # First day of the month
-        month=$(date_to_format "$*/01" '+%Y/%m')
-        if [[ "$?" != 0 ]]; then
-          complain "Invalid parameter: $*"
-          return 22 # EINVAL
-        fi
-      fi
-      month_statistics "$month"
-      ;;
-    --year)
-      year=$(date +%Y)
-      if [[ -n "$*" ]]; then
-        year=$(date_to_format "$*/01/01" +%Y)
-        if [[ "$?" != 0 ]]; then
-          complain "Invalid parameter: $*"
-          return 22 # EINVAL
-        fi
-      fi
-      year_statistics "$year"
-      ;;
-    *)
-      complain "Invalid parameter: $target"
-      return 22 # EINVAL
-      ;;
-  esac
-
-}
-
 # Calculate average value from a list of values separated by space.
 #
 # @list_of_values List of values separated with space
@@ -347,19 +266,4 @@ function year_statistics()
   basic_data_process "$all_data"
   say "$year summary"
   print_basic_data
-}
-
-function statistics_help()
-{
-  if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'statistics'
-    return
-  fi
-  printf '%s\n' 'kw statistics:' \
-    '  statistics - Statistics for current date' \
-    '  statistics --day [<year>/<month>/<day>] - Statistics of given day' \
-    '  statistics --week [<year>/<month>/<day>] - Statistics of given week' \
-    '  statistics --month [<year>/<month>] - Statistics of given month' \
-    '  statistics --year [<year>] - Statistics of given year'
 }
