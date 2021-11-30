@@ -57,6 +57,14 @@ OPTIONS
 \--year[=<year>]:
   Exhibits the current year summary if the user does not specify *<year>*.
 
+\--all:
+  Display all information for the current date. You can choose the date and 
+  range with date options. 
+
+\--pomodoro:
+  Display current date pomodoro report. You can choose the date and range
+  with date options. 
+
 \--statistics:
   Display statistics for the current date. You can choose the date and range
   with date options. 
@@ -79,6 +87,16 @@ some examples below:
   kw report --month
   kw report --year
 
+  kw report --all --day
+  kw report --all --week
+  kw report --all --month
+  kw report --all --year
+
+  kw report --pomodoro --day
+  kw report --pomodoro --week
+  kw report --pomodoro --month
+  kw report --pomodoro --year
+
   kw report --statistics --day
   kw report --statistics --week
   kw report --statistics --month
@@ -90,6 +108,16 @@ You can also request a specific day, week, month, or year. For example::
   kw report --week=2020/02/29
   kw report --month=2020/04
   kw report --year=1984
+
+  kw report --all --day=2020/05/12
+  kw report --all --week=2020/02/29
+  kw report --all --month=2020/04
+  kw report --all --year=1984
+
+  kw report --pomodoro --day=2020/05/12
+  kw report --pomodoro --week=2020/02/29
+  kw report --pomodoro --month=2020/04
+  kw report --pomodoro --year=1984
 
   kw report --statistics --day=2020/05/12
   kw report --statistics --week=2020/02/29

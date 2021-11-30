@@ -54,7 +54,7 @@ function _kw_autocomplete()
   kw_options['pomodoro']='--description --list --set-timer --tag'
   kw_options['p']="${kw_options['pomodoro']}"
 
-  kw_options['report']='--day --month --output --week --year --statistics'
+  kw_options['report']='--day --pomodoro --all --month --output --week --year --statistics'
   kw_options['r']="${kw_options['report']}"
 
   kw_options['ssh']='--command --script'
