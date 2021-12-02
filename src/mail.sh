@@ -485,7 +485,12 @@ function parse_mail_options()
         options_values['SETUP']=1
         shift
         ;;
-      --email | --name)
+      --email)
+        if [[ -z "${options_values['sendemail.smtpuser']}" ]]; then
+          options_values['sendemail.smtpuser']="$2"
+        fi
+        ;& # this continues executing the code for --name
+      --name)
         setup_token=1
         option="$(str_remove_prefix "$1" '--')"
         index="user.$option"
