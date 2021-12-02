@@ -345,24 +345,35 @@ function mail_list()
 function print_configs()
 {
   local -n _configs="$1"
-  local tmp
+  local config
+  local option
+  local -A values
   local la=0
 
   for config in "${_configs[@]}"; do
-    tmp=$(printf '%s\n' "$config" | cut -d '.' -f2)
-    say "  ${tmp^^}"
-    if [[ -n "${set_confs[local_"$config"]}" ]]; then
-      printf '    [local: %s]' "${set_confs[local_"$config"]}"
+    config_values 'values' "$config"
+    option=$(printf '%s\n' "$config" | cut -d '.' -f2)
+    say "  ${option^^}"
+    if [[ -n "${values['local']}" ]]; then
+      printf '    [local: %s]' "${values['local']}"
       la=1
     fi
-    if [[ -n "${set_confs[global_"$config"]}" ]]; then
-      if [[ "$la" == 1 ]]; then
-        printf ', [global: %s]' "${set_confs[global_"$config"]}"
+    if [[ -n "${values['global']}" ]]; then
+      if [[ "$la" -gt 0 ]]; then
+        printf ', [global: %s]' "${values['global']}"
       else
-        printf '    [global: %s]' "${set_confs[global_"$config"]}"
+        printf '    [global: %s]' "${values['global']}"
+        la=1
       fi
     fi
-    printf '%s\n' ''
+    if [[ -n "${values['loaded']}" ]]; then
+      if [[ "$la" -gt 0 ]]; then
+        printf ', [loaded: %s]' "${values['loaded']}"
+      else
+        printf '    [loaded: %s]' "${values['loaded']}"
+      fi
+    fi
+    printf '\n'
     la=0
   done
 }

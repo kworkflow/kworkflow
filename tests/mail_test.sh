@@ -600,16 +600,16 @@ function test_mail_list()
     'EMAIL'
     '[local: test@email.com]'
     'SMTPUSER'
-    '[local: test@email.com]'
+    '[local: test@email.com], [loaded: test@email.com]'
     'SMTPSERVER'
-    '[local: test.email.com]'
+    '[local: test.email.com], [loaded: test.email.com]'
     'SMTPSERVERPORT'
-    '[local: 123]'
+    '[local: 123], [loaded: 123]'
     'These are the optional configurations for git send-email:'
     'SMTPENCRYPTION'
-    '[local: ssl]'
+    '[loaded: ssl]'
     'SMTPPASS'
-    '[local: ********]'
+    '[local: ********], [loaded: verySafePass]'
   )
 
   cd "$FAKE_GIT" || {
@@ -619,9 +619,11 @@ function test_mail_list()
   }
 
   parse_mail_options '-t' '--force' '--local' '--smtpuser' 'test@email.com' '--smtpserver' \
-    'test.email.com' '--smtpserverport' '123' '--smtpencryption' 'ssl' \
-    '--smtppass' 'verySafePass'
+    'test.email.com' '--smtpserverport' '123' '--smtppass' 'verySafePass'
   mail_setup &> /dev/null
+
+  git config --local --unset sendemail.smtpencryption
+  parse_mail_options '-t' '--local' '--smtpencryption' 'ssl'
 
   output=$(mail_list)
   compare_command_sequence 'expected_results' "$output" "$LINENO"
