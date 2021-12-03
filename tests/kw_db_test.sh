@@ -92,4 +92,59 @@ function test_execute_command_db()
   assert_equals_helper 'Wrong output.' "$LINENO" "$output" "$expected"
 }
 
+function test_insert_into()
+{
+  local output
+  local expected
+  local ret
+
+  # invalid
+  output=$(insert_into table entries values 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 2
+  assert_equals_helper 'Expected error msg' "$LINENO" "$output" "$expected"
+
+  output=$(insert_into '' entries values)
+  ret="$?"
+  expected='Empty table or values.'
+  assert_equals_helper 'Empty table, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected error msg' "$LINENO" "$output" "$expected"
+
+  output=$(insert_into table entries '')
+  ret="$?"
+  expected='Empty table or values.'
+  assert_equals_helper 'Empty values, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected error msg' "$LINENO" "$output" "$expected"
+
+  # valid
+  insert_into 'tags' '(tag)' "('new tag')"
+  ret="$?"
+  output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags WHERE id = 5;')
+  expected='new tag'
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  insert_into 'tags' '' "('6','other tag')"
+  ret="$?"
+  output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags WHERE id = 6;')
+  expected='other tag'
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  insert_into 'tags' 'tag' "('yet another tag')"
+  ret="$?"
+  output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags WHERE id = 7;')
+  expected='yet another tag'
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  insert_into 'pomodoro' '(tag_id,dt_start,dt_end,descript)' "('5',datetime('now'),datetime('now', '+10 minutes'),'some description')"
+  ret="$?"
+  output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT descript FROM pomodoro WHERE tag_id = 5;')
+  expected='some description'
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+}
+
 invoke_shunit
