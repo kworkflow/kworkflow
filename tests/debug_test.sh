@@ -388,14 +388,14 @@ function test_build_ftrace_command_string()
 {
   local output
   local expected_cmd
-  local disable_trace='echo 0 > /sys/kernel/debug/tracing/tracing_on'
-  local enable_trace='echo 1 > /sys/kernel/debug/tracing/tracing_on'
+  local disable_trace="printf '0' > /sys/kernel/debug/tracing/tracing_on"
+  local enable_trace="printf '1' > /sys/kernel/debug/tracing/tracing_on"
   local current_tracer='/sys/kernel/debug/tracing/current_tracer'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
 
   # function_graph
   output=$(build_ftrace_command_string 'function_graph')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer && $enable_trace"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer && $enable_trace"
   assert_equals_helper 'Expected to enable function_graph' "$LINENO" "$output" "$expected_cmd"
 
   output=$(build_ftrace_command_string '    function_graph        ')
@@ -413,25 +413,25 @@ function test_build_ftrace_command_string()
 
   # function_graph:amdgpu_dm*
   output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
-  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
+  expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
   assert_equals_helper 'Expected amdgpu_dm filters' "$LINENO" "$output" "$expected_cmd"
 
   # function_graph:amdgpu_dm*,dc_*,drm_test
   output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*,dc_*,drm_test')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
-  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
-  expected_cmd+=" && echo 'dc_*' >> $ftracer_filter"
-  expected_cmd+=" && echo 'drm_test' >> $ftracer_filter"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
+  expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd+=" && printf '%s' 'dc_*' >> $ftracer_filter"
+  expected_cmd+=" && printf '%s' 'drm_test' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
   assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$output" "$expected_cmd"
 
   # function_graph: amdgpu_dm*,   dc_*
   output=$(build_ftrace_command_string 'function_graph: amdgpu_dm*,   dc_*')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
-  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
-  expected_cmd+=" && echo 'dc_*' >> $ftracer_filter"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
+  expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd+=" && printf '%s' 'dc_*' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
   assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$output" "$expected_cmd"
 
@@ -451,8 +451,8 @@ function test_ftrace_debug()
   local output
   local expected_cmd
   local expected_cmd_base
-  local disable_trace='echo 0 > /sys/kernel/debug/tracing/tracing_on'
-  local enable_trace='echo 1 > /sys/kernel/debug/tracing/tracing_on'
+  local disable_trace="printf '0' > /sys/kernel/debug/tracing/tracing_on"
+  local enable_trace="printf '1' > /sys/kernel/debug/tracing/tracing_on"
   local current_tracer='/sys/kernel/debug/tracing/current_tracer'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
   local trace_pipe='/sys/kernel/debug/tracing/trace_pipe'
@@ -462,8 +462,8 @@ function test_ftrace_debug()
 
   # Local machine
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
-  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter && $enable_trace"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
+  expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter && $enable_trace"
   assert_equals_helper 'Expected command' "$LINENO" "$output" "$expected_cmd"
 
   expected_cmd_base="$expected_cmd"
@@ -748,7 +748,7 @@ function test_stop_debug()
   local -a expected_cmd_sequence
   local std_ssh='ssh -p 3333 juca@127.0.0.1'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
-  local disable_trace="echo 0 > /sys/kernel/debug/tracing/tracing_on && printf '' > $ftracer_filter"
+  local disable_trace="printf '0' > /sys/kernel/debug/tracing/tracing_on && printf '' > $ftracer_filter"
   local disable_cmd
 
   #Not a follow option
