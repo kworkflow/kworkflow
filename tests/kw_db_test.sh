@@ -61,4 +61,35 @@ function test_execute_sql_script()
   assert_equals_helper 'Expected 4 statistic entries' "$LINENO" "$output" 4
 }
 
+function test_execute_command_db()
+{
+  local output
+  local expected
+  local ret
+
+  output=$(execute_command_db 'some cmd' 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected.' "$LINENO" "$ret" 2
+  assert_equals_helper 'Expected error msg.' "$LINENO" "$output" "$expected"
+
+  output=$(execute_command_db 'SELECT * FROM tags;')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM tags;')
+  assert_equals_helper 'No error expected.' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output.' "$LINENO" "$output" "$expected"
+
+  output=$(execute_command_db 'SELECT * FROM not_a_table;' 2>&1)
+  ret="$?"
+  expected='Error: no such table: not_a_table'
+  assert_equals_helper 'Invalid table.' "$LINENO" "$ret" 1
+  assert_equals_helper 'Wrong output.' "$LINENO" "$output" "$expected"
+
+  output=$(execute_command_db 'SELEC * FROM tags;' 2>&1)
+  ret="$?"
+  expected='Error: near "SELEC": syntax error'
+  assert_equals_helper 'Invalid table.' "$LINENO" "$ret" 1
+  assert_equals_helper 'Wrong output.' "$LINENO" "$output" "$expected"
+}
+
 invoke_shunit
