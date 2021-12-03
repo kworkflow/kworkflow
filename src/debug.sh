@@ -500,8 +500,8 @@ function build_ftrace_command_string()
   local char_repetition
   local ftrace_filters
   local ftrace_type
-  local cmd_disable_ftrace="echo 0 > $TRACING_ON"
-  local cmd_enable_ftrace="echo 1 > $TRACING_ON"
+  local cmd_disable_ftrace="printf '0' > $TRACING_ON"
+  local cmd_enable_ftrace="printf '1' > $TRACING_ON"
   local cmd_ftrace="$cmd_disable_ftrace"
   declare -a filter_list
 
@@ -532,7 +532,7 @@ function build_ftrace_command_string()
   # Set ftrace type
   ftrace_type=$(printf '%s' "$ftrace_syntax" | cut -d ':' -f1)
   ftrace_type=$(str_strip "$ftrace_type")
-  cmd_ftrace+=" && echo '$ftrace_type' > $FTRACE_CURRENT_PATH"
+  cmd_ftrace+=" && printf '%s' '$ftrace_type' > $FTRACE_CURRENT_PATH"
 
   # We have filters
   if [[ "$char_repetition" -eq 1 ]]; then
@@ -560,7 +560,7 @@ function build_ftrace_command_string()
 
   # Set ftrace filters
   for filter in "${filter_list[@]}"; do
-    cmd_ftrace+=" && echo '$filter' >> $FTRACE_FILTER"
+    cmd_ftrace+=" && printf '%s' '$filter' >> $FTRACE_FILTER"
   done
 
   # Enable traces
