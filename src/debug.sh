@@ -506,7 +506,8 @@ function build_ftrace_command_string()
   declare -a filter_list
 
   if [[ -n "$ftrace_disable" ]]; then
-    cmd_ftrace+=" && echo '' > $FTRACE_FILTER"
+    cmd_ftrace+=" && printf '' > $FTRACE_FILTER"
+    cmd_ftrace+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
     printf '%s' "$cmd_ftrace"
     return
   fi
@@ -736,6 +737,8 @@ function build_event_command_string()
   else
     if [[ "$enable" != 1 ]]; then
       [[ -n "$set_filters" ]] && global_trace+=" && $set_filters $enable_events"
+      # Let's ensure that ftrace is disabled
+      global_trace+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
       printf '%s\n' "$global_trace"
     else
       printf '%s\n' "$set_filters $enable_events && $global_trace"

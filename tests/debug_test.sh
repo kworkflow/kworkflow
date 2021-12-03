@@ -291,6 +291,7 @@ function test_build_event_command_string()
     "printf '%s\n' 0 > /sys/kernel/debug/tracing/dummy/test2/enable"
     "printf '%s\n' 0 > /sys/kernel/debug/tracing/dummy/test1/enable"
     "printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on && printf '%s\n' '0' > /sys/kernel/debug/tracing/dummy/filter1/filter"
+    "printf 'nop' > $FTRACE_CURRENT_PATH"
   )
 
   output=$(build_event_command_string '' 0)
@@ -441,7 +442,7 @@ function test_build_ftrace_command_string()
 
   # Disable
   output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*' 1)
-  expected_cmd="$disable_trace && echo '' > $ftracer_filter"
+  expected_cmd="$disable_trace && printf '' > $ftracer_filter && printf 'nop' > $FTRACE_CURRENT_PATH"
   assert_equals_helper 'Expected disable command' "$LINENO" "$output" "$expected_cmd"
 }
 
@@ -503,7 +504,8 @@ function test_ftrace_debug()
   screen_id='kw_2021_10_22-07_34_07' # We mocked this value
   screen_command="screen -L -Logfile ~/$screen_id -dmS $screen_id cat $trace_pipe"
   expected_cmd+=" && $screen_command && ./root/something && $disable_trace"
-  expected_cmd+=" && echo '' > /sys/kernel/debug/tracing/set_ftrace_filter"
+  expected_cmd+=" && printf '' > /sys/kernel/debug/tracing/set_ftrace_filter"
+  expected_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
   screen_command="screen -S $screen_id -X quit > /dev/null"
   expected_cmd+=" && $screen_command | tee kw_debug/ftrace"
   USER='MOCK'
@@ -714,7 +716,7 @@ function test_event_debug()
   assert_equals_helper 'Expected to follow amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
 
   # Disable
-  expected_cmd="$default_ssh sudo \"$debug_off && $disable_amdgpu_dm_filter; $disable_amdgpu_dm_event\""
+  expected_cmd="$default_ssh sudo \"$debug_off && $disable_amdgpu_dm_filter; $disable_amdgpu_dm_event && printf 'nop' > $FTRACE_CURRENT_PATH\""
   output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' '' 1 '' '' 1)
   assert_equals_helper 'Expected to disable amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
 
@@ -724,6 +726,7 @@ function test_event_debug()
   expected_cmd+=" && screen -L -Logfile ~/kw_2021_10_22-07_34_07 -dmS kw_2021_10_22-07_34_07"
   expected_cmd+=" cat $trace_pipe_path && $igt_cmd_sample"
   expected_cmd+=" && $debug_off && $disable_amdgpu_dm_filter; $disable_amdgpu_dm_event"
+  expected_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
   expected_cmd+=" && screen -S kw_2021_10_22-07_34_07 -X quit"
   declare -a expected_cmd_seq=(
     "$default_ssh sudo \" $expected_cmd\" | tee kw_debug/event"
@@ -745,7 +748,8 @@ function test_stop_debug()
   local -a expected_cmd_sequence
   local std_ssh='ssh -p 3333 juca@127.0.0.1'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
-  local disable_trace="echo 0 > /sys/kernel/debug/tracing/tracing_on && echo '' > $ftracer_filter"
+  local disable_trace="echo 0 > /sys/kernel/debug/tracing/tracing_on && printf '' > $ftracer_filter"
+  local disable_cmd
 
   #Not a follow option
   output=$(stop_debug 'TEST_MODE')
@@ -759,9 +763,11 @@ function test_stop_debug()
   options_values['TARGET']=2
   output=$(stop_debug 'TEST_MODE')
 
+  disable_cmd="sudo bash -c \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on"
+  disable_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH\""
   declare -a expected_cmd_sequence=(
     'Disabling events in the target machine : 1'
-    "sudo bash -c \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on\""
+    "$disable_cmd"
   )
   compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
 
@@ -769,9 +775,11 @@ function test_stop_debug()
   options_values['TARGET']=3
   output=$(stop_debug 'TEST_MODE')
 
+  disable_cmd="$std_ssh sudo \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on"
+  disable_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH\""
   declare -a expected_cmd_sequence=(
     'Disabling events in the target machine : 1'
-    "$std_ssh sudo \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on\""
+    "$disable_cmd"
   )
   compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
 
@@ -781,18 +789,22 @@ function test_stop_debug()
   options_values['TARGET']=2
   options_values['FTRACE']=1
 
+  disable_cmd="sudo bash -c \"$disable_trace"
+  disable_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH\""
   declare -a expected_cmd_sequence=(
     'Disabling ftrace in the target machine'
-    "sudo bash -c \"$disable_trace\""
+    "$disable_cmd"
   )
   output=$(stop_debug 'TEST_MODE')
   compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
 
   # Ftrace: Remote
   options_values['TARGET']=3
+  disable_cmd="$std_ssh sudo \"$disable_trace"
+  disable_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH\""
   declare -a expected_cmd_sequence=(
     'Disabling ftrace in the target machine'
-    "$std_ssh sudo \"$disable_trace\""
+    "$disable_cmd"
   )
   output=$(stop_debug 'TEST_MODE')
   compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
