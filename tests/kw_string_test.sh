@@ -285,4 +285,29 @@ function test_str_drop_all_spaces()
   assert_equals_helper 'Expected empty' "$LINENO" '' "$output"
 }
 
+function test_concatenate_with_commas()
+{
+  local output
+  local expected
+  local ret
+
+  output=$(concatenate_with_commas)
+  ret="$?"
+  expected=''
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Expected empty string' "$LINENO" "$output" "$expected"
+
+  output=$(concatenate_with_commas 'single')
+  ret="$?"
+  expected='single'
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  output=$(concatenate_with_commas 'first' 'second' 'third')
+  ret="$?"
+  expected='first,second,third'
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+}
+
 invoke_shunit

@@ -94,3 +94,43 @@ function insert_into()
 
   sqlite3 "$db_path" -batch "INSERT INTO $table $entries VALUES $values;"
 }
+
+# This function takes arguments and assembles them into the correct format to
+# be used as values in SQL commands
+#
+# @length: Number of arguments per group
+# @@:      Values to be formatted
+#
+# Return:
+# The arguments in formatted string to be used as values in an INSERT command
+# 22 if no arguments are given
+function format_values_db()
+{
+  local length="$1"
+  shift
+  local values=''
+  local val
+  local count=0
+
+  if [[ "$#" == 0 ]]; then
+    complain 'No arguments given'
+    return 22
+  fi
+
+  for val in "$@"; do
+    [[ "$count" -eq 0 ]] && values+='('
+    # check if not a sqlite function
+    if [[ ! "$val" =~ ^[[:alnum:]_]+\(.*\)$ ]]; then
+      val="'${val//\'/\'\'}'" # escapes single quotes and enclose
+    fi
+    values+="$val"
+    ((count++))
+    if [[ "$count" -eq "$length" ]]; then
+      values+=')'
+      count=0
+    fi
+    values+=','
+  done
+
+  printf '%s\n' "${values%?}" # removes last comma
+}

@@ -61,11 +61,49 @@ function test_execute_sql_script()
   assert_equals_helper 'Expected 4 statistic entries' "$LINENO" "$output" 4
 }
 
+function test_format_values_db()
+{
+  local output
+  local expected
+  local ret
+
+  output=$(format_values_db 0)
+  ret="$?"
+  expected='No arguments given'
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected error msg' "$LINENO" "$output" "$expected"
+
+  output=$(format_values_db 3 'first' 'second' 'third')
+  ret="$?"
+  expected="('first','second','third')"
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  output=$(format_values_db 2 "some_func('lala xpto')" "somefunc2('lala xpto')")
+  ret="$?"
+  expected="(some_func('lala xpto'),somefunc2('lala xpto'))"
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  output=$(format_values_db 2 'first 1' 'second 1' 'first 2' 'second 2')
+  ret="$?"
+  expected="('first 1','second 1'),('first 2','second 2')"
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  output=$(format_values_db 1 "some 'quotes'")
+  ret="$?"
+  expected="('some ''quotes''')"
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+}
+
 function test_execute_command_db()
 {
   local output
   local expected
   local ret
+  local entries
 
   output=$(execute_command_db 'some cmd' 'wrong/path/invalid_db.db')
   ret="$?"
@@ -90,6 +128,14 @@ function test_execute_command_db()
   expected='Error: near "SELEC": syntax error'
   assert_equals_helper 'Invalid table.' "$LINENO" "$ret" 1
   assert_equals_helper 'Wrong output.' "$LINENO" "$output" "$expected"
+
+  entries="$(concatenate_with_commas label dt_start)"
+
+  output=$(execute_command_db "SELECT $entries FROM statistic;")
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT label,dt_start FROM statistic;')
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Testing with concatenate_with_commas' "$LINENO" "$output" "$expected"
 }
 
 function test_insert_into()
@@ -97,6 +143,8 @@ function test_insert_into()
   local output
   local expected
   local ret
+  local entries
+  local values
 
   # invalid
   output=$(insert_into table entries values 'wrong/path/invalid_db.db')
@@ -139,12 +187,30 @@ function test_insert_into()
   assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
   assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
 
-  insert_into 'pomodoro' '(tag_id,dt_start,dt_end,descript)' "('5',datetime('now'),datetime('now', '+10 minutes'),'some description')"
+  insert_into 'pomodoro' '(tag_id,dt_start,dt_end,descript)' "('4',datetime('now'),datetime('now', '+10 minutes'),'some description')"
   ret="$?"
-  output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT descript FROM pomodoro WHERE tag_id = 5;')
+  output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT descript FROM pomodoro WHERE tag_id = 4;')
   expected='some description'
   assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
   assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  entries=$(concatenate_with_commas tag_id dt_start dt_end descript)
+  values=$(format_values_db 4 '5' "datetime('now')" "datetime('now','+10 minutes')" 'some description 2')
+  insert_into pomodoro "$entries" "$values"
+  ret="$?"
+  output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT descript FROM pomodoro WHERE tag_id = 5;')
+  expected='some description 2'
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Testing with format functions' "$LINENO" "$output" "$expected"
+
+  entries=$(concatenate_with_commas id tag)
+  values=$(format_values_db 2 8 'tag 8' 9 'tag 9')
+  insert_into tags "$entries" "$values"
+  ret="$?"
+  output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags WHERE id >= 8;')
+  expected=$'tag 8\ntag 9'
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Testing with format functions' "$LINENO" "$output" "$expected"
 }
 
 invoke_shunit
