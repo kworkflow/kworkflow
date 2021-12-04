@@ -868,45 +868,15 @@ function stop_debug()
   local stop_dmesg_cmd
   local target
 
-  flag=${flag:-'SILENT'}
-
   # We only need to take action when following log
   [[ -z "${options_values['FOLLOW']}" ]] && return 0
 
   target="${options_values['TARGET']}"
+  flag=${flag:-'SILENT'}
 
-  if [[ "$target" == 3 || "$target" == 1 ]]; then
-    remote="${remote_parameters['REMOTE_IP']}"
-    port="${remote_parameters['REMOTE_PORT']}"
-    user="${remote_parameters['REMOTE_USER']}"
-  fi
-
-  if [[ -n "${options_values['EVENT']}" ]]; then
-    say "Disabling events in the target machine : ${options_values['EVENT']}"
-    disable_cmd=$(build_event_command_string '' 0)
-
-    case "$target" in
-      2) # LOCAL
-        cmd_manager "$flag" "sudo bash -c \"$disable_cmd\""
-        ;;
-      3 | 1) # REMOTE && VM
-        cmd_remotely "$disable_cmd" "$flag" "$remote" "$port" "$user"
-        ;;
-    esac
-  fi
-
-  if [[ -n "${options_values['FTRACE']}" ]]; then
-    say 'Disabling ftrace in the target machine'
-    disable_cmd=$(build_ftrace_command_string '' 1)
-
-    case "$target" in
-      2) # LOCAL
-        cmd_manager "$flag" "sudo bash -c \"$disable_cmd\""
-        ;;
-      3 | 1) # REMOTE && VM
-        cmd_remotely "$disable_cmd" "$flag" "$remote" "$port" "$user"
-        ;;
-    esac
+  if [[ -n "${options_values['EVENT']}" || -n "${options_values['FTRACE']}" ]]; then
+    say 'Restoring debug files'
+    reset_debug "$target" "$flag"
   fi
 
   if [[ -n "${options_values['DMESG']}" ]]; then
@@ -917,6 +887,10 @@ function stop_debug()
         cmd_manager "$flag" "$stop_dmesg_cmd"
         ;;
       3 | 1) # REMOTE && VM
+        remote="${remote_parameters['REMOTE_IP']}"
+        port="${remote_parameters['REMOTE_PORT']}"
+        user="${remote_parameters['REMOTE_USER']}"
+
         cmd_remotely "$stop_dmesg_cmd" "$flag" "$remote" "$port" "$user"
         ;;
     esac
