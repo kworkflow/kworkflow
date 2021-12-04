@@ -828,4 +828,27 @@ function test_stop_debug()
   assert_equals_helper 'Stop remote dmesg' "$LINENO" "$external_cmd" "$output"
 }
 
+function test_reset_debug()
+{
+  local disable_cmd
+  local std_ssh='ssh -p 3333 juca@127.0.0.1 sudo'
+  local current_tracer='/sys/kernel/debug/tracing/current_tracer'
+  local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
+  local expected_cmd
+
+  disable_cmd="$debug_off && printf 'nop' > $current_tracer"
+  disable_cmd+=" && printf '' > $ftracer_filter && printf '' > $trace_pipe_path"
+  disable_cmd+=" && lsof 2>/dev/null | grep $trace_pipe_path | tr -s ' ' | cut -d ' ' -f2 | xargs -I{} kill -9 {}"
+
+  # Local
+  expected_cmd="sudo bash -c \"$disable_cmd\""
+  output=$(reset_debug 2 'TEST_MODE')
+  assert_equals_helper 'Local reset' "$LINENO" "$expected_cmd" "$output"
+
+  # Remote
+  expected_cmd="$std_ssh \"$disable_cmd\""
+  output=$(reset_debug 3 'TEST_MODE')
+  assert_equals_helper 'Remote reset' "$LINENO" "$expected_cmd" "$output"
+}
+
 invoke_shunit

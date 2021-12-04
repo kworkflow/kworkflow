@@ -10,6 +10,7 @@ SYNOPSIS
 | *kw* *debug* [(-t | \--ftrace)]
 | *kw* *debug* [(-g | \--dmesg) [(-f | \--follow)] [(-c | \--cmd) "COMMAND"] ]
 | *kw* *debug* [(-l | \--list)[=(<ftrace> | <events>)]] [(-e | \--event)]
+| *kw* *debug* [\--reset]
 | *kw* *debug* [(-h | \--help)]
 
 DESCRIPTION
@@ -86,6 +87,15 @@ available options. If you use `\--list` with no parameters, kw will show all
 ftrace algorithms and events options; you can provide the specific debug option
 by using ftrace or event. In particular, if you want to list details about a
 particular event, you can use `event:TARGET_EVENT`.
+
+RESET
+-----
+
+When users cancel some of the debug operations, we might have a situation where
+we accidentally leave some configurations set, which may cause problems when
+trying to use the debug option a second time. In particular, it is common to
+have a hung process in the trace_pipe file. The option `\--reset` is
+responsible for resetting and killing any debug option process.
 
 OPTIONS
 =======
@@ -176,3 +186,7 @@ behavior. You can use the below command to achieve this goal::
 If you want to run a command and capture the ftrace, you can use::
 
   kw debug --ftrace="function_graph:amdgpu_dm_*" --cmd="/root/igt-build/tests/kms_atomic --run-subtest test-only" --history
+
+Reset the debug option to its default::
+
+ kw debug --reset

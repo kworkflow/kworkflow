@@ -41,6 +41,7 @@ function debug_main()
   local disable=''
   local list=''
   local follow=''
+  local reset=''
   local base_log_path
 
   parser_debug_options "$@"
@@ -60,6 +61,7 @@ function debug_main()
   disable="${options_values['DISABLE']}"
   list="${options_values['LIST']}"
   follow="${options_values['FOLLOW']}"
+  reset="${options_values['RESET']}"
 
   # Base path for saving log files
   base_log_path=$(prepare_log_database "$keep_history")
@@ -80,6 +82,11 @@ function debug_main()
   if [[ -n "$list" && -z "$event" ]]; then
     list_debug "$target" "$list" "$flag"
     return
+  fi
+
+  if [[ -n "$reset" ]]; then
+    reset_debug "$target"
+    return "$?"
   fi
 
   if [[ -n "$event" ]]; then
@@ -145,6 +152,54 @@ function list_debug()
     *)
       complain "Invalid option: $list_target. Do you mean events or ftrace?"
       return 22 # EINVAL
+      ;;
+  esac
+}
+
+# When users cancel some of the debug operations, we might have a situation
+# where we accidentally leave some configurations set, which may cause problems
+# when trying to use the debug option a second time. In particular, it is
+# common to have a hung process in the trace_pipe file. This function is
+# responsible for resetting and killing any debug option process.
+#
+# @target: Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
+# @flag: How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function reset_debug()
+{
+  local target="$1"
+  local flag="$2"
+  local reset_cmd
+  local kill_hang_cmd
+
+  # Note that event already clean part of the ftrace files, except by the
+  # ftrace filter
+  reset_cmd=$(build_event_command_string '' 0)
+  reset_cmd+=" && printf '' > $FTRACE_FILTER"
+
+  # We might have a hang process on trace_pipe, let's make sure we kill it
+  kill_hang_cmd="lsof 2>/dev/null | grep $TRACE_PIPE | tr -s ' ' | cut -d ' ' -f2"
+  kill_hang_cmd+=" | xargs -I{} kill -9 {}"
+
+  # Make sure the we clean trace pipe
+  reset_cmd+=" && printf '' > $TRACING_BASE_PATH/trace_pipe"
+  reset_cmd+=" && $kill_hang_cmd"
+
+  case "$target" in
+    2) # LOCAL
+      cmd_manager "$flag" "sudo bash -c \"$reset_cmd\""
+      ;;
+    3 | 1) # REMOTE && VM
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+      local user="${remote_parameters['REMOTE_USER']}"
+
+      if [[ "$target" == 1 ]]; then
+        say 'Target is a VM'
+        # TODO: We should check if the VM is up and running
+      fi
+
+      cmd_remotely "$reset_cmd" "$flag" "$remote" "$port" "$user"
       ;;
   esac
 }
@@ -482,6 +537,7 @@ function ftrace_debug()
   if [[ "$ret" != 0 && "$ret" != 130 ]]; then
     complain "Fail to enable ftrace: $ftrace_syntax - $ret"
     complain 'Hint: try to use a wildcard in the filter'
+    complain 'Hint: try to use: kw debug --reset'
     return "$ret"
   fi
 }
@@ -874,7 +930,7 @@ function parser_debug_options()
   local long_options
   local transition_variables
 
-  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list::,follow,help'
+  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list::,follow,reset,help'
   short_options='f,e,t,g,c,h,d,l,k'
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
@@ -954,6 +1010,10 @@ function parser_debug_options()
         options_values['DISABLE']=1
         shift
         ;;
+      --reset)
+        options_values['RESET']=1
+        shift
+        ;;
       --list | -l)
         # Handling optional parameter
         if [[ -z "$2" ]]; then
@@ -1004,5 +1064,6 @@ function debug_help()
     '  debug (--dmesg | -g) - Collect the dmesg log' \
     '  debug (--event | -e) [--disable] "<syntax>" - Trace specific event' \
     '  debug (--ftrace | -t) [--disable] "<syntax>" - Use ftrace to identify code path' \
+    '  debug (--reset) - Reset debug values in the target machine' \
     '  You can combine some of the above options'
 }
