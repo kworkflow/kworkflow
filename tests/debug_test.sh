@@ -755,63 +755,10 @@ function test_stop_debug()
   output=$(stop_debug 'TEST_MODE')
   assert_equals_helper 'We should return 0' "$LINENO" '' "$output"
 
-  # Event: Local
-  options_values['DMESG']=''
-  options_values['FTRACE']=''
-  options_values['FOLLOW']=1
-  options_values['EVENT']=1
-  options_values['TARGET']=2
-  output=$(stop_debug 'TEST_MODE')
-
-  disable_cmd="sudo bash -c \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on"
-  disable_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH\""
-  declare -a expected_cmd_sequence=(
-    'Disabling events in the target machine : 1'
-    "$disable_cmd"
-  )
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
-  # Event: Remote
-  options_values['TARGET']=3
-  output=$(stop_debug 'TEST_MODE')
-
-  disable_cmd="$std_ssh sudo \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on"
-  disable_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH\""
-  declare -a expected_cmd_sequence=(
-    'Disabling events in the target machine : 1'
-    "$disable_cmd"
-  )
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
-  # Ftrace: Local
-  options_values['EVENT']=''
-  options_values['DMESG']=''
-  options_values['TARGET']=2
-  options_values['FTRACE']=1
-
-  disable_cmd="sudo bash -c \"$disable_trace"
-  disable_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH\""
-  declare -a expected_cmd_sequence=(
-    'Disabling ftrace in the target machine'
-    "$disable_cmd"
-  )
-  output=$(stop_debug 'TEST_MODE')
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
-  # Ftrace: Remote
-  options_values['TARGET']=3
-  disable_cmd="$std_ssh sudo \"$disable_trace"
-  disable_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH\""
-  declare -a expected_cmd_sequence=(
-    'Disabling ftrace in the target machine'
-    "$disable_cmd"
-  )
-  output=$(stop_debug 'TEST_MODE')
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
   # Dmesg: Local
   options_values['EVENT']=''
   options_values['FTRACE']=''
+  options_values['FOLLOW']=1
   options_values['DMESG']=1
   options_values['TARGET']=2
   interrupt_data_hash['DMESG']="screen -S XPTO-LA -X quit > /dev/null"
