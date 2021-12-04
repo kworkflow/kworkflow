@@ -107,7 +107,7 @@ To configure this Git pre-commit hook:
           name: shellcheck
           language: script
           entry: /usr/bin/shellcheck
-          args: [-e, "SC2016,SC2181,SC2034,SC2154", -x, --shell=bash]
+          args: [-e, "SC2016,SC2181,SC2034,SC2154,SC2001,SC1090,SC1091,SC2120", -x, --shell=bash]
           types: [shell]
 
   .. note::

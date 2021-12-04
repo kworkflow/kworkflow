@@ -12,23 +12,40 @@ LOCAL_TO_DEPLOY_DIR='to_deploy'
 # the new deploy.
 REMOTE_KW_DEPLOY='/root/kw_deploy'
 
-# We have a generic script named `distro_deploy.sh` that handles the essential
-# operation of installing a new kernel; it depends on "kernel_install" plugin
-# for work as expected
-DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
-DEPLOY_SCRIPT="$KW_PLUGINS_DIR/kernel_install/deploy.sh"
-DEPLOY_SCRIPT_SUPPORT="$KW_PLUGINS_DIR/kernel_install/utils.sh"
-
 declare -gA remote_parameters
+
+function is_ssh_connection_configured()
+{
+  local flag=${1:-'SILENT'}
+  local remote=${2:-${configurations[ssh_ip]}}
+  local port=${3:-${configurations[ssh_port]}}
+  local user=${4:-${configurations[ssh_user]}}
+  local ssh_cmd="ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p $port $user@$remote exit"
+
+  cmd_manager "$flag" "$ssh_cmd"
+}
+
+function ssh_connection_failure_message
+{
+  complain 'We could not reach the remote machine by using:'
+  complain " User: ${remote_parameters['REMOTE_IP']}"
+  complain " User: ${remote_parameters['REMOTE_USER']}"
+  complain " Port: ${remote_parameters['REMOTE_PORT']}"
+  complain 'Please ensure that the above info is correct and check if your public key is in the remote machine.'
+}
 
 # This function is responsible for executing a command in a remote machine.
 #
 # @command Command to be executed inside the remote machine
 # @flag How to display a command, the default value is
 #   "HIGHLIGHT_CMD". For more options see `src/kwlib.sh` function `cmd_manager`
-# @remote IP or domain name. Default value is "localhost".
-# @port TCP Port. Default value is "22".
+# @remote IP or domain name.
+# @port TCP Port. Default value is 22.
 # @user User in the host machine. Default value is "root"
+# @bash_code If this parameter is set with a value, we are trying to run shell
+#   code in the remote by using a string.
+# @save_output_path This command implies that the user wants to capture the
+#   output in a specific path.
 #
 # Returns:
 # If no command is specified, we finish the execution and return 22
@@ -40,7 +57,9 @@ function cmd_remotely()
   local port=${4:-${configurations[ssh_port]}}
   local user=${5:-${configurations[ssh_user]}}
   local bash_code="$6"
+  local save_output_path="$7"
   local composed_cmd=''
+  local redirect_mode=''
 
   if [[ -z "$command" ]]; then
     warning 'No command specified'
@@ -52,13 +71,17 @@ function cmd_remotely()
     composed_cmd="ssh -F ${configurations['ssh_configfile']} ${configurations['hostname']}"
   fi
 
-  if [[ "$bash_code" == 1 ]]; then
+  if [[ -n "$save_output_path" ]]; then
+    redirect_mode='KW_REDIRECT_MODE'
+  fi
+
+  if [[ -n "$bash_code" ]]; then
     composed_cmd="$composed_cmd 'sudo bash -c '\''$command'\'"
   else
     composed_cmd="$composed_cmd sudo \"$command\""
   fi
 
-  cmd_manager "$flag" "$composed_cmd"
+  cmd_manager "$flag" "$composed_cmd" "$redirect_mode" "$save_output_path"
 }
 
 # This function copy files from host to the remote machine. kw has its
@@ -68,27 +91,50 @@ function cmd_remotely()
 #
 # @src Origin of the file to be send
 # @dst Destination for sending the file
-# @remote IP or domain name. Default value is "localhost".
-# @port TCP Port. Default value is "22".
-# @user User in the host machine. Default value is "root"
 # @flag How to display a command, the default value is "HIGHLIGHT_CMD". For
 #   more options see `src/kwlib.sh` function `cmd_manager`
-function cp_host2remote()
+# @rsync_params Additional optional flags and parameters to be passed directly to rsync
+function cp2remote()
 {
-  local src=${1:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
-  local dst=${2:-"$REMOTE_KW_DEPLOY"}
-  local remote=${3:-${remote_parameters['REMOTE_IP']}}
-  local port=${4:-${remote_parameters['REMOTE_PORT']}}
-  local user=${5:-${remote_parameters['REMOTE_USER']}}
-  local flag=${6:-'HIGHLIGHT_CMD'}
+  local flag=${1:-'HIGHLIGHT_CMD'}
+  local src=${2:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
+  local dst=${3:-"$REMOTE_KW_DEPLOY"}
+  local rsync_params="$4"
+  local remote=${5:-${remote_parameters['REMOTE_IP']}}
+  local port=${6:-${remote_parameters['REMOTE_PORT']}}
+  local user=${7:-${remote_parameters['REMOTE_USER']}}
 
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
-    cmd_manager "$flag" "rsync -e 'ssh -F ${configurations['ssh_configfile']}' -La $src ${configurations['hostname']}:$dst --rsync-path='sudo rsync'"
+    rsync_target="'ssh -F ${configurations['ssh_configfile']}' $src ${configurations['hostname']}:$dst"
   else
-    cmd_manager "$flag" "rsync -e 'ssh -p $port' -La $src $user@$remote:$dst --rsync-path='sudo rsync'"
+    rsync_target="'ssh -p $port' $src $user@$remote:$dst"
   fi
 
-  cmd_remotely "chown -R root:root $dst" "$flag" "$remote" "$port" "$user"
+  # The -LrlptD flags for rsync are similar to the -La flags used for archiving
+  # files and resolving symlinks the diference lies on the absence of the -og
+  # flags that preserve group and user ownership. We don't want to preserve
+  # ownership in order to automatically transfer the files to the root user and
+  # group.
+  cmd_manager "$flag" "rsync -e $rsync_target -LrlptD --rsync-path='sudo rsync' $rsync_params"
+}
+
+# This function copies files from the remote machine to the local host.
+#
+# @src: file path from a path stored in the remote machine
+# @dst: path from local machine to store the file we're retrieving
+# @ip: IP or domain name
+# @port: TCP port
+# @user: User in the remote machine
+function remote2host()
+{
+  local flag=${1:-"HIGHLIGHT_CMD"}
+  local src="$2"
+  local dst="$3"
+  local ip=${4:-${configurations[ssh_ip]}}
+  local port=${5:-${configurations[ssh_port]}}
+  local user=${6:-${configurations[ssh_user]}}
+
+  cmd_manager "$flag" "rsync -e \"ssh -p $port\" $user@$ip:$src $dst"
 }
 
 # Access the target device and query the distro name.
@@ -110,72 +156,6 @@ function which_distro()
 
   cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
   cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user"
-}
-
-# Kw can deploy a new kernel image or modules (or both) in a target machine
-# based on a Linux repository; however, we need a place for adding the
-# intermediaries archives that we will send to a remote device. This function
-# prepares such a directory.
-function prepare_host_deploy_dir()
-{
-  if [[ -z "$KW_CACHE_DIR" ]]; then
-    complain '$KW_CACHE_DIR is not set. The kw directory at home may not exist'
-    return 22
-  fi
-
-  # We should expect the setup.sh script create the directory $HOME/kw.
-  # However, does not hurt check for it and create in any case
-  if [[ ! -d "$KW_CACHE_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR"
-  fi
-
-  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
-  fi
-
-  if [[ ! -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
-  fi
-}
-
-# To deploy a new kernel or module, we have to prepare a directory in the
-# remote machine that will accommodate a set of files that we need to update
-# the kernel. This function checks if we support the target distribution and
-# finally prepared the remote machine for receiving the new kernel. Finally, it
-# creates a "/root/kw_deploy" directory inside the remote machine and prepare
-# it for deploy.
-#
-# @remote IP address of the target machine
-# @port Destination for sending the file
-# @user User in the host machine. Default value is "root"
-# @flag How to display a command, default is SILENT
-function prepare_remote_dir()
-{
-  local remote="$1"
-  local port="$2"
-  local user="$3"
-  local flag="$4"
-  local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
-  local distro_info=''
-  local distro=''
-
-  distro_info=$(which_distro "$remote" "$port" "$user")
-  distro=$(detect_distro '/' "$distro_info")
-
-  if [[ $distro =~ 'none' ]]; then
-    complain 'Unfortunately, there is no support for the target distro'
-    exit 95 # ENOTSUP
-  fi
-
-  cmd_remotely "$kw_deploy_cmd" "$flag" "$remote" "$port" "$user"
-
-  # Send the specific deploy script as a root
-  cp_host2remote "$KW_PLUGINS_DIR/kernel_install/$distro.sh" \
-    "$DISTRO_DEPLOY_SCRIPT" "$remote" "$port" "$user" "$flag"
-  cp_host2remote "$DEPLOY_SCRIPT" "$REMOTE_KW_DEPLOY/" "$remote" "$port" \
-    "$user" "$flag"
-  cp_host2remote "$DEPLOY_SCRIPT_SUPPORT" "$REMOTE_KW_DEPLOY/" "$remote" \
-    "$port" "$user" "$flag"
 }
 
 # Populate remote info

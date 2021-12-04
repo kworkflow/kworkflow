@@ -6,11 +6,32 @@
 
 declare -r TEST_ROOT_PATH="$PWD"
 
+function oneTimeSetUp()
+{
+  declare -g REMOTE_KW_DEPLOY="$PWD/tests/samples"
+  declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+
+  # Mocking the sudo function
+  function sudo()
+  {
+    eval "$*"
+  }
+  export -f sudo
+}
+
+function oneTimeTearDown()
+{
+  rm -f "$INSTALLED_KERNELS_PATH"
+}
+
 function setUp()
 {
-  local current_path="$PWD"
-
   mk_fake_boot "$SHUNIT_TMPDIR"
+
+  # Creating fake installed kernels
+  touch "$INSTALLED_KERNELS_PATH"
+  echo '5.5.0-rc2-VKMS+' >> "$INSTALLED_KERNELS_PATH"
+  echo '5.6.0-rc2-AMDGPU+' >> "$INSTALLED_KERNELS_PATH"
 }
 
 function tearDown()
@@ -21,74 +42,81 @@ function tearDown()
 function test_cmd_manager()
 {
   local count=0
-  local current_path="$PWD"
 
   output=$(cmd_manager 'TEST_MODE' 'ls something')
   assert_equals_helper 'TEST_MODE' "$LINENO" 'ls something' "$output"
 }
 
-function test_ask_yN()
-{
-  local count=0
-
-  output=$(printf '%s\n' 'y' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
-
-  output=$(printf '%s\n' 'Y' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
-
-  output=$(printf '%s\n' 'Yes' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '1' "$output"
-
-  output=$(printf '%s\n' 'Sim' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
-
-  output=$(printf '%s\n' 'No' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
-
-  output=$(printf '%s\n' 'N' | ask_yN 'Test message')
-  assert_equals_helper 'TEST_MODE' "$LINENO" '0' "$output"
-}
-
 function test_human_list_installed_kernels()
 {
-  local count=0
-
   declare -a expected_out=(
-    '' # Extra espace in the beginning
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
+    "sudo touch $INSTALLED_KERNELS_PATH"
     '5.5.0-rc2-VKMS+'
     '5.6.0-rc2-AMDGPU+'
     'linux'
   )
 
-  output=$(list_installed_kernels '0' "$SHUNIT_TMPDIR")
-  while read -r out; do
-    assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
-    ((count++))
-  done <<< "$output"
+  printf '%s\n' "${expected_out[@]:2}" > "$INSTALLED_KERNELS_PATH"
+
+  output=$(list_installed_kernels 'TEST_MODE' '0' "$SHUNIT_TMPDIR")
+  compare_command_sequence 'expected_out' "$output" "$LINENO"
 }
 
 function test_command_list_installed_kernels()
 {
-  local count=0
-
   declare -a expected_out=(
-    '' # Extra espace in the beginning
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
+    "sudo touch $INSTALLED_KERNELS_PATH"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
-  output=$(list_installed_kernels '1' "$SHUNIT_TMPDIR")
-  while read -r out; do
-    assertEquals "$count - Expected kernel list" "${expected_out[$count]}" "$out"
-    ((count++))
-  done <<< "$output"
+  printf '%s\n' "${expected_out[-1]/,/$'\n'}" > "$INSTALLED_KERNELS_PATH"
 
+  output=$(list_installed_kernels 'TEST_MODE' '1' "$SHUNIT_TMPDIR")
+  compare_command_sequence 'expected_out' "$output" "$LINENO"
+}
+
+function test_list_unmanaged_kernels()
+{
+  local output
+  local -a expected
+  local -a available_kernels=()
+
+  printf '%s' '' > "$INSTALLED_KERNELS_PATH"
+
+  expected=(
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
+    "sudo touch $INSTALLED_KERNELS_PATH"
+    '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
+  )
+
+  # arguments: $flag $single_line $prefix $all
+  output=$(list_installed_kernels 'TEST_MODE' '1' "$SHUNIT_TMPDIR" '1')
+  compare_command_sequence 'expected' "$output" "($LINENO)"
+
+  rm -rf "$SHUNIT_TMPDIR/boot/grub"
+
+  expected[2]='Could not find grub installed. Cannot list all installed kernels'
+  output=$(list_installed_kernels 'TEST_MODE' "1" "$SHUNIT_TMPDIR" "1")
+  compare_command_sequence 'expected' "$output" "($LINENO)"
+}
+
+function test_list_kernels_based_on_grub()
+{
+  local output
+  local expected_str
+  local -a available_kernels=()
+
+  list_installed_kernels_based_on_grub "$SHUNIT_TMPDIR" 'available_kernels'
+  expected_str='5.5.0-rc2-VKMS+ 5.6.0-rc2-AMDGPU+ linux'
+  assertEquals "($LINENO)" "$expected_str" "${available_kernels[*]}"
 }
 
 function test_reboot_machine()
 {
   output=$(reboot_machine '1' '' 'TEST_MODE')
-  assert_equals_helper 'Enable reboot in a non-local machine' "$LINENO" ' reboot' "$output"
+  assert_equals_helper 'Enable reboot in a non-local machine' "$LINENO" 'reboot' "$output"
 
   output=$(reboot_machine '0' '' 'TEST_MODE')
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" '' "$output"
@@ -100,6 +128,126 @@ function test_reboot_machine()
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
 }
 
+function test_kernel_uninstall_unmanaged()
+{
+  local output
+  local -a expected
+
+  expected=(
+    '' # TODO: Figure out why we have these extra spaces here
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    ''
+    "sudo touch '$INSTALLED_KERNELS_PATH'"
+    ''
+    "sudo grep -q 'kname' '$INSTALLED_KERNELS_PATH'"
+    'kname not managed by kw. Use --force/-f to uninstall anyway.'
+  )
+
+  # Test unmanaged
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  output=$(kernel_uninstall '0' 'local' 'kname')
+  compare_command_sequence 'expected' "$output" "$LINENO"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_force_uninstall_unmanaged()
+{
+  local target='xpto'
+  local prefix="./test"
+  local kernelpath="/boot/vmlinuz-$target"
+  local initrdpath="/boot/initrd.img-$target"
+  local modulespath="/lib/modules/$target"
+  local libpath="/var/lib/initramfs-tools/$target"
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  local -a cmd_sequence=(
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo touch '$INSTALLED_KERNELS_PATH'"
+    "sudo grep -q 'xpto' '$INSTALLED_KERNELS_PATH'"
+    "Removing: $target"
+    "Can't find $kernelpath"
+    "Can't find $kernelpath.old"
+    "Can't find $initrdpath"
+    "Can't find $modulespath"
+    "Can't find $libpath"
+    "Can't find /boot/config-$target"
+    "sudo sed -i '/xpto/d' '$INSTALLED_KERNELS_PATH'"
+    "update_boot_loader xpto local TEST_MODE"
+    "grub-mkconfig -o /boot/grub/grub.cfg"
+  )
+
+  output=$(kernel_uninstall 0 'local' 'xpto' 'TEST_MODE' 1)
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_remove_managed_kernel()
+{
+  local target='xpto'
+  local prefix="./test"
+  local kernelpath="/boot/vmlinuz-$target"
+  local initrdpath="/boot/initrd.img-$target"
+  local modulespath="/lib/modules/$target"
+  local libpath="/var/lib/initramfs-tools/$target"
+  local kernel_name='5.5.0-rc2-VKMS+'
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  local -a cmd_sequence=(
+    '' # TODO: Figure out why we have these extra spaces here
+    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    ''
+    "sudo touch '$INSTALLED_KERNELS_PATH'"
+    ''
+    "sudo grep -q '$kernel_name' '$INSTALLED_KERNELS_PATH'"
+    "Removing: $kernel_name"
+    "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name"
+    ''
+    "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name"
+    "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
+    ''
+    "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
+    "Can't find $SHUNIT_TMPDIR//boot/initrd.img-$kernel_name"
+    "Can't find $SHUNIT_TMPDIR//lib/modules/$kernel_name"
+    "Can't find $SHUNIT_TMPDIR//var/lib/initramfs-tools/$kernel_name"
+    "Removing: $SHUNIT_TMPDIR//boot/config-$kernel_name"
+    ''
+    "rm $SHUNIT_TMPDIR//boot/config-$kernel_name"
+    ''
+    "sudo sed -i '/$kernel_name/d' '$INSTALLED_KERNELS_PATH'"
+    "update_boot_loader $kernel_name local"
+    ''
+    "grub-mkconfig -o /boot/grub/grub.cfg"
+  )
+
+  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' '' '' "$SHUNIT_TMPDIR/")
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 function test_do_uninstall_cmd_sequence()
 {
   local target='xpto'
@@ -108,6 +256,7 @@ function test_do_uninstall_cmd_sequence()
   local initrdpath="$prefix/boot/initrd.img-$target"
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
+  local configpath="$prefix/boot/config-$target"
 
   # Invalid path
   declare -a cmd_sequence=(
@@ -116,7 +265,7 @@ function test_do_uninstall_cmd_sequence()
     "Can't find $initrdpath"
     "Can't find $modulespath"
     "Can't find $libpath"
-    "Can't find $libpath"
+    "Can't find $configpath"
   )
 
   output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
@@ -141,6 +290,8 @@ function test_do_uninstall_cmd_sequence()
     "rm -rf $modulespath"
     "Removing: $libpath"
     "rm -rf $libpath"
+    "Removing: $configpath"
+    "rm $configpath"
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
@@ -158,6 +309,8 @@ function test_do_uninstall_cmd_sequence()
     "Can't find $modulespath"
     "Removing: $libpath"
     "rm -rf $libpath"
+    "Removing: $configpath"
+    "rm $configpath"
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
@@ -294,8 +447,11 @@ function test_install_kernel_remote()
     "cp -v vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'update_debian_boot_loader_mock'
+    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     'reboot'
   )
+
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
@@ -316,6 +472,8 @@ function test_install_kernel_local()
     "$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'update_debian_boot_loader_mock'
+    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     "$sudo_cmd reboot"
   )
 
@@ -346,6 +504,8 @@ function test_install_kernel_vm()
     'generate_debian_temporary_root_file_system_mock'
     'vm_umount'
     'update_debian_boot_loader_mock'
+    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
   )
 
   cd "$SHUNIT_TMPDIR" || {

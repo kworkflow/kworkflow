@@ -75,7 +75,7 @@ language = None
 exclude_patterns = []
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = None
+pygments_style = 'sphinx'
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -83,7 +83,15 @@ pygments_style = None
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+try:
+    import sphinx_book_theme
+    html_theme = 'sphinx_book_theme'
+except ImportError:
+    sys.stdout.write('We could not find the book theme used on our website. You can install it using: pip install sphinx-book-theme.\n')
+    sys.stdout.write('For now, kw will assume the default theme - Alabaster\n')
+    html_theme = 'alabaster'
+
+html_favicon = 'favicon.ico'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -152,21 +160,21 @@ man_pages = [
     ('man/features/build', 'build', 'build the kernel', [author], 1),
     ('man/features/codestyle', 'codestyle', 'checkpatch wrapper', [author], 1),
     ('man/features/configm', 'configm', 'config manager', [author], 1),
+    ('man/features/debug', 'debug', 'kernel debug', [author], 1),
     ('man/features/deploy', 'deploy', 'deploy the kernel', [author], 1),
     ('man/features/device', 'device', 'hardware information', [author], 1),
     ('man/features/diff', 'diff', 'useful diff wrapper', [author], 1),
     ('man/features/drm', 'drm', 'drm subsystem support', [author], 1),
     ('man/features/explore', 'explore', 'git grep wrapper', [author], 1),
     ('man/features/init', 'init', 'initialize kworkflow.config', [author], 1),
+    ('man/features/mail', 'mail', 'git send-email wrapper', ['Rubens Gomes Neto'], 1),
     ('man/features/maintainers', 'maintainers', 'display module maintainers', [author], 1),
-    ('man/features/mount', 'mount', 'command for mounting a QEMU VM', [author], 1),
     ('man/features/pomodoro', 'pomodoro', 'pomodoro style time management', [author], 1),
     ('man/features/report', 'report', 'user data report support', [author], 1),
     ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
     ('man/features/statistics', 'statistics', 'statistics about kw', [author], 1),
-    ('man/features/umount', 'umount', 'command for unmounting a QEMU VM', [author], 1),
-    ('man/features/up', 'up', 'command for starting a QEMU VM', [author], 1),
     ('man/features/vars', 'vars', 'view kw config values', [author], 1),
+    ('man/features/vm', 'vm', 'commands to work with QEMU VMs', [author], 1),
 ]
 
 

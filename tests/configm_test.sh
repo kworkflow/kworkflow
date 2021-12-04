@@ -3,19 +3,19 @@
 include './src/config_manager.sh'
 include './tests/utils.sh'
 
-COMMAND_MSG_UNKNOWN="Unknown option"
-COMMAND_MSG_INVALID_ARG="Invalid argument"
-COMMAND_NO_SUCH_FILE="No such file or directory"
+COMMAND_MSG_UNKNOWN='Unknown option'
+COMMAND_MSG_INVALID_ARG='Invalid argument'
+COMMAND_NO_SUCH_FILE='No such file or directory'
 
-readonly YES_FORCE="1"
-readonly NO_FORCE="0"
+readonly YES_FORCE='1'
+readonly NO_FORCE='0'
 
-readonly CONTENT="The content"
+readonly CONTENT='The content'
 
-readonly NAME_1="test_save_1"
-readonly NAME_2="test_save_2"
+readonly NAME_1='test_save_1'
+readonly NAME_2='test_save_2'
 
-readonly DESCRIPTION_1="This is the first description"
+readonly DESCRIPTION_1='This is the first description'
 readonly DESCRIPTION_2="Hi, I'm the second description"
 
 function setUp()
@@ -33,47 +33,47 @@ function setUp()
     return
   }
 
+  export KW_CACHE_DIR="$SHUNIT_TMPDIR/cache"
   mkdir "$SHUNIT_TMPDIR/configs"
   KW_DATA_DIR="$SHUNIT_TMPDIR"
   configs_path="$KW_DATA_DIR/configs"
+
+  parse_configuration "$KW_CONFIG_SAMPLE"
+  declare -la expected_cmd=()
 }
 
 function tearDown()
 {
   rm -rf "$SHUNIT_TMPDIR"
   mkdir -p "$SHUNIT_TMPDIR"
+  unset expected_cmd
 }
 
 function test_execute_config_manager_SAVE_fails()
 {
   local msg_prefix=" --save"
+  local ret
 
-  ret=$(execute_config_manager --save)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  ret=$(execute_config_manager --save 2>&1 > /dev/null)
+  assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
 
   ret=$(execute_config_manager --save --lala)
-  assert_equals_helper "$msg_prefix --lala" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix --lala" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -n)
-  assert_equals_helper "$msg_prefix -n" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -n" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -d)
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
-
-  ret=$(execute_config_manager --save -n -d)
-  assert_equals_helper "$msg_prefix -n -d" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
-
-  ret=$(execute_config_manager --save -n -lulu)
-  assert_equals_helper "$msg_prefix -n -lulu" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -d)
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -d "lalala and xpto")
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
   ret=$(execute_config_manager --save -f)
-  assert_equals_helper "$msg_prefix -f" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  assert_equals_helper "$msg_prefix -f" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 }
 
 function test_save_config_file_check_save_failures()
@@ -301,11 +301,8 @@ function test_execute_config_manager_get_config_invalid_option()
 {
   local msg_prefix=" --get"
 
-  ret=$(execute_config_manager --get)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
-
-  ret=$(execute_config_manager -get)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_UNKNOWN" "$ret"
+  ret=$(execute_config_manager --get 2>&1 > /dev/null)
+  assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
 
   ret=$(execute_config_manager --get something_wrong)
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
@@ -404,15 +401,12 @@ function test_get_config_with_force()
 
 function test_execute_config_manager_remove_that_should_fail()
 {
-  local msg_prefix=" -rm"
+  local msg_prefix=" -r"
 
-  ret=$(execute_config_manager -rm)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_INVALID_ARG" "$ret"
+  ret=$(execute_config_manager -r 2>&1 > /dev/null)
+  assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
 
-  ret=$(execute_config_manager --rm)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_MSG_UNKNOWN" "$ret"
-
-  ret=$(execute_config_manager -rm something_wrong)
+  ret=$(execute_config_manager -r something_wrong)
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
@@ -444,6 +438,364 @@ function test_remove_config()
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
+}
+
+function test_cleanup()
+{
+  local output
+
+  mkdir -p "$KW_CACHE_DIR/config"
+  touch "$KW_CACHE_DIR/lsmod"
+
+  declare -a expected_cmd=(
+    'Cleaning up and retrieving files...'
+    "mv $KW_CACHE_DIR/config/* $PWD"
+    "rmdir $KW_CACHE_DIR/config"
+    "rm $KW_CACHE_DIR/lsmod"
+    'Exiting...'
+  )
+
+  output=$(cleanup 'TEST_MODE')
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+}
+
+function test_get_config_from_proc()
+{
+  local -r current_path="$PWD"
+  local output
+  declare -la expected_cmd=()
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  get_config_from_proc 'TEST_MODE' '' 1
+  assert_equals_helper 'proc/config.gz is not supported for VM' "$LINENO" "$?" 95
+
+  # 2) Local
+  # Mocking non-existent proc
+  mkdir 'proc'
+  export PROC_CONFIG_PATH='proc/config.gz'
+
+  declare -la expected_cmd=(
+    'sudo modprobe -q configs && [ -s proc/config.gz ]'
+    'zcat /proc/config.gz > .config'
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Creating a fake config
+  touch "proc/config.gz"
+
+  expected_cmd=()
+  declare -a expected_cmd=(
+    'zcat /proc/config.gz > .config'
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # 3) Remote
+  unset expected_cmd
+  declare -a expected_cmd=(
+    'ssh -p 3333 juca@127.0.0.1 sudo "[ -f proc/config.gz ]"'
+    'ssh -p 3333 juca@127.0.0.1 sudo "zcat /proc/config.gz > /tmp/.config"'
+    'rsync -e "ssh -p 3333" juca@127.0.0.1:/tmp/.config '"$PWD"
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' '.config' 3)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Removing fake proc
+  rm -rf 'proc'
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_from_boot()
+{
+  local -r current_path="$PWD"
+  local output
+
+  function uname()
+  {
+    printf '%s\n' '5.5.0-rc2-VKMS+'
+  }
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  get_config_from_boot 'TEST_MODE' '' 1
+  assert_equals_helper 'We do not support VM yet' "$LINENO" "$?" 95
+
+  # Preparing
+  export root="./"
+
+  # LOCAL
+  get_config_from_boot 'SILENT' '.config' 2
+  assert_equals_helper 'We do not have a config file' "$LINENO" "$?" 95
+
+  mk_fake_boot
+  get_config_from_boot 'SILENT' '.config' 2
+  assert_equals_helper 'We did not copy the target file' "$LINENO" "$?" 0
+
+  # REMOTE: We need integration test to cover remote in this case
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_from_defconfig()
+{
+  local -r current_path="$PWD"
+  local output
+  local single_cmd
+
+  get_config_from_defconfig 'TEST_MODE' '.config' > /dev/null
+  assert_equals_helper 'We should fail if we are not in the kernel' "$LINENO" "$?" 125
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mk_fake_kernel_root "$PWD"
+  # Case with different config
+  single_cmd='make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-'
+  single_cmd+=" && mv $PWD/.config lala && mv $PWD/cache/config/.config $PWD/.config"
+  output=$(get_config_from_defconfig 'TEST_MODE' 'lala')
+  assert_equals_helper 'Config file backup' "$LINENO" "$output" "$single_cmd"
+
+  # Case with cross-compile
+  single_cmd='make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-'
+  output=$(get_config_from_defconfig 'TEST_MODE' '.config')
+  assert_equals_helper 'Cross compile failed' "$LINENO" "$output" "$single_cmd"
+
+  configurations[arch]=''
+  output=$(get_config_from_defconfig 'TEST_MODE' '.config')
+  single_cmd='make defconfig CROSS_COMPILE=aarch64-linux-gnu-'
+  assert_equals_helper 'No arch' "$LINENO" "$output" "$single_cmd"
+
+  configurations[cross_compile]=''
+  output=$(get_config_from_defconfig 'TEST_MODE' '.config')
+  single_cmd='make defconfig'
+  assert_equals_helper 'No arch' "$LINENO" "$output" "$single_cmd"
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_fetch_config()
+{
+  local output
+  local current_path="$PWD"
+  local LOCAL_TARGET=2
+  local REMOTE_TARGET=3
+
+  declare -a expected_output
+
+  export root="$SHUNIT_TMPDIR/kernel/"
+
+  mkdir -p "$root"
+  mkdir -p "$KW_CACHE_DIR"
+
+  function uname()
+  {
+    printf '%s\n' 'x86'
+  }
+
+  cd "$root" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Check error message when run optimize outside kernel structure
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' 1)
+  assert_equals_helper 'No fake kernel should be here' "$LINENO" "$output" \
+    'This command should be run in a kernel tree.'
+
+  # Retrieve config using local
+  mk_fake_kernel_root "$PWD"
+
+  expected_output=(
+    # Note: since we are creating a faking /proc, we dropped '/'.
+    'sudo modprobe -q configs && [ -s proc/config.gz ]'
+    'zcat /proc/config.gz > .config'
+    'make olddefconfig'
+    'Successfully retrieved .config'
+  )
+  output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  expected_output=(
+    'zcat /proc/config.gz > .config'
+    'make olddefconfig'
+    'Successfully retrieved .config'
+  )
+
+  mkdir "${root}proc"
+  touch "${root}proc/config.gz"
+  export PROC_CONFIG_PATH="${root}proc/config.gz"
+  output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  touch "$root/.config"
+
+  # Say no to overwriting the file
+  output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
+  assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
+
+  # Say yes to overwriting the file
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  # Now using the --force option
+  output=$(fetch_config 'TEST_MODE' 1 '' '' "$LOCAL_TARGET")
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  expected_output=(
+    'zcat /proc/config.gz > newconfig'
+    'make olddefconfig'
+    'Successfully retrieved newconfig'
+  )
+
+  output=$(fetch_config 'TEST_MODE' '' 'newconfig' '' "$LOCAL_TARGET")
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  # Optimized
+  rm -rf "${root:?}/"*
+
+  mk_fake_kernel_root "$PWD"
+
+  output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
+  assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
+
+  rm "$PWD/.config"
+  mkdir "${root}proc"
+  touch "${root}proc/config.gz"
+  expected_output=(
+    'zcat /proc/config.gz > .config'
+    'make olddefconfig'
+    "make localmodconfig LSMOD=$KW_CACHE_DIR/lsmod"
+    'Successfully retrieved .config'
+  )
+
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
+
+  expected_output=(
+    "ssh -p 1234 mary@localhost sudo \"mkdir -p /tmp/kw\""
+    "ssh -p 1234 mary@localhost sudo \"[ -f /proc/config.gz ]\""
+    "ssh -p 1234 mary@localhost sudo \"zcat /proc/config.gz > /tmp/kw/.config\""
+    "rsync -e \"ssh -p 1234\" mary@localhost:/tmp/kw/.config $PWD"
+    "ssh -p 1234 mary@localhost sudo \"rm -rf /tmp/kw\""
+    'make olddefconfig'
+    'Successfully retrieved .config'
+  )
+
+  # Compare sequence of commands to retrieve .config from remote machine
+  remote_parameters['REMOTE_USER']='mary'
+  remote_parameters['REMOTE_IP']='localhost'
+  remote_parameters['REMOTE_PORT']='1234'
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$REMOTE_TARGET")
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_configm_parser()
+{
+  unset options_values
+  declare -gA options_values
+  local expected
+  local ret
+
+  # Invalid options
+  parse_configm_options '--save'
+  ret="$?"
+  parse_configm_options '-s'
+  ret=$((ret + $?))
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+
+  parse_configm_options '--remove'
+  ret="$?"
+  parse_configm_options '-r'
+  ret=$((ret + $?))
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+
+  parse_configm_options '--description'
+  ret="$?"
+  parse_configm_options '-d'
+  ret=$((ret + $?))
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+
+  parse_configm_options '--output'
+  ret="$?"
+  parse_configm_options '-o'
+  ret=$((ret + $?))
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+
+  parse_configm_options '--get'
+  ret="$?"
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
+
+  parse_configm_options '--remote'
+  ret="$?"
+  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
+
+  parse_configm_options '--LalaXpto' 'lala xpto'
+  ret="$?"
+  assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
+
+  parse_configm_options '--wrongOption' 'lala xpto'
+  ret="$?"
+  assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
+
+  # valid options
+  parse_configm_options '--force'
+  expected=1
+  assert_equals_helper 'Set force flag' "$LINENO" "${options_values['FORCE']}" "$expected"
+
+  parse_configm_options '-s' "$NAME_1" '-d' "$DESCRIPTION_1"
+  assert_equals_helper 'Set save options' "$LINENO" "${options_values['SAVE']}" "$NAME_1"
+  assert_equals_helper 'Set description options' "$LINENO" "${options_values['DESCRIPTION']}" "$DESCRIPTION_1"
+
+  parse_configm_options '--get' "$NAME_1"
+  assert_equals_helper 'Set get flag' "$LINENO" "${options_values['GET']}" "$NAME_1"
+
+  parse_configm_options '--remove' "$NAME_1"
+  assert_equals_helper 'Set remove flag' "$LINENO" "${options_values['REMOVE']}" "$NAME_1"
+
+  parse_configm_options '--list'
+  expected=1
+  assert_equals_helper 'Set list flag' "$LINENO" "${options_values['LIST']}" "$expected"
+
+  parse_configm_options '--fetch'
+  expected=1
+  assert_equals_helper 'Set fetch flag' "$LINENO" "${options_values['FETCH']}" "$expected"
+
+  parse_configm_options '--output' "$NAME_1"
+  assert_equals_helper 'Set output flag' "$LINENO" "${options_values['OUTPUT']}" "$NAME_1"
+
+  parse_configm_options '--remote' "$NAME_1"
+  assert_equals_helper 'Set remote flag' "$LINENO" "${options_values['TARGET']}" 3
+
+  parse_configm_options '--optimize'
+  expected=1
+  assert_equals_helper 'Set optimize flag' "$LINENO" "${options_values['OPTIMIZE']}" "$expected"
 }
 
 invoke_shunit

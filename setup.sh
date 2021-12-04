@@ -1,15 +1,13 @@
 #!/bin/bash
-
-. src/kwio.sh --source-only
-. src/kwlib.sh --source-only
-
-# List of dependences per distro
-arch_packages=(qemu bash git tar python-docutils pulseaudio libpulse dunst python-sphinx imagemagick graphviz python-virtualenv texlive-bin librsvg bzip2 lzip lzop zstd xz)
-debian_packages=(qemu git tar python3-docutils pulseaudio-utils dunst sphinx-doc imagemagick graphviz dvipng python3-venv latexmk librsvg2-bin texlive-xetex python3-sphinx python3-dask-sphinx-theme bzip2 lzip xz-utils lzop zstd)
+KW_LIB_DIR='src'
+. 'src/kw_include.sh' --source-only
+include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 SILENT=1
 VERBOSE=0
 FORCE=0
+SKIPCHECKS=0
 
 declare -r app_name='kw'
 
@@ -45,36 +43,57 @@ declare -r CONFIGS_PATH='configs'
 function check_dependencies()
 {
   local package_list=''
+  local pip_package_list=''
   local cmd=''
   local distro
 
   distro=$(detect_distro '/')
 
   if [[ "$distro" =~ 'arch' ]]; then
-    for package in "${arch_packages[@]}"; do
+    while IFS='' read -r package; do
       installed=$(pacman -Qs "$package" > /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
-    done
+    done < "$DOCUMENTATION/dependencies/arch.dependencies"
     cmd="pacman -S $package_list"
   elif [[ "$distro" =~ 'debian' ]]; then
-    for package in "${debian_packages[@]}"; do
+    while IFS='' read -r package; do
       installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
-    done
-    cmd="apt install $package_list"
+    done < "$DOCUMENTATION/dependencies/debian.dependencies"
+    cmd="apt install -y $package_list"
   else
     warning 'Unfortunately, we do not have official support for your distro (yet)'
-    warning "Please, try to find the following packages: ${arch_packages[*]}"
+    warning 'Please, try to find the following packages:'
+    warning "$(cat "$DOCUMENTATION/dependencies/arch.dependencies")"
     return 0
   fi
 
+  while IFS='' read -r package; do
+    pip list | grep -F "$package" > /dev/null
+    [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
+  done < "$DOCUMENTATION/dependencies/pip.dependencies"
+
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies $package_list ?") =~ '0' ]]; then
+      if [[ $(ask_yN "Can we install the following dependencies $package_list?") =~ '0' ]]; then
         return 0
       fi
     fi
+
+    # Install system packages
     eval "sudo $cmd"
+  fi
+
+  if [[ -n "$pip_package_list" ]]; then
+    if [[ "$FORCE" == 0 ]]; then
+      if [[ $(ask_yN "Can we install the following pip dependencies $pip_package_list?") =~ '0' ]]; then
+        return 0
+      fi
+    fi
+
+    # Install pip packages
+    cmd="pip install $pip_package_list"
+    eval "$cmd"
   fi
 }
 
@@ -144,6 +163,7 @@ function usage()
   say '--help      | -h     Display this usage message'
   say "--install   | -i     Install $app_name"
   say "--uninstall | -u     Uninstall $app_name"
+  say '--skip-checks        Skip checks (use this when packaging)'
   say '--verbose            Explain what is being done'
   say '--force              Never prompt'
   say "--completely-remove  Remove $app_name and all files under its responsibility"
@@ -381,8 +401,10 @@ EOF
 function install_home()
 {
   # Check Dependencies
-  say 'Checking dependencies ...'
-  check_dependencies
+  if [[ "$SKIPCHECKS" == 0 ]]; then
+    say 'Checking dependencies ...'
+    check_dependencies
+  fi
   # Move old folder structure to new one
   legacy_folders
   # First clean old installation
@@ -403,6 +425,10 @@ for arg; do
   fi
   if [ "$arg" = '--force' ]; then
     FORCE=1
+    continue
+  fi
+  if [ "$arg" = '--skip-checks' ]; then
+    SKIPCHECKS=1
     continue
   fi
   set -- "$@" "$arg"
@@ -429,6 +455,7 @@ case "$1" in
     usage
     ;;
   --docs)
+    check_dependencies
     sphinx-build -nW -b html documentation/ build
     ;;
   *)

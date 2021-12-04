@@ -2,29 +2,35 @@
 name: Bug report
 about: Create a report to help us improve
 title: ''
-labels: ''
+labels: 'bug'
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+**Description:**
 
-**To Reproduce**
-Steps to reproduce the behavior:
+[Add a clear and concise description of what the bug is.]
+
+**How to Reproduce:**
+
+[Steps to reproduce the behavior:
 1. Which commands were invoked
-2. Where the error appears
+2. Where the error appears]
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+**Expected behavior:**
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+[A clear and concise description of what you expected to happen.]
 
-**Desktop (please complete the following information):**
+**Screenshots:**
+
+[If applicable, add screenshots to help explain your problem.]
+
+**System information:**
+
  - OS: [e.g. Debian Bullseye]
- - Version [e.g. 0.4]
+ - Kw Version: [e.g. use `kw version`]
  - Bash Version [e.g. 5.1.4]
 
-**Additional context**
-Add any other context about the problem here.
+**Additional context:**
+
+[Add any other context about the problem here.]

@@ -1,4 +1,5 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
+include "$KW_LIB_DIR/kw_string.sh"
 
 # Array with compression programs accepted by tar
 declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
@@ -55,7 +56,9 @@ function get_based_on_delimiter()
 # @flag: Expecting a flag, that could be SILENT, COMPLAIN, WARNING, SUCCESS,
 #        TEST_MODE, and HIGHLIGHT_CMD. By default, cmd_manager does not expects
 #        flags and always show the command.
-# @@: Target command
+# @@: Target command.
+# @redirect_mode: If set to KW_REDIRECT_MODE, it will read output_path.
+# @output_path: We expect a path to save the file's command output
 #
 # Returns:
 # Return the exit status of the command defined by the string or 0 in the case
@@ -63,38 +66,52 @@ function get_based_on_delimiter()
 function cmd_manager()
 {
   local flag="$1"
+  shift 1 # Let's remove flag parameter
+  local command_for_eval_array=("$@")
+  local redirect_mode="${*: -2:1}" # Last but one
+  local output_path="${*: -1}"     # Last
+  local command_for_eval=''
+  local base_path
+
+  if [[ "$redirect_mode" == 'KW_REDIRECT_MODE' ]]; then
+    base_path="${output_path%/*}"
+    unset 'command_for_eval_array[-1]' # Remove output_path
+    unset 'command_for_eval_array[-1]' # Remove redirect_mode
+
+    if [[ ! -w "$base_path" ]]; then
+      return 13 # EACCES
+    fi
+
+    command_for_eval_array+=("| tee $output_path")
+  fi
+
+  # Convert command_for_eval to a simple string
+  command_for_eval=$(str_strip "${command_for_eval_array[*]}")
 
   case "$flag" in
-    SILENT)
-      shift 1
-      ;;
+    SILENT) ;;
     COMPLAIN)
-      shift 1
-      complain "$@"
+      complain "$command_for_eval"
       ;;
     WARNING)
-      shift 1
-      warning "$@"
+      warning "$command_for_eval"
       ;;
     SUCCESS)
-      shift 1
-      success "$@"
+      success "$command_for_eval"
       ;;
     HIGHLIGHT_CMD)
-      shift 1
-      warning "$@"
+      warning "$command_for_eval"
       ;;
     TEST_MODE)
-      shift 1
-      say "$@"
+      say "$command_for_eval"
       return 0
       ;;
     *)
-      say "$@"
+      say "$command_for_eval"
       ;;
   esac
 
-  eval "$@"
+  eval "$command_for_eval"
 }
 
 # Checks if a directory is a kernel tree root
@@ -524,4 +541,80 @@ function get_file_name_from_path()
   local file_path="$1"
 
   printf '%s\n' "${file_path##*/}"
+}
+
+# Checks if the command is being run inside a git work-tree
+#
+# @flag: How to display (or not) the command used
+#
+# Returns:
+# 0 if is inside a git work-tree root and 128 otherwise.
+function is_inside_work_tree()
+{
+  local flag="$1"
+  local cmd='git rev-parse --is-inside-work-tree &> /dev/null'
+
+  flag=${flag:-'SILENT'}
+
+  cmd_manager "$flag" "$cmd"
+}
+
+# Get all instances of a given git config with their scope
+#
+# @config: Given configuration to get the values of
+# @scope:  Limit search to given scope
+# @flag:   How to display (or not) the command used
+# @output: Array to store the values at a given scope
+# @scp:    Used to go through all scopes
+#
+# Returns:
+# All values of the given config with their respective scopes
+function get_all_git_config()
+{
+  local config="$1"
+  local scope="$2"
+  local flag="$3"
+  local cmd='git config --get-all'
+  local -A output
+  local scp
+
+  flag=${flag:-'SILENT'}
+
+  for scp in {'global','local'}; do
+    if [[ -z "$scope" || "$scope" == "$scp" ]]; then
+      output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp $config" | sed -E "s/^/$scp\t/g")"
+    fi
+  done
+
+  printf '%s\n' "${output[@]}"
+}
+
+# Get all instances of a given git config with their scope
+#
+# @regexp: Given regular expression to find associated values
+# @scope:  Limit search to given scope
+# @flag:   How to display (or not) the command used
+# @output: Array to store the values at a given scope
+# @scp:    Used to go through all scopes
+#
+# Returns:
+# All config values that match the given regular expression
+function get_git_config_regex()
+{
+  local regexp="$1"
+  local scope="$2"
+  local flag="$3"
+  local cmd='git config --get-regexp'
+  local -A output
+  local scp
+
+  flag=${flag:-'SILENT'}
+
+  for scp in {'global','local'}; do
+    if [[ -z "$scope" || "$scope" == "$scp" ]]; then
+      output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp '$regexp'" | sed -E "s/^/$scp\t/g")"
+    fi
+  done
+
+  printf '%s\n' "${output[@]}"
 }

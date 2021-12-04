@@ -11,7 +11,8 @@ function test_diff_side_by_side()
   local columns
   local diff_cmd
 
-  columns=$(tput cols)
+  [[ "$TERM" == '' || "$TERM" == 'dumb' ]] && TPUTTERM=' -T xterm-256color'
+  columns=$(eval tput"${TPUTTERM}" cols)
   diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2 | less -R"
 
   declare -a expected_cmd=(

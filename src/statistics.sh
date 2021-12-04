@@ -208,7 +208,7 @@ function basic_data_process()
   local min
 
   for option in "${statistics_opt[@]}"; do
-    values=$(echo -e "$all_data" | grep "$option" | cut -d' ' -f2-) # TODO
+    values=$(printf '%s\n' "$all_data" | grep "$option" | cut -d' ' -f2-)
     [[ -z "$values" ]] && continue
 
     # Calculate values
@@ -273,7 +273,7 @@ function week_statistics()
     all_file_data=$(cat "$KW_DATA_DIR/statistics/$day")
     [[ -z "$all_file_data" ]] && continue
 
-    all_data="${all_data}${all_file_data}\n"
+    all_data="${all_data}${all_file_data}"$'\n'
   done
 
   if [[ -z "$all_data" ]]; then
@@ -290,7 +290,7 @@ function month_statistics()
 {
   local month="$1"
   local month_path="$KW_DATA_DIR/statistics/$month"
-  local all_data=""
+  local all_data=''
   local pretty_month
   local current_path
 
@@ -306,7 +306,7 @@ function month_statistics()
     all_file_data=$(cat "$day")
     [[ -z "$all_file_data" ]] && continue
 
-    all_data="${all_data}${all_file_data}\n"
+    all_data="${all_data}${all_file_data}"$'\n'
   done
   cd "$current_path" || exit_msg 'It was not possible to move back from month dir'
 
@@ -341,7 +341,7 @@ function year_statistics()
     all_file_data=$(cat "$day_full_path")
     [[ -z "$all_file_data" ]] && continue
 
-    all_data="${all_data}${all_file_data}\n"
+    all_data="${all_data}${all_file_data}"$'\n'
   done
 
   basic_data_process "$all_data"

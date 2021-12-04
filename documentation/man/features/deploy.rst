@@ -8,7 +8,8 @@ SYNOPSIS
 ========
 *kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local | \--vm]
                       [-r | \--reboot] [-m | \--modules] [-s | \--ls-line]
-                      [-l | \--list] [(-u | \--uninstall) <kernel-name>[,...]]
+                      [-l | \--list] [-a | \--list-all]
+                      [(-u | \--uninstall) <kernel-name>[,...]] [-f \--force]
                       [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
@@ -69,12 +70,21 @@ OPTIONS
 -l, \--list:
   List available kernels in a single column the target.
 
+-a, \--list-all:
+  List all available kernels, including the ones not installed by kw.
+
 -s, \--ls-line:
   List available kernels separated by comma.
 
 -u <kernel-name>[,...], \--uninstall <kernel-name>[,...]:
   Remove a single kernel or multiple kernels; for removing
   multiple kernels it is necessary to separate them with comma.
+
+-f, \--force:
+  Remove kernels even if they were not installed by kw (only valid with
+  \--uninstall or -u). Trying to remove a kernel not directly managed by
+  kw can lead to system failures, and it is not recommended; only use it
+  if you are sure about what you are doing.
 
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.

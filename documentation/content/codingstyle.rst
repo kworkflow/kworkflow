@@ -171,14 +171,15 @@ Redirection
 -----------
 
 Redirection operators should be written with space before, but no space after
-them. In other words, write 'echo test >"$file"' instead of 'echo test> $file'
-or 'echo test > $file'. Note that even though it is not required by POSIX to
-double-quote the redirection target in a variable (as shown above), our code
-does so because some versions of bash issue a warning without the quotes::
+them. In other words, write ``printf '%s\n' test >"$file"`` instead of
+``printf '%s\n' test> "$file"`` or ``printf '%s\n' test > "$file"``. Note that
+even though it is not required by POSIX to double-quote the redirection target
+in a variable (as shown above), our code does so because some versions of bash
+issue a warning without the quotes::
 
     (incorrect)
     cat hello > world < universe
-    echo hello >$world
+    printf '%s\n' hello >$world
 
     (correct)
     cat hello >world "$world"
@@ -273,6 +274,14 @@ it's de-pollution upon receiving a SIGINT or a SIGTERM: an interrupted command
 should always leave the environment in the same state as it was prior to its
 invocation. Convenience functions for this purpose (setting and resetting
 handlers for arbitrary signals) are implemented in `src/signal_manager`.
+
+Use ``printf`` instead of ``echo``
+----------------------------------
+We stay away from ``echo`` as it is not always consistent with its output
+depending on system and bash version. Therefore always use ``printf`` instead,
+it stays consistent across mutliple platforms. If you need to add extra lines
+while generating a string you can use the ``$'\n'`` literal to add a new line
+character or other special characters.
 
 Conclusion
 ----------

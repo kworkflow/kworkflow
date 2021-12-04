@@ -1,5 +1,10 @@
-Welcome to KernelWorkflow's Documentation!
-==========================================
+.. image:: kw_logo.png
+    :alt: kw: Inglorious kernel developer workflow tool
+    :align: center
+    :target: https://kworkflow.org
+
+kw - Kernel workflow Tool
+=========================
 
 **kw** has a simple mission: reduce the environment and setup overhead of
 developing for Linux. **kw** is composed of different software components
@@ -8,7 +13,6 @@ available in the command line interface.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Content:
 
    content/installanduninstall
    content/howtocontribute
@@ -25,8 +29,10 @@ Check out our tutorials to see how you can use kw.
    :maxdepth: 1
    :caption: Tutorials:
 
-   tutorials/buildlinux
    tutorials/setup
+   tutorials/buildlinux
+   tutorials/configm
+   tutorials/pomodoro-report
 
 kw Man
 ======

@@ -1,6 +1,6 @@
-===========================
-  Install and Remove `kw`
-===========================
+=======================
+Install and Remove `kw`
+=======================
 
 .. _install-and-remove-kw:
 
@@ -13,34 +13,22 @@
 
 Package Dependencies
 --------------------
-You have to figure out the correct package name in your distro for the
-following dependencies:
+We currently support *arch* and *debian* for automatic dependencies
+installation. These are the current dependencies for *Arch*:
 
-* libguestfs
-* Qemu
-* Bash >= 4.4
-* git
-* tar
-* python-docutils
-* rsync
+   .. include:: ../dependencies/arch.dependencies
 
-If you want to use the default alert system (for commands that may take longer
-to run), you also have to install:
+These are the current dependencies for *Debian*:
 
-* paplay
-* notify-send or dunst
+   .. include:: ../dependencies/debian.dependencies
 
-For development, you will need:
+If you want to build the documentation as it is displayed on our website you
+also need this pip package:
 
-* dash
-* shunit2
-
-For getting the Sphinx Documentation:
-
-* Sphinx
+   .. include:: ../dependencies/pip.dependencies
 
 .. note::
-   Our base support is Ubuntu LTS. I.e., the dependency packages installed in
+   Our base support is Ubuntu LTS. i.e., the dependency packages installed in
    your system should be at least as new as those present in Ubuntu LTS.
 
 Recommendations
@@ -109,12 +97,12 @@ Global Configuration File
 -------------------------
 
 All the default configurations adopted by kworflow can be seen at
-`~/.local/etc/kw/kworkflow.config`; this config file has a comment on each
-configuration option. Finally, it is essential to highlight that kw loads the
-default configurations; next, it tries to find a local configuration file
-(detailed ahead) and overwrites the global options with the ones read from the
-local config file. In summary, the local config has higher precedence than the
-global config.
+`$XDG_CONFIG_HOME/kw/kworkflow_template.config`; this config file has a comment
+on each configuration option. Finally, it is essential to highlight that kw
+loads the default configurations; next, it tries to find a local configuration
+file (detailed ahead) and overwrites the global options with the ones read from
+the local config file. In summary, the local config has higher precedence than
+the global config.
 
 Local Configuration File
 ------------------------
@@ -123,7 +111,7 @@ Kw allows you to have a specific set of configuration per project. For example,
 if you have a particular kernel tree named ‘drm-work’ and want a different
 configuration from the default you can follow these steps:
 
-1. `~/.local/etc/kw/kworkflow.config` to
+1. copy your config file (i.e. `$XDG_CONFIG_HOME/kw/kworkflow.config`) to
    `/path/to/your/kernel/tree/drm-work/kworkflow.config`
 
 .. note::

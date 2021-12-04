@@ -1,5 +1,6 @@
 #!/bin/bash
 
+REPO_ROOT_PATH="$PWD"
 TEST_DIR="tests"
 SAMPLES_DIR="$TEST_DIR/samples"
 EXTERNAL_DIR="$TEST_DIR/external"
@@ -180,6 +181,7 @@ function mk_fake_remote_system()
   local initrdpath="$prefix/boot/initrd.img-$target"
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
+  local configpath="$prefix/boot/config-$target"
 
   mkdir -p "$modulespath"
   mkdir -p "$prefix/boot/"
@@ -190,6 +192,7 @@ function mk_fake_remote_system()
   touch "$kernelpath.old"
   touch "$initrdpath"
   touch "$libpath"
+  touch "$configpath"
 }
 
 function mock_target_machine()
@@ -207,10 +210,27 @@ function mock_target_machine()
 
 function mk_fake_boot()
 {
-  local -r FAKE_BOOT_DIR="$1"
+  local -r FAKE_BOOT_DIR=${1:-'./'}
 
   mkdir -p "$FAKE_BOOT_DIR"
-  cp -r "$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
+  cp -r "$REPO_ROOT_PATH/$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
+}
+
+function mk_fake_git()
+{
+  local -r path="$PWD"
+
+  git init -q "$path"
+
+  touch "$path/first_file"
+  printf '%s\n' 'This is the first file.' > "$path/first_file"
+
+  git add first_file
+  git commit -q -m 'Initial commit'
+
+  git config --local user.name 'Xpto Lala'
+  git config --local user.email 'test@email.com'
+  git config --local test.config value
 }
 
 # This function expects an array of string with the command sequence and a
@@ -261,6 +281,25 @@ function create_invalid_file_path()
 {
   invalid_path="$RANDOM/$RANDOM/$RANDOM/xptolala"
   printf '%s\n' "$invalid_path"
+}
+
+function compare_array_values()
+{
+  #shellcheck disable=SC2178
+  local -n expected="$1"
+  local -n result_to_compare="$2"
+  local line="$3"
+
+  line=${line:-0}
+
+  equal=$(printf '%s\n' "${expected[*]} ${result_to_compare[*]}" | tr ' ' '\n' | sort | uniq -u)
+  if [[ -n "$equal" ]]; then
+    assertNull "$line: Arrays are not equal" "$equal"
+    printf '%s\n' 'Diff:' \
+      '-----' \
+      "$equal" \
+      '-----'
+  fi
 }
 
 function invoke_shunit()

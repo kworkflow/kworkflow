@@ -1,3 +1,5 @@
+#!/bin/bash
+
 include './src/build.sh'
 include './tests/utils.sh'
 
@@ -15,6 +17,7 @@ oneTimeSetUp()
 {
   original_dir="$PWD"
   FAKE_KERNEL="$SHUNIT_TMPDIR"
+  KW_DATA_DIR="$SHUNIT_TMPDIR"
   mk_fake_kernel_root "$FAKE_KERNEL"
 
   parse_configuration "$KW_CONFIG_SAMPLE"
@@ -66,7 +69,7 @@ function test_kernel_build()
   ret="$?"
   assertEquals "($LINENO)" "$ret" "22"
 
-  output=$(kernel_build 'TEST_MODE' | head -1) # Remove statistics output
+  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -1) # Remove statistics output
   expected_result="make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
   assertEquals "($LINENO)" "$expected_result" "${output}"
 
@@ -88,8 +91,8 @@ function test_kernel_build()
     return
   }
 
-  output=$(kernel_build 'TEST_MODE' | head -1) # Remove statistics output
-  expected_result="make -j$PARALLEL_CORES ARCH=x86_64 "
+  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -1) # Remove statistics output
+  expected_result="make -j$PARALLEL_CORES ARCH=x86_64"
   assertEquals "($LINENO)" "$expected_result" "${output}"
 
 }

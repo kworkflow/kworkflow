@@ -70,18 +70,20 @@ function test_kw_ssh_no_parameter()
 
 function test_kw_ssh_command()
 {
-  local ret
-  local msg
+  local output
 
-  ret=$(kw_ssh test_mode -c 'pwd')
-  msg="$SSH_OK pwd"
-  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
-    '[[ $ret == "$msg" ]]'
+  declare -a expected_cmd=(
+    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
+    'ssh -p 3333 juca@127.0.0.1 pwd'
+  )
 
-  ret=$(kw_ssh test_mode --command "ls /etc/" 2>&1)
-  msg="$SSH_OK ls /etc/"
-  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
-    '[[ $ret == $msg ]]'
+  output=$(kw_ssh test_mode -c 'pwd')
+
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  output=$(kw_ssh test_mode --command "ls /etc/" 2>&1)
+  expected_cmd[1]='ssh -p 3333 juca@127.0.0.1 ls /etc/'
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 }
 
 function test_kw_ssh_script()

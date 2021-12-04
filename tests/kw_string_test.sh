@@ -138,7 +138,151 @@ function test_str_remove_prefix()
   assert_equals_helper 'String should have remained the same' "$LINENO" "$string_sample" "$output"
 
   output=$(str_remove_prefix '' '')
-  assert_equals_helper 'Removing emptiness from emptiness should have remained emptiness' "$LINENO" '' "$output"
+  assert_equals_helper 'Removing emptiness from emptiness should have remained empty' "$LINENO" '' "$output"
+}
+
+function test_str_remove_suffix()
+{
+  local output
+  local string_sample='Hello world'
+  local expected_result='Hello'
+
+  output=$(str_remove_suffix "$string_sample" ' world')
+  assert_equals_helper 'Did not remove suffix' "$LINENO" "$expected_result" "$output"
+
+  string_sample='/path/to/something'
+  expected_result='/path'
+  output=$(str_remove_suffix "$string_sample" '/to/something')
+  assert_equals_helper 'Did not remove suffix' "$LINENO" "$expected_result" "$output"
+
+  output=$(str_remove_suffix '' 're')
+  expected_result=''
+  assert_equals_helper 'There should be nothing to remove from an empty string' "$LINENO" "$expected_result" "$output"
+
+  output=$(str_remove_suffix "$string_sample" '')
+  assert_equals_helper 'String should have remained the same' "$LINENO" "$string_sample" "$output"
+
+  output=$(str_remove_suffix '' '')
+  assert_equals_helper 'Removing emptiness from emptiness should have remained empty' "$LINENO" '' "$output"
+}
+
+function test_str_uppercase()
+{
+  local expected
+  local output
+
+  output=$(str_uppercase 'lowercase string')
+  expected='LOWERCASE STRING'
+  assert_equals_helper 'Expected string to be uppercase' "$LINENO" "$expected" "$output"
+
+  output=$(str_uppercase 'UPPERCASE STRING')
+  expected='UPPERCASE STRING'
+  assert_equals_helper 'Expected string to be uppercase' "$LINENO" "$expected" "$output"
+
+  output=$(str_uppercase 'RaNDOM strInG')
+  expected='RANDOM STRING'
+  assert_equals_helper 'Expected string to be uppercase' "$LINENO" "$expected" "$output"
+
+  output=$(str_uppercase '')
+  expected=''
+  assert_equals_helper 'Expected empty string to remain empty' "$LINENO" "$expected" "$output"
+}
+
+function test_str_lowercase()
+{
+  local expected
+  local output
+
+  output=$(str_lowercase 'UPPERCASE STRING')
+  expected='uppercase string'
+  assert_equals_helper 'Expected string to be lowercase' "$LINENO" "$expected" "$output"
+
+  output=$(str_lowercase 'lowercase string')
+  expected='lowercase string'
+  assert_equals_helper 'Expected string to be lowercase' "$LINENO" "$expected" "$output"
+
+  output=$(str_lowercase 'RaNDOM strInG')
+  expected='random string'
+  assert_equals_helper 'Expected string to be lowercase' "$LINENO" "$expected" "$output"
+
+  output=$(str_lowercase '')
+  expected=''
+  assert_equals_helper 'Expected empty string to remain empty' "$LINENO" "$expected" "$output"
+}
+
+function test_str_remove_duplicates()
+{
+  local expected
+  local output
+  local sample
+
+  expected='Lorem ipsum /dolor/sit/amet'
+
+  output=$(str_remove_duplicates 'Lorem ipsum /dolor/sit/amet' '/')
+  assert_equals_helper 'Expected string to be unchanged' "$LINENO" "$expected" "$output"
+
+  output=$(str_remove_duplicates 'Lorem ipsum /dolor///sit/amet' '/')
+  assert_equals_helper 'Expected string without duplicates' "$LINENO" "$expected" "$output"
+
+  output=$(str_remove_duplicates 'Lorem   ipsum  /dolor/sit/amet' ' ')
+  assert_equals_helper 'Expected string without duplicates' "$LINENO" "$expected" "$output"
+
+  output=$(str_remove_duplicates 'Lorem   ipsum  /dolor///sit/amet' ' ')
+  expected='Lorem ipsum /dolor///sit/amet'
+  assert_equals_helper 'Expected string without specific duplicates' "$LINENO" "$expected" "$output"
+
+  output=$(str_remove_duplicates 'Lorem   ipsum  /dolor///sit/amet' '/')
+  expected='Lorem   ipsum  /dolor/sit/amet'
+  assert_equals_helper 'Expected string without specific duplicates' "$LINENO" "$expected" "$output"
+
+  output=$(str_remove_duplicates 'Lorem   ipsum  /dolor///sit/amet' '')
+  expected='Lorem   ipsum  /dolor///sit/amet'
+  assert_equals_helper 'Expected string to be unchanged' "$LINENO" "$expected" "$output"
+
+  output=$(str_remove_duplicates '' '')
+  expected=''
+  assert_equals_helper 'Expected empty string to remain empty' "$LINENO" "$expected" "$output"
+}
+
+function test_str_count_char_repetition()
+{
+  local output
+
+  output=$(str_count_char_repetition 'we*have*three*asterisks' '*')
+  assert_equals_helper 'Expected 3' "$LINENO" 3 "$output"
+
+  output=$(str_count_char_repetition 'we have one*asterisks' ' ')
+  assert_equals_helper 'Expected 2' "$LINENO" 2 "$output"
+
+  output=$(str_count_char_repetition 'we have one*asterisks' '-')
+  assert_equals_helper 'Expected 0' "$LINENO" 0 "$output"
+
+  # Corner-cases
+  output=$(str_count_char_repetition 'we have one*asterisks' '')
+  assert_equals_helper 'Expected 0' "$LINENO" 21 "$output"
+
+  output=$(str_count_char_repetition 'we have one*asterisks' '    ')
+  assert_equals_helper 'Expected 0' "$LINENO" 2 "$output"
+
+  output=$(str_count_char_repetition 'we have one*asterisks' 'h   ')
+  assert_equals_helper 'Expected 0' "$LINENO" 1 "$output"
+}
+
+function test_str_drop_all_spaces()
+{
+  local output
+
+  output=$(str_drop_all_spaces '    la    lu  -   xpto    ')
+  assert_equals_helper 'Expected lalu-xpto' "$LINENO" 'lalu-xpto' "$output"
+
+  output=$(str_drop_all_spaces '    xpto    ')
+  assert_equals_helper 'Expected xpto' "$LINENO" 'xpto' "$output"
+
+  output=$(str_drop_all_spaces 'nospace')
+  assert_equals_helper 'Expected same string' "$LINENO" 'nospace' "$output"
+
+  output=$(str_drop_all_spaces '        ')
+  assert_equals_helper 'Expected empty' "$LINENO" '' "$output"
 }
 
 invoke_shunit

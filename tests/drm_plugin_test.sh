@@ -161,57 +161,45 @@ function test_get_supported_mode_per_connector()
 
 function test_module_control()
 {
-  local ID
-  local default_ssh
-  default_ssh="ssh -p 3333 juca@127.0.0.1 sudo"
+  local default_ssh='ssh -p 3333 juca@127.0.0.1 sudo'
 
-  ID=1
   expected="sudo bash -c \"modprobe  amdgpu\""
   output=$(module_control "LOAD" "2" "" "amdgpu" "TEST_MODE")
-  assertEquals "$ID - Simple module load" "$expected" "$output"
+  assertEquals "($LINENO): Simple module load" "$expected" "$output"
 
-  ID=2
   expected="sudo bash -c \"modprobe  amdgpu && modprobe  vkms\""
   output=$(module_control "LOAD" "2" "" "amdgpu;vkms" "TEST_MODE")
-  assertEquals "$ID - Load two different modules" "$expected" "$output"
+  assertEquals "($LINENO): Load two different modules" "$expected" "$output"
 
-  ID=3
   expected="sudo bash -c \"modprobe  amdgpu tmz=1 dc=1  && modprobe  vkms enable_cursor=1 \""
   output=$(module_control "LOAD" "2" "" "amdgpu:tmz=1,dc=1;vkms:enable_cursor=1" "TEST_MODE")
-  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+  assertEquals "($LINENO): Load modules with parameters" "$expected" "$output"
 
-  ID=4
   expected="sudo bash -c \"modprobe  amdgpu tmz=1 dc=1  && modprobe  vkms enable_cursor=1 \""
   output=$(module_control "LOAD" "2" "" "amdgpu:tmz=1,dc=1;vkms:enable_cursor=1" "TEST_MODE")
-  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+  assertEquals "($LINENO): Load modules with parameters" "$expected" "$output"
 
-  ID=5
   expected="sudo bash -c \"modprobe -r amdgpu\""
   output=$(module_control "UNLOAD" "2" "" "amdgpu" "TEST_MODE")
-  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+  assertEquals "($LINENO): Load modules with parameters" "$expected" "$output"
 
-  ID=6
   expected="sudo bash -c \"modprobe -r amdgpu && modprobe -r vkms\""
   output=$(module_control "UNLOAD" "2" "" "amdgpu;vkms" "TEST_MODE")
-  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+  assertEquals "($LINENO): Load modules with parameters" "$expected" "$output"
 
-  ID=7
   output=$(module_control "UNLOAD" "2" "" "" "TEST_MODE")
-  assertEquals "$ID - It is required the driver name" "22" "$?"
+  assertEquals "($LINENO): It is required the driver name" "22" "$?"
 
-  ID=8
   output=$(module_control "LOAD" "2" "" "" "TEST_MODE")
-  assertEquals "$ID - It is required the driver name" "22" "$?"
+  assertEquals "($LINENO): It is required the driver name" "22" "$?"
 
-  ID=9
   expected="$default_ssh \"modprobe  amdgpu && modprobe  vkms\""
   output=$(module_control "LOAD" "3" "" "amdgpu;vkms" "TEST_MODE")
-  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+  assertEquals "($LINENO): Load modules with parameters" "$expected" "$output"
 
-  ID=10
   expected="$default_ssh \"modprobe -r amdgpu && modprobe -r vkms\""
   output=$(module_control "UNLOAD" "3" "" "amdgpu;vkms" "TEST_MODE")
-  assertEquals "$ID - Load modules with parameters" "$expected" "$output"
+  assertEquals "($LINENO): Load modules with parameters" "$expected" "$output"
 }
 #compare_command_sequence 'expected_cmd' "$output" "$ID"
 

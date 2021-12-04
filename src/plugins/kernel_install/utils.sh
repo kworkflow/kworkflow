@@ -1,3 +1,6 @@
+declare -g REMOTE_KW_DEPLOY='/root/kw_deploy'
+declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
 # share the specific distro in the kw main code. However, when we deploy for a
@@ -49,15 +52,52 @@ function ask_yN()
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
 # @prefix Set a base prefix for searching for kernels.
+# @all List all available kernels, not only the ones installed by kw
 function list_installed_kernels()
 {
-  local single_line="$1"
-  local prefix="$2"
+  local flag="$1"
+  local single_line="$2"
+  local prefix="$3"
+  local all="$4"
+  local -a available_kernels=()
+  local cmd
+
+  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
+  cmd_manager "$flag" "sudo touch $INSTALLED_KERNELS_PATH"
+
+  if [[ -n "$all" ]]; then
+    if [[ -d "$prefix/boot/grub/" ]]; then
+      list_installed_kernels_based_on_grub "$prefix" 'available_kernels'
+    else
+      printf '%s\n' 'Could not find grub installed. Cannot list all installed kernels'
+      return 95 # ENOTSUP
+    fi
+  else
+    readarray -t available_kernels < "$INSTALLED_KERNELS_PATH"
+    if [[ "${#available_kernels[@]}" -eq 0 ]]; then
+      printf '%s\n' 'None of the installed kernels are managed by kw.' \
+        'Pass --list-all|-a to see all installed kernels.'
+      return 0
+    fi
+  fi
+
+  if [[ "$single_line" != 1 ]]; then
+    printf '%s\n' "${available_kernels[@]}"
+  else
+    local IFS=','
+    printf '%s\n' "${available_kernels[*]}"
+  fi
+
+  return 0
+}
+
+list_installed_kernels_based_on_grub()
+{
+  local prefix="$1"
+  local -n _available_kernels="$2"
+  local grub_cfg
   local output
-  local ret
   local super=0
-  local available_kernels=()
-  local grub_cfg=""
 
   grub_cfg="$prefix/boot/grub/grub.cfg"
 
@@ -83,23 +123,10 @@ function list_installed_kernels()
   output=$(printf '%s\n' "$output" | grep recovery -v | grep with | awk -F" " '{print $NF}')
 
   while read -r kernel; do
-    if [[ -f "$prefix/boot/vmlinuz-$kernel" ]]; then
-      available_kernels+=("$kernel")
+    if [[ -f "$prefix/boot/vmlinuz-$kernel" && ! "$kernel" =~ .*\.old$ ]]; then
+      _available_kernels+=("$kernel")
     fi
   done <<< "$output"
-
-  printf '%s\n' ''
-
-  if [[ "$single_line" != 1 ]]; then
-    printf '%s\n' "${available_kernels[@]}"
-  else
-    printf '%s' "${available_kernels[0]}"
-    available_kernels=("${available_kernels[@]:1}")
-    printf ',%s' "${available_kernels[@]}"
-    printf '%s\n' ''
-  fi
-
-  return 0
 }
 
 function reboot_machine()
@@ -108,10 +135,10 @@ function reboot_machine()
   local local="$2"
   local flag="$3"
 
-  [[ "$local" == 'local' ]] && sudo_cmd='sudo -E'
+  [[ "$local" == 'local' ]] && sudo_cmd='sudo -E '
 
   if [[ "$reboot" == '1' ]]; then
-    cmd="$sudo_cmd reboot"
+    cmd="$sudo_cmd"'reboot'
     cmd_manager "$flag" "$cmd"
   fi
 }
@@ -146,10 +173,10 @@ function update_boot_loader()
   local flag="$7"
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E'
+    sudo_cmd='sudo -E '
   fi
 
-  cmd_grub="$sudo_cmd grub-mkconfig -o /boot/grub/grub.cfg"
+  cmd_grub="$sudo_cmd"'grub-mkconfig -o /boot/grub/grub.cfg'
 
   # Update grub
   if [[ "$target" == 'vm' ]]; then
@@ -234,45 +261,53 @@ function do_uninstall()
   local initrdpath="$prefix/boot/initrd.img-$target"
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
+  local configpath="$prefix/boot/config-$target"
 
-  if [ -z "$target" ]; then
+  if [[ -z "$target" ]]; then
     printf '%s\n' 'No parameter, nothing to do'
     exit 0
   fi
 
-  if [ -f "$kernelpath" ]; then
-    printf '%s\n' "Removing: $kernelpath"
+  if [[ -f "$kernelpath" ]]; then
+    printf ' %s\n' "Removing: $kernelpath"
     cmd_manager "$flag" "rm $kernelpath"
   else
-    printf '%s\n' "Can't find $kernelpath"
+    printf ' %s\n' "Can't find $kernelpath"
   fi
 
-  if [ -f "$kernelpath.old" ]; then
-    printf '%s\n' "Removing: $kernelpath.old"
+  if [[ -f "$kernelpath.old" ]]; then
+    printf ' %s\n' "Removing: $kernelpath.old"
     cmd_manager "$flag" "rm $kernelpath.old"
   else
-    printf '%s\n' "Can't find $kernelpath.old"
+    printf ' %s\n' "Can't find $kernelpath.old"
   fi
 
-  if [ -f "$initrdpath" ]; then
-    printf '%s\n' "Removing: $initrdpath"
+  if [[ -f "$initrdpath" ]]; then
+    printf ' %s\n' "Removing: $initrdpath"
     cmd_manager "$flag" "rm -rf $initrdpath"
   else
-    printf '%s\n' "Can't find $initrdpath"
+    printf ' %s\n' "Can't find $initrdpath"
   fi
 
   if [[ -d "$modulespath" && "$modulespath" != "/lib/modules" ]]; then
-    printf '%s\n' "Removing: $modulespath"
+    printf ' %s\n' "Removing: $modulespath"
     cmd_manager "$flag" "rm -rf $modulespath"
   else
-    printf '%s\n' "Can't find $modulespath"
+    printf ' %s\n' "Can't find $modulespath"
   fi
 
-  if [ -f "$libpath" ]; then
-    printf '%s\n' "Removing: $libpath"
+  if [[ -f "$libpath" ]]; then
+    printf ' %s\n' "Removing: $libpath"
     cmd_manager "$flag" "rm -rf $libpath"
   else
-    printf '%s\n' "Can't find $libpath"
+    printf ' %s\n' "Can't find $libpath"
+  fi
+
+  if [[ -f "$configpath" ]]; then
+    printf ' %s\n' "Removing: $configpath"
+    cmd_manager "$flag" "rm $configpath"
+  else
+    printf ' %s\n' "Can't find $configpath"
   fi
 }
 
@@ -282,6 +317,14 @@ function kernel_uninstall()
   local local_deploy="$2"
   local kernel="$3"
   local flag="$4"
+  local force="$5"
+  local prefix="$6"
+  local update_grub=0
+
+  cmd_manager "$flag" "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+  cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
+
+  kernel=$(printf '%s' "$kernel" | tr --delete ' ')
 
   if [[ -z "$kernel" ]]; then
     printf '%s\n' 'Invalid argument'
@@ -290,16 +333,29 @@ function kernel_uninstall()
 
   IFS=', ' read -r -a kernel_names <<< "$kernel"
   for kernel in "${kernel_names[@]}"; do
+    cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
+    cmd_manager "$flag" "$cmd"
+    if [[ "$?" != 0 && -z "$force" ]]; then
+      printf '%s\n' "$kernel not managed by kw. Use --force/-f to uninstall anyway."
+      continue # EINVAL
+    fi
+
     printf '%s\n' "Removing: $kernel"
-    do_uninstall "$kernel" "" "$flag"
+    do_uninstall "$kernel" "$prefix" "$flag"
+
+    # Clean from the log
+    cmd_manager "$flag" "sudo sed -i '/$kernel/d' '$INSTALLED_KERNELS_PATH'"
+    ((update_grub++))
   done
 
   # Each distro script should implement update_boot_loader
-  printf '%s\n' "update_boot_loader $kernel $local_deploy $flag"
-  update_boot_loader "$kernel" "$local_deploy" "$flag"
+  if [[ "$update_grub" -gt 0 ]]; then
+    printf '%s\n' "update_boot_loader $kernel $local_deploy $flag"
+    update_boot_loader "$kernel" "$local_deploy" '' '' '' '' "$flag"
 
-  # Reboot
-  reboot_machine "$reboot" "$local_deploy"
+    # Reboot
+    reboot_machine "$reboot" "$local_deploy" "$flag"
+  fi
 }
 
 # Install kernel
@@ -312,9 +368,9 @@ function install_kernel()
   local architecture="$5"
   local target="$6"
   local flag="$7"
-  local sudo_cmd=""
-  local cmd=""
-  local path_prefix=""
+  local sudo_cmd=''
+  local cmd=''
+  local path_prefix=''
 
   flag=${flag:-'SILENT'}
   target=${target:-'remote'}
@@ -368,9 +424,24 @@ function install_kernel()
   # Each distro has their own way to update their bootloader
   eval "update_$distro""_boot_loader $name $target $flag"
 
+  # Registering a new kernel
+  if [[ ! -f "$INSTALLED_KERNELS_PATH" ]]; then
+    cmd_manager "$flag" "touch $INSTALLED_KERNELS_PATH"
+  fi
+
+  # See shellcheck warning SC2024: sudo doesn't affect redirects. That
+  # is why we use tee. Also note that the stdin is passed to the eval
+  # inside cmd_manager.
+  cmd="grep -Fxq $name $INSTALLED_KERNELS_PATH"
+  cmd_manager "$flag" "$cmd"
+  if [[ "$?" != 0 ]]; then
+    cmd="sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
+    printf '%s\n' "$name" | cmd_manager "$flag" "$cmd"
+  fi
+
   # Reboot
   if [[ "$target" != 'vm' && "$reboot" == '1' ]]; then
     cmd="$sudo_cmd reboot"
-    cmd_manager "$flag" "$cmd"
+    reboot_machine "$reboot" "$target" "$flag"
   fi
 }

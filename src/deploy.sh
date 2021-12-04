@@ -20,6 +20,21 @@ include "$KW_LIB_DIR/vm.sh" # It includes kw_config_loader.sh and kwlib.sh
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
+# To make the deploy to a remote machine straightforward, we create a directory
+# on the host that will be used for centralizing files required for the new
+# deploy.
+REMOTE_KW_DEPLOY='/root/kw_deploy'
+
+# We now have a kw directory visible for users in the home directory, which is
+# used for saving temporary files to be deployed in the target machine.
+LOCAL_TO_DEPLOY_DIR='to_deploy'
+LOCAL_REMOTE_DIR='remote'
+
+# We have a generic script named `distro_deploy.sh` that handles the essential
+# operation of installing a new kernel; it depends on "kernel_install" plugin
+# to work as expected
+DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
+
 # Hash containing user options
 declare -gA options_values
 
@@ -30,6 +45,9 @@ declare -gA options_values
 # required functions to update the kernel. This function handles a different
 # set of parameters for the distinct set of target machines.
 #
+# @build_and_deploy If the user uses `kw bd` we can safely copy the local
+#                   .config file.
+#
 # Note: I know that developer know what they are doing (usually) and in the
 # future, it will be nice if we support single kernel update (patches are
 # welcome).
@@ -37,6 +55,7 @@ declare -gA options_values
 # Note: This function relies on the parameters set in the config file.
 function kernel_deploy()
 {
+  local build_and_deploy="$1"
   local reboot=0
   local modules=0
   local target=0
@@ -47,6 +66,11 @@ function kernel_deploy()
   local end=0
   local runtime=0
   local ret=0
+  local list_all
+  local flag
+
+  # Drop build_and_deploy flag
+  shift
 
   if [[ "$1" =~ -h|--help ]]; then
     deploy_help "$1"
@@ -59,17 +83,32 @@ function kernel_deploy()
     return 22 # EINVAL
   fi
 
+  flag="${options_values['TEST_MODE']}"
   target="${options_values['TARGET']}"
   reboot="${options_values['REBOOT']}"
   modules="${options_values['MODULES']}"
   single_line="${options_values['LS_LINE']}"
+  list_all="${options_values['LS_ALL']}"
   list="${options_values['LS']}"
   uninstall="${options_values['UNINSTALL']}"
+  uninstall_force="${options_values['UNINSTALL_FORCE']}"
 
-  if [[ "$list" == 1 || "$single_line" == 1 ]]; then
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    # Check connection before try to work with remote
+    is_ssh_connection_configured "$flag"
+    if [[ "$?" != 0 ]]; then
+      ssh_connection_failure_message
+      exit 101 # ENETUNREACH
+    fi
+    prepare_host_deploy_dir
+    #shellcheck disable=SC2119
+    prepare_remote_dir
+  fi
+
+  if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
     say 'Available kernels:'
     start=$(date +%s)
-    list_installed_kernels '' "$single_line" "$target"
+    run_list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -79,7 +118,7 @@ function kernel_deploy()
 
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
-    kernel_uninstall "$target" "$reboot" "$uninstall" "$flag"
+    run_kernel_uninstall "$target" "$reboot" "$uninstall" "$flag" "$uninstall_force"
     end=$(date +%s)
 
     runtime=$((end - start))
@@ -117,7 +156,7 @@ function kernel_deploy()
     # Update name: release + alias
     name=$(make kernelrelease)
 
-    kernel_install "$reboot" "$name" '' "$target"
+    run_kernel_install "$reboot" "$name" '' "$target" '' "$build_and_deploy"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
     statistics_manager 'deploy' "$runtime"
@@ -148,7 +187,8 @@ function parse_deploy_options()
   local remote
   local options
   local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
-  local short_options='r,m,l,s,u:'
+  long_options+=',list-all,force'
+  local short_options='r,m,l,s,u:,a,f'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -158,12 +198,15 @@ function parse_deploy_options()
     return 22 # EINVAL
   fi
 
+  options_values['TEST_MODE']='SILENT'
   options_values['UNINSTALL']=''
+  options_values['UNINSTALL_FORCE']=''
   options_values['MODULES']=0
   options_values['LS_LINE']=0
   options_values['LS']=0
   options_values['REBOOT']=0
   options_values['MENU_CONFIG']='nconfig'
+  options_values['LS_ALL']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -220,6 +263,10 @@ function parse_deploy_options()
         options_values['LS']=1
         shift
         ;;
+      --list-all | -a)
+        options_values['LS_ALL']=1
+        shift
+        ;;
       --ls-line | -s)
         options_values['LS_LINE']=1
         shift
@@ -232,7 +279,15 @@ function parse_deploy_options()
         options_values['UNINSTALL']+="$2"
         shift 2
         ;;
+      --force | -f)
+        options_values['UNINSTALL_FORCE']=1
+        shift
+        ;;
       --) # End of options, beginning of arguments
+        shift
+        ;;
+      TEST_MODE)
+        options_values['TEST_MODE']='TEST_MODE'
         shift
         ;;
       *)
@@ -253,6 +308,69 @@ function parse_deploy_options()
   esac
 }
 
+# Kw can deploy a new kernel image or modules (or both) in a target machine
+# based on a Linux repository; however, we need a place for adding the
+# intermediary archives that we will send to a remote device. This function
+# prepares such a directory.
+function prepare_host_deploy_dir()
+{
+  # If all the required paths already exist, let's not waste time
+  if [[ -d "$KW_CACHE_DIR" && -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" &&
+    -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
+    return
+  fi
+
+  # In case we need to create some of the basic directories
+  mkdir -p "$KW_CACHE_DIR"
+  mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
+  mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
+}
+
+# To deploy a new kernel or module, we have to prepare a directory in the
+# remote machine that will accommodate a set of files that we need to update
+# the kernel. This function checks if we support the target distribution and
+# finally prepared the remote machine for receiving the new kernel. Finally, it
+# creates a "/root/kw_deploy" directory inside the remote machine and prepare
+# it for deploy.
+#
+# @remote IP address of the target machine
+# @port Destination for sending the file
+# @user User in the host machine. Default value is "root"
+# @flag How to display a command, default is SILENT
+function prepare_remote_dir()
+{
+  local remote="${1:-${remote_parameters['REMOTE_IP']}}"
+  local port="${2:-${remote_parameters['REMOTE_PORT']}}"
+  local user="${3:-${remote_parameters['REMOTE_USER']}}"
+  local flag="$4"
+  local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
+  local distro_info=''
+  local distro=''
+  local remote_deploy_path="$KW_PLUGINS_DIR/kernel_install/remote_deploy.sh"
+  local util_path="$KW_PLUGINS_DIR/kernel_install/utils.sh"
+  local target_deploy_path="$KW_PLUGINS_DIR/kernel_install/"
+  local files_to_send
+
+  flag=${flag:-'SILENT'}
+
+  distro_info=$(which_distro "$remote" "$port" "$user")
+  distro=$(detect_distro '/' "$distro_info")
+
+  if [[ $distro =~ "none" ]]; then
+    complain "Unfortunately, there's no support for the target distro"
+    exit 95 # ENOTSUP
+  fi
+
+  target_deploy_path=$(join_path "$target_deploy_path" "$distro.sh")
+  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh}"
+
+  # Send required scripts for running the deploy inside the target machine
+  # Note: --archive will force the creation of /root/kw_deploy in case it does
+  # not exits
+  cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" \
+    '--archive' "$remote" "$port" "$user"
+}
+
 # This function list all the available kernels in a VM, local, and remote
 # machine. This code relies on `kernel_install` plugin, more precisely on
 # `utils.sh` file which comprises all the required operations for listing new
@@ -264,13 +382,18 @@ function parse_deploy_options()
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
-function list_installed_kernels()
+# @all If this option is set to one, this will list all kernels
+#   availble. If not, will list only kernels that were installed by kw.
+function run_list_installed_kernels()
 {
   local flag="$1"
   local single_line="$2"
   local target="$3"
+  local all="$4"
   local remote
   local port
+  local user
+  local cmd
 
   flag=${flag:-'SILENT'}
 
@@ -284,20 +407,19 @@ function list_installed_kernels()
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line" "${configurations[mount_point]}"
+      list_installed_kernels "$single_line" "${configurations[mount_point]}" "$all"
 
       vm_umount
       ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line"
+      list_installed_kernels "$single_line" '' "$all"
       ;;
     3) # REMOTE_TARGET
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --list_kernels $single_line"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --list_kernels '$flag' '$single_line' '' '$all'"
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
-
-      prepare_remote_dir "$remote" "$port" '' "$flag"
+      user="${remote_parameters['REMOTE_USER']}"
 
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
@@ -313,15 +435,18 @@ function list_installed_kernels()
 #         installation.
 # @kernels_target List containing kernels to be uninstalled
 # @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @force If this value is equal to 1, try to uninstall kernels even if they are
+#        not managed by kw
 #
 # Return:
 # Return 0 if everything is correct or an error in case of failure
-function kernel_uninstall()
+function run_kernel_uninstall()
 {
   local target="$1"
   local reboot="$2"
   local kernels_target="$3"
   local flag="$4"
+  local force="$5"
   local distro
   local remote
   local port
@@ -346,19 +471,19 @@ function kernel_uninstall()
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       # TODO: Rename kernel_uninstall in the plugin, this name is super
       # confusing
-      kernel_uninstall "$reboot" 'local' "$kernels_target" "$flag"
+      kernel_uninstall '' "$reboot" 'local' "$kernels_target" "$flag" "$force"
       ;;
     3) # REMOTE_TARGET
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
-
-      prepare_remote_dir "$remote" "$port" '' "$flag"
+      user="${remote_parameters['REMOTE_USER']}"
 
       # Deploy
       # TODO
       # It would be better if `cmd_remotely` handle the extra space added by
       # line break with `\`; this may allow us to break a huge line like this.
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --uninstall_kernel $reboot remote $kernels_target $flag"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --uninstall_kernel '$reboot' remote '$kernels_target' '$flag' '$force'"
+
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
@@ -390,6 +515,10 @@ function cleanup()
 # machine.
 #
 # @target Target machine
+#
+# Note:
+# This function supposes that prepare_host_deploy_dir and prepare_remote_dir
+# were invoked before.
 function modules_install()
 {
   local flag="$1"
@@ -417,14 +546,9 @@ function modules_install()
       cmd_manager "$flag" "$cmd"
       ;;
     3) # REMOTE_TARGET
-      # 1. Preparation steps
-      prepare_host_deploy_dir
-
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
       user="${remote_parameters['REMOTE_USER']}"
-
-      prepare_remote_dir "$remote" "$port" "$user" "$flag"
 
       # 2. Send files modules
       modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
@@ -435,15 +559,15 @@ function modules_install()
         "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" '' "$release" "$flag"
 
       local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
-      cp_host2remote "$tarball_for_deploy_path" \
-        "$REMOTE_KW_DEPLOY" "$remote" "$port" '' "$flag"
+      cp2remote "$flag" "$tarball_for_deploy_path" "$REMOTE_KW_DEPLOY"
 
       # 3. Deploy: Execute script
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --modules $release.tar"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --modules $release.tar"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
 }
+
 # This function is responsible for handling the command to
 # `make install_modules`, and it expects a target path for saving the modules
 # files.
@@ -472,14 +596,17 @@ function modules_install_to()
 # @name Kernel name to be deployed.
 #
 # Note:
-# Take a look at the available kernel plugins at: src/plugins/kernel_install
-function kernel_install()
+# * Take a look at the available kernel plugins at: src/plugins/kernel_install
+# * This function supposes that prepare_host_deploy_dir and prepare_remote_dir
+# were invoked before.
+function run_kernel_install()
 {
   local reboot="$1"
   local name="$2"
   local flag="$3"
   local target="$4"
   local user="${5:-${remote_parameters['REMOTE_USER']}}"
+  local build_and_deploy="$6"
   local distro='none'
   local kernel_name="${configurations[kernel_name]}"
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
@@ -487,7 +614,7 @@ function kernel_install()
   local kernel_img_name="${configurations[kernel_img_name]}"
   local remote
   local port
-  local distro
+  local config_local_version
 
   # We have to guarantee some default values values
   kernel_name=${kernel_name:-'nothing'}
@@ -513,6 +640,11 @@ function kernel_install()
     warning "kw inferred arch/$arch_target/boot/$kernel_img_name as a kernel image"
   fi
 
+  if [[ -f "$PWD/.config" ]]; then
+    config_local_version=$(sed -nr '/CONFIG_LOCALVERSION=/s/CONFIG_LOCALVERSION="(.*)"/\1/p' \
+      "$PWD/.config")
+  fi
+
   case "$target" in
     1) # VM_TARGET
       distro=$(detect_distro "${configurations[mount_point]}/")
@@ -521,6 +653,13 @@ function kernel_install()
         complain 'Unfortunately, there is no support for the target distro'
         vm_umount
         exit 95 # ENOTSUP
+      fi
+
+      # Copy .config
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
+        cp "$PWD/.config" "${configurations[mount_point]}/boot/config-$name"
+      else
+        complain 'Undefined .config file for the target kernel. Consider using kw bd'
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
@@ -542,19 +681,19 @@ function kernel_install()
         exit 1 # EPERM
       fi
 
+      # Copy .config
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
+        cp "$PWD/.config" "/boot/config-$name"
+      else
+        complain 'Undefined .config file for the target kernel. Consider using kw bd'
+      fi
+
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
       ;;
     3) # REMOTE_TARGET
-      local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
-      if [[ ! -f "$preset_file" ]]; then
-        template_mkinit="$KW_ETC_DIR/template_mkinitcpio.preset"
-        cp "$template_mkinit" "$preset_file"
-        sed -i "s/NAME/$name/g" "$preset_file"
-      fi
-
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
       user="${remote_parameters['REMOTE_USER']}"
@@ -562,16 +701,30 @@ function kernel_install()
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro '/' "$distro_info")
 
-      cp_host2remote "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" \
-        "$REMOTE_KW_DEPLOY" \
-        "$remote" "$port" "$user" "$flag"
-      cp_host2remote "arch/$arch_target/boot/$kernel_img_name" \
-        "$REMOTE_KW_DEPLOY/vmlinuz-$name" \
-        "$remote" "$port" "$user" "$flag"
+      if [[ "$distro" == 'arch' ]]; then
+        local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
+        if [[ ! -f "$preset_file" ]]; then
+          template_mkinit="$KW_ETC_DIR/template_mkinitcpio.preset"
+          cp "$template_mkinit" "$preset_file"
+          sed -i "s/NAME/$name/g" "$preset_file"
+        fi
+        cp2remote "$flag" \
+          "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" "$REMOTE_KW_DEPLOY"
+      fi
+
+      cp2remote "$flag" \
+        "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/vmlinuz-$name"
+
+      # Copy .config
+      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
+        cp2remote "$flag" "$PWD/.config" "/boot/config-$name"
+      else
+        complain 'Undefined .config file for the target kernel. Consider using kw bd'
+      fi
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
-      local cmd="bash $REMOTE_KW_DEPLOY/deploy.sh --kernel_update $cmd_parameters"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $cmd_parameters"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
@@ -589,7 +742,8 @@ function deploy_help()
     '  deploy (--remote <remote>:<port> | --local | --vm) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
     '  deploy (--modules | -m) - install only modules' \
-    '  deploy (--uninstall | -u) <kernel-name>,... - uninstall given kernels' \
+    '  deploy (--uninstall | -u) [(--force | -f)] <kernel-name>,... - uninstall given kernels' \
     '  deploy (--list | -l) - list kernels' \
-    '  deploy (--ls-line | -s) - list kernels separeted by commas'
+    '  deploy (--ls-line | -s) - list kernels separeted by commas' \
+    '  deploy (--list-all | -a) - list all available kernels'
 }

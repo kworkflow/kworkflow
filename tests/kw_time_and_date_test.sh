@@ -30,12 +30,18 @@ function test_get_today_info()
   local today
 
   today=$(date +%Y/%m/%d)
-  formated_today=$(get_today_info '+%Y/%m/%d')
-  assert_equals_helper 'Today info did not match' "$LINENO" "$today" "$formated_today"
+  formatted_today=$(get_today_info '+%Y/%m/%d')
+  assert_equals_helper 'Today info did not match' "$LINENO" "$today" "$formatted_today"
 
-  formated_today=$(get_today_info)
   today=$(date)
-  assert_equals_helper 'No parameter' "$LINENO" "$today" "$formated_today"
+  formatted_today=$(get_today_info)
+
+  if [[ "$today" != "$formatted_today" ]]; then
+    today=$(date)
+    formatted_today=$(get_today_info)
+  fi
+
+  assert_equals_helper 'No parameter' "$LINENO" "$today" "$formatted_today"
 }
 
 function test_get_week_beginning_day()
@@ -85,6 +91,9 @@ function test_days_in_the_month()
   total_days=$(days_in_the_month 2 2021)
   assert_equals_helper 'We expect 28 days' "$LINENO" "$total_days" 28
 
+  total_days=$(days_in_the_month 02 2021)
+  assert_equals_helper 'We expect 28 days' "$LINENO" "$total_days" 28
+
   # Leap year, February has 29 days
   total_days=$(days_in_the_month 2 2016)
   assert_equals_helper 'We expect 29 days' "$LINENO" "$total_days" 29
@@ -102,6 +111,12 @@ function test_days_in_the_month()
   total_days=$(days_in_the_month 6 2021)
   assert_equals_helper 'We expect 30 days' "$LINENO" "$total_days" 30
 
+  total_days=$(days_in_the_month 9 2021)
+  assert_equals_helper 'We expect 30 days' "$LINENO" "$total_days" 30
+
+  total_days=$(days_in_the_month 09 2021)
+  assert_equals_helper 'We expect 30 days' "$LINENO" "$total_days" 30
+
   total_days=$(days_in_the_month 8 2021)
   assert_equals_helper 'We expect 31 days' "$LINENO" "$total_days" 31
 
@@ -111,6 +126,18 @@ function test_days_in_the_month()
 
   # An invalid month
   days_in_the_month 333
+  ret="$?"
+  assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
+
+  days_in_the_month -5
+  ret="$?"
+  assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
+
+  days_in_the_month -09
+  ret="$?"
+  assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
+
+  days_in_the_month -009
   ret="$?"
   assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
 }

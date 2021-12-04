@@ -69,31 +69,13 @@ function kw()
         return "$?"
       )
       ;;
-    mount | mo)
+    vm)
       (
         include "$KW_LIB_DIR/vm.sh"
 
-        vm_mount "$@"
+        vm_main "$@"
         local ret="$?"
-        alert_completion 'kw mount' "$1"
         return "$ret"
-      )
-      ;;
-    umount | um)
-      (
-        include "$KW_LIB_DIR/vm.sh"
-
-        vm_umount "$@"
-        local ret="$?"
-        alert_completion 'kw umount' "$1"
-        return "$ret"
-      )
-      ;;
-    up | u)
-      (
-        include "$KW_LIB_DIR/vm.sh"
-
-        vm_up "$@"
       )
       ;;
     build | b)
@@ -110,7 +92,7 @@ function kw()
       (
         include "$KW_LIB_DIR/deploy.sh"
 
-        kernel_deploy "$@"
+        kernel_deploy '' "$@"
         local ret="$?"
         alert_completion 'kw deploy' "$1"
         return "$ret"
@@ -121,7 +103,7 @@ function kw()
         include "$KW_LIB_DIR/deploy.sh"
         include "$KW_LIB_DIR/build.sh"
 
-        kernel_build && kernel_deploy "$@"
+        kernel_build && kernel_deploy 1 "$@"
         local ret="$?"
         alert_completion 'kw db' "$1"
         return "$ret"
@@ -168,7 +150,14 @@ function kw()
         execute_config_manager "$@"
       )
       ;;
-    help | h)
+    help | --help)
+      (
+        include "$KW_LIB_DIR/help.sh"
+
+        kworkflow_man
+      )
+      ;;
+    h | -h)
       (
         include "$KW_LIB_DIR/help.sh"
 
@@ -229,6 +218,20 @@ function kw()
         include "$KW_LIB_DIR/backup.sh"
 
         backup "$@"
+      )
+      ;;
+    debug)
+      (
+        include "$KW_LIB_DIR/debug.sh"
+
+        debug_main "$@"
+      )
+      ;;
+    mail)
+      (
+        include "$KW_LIB_DIR/mail.sh"
+
+        mail_main "$@"
       )
       ;;
     clear-cache)
