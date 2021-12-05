@@ -213,4 +213,45 @@ function test_insert_into()
   assert_equals_helper 'Testing with format functions' "$LINENO" "$output" "$expected"
 }
 
+function test_select_from()
+{
+  local output
+  local expected
+  local ret
+  local entries
+
+  # invalid
+  output=$(select_from table columns 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 2
+  assert_equals_helper 'Expected error msg' "$LINENO" "$output" "$expected"
+
+  output=$(select_from '' entries)
+  ret="$?"
+  expected='Empty table.'
+  assert_equals_helper 'Empty table, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected error msg' "$LINENO" "$output" "$expected"
+
+  # valid
+  output=$(select_from 'tags' 'tag')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags;')
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  output=$(select_from 'tags')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM tags;')
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  entries=$(concatenate_with_commas dt_start dt_end descript)
+  output=$(select_from 'pomodoro' "$entries")
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT dt_start,dt_end,descript FROM pomodoro;')
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+}
+
 invoke_shunit

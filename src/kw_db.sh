@@ -95,6 +95,39 @@ function insert_into()
   sqlite3 "$db_path" -batch "INSERT INTO $table $entries VALUES $values;"
 }
 
+# This function gets the values in the table of given database
+#
+# @table:     Table to select info from
+# @columns:   Columns of the table to get
+# @db:        Name of the database file
+# @db_folder: Path to the folder that contains @db
+#
+# Return:
+# 2 if db doesn't exist; 22 if table is empty
+# 0 if succesful; non-zero otherwise
+function select_from()
+{
+  local table="$1"
+  local columns="${2:-"*"}"
+  local db="${3:-"$DB_NAME"}"
+  local db_folder="${4:-"$KW_DATA_DIR"}"
+  local db_path
+
+  db_path="$(join_path "$db_folder" "$db")"
+
+  if [[ ! -f "$db_path" ]]; then
+    complain 'Database does not exist'
+    return 2
+  fi
+
+  if [[ -z "$table" ]]; then
+    complain 'Empty table.'
+    return 22 # EINVAL
+  fi
+
+  sqlite3 "$db_path" -batch "SELECT $columns FROM $table;"
+}
+
 # This function takes arguments and assembles them into the correct format to
 # be used as values in SQL commands
 #
