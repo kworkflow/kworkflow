@@ -86,6 +86,7 @@ function test_parse_configuration_output()
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
     [blocked_emails]='test@email.com'
     [checkpatch_opts]='--no-tree --color=always --strict'
+    [get_maintainer_opts]='--separator , --nokeywords --nogit --nogit-fallback --norolestats'
   )
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"
@@ -130,6 +131,7 @@ function test_parse_configuration_standard_config()
     [doc_type]='htmldocs'
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
     [checkpatch_opts]='--no-tree --color=always --strict'
+    [get_maintainer_opts]='--separator , --nokeywords --nogit --nogit-fallback --norolestats'
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"
