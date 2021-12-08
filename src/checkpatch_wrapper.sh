@@ -22,7 +22,7 @@ function execute_checkpatch()
   # output. It could be nice if we can add another option just for this sort
   # of check.
 
-  local options='--no-tree --color=always --strict'
+  local options="${configurations[checkpatch_opts]}"
   local -r original_working_dir="$PWD"
   local kernel_root
   local cmd_script

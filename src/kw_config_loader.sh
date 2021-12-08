@@ -82,6 +82,7 @@ function show_variables()
     [disable_statistics_data_track]='Disable tracking of statistical data'
     [gui_on]='Command to activate GUI'
     [gui_off]='Command to deactivate GUI'
+    [checkpatch_opts]='Options to be used in the checkpatch script'
   )
 
   local -Ar group_descriptions=(
