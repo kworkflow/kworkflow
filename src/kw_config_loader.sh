@@ -83,6 +83,7 @@ function show_variables()
     [gui_on]='Command to activate GUI'
     [gui_off]='Command to deactivate GUI'
     [checkpatch_opts]='Options to be used in the checkpatch script'
+    [get_maintainer_opts]='Options to be used in the get_maintainer script'
   )
 
   local -Ar group_descriptions=(

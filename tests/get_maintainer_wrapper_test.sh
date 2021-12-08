@@ -66,6 +66,8 @@ function oneTimeSetUp()
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
+
+  parse_configuration "$KW_CONFIG_SAMPLE"
 }
 
 function oneTimeTearDown()
