@@ -14,6 +14,8 @@ function oneTimeSetUp()
   cp -f tests/external/const_structs.checkpatch "$SHUNIT_TMPDIR"/scripts/
   cp -f tests/external/spelling.txt "$SHUNIT_TMPDIR"/scripts/
   cp -r tests/samples "$SHUNIT_TMPDIR"
+
+  parse_configuration "$KW_CONFIG_SAMPLE"
 }
 
 function checkpatch_helper()
