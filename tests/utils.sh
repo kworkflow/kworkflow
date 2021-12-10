@@ -216,6 +216,8 @@ function mk_fake_boot()
   cp -r "$REPO_ROOT_PATH/$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
 }
 
+# Creates a new git repository in the current path and configure it locally.
+# Note: Git folder must be deleted afterward manually.
 function mk_fake_git()
 {
   local -r path="$PWD"
@@ -223,14 +225,14 @@ function mk_fake_git()
   git init -q "$path"
 
   touch "$path/first_file"
-  printf '%s\n' 'This is the first file.' > "$path/first_file"
-
-  git add first_file
-  git commit -q -m 'Initial commit'
+  printf 'This is the first file.\n' > "$path/first_file"
 
   git config --local user.name 'Xpto Lala'
   git config --local user.email 'test@email.com'
   git config --local test.config value
+
+  git add first_file
+  git commit -q -m 'Initial commit'
 }
 
 # This function expects an array of string with the command sequence and a
