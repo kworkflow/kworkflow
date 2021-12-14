@@ -15,6 +15,7 @@ function oneTimeSetUp()
   mkdir -p "$FAKE_DATA"
 
   KW_DATA_DIR="$FAKE_DATA"
+  KW_DB_DIR="$(realpath './database')"
 }
 
 function oneTimeTearDown()
