@@ -22,6 +22,7 @@ declare -r sharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r docdir="$sharedir/doc"
 declare -r mandir="$sharedir/man"
 declare -r sounddir="$sharedir/sound"
+declare -r databasedir="$sharedir/database"
 declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
 declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
@@ -35,6 +36,7 @@ declare -r CONFIG_DIR='etc/'
 declare -r KW_CACHE_DIR="$cachedir"
 
 declare -r SOUNDS='sounds'
+declare -r DATABASE='database'
 declare -r BASH_AUTOCOMPLETE='bash_autocomplete'
 declare -r DOCUMENTATION='documentation'
 
@@ -312,10 +314,18 @@ function synchronize_files()
   cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
 
+  # Database files
+  mkdir -p "$databasedir"
+  cmd_output_manager "rsync -vr $DATABASE/ $databasedir" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DATABASE $databasedir' failed" "$?"
+
   # User data
   mkdir -p "$datadir"
   mkdir -p "$datadir/statistics"
   mkdir -p "$datadir/configs"
+  if [[ -x "$databasedir/migrate_legacy_data_20220101.sh" ]]; then
+    eval "$databasedir/migrate_legacy_data_20220101.sh"
+  fi
 
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc
