@@ -18,6 +18,7 @@ KW_SHARE_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
 KW_DOC_DIR="$KW_SHARE_DIR/doc"
 KW_MAN_DIR="$KW_SHARE_DIR/man"
 KW_SOUND_DIR="$KW_SHARE_DIR/sound"
+KW_DB_DIR="$KW_SHARE_DIR/database"
 
 # User specific data files (currently this collapses with the share dir,
 # but would not for a system-wide installation)
@@ -45,6 +46,7 @@ if [ -f "${KW_BASE_DIR}/src/kwlib.sh" ]; then
   KW_DOC_DIR="${KW_BASE_DIR}/documentation"
   KW_MAN_DIR="${KW_BASE_DIR}/documentation/man"
   KW_SOUND_DIR="${KW_BASE_DIR}/sound"
+  KW_DB_DIR="${KW_BASE_DIR}/database"
   KW_ETC_DIR="${KW_BASE_DIR}/etc"
   KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
   # KW_CACHE_DIR # use default cache folder

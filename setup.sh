@@ -3,6 +3,7 @@ KW_LIB_DIR='src'
 . 'src/kw_include.sh' --source-only
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/kw_db.sh"
 
 SILENT=1
 VERBOSE=0
@@ -22,6 +23,7 @@ declare -r sharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r docdir="$sharedir/doc"
 declare -r mandir="$sharedir/man"
 declare -r sounddir="$sharedir/sound"
+declare -r databasedir="$sharedir/database"
 declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
 declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
@@ -36,6 +38,7 @@ declare -r CONFIG_DIR='etc/'
 declare -r KW_CACHE_DIR="$cachedir"
 
 declare -r SOUNDS='sounds'
+declare -r DATABASE='database'
 declare -r BASH_AUTOCOMPLETE='bash_autocomplete'
 declare -r DOCUMENTATION='documentation'
 
@@ -365,12 +368,25 @@ function synchronize_files()
   cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
 
+  # Database files
+  mkdir -p "${databasedir}"
+  cmd_output_manager "rsync --verbose --recursive ${DATABASE}/ ${databasedir}" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync --verbose --recursive ${DATABASE} ${databasedir}' failed" "$?"
+
   setup_global_config_file
 
   # User data
   mkdir -p "$datadir"
   mkdir -p "$datadir/statistics"
   mkdir -p "$datadir/configs"
+  if [[ -x "${databasedir}/migrate_legacy_data_20220101.sh" ]]; then
+    eval "${databasedir}/migrate_legacy_data_20220101.sh"
+  else
+    execute_sql_script "${databasedir}/kwdb.sql"
+    if [[ "$?" != 0 ]]; then
+      complain 'Creation of database schema has failed.'
+    fi
+  fi
 
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc

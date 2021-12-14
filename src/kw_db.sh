@@ -29,7 +29,7 @@ function execute_sql_script()
 
   [[ -f "$db_path" ]] || warning "Creating database: $db_path"
 
-  sqlite3 "$db_path" < "$sql_path"
+  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" < "$sql_path"
 }
 
 # This function reads and executes a SQL script in the database
@@ -55,7 +55,7 @@ function execute_command_db()
     return 2
   fi
 
-  sqlite3 "$db_path" -bail -batch "$sql_cmd"
+  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -bail -batch "$sql_cmd"
 }
 
 # This function inserts values into table of given database
@@ -92,7 +92,7 @@ function insert_into()
 
   [[ -n "$entries" && ! "$entries" =~ ^\(.*\)$ ]] && entries="($entries)"
 
-  sqlite3 "$db_path" -batch "INSERT INTO $table $entries VALUES $values;"
+  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -batch "INSERT INTO $table $entries VALUES $values;"
 }
 
 # This function gets the values in the table of given database
@@ -125,7 +125,7 @@ function select_from()
     return 22 # EINVAL
   fi
 
-  sqlite3 "$db_path" -batch "SELECT $columns FROM $table;"
+  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -batch "SELECT $columns FROM $table;"
 }
 
 # This function takes arguments and assembles them into the correct format to
