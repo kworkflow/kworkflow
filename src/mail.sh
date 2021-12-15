@@ -83,6 +83,7 @@ function mail_send()
   local to_recipients="${options_values['TO']}"
   local cc_recipients="${options_values['CC']}"
   local dryrun="${options_values['SIMULATE']}"
+  local extra_opts="${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
   local cmd='git send-email'
 
   flag=${flag:-'SILENT'}
@@ -99,7 +100,7 @@ function mail_send()
     cmd+=" --cc=\"$cc_recipients\""
   fi
 
-  cmd+=' @^'
+  [[ -n "$extra_opts" ]] && cmd+=" $extra_opts"
 
   cmd_manager "$flag" "$cmd"
 }
@@ -131,6 +132,41 @@ function validate_email_list()
 
   [[ "$error" == 1 ]] && return 22 # EINVAL
   return 0
+}
+
+# This function checks if any of the arguments in @args is a valid commit
+# reference
+#
+# @args: arguments to be processed
+#
+# Returns:
+# 125 if nor inside git work tree;
+# 0 if any of the arguments is a valid reference to a commit; 22 otherwise
+function find_commit_references()
+{
+  local args="$*"
+  local arg=''
+  local parsed=''
+
+  [[ -z "$args" ]] && return 22 # EINVAL
+
+  if ! is_inside_work_tree; then
+    return 125 # ECANCELED
+  fi
+
+  #shellcheck disable=SC2086
+  while read -r arg; do
+    parsed="$(git rev-parse "$arg" 2> /dev/null)"
+    while read -r rev; do
+      # check if the argument is a valid reference to a commit-ish object
+      if git rev-parse --verify --quiet --end-of-options "$rev^{commit}" > /dev/null; then
+        return 0
+      fi
+    done <<< "$parsed"
+    parsed=''
+  done <<< "$(git rev-parse -- $args 2> /dev/null)"
+
+  return 22 # EINVAL
 }
 
 # This function deals with configuring the options used by `git send-email`
@@ -693,17 +729,56 @@ function interactive_prompt()
   done
 }
 
+# This is used to reposition the a commit count argument meant for
+# git-format-patch, this is needed to avoid problems with kw_parse
+#
+# Returns:
+# A string with the options correctly positioned
+function reposition_commit_count_arg()
+{
+  local options=''
+  local commit_count=''
+  local dash_dash=0
+
+  while [[ "$#" -gt 0 ]]; do
+    if [[ "$1" =~ ^-[[:digit:]]+$ ]]; then
+      commit_count="$1"
+      shift
+      continue
+    fi
+    [[ "$1" =~ ^--$ ]] && dash_dash=1
+    # The added quotes ensure arguments are correctly separated
+    options="$options \"$1\""
+    shift
+  done
+
+  if [[ -n "$commit_count" ]]; then
+    # add `--` if not present
+    [[ "$dash_dash" == 0 ]] && options="$options --"
+    options="$options $commit_count"
+  fi
+
+  printf '%s' "$options"
+}
+
 function parse_mail_options()
 {
   local index
   local option
   local setup_token=0
-  local short_options='s,t,f,v,i,l,n,'
+  local patch_version=''
+  local commit_count=''
+  local commit_ref=0
+  local short_options='s,t,f,v:,i,l,n,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
   long_options+='template::,interactive,no-interactive,list,'
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
+
+  # This is a pre parser to handle commit count arguments
+  options="$(reposition_commit_count_arg "$@")"
+  eval "set -- $options"
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
   if [[ "$?" != 0 ]]; then
@@ -711,6 +786,8 @@ function parse_mail_options()
       "$long_options" "$@")"
     return 22 # EINVAL
   fi
+
+  eval "set -- $options"
 
   # Default values
   options_values['SEND']=''
@@ -725,8 +802,7 @@ function parse_mail_options()
   options_values['NO_INTERACTIVE']=''
   options_values['SCOPE']='local'
   options_values['CMD_SCOPE']=''
-
-  eval "set -- $options"
+  options_values['PASS_OPTION_TO_SEND_EMAIL']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -803,7 +879,7 @@ function parse_mail_options()
         options_values['CMD_SCOPE']='global'
         shift
         ;;
-      --verify | -v)
+      --verify)
         options_values['VERIFY']=1
         shift
         ;;
@@ -815,8 +891,16 @@ function parse_mail_options()
         options_values['NO_INTERACTIVE']=1
         shift
         ;;
+      -v)
+        patch_version="$1$2"
+        shift 2
+        ;;
       --)
         shift
+        # if a reference is passed after the -- we need to account for it
+        [[ "$*" =~ -[[:digit:]]+ ]] && commit_ref=1
+        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$* $patch_version")"
+        shift "$#"
         ;;
       *)
         complain "Invalid option: $1"
@@ -828,6 +912,15 @@ function parse_mail_options()
   if [[ "$setup_token" == 1 ]]; then
     validate_setup_opt
   fi
+
+  if [[ "$commit_ref" == 0 ]]; then
+    find_commit_references "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
+    ret="$?"
+    if [[ "$ret" == 22 ]]; then
+      # assume last commit if none given
+      options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
+    fi
+  fi
 }
 
 function mail_help()
@@ -838,10 +931,10 @@ function mail_help()
     exit
   fi
   printf '%s\n' 'kw mail:' \
-    '  mail (-s | --send) [--simulate] [--(to|cc)=<recipient>...]... - Send patches via e-mail' \
+    '  mail (-s | --send) [<options>] - Send patches via e-mail' \
     '  mail (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
     '  mail (-i | --interactive) - Setup interactively' \
-    '  mail (-v | --verify) - Check if required configurations are set' \
     '  mail (-l | --list) - List the configurable options' \
+    '  mail --verify - Check if required configurations are set' \
     '  mail --template[=<template>] [-n] - Set send-email configs based on <template>'
 }

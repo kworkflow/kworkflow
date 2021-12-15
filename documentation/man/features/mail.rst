@@ -6,11 +6,11 @@ kw-mail
 
 SYNOPSIS
 ========
-| *kw mail* (-s | \--send) [\--simulate] [\--to='<recipient>,...'] [\--cc='<recipient>,...']
+| *kw mail* (-s | \--send) [\--simulate] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
 | *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
 | *kw mail* (-i | \--interactive) [\--local | \--global]
-| *kw mail* (-v | \--verify) [\--local | \--global]
 | *kw mail* (-l | \--list)
+| *kw mail* \--verify [\--local | \--global]
 | *kw mail* \--template[=<template>] [-n | \--no-interactive] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
 
 DESCRIPTION
@@ -20,11 +20,17 @@ It is common to deal with patch submissions to a mailing list, and
 **mail** functionality aims to wrap this tool to simplify its usage and
 integrate it with other **kw** functionalities.
 
+.. note::
+  Any option recognized by ``git send-email`` can be passed directly to it if
+  placed after the double dash (``--``) argument.
+
 OPTIONS
 =======
 -s, \--send:
-  Send the last commit as a patch using ``git send-email`` to the e-mail
-  adresses specified with ``--to`` and ``--cc``.
+  Send a patch by email using ``git send-email`` to the email adresses
+  specified with ``--to`` and ``--cc``. You can provide *<extra-args>* to be
+  passed directly to ``git send-email``, they should be placed after the double
+  dash (``--``) argument.
 
 \--to='<recipient>,...':
   Specify the recipients that will receive the patch via e-mail. The
@@ -37,6 +43,13 @@ OPTIONS
 \--simulate:
   Do everything without actually sending the e-mail. This is similar to
   ``git send-email``'s ``--dry-run`` option.
+
+<rev-range>...:
+  Specify the *<rev-range>* to be sent. The last commit is taken as the
+  default.
+
+-v<version>:
+  Specify a number *<version>* for your patch.
 
 -t, \--setup:
   Initialize and configure **mail** functionality. Each argument specifies a
@@ -70,7 +83,7 @@ OPTIONS
   Forces the configurations to be added, regardless of conflicts with the
   current values already set in the system. Implies ``--no-interactive``.
 
--v, \--verify:
+\--verify:
   Verify that all the settings needed are set and valid.
 
 \--template[=<template>]:
@@ -97,3 +110,11 @@ Then when you are sure the command executed as expected, drop the
 ``--simulate`` argument to actually send the patch::
 
   kw mail --send --to=some@email.com
+
+To send a range of commits the following can be used::
+
+  kw mail -s <SHA1>..<SHA2>
+
+Extra arguments can be passed directly to ``git send-email`` like this::
+
+  kw mail -s --to='some@email.com' -- --thread

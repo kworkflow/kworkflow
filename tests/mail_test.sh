@@ -116,6 +116,53 @@ function test_validate_email()
   assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
 }
 
+function test_find_commit_references()
+{
+  local ret
+
+  cd "$SHUNIT_TMPDIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to temp dir"
+    exit "$ret"
+  }
+
+  find_commit_references
+  ret="$?"
+  assert_equals_helper 'No arguments given' "$LINENO" "$ret" 22
+
+  find_commit_references @^
+  ret="$?"
+  assert_equals_helper 'Outside git repo should return 125' "$LINENO" "$ret" 125
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
+  find_commit_references @
+  ret="$?"
+  assert_equals_helper '@ should be a valid reference' "$LINENO" "$ret" 0
+
+  find_commit_references '@^..@'
+  ret="$?"
+  assert_equals_helper '@^..@ should be a valid reference' "$LINENO" "$ret" 0
+
+  find_commit_references invalid_ref
+  ret="$?"
+  assert_equals_helper 'Invalid ref should not work' "$LINENO" "$ret" 22
+
+  find_commit_references some args @ around
+  ret="$?"
+  assert_equals_helper '@ should be a valid reference' "$LINENO" "$ret" 0
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+}
+
 function test_validate_email_list()
 {
   local expected
@@ -150,6 +197,28 @@ function test_validate_email_list()
   assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
 }
 
+function test_reposition_commit_count_arg()
+{
+  local output
+  local expected
+
+  output="$(reposition_commit_count_arg --any --amount --of --args)"
+  expected=' "--any" "--amount" "--of" "--args"'
+  assert_equals_helper 'Should not change arguments' "$LINENO" "$output" "$expected"
+
+  output="$(reposition_commit_count_arg --arg='some options, lala')"
+  expected=' "--arg=some options, lala"'
+  assert_equals_helper 'Should correctly quote arguments' "$LINENO" "$output" "$expected"
+
+  output="$(reposition_commit_count_arg -375)"
+  expected=' -- -375'
+  assert_equals_helper 'Should place count argument at the end' "$LINENO" "$output" "$expected"
+
+  output="$(reposition_commit_count_arg --arg='some options, lala' -375)"
+  expected=' "--arg=some options, lala" -- -375'
+  assert_equals_helper 'Should handle multiple arguments' "$LINENO" "$output" "$expected"
+}
+
 function test_mail_parser()
 {
   local output
@@ -174,6 +243,18 @@ function test_mail_parser()
   assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
 
   # valid options
+  parse_mail_options some -- extra -1 args HEAD^
+  expected='some extra args HEAD^ -1'
+  assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+
+  parse_mail_options -375
+  expected='-375'
+  assert_equals_helper 'Set commit count option' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+
+  parse_mail_options -v3
+  expected='-v3 @^'
+  assert_equals_helper 'Set version option' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+
   parse_mail_options '--send'
   assert_equals_helper 'Set send flag' "$LINENO" "${options_values['SEND']}" 1
 
@@ -279,6 +360,8 @@ function test_mail_send()
   local output
   local ret
 
+  parse_mail_options
+
   output=$(mail_send 'TEST_MODE')
   expected='git send-email @^'
   assert_equals_helper 'Testing send without options' "$LINENO" "$output" "$expected"
@@ -312,6 +395,18 @@ function test_mail_send()
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --dry-run @^'
   assert_equals_helper 'Testing send with simulate option' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--to=mail@test.com' 'HEAD~'
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --to="mail@test.com" HEAD~'
+  assert_equals_helper 'Testing send with patch option' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--to=mail@test.com' -13 -v2 extra_args -- --other_arg
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --to="mail@test.com" extra_args --other_arg -13 -v2'
+  assert_equals_helper 'Testing no options option' "$LINENO" "$output" "$expected"
 }
 
 function test_get_configs()
