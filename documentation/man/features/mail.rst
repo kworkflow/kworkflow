@@ -6,6 +6,7 @@ kw-mail
 
 SYNOPSIS
 ========
+| *kw mail* (-s | \--send) [\--simulate] [\--to='<recipient>,...'] [\--cc='<recipient>,...']
 | *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
 | *kw mail* (-i | \--interactive) [\--local | \--global]
 | *kw mail* (-v | \--verify) [\--local | \--global]
@@ -21,6 +22,22 @@ integrate it with other **kw** functionalities.
 
 OPTIONS
 =======
+-s, \--send:
+  Send the last commit as a patch using ``git send-email`` to the e-mail
+  adresses specified with ``--to`` and ``--cc``.
+
+\--to='<recipient>,...':
+  Specify the recipients that will receive the patch via e-mail. The
+  *<recipient>* list can be in any format accepted by ``git send-email``, e.g.:
+  ``some@email.com`` or ``Xpto Lala <lala.xpto@mail.com>``.
+
+\--cc='<recipient>,...':
+  Specify the recipients that will receive a copy of the patch via e-mail.
+
+\--simulate:
+  Do everything without actually sending the e-mail. This is similar to
+  ``git send-email``'s ``--dry-run`` option.
+
 -t, \--setup:
   Initialize and configure **mail** functionality. Each argument specifies a
   *<config>* to be set with the corresponding *<value>*, multiple *<config>*
@@ -71,3 +88,12 @@ variables at once::
 
   kw mail -t --name 'Xpto Lala' --email myemail@gmail.com --smtpencryption tls \
     --smtpserver smtp.gmail.com --smtpserverport 587 --smtpuser myemail@gmail.com
+
+To simulate sending the last commit as a patch just write::
+
+  kw mail --send --simulate --to=some@email.com
+
+Then when you are sure the command executed as expected, drop the
+``--simulate`` argument to actually send the patch::
+
+  kw mail --send --to=some@email.com

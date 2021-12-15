@@ -140,6 +140,25 @@ function test_mail_parser()
   assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
 
   # valid options
+  parse_mail_options '--send'
+  assert_equals_helper 'Set send flag' "$LINENO" "${options_values['SEND']}" 1
+
+  parse_mail_options '--to=some@mail.com'
+  expected='some@mail.com'
+  assert_equals_helper 'Set to flag' "$LINENO" "${options_values['TO']}" "$expected"
+
+  parse_mail_options '--cc=some@mail.com'
+  expected='some@mail.com'
+  assert_equals_helper 'Set cc flag' "$LINENO" "${options_values['CC']}" "$expected"
+
+  parse_mail_options '--simulate'
+  expected='--dry-run'
+  assert_equals_helper 'Set simulate flag' "$LINENO" "${options_values['SIMULATE']}" "$expected"
+
+  parse_mail_options '--to=name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>'
+  expected='name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>'
+  assert_equals_helper 'Set to flag' "$LINENO" "${options_values['TO']}" "$expected"
+
   parse_mail_options '--setup'
   expected=1
   assert_equals_helper 'Set setup flag' "$LINENO" "${options_values['SETUP']}" "$expected"
@@ -218,6 +237,35 @@ function test_mail_parser()
   parse_mail_options '-t' '--smtppass' 'verySafePass'
   expected='verySafePass'
   assert_equals_helper 'Set smtp pass' "$LINENO" "${options_values['sendemail.smtppass']}" "$expected"
+}
+
+function test_mail_send()
+{
+  local expected
+  local output
+  local ret
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email @^'
+  assert_equals_helper 'Testing send without options' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--to=mail@test.com'
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --to="mail@test.com" @^'
+  assert_equals_helper 'Testing send with to option' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--cc=mail@test.com'
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --cc="mail@test.com" @^'
+  assert_equals_helper 'Testing send with c option' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--simulate'
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --dry-run @^'
+  assert_equals_helper 'Testing send with simulate option' "$LINENO" "$output" "$expected"
 }
 
 function test_get_configs()

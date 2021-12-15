@@ -32,6 +32,11 @@ function mail_main()
     return 22 # EINVAL
   fi
 
+  if [[ -n "${options_values['SEND']}" ]]; then
+    mail_send
+    return 0
+  fi
+
   get_configs
 
   if [[ "${options_values['VERIFY']}" == 1 ]]; then
@@ -61,6 +66,32 @@ function mail_main()
   fi
 
   return 0
+}
+
+# This function prepares the appropriate options to send patches using
+# `git send-email`.
+#
+# @flag: Flag to control the behavior of 'cmd_manager'
+#
+# Return:
+# returns 0 if successful, non-zero otherwise
+function mail_send()
+{
+  local flag="$1"
+  local to_recipients="${options_values['TO']}"
+  local cc_recipients="${options_values['CC']}"
+  local dryrun="${options_values['SIMULATE']}"
+  local cmd='git send-email'
+
+  flag=${flag:-'SILENT'}
+
+  [[ -n "$dryrun" ]] && cmd+=" $dryrun"
+  [[ -n "$to_recipients" ]] && cmd+=" --to=\"$to_recipients\""
+  [[ -n "$cc_recipients" ]] && cmd+=" --cc=\"$cc_recipients\""
+
+  cmd+=' @^'
+
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function deals with configuring the options used by `git send-email`
@@ -628,8 +659,9 @@ function parse_mail_options()
   local index
   local option
   local setup_token=0
-  local short_options='t,f,v,i,l,n,'
-  local long_options='setup,local,global,force,verify,template::,interactive,no-interactive,list,'
+  local short_options='s,t,f,v,i,l,n,'
+  local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
+  long_options+='template::,interactive,no-interactive,list,'
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -642,6 +674,10 @@ function parse_mail_options()
   fi
 
   # Default values
+  options_values['SEND']=''
+  options_values['TO']=''
+  options_values['CC']=''
+  options_values['SIMULATE']=''
   options_values['SETUP']=0
   options_values['FORCE']=0
   options_values['VERIFY']=0
@@ -658,6 +694,22 @@ function parse_mail_options()
       --list | -l)
         mail_list
         exit
+        ;;
+      --send | -s)
+        options_values['SEND']=1
+        shift
+        ;;
+      --to)
+        options_values['TO']="$2"
+        shift 2
+        ;;
+      --cc)
+        options_values['CC']="$2"
+        shift 2
+        ;;
+      --simulate)
+        options_values['SIMULATE']='--dry-run'
+        shift
         ;;
       --setup | -t)
         options_values['SETUP']=1
@@ -747,6 +799,7 @@ function mail_help()
     exit
   fi
   printf '%s\n' 'kw mail:' \
+    '  mail (-s | --send) [--simulate] [--(to|cc)=<recipient>...]... - Send patches via e-mail' \
     '  mail (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
     '  mail (-i | --interactive) - Setup interactively' \
     '  mail (-v | --verify) - Check if required configurations are set' \
