@@ -136,7 +136,7 @@ function deploy_main()
     end=$(date +%s)
 
     runtime=$((end - start))
-    statistics_manager 'list' "$runtime"
+    statistics_manager 'list' "$start" "$runtime"
     exit "$?"
   fi
 
@@ -147,7 +147,7 @@ function deploy_main()
     end=$(date +%s)
 
     runtime=$((end - start))
-    statistics_manager 'uninstall' "$runtime"
+    statistics_manager 'uninstall' "$start" "$runtime"
     return "$?"
   fi
 
@@ -238,18 +238,18 @@ function deploy_main()
     if [[ "$ret" != 0 ]]; then
       end=$(date +%s)
       runtime=$((runtime + (end - start)))
-      statistics_manager 'deploy_failure' "$runtime"
+      statistics_manager 'deploy' "$start" "$runtime" 'failure'
       exit "$ret"
     fi
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
-    statistics_manager 'deploy' "$runtime"
+    statistics_manager 'deploy' "$start" "$runtime"
   else # Only module deploy
     start=$(date +%s)
     modules_install "$target" "$return_tar_path" "$flag"
     end=$(date +%s)
     runtime=$((end - start))
-    statistics_manager 'Modules_deploy' "$runtime"
+    statistics_manager 'modules_deploy' "$start" "$runtime"
   fi
 
   #shellcheck disable=SC2119

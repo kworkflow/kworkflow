@@ -1,5 +1,7 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
 include "$KW_LIB_DIR/kw_string.sh"
+include "${KW_LIB_DIR}/kw_db.sh"
+include "${KW_LIB_DIR}/kw_time_and_date.sh"
 
 ENV_DIR='envs'
 
@@ -338,62 +340,39 @@ function detect_distro()
 # related to kw. It also manages the database creation, any data that should be
 # handled as a kw statistics should use this function.
 #
-# @label Label name used to identify a value
-# @value Value should be an integer number
+# @label_name:             Label name used to identify a value
+# @start_datetime_in_secs: Should be an integer number
+# @elapsed_time_in_secs:   Should be an integer number
+# @status:                 Execution status
 #
 # Return:
 # Print a execution time info
 function statistics_manager()
 {
-  local label="$1"
-  local value="$2"
-  local day
-  local year_month_dir
-  local day_path
+  local label_name="$1"
+  local start_datetime_in_secs="$2"
+  local elapsed_time_in_secs="$3"
+  local status=${4:-'success'}
+  local start_datetime
+  local start_date
+  local start_time
+  local row
+  local database_columns='("label_name","status","date","time","elapsed_time_in_secs")'
 
-  day=$(date +%d)
-  year_month_dir=$(date +%Y/%m)
-  day_path="$KW_DATA_DIR/statistics/$year_month_dir/$day"
+  start_datetime=$(date --date @"${start_datetime_in_secs}" '+%Y-%m-%d %H:%M:%S')
+  start_date=$(printf '%s' "$start_datetime" | cut --delimiter=' ' --fields=1)
+  start_time=$(printf '%s' "$start_datetime" | cut --delimiter=' ' --fields=2)
 
-  elapsed_time=$(date -d@"$value" -u +%H:%M:%S)
+  elapsed_time=$(sec_to_format "$elapsed_time_in_secs")
   say "-> Execution time: $elapsed_time"
 
   [[ ${configurations[disable_statistics_data_track]} == 'yes' ]] && return
 
-  update_statistics_database "$year_month_dir" "$day"
-  store_statistics_data "$day_path" "$label" "$value"
-}
+  [[ -z "$label_name" || -z "$status" || -z "$start_date" || -z "$start_time" || -z "$elapsed_time_in_secs" ]] && return 22 # EINVAL
 
-# This function is part of the statistics feature and it is responsible for
-# managing the database by following the calendar organization.
-#
-# @year_month_dir Current year
-# @day Current day of the week
-function update_statistics_database()
-{
-  local year_month_path="$1"
-  local day="$2"
+  row=$(format_values_db 5 "$label_name" "$status" "$start_date" "$start_time" "$elapsed_time_in_secs")
 
-  [[ -z "$day" || -z "$year_month_path" ]] && return 22 # EINVAL
-
-  mkdir -p "$KW_DATA_DIR/statistics/$year_month_path"
-  touch "$KW_DATA_DIR/statistics/$year_month_path/$day"
-}
-
-# This function save the information directly to a file.
-#
-# @day_path Current day
-# @label Label used to identify a value
-# @value An integer number associated to a label
-function store_statistics_data()
-{
-  local day_path="$1"
-  local label="$2"
-  local value="$3"
-
-  [[ ! -f "$day_path" || -z "$label" || -z "$value" ]] && return 22 # EINVAL
-
-  printf '%s\n' "$label $value" >> "$day_path"
+  insert_into '"statistics_report"' "$database_columns" "$row"
 }
 
 # This function checks if a certain command can be run
