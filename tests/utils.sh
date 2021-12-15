@@ -177,6 +177,11 @@ function mk_fake_git()
 
   git add first_file
   git commit -q -m 'Initial commit'
+
+  git add --all
+  git commit --allow-empty -q -m 'Second commit'
+
+  git commit --allow-empty -q -m 'Third commit'
 }
 
 # This function expects an array of string with the command sequence and a
