@@ -6,20 +6,19 @@ include './tests/utils.sh'
 
 function oneTimeSetUp()
 {
-  KW_DATA_DIR="$SHUNIT_TMPDIR"
-  TARGET_YEAR_MONTH="2020/05"
-  FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
-  FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
-  FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
-  ORIGINAL_DIR="$PWD"
+  declare -gr ORIGINAL_DIR="$PWD"
+  declare -gr FAKE_DATA="${SHUNIT_TMPDIR}/db_testing"
+
+  mkdir -p "$FAKE_DATA"
+
+  KW_DATA_DIR="$FAKE_DATA"
+  KW_DB_DIR="$(realpath './database')"
 
   setupFakeKernelRepo
 }
 
 function setupPatch()
 {
-  mkdir -p "$FAKE_STATISTICS_MONTH_PATH"
-  touch "$FAKE_STATISTICS_DAY_PATH"
   cp -f tests/samples/test.patch "$SHUNIT_TMPDIR"
 }
 
@@ -60,11 +59,23 @@ function setupFakeKernelRepo()
 
 function tearDown()
 {
-  rm -rf "$FAKE_STATISTICS_PATH"
   cd "$ORIGINAL_DIR" || {
     fail "($LINENO) It was not possible to move back to original directory"
     return
   }
+}
+
+function setupDatabase()
+{
+  execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
+}
+
+function teardownDatabase()
+{
+  is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
+  if [[ "$?" == 0 ]]; then
+    rm "${KW_DATA_DIR}/kw.db"
+  fi
 }
 
 function test_is_kernel_root()
@@ -411,63 +422,60 @@ function test_get_based_on_delimiter()
   assert_equals_helper 'We expected 0 as a return' "$LINENO" 0 "$ret"
 }
 
-function test_store_statistics_data()
+function test_statistics_manager_with_individual_insertions()
 {
-  local fake_day_path="$FAKE_STATISTICS_DAY_PATH"
+  local current_date_time_in_secs
+  local current_date
+  local current_time
+  local output
+  local expected
 
-  setupPatch
+  setupDatabase
 
-  store_statistics_data "$fake_day_path" "test_value" "33"
-  stored_value=$(cat "$fake_day_path")
-  assertEquals "($LINENO)" "test_value 33" "$stored_value"
+  # capture current date for comparison
+  current_date_time_in_secs=$(date '+%s')
+  current_date=$(date --date @"$current_date_time_in_secs" '+%Y-%m-%d')
+  current_time=$(date --date @"$current_date_time_in_secs" '+%H:%M:%S')
 
-  store_statistics_data "/wrong/path" "test_value" "33"
-  ret="$?"
-  assertEquals "($LINENO)" "22" "$ret"
+  # default status value
+  statistics_manager 'build' "$current_date_time_in_secs" 450 > /dev/null 2>&1
+  expected="1|build|success|${current_date}|${current_time}|450"
+  output=$(select_from 'statistics_report WHERE id IS 1')
+  assert_equals_helper 'Inserted values are wrong' "$LINENO" "$expected" "$output"
 
-  store_statistics_data "$fake_day_path" "" "33"
-  ret="$?"
-  assertEquals "($LINENO)" "22" "$ret"
+  # custom status value
+  statistics_manager 'deploy' "$current_date_time_in_secs" 13 'interrupted' > /dev/null 2>&1
+  expected="2|deploy|interrupted|${current_date}|${current_time}|13"
+  output=$(select_from 'statistics_report WHERE id IS 2')
+  assert_equals_helper 'Inserted values are wrong' "$LINENO" "$expected" "$output"
 
-  store_statistics_data "$fake_day_path"
-  ret="$?"
-  assertEquals "($LINENO)" "22" "$ret"
+  teardownDatabase
 }
 
-function test_update_statistics_database()
+function test_statistics_manager_with_many_insertions()
 {
-  setupPatch
+  local fake_start_datetime_in_secs=906018600
+  local output
 
-  update_statistics_database "$TARGET_YEAR_MONTH" "19"
-  assertTrue "Statistics update failure" '[[ -f "$FAKE_STATISTICS_MONTH_PATH/19" ]]'
+  setupDatabase
 
-  update_statistics_database "$TARGET_YEAR_MONTH" ""
-  ret="$?"
-  assertEquals "($LINENO)" "22" "$ret"
-}
+  statistics_manager 'build' "$fake_start_datetime_in_secs" 1234 > /dev/null 2>&1
+  statistics_manager 'list' "$fake_start_datetime_in_secs" 4321 > /dev/null 2>&1
+  statistics_manager 'deploy' "$fake_start_datetime_in_secs" 2718 > /dev/null 2>&1
+  statistics_manager 'uninstall' "$fake_start_datetime_in_secs" 1 > /dev/null 2>&1
+  statistics_manager 'modules_deploy' "$fake_start_datetime_in_secs" 999999 > /dev/null 2>&1
+  statistics_manager 'build' "$fake_start_datetime_in_secs" 21344 'success' > /dev/null 2>&1
+  statistics_manager 'list' "$fake_start_datetime_in_secs" 91874 'unknown' > /dev/null 2>&1
+  statistics_manager 'deploy' "$fake_start_datetime_in_secs" 2 'failure' > /dev/null 2>&1
+  statistics_manager 'uninstall' "$fake_start_datetime_in_secs" 545 'interrupted' > /dev/null 2>&1
+  statistics_manager 'modules_deploy' "$fake_start_datetime_in_secs" 4 'success' > /dev/null 2>&1
 
-function test_statistics_manager()
-{
-  local this_year_and_month
-  local today
+  output=$(select_from 'statistics_report' 'count(*)')
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch 'SELECT count(*) FROM "statistics_report" ;')
 
-  this_year_and_month=$(date +%Y/%m)
-  today=$(date +%d)
+  assert_equals_helper 'We expected 10 entries in the database' "$LINENO" 10 "$output"
 
-  setupPatch
-
-  output=$(statistics_manager "values" "33")
-  assertTrue "($LINENO) - Database folders failures" '[[ -d "$FAKE_STATISTICS_PATH/$this_year_and_month" ]]'
-
-  assertTrue "($LINENO) Database day" '[[ -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
-
-  stored_value=$(cat "$FAKE_STATISTICS_PATH/$this_year_and_month/$today")
-  assertEquals "($LINENO)" "values 33" "$stored_value"
-
-  tearDown
-
-  configurations['disable_statistics_data_track']='yes'
-  assertTrue "($LINENO) - Database day" '[[ ! -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
+  teardownDatabase
 }
 
 function test_command_exists()
