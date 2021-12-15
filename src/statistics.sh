@@ -4,6 +4,7 @@
 
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kw_time_and_date.sh"
+include "$KW_LIB_DIR/kw_db.sh"
 
 # This is a data struct that describes the main type of data collected. We use
 # this in some internal loops.

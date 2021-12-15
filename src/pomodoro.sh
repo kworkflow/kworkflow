@@ -135,14 +135,19 @@ function is_tag_already_registered()
 # Show registered tags with number identification.
 function show_tags()
 {
-  if [[ ! -s "$KW_POMODORO_TAG_LIST" ]]; then
+  local result
+  local cmd="-separator . 'SELECT * FROM \"tags\";'"
+
+  result=$(execute_command_db "$cmd")
+  if [[ -z "$result" ]]; then
     say 'You did not register any new tag yet'
     pomodoro_help
     exit 0
   fi
 
   # Show line numbers
-  nl -n rn -s . "$KW_POMODORO_TAG_LIST"
+  #shellcheck disable=SC2086
+  printf '\t%s\n' $result
 }
 
 # Translate an ID number to a tag identifier.
@@ -155,17 +160,14 @@ function show_tags()
 function translate_id_to_tag()
 {
   local id="$1"
-  local total_lines
+  local cmd
 
   # Basic check
   [[ -z "$id" ]] && return 22 # EINVAL
 
-  total_lines=$(wc -l "$KW_POMODORO_TAG_LIST" | cut -d' ' -f1)
-  if [[ "$id" -le 0 || "$id" -gt "$total_lines" ]]; then
-    return 22 # EINVAL
-  fi
+  cmd="\"SELECT \"tag\" FROM \"tags\" WHERE \"id\" IS '$id';\""
 
-  result=$(sed "$id"'q;d' "$KW_POMODORO_TAG_LIST")
+  result=$(execute_command_db "$cmd")
   [[ -z "$result" ]] && return 22 # EINVAL
   printf '%s\n' "$result"
   return 0

@@ -6,20 +6,23 @@ include './tests/utils.sh'
 
 function oneTimeSetUp()
 {
-  KW_DATA_DIR="$SHUNIT_TMPDIR"
-  TARGET_YEAR_MONTH="2020/05"
-  FAKE_STATISTICS_PATH="$KW_DATA_DIR/statistics"
-  FAKE_STATISTICS_MONTH_PATH="$FAKE_STATISTICS_PATH/$TARGET_YEAR_MONTH"
-  FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
-  ORIGINAL_DIR="$PWD"
+  declare -gr ORIGINAL_DIR="$PWD"
+  declare -gr FAKE_DATA="$SHUNIT_TMPDIR/db_testing"
+
+  declare -g DB_FILES
+
+  DB_FILES="$(realpath './tests/samples/db_files')"
+
+  mkdir -p "$FAKE_DATA"
+
+  KW_DATA_DIR="$FAKE_DATA"
+  KW_DB_DIR="$(realpath './database')"
 
   setupFakeKernelRepo
 }
 
 function setupPatch()
 {
-  mkdir -p "$FAKE_STATISTICS_MONTH_PATH"
-  touch "$FAKE_STATISTICS_DAY_PATH"
   cp -f tests/samples/test.patch "$SHUNIT_TMPDIR"
 }
 
@@ -59,7 +62,6 @@ function setupFakeKernelRepo()
 
 function tearDown()
 {
-  rm -rf "$FAKE_STATISTICS_PATH"
   cd "$ORIGINAL_DIR" || {
     fail "($LINENO) It was not possible to move back to original directory"
     return
