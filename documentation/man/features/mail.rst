@@ -23,8 +23,8 @@ OPTIONS
 =======
 -t, \--setup:
   Initialize and configure **mail** functionality. Each argument specifies a
-  <config> to be set with the corresponding <value>, multiple <config> <value>
-  pairs may be passed at once. Current accepted options are::
+  *<config>* to be set with the corresponding *<value>*, multiple *<config>*
+  *<value>* pairs may be passed at once. Current accepted options are::
 
     --name           <name>
     --email          <email>
@@ -57,7 +57,7 @@ OPTIONS
   Verify that all the settings needed are set and valid.
 
 \--template[=<template>]:
-  This loads the default configuration values based on the given <template>.
+  This loads the default configuration values based on the given *<template>*.
   If no template is given the user will be shown the available templates to
   choose from.
 
