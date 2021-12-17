@@ -92,7 +92,7 @@ function kw()
       (
         include "$KW_LIB_DIR/deploy.sh"
 
-        kernel_deploy '' "$@"
+        deploy_main '' "$@"
         local ret="$?"
         alert_completion 'kw deploy' "$1"
         return "$ret"
