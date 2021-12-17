@@ -53,7 +53,7 @@ declare -gA options_values
 # welcome).
 #
 # Note: This function relies on the parameters set in the config file.
-function kernel_deploy()
+function deploy_main()
 {
   local build_and_deploy="$1"
   local reboot=0
@@ -171,141 +171,6 @@ function kernel_deploy()
 
   #shellcheck disable=SC2119
   cleanup
-}
-
-# This function gets raw data and based on that fill out the options values to
-# be used in another function.
-#
-# @raw_options String with all user options
-#
-# Return:
-# In case of successful return 0, otherwise, return 22.
-#
-function parse_deploy_options()
-{
-  local enable_collect_param=0
-  local remote
-  local options
-  local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
-  long_options+=',list-all,force'
-  local short_options='r,m,l,s,u:,a,f'
-
-  options="$(kw_parse "$short_options" "$long_options" "$@")"
-
-  if [[ "$?" != 0 ]]; then
-    options_values['ERROR']="$(kw_parse_get_errors 'kw deploy' "$short_options" \
-      "$long_options" "$@")"
-    return 22 # EINVAL
-  fi
-
-  options_values['TEST_MODE']='SILENT'
-  options_values['UNINSTALL']=''
-  options_values['UNINSTALL_FORCE']=''
-  options_values['MODULES']=0
-  options_values['LS_LINE']=0
-  options_values['LS']=0
-  options_values['REBOOT']=0
-  options_values['MENU_CONFIG']='nconfig'
-  options_values['LS_ALL']=''
-
-  remote_parameters['REMOTE_IP']=''
-  remote_parameters['REMOTE_PORT']=''
-  remote_parameters['REMOTE_USER']=''
-
-  # Set basic default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    local config_file_deploy_target=${configurations[default_deploy_target]}
-    options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
-  else
-    options_values['TARGET']="$VM_TARGET"
-  fi
-
-  populate_remote_info ''
-  if [[ "$?" == 22 ]]; then
-    options_values['ERROR']="Invalid remote: $remote"
-    return 22 # EINVAL
-  fi
-
-  if [[ ${configurations[reboot_after_deploy]} == 'yes' ]]; then
-    options_values['REBOOT']=1
-  fi
-
-  eval "set -- $options"
-
-  while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-      --remote)
-        options_values['TARGET']="$REMOTE_TARGET"
-        populate_remote_info "$2"
-        if [[ "$?" == 22 ]]; then
-          options_values['ERROR']="Invalid remote: $2"
-          return 22 # EINVAL
-        fi
-        shift 2
-        ;;
-      --local)
-        options_values['TARGET']="$LOCAL_TARGET"
-        shift
-        ;;
-      --vm)
-        options_values['TARGET']="$VM_TARGET"
-        shift
-        ;;
-      --reboot | -r)
-        options_values['REBOOT']=1
-        shift
-        ;;
-      --modules | -m)
-        options_values['MODULES']=1
-        shift
-        ;;
-      --list | -l)
-        options_values['LS']=1
-        shift
-        ;;
-      --list-all | -a)
-        options_values['LS_ALL']=1
-        shift
-        ;;
-      --ls-line | -s)
-        options_values['LS_LINE']=1
-        shift
-        ;;
-      --uninstall | -u)
-        if [[ "$2" =~ ^-- ]]; then
-          options_values['ERROR']='Uninstall requires a kernel name'
-          return 22 # EINVAL
-        fi
-        options_values['UNINSTALL']+="$2"
-        shift 2
-        ;;
-      --force | -f)
-        options_values['UNINSTALL_FORCE']=1
-        shift
-        ;;
-      --) # End of options, beginning of arguments
-        shift
-        ;;
-      TEST_MODE)
-        options_values['TEST_MODE']='TEST_MODE'
-        shift
-        ;;
-      *)
-        options_values['ERROR']="Unrecognized argument: $1"
-        return 22 # EINVAL
-        shift
-        ;;
-    esac
-  done
-
-  case "${options_values['TARGET']}" in
-    1 | 2 | 3) ;;
-
-    *)
-      options_values['ERROR']="Invalid target value: ${options_values['TARGET']}"
-      return 22 # EINVAL
-      ;;
-  esac
 }
 
 # Kw can deploy a new kernel image or modules (or both) in a target machine
@@ -726,6 +591,141 @@ function run_kernel_install()
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
       local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $cmd_parameters"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      ;;
+  esac
+}
+
+# This function gets raw data and based on that fill out the options values to
+# be used in another function.
+#
+# @raw_options String with all user options
+#
+# Return:
+# In case of successful return 0, otherwise, return 22.
+#
+function parse_deploy_options()
+{
+  local enable_collect_param=0
+  local remote
+  local options
+  local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
+  long_options+=',list-all,force'
+  local short_options='r,m,l,s,u:,a,f'
+
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw deploy' "$short_options" \
+      "$long_options" "$@")"
+    return 22 # EINVAL
+  fi
+
+  options_values['TEST_MODE']='SILENT'
+  options_values['UNINSTALL']=''
+  options_values['UNINSTALL_FORCE']=''
+  options_values['MODULES']=0
+  options_values['LS_LINE']=0
+  options_values['LS']=0
+  options_values['REBOOT']=0
+  options_values['MENU_CONFIG']='nconfig'
+  options_values['LS_ALL']=''
+
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_USER']=''
+
+  # Set basic default values
+  if [[ -n ${configurations[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${configurations[default_deploy_target]}
+    options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
+  else
+    options_values['TARGET']="$VM_TARGET"
+  fi
+
+  populate_remote_info ''
+  if [[ "$?" == 22 ]]; then
+    options_values['ERROR']="Invalid remote: $remote"
+    return 22 # EINVAL
+  fi
+
+  if [[ ${configurations[reboot_after_deploy]} == 'yes' ]]; then
+    options_values['REBOOT']=1
+  fi
+
+  eval "set -- $options"
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --remote)
+        options_values['TARGET']="$REMOTE_TARGET"
+        populate_remote_info "$2"
+        if [[ "$?" == 22 ]]; then
+          options_values['ERROR']="Invalid remote: $2"
+          return 22 # EINVAL
+        fi
+        shift 2
+        ;;
+      --local)
+        options_values['TARGET']="$LOCAL_TARGET"
+        shift
+        ;;
+      --vm)
+        options_values['TARGET']="$VM_TARGET"
+        shift
+        ;;
+      --reboot | -r)
+        options_values['REBOOT']=1
+        shift
+        ;;
+      --modules | -m)
+        options_values['MODULES']=1
+        shift
+        ;;
+      --list | -l)
+        options_values['LS']=1
+        shift
+        ;;
+      --list-all | -a)
+        options_values['LS_ALL']=1
+        shift
+        ;;
+      --ls-line | -s)
+        options_values['LS_LINE']=1
+        shift
+        ;;
+      --uninstall | -u)
+        if [[ "$2" =~ ^-- ]]; then
+          options_values['ERROR']='Uninstall requires a kernel name'
+          return 22 # EINVAL
+        fi
+        options_values['UNINSTALL']+="$2"
+        shift 2
+        ;;
+      --force | -f)
+        options_values['UNINSTALL_FORCE']=1
+        shift
+        ;;
+      --) # End of options, beginning of arguments
+        shift
+        ;;
+      TEST_MODE)
+        options_values['TEST_MODE']='TEST_MODE'
+        shift
+        ;;
+      *)
+        options_values['ERROR']="Unrecognized argument: $1"
+        return 22 # EINVAL
+        shift
+        ;;
+    esac
+  done
+
+  case "${options_values['TARGET']}" in
+    1 | 2 | 3) ;;
+
+    *)
+      options_values['ERROR']="Invalid target value: ${options_values['TARGET']}"
+      return 22 # EINVAL
       ;;
   esac
 }
