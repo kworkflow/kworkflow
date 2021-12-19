@@ -161,7 +161,7 @@ function day_statistics()
   fi
 
   # Check if the day file is empty
-  data=$(cat "$day_path")
+  data=$(< "$day_path")
   if [[ -z "$data" ]]; then
     say 'There is no data in the kw records'
     return 0
@@ -189,7 +189,7 @@ function week_statistics()
     day=$(date --date="${first} +${i} day" +%Y/%m/%d)
     [[ ! -f "$KW_DATA_DIR/statistics/$day" ]] && continue
 
-    all_file_data=$(cat "$KW_DATA_DIR/statistics/$day")
+    all_file_data=$(< "$KW_DATA_DIR/statistics/$day")
     [[ -z "$all_file_data" ]] && continue
 
     all_data="${all_data}${all_file_data}"$'\n'
@@ -222,7 +222,7 @@ function month_statistics()
   cd "$month_path" || exit_msg 'It was not possible to move to month dir'
   shopt -s nullglob
   for day in *; do
-    all_file_data=$(cat "$day")
+    all_file_data=$(< "$day")
     [[ -z "$all_file_data" ]] && continue
 
     all_data="${all_data}${all_file_data}"$'\n'
@@ -257,7 +257,7 @@ function year_statistics()
   for day_full_path in $all_year_file; do
     [[ -d "$day_full_path" ]] && continue
 
-    all_file_data=$(cat "$day_full_path")
+    all_file_data=$(< "$day_full_path")
     [[ -z "$all_file_data" ]] && continue
 
     all_data="${all_data}${all_file_data}"$'\n'

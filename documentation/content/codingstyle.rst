@@ -191,6 +191,10 @@ We prefer `$( ... )` for command substitution; unlike \`\`, it properly nests.
 It should have been the way Bourne spelled it from day one, but unfortunately
 isn't.
 
+When using command substitution to access the contents of a file the cat
+command (``$(cat <file>)``) can be replaced with a < which is equivalent but
+faster (``$(< <file>)``). E.g.: ``$(cat "$file") => $(< "$file")``
+
 For arithmetic expansion we use `$(( ... ))`.
 
 Check for command
