@@ -191,6 +191,9 @@ We prefer `$( ... )` for command substitution; unlike \`\`, it properly nests.
 It should have been the way Bourne spelled it from day one, but unfortunately
 isn't.
 
+The command substitution ``$(cat <file>)`` should be replaced by the equivalent
+but faster ``$(< <file>)``.
+
 For arithmetic expansion we use `$(( ... ))`.
 
 Check for command

@@ -459,7 +459,7 @@ function list_configs()
   for filename in "$dot_configs_dir/$metadata_dir"/*; do
     [[ ! -f "$filename" ]] && continue
     name=$(basename "$filename")
-    content=$(cat "$filename")
+    content=$(< "$filename")
     printf '%-30s | %-30s\n' "$name" "$content"
   done
 }

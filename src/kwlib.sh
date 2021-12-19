@@ -217,7 +217,7 @@ function is_a_patch()
     return 1
   fi
 
-  file_content=$(cat "$FILE_PATH")
+  file_content=$(< "$FILE_PATH")
 
   # The following array stores strings that are expected to be present
   # in a patch file. The absence of any of these strings makes the
