@@ -23,7 +23,8 @@ include "$KW_LIB_DIR/signal_manager.sh"
 # To make the deploy to a remote machine straightforward, we create a directory
 # on the host that will be used for centralizing files required for the new
 # deploy.
-REMOTE_KW_DEPLOY='/root/kw_deploy'
+REMOTE_KW_DEPLOY='/opt/kw'
+KW_DEPLOY_TMP_FILE='/tmp/kw'
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
@@ -68,6 +69,7 @@ function deploy_main()
   local ret=0
   local list_all
   local flag
+  local modules_install_status
 
   # Drop build_and_deploy flag
   shift
@@ -148,8 +150,14 @@ function deploy_main()
   # it, but for now this looks the safe option.
   start=$(date +%s)
   modules_install '' "$target"
+  modules_install_status="$?"
   end=$(date +%s)
   runtime=$((end - start))
+
+  if [[ "$modules_install_status" != 0 ]]; then
+    complain 'Something went wrong during the installation of the modules.'
+    exit "$modules_install_status"
+  fi
 
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
@@ -171,6 +179,15 @@ function deploy_main()
 
   #shellcheck disable=SC2119
   cleanup
+}
+
+# We can include plugin scripts when dealing with local or VM deploy, which
+# will override some path variables. Since this will be a common task, this
+# function is intended to centralize these required updates.
+function update_deploy_variables()
+{
+  kw_path="$REMOTE_KW_DEPLOY"
+  kw_tmp_files="$KW_DEPLOY_TMP_FILE"
 }
 
 # Kw can deploy a new kernel image or modules (or both) in a target machine
@@ -234,6 +251,9 @@ function prepare_remote_dir()
   # not exits
   cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" \
     '--archive' "$remote" "$port" "$user"
+
+  # Create temporary folder
+  cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag" "$remote" "$port" "$user"
 }
 
 # This function list all the available kernels in a VM, local, and remote
@@ -272,16 +292,19 @@ function run_list_installed_kernels()
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line" "${configurations[mount_point]}" "$all"
+      list_installed_kernels "$single_line" "$all" "${configurations[mount_point]}"
 
       vm_umount
       ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line" '' "$all"
+      list_installed_kernels "$single_line" "$all"
       ;;
     3) # REMOTE_TARGET
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --list_kernels '$flag' '$single_line' '' '$all'"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      cmd+=" --list-kernels $flag $single_line $all"
+
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
       user="${remote_parameters['REMOTE_USER']}"
@@ -334,6 +357,9 @@ function run_kernel_uninstall()
       # We need to update grub, for this reason we to load specific scripts.
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      # Let's ensure that we are using the right variables
+      update_deploy_variables
+
       # TODO: Rename kernel_uninstall in the plugin, this name is super
       # confusing
       kernel_uninstall '' "$reboot" 'local' "$kernels_target" "$flag" "$force"
@@ -347,8 +373,9 @@ function run_kernel_uninstall()
       # TODO
       # It would be better if `cmd_remotely` handle the extra space added by
       # line break with `\`; this may allow us to break a huge line like this.
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --uninstall_kernel '$reboot' remote '$kernels_target' '$flag' '$force'"
-
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      cmd+=" --uninstall-kernels '$reboot' 'remote' '$kernels_target' '$flag' '$force'"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
@@ -424,10 +451,12 @@ function modules_install()
         "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" '' "$release" "$flag"
 
       local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
-      cp2remote "$flag" "$tarball_for_deploy_path" "$REMOTE_KW_DEPLOY"
+      cp2remote "$flag" "$tarball_for_deploy_path" "$KW_DEPLOY_TMP_FILE"
 
       # 3. Deploy: Execute script
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --modules $release.tar"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      cmd+=" --modules $release.tar"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
@@ -522,13 +551,15 @@ function run_kernel_install()
 
       # Copy .config
       if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
-        cp "$PWD/.config" "${configurations[mount_point]}/boot/config-$name"
+        sudo cp "$PWD/.config" "${configurations[mount_point]}/boot/config-$name"
       else
         complain 'Undefined .config file for the target kernel. Consider using kw bd'
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+      update_deploy_variables # Make sure we use the right variable values
+
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
       ;;
@@ -555,6 +586,8 @@ function run_kernel_install()
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+      update_deploy_variables # Ensure that we are using the right variable
+
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
       ;;
@@ -574,11 +607,11 @@ function run_kernel_install()
           sed -i "s/NAME/$name/g" "$preset_file"
         fi
         cp2remote "$flag" \
-          "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" "$REMOTE_KW_DEPLOY"
+          "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" "$KW_DEPLOY_TMP_FILE"
       fi
 
       cp2remote "$flag" \
-        "arch/$arch_target/boot/$kernel_img_name" "$REMOTE_KW_DEPLOY/vmlinuz-$name"
+        "arch/$arch_target/boot/$kernel_img_name" "$KW_DEPLOY_TMP_FILE/vmlinuz-$name"
 
       # Copy .config
       if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
@@ -589,7 +622,10 @@ function run_kernel_install()
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $cmd_parameters"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      cmd+=" --kernel-update $cmd_parameters"
+
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac

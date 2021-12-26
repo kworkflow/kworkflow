@@ -8,8 +8,8 @@ declare -r TEST_ROOT_PATH="$PWD"
 
 function oneTimeSetUp()
 {
-  declare -g REMOTE_KW_DEPLOY="$PWD/tests/samples"
-  declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+  declare -g kw_path="$PWD/tests/samples"
+  declare -g INSTALLED_KERNELS_PATH="$kw_path/INSTALLED_KERNELS"
 
   # Mocking the sudo function
   function sudo()
@@ -17,6 +17,12 @@ function oneTimeSetUp()
     eval "$*"
   }
   export -f sudo
+
+  function grub-mkconfig()
+  {
+    printf '%s'
+  }
+  export -f grub-mkconfig
 }
 
 function oneTimeTearDown()
@@ -30,8 +36,14 @@ function setUp()
 
   # Creating fake installed kernels
   touch "$INSTALLED_KERNELS_PATH"
-  echo '5.5.0-rc2-VKMS+' >> "$INSTALLED_KERNELS_PATH"
-  echo '5.6.0-rc2-AMDGPU+' >> "$INSTALLED_KERNELS_PATH"
+  printf '5.5.0-rc2-VKMS+' >> "$INSTALLED_KERNELS_PATH"
+  printf '5.6.0-rc2-AMDGPU+' >> "$INSTALLED_KERNELS_PATH"
+
+  # Replace kw_tmp_files
+  test_tmp_file="$SHUNIT_TMPDIR/tmp/kw"
+  kw_path="$SHUNIT_TMPDIR/opt/kw"
+  kw_tmp_files="$test_tmp_file"
+  mkdir -p "$test_tmp_file"
 }
 
 function tearDown()
@@ -50,7 +62,7 @@ function test_cmd_manager()
 function test_human_list_installed_kernels()
 {
   declare -a expected_out=(
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
+    "sudo mkdir -p $kw_path"
     "sudo touch $INSTALLED_KERNELS_PATH"
     '5.5.0-rc2-VKMS+'
     '5.6.0-rc2-AMDGPU+'
@@ -59,21 +71,21 @@ function test_human_list_installed_kernels()
 
   printf '%s\n' "${expected_out[@]:2}" > "$INSTALLED_KERNELS_PATH"
 
-  output=$(list_installed_kernels 'TEST_MODE' '0' "$SHUNIT_TMPDIR")
+  output=$(list_installed_kernels 'TEST_MODE' '0' '' "$SHUNIT_TMPDIR")
   compare_command_sequence 'expected_out' "$output" "$LINENO"
 }
 
 function test_command_list_installed_kernels()
 {
   declare -a expected_out=(
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
+    "sudo mkdir -p $kw_path"
     "sudo touch $INSTALLED_KERNELS_PATH"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
   printf '%s\n' "${expected_out[-1]/,/$'\n'}" > "$INSTALLED_KERNELS_PATH"
 
-  output=$(list_installed_kernels 'TEST_MODE' '1' "$SHUNIT_TMPDIR")
+  output=$(list_installed_kernels 'TEST_MODE' '1' '' "$SHUNIT_TMPDIR")
   compare_command_sequence 'expected_out' "$output" "$LINENO"
 }
 
@@ -86,13 +98,13 @@ function test_list_unmanaged_kernels()
   printf '%s' '' > "$INSTALLED_KERNELS_PATH"
 
   expected=(
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
+    "sudo mkdir -p $kw_path"
     "sudo touch $INSTALLED_KERNELS_PATH"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
   # arguments: $flag $single_line $prefix $all
-  output=$(list_installed_kernels 'TEST_MODE' '1' "$SHUNIT_TMPDIR" '1')
+  output=$(list_installed_kernels 'TEST_MODE' '1' '1' "$SHUNIT_TMPDIR")
   compare_command_sequence 'expected' "$output" "($LINENO)"
 
   rm -rf "$SHUNIT_TMPDIR/boot/grub"
@@ -135,7 +147,7 @@ function test_kernel_uninstall_unmanaged()
 
   expected=(
     '' # TODO: Figure out why we have these extra spaces here
-    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo mkdir -p $kw_path"
     ''
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     ''
@@ -173,7 +185,7 @@ function test_kernel_force_uninstall_unmanaged()
   }
 
   local -a cmd_sequence=(
-    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo mkdir -p $kw_path"
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     "sudo grep -q 'xpto' '$INSTALLED_KERNELS_PATH'"
     "Removing: $target"
@@ -214,7 +226,7 @@ function test_remove_managed_kernel()
 
   local -a cmd_sequence=(
     '' # TODO: Figure out why we have these extra spaces here
-    "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+    "sudo mkdir -p $kw_path"
     ''
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     ''
@@ -328,8 +340,17 @@ function test_install_modules()
   local cmd
 
   output=$(install_modules "$module_target" 'TEST_MODE')
-  cmd="tar -C /lib/modules -xf $module_target"
+  assert_equals_helper 'We did not find required files' "$LINENO" "$?" 2
+
+  cd "$test_tmp_file"
+
+  touch "$module_target"
+
+  output=$(install_modules "$module_target" 'TEST_MODE')
+  cmd="tar -C /lib/modules -xf $kw_tmp_files/$module_target"
   assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
+
+  cd "$TEST_ROOT_PATH"
 }
 
 function test_vm_update_boot_loader_debian()
@@ -444,7 +465,7 @@ function test_install_kernel_remote()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "cp -v vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+    "cp -v $kw_tmp_files/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'update_debian_boot_loader_mock'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"

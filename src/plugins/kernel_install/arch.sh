@@ -41,7 +41,7 @@ function generate_arch_temporary_root_file_system()
     cmd="$sudo_cmd sed -i -e 's/NAME/$name/g' '$path_prefix/etc/mkinitcpio.d/$name.preset'"
     cmd_manager "$flag" "$cmd"
   else
-    cmd="cp -v $name.preset $path_prefix/etc/mkinitcpio.d/"
+    cmd="cp -v $kw_tmp_files/$name.preset $path_prefix/etc/mkinitcpio.d/"
     cmd_manager "$flag" "$cmd"
   fi
 
