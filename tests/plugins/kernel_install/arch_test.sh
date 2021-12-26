@@ -47,7 +47,7 @@ function test_generate_arch_temporary_root_file_system()
 
   # Remote
   declare -a cmd_sequence=(
-    "cp -v $name.preset $path_prefix/etc/mkinitcpio.d/"
+    "cp -v $kw_tmp_files/$name.preset $path_prefix/etc/mkinitcpio.d/"
     "mkinitcpio -p $name"
   )
 

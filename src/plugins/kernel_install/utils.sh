@@ -1,5 +1,6 @@
-declare -g REMOTE_KW_DEPLOY='/root/kw_deploy'
-declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+declare -g kw_path='/opt/kw'
+declare -g kw_tmp_files='/tmp/kw'
+declare -g INSTALLED_KERNELS_PATH="$kw_path/INSTALLED_KERNELS"
 
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
@@ -57,12 +58,12 @@ function list_installed_kernels()
 {
   local flag="$1"
   local single_line="$2"
-  local prefix="$3"
-  local all="$4"
+  local all="$3"
+  local prefix="$4"
   local -a available_kernels=()
   local cmd
 
-  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
+  cmd_manager "$flag" "sudo mkdir -p $kw_path"
   cmd_manager "$flag" "sudo touch $INSTALLED_KERNELS_PATH"
 
   if [[ -n "$all" ]]; then
@@ -145,15 +146,18 @@ function reboot_machine()
 
 function install_modules()
 {
-  local module_target="$1"
+  local module_name="$1"
   local flag="$2"
+  local modules_path
   local ret
 
-  if [[ -z "$module_target" ]]; then
-    module_target='*.tar'
+  modules_path="$kw_tmp_files/$module_name"
+
+  if [[ ! -f "$modules_path" ]]; then
+    return 2 # ENOENT
   fi
 
-  cmd_manager "$flag" "tar -C /lib/modules -xf $module_target"
+  cmd_manager "$flag" "tar -C /lib/modules -xf $modules_path"
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then
@@ -321,7 +325,7 @@ function kernel_uninstall()
   local prefix="$6"
   local update_grub=0
 
-  cmd_manager "$flag" "sudo mkdir -p '$REMOTE_KW_DEPLOY'"
+  cmd_manager "$flag" "sudo mkdir -p $kw_path"
   cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
 
   kernel=$(printf '%s' "$kernel" | tr --delete ' ')
@@ -407,7 +411,7 @@ function install_kernel()
     cmd="$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   else
-    cmd="$sudo_cmd cp -v vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+    cmd="$sudo_cmd cp -v $kw_tmp_files/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   fi
 
