@@ -29,7 +29,7 @@ action=''
 options_string=''
 
 long_options='kw-path:,kw-tmp-files:,modules,kernel-update,uninstall-kernels,'
-long_options+='list-kernels'
+long_options+='list-kernels,deploy-setup'
 options="$(getopt -o '' --longoptions "$long_options" -- "$@")"
 eval "set -- $options"
 
@@ -54,6 +54,11 @@ while true; do
       ;;
     --modules)
       action='modules'
+      shift 2
+      break
+      ;;
+    --deploy-setup)
+      action='deploy_setup'
       shift 2
       break
       ;;
@@ -92,8 +97,8 @@ if [[ ! -d "$kw_path" ]]; then
   exit 2 # ENOENT
 fi
 
-# At this point, it is safe to cd $kw_path
-# shellcheck disable=SC2164
+# It is safe to cd `$kw_path` due to the above check
+#shellcheck disable=SC2164
 cd "$kw_path"
 
 # Load specific distro script
@@ -124,6 +129,10 @@ case "$action" in
   'uninstall_kernels')
     # shellcheck disable=SC2068
     kernel_uninstall ${action_parameters[@]}
+    ;;
+  'deploy_setup')
+    # shellcheck disable=SC2068
+    distro_deploy_setup ${action_parameters[@]}
     ;;
   *)
     printf '%s\n' 'Unknown operation'

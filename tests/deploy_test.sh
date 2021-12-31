@@ -33,6 +33,11 @@ function root_id_mock()
   printf '%s\n' '0'
 }
 
+function date_mock()
+{
+  printf '12/31/2021-09:49:21\n'
+}
+
 function oneTimeSetUp()
 {
   function sudo()
@@ -88,6 +93,9 @@ function setUp()
   alias detect_distro='which_distro_mock'
   alias get_kernel_release='get_kernel_release_mock'
   alias get_kernel_version='get_kernel_version_mock'
+
+  # Global variable
+  REMOTE_KW_DEPLOY='/opt/kw'
 }
 
 function setupRemote()
@@ -115,6 +123,104 @@ function tearDown()
   configurations=()
 
   rm -rf "$FAKE_KERNEL"
+}
+
+function test_setup_remote_ssh_with_passwordless()
+{
+  local output
+  declare -a expected_cmd=(
+    '-> Trying to set up passwordless access'
+    '' # Extra line due to \n in the say message
+    'ssh-copy-id root@127.0.0.1'
+    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 root@127.0.0.1 exit'
+    'ssh-copy-id juca@127.0.0.1'
+    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
+  )
+
+  output=$(setup_remote_ssh_with_passwordless 'TEST_MODE')
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+}
+
+function test_prepare_distro_for_deploy()
+{
+  local output
+  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
+  local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+  cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+  cmd+=" --deploy-setup TEST_MODE"
+
+  declare -a expected_cmd=(
+    '-> Basic distro set up'
+    '' # Extra space for the \n in the message
+    "$ssh_prefix \"$cmd\""
+  )
+
+  # Remote
+  output=$(prepare_distro_for_deploy 3 'TEST_MODE')
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Local - We need to force a specific distro
+  expected_cmd=()
+  alias detect_distro='detect_distro_mock'
+  output=$(prepare_distro_for_deploy 2 'TEST_MODE')
+  expected_cmd=(
+    '-> Basic distro set up'
+    '' # Extra space for the \n
+    'yes | pacman -Syu rsync screen'
+  )
+
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+}
+
+function test_update_status_log()
+{
+  local output
+  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
+  local log_date
+  local cmd
+  local expected_data
+
+  # Remote
+  alias date='date_mock'
+  log_date=$(date)
+  cmd="\"printf '%s;%s\n' '3' '$log_date' >> $REMOTE_KW_DEPLOY/status\""
+  output=$(update_status_log 3 'TEST_MODE')
+
+  assert_equals_helper 'Status file remote' "$LINENO" "$ssh_prefix $cmd" "$output"
+
+  # Local/VM
+  REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR"
+  update_status_log 1
+  output=$(cat "$SHUNIT_TMPDIR/status")
+  expected_data='1;12/31/2021-09:49:21'
+
+  assert_equals_helper 'Status file data' "$LINENO" "$expected_data" "$output"
+}
+
+function test_check_setup_status()
+{
+  local output
+  local expected_cmd
+  local cmd_check="test -f $REMOTE_KW_DEPLOY/status"
+  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
+
+  # Remote
+  output=$(check_setup_status 3 'TEST_MODE')
+  expected_cmd="$ssh_prefix \"$cmd_check\""
+  assert_equals_helper 'Status remote check' "$LINENO" "$expected_cmd" "$output"
+
+  # Local
+  REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR"
+  rm "$REMOTE_KW_DEPLOY/status"
+
+  # 1. Fail case
+  check_setup_status 1
+  assertEquals "($LINENO)" 2 "$?"
+
+  # 2. Success case
+  touch "$REMOTE_KW_DEPLOY/status"
+  check_setup_status 1
+  assertEquals "($LINENO)" 0 "$?"
 }
 
 function test_modules_install_to()
@@ -303,7 +409,6 @@ function test_kernel_install_x86_64()
   local deploy_params="test debian bzImage 1 x86_64 'remote' TEST_MODE"
   local deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kernel_update $deploy_params"
   local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
-
 
   deploy_cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
   deploy_cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
@@ -790,6 +895,7 @@ function test_prepare_remote_dir()
   local scripts_path="$KW_PLUGINS_DIR/kernel_install"
   local target_address="$user@$remote"
   local sync_files_cmd
+  local ssh_prefix="ssh -p $port $target_address sudo"
 
   sync_files_cmd="rsync -e 'ssh -p 2222' $scripts_path/$to_copy $target_address:$REMOTE_KW_DEPLOY $rsync_flags --archive"
 
@@ -798,7 +904,19 @@ function test_prepare_remote_dir()
     "ssh -p $port $user@$remote sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
   )
 
-  output=$(prepare_remote_dir "$remote" "$port" "$user" "$flag")
+  output=$(prepare_remote_dir "$remote" "$port" "$user" '' "$flag")
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # First deploy
+  expected_cmd=()
+  output=$(prepare_remote_dir "$remote" "$port" "$user" 1 "$flag")
+
+  declare -a expected_cmd=(
+    "$ssh_prefix \"mkdir -p $REMOTE_KW_DEPLOY\""
+    "scp -q $scripts_path/$to_copy $user@$remote:$REMOTE_KW_DEPLOY"
+    "$ssh_prefix \"mkdir -p $KW_DEPLOY_TMP_FILE\""
+  )
+
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 }
 

@@ -6,6 +6,15 @@
 #
 # Note: We use this script for Debian based distros
 
+# Debian package names
+declare -ag required_packages=(
+  'rsync'
+  'screen'
+)
+
+# Debian package manager command
+declare -g package_manager_cmd='apt-get install -y'
+
 # Update boot loader API
 function update_debian_boot_loader()
 {
