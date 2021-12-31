@@ -30,7 +30,7 @@ function _kw_autocomplete()
                        --history --disable --list --follow --reset --help'
 
   kw_options['deploy']='--force --list --list-all --local --ls-line --modules
-                        --reboot --remote --uninstall --vm'
+                        --reboot --remote --uninstall --vm --setup'
   kw_options['d']="${kw_options['deploy']}"
 
   kw_options['device']='--local --remote --vm'

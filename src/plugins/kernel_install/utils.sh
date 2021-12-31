@@ -36,6 +36,25 @@ function cmd_manager()
   eval "$@"
 }
 
+# This function is responsible for running a basic setup for the target machine
+# based on its specific distro. Notice that this function works as a generic
+# API that depends on the distro-specific file; for this reason, it is
+# mandatory to load the distro code before calling this function.
+#
+# Note: the array "required_packages" is in the distro specific file and
+# it must be load before invoke this function
+function distro_deploy_setup()
+{
+  local flag="$1"
+  local package_list
+  local install_package_cmd
+
+  printf -v package_list '%s ' "${required_packages[@]}"
+
+  install_package_cmd="$package_manager_cmd $package_list"
+  cmd_manager "$flag" "$install_package_cmd"
+}
+
 function ask_yN()
 {
   local message="$*"

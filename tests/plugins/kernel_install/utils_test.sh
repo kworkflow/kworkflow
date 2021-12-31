@@ -20,7 +20,7 @@ function oneTimeSetUp()
 
   function grub-mkconfig()
   {
-    printf '%s'
+    printf ''
   }
   export -f grub-mkconfig
 }
@@ -342,7 +342,10 @@ function test_install_modules()
   output=$(install_modules "$module_target" 'TEST_MODE')
   assert_equals_helper 'We did not find required files' "$LINENO" "$?" 2
 
-  cd "$test_tmp_file"
+  cd "$test_tmp_file" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   touch "$module_target"
 
@@ -350,7 +353,10 @@ function test_install_modules()
   cmd="tar -C /lib/modules -xf $kw_tmp_files/$module_target"
   assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
 
-  cd "$TEST_ROOT_PATH"
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 }
 
 function test_vm_update_boot_loader_debian()
@@ -544,6 +550,24 @@ function test_install_kernel_vm()
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
+}
+
+function test_distro_deploy_setup()
+{
+  local output
+  local expected_cmd
+
+  package_manager_cmd='yes | some_package_manager'
+  required_packages=(
+    'abc'
+    'def'
+    'xpto'
+  )
+  output=$(distro_deploy_setup 'TEST_MODE')
+
+  expected_cmd="$package_manager_cmd ${required_packages[*]} "
+
+  assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
 }
 
 invoke_shunit

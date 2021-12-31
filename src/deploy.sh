@@ -68,6 +68,7 @@ function deploy_main()
   local runtime=0
   local ret=0
   local list_all
+  local setup
   local flag
   local modules_install_status
 
@@ -94,17 +95,30 @@ function deploy_main()
   list="${options_values['LS']}"
   uninstall="${options_values['UNINSTALL']}"
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
+  setup="${options_values['SETUP']}"
 
-  if [[ "$target" == "$REMOTE_TARGET" ]]; then
-    # Check connection before try to work with remote
-    is_ssh_connection_configured "$flag"
-    if [[ "$?" != 0 ]]; then
+  # Let's ensure that the target machine is ready for the deploy
+  deploy_setup "$target" "$flag"
+  ret="$?"
+  case "$ret" in
+    103) # ECONNABORTED
+      complain 'Something failed while kw tried to setup passwordless for root'
+      exit 103
+      ;;
+    101) # ENETUNREACH
+      complain 'It looks like kw successfully set up the ssh via root, but ' \
+        'we could not ssh to it for some unknown reason.'
       ssh_connection_failure_message
-      exit 101 # ENETUNREACH
-    fi
-    prepare_host_deploy_dir
-    #shellcheck disable=SC2119
-    prepare_remote_dir
+      exit 101
+      ;;
+  esac
+
+  prepare_host_deploy_dir
+
+  # If user request --setup, we don't need to do anything else
+  if [[ -n "$setup" ]]; then
+    [[ "$ret" == 0 ]] && success 'It looks like you are ready to use kw deploy.'
+    return "$?"
   fi
 
   if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
@@ -181,6 +195,212 @@ function deploy_main()
   cleanup
 }
 
+# This function is responsible for setting up the ssh key for users, including
+# the root user.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# If everything is alright, it returns 0, otherwise, it can return:
+# - 103: ssh-copy-id failed
+# - 101: ssh to the target machine failed
+function setup_remote_ssh_with_passwordless()
+{
+  local flag="$1"
+  local remote="${remote_parameters['REMOTE_IP']}"
+  local port="${remote_parameters['REMOTE_PORT']}"
+  local copy_key_cmd="ssh-copy-id $user@$remote"
+  local users="root ${remote_parameters['REMOTE_USER']}"
+  local root_user_setup=0
+
+  flag=${flag:-'SILENT'}
+
+  say '-> Trying to set up passwordless access'$'\n'
+
+  for user in $users; do
+    # Just avoid setup root twice
+    [[ "$user" == 'root' && "$root_user_setup" == 1 ]] && continue
+    [[ "$user" == 'root' ]] && ((root_user_setup++))
+
+    # Try to copy-ssh-id
+    copy_key_cmd="ssh-copy-id $user@$remote"
+    cmd_manager "$flag" "$copy_key_cmd"
+    [[ "$?" != 0 ]] && return 103 # ECONNABORTED
+
+    # Check if we can connect without password
+    is_ssh_connection_configured "$flag" "$remote" "$port" "$user"
+    if [[ "$?" != 0 ]]; then
+      return 101 # ENETUNREACH
+    fi
+  done
+}
+
+# Every distro family has its specific idiosyncrasy; for this reason, in the
+# plugin folder, we have a code per distro supported by kw. This function is
+# the entry point to call the specific code for the target distro.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function prepare_distro_for_deploy()
+{
+  local target="$1"
+  local flag="$2"
+  local distro
+  local distro_info
+
+  flag=${flag:-'SILENT'}
+
+  say '-> Basic distro set up'$'\n'
+
+  case "$target" in
+    1) # VM_TARGET
+      printf 'TODO: VM: prepare_distro_for_deploy requires implementation\n'
+      printf 'You might want to consider the remote option for your VM\n'
+      ;;
+    2) # LOCAL_TARGET
+      distro=$(detect_distro '/')
+      # Distro must be loaded first to ensure the right variables
+      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+
+      distro_deploy_setup "$flag"
+      ;;
+    3) # REMOTE_TARGET
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+      local user="${remote_parameters['REMOTE_USER']}"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+
+      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      cmd+=" --deploy-setup $flag"
+
+      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      ;;
+  esac
+}
+
+# We want to avoid setting up the same thing repeatedly; for this reason, kw
+# creates a log status file at the end of the setup. This function generates
+# the status file with the target code, date, and time information.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function update_status_log()
+{
+  local target="$1"
+  local flag="$2"
+  local log_date=''
+  local status_cmd=''
+
+  flag=${flag:-'SILENT'}
+
+  log_date=$(date +'%m/%d/%Y-%H:%M:%S')
+  status_cmd="printf '%s;%s\n' '$target' '$log_date' >> $REMOTE_KW_DEPLOY/status"
+
+  case "$target" in
+    1 | 2) # VM and LOCAL_TARGET
+      cmd_manager "$flag" "$status_cmd"
+      ;;
+    3) # REMOTE_TARGET
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+
+      cmd_remotely "$status_cmd" "$flag" "$remote" "$port"
+      ;;
+  esac
+}
+
+# This function is responsible for checking the latest status for the deploy
+# setup. If it was already done, this function returns 0; otherwise, it will
+# return another value that expresses the necessity of setting up the target
+# machine.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Return 0 if the setup was done before, or 2 if not.
+function check_setup_status()
+{
+  local target="$1"
+  local flag="$2"
+  local cmd="test -f $REMOTE_KW_DEPLOY/status"
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  case "$target" in
+    1 | 2) # VM and LOCAL target
+      cmd_manager "$flag" "$cmd"
+      ret="$?"
+      ;;
+    3) # REMOTE_TARGET
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+
+      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      ret="$?"
+      ;;
+  esac
+
+  if [[ "$ret" != 0 ]]; then
+    return 2 # ENOENT
+  fi
+}
+
+# This is the core of setting up a target machine to ensure it is ready for
+# deploy. In a few words, this function will invoke ssh configuration, remote
+# folder setup, distro-specific code, and update setup log. Notice that this
+# function checks if the target machine needs to be set up or not.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Return 0 in case of success, otherwise, it return a code error
+function deploy_setup()
+{
+  local target="$1"
+  local flag="$2"
+  # BatchMode ensure that the ssh fail if passwordless is not enabled
+  local check_ssh='ssh -q -o BatchMode=yes '
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  # If it is a remote, let's try to setup passwordless
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    is_ssh_connection_configured "$flag"
+    if [[ "$?" != 0 ]]; then
+      setup_remote_ssh_with_passwordless "$flag"
+      ret="$?"
+      [[ "$?" != 0 ]] && return "$ret"
+    fi
+  fi
+
+  check_setup_status "$target" "$flag"
+  if [[ "$?" == 0 ]]; then
+    # We are good, there is no reason to setup anything else
+    return 0
+  fi
+
+  # First setup cannot rely on rsync
+  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+    prepare_remote_dir '' '' '' 1 # This only make sense in the remote
+  fi
+
+  # Distro specific scripts
+  prepare_distro_for_deploy "$target" "$flag"
+
+  # Update status log
+  update_status_log "$target" "$flag"
+}
+
 # We can include plugin scripts when dealing with local or VM deploy, which
 # will override some path variables. Since this will be a common task, this
 # function is intended to centralize these required updates.
@@ -224,7 +444,8 @@ function prepare_remote_dir()
   local remote="${1:-${remote_parameters['REMOTE_IP']}}"
   local port="${2:-${remote_parameters['REMOTE_PORT']}}"
   local user="${3:-${remote_parameters['REMOTE_USER']}}"
-  local flag="$4"
+  local first_deploy="$4"
+  local flag="$5"
   local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
   local distro_info=''
   local distro=''
@@ -249,8 +470,14 @@ function prepare_remote_dir()
   # Send required scripts for running the deploy inside the target machine
   # Note: --archive will force the creation of /root/kw_deploy in case it does
   # not exits
-  cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" \
-    '--archive' "$remote" "$port" "$user"
+  if [[ -z "$first_deploy" ]]; then
+    cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" \
+      '--archive' "$remote" "$port" "$user"
+  else
+    cmd_remotely "mkdir -p $REMOTE_KW_DEPLOY" "$flag" "$remote" "$port" "$user"
+    cmd="scp -q $files_to_send $user@$remote:$REMOTE_KW_DEPLOY"
+    cmd_manager "$flag" "$cmd"
+  fi
 
   # Create temporary folder
   cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag" "$remote" "$port" "$user"
@@ -645,7 +872,7 @@ function parse_deploy_options()
   local remote
   local options
   local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
-  long_options+=',list-all,force'
+  long_options+=',list-all,force,setup'
   local short_options='r,m,l,s,u:,a,f'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -665,6 +892,7 @@ function parse_deploy_options()
   options_values['REBOOT']=0
   options_values['MENU_CONFIG']='nconfig'
   options_values['LS_ALL']=''
+  options_values['SETUP']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -729,6 +957,10 @@ function parse_deploy_options()
         options_values['LS_LINE']=1
         shift
         ;;
+      --setup)
+        options_values['SETUP']=1
+        shift
+        ;;
       --uninstall | -u)
         if [[ "$2" =~ ^-- ]]; then
           options_values['ERROR']='Uninstall requires a kernel name'
@@ -777,6 +1009,7 @@ function deploy_help()
     '  deploy - installs kernel and modules:' \
     '  deploy (--remote <remote>:<port> | --local | --vm) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
+    '  deploy (--setup) - Set up target machine for deploy' \
     '  deploy (--modules | -m) - install only modules' \
     '  deploy (--uninstall | -u) [(--force | -f)] <kernel-name>,... - uninstall given kernels' \
     '  deploy (--list | -l) - list kernels' \

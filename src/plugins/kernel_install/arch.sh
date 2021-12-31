@@ -5,6 +5,15 @@
 #
 # Note: We use this script for ArchLinux and Manjaro
 
+# ArchLinux package names
+declare -ga required_packages=(
+  'rsync'
+  'screen'
+)
+
+# ArchLinux package manager
+declare -g package_manager_cmd='yes | pacman -Syu'
+
 # Make initcpio and update grub on VM using Guestfish
 
 # Update boot loader API
@@ -46,6 +55,10 @@ function generate_arch_temporary_root_file_system()
   fi
 
   if [[ "$target" != 'vm' ]]; then
+    # Update depmod
+    cmd="$sudo_cmd depmod -a $name"
+    cmd_manager "$flag" "$cmd"
+
     # Update mkinitcpio
     cmd="$sudo_cmd mkinitcpio -p $name"
     cmd_manager "$flag" "$cmd"

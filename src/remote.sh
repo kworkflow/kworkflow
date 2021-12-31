@@ -31,7 +31,9 @@ function ssh_connection_failure_message
   complain " User: ${remote_parameters['REMOTE_IP']}"
   complain " User: ${remote_parameters['REMOTE_USER']}"
   complain " Port: ${remote_parameters['REMOTE_PORT']}"
-  complain 'Please ensure that the above info is correct and check if your public key is in the remote machine.'
+  complain 'Please ensure that the above info is correct.'
+  complain 'Suggestion: Check if your remote machine permits root login via ssh'
+  complain 'or check if your public key is in the remote machine.'
 }
 
 # This function is responsible for executing a command in a remote machine.
