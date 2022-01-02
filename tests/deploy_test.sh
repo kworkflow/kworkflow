@@ -890,7 +890,7 @@ function test_prepare_remote_dir()
   local user='root'
   local port='2222'
   local flag='TEST_MODE'
-  local to_copy="{remote_deploy.sh,utils.sh,debian.sh}"
+  local to_copy="{remote_deploy.sh,utils.sh,debian.sh,bootloader_utils.sh}"
   local rsync_flags="-LrlptD --rsync-path='sudo rsync'"
   local scripts_path="$KW_PLUGINS_DIR/kernel_install"
   local target_address="$user@$remote"
