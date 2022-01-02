@@ -36,6 +36,29 @@ function cmd_manager()
   eval "$@"
 }
 
+function collect_deploy_info()
+{
+  local flag="$1"
+  local target="$2"
+  local prefix="$3"
+  local distro
+  local bootloader
+
+  # Let's include the bootloader_utils in the remote, and local/vm should
+  # include themselves
+  [[ "$target" == 3 ]] && . 'bootloader_utils.sh' --source-only
+
+  bootloader=$(identify_bootloader_from_files "$prefix")
+  bootloader="[bootloader]=$bootloader"
+
+  # Get distro
+  distro=$(cat /etc/*-release | grep -w ID | cut -d = -f 2)
+  distro="[distro]=$distro"
+
+  # Build associative array data
+  printf '%s' "$bootloader $distro"
+}
+
 # This function is responsible for running a basic setup for the target machine
 # based on its specific distro. Notice that this function works as a generic
 # API that depends on the distro-specific file; for this reason, it is

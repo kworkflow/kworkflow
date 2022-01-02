@@ -29,7 +29,7 @@ action=''
 options_string=''
 
 long_options='kw-path:,kw-tmp-files:,modules,kernel-update,uninstall-kernels,'
-long_options+='list-kernels,deploy-setup'
+long_options+='list-kernels,deploy-setup,collect-info'
 options="$(getopt -o '' --longoptions "$long_options" -- "$@")"
 eval "set -- $options"
 
@@ -74,6 +74,11 @@ while true; do
       ;;
     --uninstall-kernels)
       action='uninstall_kernels'
+      shift 2
+      break
+      ;;
+    --collect-info)
+      action='collect_info'
       shift 2
       break
       ;;
@@ -133,6 +138,10 @@ case "$action" in
   'deploy_setup')
     # shellcheck disable=SC2068
     distro_deploy_setup ${action_parameters[@]}
+    ;;
+  'collect_info')
+    # shellcheck disable=SC2068
+    collect_deploy_info ${action_parameters[@]}
     ;;
   *)
     printf '%s\n' 'Unknown operation'

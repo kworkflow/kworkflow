@@ -39,6 +39,10 @@ DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
 # Hash containing user options
 declare -gA options_values
 
+# Associative array that map deploy info
+# e.g., ['distro']='debian', ['bootloader']='grub'
+declare -gA target_deploy_info
+
 # From kw perspective, deploy a new kernel is composed of two steps: install
 # modules and update kernel image. I chose this approach for reducing the
 # chances of break the system due to modules and kernel mismatch. This function
@@ -120,6 +124,8 @@ function deploy_main()
     [[ "$ret" == 0 ]] && success 'It looks like you are ready to use kw deploy.'
     return "$?"
   fi
+
+  collect_target_info_for_deploy "$target" "$flag"
 
   if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
     say 'Available kernels:'
@@ -385,6 +391,7 @@ function deploy_setup()
 
   check_setup_status "$target" "$flag"
   if [[ "$?" == 0 ]]; then
+    [[ "$target" == "$REMOTE_TARGET" ]] && prepare_remote_dir # Update files
     # We are good, there is no reason to setup anything else
     return 0
   fi
@@ -465,7 +472,7 @@ function prepare_remote_dir()
   fi
 
   target_deploy_path=$(join_path "$target_deploy_path" "$distro.sh")
-  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh}"
+  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh,bootloader_utils.sh}"
 
   # Send required scripts for running the deploy inside the target machine
   # Note: --archive will force the creation of /root/kw_deploy in case it does
@@ -541,6 +548,60 @@ function run_list_installed_kernels()
   esac
 
   return 0
+}
+
+# Before we start the deploy, we need to collect some basic info to ensure the
+# correct deploy. The most important info is the target distro and the
+# bootloader type.
+#
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Populate target_deploy_info
+function collect_target_info_for_deploy()
+{
+  local target="$1"
+  local flag="$2"
+  local distro_info
+  local distro
+  local data
+
+  flag=${flag:-'SILENT'}
+
+  case "$target" in
+    1) # VM_TARGET
+      include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      data=$(collect_deploy_info "$flag" "$target" "${configurations[mount_point]}/")
+      ;;
+    2) # LOCAL_TARGET
+      include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      data=$(collect_deploy_info "$flag" "$target")
+      ;;
+    3) # REMOTE_TARGET
+      # Query bootload type
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+      local user="${remote_parameters['REMOTE_USER']}"
+      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      cmd+=" --collect-info $flag $target"
+
+      data=$(cmd_remotely "$cmd" "$flag" "$remote" "$port")
+      ;;
+  esac
+
+  # Populate associative array
+  declare -gA target_deploy_info="($data)"
+  distro=$(detect_distro '/' "${target_deploy_info['distro']}")
+
+  if [[ "$distro" =~ 'none' ]]; then
+    complain 'Unfortunately, there is no support for the target distro'
+    exit 95 # ENOTSUP
+  fi
 }
 
 # This function handles the kernel uninstall process for different targets.
