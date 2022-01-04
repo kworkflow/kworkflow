@@ -6,7 +6,7 @@ kw-mail
 
 SYNOPSIS
 ========
-| *kw mail* (-s | \--send) [\--simulate] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
+| *kw mail* (-s | \--send) [\--simulate] [\--private] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
 | *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
 | *kw mail* (-i | \--interactive) [\--local | \--global]
 | *kw mail* (-l | \--list)
@@ -54,6 +54,9 @@ OPTIONS
 \--simulate:
   Do everything without actually sending the e-mail. This is similar to
   ``git send-email``'s ``--dry-run`` option.
+
+\--private:
+  Supress auto generation of recipients.
 
 <rev-range>...:
   Specify the *<rev-range>* to be sent. The last commit is taken as the

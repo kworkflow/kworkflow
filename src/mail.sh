@@ -88,6 +88,7 @@ function mail_send()
   local commit_range="${options_values['COMMIT_RANGE']}"
   local version="${options_values['PATCH_VERSION']}"
   local extra_opts="${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
+  local private="${options_values['PRIVATE']}"
   local kernel_root
   local cmd='git send-email'
 
@@ -107,13 +108,14 @@ function mail_send()
 
   kernel_root="$(find_kernel_root "$PWD")"
   # if inside a kernel repo use get_maintainer to populate recipients
-  if [[ -n "$kernel_root" ]]; then
+  if [[ -z "$private" && -n "$kernel_root" ]]; then
     generate_kernel_recipients "$kernel_root" "$commit_range" "$version"
     cmd+=" --to-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} to'"
     cmd+=" --cc-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} cc'"
   fi
 
   [[ -n "$opts" ]] && cmd+=" $opts"
+  [[ -n "$private" ]] && cmd+=" $private"
   [[ -n "$extra_opts" ]] && cmd+=" $extra_opts"
 
   cmd_manager "$flag" "$cmd"
@@ -848,7 +850,7 @@ function parse_mail_options()
   local commit_count=''
   local short_options='s,t,f,v:,i,l,n,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
-  long_options+='template::,interactive,no-interactive,list,'
+  long_options+='template::,interactive,no-interactive,list,private,'
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -882,6 +884,7 @@ function parse_mail_options()
   options_values['PATCH_VERSION']=''
   options_values['PASS_OPTION_TO_SEND_EMAIL']=''
   options_values['COMMIT_RANGE']=''
+  options_values['PRIVATE']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -956,6 +959,10 @@ function parse_mail_options()
       --global)
         options_values['SCOPE']='global'
         options_values['CMD_SCOPE']='global'
+        shift
+        ;;
+      --private)
+        options_values['PRIVATE']='--suppress-cc=all'
         shift
         ;;
       --verify)
