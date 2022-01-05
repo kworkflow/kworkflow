@@ -38,6 +38,11 @@ function date_mock()
   printf '12/31/2021-09:49:21\n'
 }
 
+function collect_deploy_info_mock()
+{
+  printf '[bootloader]=GRUB [distro]=arch'
+}
+
 function oneTimeSetUp()
 {
   function sudo()
@@ -342,7 +347,6 @@ function test_kernel_archlinux_install()
   local name='test'
   local original="$PWD"
   local remote='juca@127.0.0.1'
-  local preset_path="$test_path/$LOCAL_TO_DEPLOY_DIR/test.preset"
   local kernel_image_path='arch/arm64/boot/Image'
   local kernel_image_remote_path="$KW_DEPLOY_TMP_FILE/vmlinuz-test"
   local ssh_cmd='ssh -p 3333'
@@ -358,17 +362,14 @@ function test_kernel_archlinux_install()
 
   # For this test we expected three steps:
   #
-  # 1. Copy preset file (cmd_preset_remote)
-  # 2. Copy kernel image (cmd_image_remote)
-  # 3. Execute deploy command (cmd_deploy_image)
+  # 1. Copy kernel image (cmd_image_remote)
+  # 2. Execute deploy command (cmd_deploy_image)
   #
   # The following commands represets those steps
-  local cmd_preset_remote="$rsync_cmd $preset_path $remote:/tmp/kw $rsync_flags"
   local cmd_image_remote="$rsync_cmd $kernel_image_path $remote:$kernel_image_remote_path $rsync_flags"
   local cmd_deploy_image="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
-    "$cmd_preset_remote"
     "$cmd_image_remote"
     "$config_warning"
     "$cmd_deploy_image"
@@ -612,6 +613,7 @@ function test_kernel_install_local()
     return
   }
 
+  alias collect_deploy_info='collect_deploy_info_mock'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
@@ -890,7 +892,7 @@ function test_prepare_remote_dir()
   local user='root'
   local port='2222'
   local flag='TEST_MODE'
-  local to_copy="{remote_deploy.sh,utils.sh,debian.sh,bootloader_utils.sh}"
+  local to_copy="{remote_deploy.sh,utils.sh,debian.sh,bootloader_utils.sh,grub.sh}"
   local rsync_flags="-LrlptD --rsync-path='sudo rsync'"
   local scripts_path="$KW_PLUGINS_DIR/kernel_install"
   local target_address="$user@$remote"

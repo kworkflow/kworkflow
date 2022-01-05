@@ -8,22 +8,14 @@
 function setUp()
 {
   mk_fake_boot "$SHUNIT_TMPDIR"
+
+  export kw_path='/fake/remote/path'
+  export KW_ETC_DIR='/fake/local/path'
 }
 
 function tearDown()
 {
   rm -rf "$SHUNIT_TMPDIR"
-}
-
-function test_update_arch_boot_loader()
-{
-  output=$(update_arch_boot_loader 'xpto' '' 'TEST_MODE')
-  cmd='grub-mkconfig -o /boot/grub/grub.cfg'
-  assert_equals_helper 'Check simple flow' "$LINENO" "$cmd" "$output"
-
-  output=$(update_arch_boot_loader 'xpto' 'local' 'TEST_MODE')
-  cmd='sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
-  assert_equals_helper 'Check local deploy' "$LINENO" "$cmd" "$output"
 }
 
 function test_generate_arch_temporary_root_file_system()
@@ -32,38 +24,39 @@ function test_generate_arch_temporary_root_file_system()
   local path_prefix=''
   local cmd=
   local sudo_cmd=''
-  local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
 
   # Local
   sudo_cmd='sudo -E'
   declare -a cmd_sequence=(
-    "$sudo_cmd cp -v $LOCAL_KW_ETC $path_prefix/etc/mkinitcpio.d/$name.preset"
-    "$sudo_cmd sed -i -e 's/NAME/$name/g' '$path_prefix/etc/mkinitcpio.d/$name.preset'"
-    "$sudo_cmd depmod -a $name"
-    "$sudo_cmd mkinitcpio -p $name"
+    "sudo -E bash -c \"sed 's/NAME/$name/g' '$KW_ETC_DIR/template_mkinitcpio.preset' > /etc/mkinitcpio.d/$name.preset\""
+    "$sudo_cmd depmod --all $name"
+    "$sudo_cmd mkinitcpio --preset $name"
   )
 
-  output=$(generate_arch_temporary_root_file_system "$name" 'local' 'TEST_MODE' '')
+  output=$(generate_arch_temporary_root_file_system "$name" 'local' 'TEST_MODE')
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # Remote
   declare -a cmd_sequence=(
-    "cp -v $kw_tmp_files/$name.preset $path_prefix/etc/mkinitcpio.d/"
-    "depmod -a $name"
-    "mkinitcpio -p $name"
+    "bash -c \"sed 's/NAME/$name/g' '$kw_path/template_mkinitcpio.preset' > /etc/mkinitcpio.d/$name.preset\""
+    "depmod --all $name"
+    "mkinitcpio --preset $name"
   )
 
-  output=$(generate_arch_temporary_root_file_system "$name" 'remote' 'TEST_MODE' '')
+  output=$(generate_arch_temporary_root_file_system "$name" 'remote' 'TEST_MODE')
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # VM
-  sudo_cmd=''
+  configurations[qemu_path_image]='path/image'
   declare -a cmd_sequence=(
-    "cp -v $LOCAL_KW_ETC $path_prefix/etc/mkinitcpio.d/$name.preset"
-    "sed -i -e 's/NAME/$name/g' '$path_prefix/etc/mkinitcpio.d/$name.preset'"
+    "bash -c \"sed 's/NAME/$name/g' '$KW_ETC_DIR/template_mkinitcpio.preset' > something/etc/mkinitcpio.d/$name.preset\""
+    "-> Generating rootfs $name on VM. This can take a few minutes."
+    'sleep 0.5s'
+    "guestfish --rw -a path/image run       : mount /dev/sda1 / : command 'dracut --regenerate-all -f'"
+    'Done.'
   )
 
-  output=$(generate_arch_temporary_root_file_system "$name" 'vm' 'TEST_MODE' '')
+  output=$(generate_arch_temporary_root_file_system "$name" 'vm' 'TEST_MODE' 'something')
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 

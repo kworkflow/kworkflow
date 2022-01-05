@@ -1,16 +1,13 @@
 #!/bin/bash
 
-. ./src/plugins/kernel_install/utils.sh --source-only
-. ./tests/utils.sh --source-only
-. ./src/kwio.sh --source-only
+# We load utils in the oneTimeSetUp() to ensure we can replace some kw functions
+include './tests/utils.sh'
+include './src/kwio.sh'
 
 declare -r TEST_ROOT_PATH="$PWD"
 
 function oneTimeSetUp()
 {
-  declare -g kw_path="$PWD/tests/samples"
-  declare -g INSTALLED_KERNELS_PATH="$kw_path/INSTALLED_KERNELS"
-
   # Mocking the sudo function
   function sudo()
   {
@@ -23,6 +20,19 @@ function oneTimeSetUp()
     printf ''
   }
   export -f grub-mkconfig
+
+  # Mock functions
+  shopt -s expand_aliases
+  alias identify_bootloader_from_files='identify_bootloader_from_files_mock'
+  alias run_bootloader_for_vm='run_bootloader_for_vm_mock'
+  alias findmnt='findmnt_mock'
+  alias vm_umount='vm_umount'
+
+  . ./src/plugins/kernel_install/utils.sh --source-only
+
+  kw_path="$PWD/tests/samples"
+  INSTALLED_KERNELS_PATH="$kw_path/INSTALLED_KERNELS"
+  declare -gA configurations
 }
 
 function oneTimeTearDown()
@@ -44,6 +54,10 @@ function setUp()
   kw_path="$SHUNIT_TMPDIR/opt/kw"
   kw_tmp_files="$test_tmp_file"
   mkdir -p "$test_tmp_file"
+
+  # Mock variables
+  KW_PLUGINS_DIR="$PWD/src/plugins"
+  kw_path="$KW_PLUGINS_DIR/kernel_install"
 }
 
 function tearDown()
@@ -51,8 +65,41 @@ function tearDown()
   rm -rf "$SHUNIT_TMPDIR"
 }
 
+function identify_bootloader_from_files_mock()
+{
+  printf 'GRUB'
+}
+
+function run_bootloader_for_vm_mock()
+{
+  printf 'run_bootloader_for_vm_mock\n'
+}
+
+# Mock funtions for install tests
+function generate_debian_temporary_root_file_system()
+{
+  printf '%s\n' 'generate_debian_temporary_root_file_system_mock'
+}
+
+function update_debian_boot_loader()
+{
+  printf '%s\n' 'update_debian_boot_loader_mock'
+}
+
+function findmnt_mock()
+{
+  printf '%s\n' 'TARGET SOURCE         FSTYPE OPTIONS'
+  printf '%s\n' '/home  /dev/lala ext4   rw,relatime'
+}
+
+function vm_umount()
+{
+  printf '%s\n' 'vm_umount'
+}
+
 function test_cmd_manager()
 {
+  local output
   local count=0
 
   output=$(cmd_manager 'TEST_MODE' 'ls something')
@@ -61,6 +108,8 @@ function test_cmd_manager()
 
 function test_human_list_installed_kernels()
 {
+  local output
+
   declare -a expected_out=(
     "sudo mkdir -p $kw_path"
     "sudo touch $INSTALLED_KERNELS_PATH"
@@ -77,6 +126,8 @@ function test_human_list_installed_kernels()
 
 function test_command_list_installed_kernels()
 {
+  local output
+
   declare -a expected_out=(
     "sudo mkdir -p $kw_path"
     "sudo touch $INSTALLED_KERNELS_PATH"
@@ -127,6 +178,8 @@ function test_list_kernels_based_on_grub()
 
 function test_reboot_machine()
 {
+  local output
+
   output=$(reboot_machine '1' '' 'TEST_MODE')
   assert_equals_helper 'Enable reboot in a non-local machine' "$LINENO" 'reboot' "$output"
 
@@ -144,6 +197,7 @@ function test_kernel_uninstall_unmanaged()
 {
   local output
   local -a expected
+  local output
 
   expected=(
     '' # TODO: Figure out why we have these extra spaces here
@@ -178,11 +232,7 @@ function test_kernel_force_uninstall_unmanaged()
   local initrdpath="/boot/initrd.img-$target"
   local modulespath="/lib/modules/$target"
   local libpath="/var/lib/initramfs-tools/$target"
-
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
+  local output
 
   local -a cmd_sequence=(
     "sudo mkdir -p $kw_path"
@@ -196,17 +246,12 @@ function test_kernel_force_uninstall_unmanaged()
     "Can't find $libpath"
     "Can't find /boot/config-$target"
     "sudo sed -i '/xpto/d' '$INSTALLED_KERNELS_PATH'"
-    "update_boot_loader xpto local TEST_MODE"
-    "grub-mkconfig -o /boot/grub/grub.cfg"
+    "update_bootloader xpto local TEST_MODE"
+    "sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
   )
 
   output=$(kernel_uninstall 0 'local' 'xpto' 'TEST_MODE' 1)
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
-
-  cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
 }
 
 function test_remove_managed_kernel()
@@ -218,6 +263,7 @@ function test_remove_managed_kernel()
   local modulespath="/lib/modules/$target"
   local libpath="/var/lib/initramfs-tools/$target"
   local kernel_name='5.5.0-rc2-VKMS+'
+  local output
 
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -225,33 +271,25 @@ function test_remove_managed_kernel()
   }
 
   local -a cmd_sequence=(
-    '' # TODO: Figure out why we have these extra spaces here
     "sudo mkdir -p $kw_path"
-    ''
     "sudo touch '$INSTALLED_KERNELS_PATH'"
-    ''
     "sudo grep -q '$kernel_name' '$INSTALLED_KERNELS_PATH'"
     "Removing: $kernel_name"
     "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name"
-    ''
     "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name"
     "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
-    ''
     "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
     "Can't find $SHUNIT_TMPDIR//boot/initrd.img-$kernel_name"
     "Can't find $SHUNIT_TMPDIR//lib/modules/$kernel_name"
     "Can't find $SHUNIT_TMPDIR//var/lib/initramfs-tools/$kernel_name"
     "Removing: $SHUNIT_TMPDIR//boot/config-$kernel_name"
-    ''
     "rm $SHUNIT_TMPDIR//boot/config-$kernel_name"
-    ''
     "sudo sed -i '/$kernel_name/d' '$INSTALLED_KERNELS_PATH'"
-    "update_boot_loader $kernel_name local"
-    ''
-    "grub-mkconfig -o /boot/grub/grub.cfg"
+    "update_bootloader $kernel_name local TEST_MODE"
+    "sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
   )
 
-  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' '' '' "$SHUNIT_TMPDIR/")
+  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' '' "$SHUNIT_TMPDIR/")
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   cd "$TEST_ROOT_PATH" || {
@@ -269,6 +307,7 @@ function test_do_uninstall_cmd_sequence()
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
   local configpath="$prefix/boot/config-$target"
+  local output
 
   # Invalid path
   declare -a cmd_sequence=(
@@ -338,6 +377,7 @@ function test_install_modules()
 {
   local module_target='5.9.0-rc5-NEW-VRR-TRACK+.tar'
   local cmd
+  local output
 
   output=$(install_modules "$module_target" 'TEST_MODE')
   assert_equals_helper 'We did not find required files' "$LINENO" "$?" 2
@@ -359,102 +399,6 @@ function test_install_modules()
   }
 }
 
-function test_vm_update_boot_loader_debian()
-{
-  local name='xpto'
-  local cmd_grub='grub-mkconfig -o /boot/grub/grub.cfg'
-  local mount_root=": mount /dev/sda1 /"
-  local mkdir_init=": mkdir-p /etc/initramfs-tools"
-  local cmd_init="update-initramfs -c -k $name"
-  local mkdir_grub=": mkdir-p /boot/grub"
-  local setup_grub=": write /boot/grub/device.map '(hd0) /dev/sda'"
-  local grub_install="grub-install --root-directory=/ --target=i386-pc --force /dev/sda1"
-
-  output=$(vm_update_boot_loader "$name" "$cmd_grub" 'TEST_MODE')
-  assert_equals_helper "Invalide case" "$LINENO" "There is no VM in " "$output"
-
-  # Debian
-
-  # We just want to force a positive action in the if condition in order to be
-  # able to validate vm boot loader
-  configurations[qemu_path_image]='./run_tests.sh'
-
-  guestfish_cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-      $mount_root \
-      $mkdir_init : command '$cmd_init' \
-      $setup_grub : command '$grub_install' : command '$cmd_grub'"
-
-  declare -a cmd_sequence=(
-    "-> Updating initramfs and grub for $name on VM. This can take a few minutes."
-    "sleep 0.5s"
-    "$guestfish_cmd"
-    "Done."
-  )
-
-  output=$(vm_update_boot_loader "$name" 'debian' "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" 'TEST_MODE')
-
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
-}
-
-function test_vm_update_boot_loader_arch()
-{
-  local name='xpto'
-  local cmd_grub='grub-mkconfig -o /boot/grub/grub.cfg'
-  local mount_root=": mount /dev/sda1 /"
-  local mkdir_grub=": mkdir-p /boot/grub"
-  local cmd_init="dracut --regenerate-all -f"
-  local setup_grub=": write /boot/grub/device.map '(hd0,1) /dev/sda'"
-  local grub_install="grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda"
-
-  configurations[qemu_path_image]=''
-  output=$(vm_update_boot_loader "$name" "$cmd_grub" 'TEST_MODE')
-  assert_equals_helper "Invalide case" "$LINENO" "There is no VM in " "$output"
-
-  # Debian
-
-  # We just want to force a positive action in the if condition in order to be
-  # able to validate vm boot loader
-  configurations[qemu_path_image]='./run_tests.sh'
-
-  guestfish_cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-        $mount_root : command '$cmd_init' \
-        $mkdir_grub $setup_grub : command '$grub_install' \
-        : command '$cmd_grub'"
-
-  declare -a cmd_sequence=(
-    "-> Updating initramfs and grub for $name on VM. This can take a few minutes."
-    "sleep 0.5s"
-    "$guestfish_cmd"
-    "Done."
-  )
-
-  output=$(vm_update_boot_loader "$name" 'arch' "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" 'TEST_MODE')
-
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
-}
-
-# Mock funtions for install tests
-function generate_debian_temporary_root_file_system()
-{
-  printf '%s\n' 'generate_debian_temporary_root_file_system_mock'
-}
-
-function update_debian_boot_loader()
-{
-  printf '%s\n' 'update_debian_boot_loader_mock'
-}
-
-function findmnt_mock()
-{
-  printf '%s\n' 'TARGET SOURCE         FSTYPE OPTIONS'
-  printf '%s\n' '/home  /dev/lala ext4   rw,relatime'
-}
-
-function vm_umount()
-{
-  printf '%s\n' 'vm_umount'
-}
-
 function test_install_kernel_remote()
 {
   local name='5.9.0-rc5-TEST'
@@ -464,6 +408,7 @@ function test_install_kernel_remote()
   local target='remote'
   local flag='TEST_MODE'
   local path_prefix=''
+  local output
 
   output=$(install_kernel '' 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   ret="$?"
@@ -473,7 +418,7 @@ function test_install_kernel_remote()
   declare -a cmd_sequence=(
     "cp -v $kw_tmp_files/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
-    'update_debian_boot_loader_mock'
+    'grub-mkconfig -o /boot/grub/grub.cfg'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
     #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     'reboot'
@@ -493,12 +438,13 @@ function test_install_kernel_local()
   local flag='TEST_MODE'
   local sudo_cmd='sudo -E'
   local path_prefix=''
+  local output
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
     "$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
-    'update_debian_boot_loader_mock'
+    'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
     #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     "$sudo_cmd reboot"
@@ -516,6 +462,7 @@ function test_install_kernel_vm()
   local architecture='x86_64'
   local target='vm'
   local path_prefix="$SHUNIT_TMPDIR"
+  local output
 
   # Setup this specific test
   touch "$SHUNIT_TMPDIR/boot/vmlinuz-$name"
@@ -523,33 +470,22 @@ function test_install_kernel_vm()
   touch "$SHUNIT_TMPDIR/virty.qcow2"
   rm -rf "${SHUNIT_TMPDIR:?}"/boot
   configurations[mount_point]="$SHUNIT_TMPDIR"
+  configurations[qemu_path_image]="$SHUNIT_TMPDIR/virty.qcow2"
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
     "cp -v .config $path_prefix/boot/config-$name"
     "cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
-    'vm_umount'
-    'update_debian_boot_loader_mock'
+    'run_bootloader_for_vm_mock'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    'vm_umount'
     #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
   )
 
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  shopt -s expand_aliases
-  alias findmnt='findmnt_mock'
-  alias vm_umount='vm_umount'
-
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
-  cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 
 function test_distro_deploy_setup()
