@@ -46,7 +46,11 @@ function collect_deploy_info()
 
   # Let's include the bootloader_utils in the remote, and local/vm should
   # include themselves
-  [[ "$target" == 3 ]] && . 'bootloader_utils.sh' --source-only
+  # XXX: We must remove the numeric value of target because this is not the
+  # default here. i.e., if [["$target" == 'remote' ]]; ...
+  if [[ "$target" == 3 || "$target" == 'remote' ]]; then
+    . "$kw_path/bootloader_utils.sh" --source-only
+  fi
 
   bootloader=$(identify_bootloader_from_files "$prefix")
   bootloader="[bootloader]=$bootloader"
@@ -207,95 +211,54 @@ function install_modules()
   fi
 }
 
-# Update boot loader API
-function update_boot_loader()
+# Update bootloader API
+# This function behaves like the template pattern, which means that we have a
+# generic function name that will be called in a specific order to update the
+# bootloader in the target machine. The trick here consists of first loading
+# the target bootloader and specific distro script and executing the required
+# update.
+#
+# @name
+# @distro
+# @target
+# @cmd_init
+# @grub_install
+# @flag
+function update_bootloader()
 {
   local name="$1"
-  local distro="$2"
-  local target="$3"
-  local cmd_init="$4"
-  local setup_grub="$5"
-  local grub_install="$6"
-  local flag="$7"
+  local target="$2"
+  local flag="$3"
+  local prefix=''
+  local deploy_data_string
+  local bootloader_path_prefix
 
-  if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E '
-  fi
-
-  cmd_grub="$sudo_cmd"'grub-mkconfig -o /boot/grub/grub.cfg'
-
-  # Update grub
   if [[ "$target" == 'vm' ]]; then
-    vm_update_boot_loader "$name" "$distro" "$cmd_grub" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
-  else
-    cmd_manager "$flag" "$cmd_grub"
-  fi
-}
-
-# After configuring the handle (adding a disk image in write mode), the
-# guestfish performes the followed steps: (1) mount image;
-# (2) dracut (updates kernel images list); (3) create a dummy device.map
-# that tells Grub to look for /dev/sda; (4) install and update grub.
-#
-# Note: The virtual machine must be shut down and umounted before you use this
-# command, and disk images must not be edited concurrently.
-#
-# @name Kernel name for the deploy
-# @cmd_grub Command to update grub
-# mkinitcpio -g /boot/initramfs-linux.img -k /boot/vmlinuz-linux
-function vm_update_boot_loader()
-{
-  local name="$1"
-  local distro="$2"
-  local cmd_grub="$3"
-  local cmd_init="$4"
-  local setup_grub="$5"
-  local grub_install="$6"
-  local flag="$7"
-  local cmd=''
-  # We assume Debian as a default option
-  local mount_root=': mount /dev/sda1 /'
-  local mkdir_init=': mkdir-p /etc/initramfs-tools'
-
-  flag=${flag:-'SILENT'}
-
-  if [[ -z "$distro" ]]; then
-    complain 'No distro specified. We are unable to deploy'
-    return 22 # EINVAL
+    prefix="${configurations[qemu_path_image]}"
   fi
 
-  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-      $mount_root \
-      $mkdir_init : command '$cmd_init' \
-      $setup_grub : command '$grub_install' : command '$cmd_grub'"
-
-  if [[ "$distro" == 'arch' ]]; then
-    local mkdir_grub=': mkdir-p /boot/grub'
-
-    cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-        $mount_root : command '$cmd_init' \
-        $mkdir_grub $setup_grub : command '$grub_install' \
-        : command '$cmd_grub'"
+  if [[ "$target" != 'remote' || "$flag" == 'TEST_MODE' ]]; then
+    bootloader_path_prefix="$KW_PLUGINS_DIR/kernel_install/"
   fi
 
-  if [[ -f "${configurations[qemu_path_image]}" ]]; then
-    warning " -> Updating initramfs and grub for $name on VM. This can take a few minutes."
-    cmd_manager "$flag" 'sleep 0.5s'
-    {
-      cmd_manager "$flag" "$cmd"
-    } 1> /dev/null # No visible stdout but still shows errors
+  deploy_data_string=$(collect_deploy_info "$flag" "$target" "$prefix")
 
-    # TODO: The below line is here for test purpose. We need a better way to
-    # do that.
-    [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
+  declare -A deploy_data="($deploy_data_string)"
 
-    say 'Done.'
-  else
-    complain "There is no VM in ${configurations[qemu_path_image]}"
-    return 125 # ECANCELED
-  fi
+  case "${deploy_data['bootloader']}" in
+    GRUB)
+      bootloader_path_prefix+='grub.sh'
+      ;;
+    *)
+      return 95 # ENOTSUP
+      ;;
+  esac
 
-  return 0
+  # Load specific bootloader action
+  . "$bootloader_path_prefix" --source-only
+
+  # Update bootloader
+  run_bootloader_update "$flag" "$target"
 }
 
 function do_uninstall()
@@ -360,8 +323,8 @@ function do_uninstall()
 function kernel_uninstall()
 {
   local reboot="$1"
-  local local_deploy="$2"
-  local kernel="$3"
+  local target="$2"
+  local kernel_list_string="$3"
   local flag="$4"
   local force="$5"
   local prefix="$6"
@@ -370,14 +333,14 @@ function kernel_uninstall()
   cmd_manager "$flag" "sudo mkdir -p $kw_path"
   cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
 
-  kernel=$(printf '%s' "$kernel" | tr --delete ' ')
+  kernel_list_string=$(printf '%s' "$kernel_list_string" | tr --delete ' ')
 
-  if [[ -z "$kernel" ]]; then
+  if [[ -z "$kernel_list_string" ]]; then
     printf '%s\n' 'Invalid argument'
     exit 22 #EINVAL
   fi
 
-  IFS=', ' read -r -a kernel_names <<< "$kernel"
+  IFS=', ' read -r -a kernel_names <<< "$kernel_list_string"
   for kernel in "${kernel_names[@]}"; do
     cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
     cmd_manager "$flag" "$cmd"
@@ -394,13 +357,13 @@ function kernel_uninstall()
     ((update_grub++))
   done
 
-  # Each distro script should implement update_boot_loader
+  # Each distro script should implement update_bootloader
   if [[ "$update_grub" -gt 0 ]]; then
-    printf '%s\n' "update_boot_loader $kernel $local_deploy $flag"
-    update_boot_loader "$kernel" "$local_deploy" '' '' '' '' "$flag"
+    printf '%s\n' "update_bootloader $kernel $target $flag"
+    update_bootloader "$kernel" "$target" "$flag"
 
     # Reboot
-    reboot_machine "$reboot" "$local_deploy" "$flag"
+    reboot_machine "$reboot" "$target" "$flag"
   fi
 }
 
@@ -460,15 +423,10 @@ function install_kernel()
   # Each distro has their own way to generate their temporary root file system.
   # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
   cmd="generate_${distro}_temporary_root_file_system"
-  eval "$cmd" "$name" "$target" "$flag" "$path_prefix"
-
-  # If VM is mounted, umount before update boot loader
-  if [[ "$target" == 'vm' ]]; then
-    [[ $(findmnt "${configurations[mount_point]}") ]] && vm_umount
-  fi
+  eval "$cmd" "$name" "$target" "$flag"
 
   # Each distro has their own way to update their bootloader
-  eval "update_$distro""_boot_loader $name $target $flag"
+  update_bootloader "$name" "$target" "$flag"
 
   # Registering a new kernel
   if [[ ! -f "$INSTALLED_KERNELS_PATH" ]]; then
@@ -489,5 +447,10 @@ function install_kernel()
   if [[ "$target" != 'vm' && "$reboot" == '1' ]]; then
     cmd="$sudo_cmd reboot"
     reboot_machine "$reboot" "$target" "$flag"
+  fi
+
+  # If VM is mounted, umount before update boot loader
+  if [[ "$target" == 'vm' ]]; then
+    [[ $(findmnt "${configurations[mount_point]}") ]] && vm_umount
   fi
 }

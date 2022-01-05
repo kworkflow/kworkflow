@@ -472,7 +472,7 @@ function prepare_remote_dir()
   fi
 
   target_deploy_path=$(join_path "$target_deploy_path" "$distro.sh")
-  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh,bootloader_utils.sh}"
+  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh,bootloader_utils.sh,grub.sh}"
 
   # Send required scripts for running the deploy inside the target machine
   # Note: --archive will force the creation of /root/kw_deploy in case it does
@@ -488,6 +488,12 @@ function prepare_remote_dir()
 
   # Create temporary folder
   cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag" "$remote" "$port" "$user"
+
+  # TODO: In some point, we need to move the below code to ArchLinux specific
+  # file
+  if [[ "$distro" == 'arch' ]]; then
+    cp2remote "$flag" "$KW_ETC_DIR/template_mkinitcpio.preset" "$REMOTE_KW_DEPLOY"
+  fi
 }
 
 # This function list all the available kernels in a VM, local, and remote
@@ -609,7 +615,7 @@ function collect_target_info_for_deploy()
 # @target Target machine Target machine Target machine Target machine
 # @reboot If this value is equal 1, it means reboot machine after kernel
 #         installation.
-# @kernels_target List containing kernels to be uninstalled
+# @kernels_target_list String containing kernels name separated by comma
 # @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
 # @force If this value is equal to 1, try to uninstall kernels even if they are
 #        not managed by kw
@@ -620,7 +626,7 @@ function run_kernel_uninstall()
 {
   local target="$1"
   local reboot="$2"
-  local kernels_target="$3"
+  local kernels_target_list="$3"
   local flag="$4"
   local force="$5"
   local distro
@@ -650,7 +656,7 @@ function run_kernel_uninstall()
 
       # TODO: Rename kernel_uninstall in the plugin, this name is super
       # confusing
-      kernel_uninstall '' "$reboot" 'local' "$kernels_target" "$flag" "$force"
+      kernel_uninstall "$reboot" 'local' "$kernels_target_list" "$flag" "$force"
       ;;
     3) # REMOTE_TARGET
       remote="${remote_parameters['REMOTE_IP']}"
@@ -663,7 +669,7 @@ function run_kernel_uninstall()
       # line break with `\`; this may allow us to break a huge line like this.
       local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
       cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
-      cmd+=" --uninstall-kernels '$reboot' 'remote' '$kernels_target' '$flag' '$force'"
+      cmd+=" --uninstall-kernels '$reboot' 'remote' '$kernels_target_list' '$flag' '$force'"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
   esac
@@ -797,6 +803,7 @@ function run_kernel_install()
   local remote
   local port
   local config_local_version
+  local cmd
 
   # We have to guarantee some default values values
   kernel_name=${kernel_name:-'nothing'}
@@ -839,13 +846,14 @@ function run_kernel_install()
 
       # Copy .config
       if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
-        sudo cp "$PWD/.config" "${configurations[mount_point]}/boot/config-$name"
+        cmd="cp $PWD/.config ${configurations[mount_point]}/boot/config-$name"
+        cmd_manager "$flag" "$cmd"
       else
         complain 'Undefined .config file for the target kernel. Consider using kw bd'
       fi
 
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Make sure we use the right variable values
 
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
@@ -867,13 +875,14 @@ function run_kernel_install()
 
       # Copy .config
       if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
-        cp "$PWD/.config" "/boot/config-$name"
+        cmd="sudo -E cp $PWD/.config /boot/config-$name"
+        cmd_manager "$flag" "$cmd"
       else
         complain 'Undefined .config file for the target kernel. Consider using kw bd'
       fi
 
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
+      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Ensure that we are using the right variable
 
       install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
@@ -887,17 +896,6 @@ function run_kernel_install()
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro '/' "$distro_info")
 
-      if [[ "$distro" == 'arch' ]]; then
-        local preset_file="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset"
-        if [[ ! -f "$preset_file" ]]; then
-          template_mkinit="$KW_ETC_DIR/template_mkinitcpio.preset"
-          cp "$template_mkinit" "$preset_file"
-          sed -i "s/NAME/$name/g" "$preset_file"
-        fi
-        cp2remote "$flag" \
-          "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$name.preset" "$KW_DEPLOY_TMP_FILE"
-      fi
-
       cp2remote "$flag" \
         "arch/$arch_target/boot/$kernel_img_name" "$KW_DEPLOY_TMP_FILE/vmlinuz-$name"
 
@@ -910,7 +908,7 @@ function run_kernel_install()
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+      cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
       cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
       cmd+=" --kernel-update $cmd_parameters"
 

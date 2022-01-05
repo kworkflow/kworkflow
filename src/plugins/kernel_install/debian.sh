@@ -15,34 +15,58 @@ declare -ag required_packages=(
 # Debian package manager command
 declare -g package_manager_cmd='apt-get install -y'
 
-# Update boot loader API
-function update_debian_boot_loader()
-{
-  local name="$1"
-  local target="$2"
-  local flag="$3"
-  local cmd_init="update-initramfs -c -k $name"
-  local setup_grub=": write /boot/grub/device.map '(hd0) /dev/sda'"
-  local grub_install='grub-install --root-directory=/ --target=i386-pc --force /dev/sda1'
-
-  update_boot_loader "$name" 'debian' "$target" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
-}
-
 function generate_debian_temporary_root_file_system()
 {
   local name="$1"
   local target="$2"
   local flag="$3"
-  local cmd=""
-  local sudo_cmd=""
+  local cmd="update-initramfs -c -k"
+
+  cmd+=" $name"
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E'
+    cmd="sudo -E $cmd"
   fi
 
   if [[ "$target" != 'vm' ]]; then
     # Update initramfs
-    cmd="$sudo_cmd update-initramfs -c -k $name"
     cmd_manager "$flag" "$cmd"
+  else
+    generate_rootfs_with_libguestfs "$flag" "$name"
   fi
+}
+
+function generate_rootfs_with_libguestfs()
+{
+  local flag="$1"
+  local name="$2"
+  # We assume Debian as a default option
+  local mount_root=': mount /dev/sda1 /'
+  local mkdir_init=': mkdir-p /etc/initramfs-tools'
+  local cmd_init="update-initramfs -c -k $name"
+
+  flag=${flag:-'SILENT'}
+
+  if [[ -f "${configurations[qemu_path_image]}" ]]; then
+    complain "There is no VM in ${configurations[qemu_path_image]}"
+    return 125 # ECANCELED
+  fi
+
+  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+      $mount_root : command '$cmd_init'"
+
+  warning " -> Generating rootfs $name on VM. This can take a few minutes."
+
+  cmd_manager "$flag" 'sleep 0.5s'
+  {
+    cmd_manager "$flag" "$cmd"
+  } 1> /dev/null # No visible stdout but still shows errors
+
+  # TODO: The below line is here for test purpose. We need a better way to
+  # do that.
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
+
+  say 'Done.'
+
+  return 0
 }

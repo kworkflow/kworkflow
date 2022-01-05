@@ -15,20 +15,6 @@ declare -ga required_packages=(
 declare -g package_manager_cmd='yes | pacman -Syu'
 
 # Make initcpio and update grub on VM using Guestfish
-
-# Update boot loader API
-function update_arch_boot_loader()
-{
-  local name="$1"
-  local target="$2"
-  local flag="$3"
-  local cmd_init='dracut --regenerate-all -f'
-  local setup_grub=": write /boot/grub/device.map '(hd0,1) /dev/sda'"
-  local grub_install='grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda'
-
-  update_boot_loader "$name" 'arch' "$target" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
-}
-
 function generate_arch_temporary_root_file_system()
 {
   local name="$1"
@@ -36,31 +22,76 @@ function generate_arch_temporary_root_file_system()
   local flag="$3"
   local path_prefix="$4"
   local cmd=''
-  local sudo_cmd=''
+  local sudo_cmd
+  local template_path
+  local mkinitcpio_destination_path
   local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
 
-  if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E'
-  fi
+  # Step 1: Generate specific preset file
+  mkinitcpio_destination_path="$path_prefix/etc/mkinitcpio.d/$name.preset"
+  template_path="$KW_ETC_DIR/template_mkinitcpio.preset"
 
-  # Update mkinitcpio
-  if [[ "$target" != 'remote' ]]; then
-    cmd="$sudo_cmd cp -v $LOCAL_KW_ETC $path_prefix/etc/mkinitcpio.d/$name.preset"
+  case "$target" in
+    'local') # LOCAL_TARGET
+      sudo_cmd="sudo -E "
+      cmd="$sudo_cmd "
+      ;;
+    'remote') # REMOTE_TARGET
+      template_path="$kw_path/template_mkinitcpio.preset"
+      ;;
+  esac
+
+  # We will eval a command that uses sudo and redirection which can cause
+  # errors. To avoid problems, let's use bash -c
+  cmd+="bash -c \""
+  cmd+="sed 's/NAME/$name/g' '$template_path' > $mkinitcpio_destination_path\""
+
+  cmd_manager "$flag" "$cmd"
+
+  # TODO: We need to handle VM
+  if [[ "$target" != 'vm' ]]; then
+    # Step 2: Make sure that we are generating a consistent modules.dep and map
+    cmd="$sudo_cmd depmod --all $name"
     cmd_manager "$flag" "$cmd"
-    cmd="$sudo_cmd sed -i -e 's/NAME/$name/g' '$path_prefix/etc/mkinitcpio.d/$name.preset'"
+
+    # Step 3: Generate the initcpio file
+    cmd="$sudo_cmd mkinitcpio --preset $name"
     cmd_manager "$flag" "$cmd"
   else
-    cmd="cp -v $kw_tmp_files/$name.preset $path_prefix/etc/mkinitcpio.d/"
-    cmd_manager "$flag" "$cmd"
+    generate_rootfs_with_libguestfs "$flag" "$name"
+  fi
+}
+
+function generate_rootfs_with_libguestfs()
+{
+  local flag="$1"
+  local name="$2"
+  # We assume Debian as a default option
+  local mount_root=': mount /dev/sda1 /'
+  local cmd_init='dracut --regenerate-all -f'
+
+  flag=${flag:-'SILENT'}
+
+  if [[ -f "${configurations[qemu_path_image]}" ]]; then
+    complain "There is no VM in ${configurations[qemu_path_image]}"
+    return 125 # ECANCELED
   fi
 
-  if [[ "$target" != 'vm' ]]; then
-    # Update depmod
-    cmd="$sudo_cmd depmod -a $name"
-    cmd_manager "$flag" "$cmd"
+  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+      $mount_root : command '$cmd_init'"
 
-    # Update mkinitcpio
-    cmd="$sudo_cmd mkinitcpio -p $name"
+  warning " -> Generating rootfs $name on VM. This can take a few minutes."
+
+  cmd_manager "$flag" 'sleep 0.5s'
+  {
     cmd_manager "$flag" "$cmd"
-  fi
+  } 1> /dev/null # No visible stdout but still shows errors
+
+  # TODO: The below line is here for test purpose. We need a better way to
+  # do that.
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
+
+  say 'Done.'
+
+  return 0
 }
