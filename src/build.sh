@@ -69,13 +69,7 @@ function kernel_build()
   fi
 
   if [[ -n "$menu_config" ]]; then
-    command="make ARCH=$arch $cross_compile $menu_config"
-    cmd_manager "$flag" "$command"
-    return
-  fi
-
-  if [[ -n "$doc_type" ]]; then
-    command="make $doc_type"
+    command="make -j ARCH=$arch $cross_compile $menu_config"
     cmd_manager "$flag" "$command"
     return
   fi
@@ -91,8 +85,14 @@ function kernel_build()
     parallel_cores=$(grep -c ^processor /proc/cpuinfo)
   fi
 
+  if [[ -n "$doc_type" ]]; then
+    command="make -j$parallel_cores $doc_type"
+    cmd_manager "$flag" "$command"
+    return
+  fi
+
   # Let's avoid menu question by default
-  cmd_manager "$flag" "make ARCH=$arch $cross_compile olddefconfig --silent"
+  cmd_manager "$flag" "make -j ARCH=$arch $cross_compile olddefconfig --silent"
 
   command="make -j$parallel_cores ARCH=$arch $cross_compile"
 
