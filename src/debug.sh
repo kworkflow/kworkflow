@@ -990,7 +990,7 @@ function parser_debug_options()
         ;;
       --list | -l)
         # Handling optional parameter
-        if [[ -z "$2" ]]; then
+        if [[ "$2" =~ ^- || -z "${2// /}" ]]; then
           options_values['LIST']=1
           shift 2
         else
