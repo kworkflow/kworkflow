@@ -687,6 +687,6 @@ function config_manager_help()
     '  configm --fetch [(-o | --output) <filename>] [-f | --force] [--optimize] [--remote [<user>@<ip>:<port>]] - Fetch a config' \
     '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
     '  configm (-l | --list) - List config files under kw management' \
-    '  configm --get <name> [-f | --force] - Get a config file based named <name>' \
+    '  configm --get <name> [-f | --force] - Get a config labeled with <name>' \
     '  configm (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
 }
