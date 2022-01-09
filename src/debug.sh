@@ -905,7 +905,7 @@ function parser_debug_options()
   local transition_variables
 
   long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list::,follow,reset,help'
-  short_options='f,e,t,g,c,h,d,l,k'
+  short_options='e:,t:,g,f,c:,k,d,l::,h'
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
 
@@ -990,7 +990,7 @@ function parser_debug_options()
         ;;
       --list | -l)
         # Handling optional parameter
-        if [[ -z "$2" ]]; then
+        if [[ "$2" =~ ^- || -z "${2// /}" ]]; then
           options_values['LIST']=1
           shift 2
         else
