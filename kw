@@ -114,6 +114,11 @@ function kw()
 
       diff_manager "$@"
       ;;
+    environment | env)
+      include "$KW_LIB_DIR/environment.sh"
+
+      env_manager "$@"
+      ;;
     ssh | s)
       (
         include "$KW_LIB_DIR/kw_config_loader.sh"

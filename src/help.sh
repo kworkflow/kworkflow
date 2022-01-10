@@ -22,6 +22,7 @@ function kworkflow_help()
     '  device - Show basic hardware information' \
     '  diff,df - Diff files' \
     '  drm - Set of commands to work with DRM drivers ' \
+    '  environment,env - Manage build output folders' \
     '  explore,e - Explore string patterns' \
     '  help,h - displays this help mesage' \
     '  init - Initialize kworkflow config file' \
