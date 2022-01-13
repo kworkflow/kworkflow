@@ -373,6 +373,7 @@ function command_exists()
   #shellcheck disable=SC2206 #FIXME: see issue #388
   local package=($command)
 
+  #TODO is this correct? shouldn't this be "${package[0]}"
   if [[ -x "$(command -v "${package[@]}")" ]]; then
     return 0
   fi
