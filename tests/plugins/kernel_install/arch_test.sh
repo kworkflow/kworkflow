@@ -24,6 +24,7 @@ function test_generate_arch_temporary_root_file_system()
   local path_prefix=''
   local cmd=
   local sudo_cmd=''
+  local qemu_mock_img="$SHUNIT_TMPDIR/mock_image"
 
   # Local
   sudo_cmd='sudo -E'
@@ -47,12 +48,13 @@ function test_generate_arch_temporary_root_file_system()
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # VM
-  configurations[qemu_path_image]='path/image'
+  touch "$qemu_mock_img"
+  configurations[qemu_path_image]="$qemu_mock_img"
   declare -a cmd_sequence=(
     "bash -c \"sed 's/NAME/$name/g' '$KW_ETC_DIR/template_mkinitcpio.preset' > something/etc/mkinitcpio.d/$name.preset\""
     "-> Generating rootfs $name on VM. This can take a few minutes."
     'sleep 0.5s'
-    "guestfish --rw -a path/image run       : mount /dev/sda1 / : command 'dracut --regenerate-all -f'"
+    "guestfish --rw -a $qemu_mock_img run       : mount /dev/sda1 / : command 'dracut --regenerate-all -f'"
     'Done.'
   )
 

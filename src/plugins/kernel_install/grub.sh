@@ -47,9 +47,14 @@ function run_bootloader_for_vm()
 
   flag=${flag:-'SILENT'}
 
-  if [[ -f "${configurations[qemu_path_image]}" ]]; then
+  if [[ ! -f "${configurations[qemu_path_image]}" ]]; then
     complain "There is no VM in ${configurations[qemu_path_image]}"
     return 125 # ECANCELED
+  fi
+
+  # For executing libguestfs commands we need to umount the vm
+  if [[ $(findmnt "${configurations[mount_point]}") ]]; then
+    vm_umount
   fi
 
   cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
