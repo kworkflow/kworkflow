@@ -129,7 +129,10 @@ function select_from()
 }
 
 # This function takes arguments and assembles them into the correct format to
-# be used as values in SQL commands
+# be used as values in SQL commands. For example, if we want to format two sets
+# of three values - the first set being 'a1', 'a2', and 'a3' and the second being
+# 'b1', 'b2', and 'b3' - the correct format to be used is
+# ('a1','a2','a3'),('b1','b2','b3')
 #
 # @length: Number of arguments per group
 # @@:      Values to be formatted
@@ -152,8 +155,8 @@ function format_values_db()
 
   for val in "$@"; do
     [[ "$count" -eq 0 ]] && values+='('
-    # check if not a sqlite function
-    if [[ ! "$val" =~ ^[[:alnum:]_]+\(.*\)$ ]]; then
+    # check if not a sqlite function nor NULL
+    if [[ ! "$val" =~ ^[[:alnum:]_]+\(.*\)$ && "$val" != 'NULL' ]]; then
       val="'${val//\'/\'\'}'" # escapes single quotes and enclose
     fi
     values+="$val"
