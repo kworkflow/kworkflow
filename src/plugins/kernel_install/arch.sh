@@ -33,7 +33,7 @@ function generate_arch_temporary_root_file_system()
 
   case "$target" in
     'local') # LOCAL_TARGET
-      sudo_cmd="sudo -E "
+      sudo_cmd='sudo -E'
       cmd="$sudo_cmd "
       ;;
     'remote') # REMOTE_TARGET
@@ -69,22 +69,28 @@ function generate_rootfs_with_libguestfs()
   # We assume Debian as a default option
   local mount_root=': mount /dev/sda1 /'
   local cmd_init='dracut --regenerate-all -f'
+  local ret=0
 
   flag=${flag:-'SILENT'}
 
-  if [[ -f "${configurations[qemu_path_image]}" ]]; then
+  if [[ ! -f "${configurations[qemu_path_image]}" ]]; then
     complain "There is no VM in ${configurations[qemu_path_image]}"
     return 125 # ECANCELED
+  fi
+
+  # For executing libguestfs commands we need to umount the vm
+  if [[ $(findmnt "${configurations[mount_point]}") ]]; then
+    vm_umount
   fi
 
   cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
       $mount_root : command '$cmd_init'"
 
   warning " -> Generating rootfs $name on VM. This can take a few minutes."
-
-  cmd_manager "$flag" 'sleep 0.5s'
+  cmd_manager "$flag" "sleep 0.5s"
   {
     cmd_manager "$flag" "$cmd"
+    ret="$?"
   } 1> /dev/null # No visible stdout but still shows errors
 
   # TODO: The below line is here for test purpose. We need a better way to
@@ -93,5 +99,5 @@ function generate_rootfs_with_libguestfs()
 
   say 'Done.'
 
-  return 0
+  return "$ret"
 }

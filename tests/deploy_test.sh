@@ -193,11 +193,11 @@ function test_update_status_log()
 
   assert_equals_helper 'Status file remote' "$LINENO" "$ssh_prefix $cmd" "$output"
 
-  # Local/VM
+  # Local
   REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR"
-  update_status_log 1
+  update_status_log 2
   output=$(cat "$SHUNIT_TMPDIR/status")
-  expected_data='1;12/31/2021-09:49:21'
+  expected_data='2;12/31/2021-09:49:21'
 
   assert_equals_helper 'Status file data' "$LINENO" "$expected_data" "$output"
 }

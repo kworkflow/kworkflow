@@ -27,6 +27,7 @@ function oneTimeSetUp()
   alias run_bootloader_for_vm='run_bootloader_for_vm_mock'
   alias findmnt='findmnt_mock'
   alias vm_umount='vm_umount'
+  alias vm_mount='vm_mount_mock'
 
   . ./src/plugins/kernel_install/utils.sh --source-only
 
@@ -95,6 +96,11 @@ function findmnt_mock()
 function vm_umount()
 {
   printf '%s\n' 'vm_umount'
+}
+
+function vm_mount_mock()
+{
+  printf '%s\n' 'vm_mount'
 }
 
 function test_cmd_manager()
@@ -477,14 +483,17 @@ function test_install_kernel_vm()
     "cp -v .config $path_prefix/boot/config-$name"
     "cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
+    'vm_mount'
     'run_bootloader_for_vm_mock'
-    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    'vm_umount'
+    'vm_mount'
+    "touch $SHUNIT_TMPDIR/$INSTALLED_KERNELS_PATH"
+    "grep -Fxq $name $SHUNIT_TMPDIR/$INSTALLED_KERNELS_PATH"
     'vm_umount'
     #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
   )
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 }
 

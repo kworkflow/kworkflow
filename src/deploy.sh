@@ -101,6 +101,8 @@ function deploy_main()
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
   setup="${options_values['SETUP']}"
 
+  update_deploy_variables
+
   # Let's ensure that the target machine is ready for the deploy
   deploy_setup "$target" "$flag"
   ret="$?"
@@ -307,7 +309,10 @@ function update_status_log()
   status_cmd="printf '%s;%s\n' '$target' '$log_date' >> $REMOTE_KW_DEPLOY/status"
 
   case "$target" in
-    1 | 2) # VM and LOCAL_TARGET
+    1)
+      echo "TODO: update_status_log"
+      ;;
+    2) # VM and LOCAL_TARGET
       cmd_manager "$flag" "$status_cmd"
       ;;
     3) # REMOTE_TARGET
@@ -375,6 +380,7 @@ function deploy_setup()
   local flag="$2"
   # BatchMode ensure that the ssh fail if passwordless is not enabled
   local check_ssh='ssh -q -o BatchMode=yes '
+  local cmd
   local ret
 
   flag=${flag:-'SILENT'}
@@ -387,6 +393,12 @@ function deploy_setup()
       ret="$?"
       [[ "$?" != 0 ]] && return "$ret"
     fi
+  fi
+
+  if [[ "$target" == "$VM_TARGET" ]]; then
+    cmd="guestfish --rw -a ${configurations[qemu_path_image]} run : \
+      mount /dev/sda1 / : mkdir-p $kw_path"
+    cmd_manager "$flag" "$cmd"
   fi
 
   check_setup_status "$target" "$flag"

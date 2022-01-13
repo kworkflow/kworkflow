@@ -232,9 +232,12 @@ function update_bootloader()
   local prefix=''
   local deploy_data_string
   local bootloader_path_prefix
+  local ret
+
+  prefix='/'
 
   if [[ "$target" == 'vm' ]]; then
-    prefix="${configurations[qemu_path_image]}"
+    vm_mount
   fi
 
   if [[ "$target" != 'remote' || "$flag" == 'TEST_MODE' ]]; then
@@ -259,6 +262,11 @@ function update_bootloader()
 
   # Update bootloader
   run_bootloader_update "$flag" "$target"
+  ret="$?"
+
+  [[ "$target" == 'vm' ]] && vm_umount
+
+  return "$ret"
 }
 
 function do_uninstall()
@@ -397,6 +405,7 @@ function install_kernel()
     # Check if vm is mounted and get its path
     if [[ $(findmnt "${configurations[mount_point]}") ]]; then
       path_prefix="${configurations[mount_point]}"
+      INSTALLED_KERNELS_PATH="$path_prefix/$INSTALLED_KERNELS_PATH"
       # Copy config file
       cmd_manager "$flag" "cp -v .config $path_prefix/boot/config-$name"
     else
@@ -423,10 +432,26 @@ function install_kernel()
   # Each distro has their own way to generate their temporary root file system.
   # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
   cmd="generate_${distro}_temporary_root_file_system"
-  eval "$cmd" "$name" "$target" "$flag"
+  eval "$cmd" "$name" "$target" "$flag" "$path_prefix"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain 'Error when trying to generate the temporary root file system'
+    [[ "$target" == 'vm' ]] && vm_umount
+    exit "$ret"
+  fi
 
   # Each distro has their own way to update their bootloader
   update_bootloader "$name" "$target" "$flag"
+  ret="$?"
+
+  if [[ "$ret" != 0 ]]; then
+    complain 'kw was not able to update the target bootloader'
+    [[ "$target" == 'vm' ]] && vm_umount
+    exit "$ret"
+  fi
+
+  # In case vm is umounted for other commands
+  [[ "$target" == 'vm' ]] && vm_mount
 
   # Registering a new kernel
   if [[ ! -f "$INSTALLED_KERNELS_PATH" ]]; then
@@ -439,7 +464,7 @@ function install_kernel()
   cmd="grep -Fxq $name $INSTALLED_KERNELS_PATH"
   cmd_manager "$flag" "$cmd"
   if [[ "$?" != 0 ]]; then
-    cmd="sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
+    cmd="$sudo_cmd tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     printf '%s\n' "$name" | cmd_manager "$flag" "$cmd"
   fi
 
