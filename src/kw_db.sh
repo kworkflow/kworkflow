@@ -152,8 +152,8 @@ function format_values_db()
 
   for val in "$@"; do
     [[ "$count" -eq 0 ]] && values+='('
-    # check if not a sqlite function
-    if [[ ! "$val" =~ ^[[:alnum:]_]+\(.*\)$ ]]; then
+    # check if not a sqlite function nor NULL
+    if [[ ! "$val" =~ ^[[:alnum:]_]+\(.*\)$ && "$val" != 'NULL' ]]; then
       val="'${val//\'/\'\'}'" # escapes single quotes and enclose
     fi
     values+="$val"
