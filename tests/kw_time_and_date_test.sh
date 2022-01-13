@@ -56,9 +56,12 @@ function test_get_week_beginning_day()
   week_day=$(get_week_beginning_day "$ref_week" '+%m/%d')
   assert_equals_helper 'Day format is wrong' "$LINENO" '05/16' "$week_day"
 
+  week_day=$(get_week_beginning_day "$first_week_day")
+  assert_equals_helper 'First day of the week did not match' "$LINENO" "$first_week_day" "$week_day"
+
   # No parameters, means this week
   ref_week=$(date '+%Y/%m/%d')
-  this_week_day=$(date '+%u')
+  this_week_day=$(date '+%w')
   first_week_day=$(date --date="${ref_week} - ${this_week_day} day" '+%Y/%m/%d')
 
   week_day=$(get_week_beginning_day)
