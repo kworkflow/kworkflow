@@ -50,7 +50,7 @@ function get_week_beginning_day()
 
   format=${format:-'+%Y/%m/%d'}
   date_param=${date_param:-$(date '+%Y/%m/%d')}
-  week_day_num=$(date -d "$date_param" '+%u' 2> /dev/null)
+  week_day_num=$(date -d "$date_param" '+%w' 2> /dev/null)
 
   date --date="${date_param} - ${week_day_num} day" "$format" 2> /dev/null
 }
