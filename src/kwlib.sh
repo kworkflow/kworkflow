@@ -370,13 +370,12 @@ function store_statistics_data()
 function command_exists()
 {
   local command="$1"
-  #shellcheck disable=SC2206 #FIXME: see issue #388
-  local package=($command)
+  local package=${command%% *}
 
-  if [[ -x "$(command -v "${package[@]}")" ]]; then
-    return 0
+  if [[ ! -x "$(command -v "$package")" ]]; then
+    return 22 # EINVAL
   fi
-  return 22 # EINVAL
+  return 0
 }
 
 # This function exits with a custom error message
