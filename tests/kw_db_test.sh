@@ -96,6 +96,12 @@ function test_format_values_db()
   expected="('some ''quotes''')"
   assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
   assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  output=$(format_values_db 2 'first' 'NULL')
+  ret="$?"
+  expected="('first',NULL)"
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
 }
 
 function test_execute_command_db()
