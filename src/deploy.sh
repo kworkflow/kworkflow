@@ -780,7 +780,7 @@ function modules_install_to()
   local install_to="$1"
   local flag="$2"
 
-  flag=${flag:-''}
+  flag=${flag:-'SILENT'}
 
   local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   set +e
