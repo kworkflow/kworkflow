@@ -7,7 +7,7 @@ EXTERNAL_DIR="$TEST_DIR/external"
 TMP_TEST_DIR="$TEST_DIR/.tmp"
 FAKE_DRM_SYSFS="$TMP_TEST_DIR/sys/class/drm"
 
-# Samples
+# Common samples
 MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
 KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
 KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
@@ -306,6 +306,10 @@ function compare_array_values()
 
 function invoke_shunit()
 {
+  # Set some global variables to point to the source by default
+  KW_LIB_DIR="$PWD/src"
+  KW_PLUGINS_DIR="$PWD/src/plugins"
+
   command -v shunit2 > /dev/null
   if [[ "$?" -eq 0 ]]; then
     . shunit2
