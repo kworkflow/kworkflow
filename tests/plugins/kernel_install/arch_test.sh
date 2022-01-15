@@ -1,9 +1,9 @@
 #!/bin/bash
 
-. ./src/plugins/kernel_install/utils.sh --source-only
-. ./src/plugins/kernel_install/arch.sh --source-only
-. ./src/kwio.sh --source-only
-. ./tests/utils.sh --source-only
+include './src/plugins/kernel_install/utils.sh'
+include './src/plugins/kernel_install/arch.sh'
+include './src/kwio.sh'
+include './tests/utils.sh'
 
 function setUp()
 {
