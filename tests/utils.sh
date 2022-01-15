@@ -1,11 +1,10 @@
 #!/bin/bash
 
 REPO_ROOT_PATH="$PWD"
-TEST_DIR="tests"
+TEST_DIR="$PWD/tests"
 SAMPLES_DIR="$TEST_DIR/samples"
 EXTERNAL_DIR="$TEST_DIR/external"
 TMP_TEST_DIR="$TEST_DIR/.tmp"
-FAKE_DRM_SYSFS="$TMP_TEST_DIR/sys/class/drm"
 
 # Common samples
 MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
@@ -104,61 +103,6 @@ function mk_fake_kernel_root()
   touch "$path/arch/arm64/boot/Image"
 }
 
-function mk_fake_sys_class_drm()
-{
-  declare -a fake_dirs=(
-    "card0"
-    "card0-DP-1"
-    "card0-DP-2"
-    "card0-DP-3"
-    "card0-DVI-D-1"
-    "card0-HDMI-A-1"
-    "card1"
-    "card1-DP-4"
-    "card1-DP-5"
-    "card1-DP-6"
-    "card1-HDMI-A-2"
-    "renderD128"
-    "renderD129"
-    "ttm")
-
-  for dir in "${fake_dirs[@]}"; do
-    mkdir -p "$FAKE_DRM_SYSFS/$dir"
-  done
-
-  touch "$FAKE_DRM_SYSFS/version"
-  touch "$FAKE_DRM_SYSFS/card0-DP-3/modes"
-
-  cat << END >> "$FAKE_DRM_SYSFS/card0-DP-3/modes"
-1920x2160
-2560x1440
-1920x1080
-1680x1050
-1280x1024
-1440x900
-1280x960
-1152x864
-1280x720
-1440x576
-1024x768
-1440x480
-800x600
-720x576
-720x480
-640x480
-720x400
-END
-
-  cat << END >> "$FAKE_DRM_SYSFS/card1-HDMI-A-2/modes"
-2560x1440
-1920x1080
-1280x1024
-640x480
-720x400
-END
-
-}
-
 function mk_fake_remote()
 {
   local -r FAKE_KW="$1"
@@ -213,7 +157,7 @@ function mk_fake_boot()
   local -r FAKE_BOOT_DIR=${1:-'./'}
 
   mkdir -p "$FAKE_BOOT_DIR"
-  cp -r "$REPO_ROOT_PATH/$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
+  cp -r "$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
 }
 
 # Creates a new git repository in the current path and configure it locally.

@@ -17,17 +17,17 @@ function setUp()
 
   # Override some global variable
   export test_path="$FAKE_KERNEL"
-  export KW_CACHE_DIR="$test_path"
+  export KW_CACHE_DIR="$SHUNIT_TMPDIR/.cache"
   export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export KW_PLUGINS_DIR="$PWD/src/plugins"
-  export modules_path="$test_path/$kernel_install_path/lib/modules"
   export REMOTE_KW_DEPLOY='/opt/kw'
 
   KW_LIB_DIR="$PWD/$SAMPLES_DIR"
 
-  mkdir "$test_path/$LOCAL_TO_DEPLOY_DIR"
-  mkdir "$test_path/$LOCAL_REMOTE_DIR"
+  # Create fake .cache
+  mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/lib/modules"
+  mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/"
 
   # Define some basic values for configurations
   parse_configuration "$KW_CONFIG_SAMPLE"
@@ -46,6 +46,8 @@ function setUp()
   alias get_kernel_version='get_kernel_version_mock'
   alias sudo='sudo_mock'
   alias date='date_mock'
+  alias generate_tarball='generate_tarball_mock'
+  alias vm_umount='vm_umount_mock'
 
   # Standard configuration makes the below standard commands
   CONFIG_REMOTE='juca@127.0.0.1'
@@ -70,6 +72,11 @@ function tearDown()
 function which_distro_mock()
 {
   printf '%s\n' 'debian'
+}
+
+function which_distro_none_mock()
+{
+  printf '%s\n' 'none'
 }
 
 function detect_distro_arch_mock()
@@ -102,11 +109,17 @@ function collect_deploy_info_mock()
   printf '[bootloader]=GRUB [distro]=arch'
 }
 
+function collect_deploy_info_other_mock()
+{
+  printf '[bootloader]=LILO [distro]=fedora'
+}
+
 function sudo_mock()
 {
   eval "$*"
 }
 
+# Function that we must replace
 function test_setup_remote_ssh_with_passwordless()
 {
   local output
@@ -398,13 +411,143 @@ function test_kernel_install_x86_64_to_remote()
   }
 }
 
+function test_kernel_install_local()
+{
+  local original="$PWD"
+  # We force Debian files in the setup; for this reason, we are using the
+  # commands used to deploy a new kernel image on debian.
+  local cmd_cp_kernel_img="sudo -E cp -v arch/arm64/boot/Image /boot/vmlinuz-test"
+  local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
+  local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
+  local cmd_touch_kernel_log="touch $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+  local cmd_grep_list="grep -Fxq test $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+  local cmd_reboot="sudo -E reboot"
+  local cmd_register_kernel="sudo tee -a '$REMOTE_KW_DEPLOY/INSTALLED_KERNELS' > /dev/null"
+  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
+  local msg=""
+
+  declare -a expected_cmd=(
+    "$config_warning"
+    "$cmd_cp_kernel_img"
+    "$cmd_update_initramfs"
+    "$cmd_update_grub"
+    "$cmd_touch_kernel_log"
+    "$cmd_grep_list"
+    #"$cmd_register_kernel"
+    "$cmd_reboot"
+  )
+
+  # ATTENTION: $FAKE_KERNEL got two levels deep (tests/.tmp); for this reason,
+  # we have to update KW_PLUGINS_DIR for this test for making sure that we use a
+  # real plugin.
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  alias collect_deploy_info='collect_deploy_info_mock'
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Test 2: Copy config file
+  cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
+  declare -a expected_cmd=(
+    "sudo -E cp $PWD/.config /boot/config-test"
+    "$cmd_cp_kernel_img"
+    "$cmd_update_initramfs"
+    "$cmd_update_grub"
+    "$cmd_touch_kernel_log"
+    "$cmd_grep_list"
+    "$cmd_reboot"
+  )
+
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  ## Make sure that we are not running as a root user
+  alias id='root_id_mock;true'
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
+  ret="$?"
+  assertEquals "($LINENO)" 1 "$ret"
+
+  # Test 3: Unknown distro
+  alias detect_distro='which_distro_none_mock'
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
+  assertEquals "($LINENO)" 95 "$?"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_install_to_vm()
+{
+  local name='test'
+  local original="$PWD"
+  local kernel_image_path='arch/arm64/boot/Image'
+  local kernel_image_remote_path="$KW_DEPLOY_TMP_FILE/vmlinuz-test"
+  local deploy_params="test debian Image 1 arm64 'remote' TEST_MODE"
+  local deploy_cmd="$DEPLOY_REMOTE_PREFIX"
+  local send_kernel_from_host2remote
+  local execute_deploy_remote
+  local config_warning
+  local expected_cmd
+  local output
+
+  # Note: We do not thoroughly test this feature here because, for the vm
+  # installation, we include the utils file in execution time. In this sense,
+  # the included test must be kept in the utils file and not here; for this
+  # reason, we just check the first part of this function.
+
+  # Composing expected commands
+  config_warning='Undefined .config file for the target kernel. Consider using kw bd'
+
+  declare -a expected_cmd=(
+    "$config_warning"
+    'Did you check if your VM is mounted?'
+  )
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Test 1: No config file
+  output=$(run_kernel_install 0 'test' 'TEST_MODE' 1)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Test 2: Create a config file that matches the kernel build
+  cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
+  configurations[mount_point]="$PWD/la"
+  declare -a expected_cmd=(
+    "cp $PWD/.config ${configurations[mount_point]}/boot/config-$name"
+    'Did you check if your VM is mounted?'
+  )
+
+  output=$(run_kernel_install 0 "$name" 'TEST_MODE' 1)
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Test 3: Invalid distro
+  alias detect_distro='which_distro_none_mock'
+
+  output=$(run_kernel_install 0 "$name" 'TEST_MODE' 1)
+  assertEquals "($LINENO)" 95 "$?"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 function test_kernel_modules()
 {
   local count=0
   local remote_path="$KW_DEPLOY_TMP_FILE"
   local kernel_install_path="$SHUNIT_TMPDIR/kernel_install"
-  local to_deploy_path="$SHUNIT_TMPDIR/to_deploy"
-  local local_remote_path="$SHUNIT_TMPDIR/remote"
+  local to_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
+  local local_remote_path="$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
   local version='5.4.0-rc7-test'
   local deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
   local output
@@ -466,58 +609,6 @@ function test_kernel_modules()
   assertEquals "($LINENO): " "$output" "$expected_output"
 }
 
-function test_kernel_install_local()
-{
-  local count=0
-  local original="$PWD"
-  # We force Debian files in the setup; for this reason, we are using the
-  # commands used to deploy a new kernel image on debian.
-  local cmd_cp_kernel_img="sudo -E cp -v arch/arm64/boot/Image /boot/vmlinuz-test"
-  local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
-  local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
-  local cmd_touch_kernel_log="touch $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
-  local cmd_grep_list="grep -Fxq test $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
-  local cmd_reboot="sudo -E reboot"
-  local cmd_register_kernel="sudo tee -a '$REMOTE_KW_DEPLOY/INSTALLED_KERNELS' > /dev/null"
-  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
-  local msg=""
-
-  declare -a expected_cmd=(
-    "$config_warning"
-    "$cmd_cp_kernel_img"
-    "$cmd_update_initramfs"
-    "$cmd_update_grub"
-    "$cmd_touch_kernel_log"
-    "$cmd_grep_list"
-    #"$cmd_register_kernel"
-    "$cmd_reboot"
-  )
-
-  # ATTENTION: $FAKE_KERNEL got two levels deep (tests/.tmp); for this reason,
-  # we have to update KW_PLUGINS_DIR for this test for making sure that we use a
-  # real plugin.
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  alias collect_deploy_info='collect_deploy_info_mock'
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
-
-  ## Make sure that we are not running as a root user
-  alias id='root_id_mock;true'
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  ret="$?"
-  assertEquals "($LINENO)" 1 "$ret"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
 # This test validates the correct behavior of list kernel on a remote machine
 # by checking the expected command sequence; It is important to highlight that
 # we are not testing the actual kernel list code, this part is validated on
@@ -575,8 +666,8 @@ function test_kernel_uninstall()
 function test_cleanup()
 {
   local output=''
-  local cmd_remote="rm -rf $test_path/$LOCAL_TO_DEPLOY_DIR/*"
-  local cmd_to_deploy="rm -rf $test_path/$LOCAL_REMOTE_DIR/*"
+  local cmd_remote="rm -rf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
+  local cmd_to_deploy="rm -rf $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/*"
 
   declare -a expected_cmd=(
     'Cleaning up temporary files...'
@@ -741,6 +832,9 @@ function test_prepare_host_deploy_dir()
   local output
   local ret
 
+  # Let's make sure that we don't have any old files
+  rm -rf "$SHUNIT_TMPDIR"
+
   # Check if we correctly create new directories
   prepare_host_deploy_dir
   assertTrue "($LINENO): Cache dir not created" '[[ -d $KW_CACHE_DIR ]]'
@@ -748,39 +842,96 @@ function test_prepare_host_deploy_dir()
   assertTrue "($LINENO): Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR ]]'
 }
 
+function prepare_remote_list_of_files()
+{
+  local distro="$1"
+
+  printf '{remote_deploy.sh,utils.sh,%s.sh,bootloader_utils.sh,grub.sh}' "$distro"
+}
+
 function test_prepare_remote_dir()
 {
-  local remote='172.16.224.1'
-  local user='root'
-  local port='2222'
-  local flag='TEST_MODE'
-  local to_copy="{remote_deploy.sh,utils.sh,debian.sh,bootloader_utils.sh,grub.sh}"
   local scripts_path="$KW_PLUGINS_DIR/kernel_install"
-  local target_address="$user@$remote"
-  local sync_files_cmd
-  local ssh_prefix="ssh -p $port $target_address sudo"
+  local debian_sync_files_cmd
+  local arch_sync_files_cmd
+  local output
 
-  sync_files_cmd="rsync -e 'ssh -p 2222' $scripts_path/$to_copy $target_address:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG --archive"
+  to_copy=$(prepare_remote_list_of_files 'debian')
+  debian_sync_files_cmd="$CONFIG_RSYNC $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG --archive"
 
+  # Test 1: Normal remote prepare
   declare -a expected_cmd=(
-    "$sync_files_cmd"
-    "ssh -p $port $user@$remote sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
+    "$debian_sync_files_cmd"
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
   )
 
-  output=$(prepare_remote_dir "$remote" "$port" "$user" '' "$flag")
+  output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
-  # First deploy
+  # Test 2: Force ArchLinux
   expected_cmd=()
-  output=$(prepare_remote_dir "$remote" "$port" "$user" 1 "$flag")
+  to_copy=$(prepare_remote_list_of_files 'arch')
+  arch_sync_files_cmd="$CONFIG_RSYNC $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG --archive"
+  declare -a expected_cmd=(
+    "$arch_sync_files_cmd"
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
+    "$CONFIG_RSYNC $KW_ETC_DIR/template_mkinitcpio.preset $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG"
+  )
+
+  alias detect_distro='detect_distro_arch_mock'
+  output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Test 3: First deploy
+  alias detect_distro='which_distro_mock'
+  to_copy=$(prepare_remote_list_of_files 'debian')
+  expected_cmd=()
+  output=$(prepare_remote_dir '' '' '' 1 'TEST_MODE')
 
   declare -a expected_cmd=(
-    "$ssh_prefix \"mkdir -p $REMOTE_KW_DEPLOY\""
-    "scp -q $scripts_path/$to_copy $user@$remote:$REMOTE_KW_DEPLOY"
-    "$ssh_prefix \"mkdir -p $KW_DEPLOY_TMP_FILE\""
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $REMOTE_KW_DEPLOY\""
+    "scp -q $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY"
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
   )
 
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+
+  # Test 4: Unsupported distro
+  alias detect_distro='which_distro_none_mock'
+
+  output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
+  assertEquals "($LINENO)" 95 "$?"
+}
+
+function test_collect_target_info_for_deploy()
+{
+  local output
+
+  # Corner-cases
+  alias detect_distro='which_distro_none_mock'
+  output=$(collect_target_info_for_deploy 1 'TEST_MODE')
+  assertEquals "($LINENO)" 95 "$?"
+
+  # VM
+  alias detect_distro='which_distro_mock'
+  collect_target_info_for_deploy 1 'TEST_MODE'
+  assertEquals "$LINENO: Check bootloader" "${target_deploy_info[bootloader]}" 'GRUB'
+  assertEquals "$LINENO: Check distro" "${target_deploy_info[distro]}" 'arch'
+
+  # LOCAL
+  alias collect_deploy_info='collect_deploy_info_other_mock'
+  collect_target_info_for_deploy 2 'TEST_MODE'
+  assertEquals "$LINENO: Check bootloader" "${target_deploy_info[bootloader]}" 'LILO'
+  assertEquals "$LINENO: Check distro" "${target_deploy_info[distro]}" 'fedora'
+
+  # REMOTE
+  function cmd_remotely()
+  {
+    printf '[bootloader]=syslinux [distro]=chrome'
+  }
+  collect_target_info_for_deploy 3 'TEST_MODE'
+  assertEquals "$LINENO: Check bootloader" "${target_deploy_info[bootloader]}" 'syslinux'
+  assertEquals "$LINENO: Check distro" "${target_deploy_info[distro]}" 'chrome'
 }
 
 invoke_shunit
