@@ -479,7 +479,7 @@ function prepare_remote_dir()
   distro=$(detect_distro '/' "$distro_info")
 
   if [[ $distro =~ "none" ]]; then
-    complain "Unfortunately, there's no support for the target distro"
+    complain "Unfortunately, there's no support for '$distro_info'"
     exit 95 # ENOTSUP
   fi
 
@@ -724,19 +724,12 @@ function modules_install()
   local remote
   local port
   local distro
+  local cmd
 
   flag=${flag:-''}
 
   case "$target" in
     1) # VM_TARGET
-      distro=$(detect_distro "${configurations[mount_point]}/")
-
-      if [[ "$distro" =~ 'none' ]]; then
-        complain 'Unfortunately, there is no support for the target distro'
-        vm_umount
-        exit 95 # ENOTSUP
-      fi
-
       modules_install_to "${configurations[mount_point]}" "$flag"
       ;;
     2) # LOCAL_TARGET

@@ -7,10 +7,11 @@ include './tests/utils.sh'
 function setUp()
 {
   # Create a temporary directory for holding different config file
-  rm -rf "$TMP_TEST_DIR"
-  mkdir -p "$TMP_TEST_DIR"
+  mkdir -p "$SHUNIT_TMPDIR"
 
-  cp "$SAMPLES_DIR/kworkflow_drm_plugin.config" "$TMP_TEST_DIR/kworkflow.config"
+  cp "$SAMPLES_DIR/kworkflow_drm_plugin.config" "$SHUNIT_TMPDIR/kworkflow.config"
+
+  FAKE_DRM_SYSFS="$SHUNIT_TMPDIR/sys/class/drm"
 
   # Prepare fake sysfs
   mk_fake_sys_class_drm
@@ -19,19 +20,74 @@ function setUp()
   parse_configuration "$KW_CONFIG_SAMPLE"
 }
 
+function mk_fake_sys_class_drm()
+{
+  declare -a fake_dirs=(
+    "card0"
+    "card0-DP-1"
+    "card0-DP-2"
+    "card0-DP-3"
+    "card0-DVI-D-1"
+    "card0-HDMI-A-1"
+    "card1"
+    "card1-DP-4"
+    "card1-DP-5"
+    "card1-DP-6"
+    "card1-HDMI-A-2"
+    "renderD128"
+    "renderD129"
+    "ttm")
+
+  for dir in "${fake_dirs[@]}"; do
+    mkdir -p "$FAKE_DRM_SYSFS/$dir"
+  done
+
+  touch "$FAKE_DRM_SYSFS/version"
+  touch "$FAKE_DRM_SYSFS/card0-DP-3/modes"
+
+  cat << END >> "$FAKE_DRM_SYSFS/card0-DP-3/modes"
+1920x2160
+2560x1440
+1920x1080
+1680x1050
+1280x1024
+1440x900
+1280x960
+1152x864
+1280x720
+1440x576
+1024x768
+1440x480
+800x600
+720x576
+720x480
+640x480
+720x400
+END
+
+  cat << END >> "$FAKE_DRM_SYSFS/card1-HDMI-A-2/modes"
+2560x1440
+1920x1080
+1280x1024
+640x480
+720x400
+END
+
+}
+
 function tearDown()
 {
   configurations=()
   configurations[ssh_user]=juca
 
-  rm -rf "$TMP_TEST_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
 function test_drm_manager()
 {
   local output
 
-  parse_configuration "$TMP_TEST_DIR/kworkflow.config"
+  parse_configuration "$SHUNIT_TMPDIR/kworkflow.config"
 
   output=$(drm_manager test_mode --remote --gui-on)
   expected_result='3 1 0 127.0.0.1 3333'
@@ -125,7 +181,7 @@ function test_get_supported_mode_per_connector()
 {
   declare -a expected_output=(
     "Modes per card"
-    "tests/.tmp/card0-DP-3:"
+    "$SHUNIT_TMPDIR/card0-DP-3:"
     "1920x2160"
     "2560x1440"
     "1920x1080"
@@ -144,7 +200,7 @@ function test_get_supported_mode_per_connector()
     "640x480"
     "720x400"
     ""
-    "tests/.tmp/card1-HDMI-A-2:"
+    "$SHUNIT_TMPDIR/card1-HDMI-A-2:"
     "2560x1440"
     "1920x1080"
     "1280x1024"
@@ -152,11 +208,9 @@ function test_get_supported_mode_per_connector()
     "720x400"
   )
 
-  ID=1
-
   export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
   output=$(get_supported_mode_per_connector 2)
-  compare_command_sequence 'expected_output' "$output" "$ID"
+  compare_command_sequence 'expected_output' "$output" "$LINENO"
 }
 
 function test_module_control()
