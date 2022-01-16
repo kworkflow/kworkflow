@@ -17,6 +17,8 @@ declare -ga essential_config_options=('user.name' 'user.email'
   'sendemail.smtpuser' 'sendemail.smtpserver' 'sendemail.smtpserverport')
 declare -ga optional_config_options=('sendemail.smtpencryption' 'sendemail.smtppass')
 
+declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
+
 #shellcheck disable=SC2119
 function mail_main()
 {
@@ -86,12 +88,49 @@ function mail_send()
   flag=${flag:-'SILENT'}
 
   [[ -n "$dryrun" ]] && cmd+=" $dryrun"
-  [[ -n "$to_recipients" ]] && cmd+=" --to=\"$to_recipients\""
-  [[ -n "$cc_recipients" ]] && cmd+=" --cc=\"$cc_recipients\""
+
+  if [[ -n "$to_recipients" ]]; then
+    validate_email_list "$to_recipients" || exit_msg 'Please review your `--to` list.'
+    cmd+=" --to=\"$to_recipients\""
+  fi
+
+  if [[ -n "$cc_recipients" ]]; then
+    validate_email_list "$cc_recipients" || exit_msg 'Please review your `--cc` list.'
+    cmd+=" --cc=\"$cc_recipients\""
+  fi
 
   cmd+=' @^'
 
   cmd_manager "$flag" "$cmd"
+}
+
+# Validates the recipient list given by the user to the options `--to` and
+# `--cc` to make sure the all the recipients are valid.
+#
+# @raw: The list of email recipients to be validated
+#
+# Return:
+# 22 if there are invalid entries; 0 otherwise
+function validate_email_list()
+{
+  local raw="$1"
+  local -a list
+  local value
+  local error=0
+
+  IFS=',' read -ra list <<< "$raw"
+
+  for value in "${list[@]}"; do
+    if [[ ! "$value" =~ ${email_regex} ]]; then
+      warning -n 'The given recipient: '
+      printf '%s' "$value"
+      warning ' does not contain a valid e-mail.'
+      error=1
+    fi
+  done
+
+  [[ "$error" == 1 ]] && return 22 # EINVAL
+  return 0
 }
 
 # This function deals with configuring the options used by `git send-email`
@@ -200,7 +239,7 @@ function validate_email()
 {
   local value="$1"
 
-  if [[ ! "$value" =~ ^[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+$ ]]; then
+  if [[ ! "$value" =~ ^${email_regex}$ ]]; then
     complain "Invalid email: $value"
     return 22 #EINVAL
   fi
