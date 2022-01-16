@@ -116,6 +116,40 @@ function test_validate_email()
   assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
 }
 
+function test_validate_email_list()
+{
+  local expected
+  local output
+  local ret
+
+  # invalid values
+  output="$(validate_email_list 'invalid email')"
+  ret="$?"
+  expected='The given recipient: invalid email does not contain a valid e-mail.'
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  output="$(validate_email_list 'lalala')"
+  ret="$?"
+  expected='The given recipient: lalala does not contain a valid e-mail.'
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  output="$(validate_email_list 'name1@lala.com,name2@lala.xpto,LastName, FirstName <last.first@lala.com>,test123@serious.gov')"
+  ret="$?"
+  expected='The given recipient: LastName does not contain a valid e-mail.'
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  # valid values
+  validate_email_list 'test@email.com'
+  ret="$?"
+  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
+
+  validate_email_list 'name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov'
+  ret="$?"
+  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
+}
+
 function test_mail_parser()
 {
   local output
@@ -255,11 +289,23 @@ function test_mail_send()
   expected='git send-email --to="mail@test.com" @^'
   assert_equals_helper 'Testing send with to option' "$LINENO" "$output" "$expected"
 
+  parse_mail_options '--to=name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov'
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --to="name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov" @^'
+  assert_equals_helper 'Testing send with to option' "$LINENO" "$output" "$expected"
+
   parse_mail_options '--cc=mail@test.com'
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --cc="mail@test.com" @^'
   assert_equals_helper 'Testing send with c option' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--cc=name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov'
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --cc="name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov" @^'
+  assert_equals_helper 'Testing send with cc option' "$LINENO" "$output" "$expected"
 
   parse_mail_options '--simulate'
 
