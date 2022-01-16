@@ -234,23 +234,31 @@ function test_kernel_force_uninstall_unmanaged()
 {
   local target='xpto'
   local prefix="./test"
-  local kernelpath="/boot/vmlinuz-$target"
-  local initrdpath="/boot/initrd.img-$target"
-  local modulespath="/lib/modules/$target"
-  local libpath="/var/lib/initramfs-tools/$target"
+  local kernel_boot_img_path="/boot/vmlinuz-$target"
+  local initrd_boot_path="/boot/initrd.img-$target"
+  local modules_lib_path="/lib/modules/$target"
+  local initramfs_tools_var_path="/var/lib/initramfs-tools/$target"
+  local initramfs_boot_img_path="/boot/initramfs-$target.img"
+  local initramfs_fallback_boot_img_path="/boot/initramfs-$target-fallback.img"
+  local mkinitcpio_d_path="/etc/mkinitcpio.d/$target.preset"
   local output
 
+  # Notice that we are only testing the force feature, we did not create fake
+  # files, as a result we can't find files.
   local -a cmd_sequence=(
     "sudo mkdir -p $REMOTE_KW_DEPLOY"
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     "sudo grep -q 'xpto' '$INSTALLED_KERNELS_PATH'"
     "Removing: $target"
-    "Can't find $kernelpath"
-    "Can't find $kernelpath.old"
-    "Can't find $initrdpath"
-    "Can't find $modulespath"
-    "Can't find $libpath"
+    "Can't find $kernel_boot_img_path"
+    "Can't find $kernel_boot_img_path.old"
+    "Can't find $initrd_boot_path"
+    "Can't find $initramfs_boot_img_path"
+    "Can't find $initramfs_fallback_boot_img_path"
     "Can't find /boot/config-$target"
+    "Can't find $mkinitcpio_d_path"
+    "Can't find $initramfs_tools_var_path"
+    "Can't find $modules_lib_path"
     "sudo sed -i '/xpto/d' '$INSTALLED_KERNELS_PATH'"
     "update_bootloader xpto local TEST_MODE"
     "sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
@@ -264,11 +272,14 @@ function test_remove_managed_kernel()
 {
   local target='xpto'
   local prefix="./test"
-  local kernelpath="/boot/vmlinuz-$target"
-  local initrdpath="/boot/initrd.img-$target"
-  local modulespath="/lib/modules/$target"
-  local libpath="/var/lib/initramfs-tools/$target"
   local kernel_name='5.5.0-rc2-VKMS+'
+  local kernel_boot_img_path="/boot/vmlinuz-$target"
+  local initrd_boot_path="/boot/initrd.img-$target"
+  local modules_lib_path="/lib/modules/$target"
+  local initramfs_tools_var_path="/var/lib/initramfs-tools/$target"
+  local initramfs_boot_img_path="/boot/initramfs-$kernel_name.img"
+  local initramfs_fallback_boot_img_path="/boot/initramfs-$kernel_name-fallback.img"
+  local mkinitcpio_d_path="/etc/mkinitcpio.d/$kernel_name.preset"
   local output
 
   cd "$SHUNIT_TMPDIR" || {
@@ -286,13 +297,16 @@ function test_remove_managed_kernel()
     "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
     "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
     "Can't find $SHUNIT_TMPDIR//boot/initrd.img-$kernel_name"
-    "Can't find $SHUNIT_TMPDIR//lib/modules/$kernel_name"
-    "Can't find $SHUNIT_TMPDIR//var/lib/initramfs-tools/$kernel_name"
+    "Can't find $SHUNIT_TMPDIR/$initramfs_boot_img_path"
+    "Can't find $SHUNIT_TMPDIR/$initramfs_fallback_boot_img_path"
     "Removing: $SHUNIT_TMPDIR//boot/config-$kernel_name"
     "rm $SHUNIT_TMPDIR//boot/config-$kernel_name"
+    "Can't find $SHUNIT_TMPDIR/$mkinitcpio_d_path"
+    "Can't find $SHUNIT_TMPDIR//var/lib/initramfs-tools/$kernel_name"
+    "Can't find $SHUNIT_TMPDIR//lib/modules/$kernel_name"
     "sudo sed -i '/$kernel_name/d' '$INSTALLED_KERNELS_PATH'"
     "update_bootloader $kernel_name local TEST_MODE"
-    "sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
+    'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
   )
 
   output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' '' "$SHUNIT_TMPDIR/")
@@ -308,27 +322,33 @@ function test_do_uninstall_cmd_sequence()
 {
   local target='xpto'
   local prefix="./test"
-  local kernelpath="$prefix/boot/vmlinuz-$target"
-  local initrdpath="$prefix/boot/initrd.img-$target"
-  local modulespath="$prefix/lib/modules/$target"
-  local libpath="$prefix/var/lib/initramfs-tools/$target"
-  local configpath="$prefix/boot/config-$target"
+  local kernel_boot_img_path="$prefix/boot/vmlinuz-$target"
+  local initrd_boot_path="$prefix/boot/initrd.img-$target"
+  local modules_lib_path="$prefix/lib/modules/$target"
+  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
+  local config_boot_path="$prefix/boot/config-$target"
+  local initramfs_boot_img_path="$prefix/boot/initramfs-$target.img"
+  local initramfs_fallback_boot_img_path="$prefix/boot/initramfs-$target-fallback.img"
+  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
   local output
 
-  # Invalid path
+  # TEST 1: Invalid path
   declare -a cmd_sequence=(
-    "Can't find $kernelpath"
-    "Can't find $kernelpath.old"
-    "Can't find $initrdpath"
-    "Can't find $modulespath"
-    "Can't find $libpath"
-    "Can't find $configpath"
+    "Can't find $kernel_boot_img_path"
+    "Can't find $kernel_boot_img_path.old"
+    "Can't find $initrd_boot_path"
+    "Can't find $initramfs_boot_img_path"
+    "Can't find $initramfs_fallback_boot_img_path"
+    "Can't find $config_boot_path"
+    "Can't find $mkinitcpio_d_path"
+    "Can't find $initramfs_tools_var_path"
+    "Can't find $modules_lib_path"
   )
 
   output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
-  # Good sequence
+  # TEST 2: Valid paths
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
@@ -337,37 +357,49 @@ function test_do_uninstall_cmd_sequence()
   mk_fake_remote_system "$prefix" "$target"
 
   declare -a cmd_sequence=(
-    "Removing: $kernelpath"
-    "rm $kernelpath"
-    "Removing: $kernelpath.old"
-    "rm $kernelpath.old"
-    "Removing: $initrdpath"
-    "rm -rf $initrdpath"
-    "Removing: $modulespath"
-    "rm -rf $modulespath"
-    "Removing: $libpath"
-    "rm -rf $libpath"
-    "Removing: $configpath"
-    "rm $configpath"
+    "Removing: $kernel_boot_img_path"
+    "rm $kernel_boot_img_path"
+    "Removing: $kernel_boot_img_path.old"
+    "rm $kernel_boot_img_path.old"
+    "Removing: $initrd_boot_path"
+    "rm $initrd_boot_path"
+    "Removing: $initramfs_boot_img_path"
+    "rm $initramfs_boot_img_path"
+    "Removing: $initramfs_fallback_boot_img_path"
+    "rm $initramfs_fallback_boot_img_path"
+    "Removing: $config_boot_path"
+    "rm $config_boot_path"
+    "Removing: $mkinitcpio_d_path"
+    "rm $mkinitcpio_d_path"
+    "Removing: $initramfs_tools_var_path"
+    "rm $initramfs_tools_var_path"
+    "Removing: $modules_lib_path"
+    "rm -rf $modules_lib_path"
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
   compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
 
   # Partial sequence
-  rm "$kernelpath.old"
-  rm -rf "$modulespath"
+  rm "$kernel_boot_img_path.old"
+  rm -rf "$modules_lib_path"
   declare -a cmd_sequence=(
-    "Removing: $kernelpath"
-    "rm $kernelpath"
-    "Can't find $kernelpath.old"
-    "Removing: $initrdpath"
-    "rm -rf $initrdpath"
-    "Can't find $modulespath"
-    "Removing: $libpath"
-    "rm -rf $libpath"
-    "Removing: $configpath"
-    "rm $configpath"
+    "Removing: $kernel_boot_img_path"
+    "rm $kernel_boot_img_path"
+    "Can't find $kernel_boot_img_path.old"
+    "Removing: $initrd_boot_path"
+    "rm $initrd_boot_path"
+    "Removing: $initramfs_boot_img_path"
+    "rm $initramfs_boot_img_path"
+    "Removing: $initramfs_fallback_boot_img_path"
+    "rm $initramfs_fallback_boot_img_path"
+    "Removing: $config_boot_path"
+    "rm $config_boot_path"
+    "Removing: $mkinitcpio_d_path"
+    "rm $mkinitcpio_d_path"
+    "Removing: $initramfs_tools_var_path"
+    "rm $initramfs_tools_var_path"
+    "Can't find $modules_lib_path"
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')

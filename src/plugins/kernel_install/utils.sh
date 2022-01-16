@@ -272,57 +272,37 @@ function do_uninstall()
   local target="$1"
   local prefix="$2"
   local flag="$3"
-  local kernelpath="$prefix/boot/vmlinuz-$target"
-  local initrdpath="$prefix/boot/initrd.img-$target"
-  local modulespath="$prefix/lib/modules/$target"
-  local libpath="$prefix/var/lib/initramfs-tools/$target"
-  local configpath="$prefix/boot/config-$target"
+  local modules_lib_path="$prefix/lib/modules/$target"
+  local -a files_to_be_removed=(
+    "$prefix/boot/vmlinuz-$target"
+    "$prefix/boot/vmlinuz-$target.old"
+    "$prefix/boot/initrd.img-$target"
+    "$prefix/boot/initramfs-$target.img"
+    "$prefix/boot/initramfs-$target-fallback.img"
+    "$prefix/boot/config-$target"
+    "$prefix/etc/mkinitcpio.d/$target.preset"
+    "$prefix/var/lib/initramfs-tools/$target"
+  )
 
   if [[ -z "$target" ]]; then
     printf '%s\n' 'No parameter, nothing to do'
-    exit 0
+    exit 22 # EINVAL
   fi
 
-  if [[ -f "$kernelpath" ]]; then
-    printf ' %s\n' "Removing: $kernelpath"
-    cmd_manager "$flag" "rm $kernelpath"
-  else
-    printf ' %s\n' "Can't find $kernelpath"
-  fi
+  for del_file in "${files_to_be_removed[@]}"; do
+    if [[ -f "$del_file" ]]; then
+      printf ' %s\n' "Removing: $del_file"
+      cmd_manager "$flag" "rm $del_file"
+    else
+      printf ' %s\n' "Can't find $del_file"
+    fi
+  done
 
-  if [[ -f "$kernelpath.old" ]]; then
-    printf ' %s\n' "Removing: $kernelpath.old"
-    cmd_manager "$flag" "rm $kernelpath.old"
+  if [[ -d "$modules_lib_path" && "$modules_lib_path" != '/lib/modules' ]]; then
+    printf ' %s\n' "Removing: $modules_lib_path"
+    cmd_manager "$flag" "rm -rf $modules_lib_path"
   else
-    printf ' %s\n' "Can't find $kernelpath.old"
-  fi
-
-  if [[ -f "$initrdpath" ]]; then
-    printf ' %s\n' "Removing: $initrdpath"
-    cmd_manager "$flag" "rm -rf $initrdpath"
-  else
-    printf ' %s\n' "Can't find $initrdpath"
-  fi
-
-  if [[ -d "$modulespath" && "$modulespath" != "/lib/modules" ]]; then
-    printf ' %s\n' "Removing: $modulespath"
-    cmd_manager "$flag" "rm -rf $modulespath"
-  else
-    printf ' %s\n' "Can't find $modulespath"
-  fi
-
-  if [[ -f "$libpath" ]]; then
-    printf ' %s\n' "Removing: $libpath"
-    cmd_manager "$flag" "rm -rf $libpath"
-  else
-    printf ' %s\n' "Can't find $libpath"
-  fi
-
-  if [[ -f "$configpath" ]]; then
-    printf ' %s\n' "Removing: $configpath"
-    cmd_manager "$flag" "rm $configpath"
-  else
-    printf ' %s\n' "Can't find $configpath"
+    printf ' %s\n' "Can't find $modules_lib_path"
   fi
 }
 

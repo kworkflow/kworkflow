@@ -126,17 +126,25 @@ function mk_fake_remote_system()
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
   local configpath="$prefix/boot/config-$target"
+  local initramfspath="$prefix/boot/initramfs-$target.img"
+  local initramfsfallbackpath="$prefix/boot/initramfs-$target-fallback.img"
+  local mkinitcpiodpath="$prefix/etc/mkinitcpio.d/"
+  local mkinitcpiofile="$mkinitcpiodpath/$target.preset"
 
   mkdir -p "$modulespath"
   mkdir -p "$prefix/boot/"
   mkdir -p "$prefix/lib/modules/"
   mkdir -p "$prefix/var/lib/initramfs-tools/"
+  mkdir -p "$mkinitcpiodpath"
 
   touch "$kernelpath"
   touch "$kernelpath.old"
   touch "$initrdpath"
   touch "$libpath"
   touch "$configpath"
+  touch "$initramfspath"
+  touch "$initramfsfallbackpath"
+  touch "$mkinitcpiofile"
 }
 
 function mock_target_machine()
