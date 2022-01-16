@@ -71,6 +71,8 @@ function show_variables()
   local -Ar deploy=(
     [default_deploy_target]='Deploy target'
     [reboot_after_deploy]='Reboot after deploy'
+    [kw_files_remote_path]='kw files in the remote machine'
+    [deploy_temporary_files_path]='Temporary files path used in the remote machine'
   )
 
   local -Ar mail=(

@@ -1,6 +1,4 @@
-declare -g kw_path='/opt/kw'
-declare -g kw_tmp_files='/tmp/kw'
-declare -g INSTALLED_KERNELS_PATH="$kw_path/INSTALLED_KERNELS"
+declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
 
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
@@ -49,7 +47,7 @@ function collect_deploy_info()
   # XXX: We must remove the numeric value of target because this is not the
   # default here. i.e., if [["$target" == 'remote' ]]; ...
   if [[ "$target" == 3 || "$target" == 'remote' ]]; then
-    . "$kw_path/bootloader_utils.sh" --source-only
+    . "$REMOTE_KW_DEPLOY/bootloader_utils.sh" --source-only
   fi
 
   bootloader=$(identify_bootloader_from_files "$prefix")
@@ -109,7 +107,7 @@ function list_installed_kernels()
   local -a available_kernels=()
   local cmd
 
-  cmd_manager "$flag" "sudo mkdir -p $kw_path"
+  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
   cmd_manager "$flag" "sudo touch $INSTALLED_KERNELS_PATH"
 
   if [[ -n "$all" ]]; then
@@ -197,7 +195,7 @@ function install_modules()
   local modules_path
   local ret
 
-  modules_path="$kw_tmp_files/$module_name"
+  modules_path="$KW_DEPLOY_TMP_FILE/$module_name"
 
   if [[ ! -f "$modules_path" ]]; then
     return 2 # ENOENT
@@ -338,7 +336,7 @@ function kernel_uninstall()
   local prefix="$6"
   local update_grub=0
 
-  cmd_manager "$flag" "sudo mkdir -p $kw_path"
+  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
   cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
 
   kernel_list_string=$(printf '%s' "$kernel_list_string" | tr --delete ' ')
@@ -425,7 +423,7 @@ function install_kernel()
     cmd="$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   else
-    cmd="$sudo_cmd cp -v $kw_tmp_files/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+    cmd="$sudo_cmd cp -v $KW_DEPLOY_TMP_FILE/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   fi
 

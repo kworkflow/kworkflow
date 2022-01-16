@@ -425,8 +425,11 @@ function deploy_setup()
 # function is intended to centralize these required updates.
 function update_deploy_variables()
 {
-  kw_path="$REMOTE_KW_DEPLOY"
-  kw_tmp_files="$KW_DEPLOY_TMP_FILE"
+  local kw_remote_path="${configurations[kw_files_remote_path]}"
+  local kw_tmp_files="${configurations[deploy_temporary_files_path]}"
+
+  REMOTE_KW_DEPLOY="${kw_remote_path:-$REMOTE_KW_DEPLOY}"
+  KW_DEPLOY_TMP_FILE="${kw_tmp_files:-$KW_DEPLOY_TMP_FILE}"
 }
 
 # Kw can deploy a new kernel image or modules (or both) in a target machine

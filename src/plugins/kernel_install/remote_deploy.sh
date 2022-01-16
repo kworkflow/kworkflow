@@ -20,9 +20,9 @@
 #   at time.
 
 # Global variable
-declare -g kw_path='/opt/kw'
-declare -g kw_tmp_files='/tmp/kw'
-declare -g INSTALLED_KERNELS_PATH="$kw_path/INSTALLED_KERNELS"
+declare -g REMOTE_KW_DEPLOY='/opt/kw'
+declare -g KW_DEPLOY_TMP_FILE='/tmp/kw'
+declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
 
 # Processing input data
 action=''
@@ -44,12 +44,12 @@ IF=' ' read -r -a action_parameters <<< "$action_parameters"
 while true; do
   case "$1" in
     --kw-path)
-      kw_path="$2"
-      INSTALLED_KERNELS_PATH="$kw_path/INSTALLED_KERNELS"
+      REMOTE_KW_DEPLOY="$2"
+      INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
       shift 2
       ;;
     --kw-tmp-files)
-      kw_tmp_files="$2"
+      KW_DEPLOY_TMP_FILE="$2"
       shift 2
       ;;
     --modules)
@@ -97,14 +97,14 @@ if [[ -z "$action" ]]; then
   exit 22 # EINVAL
 fi
 
-if [[ ! -d "$kw_path" ]]; then
-  printf 'It was not possible to move to %s\n' "$kw_path"
+if [[ ! -d "$REMOTE_KW_DEPLOY" ]]; then
+  printf 'It was not possible to move to %s\n' "$REMOTE_KW_DEPLOY"
   exit 2 # ENOENT
 fi
 
-# It is safe to cd `$kw_path` due to the above check
+# It is safe to cd `$REMOTE_KW_DEPLOY` due to the above check
 #shellcheck disable=SC2164
-cd "$kw_path"
+cd "$REMOTE_KW_DEPLOY"
 
 # Load specific distro script
 if [[ -f 'debian.sh' ]]; then

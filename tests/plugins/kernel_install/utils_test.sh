@@ -31,8 +31,8 @@ function oneTimeSetUp()
 
   . ./src/plugins/kernel_install/utils.sh --source-only
 
-  kw_path="$PWD/tests/samples"
-  INSTALLED_KERNELS_PATH="$kw_path/INSTALLED_KERNELS"
+  REMOTE_KW_DEPLOY="$PWD/tests/samples"
+  INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
   declare -gA configurations
 }
 
@@ -50,15 +50,15 @@ function setUp()
   printf '5.5.0-rc2-VKMS+' >> "$INSTALLED_KERNELS_PATH"
   printf '5.6.0-rc2-AMDGPU+' >> "$INSTALLED_KERNELS_PATH"
 
-  # Replace kw_tmp_files
+  # Replace KW_DEPLOY_TMP_FILE
   test_tmp_file="$SHUNIT_TMPDIR/tmp/kw"
-  kw_path="$SHUNIT_TMPDIR/opt/kw"
-  kw_tmp_files="$test_tmp_file"
+  REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR/opt/kw"
+  KW_DEPLOY_TMP_FILE="$test_tmp_file"
   mkdir -p "$test_tmp_file"
 
   # Mock variables
   KW_PLUGINS_DIR="$PWD/src/plugins"
-  kw_path="$KW_PLUGINS_DIR/kernel_install"
+  REMOTE_KW_DEPLOY="$KW_PLUGINS_DIR/kernel_install"
 }
 
 function tearDown()
@@ -117,7 +117,7 @@ function test_human_list_installed_kernels()
   local output
 
   declare -a expected_out=(
-    "sudo mkdir -p $kw_path"
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
     "sudo touch $INSTALLED_KERNELS_PATH"
     '5.5.0-rc2-VKMS+'
     '5.6.0-rc2-AMDGPU+'
@@ -135,7 +135,7 @@ function test_command_list_installed_kernels()
   local output
 
   declare -a expected_out=(
-    "sudo mkdir -p $kw_path"
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
     "sudo touch $INSTALLED_KERNELS_PATH"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
@@ -155,7 +155,7 @@ function test_list_unmanaged_kernels()
   printf '%s' '' > "$INSTALLED_KERNELS_PATH"
 
   expected=(
-    "sudo mkdir -p $kw_path"
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
     "sudo touch $INSTALLED_KERNELS_PATH"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
@@ -207,7 +207,7 @@ function test_kernel_uninstall_unmanaged()
 
   expected=(
     '' # TODO: Figure out why we have these extra spaces here
-    "sudo mkdir -p $kw_path"
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
     ''
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     ''
@@ -241,7 +241,7 @@ function test_kernel_force_uninstall_unmanaged()
   local output
 
   local -a cmd_sequence=(
-    "sudo mkdir -p $kw_path"
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     "sudo grep -q 'xpto' '$INSTALLED_KERNELS_PATH'"
     "Removing: $target"
@@ -277,7 +277,7 @@ function test_remove_managed_kernel()
   }
 
   local -a cmd_sequence=(
-    "sudo mkdir -p $kw_path"
+    "sudo mkdir -p $REMOTE_KW_DEPLOY"
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     "sudo grep -q '$kernel_name' '$INSTALLED_KERNELS_PATH'"
     "Removing: $kernel_name"
@@ -396,7 +396,7 @@ function test_install_modules()
   touch "$module_target"
 
   output=$(install_modules "$module_target" 'TEST_MODE')
-  cmd="tar -C /lib/modules -xf $kw_tmp_files/$module_target"
+  cmd="tar -C /lib/modules -xf $KW_DEPLOY_TMP_FILE/$module_target"
   assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
 
   cd "$TEST_ROOT_PATH" || {
@@ -422,7 +422,7 @@ function test_install_kernel_remote()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "cp -v $kw_tmp_files/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+    "cp -v $KW_DEPLOY_TMP_FILE/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'grub-mkconfig -o /boot/grub/grub.cfg'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
