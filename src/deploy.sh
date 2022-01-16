@@ -25,6 +25,7 @@ include "$KW_LIB_DIR/signal_manager.sh"
 # deploy.
 REMOTE_KW_DEPLOY='/opt/kw'
 KW_DEPLOY_TMP_FILE='/tmp/kw'
+REMOTE_INTERACE_CMD_PREFIX="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
@@ -279,9 +280,7 @@ function prepare_distro_for_deploy()
       local remote="${remote_parameters['REMOTE_IP']}"
       local port="${remote_parameters['REMOTE_PORT']}"
       local user="${remote_parameters['REMOTE_USER']}"
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
-
-      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --deploy-setup $flag"
 
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
@@ -430,6 +429,9 @@ function update_deploy_variables()
 
   REMOTE_KW_DEPLOY="${kw_remote_path:-$REMOTE_KW_DEPLOY}"
   KW_DEPLOY_TMP_FILE="${kw_tmp_files:-$KW_DEPLOY_TMP_FILE}"
+
+  REMOTE_INTERACE_CMD_PREFIX="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+  REMOTE_INTERACE_CMD_PREFIX+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
 }
 
 # Kw can deploy a new kernel image or modules (or both) in a target machine
@@ -556,8 +558,7 @@ function run_list_installed_kernels()
       list_installed_kernels "$single_line" "$all"
       ;;
     3) # REMOTE_TARGET
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
-      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --list-kernels $flag $single_line $all"
 
       remote="${remote_parameters['REMOTE_IP']}"
@@ -607,8 +608,7 @@ function collect_target_info_for_deploy()
       local remote="${remote_parameters['REMOTE_IP']}"
       local port="${remote_parameters['REMOTE_PORT']}"
       local user="${remote_parameters['REMOTE_USER']}"
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
-      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --collect-info $flag $target"
 
       data=$(cmd_remotely "$cmd" "$flag" "$remote" "$port")
@@ -682,8 +682,7 @@ function run_kernel_uninstall()
       # TODO
       # It would be better if `cmd_remotely` handle the extra space added by
       # line break with `\`; this may allow us to break a huge line like this.
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
-      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --uninstall-kernels '$reboot' 'remote' '$kernels_target_list' '$flag' '$force'"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
@@ -756,8 +755,7 @@ function modules_install()
       cp2remote "$flag" "$tarball_for_deploy_path" "$KW_DEPLOY_TMP_FILE"
 
       # 3. Deploy: Execute script
-      local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
-      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --modules $release.tar"
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       ;;
@@ -916,8 +914,7 @@ function run_kernel_install()
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
-      cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
-      cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+      cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
