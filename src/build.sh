@@ -45,8 +45,9 @@ function kernel_build()
   local cross_compile
   local arch
   local menu_config
-  local parallel_cores
   local doc_type
+  local optimizations
+  local cpu_scaling_factor
 
   parse_build_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -60,6 +61,7 @@ function kernel_build()
   menu_config=${options_values['MENU_CONFIG']}
   parallel_cores=${options_values['PARALLEL_CORES']}
   doc_type=${options_values['DOC_TYPE']}
+  cpu_scaling_factor=${options_values['CPU_SCALING_FACTOR']}
 
   if [[ -n "${options_values['INFO']}" ]]; then
     build_info ''
@@ -81,22 +83,28 @@ function kernel_build()
     exit 125 # ECANCELED
   fi
 
-  if [ -x "$(command -v nproc)" ]; then
-    parallel_cores=$(nproc --all)
+  if command_exists nproc; then
+    parallel_cores="$(nproc --all)"
   else
-    parallel_cores=$(grep -c ^processor /proc/cpuinfo)
+    parallel_cores="$(grep -c ^processor /proc/cpuinfo)"
+  fi
+
+  optimizations="-j$((parallel_cores * cpu_scaling_factor / 100))"
+
+  if [[ -n "${options_values['CCACHE']}" ]]; then
+    optimizations="CC=\"ccache gcc -fdiagnostics-color\" $optimizations"
   fi
 
   if [[ -n "$doc_type" ]]; then
-    command="make -j$parallel_cores $doc_type"
+    command="make $optimizations $doc_type"
     cmd_manager "$flag" "$command"
     return
   fi
 
+  command="make $optimizations ARCH=$arch $cross_compile"
+
   # Let's avoid menu question by default
   cmd_manager "$flag" "make -j ARCH=$arch $cross_compile olddefconfig --silent"
-
-  command="make -j$parallel_cores ARCH=$arch $cross_compile"
 
   start=$(date +%s)
   cmd_manager "$flag" "$command"
@@ -160,8 +168,8 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc'
-  local short_options='h,i,n,d'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:'
+  local short_options='h,i,n,d,c:'
   local doc_type
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
@@ -177,7 +185,8 @@ function parse_build_options()
   options_values['ARCH']="${build_config[arch]:-$arch_fallback}"
   options_values['MENU_CONFIG']=''
   options_values['CROSS_COMPILE']="${build_config[cross_compile]}"
-  options_values['PARALLEL_CORES']=1
+  options_values['CCACHE']="${build_config[ccache]}"
+  options_values['CPU_SCALING_FACTOR']="${build_config[cpu_scaling_factor]:-100}"
   options_values['INFO']=''
   options_values['DOC_TYPE']=''
 
@@ -196,6 +205,21 @@ function parse_build_options()
         options_values['MENU_CONFIG']="${build_config[menu_config]:-$menu_fallback}"
         shift
         ;;
+      --cpu-scaling | -c)
+        if [[ ! "$2" =~ [0-9]+ ]]; then
+          options_values['ERROR']="$2"
+          return 22 # EINVAL
+        fi
+        if [[ "$2" -gt 100 ]]; then
+          complain 'Upscaling CPU performance in compilation tasks may have unintended consequences!'
+        fi
+        options_values['CPU_SCALING_FACTOR']="$2"
+        shift 2
+        ;;
+      --ccache)
+        options_values['CCACHE']=1
+        shift
+        ;;
       --doc | -d)
         doc_type_fallback="${configurations[doc_type]:-htmldocs}"
         options_values['DOC_TYPE']="${build_config[doc_type]:-$doc_type_fallback}"
@@ -206,7 +230,7 @@ function parse_build_options()
         ;;
       *)
         options_values['ERROR']="$1"
-        return 22
+        return 22 # EINVAL
         ;;
     esac
   done
@@ -224,7 +248,9 @@ function build_help()
     '  build - Build kernel' \
     '  build (-n | --menu) - Open kernel menu config' \
     '  build (-i | --info) - Display build information' \
-    '  build (-d | --doc) - Build kernel documentation'
+    '  build (-d | --doc) - Build kernel documentation' \
+    '  build (-c | --cpu-scaling) <percentage> - Scale CPU usage by factor' \
+    '  build (--ccache) - Enable use of ccache'
 }
 
 # This function is used to show the current set up used by kworkflow.
@@ -250,6 +276,8 @@ function show_build_variables()
 
   local -Ar build=(
     [arch]='Target arch'
+    [cpu_scaling_factor]='CPU scaling factor'
+    [enable_ccache]='Enable ccache'
     [kernel_img_name]='Kernel image name'
     [cross_compile]='Cross-compile name'
     [menu_config]='Kernel menu config'

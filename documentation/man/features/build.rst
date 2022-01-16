@@ -9,6 +9,8 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-i | \--info)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-n | \--menu)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-d | \--doc)] [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [(-c | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [\--ccache] [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
 ===========
@@ -40,6 +42,14 @@ OPTIONS
   The doc option provides a mechanism for building the kernel-doc; by default,
   it will build htmldocs. Users can change the default documentation output by
   changing the parameter *doc_type* in the **kworkflow.config** file.
+
+-c, \--cpu-scaling:
+  The cpu-scaling option lets the user set whichever usage they want from their
+  CPU, basically setting the ``-j`` flag accordingly.
+
+\--ccache:
+  This option allows the user to enable ``ccache`` usage during compilation
+  tasks, which should improve compile times in subsequent compilations. 
 
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.

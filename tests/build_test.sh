@@ -35,6 +35,7 @@ oneTimeSetUp()
     PARALLEL_CORES=$(grep -c ^processor /proc/cpuinfo)
   fi
   export PARALLEL_CORES
+  export SCALING=$((PARALLEL_CORES / 2))
 
   shopt -s expand_aliases
   alias get_kernel_release='get_kernel_release_mock'
@@ -301,6 +302,10 @@ function test_kernel_build_html_doc()
   output=$(kernel_build 'TEST_MODE' --doc)
   expected_result="make -j$PARALLEL_CORES htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
+
+  output=$(kernel_build 'TEST_MODE' --doc --ccache)
+  expected_result="make CC=\"ccache gcc -fdiagnostics-color\" -j$PARALLEL_CORES htmldocs"
+  assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
 function test_kernel_build_invalid_flag()
@@ -364,8 +369,40 @@ function test_kernel_build_x86()
     "make -j ARCH=x86_64  olddefconfig --silent"
     "make -j$PARALLEL_CORES ARCH=x86_64"
   )
-
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
+function test_kernel_isolated_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --ccache | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    "make -j ARCH=x86_64  olddefconfig --silent"
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$PARALLEL_CORES ARCH=x86_64"
+  )
+  compare_command_sequence '' "($LINENO)" "expected_cmd" "$output"
+
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    "make -j ARCH=x86_64  olddefconfig --silent"
+    "make -j$SCALING ARCH=x86_64"
+  )
+  compare_command_sequence '' "($LINENO)" "expected_cmd" "$output"
+}
+
+function test_kernel_2composed_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    "make -j ARCH=x86_64  olddefconfig --silent"
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$SCALING ARCH=x86_64"
+  )
+  compare_command_sequence '' "($LINENO)" "expected_cmd" "$output"
 }
 
 function test_parse_build_options()
@@ -380,41 +417,48 @@ function test_parse_build_options()
   assert_equals_helper 'Default ARCH did not match expectation' "($LINENO)" 'x86_64' "${options_values['ARCH']}"
   assert_equals_helper 'Default MENU_CONFIG did not match expectation' "($LINENO)" '' "${options_values['MENU_CONFIG']}"
   assert_equals_helper 'Default CROSS_COMPILE did not match expectation' "($LINENO)" '' "${options_values['CROSS_COMPILE']}"
-  assert_equals_helper 'Default PARALLEL_CORES did not match expectation' "($LINENO)" '1' "${options_values['PARALLEL_CORES']}"
+  assert_equals_helper 'Default CPU_SCALING_FACTOR did not match expectation' "($LINENO)" '100' "${options_values['CPU_SCALING_FACTOR']}"
+  assert_equals_helper 'Default CCACHE did not match expectation' "($LINENO)" '' "${options_values['CCACHE']}"
   assert_equals_helper 'Default INFO did not match expectation' "($LINENO)" '' "${options_values['INFO']}"
   assert_equals_helper 'Default DOC_TYPE did not match expectation' "($LINENO)" '' "${options_values['DOC_TYPE']}"
 
   # test individual options
   help_output="$(build_help)"
-  unset options_values
-  declare -gA options_values
+  options_values=()
   output="$(parse_build_options -h)"
   assert_equals_helper 'Could not access build help' "($LINENO)" "$help_output" "$output"
 
-  unset options_values
-  declare -gA options_values
+  options_values=()
   parse_build_options --info
-  assert_equals_helper 'Could not set build INFO' "($LINENO)" '1' "${options_values['INFO']}"
+  assert_equals_helper 'Could not set build option INFO' "($LINENO)" '1' "${options_values['INFO']}"
 
-  unset options_values
-  declare -gA options_values
+  options_values=()
   parse_build_options -i
-  assert_equals_helper 'Could not set build INFO' "($LINENO)" '1' "${options_values['INFO']}"
+  assert_equals_helper 'Could not set build option INFO' "($LINENO)" '1' "${options_values['INFO']}"
 
-  unset options_values
-  declare -gA options_values
+  options_values=()
   parse_build_options --menu
-  assert_equals_helper 'Could not set build MENU_CONFIG' "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
+  assert_equals_helper 'Could not set build option MENU_CONFIG' "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
 
-  unset options_values
-  declare -gA options_values
+  options_values=()
   parse_build_options --doc
-  assert_equals_helper 'Could not set build DOC_TYPE' "($LINENO)" 'htmldocs' "${options_values['DOC_TYPE']}"
+  assert_equals_helper 'Could not set build option DOC_TYPE' "($LINENO)" 'htmldocs' "${options_values['DOC_TYPE']}"
 
-  unset options_values
-  declare -gA options_values
+  options_values=()
   parse_build_options -d
-  assert_equals_helper 'Could not set build DOC_TYPE' "($LINENO)" 'htmldocs' "${options_values['DOC_TYPE']}"
+  assert_equals_helper 'Could not set build option DOC_TYPE' "($LINENO)" 'htmldocs' "${options_values['DOC_TYPE']}"
+
+  options_values=()
+  parse_build_options --cpu-scaling 150 > /dev/null
+  assert_equals_helper 'Could not set build option CPU_SCALING_FACTOR' "($LINENO)" '150' "${options_values['CPU_SCALING_FACTOR']}"
+
+  options_values=()
+  parse_build_options -c 150 > /dev/null
+  assert_equals_helper 'Could not set build option CPU_SCALING_FACTOR' "($LINENO)" '150' "${options_values['CPU_SCALING_FACTOR']}"
+
+  options_values=()
+  parse_build_options --ccache
+  assert_equals_helper 'Could not set build option CCACHE' "($LINENO)" '1' "${options_values['CCACHE']}"
 
   output="$(parse_build_options --mispelled 2>&1)"
   assertEquals "($LINENO)" 22 "$?"

@@ -20,3 +20,4 @@ zstd
 bc
 git-email
 pv
+ccache
