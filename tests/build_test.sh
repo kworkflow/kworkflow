@@ -72,7 +72,7 @@ function test_kernel_build_menu_cross_compilation_flags()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' '--menu')
+  output=$(kernel_build 'TEST_MODE' --menu)
   expected_result="make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -82,7 +82,7 @@ function test_kernel_build_html_doc()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' '--doc')
+  output=$(kernel_build 'TEST_MODE' --doc)
   expected_result="make -j$PARALLEL_CORES htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -92,7 +92,7 @@ function test_kernel_build_invalid_flag()
   local output
   local ret
 
-  output=$(kernel_build 'TEST_MODE' '--notvalid' 2> /dev/null)
+  output=$(kernel_build 'TEST_MODE' --notvalid 2> /dev/null)
   ret="$?"
   assertEquals "($LINENO)" "$ret" 22
 }
@@ -199,7 +199,6 @@ function test_parse_build_options()
 
   output="$(parse_build_options --mispelled 2>&1)"
   assertEquals "($LINENO)" 22 "$?"
-  assertEquals "($LINENO)" "kw build: unrecognized option '--mispelled'" "$output"
 }
 
 function test_build_info()

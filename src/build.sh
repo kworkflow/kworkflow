@@ -50,8 +50,10 @@ function kernel_build()
   local doc_type
 
   parse_build_options "$@"
-  if [[ "$?" != 0 ]]; then
-    exit 22 # EINVAL
+  if [[ "$?" -gt 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    build_help
+    return 22 # EINVAL
   fi
 
   cross_compile="${options_values['CROSS_COMPILE']}"
@@ -119,13 +121,11 @@ function parse_build_options()
   local short_options='h,i,n,d'
   local doc_type
 
-  options="$(getopt \
-    --name 'kw build' \
-    --options "$short_options" \
-    --longoptions "$long_options" \
-    -- "$@")"
+  options=$(kw_parse "$short_options" "$long_options" "$@")
 
   if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw build' "$short_options" \
+      "$long_options" "$@")"
     return 22 # EINVAL
   fi
 
@@ -136,8 +136,6 @@ function parse_build_options()
   options_values['PARALLEL_CORES']=1
   options_values['INFO']=''
   options_values['DOC_TYPE']=''
-
-  eval "set -- $options"
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -161,8 +159,8 @@ function parse_build_options()
         shift
         ;;
       *)
-        complain "Invalid option: $option"
-        exit 22 # EINVAL
+        options_values['ERROR']="$1"
+        return 22
         ;;
     esac
   done
