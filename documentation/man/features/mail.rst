@@ -30,7 +30,14 @@ OPTIONS
   Send a patch by email using ``git send-email`` to the email adresses
   specified with ``--to`` and ``--cc``. You can provide *<extra-args>* to be
   passed directly to ``git send-email``, they should be placed after the double
-  dash (``--``) argument.
+  dash (``--``) argument. By default this function assumes these arguments to
+  ``git send-email``::
+
+    --annotate --cover-letter --no-chain-reply-to --thread
+
+  .. note::
+    You can change the default arguments used to send emails in the
+    *kworkflow.config* file.
 
 \--to='<recipient>,...':
   Specify the recipients that will receive the patch via e-mail. The

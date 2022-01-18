@@ -83,6 +83,7 @@ function test_parse_configuration_output()
     [gui_on]='turn on'
     [gui_off]='turn off'
     [doc_type]='htmldocs'
+    [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
   )
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"
@@ -125,6 +126,7 @@ function test_parse_configuration_standard_config()
     [reboot_after_deploy]='no'
     [disable_statistics_data_track]='no'
     [doc_type]='htmldocs'
+    [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"

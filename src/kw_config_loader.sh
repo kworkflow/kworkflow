@@ -73,6 +73,10 @@ function show_variables()
     [reboot_after_deploy]='Reboot after deploy'
   )
 
+  local -Ar mail=(
+    [send_opts]='Options to be used when sending a patch'
+  )
+
   local -Ar misc=(
     [disable_statistics_data_track]='Disable tracking of statistical data'
     [gui_on]='Command to activate GUI'
@@ -82,6 +86,7 @@ function show_variables()
   local -Ar group_descriptions=(
     [build]='Kernel build options'
     [deploy]='Kernel deploy options'
+    [mail]='Send-email options'
     [ssh]='SSH options'
     [qemu]='QEMU options'
     [notification]='Notification options'
@@ -91,7 +96,7 @@ function show_variables()
   say 'kw configuration variables:'
   printf '%s\n' "  Local config file: $has_local_config_path"
 
-  for group in 'build' 'deploy' 'qemu' 'ssh' 'notification' 'misc'; do
+  for group in 'build' 'deploy' 'qemu' 'mail' 'ssh' 'notification' 'misc'; do
     printf '%s\n' "  ${group_descriptions["$group"]}:"
     local -n descriptions="$group"
 
