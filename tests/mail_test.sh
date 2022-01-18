@@ -407,6 +407,13 @@ function test_mail_send()
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" extra_args --other_arg -13 -v2'
   assert_equals_helper 'Testing no options option' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--to=mail@test.com'
+  parse_configuration "$KW_CONFIG_SAMPLE"
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --to="mail@test.com" --annotate --cover-letter --no-chain-reply-to --thread @^'
+  assert_equals_helper 'Testing default option' "$LINENO" "$output" "$expected"
 }
 
 function test_get_configs()

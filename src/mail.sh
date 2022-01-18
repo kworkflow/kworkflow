@@ -80,6 +80,7 @@ function mail_main()
 function mail_send()
 {
   local flag="$1"
+  local opts="${configurations[send_opts]}"
   local to_recipients="${options_values['TO']}"
   local cc_recipients="${options_values['CC']}"
   local dryrun="${options_values['SIMULATE']}"
@@ -100,6 +101,7 @@ function mail_send()
     cmd+=" --cc=\"$cc_recipients\""
   fi
 
+  [[ -n "$opts" ]] && cmd+=" $opts"
   [[ -n "$extra_opts" ]] && cmd+=" $extra_opts"
 
   cmd_manager "$flag" "$cmd"
