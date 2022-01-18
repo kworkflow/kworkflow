@@ -4,6 +4,7 @@
 # are set.
 
 include "$KW_LIB_DIR/kw_config_loader.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kw_string.sh"
 
 # Hash containing user options
@@ -84,7 +85,10 @@ function mail_send()
   local to_recipients="${options_values['TO']}"
   local cc_recipients="${options_values['CC']}"
   local dryrun="${options_values['SIMULATE']}"
+  local commit_range="${options_values['COMMIT_RANGE']}"
+  local version="${options_values['PATCH_VERSION']}"
   local extra_opts="${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
+  local kernel_root
   local cmd='git send-email'
 
   flag=${flag:-'SILENT'}
@@ -99,6 +103,14 @@ function mail_send()
   if [[ -n "$cc_recipients" ]]; then
     validate_email_list "$cc_recipients" || exit_msg 'Please review your `--cc` list.'
     cmd+=" --cc=\"$cc_recipients\""
+  fi
+
+  kernel_root="$(find_kernel_root "$PWD")"
+  # if inside a kernel repo use get_maintainer to populate recipients
+  if [[ -n "$kernel_root" ]]; then
+    generate_kernel_recipients "$kernel_root" "$commit_range" "$version"
+    cmd+=" --to-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} to'"
+    cmd+=" --cc-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} cc'"
   fi
 
   [[ -n "$opts" ]] && cmd+=" $opts"
@@ -136,6 +148,63 @@ function validate_email_list()
   return 0
 }
 
+# This function generates the appropriate recipients for each patch and saves
+# them in files to be read by the script passed to `git send-email`. This makes
+# use of the `get_maintainer.pl` script to figure out the who should recieve
+# each patch, and generates a union of all adresses to send the cover-letter to
+# all relevant parties.
+#
+# @kernel_root:  The path to the root of the current kernel tree
+# @commit_range: The revision list used to generate the patches
+# @version:      The version of the patchset
+#
+# Returns:
+# Nothing
+function generate_kernel_recipients()
+{
+  local kernel_root="$1"
+  local commit_range="$2"
+  local version="$3"
+  local to=''
+  local cc=''
+  local to_list=''
+  local cc_list=''
+  local patch_cache="${KW_CACHE_DIR}/patches"
+  local cover_letter_to="${patch_cache}/to/cover-letter"
+  local cover_letter_cc="${patch_cache}/cc/cover-letter"
+  local get_maintainer_cmd="perl ${kernel_root}/scripts/get_maintainer.pl"
+  get_maintainer_cmd+=" --nogit --nogit-fallback --no-r --no-n --multiline"
+  get_maintainer_cmd+=" --nokeywords --norolestats --remove-duplicates"
+
+  if [[ -d "$patch_cache" && ! "$patch_cache" =~ ^(~|/|"$HOME")$ ]]; then
+    rm -rf "$patch_cache"
+  fi
+  mkdir -p "${patch_cache}/to/" "${patch_cache}/cc/"
+
+  cmd_manager 'SILENT' "git format-patch --quiet --output-directory $patch_cache $version $commit_range"
+
+  for patch_path in "${patch_cache}/"*; do
+    if ! is_a_patch "$patch_path"; then
+      continue
+    fi
+    patch="$(basename "$patch_path")"
+
+    to="$(eval "$get_maintainer_cmd --no-l $patch_path")"
+    cc="$(eval "$get_maintainer_cmd --no-m $patch_path")"
+
+    printf '%s\n' "$to" > "${patch_cache}/to/${patch}"
+    printf '%s\n' "$to" >> "$cover_letter_to"
+    printf '%s\n' "$cc" > "${patch_cache}/cc/${patch}"
+    printf '%s\n' "$cc" >> "$cover_letter_cc"
+  done
+
+  to_list="$(sort -u "$cover_letter_to")"
+  printf '%s\n' "$to_list" > "$cover_letter_to"
+
+  cc_list="$(sort -u "$cover_letter_cc")"
+  printf '%s\n' "$cc_list" > "$cover_letter_cc"
+}
+
 # This function checks if any of the arguments in @args is a valid commit
 # reference
 #
@@ -149,6 +218,7 @@ function find_commit_references()
   local args="$*"
   local arg=''
   local parsed=''
+  local commit_range=''
 
   [[ -z "$args" ]] && return 22 # EINVAL
 
@@ -162,11 +232,17 @@ function find_commit_references()
     while read -r rev; do
       # check if the argument is a valid reference to a commit-ish object
       if git rev-parse --verify --quiet --end-of-options "$rev^{commit}" > /dev/null; then
-        return 0
+        commit_range+="$arg "
+        continue 2
       fi
     done <<< "$parsed"
     parsed=''
   done <<< "$(git rev-parse -- $args 2> /dev/null)"
+
+  if [[ -n "$commit_range" ]]; then
+    printf '%s' "$(str_strip "$commit_range")"
+    return 0
+  fi
 
   return 22 # EINVAL
 }
@@ -770,7 +846,6 @@ function parse_mail_options()
   local setup_token=0
   local patch_version=''
   local commit_count=''
-  local commit_ref=0
   local short_options='s,t,f,v:,i,l,n,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
   long_options+='template::,interactive,no-interactive,list,'
@@ -804,7 +879,9 @@ function parse_mail_options()
   options_values['NO_INTERACTIVE']=''
   options_values['SCOPE']='local'
   options_values['CMD_SCOPE']=''
+  options_values['PATCH_VERSION']=''
   options_values['PASS_OPTION_TO_SEND_EMAIL']=''
+  options_values['COMMIT_RANGE']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -894,14 +971,19 @@ function parse_mail_options()
         shift
         ;;
       -v)
-        patch_version="$1$2"
+        options_values['PATCH_VERSION']="$1$2"
         shift 2
         ;;
       --)
         shift
         # if a reference is passed after the -- we need to account for it
-        [[ "$*" =~ -[[:digit:]]+ ]] && commit_ref=1
-        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$* $patch_version")"
+        if [[ "$*" =~ -[[:digit:]]+ ]]; then
+          commit_count="${BASH_REMATCH[0]}"
+          options_values['COMMIT_RANGE']+="$commit_count "
+        fi
+        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$* ${options_values['PATCH_VERSION']}")"
+        options_values['COMMIT_RANGE']+="$(find_commit_references "${options_values['PASS_OPTION_TO_SEND_EMAIL']}")"
+        rev_ret="$?"
         shift "$#"
         ;;
       *)
@@ -915,14 +997,13 @@ function parse_mail_options()
     validate_setup_opt
   fi
 
-  if [[ "$commit_ref" == 0 ]]; then
-    find_commit_references "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
-    ret="$?"
-    if [[ "$ret" == 22 ]]; then
-      # assume last commit if none given
-      options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
-    fi
+  # assume last commit if none given
+  if [[ -z "${options_values['COMMIT_RANGE']}" && "$rev_ret" == 22 ]]; then
+    options_values['COMMIT_RANGE']='@^'
+    options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
   fi
+
+  return 0
 }
 
 function mail_help()
