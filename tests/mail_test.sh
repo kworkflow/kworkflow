@@ -7,11 +7,13 @@ function oneTimeSetUp()
 {
   declare -gr ORIGINAL_DIR="$PWD"
   declare -gr FAKE_GIT="$SHUNIT_TMPDIR/fake_git/"
+  declare -gr FAKE_KERNEL="$FAKE_GIT/fake_kernel/"
   declare -ga test_config_opts=('test0' 'test1' 'test2' 'user.name' 'sendemail.smtpuser')
 
   export KW_ETC_DIR="$SHUNIT_TMPDIR/etc/"
+  export KW_CACHE_DIR="$SHUNIT_TMPDIR/cache/"
 
-  mkdir -p "$FAKE_GIT"
+  mk_fake_kernel_root "$FAKE_KERNEL"
   mkdir -p "$KW_ETC_DIR/mail_templates/"
 
   touch "$KW_ETC_DIR/mail_templates/test1"
@@ -118,6 +120,7 @@ function test_validate_email()
 
 function test_find_commit_references()
 {
+  local output
   local ret
 
   cd "$SHUNIT_TMPDIR" || {
@@ -140,21 +143,25 @@ function test_find_commit_references()
     exit "$ret"
   }
 
-  find_commit_references @
-  ret="$?"
-  assert_equals_helper '@ should be a valid reference' "$LINENO" "$ret" 0
-
-  find_commit_references '@^..@'
-  ret="$?"
-  assert_equals_helper '@^..@ should be a valid reference' "$LINENO" "$ret" 0
-
-  find_commit_references invalid_ref
+  output="$(find_commit_references invalid_ref)"
   ret="$?"
   assert_equals_helper 'Invalid ref should not work' "$LINENO" "$ret" 22
+  assertTrue "($LINENO) Invalid ref should be empty" '[[ -z "$output" ]]'
 
-  find_commit_references some args @ around
+  output="$(find_commit_references '@^..@')"
+  ret="$?"
+  assert_equals_helper '@^..@ should be a valid reference' "$LINENO" "$ret" 0
+  assertTrue "($LINENO) @^..@ should generate a reference" '[[ -n "$output" ]]'
+
+  output="$(find_commit_references @)"
   ret="$?"
   assert_equals_helper '@ should be a valid reference' "$LINENO" "$ret" 0
+  assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
+
+  output="$(find_commit_references some args @ around)"
+  ret="$?"
+  assert_equals_helper '@ should be a valid reference' "$LINENO" "$ret" 0
+  assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -246,14 +253,20 @@ function test_mail_parser()
   parse_mail_options some -- extra -1 args HEAD^
   expected='some extra args HEAD^ -1'
   assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+  assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['COMMIT_RANGE']}" '-1 HEAD^'
 
   parse_mail_options -375
   expected='-375'
   assert_equals_helper 'Set commit count option' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+  assert_equals_helper 'Set commit count option' "$LINENO" "${options_values['COMMIT_RANGE']}" "$expected "
 
   parse_mail_options -v3
+  expected='-v3'
+  assert_equals_helper 'Set version option' "$LINENO" "${options_values['PATCH_VERSION']}" "$expected"
+
   expected='-v3 @^'
   assert_equals_helper 'Set version option' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+  assert_equals_helper 'Set version option' "$LINENO" "${options_values['COMMIT_RANGE']}" '@^'
 
   parse_mail_options '--send'
   assert_equals_helper 'Set send flag' "$LINENO" "${options_values['SEND']}" 1

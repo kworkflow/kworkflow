@@ -19,6 +19,10 @@ It is common to deal with patch submissions to a mailing list, and
 ``git send-email`` is one of the most famous tools for handling that. The
 **mail** functionality aims to wrap this tool to simplify its usage and
 integrate it with other **kw** functionalities.
+If used inside of a linux kernel tree the send feature will auto populate the
+*to* and *cc* fields of each patch file with the appropriate maintainers and
+mailing lists fetched with the *get_maintainer.pl* script. It will also use
+the union of the recipients of each patch as the recipients of the cover-letter.
 
 .. note::
   Any option recognized by ``git send-email`` can be passed directly to it if
@@ -125,3 +129,9 @@ To send a range of commits the following can be used::
 Extra arguments can be passed directly to ``git send-email`` like this::
 
   kw mail -s --to='some@email.com' -- --thread
+
+If you are inside of a linux kernel tree, you can send the last three commits
+as a patchset to the maintainers of the subsystems and with copies to the
+appropriate mailing lists using::
+
+  kw mail -s -3
