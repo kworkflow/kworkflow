@@ -90,6 +90,7 @@ function mail_send()
   local extra_opts="${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
   local private="${options_values['PRIVATE']}"
   local kernel_root
+  local patch_count=0
   local cmd='git send-email'
 
   flag=${flag:-'SILENT'}
@@ -106,10 +107,16 @@ function mail_send()
     cmd+=" --cc=\"$cc_recipients\""
   fi
 
+  # Don't generate a cover letter when sending only one patch
+  patch_count="$(pre_generate_patches "$commit_range" "$version")"
+  if [[ "$patch_count" -eq 1 ]]; then
+    opts="$(sed 's/--cover-letter//g' <<< "$opts")"
+  fi
+
   kernel_root="$(find_kernel_root "$PWD")"
   # if inside a kernel repo use get_maintainer to populate recipients
   if [[ -z "$private" && -n "$kernel_root" ]]; then
-    generate_kernel_recipients "$kernel_root" "$commit_range" "$version"
+    generate_kernel_recipients "$kernel_root"
     cmd+=" --to-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} to'"
     cmd+=" --cc-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} cc'"
   fi
@@ -150,6 +157,37 @@ function validate_email_list()
   return 0
 }
 
+# This function generates the patches beforehand, these are used to count the
+# number of patches and later to generate the appropriate recipients
+#
+# @commit_range: The list of revisions used to generate the patches
+# @version:      The version of the patches
+#
+# Returns:
+# The count of how many patches were created
+function pre_generate_patches()
+{
+  local commit_range="$1"
+  local version="$2"
+  local patch_cache="${KW_CACHE_DIR}/patches"
+  local count=0
+
+  if [[ -d "$patch_cache" && ! "$patch_cache" =~ ^(~|/|"$HOME")$ ]]; then
+    rm -rf "$patch_cache"
+  fi
+  mkdir -p "$patch_cache"
+
+  cmd_manager 'SILENT' "git format-patch --quiet --output-directory $patch_cache $version $commit_range"
+
+  for patch_path in "${patch_cache}/"*; do
+    if is_a_patch "$patch_path"; then
+      ((count++))
+    fi
+  done
+
+  printf '%s\n' "$count"
+}
+
 # This function generates the appropriate recipients for each patch and saves
 # them in files to be read by the script passed to `git send-email`. This makes
 # use of the `get_maintainer.pl` script to figure out the who should recieve
@@ -157,16 +195,12 @@ function validate_email_list()
 # all relevant parties.
 #
 # @kernel_root:  The path to the root of the current kernel tree
-# @commit_range: The revision list used to generate the patches
-# @version:      The version of the patchset
 #
 # Returns:
 # Nothing
 function generate_kernel_recipients()
 {
   local kernel_root="$1"
-  local commit_range="$2"
-  local version="$3"
   local to=''
   local cc=''
   local to_list=''
@@ -178,12 +212,7 @@ function generate_kernel_recipients()
   get_maintainer_cmd+=" --nogit --nogit-fallback --no-r --no-n --multiline"
   get_maintainer_cmd+=" --nokeywords --norolestats --remove-duplicates"
 
-  if [[ -d "$patch_cache" && ! "$patch_cache" =~ ^(~|/|"$HOME")$ ]]; then
-    rm -rf "$patch_cache"
-  fi
   mkdir -p "${patch_cache}/to/" "${patch_cache}/cc/"
-
-  cmd_manager 'SILENT' "git format-patch --quiet --output-directory $patch_cache $version $commit_range"
 
   for patch_path in "${patch_cache}/"*; do
     if ! is_a_patch "$patch_path"; then
