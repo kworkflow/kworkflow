@@ -178,9 +178,12 @@ function mk_fake_git()
   git add first_file
   git commit -q -m 'Initial commit'
 
+  printf 'Second change\n' >> "$path/first_file"
   git add --all
   git commit --allow-empty -q -m 'Second commit'
 
+  printf 'Third change\n' >> "$path/first_file"
+  git add --all
   git commit --allow-empty -q -m 'Third commit'
 }
 

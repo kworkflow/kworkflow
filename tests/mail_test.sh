@@ -377,6 +377,12 @@ function test_mail_send()
   local output
   local ret
 
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
   parse_mail_options
 
   output=$(mail_send 'TEST_MODE')
@@ -435,8 +441,21 @@ function test_mail_send()
   parse_configuration "$KW_CONFIG_SAMPLE"
 
   output=$(mail_send 'TEST_MODE')
-  expected='git send-email --to="mail@test.com" --annotate --cover-letter --no-chain-reply-to --thread @^'
+  expected='git send-email --to="mail@test.com" --annotate  --no-chain-reply-to --thread @^'
   assert_equals_helper 'Testing default option' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--to=mail@test.com' '@^^'
+  parse_configuration "$KW_CONFIG_SAMPLE"
+
+  output=$(mail_send 'TEST_MODE')
+  expected='git send-email --to="mail@test.com" --annotate --cover-letter --no-chain-reply-to --thread @^^'
+  assert_equals_helper 'Testing default option' "$LINENO" "$output" "$expected"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
 }
 
 function test_get_configs()
