@@ -136,6 +136,7 @@ function test_parse_configuration_standard_config()
     [get_maintainer_opts]='--separator , --nokeywords --nogit --nogit-fallback --norolestats'
     [kw_files_remote_path]='/opt/kw'
     [deploy_temporary_files_path]='/tmp/kw'
+    [deploy_default_compression]='lzop'
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"

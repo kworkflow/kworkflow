@@ -727,6 +727,7 @@ function modules_install()
   local port
   local distro
   local cmd
+  local compression_type="${configurations[deploy_default_compression]}"
 
   flag=${flag:-''}
 
@@ -749,7 +750,8 @@ function modules_install()
       release=$(get_kernel_release "$flag")
       success "Kernel: $release"
       generate_tarball "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/lib/modules/" \
-        "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" '' "$release" "$flag"
+        "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" \
+        "$compression_type" "$release" "$flag"
 
       local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
       cp2remote "$flag" "$tarball_for_deploy_path" "$KW_DEPLOY_TMP_FILE"

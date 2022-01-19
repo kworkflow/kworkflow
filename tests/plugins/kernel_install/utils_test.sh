@@ -428,7 +428,7 @@ function test_install_modules()
   touch "$module_target"
 
   output=$(install_modules "$module_target" 'TEST_MODE')
-  cmd="tar -C /lib/modules -xf $KW_DEPLOY_TMP_FILE/$module_target"
+  cmd="tar --directory='/lib/modules' --extract --file='$KW_DEPLOY_TMP_FILE/$module_target'"
   assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
 
   cd "$TEST_ROOT_PATH" || {

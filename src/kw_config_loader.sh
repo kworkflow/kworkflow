@@ -73,6 +73,7 @@ function show_variables()
     [reboot_after_deploy]='Reboot after deploy'
     [kw_files_remote_path]='kw files in the remote machine'
     [deploy_temporary_files_path]='Temporary files path used in the remote machine'
+    [deploy_default_compression]='Default compression option used in the deploy'
   )
 
   local -Ar mail=(

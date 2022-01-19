@@ -572,7 +572,7 @@ function test_kernel_modules()
   make_install_cmd="make INSTALL_MOD_PATH=$local_remote_path/ modules_install"
 
   # Compress modules for sending
-  compress_cmd="tar -C $local_remote_path/lib/modules/ --auto-compress -cf $to_deploy_path/$version.tar $version"
+  compress_cmd="tar --auto-compress --directory='$local_remote_path/lib/modules/' --create --file='$to_deploy_path/$version.tar' $version"
 
   # Rsync modules
   rsync_tarball="$CONFIG_RSYNC $to_deploy_path/$version.tar $CONFIG_REMOTE:$remote_path $STD_RSYNC_FLAG"

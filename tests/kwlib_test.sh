@@ -476,7 +476,7 @@ function test_generate_tarball()
   )
 
   output=$(generate_tarball "$path_to_compress" "$file_path" 'gzip' '' 'SUCCESS')
-  assertEquals "($LINENO)" "tar -C $path_to_compress --gzip -cf $file_path ." "$output"
+  assertEquals "($LINENO)" "tar --gzip --directory='$path_to_compress' --create --file='$file_path' ." "$output"
 
   assertTrue 'Compressed file was not created' "[[ -f $SHUNIT_TMPDIR/compressed.tar.gz ]]"
 

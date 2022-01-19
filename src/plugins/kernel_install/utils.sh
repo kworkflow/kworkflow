@@ -194,6 +194,7 @@ function install_modules()
   local flag="$2"
   local modules_path
   local ret
+  local tar_cmd
 
   modules_path="$KW_DEPLOY_TMP_FILE/$module_name"
 
@@ -201,7 +202,9 @@ function install_modules()
     return 2 # ENOENT
   fi
 
-  cmd_manager "$flag" "tar -C /lib/modules -xf $modules_path"
+  tar_cmd="tar --directory='/lib/modules' --extract --file='$modules_path'"
+
+  cmd_manager "$flag" "$tar_cmd"
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then

@@ -475,10 +475,11 @@ function generate_tarball()
 
   compression_type=${compression_type:-'--auto-compress'}
 
-  # -C: Go to $go_to_path_to_compress directory
-  # -cf: Compress the directory named $dir_name (inside $go_to_path_to_compress) to
-  #      $file_path
-  cmd="tar -C $go_to_path_to_compress $compression_type -cf $file_path $dir_name"
+  # --directory: Go to $go_to_path_to_compress directory
+  # --create --file: Compress the directory named $dir_name (inside
+  # $go_to_path_to_compress) to $file_path
+  cmd="tar $compression_type --directory='$go_to_path_to_compress'"
+  cmd+=" --create --file='$file_path' $dir_name"
   cmd_manager "$flag" "$cmd"
 
   ret="$?"
