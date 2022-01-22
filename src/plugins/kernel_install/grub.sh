@@ -12,16 +12,42 @@ function run_bootloader_update()
   local flag="$1"
   local target="$2"
   local cmd_grub
+  local cmd_sudo
+  local total_count
 
   if [[ "$target" == 'local' ]]; then
-    cmd_grub='sudo -E '
+    cmd_sudo='sudo -E '
+    cmd_grub+="$cmd_sudo"
   elif [[ "$target" == 'vm' ]]; then
     run_bootloader_for_vm "$flag"
     return "$?"
   fi
 
   cmd_grub+="$DEFAULT_GRUB_CMD_UPDATE"
+
+  if [[ "$flag" != 'VERBOSE' ]]; then
+    total_count=$(total_of_installed_kernels "$flag" "$target")
+    total_count=$((total_count * 2 + 7))
+    # TODO: For some reason, this is not working via ssh
+    #cmd_grub+=" |& pv -p --line-mode --size $total_count > /dev/null"
+  fi
+
   cmd_manager "$flag" "$cmd_grub"
+}
+
+function total_of_installed_kernels()
+{
+  local flag="$1"
+  local target="$2"
+  local total_count
+  local find_cmd="find /boot -name 'vmlinuz*' | wc -l"
+
+  [[ "$target" == 'local' ]] && find_cmd="sudo -E $find_cmd"
+
+  [[ "$flag" != 'TEST_MODE' ]] && total_count=$(eval "$find_cmd")
+  total_count=$((total_count * 2 + 7))
+
+  printf '%d' "$total_count"
 }
 
 # After configuring the handle (adding a disk image in write mode), the

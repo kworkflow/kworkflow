@@ -106,7 +106,7 @@ function cmd_manager()
       say "$command_for_eval"
       return 0
       ;;
-    *)
+    *) # VERBOSE
       say "$command_for_eval"
       ;;
   esac
@@ -180,7 +180,7 @@ function get_kernel_release()
   local flag="$1"
   local cmd='make kernelrelease'
 
-  flag=${flag:-'SILENT'}
+  [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
 
   cmd_manager "$flag" "$cmd"
 }

@@ -9,6 +9,7 @@
 declare -ga required_packages=(
   'rsync'
   'screen'
+  'pv'
 )
 
 # ArchLinux package manager

@@ -105,6 +105,8 @@ function cp2remote()
   local remote=${5:-${remote_parameters['REMOTE_IP']}}
   local port=${6:-${remote_parameters['REMOTE_PORT']}}
   local user=${7:-${remote_parameters['REMOTE_USER']}}
+  local quiet="$8"
+  local progress_flag='--info=progress2'
 
   if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
     rsync_target="'ssh -F ${configurations['ssh_configfile']}' $src ${configurations['hostname']}:$dst"
@@ -112,12 +114,14 @@ function cp2remote()
     rsync_target="'ssh -p $port' $src $user@$remote:$dst"
   fi
 
+  [[ -n "$quiet" ]] && progress_flag=''
+
   # The -LrlptD flags for rsync are similar to the -La flags used for archiving
   # files and resolving symlinks the diference lies on the absence of the -og
   # flags that preserve group and user ownership. We don't want to preserve
   # ownership in order to automatically transfer the files to the root user and
-  # group.
-  cmd_manager "$flag" "rsync -e $rsync_target -LrlptD --rsync-path='sudo rsync' $rsync_params"
+  # group. --partial --progress
+  cmd_manager "$flag" "rsync $progress_flag -e $rsync_target -LrlptD --rsync-path='sudo rsync' $rsync_params"
 }
 
 # This function copies files from the remote machine to the local host.
@@ -136,7 +140,7 @@ function remote2host()
   local port=${5:-${configurations[ssh_port]}}
   local user=${6:-${configurations[ssh_user]}}
 
-  cmd_manager "$flag" "rsync -e \"ssh -p $port\" $user@$ip:$src $dst"
+  cmd_manager "$flag" "rsync --info=progress2 -e \"ssh -p $port\" $user@$ip:$src $dst"
 }
 
 # Access the target device and query the distro name.

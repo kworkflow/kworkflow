@@ -102,6 +102,8 @@ function deploy_main()
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
   setup="${options_values['SETUP']}"
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   update_deploy_variables
 
   # Let's ensure that the target machine is ready for the deploy
@@ -172,7 +174,7 @@ function deploy_main()
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
   start=$(date +%s)
-  modules_install '' "$target"
+  modules_install "$flag" "$target"
   modules_install_status="$?"
   end=$(date +%s)
   runtime=$((end - start))
@@ -187,7 +189,7 @@ function deploy_main()
     # Update name: release + alias
     name=$(make kernelrelease)
 
-    run_kernel_install "$reboot" "$name" '' "$target" '' "$build_and_deploy"
+    run_kernel_install "$reboot" "$name" "$flag" "$target" '' "$build_and_deploy"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
     statistics_manager 'deploy' "$runtime"
@@ -496,8 +498,9 @@ function prepare_remote_dir()
   # not exits
   if [[ -z "$first_deploy" ]]; then
     cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" \
-      '--archive' "$remote" "$port" "$user"
+      '--archive' "$remote" "$port" "$user" 'quiet'
   else
+    say '* Sending kw to the remote'
     cmd_remotely "mkdir -p $REMOTE_KW_DEPLOY" "$flag" "$remote" "$port" "$user"
     cmd="scp -q $files_to_send $user@$remote:$REMOTE_KW_DEPLOY"
     cmd_manager "$flag" "$cmd"
@@ -589,8 +592,14 @@ function collect_target_info_for_deploy()
   local distro_info
   local distro
   local data
+  local verbose
 
   flag=${flag:-'SILENT'}
+  # We cannot have any sort of extra output inside collect info
+  if [[ "$flag" == 'VERBOSE' ]]; then
+    flag='SILENT'
+    verbose=1
+  fi
 
   case "$target" in
     1) # VM_TARGET
@@ -623,6 +632,8 @@ function collect_target_info_for_deploy()
     complain 'Unfortunately, there is no support for the target distro'
     exit 95 # ENOTSUP
   fi
+
+  [[ -n "$verbose" ]] && printf '%s\n' "$data"
 }
 
 # This function handles the kernel uninstall process for different targets.
@@ -729,15 +740,14 @@ function modules_install()
   local cmd
   local compression_type="${configurations[deploy_default_compression]}"
 
-  flag=${flag:-''}
+  flag=${flag:-'SILENT'}
 
   case "$target" in
     1) # VM_TARGET
       modules_install_to "${configurations[mount_point]}" "$flag"
       ;;
     2) # LOCAL_TARGET
-      cmd='sudo -E make modules_install'
-      cmd_manager "$flag" "$cmd"
+      modules_install_to '/lib/modules' "$flag" 'local'
       ;;
     3) # REMOTE_TARGET
       remote="${remote_parameters['REMOTE_IP']}"
@@ -748,12 +758,12 @@ function modules_install()
       modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
 
       release=$(get_kernel_release "$flag")
-      success "Kernel: $release"
       generate_tarball "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/lib/modules/" \
         "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" \
         "$compression_type" "$release" "$flag"
 
       local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
+      say "* Sending kernel modules ($release) to the remote"
       cp2remote "$flag" "$tarball_for_deploy_path" "$KW_DEPLOY_TMP_FILE"
 
       # 3. Deploy: Execute script
@@ -775,11 +785,29 @@ function modules_install_to()
 {
   local install_to="$1"
   local flag="$2"
+  local local_deploy="$3"
+  local total_lines
+  local pv_cmd
+  local cmd=''
+  local sign_extra_line=2
 
   flag=${flag:-'SILENT'}
 
-  local cmd="make INSTALL_MOD_PATH=$install_to modules_install"
-  set +e
+  if [[ "$local_deploy" == 'local' ]]; then
+    cmd='sudo -E make modules_install'
+    sign_extra_line=1
+  else
+    cmd="make INSTALL_MOD_PATH=$install_to modules_install"
+  fi
+
+  if [[ "$flag" != 'VERBOSE' && -f './modules.order' ]]; then
+    total_lines=$(wc -l < './modules.order')
+    # Multiply by two because we have the driver name and the signing line
+    total_lines=$((total_lines * "$sign_extra_line"))
+    cmd+=" | pv -p --line-mode --size $total_lines > /dev/null"
+  fi
+
+  say '* Preparing modules'
   cmd_manager "$flag" "$cmd"
 }
 
@@ -817,7 +845,7 @@ function run_kernel_install()
   kernel_name=${kernel_name:-'nothing'}
   mkinitcpio_name=${mkinitcpio_name:-'nothing'}
   name=${name:-'kw'}
-  flag=${flag:-''}
+  flag=${flag:-'SILENT'}
 
   if [[ "$reboot" == 0 ]]; then
     reboot_default="${configurations[reboot_after_deploy]}"
@@ -904,6 +932,7 @@ function run_kernel_install()
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro '/' "$distro_info")
 
+      say '* Sending kernel image and config file to the remote'
       cp2remote "$flag" \
         "arch/$arch_target/boot/$kernel_img_name" "$KW_DEPLOY_TMP_FILE/vmlinuz-$name"
 
@@ -938,8 +967,8 @@ function parse_deploy_options()
   local remote
   local options
   local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
-  long_options+=',list-all,force,setup'
-  local short_options='r,m,l,s,u:,a,f'
+  long_options+=',list-all,force,setup,verbose'
+  local short_options='r,m,l,s,u:,a,f,v'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -959,6 +988,7 @@ function parse_deploy_options()
   options_values['MENU_CONFIG']='nconfig'
   options_values['LS_ALL']=''
   options_values['SETUP']=''
+  options_values['VERBOSE']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -1035,6 +1065,10 @@ function parse_deploy_options()
         options_values['UNINSTALL']+="$2"
         shift 2
         ;;
+      --verbose | -v)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --force | -f)
         options_values['UNINSTALL_FORCE']=1
         shift
@@ -1075,6 +1109,7 @@ function deploy_help()
     '  deploy - installs kernel and modules:' \
     '  deploy (--remote <remote>:<port> | --local | --vm) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
+    '  deploy (--verbose | -v) - Show a detailed output' \
     '  deploy (--setup) - Set up target machine for deploy' \
     '  deploy (--modules | -m) - install only modules' \
     '  deploy (--uninstall | -u) [(--force | -f)] <kernel-name>,... - uninstall given kernels' \

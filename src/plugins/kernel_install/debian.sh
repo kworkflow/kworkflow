@@ -10,6 +10,7 @@
 declare -ag required_packages=(
   'rsync'
   'screen'
+  'pv'
 )
 
 # Debian package manager command

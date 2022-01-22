@@ -28,6 +28,7 @@ function oneTimeSetUp()
   alias findmnt='findmnt_mock'
   alias vm_umount='vm_umount'
   alias vm_mount='vm_mount_mock'
+  alias total_of_installed_kernels='total_of_installed_kernels_mock'
 
   . ./src/plugins/kernel_install/utils.sh --source-only
 
@@ -64,6 +65,11 @@ function setUp()
 function tearDown()
 {
   rm -rf "$SHUNIT_TMPDIR"
+}
+
+function total_of_installed_kernels_mock()
+{
+  printf '5'
 }
 
 function identify_bootloader_from_files_mock()
@@ -454,7 +460,7 @@ function test_install_kernel_remote()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "cp -v $KW_DEPLOY_TMP_FILE/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+    "cp  $KW_DEPLOY_TMP_FILE/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'grub-mkconfig -o /boot/grub/grub.cfg'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
@@ -480,7 +486,7 @@ function test_install_kernel_local()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
+    "$sudo_cmd cp  arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
@@ -512,8 +518,8 @@ function test_install_kernel_vm()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "cp -v .config $path_prefix/boot/config-$name"
-    "cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
+    "cp  .config $path_prefix/boot/config-$name"
+    "cp  arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'vm_mount'
     'run_bootloader_for_vm_mock'

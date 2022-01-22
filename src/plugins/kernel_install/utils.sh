@@ -26,7 +26,11 @@ function cmd_manager()
       printf '%s\n' "$@"
       return 0
       ;;
-    *)
+    VERBOSE)
+      shift 1
+      printf '%s\n' "$@"
+      ;;
+    *) # VERBOSE
       printf '%s\n' "$@"
       ;;
   esac
@@ -195,6 +199,8 @@ function install_modules()
   local modules_path
   local ret
   local tar_cmd
+
+  flag=${flag:-'SILENT'}
 
   modules_path="$KW_DEPLOY_TMP_FILE/$module_name"
 
@@ -369,9 +375,12 @@ function install_kernel()
   local sudo_cmd=''
   local cmd=''
   local path_prefix=''
+  local verbose_cp
 
   flag=${flag:-'SILENT'}
   target=${target:-'remote'}
+
+  [[ "$flag" == 'VERBOSE' ]] && verbose_cp='-v'
 
   if [[ "$target" == 'local' ]]; then
     sudo_cmd='sudo -E'
@@ -388,7 +397,7 @@ function install_kernel()
       path_prefix="${configurations[mount_point]}"
       INSTALLED_KERNELS_PATH="$path_prefix/$INSTALLED_KERNELS_PATH"
       # Copy config file
-      cmd_manager "$flag" "cp -v .config $path_prefix/boot/config-$name"
+      cmd_manager "$flag" "cp $verbose_cp .config $path_prefix/boot/config-$name"
     else
       complain 'Did you check if your VM is mounted?'
       return 125 # ECANCELED
@@ -403,16 +412,17 @@ function install_kernel()
 
   if [[ "$target" != 'remote' ]]; then
     [[ -z "$architecture" ]] && architecture='x86_64'
-    cmd="$sudo_cmd cp -v arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
+    cmd="$sudo_cmd cp $verbose_cp arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   else
-    cmd="$sudo_cmd cp -v $KW_DEPLOY_TMP_FILE/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+    cmd="$sudo_cmd cp $verbose_cp $KW_DEPLOY_TMP_FILE/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
     cmd_manager "$flag" "$cmd"
   fi
 
   # Each distro has their own way to generate their temporary root file system.
   # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
   cmd="generate_${distro}_temporary_root_file_system"
+
   eval "$cmd" "$name" "$target" "$flag" "$path_prefix"
   ret="$?"
   if [[ "$ret" != 0 ]]; then

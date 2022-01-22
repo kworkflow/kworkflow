@@ -52,11 +52,16 @@ function setUp()
   # Standard configuration makes the below standard commands
   CONFIG_REMOTE='juca@127.0.0.1'
   CONFIG_SSH='ssh -p 3333'
-  CONFIG_RSYNC="rsync -e '$CONFIG_SSH'"
+  CONFIG_RSYNC="rsync --info=progress2 -e '$CONFIG_SSH'"
   STD_RSYNC_FLAG="-LrlptD --rsync-path='sudo rsync'"
 
   DEPLOY_REMOTE_PREFIX="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
   DEPLOY_REMOTE_PREFIX+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+
+  # Default deploy messages
+  SENDING_KERNEL_MSG='* Sending kernel image and config file to the remote'
+  PREPARING_MODULES_MSG='* Preparing modules'
+  UPDATE_KW_REMOTE_MSG='* Sending kw to the remote'
 }
 
 function tearDown()
@@ -116,7 +121,16 @@ function collect_deploy_info_other_mock()
 
 function sudo_mock()
 {
-  eval "$*"
+  printf '%s\n' "$*"
+}
+
+function find_kernels_mock()
+{
+  printf 'vmlinuz-1\n'
+  printf 'vmlinuz-2\n'
+  printf 'vmlinuz-3\n'
+  printf 'vmlinuz-4\n'
+  printf 'vmlinuz-5\n'
 }
 
 # Function that we must replace
@@ -163,7 +177,7 @@ function test_prepare_distro_for_deploy()
   expected_cmd=(
     '-> Basic distro set up'
     '' # Extra space for the \n
-    'yes | pacman -Syu rsync screen'
+    'yes | pacman -Syu rsync screen pv'
   )
 
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
@@ -221,11 +235,15 @@ function test_check_setup_status()
 function test_modules_install_to()
 {
   local output
-  local expected_cmd="make INSTALL_MOD_PATH=$test_path modules_install"
+  local make_cmd="make INSTALL_MOD_PATH=$test_path modules_install"
+
+  declare -a expected_cmd=(
+    '* Preparing modules'
+    "$make_cmd"
+  )
 
   output=$(modules_install_to "$test_path" 'TEST_MODE')
-
-  assert_equals_helper 'Install modules to' "$LINENO" "$expected_cmd" "$output"
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 }
 
 function test_kernel_install_to_remote()
@@ -241,6 +259,7 @@ function test_kernel_install_to_remote()
   local config_warning
   local expected_cmd
   local output
+  local deploy_message='* Sending kernel image and config file to the remote'
 
   # Composing expected commands
   deploy_cmd+=" --kernel-update $deploy_params"
@@ -252,6 +271,7 @@ function test_kernel_install_to_remote()
   config_warning='Undefined .config file for the target kernel. Consider using kw bd'
 
   declare -a expected_cmd=(
+    "$SENDING_KERNEL_MSG"
     "$send_kernel_from_host2remote"
     "$config_warning"
     "$execute_deploy_remote"
@@ -279,6 +299,7 @@ function test_kernel_install_to_remote()
   execute_deploy_remote="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
+    "$SENDING_KERNEL_MSG"
     "$send_kernel_from_host2remote"
     "$config_warning"
     "$execute_deploy_remote"
@@ -318,6 +339,7 @@ function test_kernel_archlinux_install_to_remote()
   execute_deploy_remote="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
+    "$SENDING_KERNEL_MSG"
     "$send_kernel_from_host2remote"
     "$config_warning"
     "$execute_deploy_remote"
@@ -347,7 +369,7 @@ function test_kernel_install_x86_64_to_remote()
   local deploy_params="test debian bzImage 1 x86_64 'remote' TEST_MODE"
   local deploy_cmd="$DEPLOY_REMOTE_PREFIX"
   local ssh_cmd='ssh -p 22'
-  local rsync_cmd="rsync -e '$ssh_cmd'"
+  local rsync_cmd="rsync --info=progress2 -e '$ssh_cmd'"
   local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
   local send_kernel_from_host2remote
   local execute_deploy_remote
@@ -382,6 +404,7 @@ function test_kernel_install_x86_64_to_remote()
   execute_deploy_remote="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
   declare -a expected_cmd=(
+    "$SENDING_KERNEL_MSG"
     "$send_kernel_from_host2remote"
     "$config_warning"
     "$execute_deploy_remote"
@@ -416,9 +439,10 @@ function test_kernel_install_local()
   local original="$PWD"
   # We force Debian files in the setup; for this reason, we are using the
   # commands used to deploy a new kernel image on debian.
-  local cmd_cp_kernel_img="sudo -E cp -v arch/arm64/boot/Image /boot/vmlinuz-test"
+  local cmd_cp_kernel_img="sudo -E cp  arch/arm64/boot/Image /boot/vmlinuz-test"
   local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
   local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
+  #cmd_update_grub+=' |& pv -p --line-mode --size 17 > /dev/null'
   local cmd_touch_kernel_log="touch $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
   local cmd_grep_list="grep -Fxq test $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
   local cmd_reboot="sudo -E reboot"
@@ -447,6 +471,8 @@ function test_kernel_install_local()
   }
 
   alias collect_deploy_info='collect_deploy_info_mock'
+  # This mock refers to the function run_bootloader_update
+  alias find='find_kernels_mock'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
@@ -585,9 +611,10 @@ function test_kernel_modules()
   # Test 1: Check modules deploy for a remote
 
   declare -a expected_cmd=(
-    "$make_install_cmd"    # make install
-    "Kernel: $version"     # Release output
-    "$compress_cmd"        # Prepare tarball
+    "$PREPARING_MODULES_MSG"
+    "$make_install_cmd" # make install
+    "$compress_cmd"     # Prepare tarball
+    "* Sending kernel modules ($version) to the remote"
     "$rsync_tarball"       # Sending tarball
     "$exec_module_install" # Installing module in the target
   )
@@ -600,13 +627,20 @@ function test_kernel_modules()
 
   # Test 2: Deploy modules to local
   output=$(modules_install 'TEST_MODE' 1)
-  expected_output='make INSTALL_MOD_PATH=/home/lala modules_install'
-  assertEquals "($LINENO):" "$output" "$expected_output"
+  declare -a expected_cmd=(
+    "$PREPARING_MODULES_MSG"
+    'make INSTALL_MOD_PATH=/home/lala modules_install'
+  )
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 
   # Test 3: Deploy modules locally vm
   output=$(modules_install 'TEST_MODE' 2)
-  expected_output='sudo -E make modules_install'
-  assertEquals "($LINENO): " "$output" "$expected_output"
+  declare -a expected_cmd=(
+    "$PREPARING_MODULES_MSG"
+    'sudo -E make modules_install'
+  )
+
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 }
 
 # This test validates the correct behavior of list kernel on a remote machine
@@ -855,9 +889,10 @@ function test_prepare_remote_dir()
   local debian_sync_files_cmd
   local arch_sync_files_cmd
   local output
+  local rsync_quiet="rsync  -e '$CONFIG_SSH'"
 
   to_copy=$(prepare_remote_list_of_files 'debian')
-  debian_sync_files_cmd="$CONFIG_RSYNC $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG --archive"
+  debian_sync_files_cmd="$rsync_quiet $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG --archive"
 
   # Test 1: Normal remote prepare
   declare -a expected_cmd=(
@@ -871,7 +906,7 @@ function test_prepare_remote_dir()
   # Test 2: Force ArchLinux
   expected_cmd=()
   to_copy=$(prepare_remote_list_of_files 'arch')
-  arch_sync_files_cmd="$CONFIG_RSYNC $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG --archive"
+  arch_sync_files_cmd="$rsync_quiet $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG --archive"
   declare -a expected_cmd=(
     "$arch_sync_files_cmd"
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
@@ -889,6 +924,7 @@ function test_prepare_remote_dir()
   output=$(prepare_remote_dir '' '' '' 1 'TEST_MODE')
 
   declare -a expected_cmd=(
+    "$UPDATE_KW_REMOTE_MSG"
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $REMOTE_KW_DEPLOY\""
     "scp -q $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY"
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
