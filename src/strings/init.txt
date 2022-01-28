@@ -1,0 +1,6 @@
+[text_interactive_start]:
+Welcome to the interactive mode! We will ask you a series of questions regarding
+how do you want to configure kernel workflow. Before each question there will be
+a brief explanation of the feature and why it is used. This is not exhaustive,
+we recommend you search for more information online. Please follow the prompts
+to continue.

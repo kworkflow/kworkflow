@@ -4,6 +4,7 @@
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/remote.sh"
+include "$KW_LIB_DIR/kw_string.sh"
 
 KW_DIR='.kw'
 
@@ -35,6 +36,11 @@ function init_kw()
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
     return 22 # EINVAL
+  fi
+
+  if [[ -n "${options_values['GUIDED-SETUP']}" ]]; then
+    guided_init
+    exit 0
   fi
 
   if [[ -f "$PWD/$KW_DIR/$name" ]]; then
@@ -112,8 +118,8 @@ function set_config_value()
 
 function parse_init_options()
 {
-  local long_options='arch:,remote:,target:,force'
-  local short_options='a:,r:,t:,f'
+  local long_options='arch:,remote:,target:,force,guided-setup'
+  local short_options='a:,r:,t:,f,g'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -125,6 +131,7 @@ function parse_init_options()
 
   options_values['ARCH']=''
   options_values['FORCE']=''
+  options_values['GUIDED-SETUP']=''
 
   eval "set -- $options"
 
@@ -146,6 +153,10 @@ function parse_init_options()
       --force | -f)
         shift
         options_values['FORCE']=1
+        ;;
+      --guided-setup | -g)
+        options_values['GUIDED-SETUP']=1
+        shift
         ;;
       --)
         shift
@@ -170,5 +181,179 @@ function init_help()
     '  init - Creates a kworkflow.config file in the current directory.' \
     '  init --arch <arch> - Set the arch field in the kworkflow.config file.' \
     '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
-    '  init --target <target> Set the default_deploy_target field in the kworkflow.config file'
+    '  init --target <target> - Set the default_deploy_target field in the kworkflow.config file' \
+    '  init --guided-setup - Perform first time setup in an interactive manner. Recommended for new users.'
+}
+
+# This function gets four configuration values from git: name, email,
+# editor, and initial branch name and stores them inside an associative array
+# for future access. Checks if these values are empty and store this information
+# in a boolean variable inside the array.
+#
+# @_git_config: associative array received as a nameref attribute to store all
+#              values acquired in this function.
+#
+# Returns: _git_config[configured]: 1, if there is any revelant information in
+#          git missing, and 0, if git is fully configured.
+function get_git_config()
+{
+  local -n _git_config="$1"
+
+  _git_config['name']=$(git config user.name)
+  _git_config['email']=$(git config user.email)
+  _git_config['editor']=$(git config core.editor)
+  _git_config['branch']=$(git config init.defaultBranch)
+
+  _git_config['configured']=0
+
+  if [[ -z "${_git_config['name']}" ||
+    -z "${_git_config['email']}" ||
+    -z "${_git_config['editor']}" ||
+    -z "${_git_config['branch']}" ]]; then
+    _git_config['configured']=1
+  fi
+}
+
+# This function sets if the scope of the git configuration will be
+# local or global.
+#
+# @config_cmd: command in which will be added the configuration scope.
+#
+# Returns: the git config command, adjusted if the scope is local or global
+function set_git_config_scope()
+{
+  local command
+  local scope
+
+  command='git config'
+
+  if ! is_inside_work_tree; then
+    warning 'You are not in a git repository. All modifications will be global' 1>&2
+    if [[ $(ask_yN 'Would you like to proceed?' 'y') =~ '1' ]]; then
+      command+=' --global'
+    else
+      command=''
+    fi
+
+    printf '%s\n' "$command"
+    exit 0
+  fi
+
+  printf '\nSelect the scope of this configuration:\n' 1>&2
+
+  select scope in 'Local' 'Global'; do
+    case "$scope" in
+      'Global')
+        command+=' --global'
+        break
+        ;;
+      'Local')
+        command+=' --local'
+        break
+        ;;
+    esac
+  done
+
+  printf '%s\n' "$command"
+}
+
+# Allows the user to set the empty configurations if any.
+#
+# @_config_git: associative array with data about git configuration.
+# @flag: flag sended to the cmd_manager to change its behaviour.
+#
+# Returns: _config_git: array with the selected information configured on git
+function interactive_set_user_git_info()
+{
+  local -n _config_git="$1"
+  local flag="$2"
+  local git_editor_suggestion
+  local config_cmd
+  local scope
+
+  flag=${flag:-'SILENT'}
+
+  if [[ "${_config_git['configured']}" == '0' ]]; then
+    exit 0
+  fi
+
+  printf '\nNow Git will be configured.\n' 1>&2
+
+  config_cmd=$(set_git_config_scope)
+  if [[ -z "$config_cmd" ]]; then
+    return
+  fi
+
+  if [[ -z "${_config_git['name']}" ]]; then
+    _config_git['name']=$(ask_with_default 'What is your name?' "$USER")
+    cmd_manager "$flag" "$config_cmd user.name \"${_config_git['name']}\""
+  fi
+
+  if [[ -z "${_config_git['email']}" ]]; then
+    while :; do
+      _config_git['email']=$(ask_with_default 'What is your email?' '')
+
+      if validate_email "${_config_git['email']}"; then
+        break
+      fi
+
+      printf 'It was not possible to validate your e-mail, please try again.\n' 1>&2
+    done
+    cmd_manager "$flag" "$config_cmd user.email \"${_config_git['email']}\""
+  fi
+
+  if [[ -z "${_config_git['editor']}" ]]; then
+    if [[ $(ask_yN $'\nWould you like to configure your default editor on Git?' 'y') == '1' ]]; then
+
+      # This follows git precedence to determine used editor
+      git_editor_suggestion='vi'
+      [[ -n "$EDITOR" ]] && git_editor_suggestion="$EDITOR"
+      [[ -n "$VISUAL" ]] && git_editor_suggestion="$VISUAL"
+      _config_git['editor']=$(ask_with_default 'What is your main editor?' "$git_editor_suggestion")
+
+      cmd_manager "$flag" "$config_cmd core.editor \"${_config_git['editor']}\""
+    fi
+  fi
+
+  if [[ -z "${_config_git['branch']}" ]]; then
+    # This is a minor configuration, so default is "no"
+    if [[ $(ask_yN $'\nWould you like to configure your initial default branch on Git?' 'n') == '1' ]]; then
+      _config_git['branch']=$(ask_with_default 'What is your default branch name?' 'main')
+      cmd_manager "$flag" "$config_cmd init.defaultBranch \"${_config_git['branch']}\""
+    fi
+  fi
+}
+
+# This function configures KW in an interactive way
+# by explaining the core configurations required and
+# asking for user input for some configuration decisions.
+# This option is intended for new users.
+#
+# Exit code:
+# ENODATA     : Interaction text could not be loaded.
+# ECANCELED   : User interruption.
+# EINPROGRESS : User selected not implemented feature
+function guided_init()
+{
+  local -A git_configurations
+
+  load_module_text "$KW_LIB_DIR/strings/init.txt"
+
+  if [[ "$?" -ne 0 ]]; then
+    complain '[ERROR]:src/init.sh:interactive_init: Failed to load module text.'
+    exit 61 # ENODATA
+  fi
+
+  say "${module_text_dictionary['text_interactive_start']}"
+  if [[ $(ask_yN '>>> Do you want to continue?' 'y') -ne 1 ]]; then
+    exit 125 # ECANCELED
+  fi
+
+  # Help to setup git
+  get_git_config _config_git
+  interactive_set_user_git_info git_configurations
+
+  #TODO: Help to setup kworkflow.config;
+
+  #TODO: Check for required;
 }

@@ -133,4 +133,258 @@ function test_parse_init_options()
   assertEquals "($LINENO):" 'remote' "${options_values['TARGET']}"
 }
 
+function test_get_git_config()
+{
+  local -A output
+  local -A expected_configuration
+
+  cd "$SHUNIT_TMPDIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move to temp directory"
+    return "$ret"
+  }
+
+  mk_fake_git
+
+  # None of them are empty
+  expected_configuration['name']=$(git config user.name)
+  expected_configuration['email']=$(git config user.email)
+  expected_configuration['editor']=$(git config core.editor)
+  expected_configuration['branch']=$(git config init.defaultBranch)
+  expected_configuration['configured']=0
+
+  get_git_config output
+  compare_array_values expected_configuration output "$LINENO"
+
+  # One of them is empty
+  expected_configuration['configured']=1
+
+  # user.name
+  git config --local user.name ''
+  expected_configuration['name']=''
+
+  get_git_config output
+  compare_array_values expected_configuration output "$LINENO"
+
+  git config --local user.name 'Xpto Lala'
+  expected_configuration['name']='Xpto Lala'
+
+  # user.email
+  git config --local user.email ''
+  expected_configuration['email']=''
+
+  get_git_config output
+  compare_array_values expected_configuration output "$LINENO"
+
+  git config --local user.email 'test@email.com'
+  expected_configuration['email']='test@email.com'
+
+  # core.editor
+  git config --local core.editor ''
+  expected_configuration['editor']=''
+
+  get_git_config output
+  compare_array_values expected_configuration output "$LINENO"
+
+  git config --local core.editor 'test_editor'
+  expected_configuration['editor']='test_editor'
+
+  # init.defaultBranch
+  git config --local init.defaultBranch ''
+  expected_configuration['branch']=''
+
+  get_git_config output
+  compare_array_values expected_configuration output "$LINENO"
+
+  git config --local init.defaultBranch 'test_branch'
+  expected_configuration['branch']='test_branch'
+
+  # All configurations are empty
+  git config --local user.name ''
+  git config --local user.email ''
+  git config --local core.editor ''
+  git config --local init.defaultBranch ''
+
+  expected_configuration['name']=''
+  expected_configuration['email']=''
+  expected_configuration['editor']=''
+  expected_configuration['branch']=''
+
+  get_git_config output
+  compare_array_values expected_configuration output "$LINENO"
+
+  rm -rf .git
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move back from temp directory"
+    return "$ret"
+  }
+}
+
+function test_set_git_config_scope()
+{
+  local expected
+  local output
+
+  cd "$SHUNIT_TMPDIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move to temp directory"
+    return "$ret"
+  }
+
+  # User has no option of scope (is outside of work tree)
+  expected='git config --global'
+  output=$(printf 'Yes\n' | set_git_config_scope 2> /dev/null)
+  assert_equals_helper 'User is outside of work tree' "$LINENO" "$expected" "$output"
+
+  expected=''
+  output=$(printf 'No\n' | set_git_config_scope 2> /dev/null)
+  assert_equals_helper 'User is outside of work tree' "$LINENO" "$expected" "$output"
+
+  mk_fake_git
+
+  # User select local scope
+  expected=$'git config --local'
+  output=$(printf '1\n' | set_git_config_scope 2> /dev/null)
+  assert_equals_helper 'User selected local scope' "$LINENO" "$expected" "$output"
+
+  # User select global scope
+  expected=$'git config --global'
+  output=$(printf '2\n' | set_git_config_scope 2> /dev/null)
+  assert_equals_helper 'User selected global scope' "$LINENO" "$expected" "$output"
+
+  # User select a wrong scope first
+  expected=$'git config --local'
+  output=$(printf '42\n1\n' | set_git_config_scope 2> /dev/null)
+  assert_equals_helper 'User selected wrong option, then local scope' "$LINENO" "$expected" "$output"
+
+  expected=$'git config --global'
+  output=$(printf '42\n2\n' | set_git_config_scope 2> /dev/null)
+  assert_equals_helper 'User selected wronge option, then global scope' "$LINENO" "$expected" "$output"
+
+  rm -rf .git
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move back from temp directory"
+    return "$ret"
+  }
+}
+
+function test_interactive_set_user_git_info()
+{
+  local -A git_configurations
+  local expected
+  local output
+
+  cd "$SHUNIT_TMPDIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move to temp directory"
+    return "$ret"
+  }
+
+  mk_fake_git
+
+  # In a proper function, this array is builded by get_git_config
+  git_configurations['name']='Xpto Lala'
+  git_configurations['email']='test@email.com'
+  git_configurations['editor']='test_editor'
+  git_configurations['branch']='test_branch'
+  git_configurations['configured']=0
+
+  # Git is already fully configured
+  expected=''
+  output=$(interactive_set_user_git_info git_configurations 'TEST_MODE')
+  assert_equals_helper 'git fully configured' "$LINENO" "$expected" "$output"
+
+  # Individually configurations are empty
+  git_configurations['configured']=1
+
+  # user.name
+  git_configurations['name']=''
+
+  expected='git config --local user.name "Lala Xpto"'
+  output=$(printf '1\nLala Xpto\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper ' local name should be configured' "$LINENO" "$expected" "$output"
+
+  expected='git config --global user.name "Xpto Lala"'
+  output=$(printf '2\nXpto Lala\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper 'global name should be configured' "$LINENO" "$expected" "$output"
+
+  git_configurations['name']='Xpto Lala'
+
+  # user.email
+  git_configurations['email']=''
+
+  expected='git config --local user.email "email@test.com"'
+  output=$(printf '1\nemail@test.com\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper 'local email should be configured' "$LINENO" "$expected" "$output"
+
+  expected='git config --global user.email "test@email.com"'
+  output=$(printf '2\ntest@email.com\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper 'global email should be configured' "$LINENO" "$expected" "$output"
+
+  expected='git config --global user.email "test@email.com"'
+  output=$(printf '2\ntest&email.com\ntest@email.com\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper 'global email should be configured' "$LINENO" "$expected" "$output"
+
+  git_configurations['email']='test@email.com'
+
+  # core.editor
+  git_configurations['editor']=''
+  expected='git config --local core.editor "editor_test"'
+  output=$(printf '1\nYes\neditor_test\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper 'local editor should be configured' "$LINENO" "$expected" "$output"
+
+  expected='git config --global core.editor "test_editor"'
+  output=$(printf '2\nYes\ntest_editor\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper 'global editor should be configured' "$LINENO" "$expected" "$output"
+
+  git_configurations['editor']='test_editor'
+
+  # init.defaultBranch
+  git_configurations['branch']=''
+
+  expected='git config --local init.defaultBranch "branch_test"'
+  output=$(printf '1\nYes\nbranch_test\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper 'local branch should be configured' "$LINENO" "$expected" "$output"
+
+  expected='git config --global init.defaultBranch "test_branch"'
+  output=$(printf '2\nYes\ntest_branch\n' | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 1)
+  assert_equals_helper 'global branch should be configured' "$LINENO" "$expected" "$output"
+
+  git_configurations['branch']='test_branch'
+
+  # Git is completely unconfigured
+  git_configurations['name']=''
+  git_configurations['email']=''
+  git_configurations['editor']=''
+  git_configurations['branch']=''
+
+  expected=$'git config --local user.name "Lala Xpto"\n'
+  expected+=$'git config --local user.email "email@test.com"\n'
+  expected+=$'git config --local core.editor "editor_test"\n'
+  expected+=$'git config --local init.defaultBranch "branch_test"'
+  user_response=$'1\nLala Xpto\nemail@test.com\nYes\neditor_test\nYes\nbranch_test\n'
+  output=$(printf '%s\n' "$user_response" | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 4)
+  assert_equals_helper 'local git should be desconfigured' "$LINENO" "$expected" "$output"
+
+  expected=$'git config --global user.name "Lala Xpto"\n'
+  expected+=$'git config --global user.email "email@test.com"\n'
+  expected+=$'git config --global core.editor "editor_test"\n'
+  expected+=$'git config --global init.defaultBranch "branch_test"'
+  user_response=$'2\nLala Xpto\nemail@test.com\nYes\neditor_test\nYes\nbranch_test\n'
+  output=$(printf '%s\n' "$user_response" | interactive_set_user_git_info git_configurations 'TEST_MODE' 2> /dev/null | tail -n 4)
+  assert_equals_helper 'global git should be desconfigured' "$LINENO" "$expected" "$output"
+
+  rm -rf .git
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Unable to move back from temp directory"
+    return "$ret"
+  }
+}
+
 invoke_shunit

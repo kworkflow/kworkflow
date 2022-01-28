@@ -181,6 +181,8 @@ function mk_fake_git()
 
   git config --local user.name 'Xpto Lala'
   git config --local user.email 'test@email.com'
+  git config --local core.editor 'test_editor'
+  git config --local init.defaultBranch 'test_branch'
   git config --local test.config value
 
   git add first_file
