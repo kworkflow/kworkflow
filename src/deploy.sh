@@ -811,6 +811,51 @@ function modules_install_to()
   cmd_manager "$flag" "$cmd"
 }
 
+# This function handles the config file copy from the host machine to the
+# target.
+#
+# @name Kernel name used in the deploy.
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @build_and_deploy If the user uses `kw bd` we can safely copy the local
+#                   .config file.
+function deploy_config_file()
+{
+  local name="$1"
+  local flag="$2"
+  local target="$3"
+  local build_and_deploy="$4"
+  local config_local_version
+  local complain_msg='Undefined .config file for the target kernel. Consider using kw bd'
+  local config_path="$PWD/.config"
+
+  if [[ ! -f "$config_path" ]]; then
+    warning "$complain_msg"
+    return
+  fi
+
+  config_local_version=$(sed -nr '/CONFIG_LOCALVERSION=/s/CONFIG_LOCALVERSION="(.*)"/\1/p' "$config_path")
+
+  if [[ -n "$build_and_deploy" || "$name" =~ $config_local_version.*$ ]]; then
+    case "$target" in
+      1) # VM_TARGET
+        cmd="cp $config_path ${configurations[mount_point]}/boot/config-$name"
+        cmd_manager "$flag" "$cmd"
+        ;;
+      2) # LOCAL_TARGET
+        cmd="sudo -E cp $config_path /boot/config-$name"
+        cmd_manager "$flag" "$cmd"
+        ;;
+      3) # REMOTE_TARGET
+        cp2remote "$flag" "$config_path" "/boot/config-$name"
+        ;;
+    esac
+  else
+    warning "$complain_msg"
+  fi
+}
+
 # This function behaves like a kernel installation manager. It handles some
 # parameters, and it also prepares to deploy the new kernel in the target
 # machine.
@@ -865,11 +910,6 @@ function run_kernel_install()
     warning "kw inferred arch/$arch_target/boot/$kernel_img_name as a kernel image"
   fi
 
-  if [[ -f "$PWD/.config" ]]; then
-    config_local_version=$(sed -nr '/CONFIG_LOCALVERSION=/s/CONFIG_LOCALVERSION="(.*)"/\1/p' \
-      "$PWD/.config")
-  fi
-
   case "$target" in
     1) # VM_TARGET
       distro=$(detect_distro "${configurations[mount_point]}/")
@@ -881,12 +921,7 @@ function run_kernel_install()
       fi
 
       # Copy .config
-      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
-        cmd="cp $PWD/.config ${configurations[mount_point]}/boot/config-$name"
-        cmd_manager "$flag" "$cmd"
-      else
-        complain 'Undefined .config file for the target kernel. Consider using kw bd'
-      fi
+      deploy_config_file "$name" "$flag" "$target" "$build_and_deploy"
 
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
@@ -910,12 +945,7 @@ function run_kernel_install()
       fi
 
       # Copy .config
-      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
-        cmd="sudo -E cp $PWD/.config /boot/config-$name"
-        cmd_manager "$flag" "$cmd"
-      else
-        complain 'Undefined .config file for the target kernel. Consider using kw bd'
-      fi
+      deploy_config_file "$name" "$flag" "$target" "$build_and_deploy"
 
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
@@ -937,11 +967,7 @@ function run_kernel_install()
         "arch/$arch_target/boot/$kernel_img_name" "$KW_DEPLOY_TMP_FILE/vmlinuz-$name"
 
       # Copy .config
-      if [[ -n "$build_and_deploy" || "$config_local_version" =~ "$name"$ ]]; then
-        cp2remote "$flag" "$PWD/.config" "/boot/config-$name"
-      else
-        complain 'Undefined .config file for the target kernel. Consider using kw bd'
-      fi
+      deploy_config_file "$name" "$flag" "$target" "$build_and_deploy"
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
