@@ -262,41 +262,40 @@ function join_path()
   printf '%s\n' "$joined" | tr -s '/'
 }
 
-# This function tries to identify the OS distribution. In order to make it work
-# as expected, it is required to inform the root path. This function is useful
-# for plugins; because of this, we limited here the supported distributions.
+# This function checks if the target distro is supported by kw. This function
+# is handy for plugins that have some dependency with distros.
 #
-# Note: We handle OS family instead of a specific distro, for example, Ubuntu
-# and Mint are Debian based distro. Currently, this approach works well and
-# avoids code duplication, in the future, if the distros families changes in
-# the way that they handle Linux Kernel we probably have to change our
-# approach.
-
+# Note: We handle OS family instead of a specific distro_id, for example,
+# Ubuntu and Mint are Debian based distro_id.
+#
 # @root_path Expects the root path wherein we can find the /etc
+# @str_check String with a distro name
 #
 # Returns:
-# It returns the distro name in lowercase, otherwise return none.
+# It returns the family name in lowercase, otherwise return none.
 function detect_distro()
 {
   local root_path="$1"
   local str_check="$2"
-  local distro='none'
+  local distro_id='none'
   local etc_path
+  declare -a debian_family=('debian' 'ubuntu' 'raspbian')
+  declare -a arch_family=('arch' 'manjaro')
 
   etc_path=$(join_path "$root_path" /etc)
 
   if [[ -n "$str_check" ]]; then
-    distro="$str_check"
+    distro_id="$str_check"
   elif [[ -d $etc_path ]]; then
-    distro=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
+    distro_id=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
   fi
 
-  # ArchLinux family
-  if [[ "$distro" =~ 'arch' ]] || [[ "$distro" =~ 'manjaro' ]]; then
-    printf '%s\n' 'arch'
   # Debian family
-  elif [[ "$distro" =~ 'debian' ]] || [[ "$distro" =~ 'ubuntu' ]]; then
+  if [[ "${debian_family[*]}" =~ ${distro_id} ]]; then
     printf '%s\n' 'debian'
+  # ArchLinux family
+  elif [[ "${arch_family[*]}" =~ ${distro_id} ]]; then
+    printf '%s\n' 'arch'
   else
     printf '%s\n' 'none'
   fi
