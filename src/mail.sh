@@ -17,6 +17,7 @@ declare -ga essential_config_options=('user.name' 'user.email'
   'sendemail.smtpuser' 'sendemail.smtpserver' 'sendemail.smtpserverport')
 declare -ga optional_config_options=('sendemail.smtpencryption' 'sendemail.smtppass')
 
+#shellcheck disable=SC2119
 function mail_main()
 {
   if [[ "$1" =~ -h|--help ]]; then
@@ -34,7 +35,7 @@ function mail_main()
   get_configs
 
   if [[ "${options_values['VERIFY']}" == 1 ]]; then
-    mail_verify ''
+    mail_verify
     exit
   fi
 
@@ -50,12 +51,12 @@ function mail_main()
   fi
 
   if [[ -n "${options_values['INTERACTIVE']}" ]]; then
-    interactive_setup ''
+    interactive_setup
     exit
   fi
 
   if [[ "${options_values['SETUP']}" == 1 ]]; then
-    mail_setup ''
+    mail_setup
     exit
   fi
 
