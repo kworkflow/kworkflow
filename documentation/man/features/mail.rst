@@ -25,6 +25,11 @@ mailing lists fetched with the *get_maintainer.pl* script. It will also use
 the union of the recipients of each patch as the recipients of the cover-letter.
 
 .. note::
+  You can block certain e-mail addresses from being automatically added to the
+  recipients list of the patches using the *blocked_emails* option in the
+  *kworkflow.config* file.
+
+.. note::
   Any option recognized by ``git send-email`` can be passed directly to it if
   placed after the double dash (``--``) argument.
 

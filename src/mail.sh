@@ -205,6 +205,7 @@ function generate_kernel_recipients()
   local cc=''
   local to_list=''
   local cc_list=''
+  local blocked="${configurations[blocked_emails]}"
   local patch_cache="${KW_CACHE_DIR}/patches"
   local cover_letter_to="${patch_cache}/to/cover-letter"
   local cover_letter_cc="${patch_cache}/cc/cover-letter"
@@ -223,6 +224,11 @@ function generate_kernel_recipients()
     to="$(eval "$get_maintainer_cmd --no-l $patch_path")"
     cc="$(eval "$get_maintainer_cmd --no-m $patch_path")"
 
+    if [[ -n "$blocked" ]]; then
+      to="$(remove_blocked_recipients "$to" "$blocked")"
+      cc="$(remove_blocked_recipients "$cc" "$blocked")"
+    fi
+
     printf '%s\n' "$to" > "${patch_cache}/to/${patch}"
     printf '%s\n' "$to" >> "$cover_letter_to"
     printf '%s\n' "$cc" > "${patch_cache}/cc/${patch}"
@@ -234,6 +240,31 @@ function generate_kernel_recipients()
 
   cc_list="$(sort -u "$cover_letter_cc")"
   printf '%s\n' "$cc_list" > "$cover_letter_cc"
+}
+
+# This function filters out any unwanted recipients from the auto generated
+# recipient lists
+#
+# @recipients: The list of recipients separated by new lines
+# @blocked:    The list of blocked e-mails separated by commas
+#
+# Returns:
+# The filtered recipients list
+function remove_blocked_recipients()
+{
+  local recipients="$1"
+  local blocked="$2"
+  local -a blocked_arr=()
+
+  [[ -z "$recipients" ]] && return 0 # Empty list
+
+  IFS=',' read -ra blocked_arr <<< "$blocked"
+
+  for value in "${blocked_arr[@]}"; do
+    recipients="$(sed -E -e "/^(.+<)?${value}>?$/d" <<< "$recipients")"
+  done
+
+  printf '%s' "$recipients"
 }
 
 # This function checks if any of the arguments in @args is a valid commit

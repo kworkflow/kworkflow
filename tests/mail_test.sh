@@ -226,6 +226,33 @@ function test_reposition_commit_count_arg()
   assert_equals_helper 'Should handle multiple arguments' "$LINENO" "$output" "$expected"
 }
 
+function test_remove_blocked_recipients()
+{
+  local output
+  local expected
+  local recipients=$'test@mail.com\nXpto Lala <xpto@mail.com>\nlala@mail.com\n'
+  recipients+=$'xpto.lala@mail.com'
+
+  output="$(remove_blocked_recipients '' test)"
+  assertTrue "($LINENO) Empty recipients." '[[ -z "$output" ]]'
+
+  output="$(remove_blocked_recipients "$recipients" test)"
+  expected="$recipients"
+  multilineAssertEquals "($LINENO) Expected no change." "$expected" "$output"
+
+  output="$(remove_blocked_recipients "$recipients" test@mail.com)"
+  expected=$'Xpto Lala <xpto@mail.com>\nlala@mail.com\nxpto.lala@mail.com'
+  multilineAssertEquals "($LINENO) Removing one email." "$expected" "$output"
+
+  output="$(remove_blocked_recipients "$recipients" lala@mail.com)"
+  expected=$'test@mail.com\nXpto Lala <xpto@mail.com>\nxpto.lala@mail.com'
+  multilineAssertEquals "($LINENO) Removing one email." "$expected" "$output"
+
+  output="$(remove_blocked_recipients "$recipients" test@mail.com,xpto@mail.com)"
+  expected=$'lala@mail.com\nxpto.lala@mail.com'
+  multilineAssertEquals "($LINENO) Removing two emails." "$expected" "$output"
+}
+
 function test_mail_parser()
 {
   local output
