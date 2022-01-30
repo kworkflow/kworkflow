@@ -75,6 +75,7 @@ function show_variables()
 
   local -Ar mail=(
     [send_opts]='Options to be used when sending a patch'
+    [blocked_emails]='Blocked e-mail addresses'
   )
 
   local -Ar misc=(

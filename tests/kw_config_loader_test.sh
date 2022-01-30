@@ -84,6 +84,7 @@ function test_parse_configuration_output()
     [gui_off]='turn off'
     [doc_type]='htmldocs'
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
+    [blocked_emails]='test@email.com'
   )
 
   cp tests/samples/kworkflow.config "$TMP_DIR/"
