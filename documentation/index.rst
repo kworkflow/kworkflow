@@ -32,6 +32,7 @@ Check out our tutorials to see how you can use kw.
    tutorials/setup
    tutorials/buildlinux
    tutorials/configm
+   tutorials/deploy-kernel
    tutorials/kernel-debug
    tutorials/pomodoro-report
 
