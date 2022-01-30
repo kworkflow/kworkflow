@@ -336,7 +336,7 @@ function mail_setup()
     config_values 'values' "$option"
 
     if [[ -n "${values['loaded']}" ]]; then
-      if [[ "$option" =~ 'user.email'|'sendemail.smtpuser' ]]; then
+      if [[ "$option" == 'user.email' ]]; then
         validate_email "${values['loaded']}" || continue
       fi
 
@@ -816,7 +816,7 @@ function interactive_prompt()
         if [[ -z "${values['loaded']}" ]]; then
           read -r -p "  $prompt: " value
 
-          if [[ -n "$value" && "$option" =~ 'user.email'|'sendemail.smtpuser' ]]; then
+          if [[ -n "$value" && "$option" == 'user.email' ]]; then
             validate_email "$value" || continue
           fi
 

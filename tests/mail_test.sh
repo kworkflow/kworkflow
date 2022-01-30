@@ -676,6 +676,15 @@ function test_mail_setup()
   unset options_values
   declare -gA options_values
 
+  parse_mail_options '-t' '--local' '--smtpuser' 'username'
+
+  output=$(mail_setup 'TEST_MODE')
+  expected="git config --local sendemail.smtpuser 'username'"
+  assert_equals_helper 'Testing smtpuser option' "$LINENO" "$output" "$expected"
+
+  unset options_values
+  declare -gA options_values
+
   # we need to force in case the user has set config at a global scope
   parse_mail_options '-t' '--force' '--global' '--smtppass' 'verySafePass'
 
