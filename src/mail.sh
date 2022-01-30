@@ -692,7 +692,6 @@ function template_setup()
 function load_template()
 {
   local template="$1"
-  local index
   local option
   local value
   local template_path
@@ -705,8 +704,10 @@ function load_template()
   fi
 
   while IFS='=' read -r option value; do
-    index="$option"
-    options_values["$index"]="$value"
+    # don't overwrite user given options
+    if [[ -z "${options_values[$option]}" ]]; then
+      options_values["$option"]="$value"
+    fi
   done < "$template_path"
 }
 
