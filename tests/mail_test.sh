@@ -844,9 +844,18 @@ function test_load_template()
   expected='smtp.test1.com'
   assert_equals_helper 'Load template 1' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
 
+  tearDown
+  setUp
+
   load_template 'test2'
   expected='smtp.test2.com'
   assert_equals_helper 'Load template 2' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+
+  parse_mail_options -t --smtpserver 'user.given.server'
+
+  load_template 'test2'
+  expected='user.given.server'
+  assert_equals_helper 'Load template 2 should not overwrite user given values' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
 }
 
 function test_template_setup()
@@ -875,12 +884,17 @@ function test_template_setup()
   assert_equals_helper 'Load template 1' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
 
   options_values['TEMPLATE']=':test2'
+  options_values['sendemail.smtpserver']=''
 
   template_setup
   expected='smtp.test2.com'
   assert_equals_helper 'Load template 2' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
 
-  return 0
+  parse_mail_options --smtpserver 'user.input' --template='test2'
+
+  template_setup
+  expected='user.input'
+  assert_equals_helper 'Load template 2' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
 }
 
 # This test can only be done on a local scope, as we have no control over the
