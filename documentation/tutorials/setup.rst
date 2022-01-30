@@ -2,6 +2,8 @@
   How to setup kworkflow
 ==========================
 
+.. _setup-tutorial:
+
 .. contents::
    :depth: 1
    :local:
