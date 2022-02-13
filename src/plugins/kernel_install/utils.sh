@@ -410,12 +410,9 @@ function install_kernel()
     cmd_manager "$flag" "$cmd"
   fi
 
-  if [[ "$target" != 'remote' ]]; then
-    [[ -z "$architecture" ]] && architecture='x86_64'
-    cmd="$sudo_cmd cp $verbose_cp arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
-    cmd_manager "$flag" "$cmd"
-  else
-    cmd="$sudo_cmd cp $verbose_cp $KW_DEPLOY_TMP_FILE/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+  if [[ "$target" == 'remote' ]]; then
+    cmd="$sudo_cmd tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}_boot.tar"
+    cmd+=" --directory=/ --no-same-owner"
     cmd_manager "$flag" "$cmd"
   fi
 
