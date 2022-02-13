@@ -460,11 +460,10 @@ function test_install_kernel_remote()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "cp  $KW_DEPLOY_TMP_FILE/vmlinuz-$name $path_prefix/boot/vmlinuz-$name"
+    "tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}_boot.tar --directory=/ --no-same-owner"
     'generate_debian_temporary_root_file_system_mock'
     'grub-mkconfig -o /boot/grub/grub.cfg'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
-    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     'reboot'
   )
 
@@ -486,7 +485,6 @@ function test_install_kernel_local()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "$sudo_cmd cp  arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
@@ -519,7 +517,6 @@ function test_install_kernel_vm()
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
     "cp  .config $path_prefix/boot/config-$name"
-    "cp  arch/$architecture/boot/$kernel_image_name $path_prefix/boot/vmlinuz-$name"
     'generate_debian_temporary_root_file_system_mock'
     'vm_mount'
     'run_bootloader_for_vm_mock'

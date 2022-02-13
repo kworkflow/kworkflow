@@ -59,14 +59,88 @@ function setUp()
   DEPLOY_REMOTE_PREFIX+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
 
   # Default deploy messages
-  SENDING_KERNEL_MSG='* Sending kernel image and config file to the remote'
+  SENDING_KERNEL_MSG='* Sending kernel boot files'
   PREPARING_MODULES_MSG='* Preparing modules'
   UPDATE_KW_REMOTE_MSG='* Sending kw to the remote'
+  UNDEFINED_CONFIG='Undefined .config file for the target kernel. Consider using kw bd'
+
+  # Common paths
+  LOCAL_TO_DEPLOY_PATH="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
+  TO_DEPLOY_BOOT_PATH="${LOCAL_TO_DEPLOY_PATH}/boot"
+
+  # Repetive command composing
+  NAME='test'
+  COPY_CONFIG_FILE="cp .config ${TO_DEPLOY_BOOT_PATH}/config-${NAME}"
+  COPY_KERNEL_IMAGE="cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/vmlinuz-${NAME}"
+
+  GENERATE_BOOT_TAR_FILE="tar --auto-compress --directory='${LOCAL_TO_DEPLOY_PATH}'"
+  GENERATE_BOOT_TAR_FILE+=" --create --file='${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar' boot"
+
+  SEND_BOOT_FILES_HOST2REMOTE="$CONFIG_RSYNC ${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar"
+  SEND_BOOT_FILES_HOST2REMOTE+=" $CONFIG_REMOTE:$KW_DEPLOY_TMP_FILE $STD_RSYNC_FLAG"
+
+  # Base sequence for ARM local
+  declare -ga BASE_EXPECTED_CMD_ARM_LOCAL=(
+    "$SENDING_KERNEL_MSG"
+    "$UNDEFINED_CONFIG"
+    "$COPY_KERNEL_IMAGE"
+    "cp -r $LOCAL_TO_DEPLOY_PATH/boot/* /boot/"
+    'sudo -E update-initramfs -c -k test'
+    'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
+    'touch /opt/kw/INSTALLED_KERNELS'
+    'grep -Fxq test /opt/kw/INSTALLED_KERNELS'
+    'sudo -E reboot'
+  )
+
+  # Base sequence for ARM remote
+  declare -ga BASE_EXPECTED_CMD_ARM_REMOTE=(
+    "$SENDING_KERNEL_MSG"
+    "$UNDEFINED_CONFIG"
+    "$COPY_KERNEL_IMAGE"
+    "$GENERATE_BOOT_TAR_FILE"
+    "$SEND_BOOT_FILES_HOST2REMOTE"
+  )
+
+  # Base sequence for VM deploy
+  declare -ga BASE_EXPECTED_CMD_ARM_VM=(
+    "$SENDING_KERNEL_MSG"
+    "$UNDEFINED_CONFIG"
+    "$COPY_KERNEL_IMAGE"
+    "cp -r $LOCAL_TO_DEPLOY_PATH/boot/* ${configurations[mount_point]}/boot/"
+    'Did you check if your VM is mounted?'
+  )
+
+  # Base sequence for X86
+  COPY_KERNEL_IMAGE="cp arch/x86_64/boot/bzImage ${TO_DEPLOY_BOOT_PATH}/vmlinuz-${NAME}"
+
+  SEND_BOOT_FILES_HOST2REMOTE="rsync --info=progress2 -e 'ssh -p 22' ${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar"
+  SEND_BOOT_FILES_HOST2REMOTE+=" root@localhost:$KW_DEPLOY_TMP_FILE $STD_RSYNC_FLAG"
+
+  declare -ga BASE_EXPECTED_CMD_X86_REMOTE=(
+    "$SENDING_KERNEL_MSG"
+    "$UNDEFINED_CONFIG"
+    "$COPY_KERNEL_IMAGE"
+    "$GENERATE_BOOT_TAR_FILE"
+    "$SEND_BOOT_FILES_HOST2REMOTE"
+  )
+}
+
+function get_deploy_cmd_helper()
+{
+  local deploy_params="$*"
+  local deploy_cmd
+
+  deploy_cmd="$DEPLOY_REMOTE_PREFIX"
+  deploy_cmd+=" --kernel-update $deploy_params"
+
+  printf '%s' "$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_cmd\""
 }
 
 function tearDown()
 {
   configurations=()
+  BASE_EXPECTED_CMD_ARM_REMOTE=()
+  BASE_EXPECTED_CMD_X86_REMOTE=()
 
   rm -rf "$FAKE_KERNEL"
 }
@@ -259,67 +333,56 @@ function test_modules_install_to()
   }
 }
 
-function test_kernel_install_to_remote()
+function test_kernel_install_to_remote_reboot()
 {
-  local name='test'
   local original="$PWD"
-  local kernel_image_path='arch/arm64/boot/Image'
-  local kernel_image_remote_path="$KW_DEPLOY_TMP_FILE/vmlinuz-test"
-  local deploy_params="test debian Image 1 arm64 'remote' TEST_MODE"
-  local deploy_cmd="$DEPLOY_REMOTE_PREFIX"
-  local send_kernel_from_host2remote
+  local deploy_params
   local execute_deploy_remote
-  local config_warning
   local expected_cmd
   local output
-  local deploy_message='* Sending kernel image and config file to the remote'
+  local reboot=1
 
   # Composing expected commands
-  deploy_cmd+=" --kernel-update $deploy_params"
-
-  send_kernel_from_host2remote="$CONFIG_RSYNC $kernel_image_path "
-  send_kernel_from_host2remote+="$CONFIG_REMOTE:$kernel_image_remote_path $STD_RSYNC_FLAG"
-
-  execute_deploy_remote="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_cmd\""
-  config_warning='Undefined .config file for the target kernel. Consider using kw bd'
-
-  declare -a expected_cmd=(
-    "$SENDING_KERNEL_MSG"
-    "$send_kernel_from_host2remote"
-    "$config_warning"
-    "$execute_deploy_remote"
-  )
+  deploy_params="${NAME} debian Image ${reboot} arm64 'remote' TEST_MODE"
+  execute_deploy_remote=$(get_deploy_cmd_helper "$deploy_params")
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
 
+  BASE_EXPECTED_CMD_ARM_REMOTE+=("$execute_deploy_remote")
   # Test 1: Local deploy: reboot
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_REMOTE' "$output"
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
 
-  # Update values
-  # NOTICE: I added one extra space in the below line for match what we
-  # expect since I believe it is not worth to change the kernel_install
-  # function just for it.
+function test_kernel_install_to_remote_no_reboot()
+{
+  local original="$PWD"
+  local deploy_params
+  local deploy_cmd
+  local execute_deploy_remote
+  local expected_cmd
+  local output
+  local reboot=0
 
-  # Test 2: No reboot
-  deploy_params="test debian Image 0 arm64 'remote' TEST_MODE"
-  deploy_cmd="$DEPLOY_REMOTE_PREFIX"
-  deploy_cmd+=" --kernel-update $deploy_params"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
-  execute_deploy_remote="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_cmd\""
+  deploy_params="${NAME} debian Image ${reboot} arm64 'remote' TEST_MODE"
+  execute_deploy_remote=$(get_deploy_cmd_helper "$deploy_params")
 
-  declare -a expected_cmd=(
-    "$SENDING_KERNEL_MSG"
-    "$send_kernel_from_host2remote"
-    "$config_warning"
-    "$execute_deploy_remote"
-  )
-
+  # Drop last element from previous test
+  BASE_EXPECTED_CMD_ARM_REMOTE+=("$execute_deploy_remote")
   output=$(run_kernel_install 0 'test' 'TEST_MODE' 3 '127.0.0.1:3333')
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_REMOTE' "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -329,42 +392,28 @@ function test_kernel_install_to_remote()
 
 function test_kernel_archlinux_install_to_remote()
 {
-  local name='test'
   local original="$PWD"
-  local kernel_image_path='arch/arm64/boot/Image'
-  local kernel_image_remote_path="$KW_DEPLOY_TMP_FILE/vmlinuz-test"
-  local deploy_params="test arch Image 1 arm64 'remote' TEST_MODE"
-  local deploy_cmd="$DEPLOY_REMOTE_PREFIX"
-  local send_kernel_from_host2remote
+  local deploy_params
+  local deploy_cmd
   local execute_deploy_remote
-  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
   local output
-
-  # Composing expected commands
-  deploy_cmd+=" --kernel-update $deploy_params"
+  local reboot=1
 
   # Setup this test for ArchLinux as a target
   # We need to force ArchLinux in the distro detection
   alias detect_distro='detect_distro_arch_mock'
-
-  send_kernel_from_host2remote="$CONFIG_RSYNC $kernel_image_path "
-  send_kernel_from_host2remote+="$CONFIG_REMOTE:$kernel_image_remote_path $STD_RSYNC_FLAG"
-  execute_deploy_remote="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_cmd\""
-
-  declare -a expected_cmd=(
-    "$SENDING_KERNEL_MSG"
-    "$send_kernel_from_host2remote"
-    "$config_warning"
-    "$execute_deploy_remote"
-  )
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
 
+  deploy_params="${NAME} arch Image ${reboot} arm64 'remote' TEST_MODE"
+  execute_deploy_remote=$(get_deploy_cmd_helper "$deploy_params")
+  BASE_EXPECTED_CMD_ARM_REMOTE+=("$execute_deploy_remote")
+
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_REMOTE' "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -376,15 +425,10 @@ function test_kernel_install_x86_64_to_remote()
 {
   local original="$PWD"
   local remote='root@localhost'
-  local remote_path='/root/kw_deploy'
-  local kernel_image_path='arch/x86_64/boot/bzImage'
-  local kernel_image_remote_path="$KW_DEPLOY_TMP_FILE/vmlinuz-test"
   local deploy_params="test debian bzImage 1 x86_64 'remote' TEST_MODE"
   local deploy_cmd="$DEPLOY_REMOTE_PREFIX"
   local ssh_cmd='ssh -p 22'
   local rsync_cmd="rsync --info=progress2 -e '$ssh_cmd'"
-  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
-  local send_kernel_from_host2remote
   local execute_deploy_remote
   local output
 
@@ -412,29 +456,45 @@ function test_kernel_install_x86_64_to_remote()
     return
   }
 
-  send_kernel_from_host2remote="$rsync_cmd $kernel_image_path "
-  send_kernel_from_host2remote+="$remote:$kernel_image_remote_path $STD_RSYNC_FLAG"
   execute_deploy_remote="$ssh_cmd $remote sudo \"$deploy_cmd\""
 
-  declare -a expected_cmd=(
-    "$SENDING_KERNEL_MSG"
-    "$send_kernel_from_host2remote"
-    "$config_warning"
-    "$execute_deploy_remote"
-  )
-
+  BASE_EXPECTED_CMD_X86_REMOTE+=("$execute_deploy_remote")
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333')
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_X86_REMOTE' "$output"
 
-  # Test kernel image infer
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_install_x86_64_to_remote_no_kernel_image_failure()
+{
+  local original="$PWD"
+  local expected_msg
+  local output
+
+  # Test preparation
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+
+  # Reset values
+  configurations=()
+  remote_parameters=()
+  cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
+  parse_configuration "$FAKE_KERNEL/kworkflow.config"
+
   configurations['kernel_img_name']=''
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
-    tail -n +1 | head -1)
-  expected_msg='kw inferred arch/x86_64/boot/arch/x86_64/boot/bzImage as a kernel image'
-  assert_equals_helper "Infer kernel image" "$LINENO" "$expected_msg" "$output"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   # Test failures
-  rm -rf arch/x86_64/
+  rm -rf 'arch/x86_64/'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
     tail -n +1 | head -1)
   expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
@@ -445,38 +505,50 @@ function test_kernel_install_x86_64_to_remote()
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
+
 }
 
-function test_kernel_install_local()
+function test_kernel_install_x86_64_to_remote_name_infer()
 {
   local original="$PWD"
-  # We force Debian files in the setup; for this reason, we are using the
-  # commands used to deploy a new kernel image on debian.
-  local cmd_cp_kernel_img="sudo -E cp  arch/arm64/boot/Image /boot/vmlinuz-test"
-  local cmd_update_initramfs="sudo -E update-initramfs -c -k test"
-  local cmd_update_grub="sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
-  #cmd_update_grub+=' |& pv -p --line-mode --size 17 > /dev/null'
-  local cmd_touch_kernel_log="touch $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
-  local cmd_grep_list="grep -Fxq test $REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
-  local cmd_reboot="sudo -E reboot"
-  local cmd_register_kernel="sudo tee -a '$REMOTE_KW_DEPLOY/INSTALLED_KERNELS' > /dev/null"
-  local config_warning='Undefined .config file for the target kernel. Consider using kw bd'
-  local msg=""
+  local expected_msg
+  local output
 
-  declare -a expected_cmd=(
-    "$config_warning"
-    "$cmd_cp_kernel_img"
-    "$cmd_update_initramfs"
-    "$cmd_update_grub"
-    "$cmd_touch_kernel_log"
-    "$cmd_grep_list"
-    #"$cmd_register_kernel"
-    "$cmd_reboot"
-  )
+  # Test preparation
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 
-  # ATTENTION: $FAKE_KERNEL got two levels deep (tests/.tmp); for this reason,
-  # we have to update KW_PLUGINS_DIR for this test for making sure that we use a
-  # real plugin.
+  # Reset values
+  configurations=()
+  remote_parameters=()
+  cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
+  parse_configuration "$FAKE_KERNEL/kworkflow.config"
+
+  configurations['kernel_img_name']=''
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Test kernel image infer
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
+    tail -n +1 | head -1)
+  expected_msg='kw inferred arch/x86_64/boot/bzImage as a kernel image'
+  assert_equals_helper "Infer kernel image" "$LINENO" "$expected_msg" "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_install_arm_local_no_config()
+{
+  local original="$PWD"
+  local output
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -487,30 +559,86 @@ function test_kernel_install_local()
   # This mock refers to the function run_bootloader_update
   alias find='find_kernels_mock'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_install_arm_local_with_config()
+{
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  alias collect_deploy_info='collect_deploy_info_mock'
+  # This mock refers to the function run_bootloader_update
+  alias find='find_kernels_mock'
 
   # Test 2: Copy config file
   cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
-  declare -a expected_cmd=(
-    "sudo -E cp $PWD/.config /boot/config-test"
-    "$cmd_cp_kernel_img"
-    "$cmd_update_initramfs"
-    "$cmd_update_grub"
-    "$cmd_touch_kernel_log"
-    "$cmd_grep_list"
-    "$cmd_reboot"
-  )
+
+  # Replace warning message by copying config
+  BASE_EXPECTED_CMD_ARM_LOCAL[1]="$COPY_CONFIG_FILE"
 
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
 
-  ## Make sure that we are not running as a root user
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_install_arm_local_ensure_not_run_as_root()
+{
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  alias collect_deploy_info='collect_deploy_info_mock'
+  # This mock refers to the function run_bootloader_update
+  alias find='find_kernels_mock'
+
+  # Make sure that we are not running as a root user
   alias id='root_id_mock;true'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
   ret="$?"
   assert_equals_helper 'Wrong return value' "($LINENO)" 1 "$ret"
 
-  # Test 3: Unknown distro
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+
+}
+
+function test_kernel_install_arm_local_unknown_distro()
+{
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  alias collect_deploy_info='collect_deploy_info_mock'
+  # This mock refers to the function run_bootloader_update
+  alias find='find_kernels_mock'
+
+  # Make sure that we are not running as a root user
   alias detect_distro='which_distro_none_mock'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
   assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
@@ -521,54 +649,59 @@ function test_kernel_install_local()
   }
 }
 
-function test_kernel_install_to_vm()
+function test_kernel_install_to_vm_no_config()
 {
-  local name='test'
   local original="$PWD"
-  local kernel_image_path='arch/arm64/boot/Image'
-  local kernel_image_remote_path="$KW_DEPLOY_TMP_FILE/vmlinuz-test"
-  local deploy_params="test debian Image 1 arm64 'remote' TEST_MODE"
-  local deploy_cmd="$DEPLOY_REMOTE_PREFIX"
-  local send_kernel_from_host2remote
-  local execute_deploy_remote
-  local config_warning
-  local expected_cmd
   local output
-
-  # Note: We do not thoroughly test this feature here because, for the vm
-  # installation, we include the utils file in execution time. In this sense,
-  # the included test must be kept in the utils file and not here; for this
-  # reason, we just check the first part of this function.
-
-  # Composing expected commands
-  config_warning='Undefined .config file for the target kernel. Consider using kw bd'
-
-  declare -a expected_cmd=(
-    "$config_warning"
-    'Did you check if your VM is mounted?'
-  )
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
 
-  # Test 1: No config file
   output=$(run_kernel_install 0 'test' 'TEST_MODE' 1)
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_VM' "$output"
 
-  # Test 2: Create a config file that matches the kernel build
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_install_to_vm_with_config()
+{
+  local name='test'
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
   cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
-  configurations[mount_point]="$PWD/la"
-  declare -a expected_cmd=(
-    "cp $PWD/.config ${configurations[mount_point]}/boot/config-$name"
-    'Did you check if your VM is mounted?'
-  )
 
+  BASE_EXPECTED_CMD_ARM_VM[1]="$COPY_CONFIG_FILE"
   output=$(run_kernel_install 0 "$name" 'TEST_MODE' 1)
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_VM' "$output"
 
-  # Test 3: Invalid distro
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_install_to_vm_invalid_distro()
+{
+  local name='test'
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
   alias detect_distro='which_distro_none_mock'
 
   output=$(run_kernel_install 0 "$name" 'TEST_MODE' 1)

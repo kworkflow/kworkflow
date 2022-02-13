@@ -821,49 +821,103 @@ function modules_install_to()
   cmd_manager "$flag" "$cmd"
 }
 
-# This function handles the config file copy from the host machine to the
-# target.
+# This function is responsible for putting all the required boot files in a
+# single place (~/.cache/kw/to_deploy) to be deployed to the /boot folder
+# later. This function checks if there are dtb/dtbo files; if so, it moves
+# those files.
 #
-# @name Kernel name used in the deploy.
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
-# @build_and_deploy If the user uses `kw bd` we can safely copy the local
-#                   .config file.
-function deploy_config_file()
+# @kernel_img_name Kernel image file name, e.g., bzImage or Image.
+# @name Kernel name used during the deploy
+# @arch Target device architecture
+function pack_kernel_files_and_send()
 {
-  local name="$1"
-  local flag="$2"
-  local target="$3"
-  local build_and_deploy="$4"
+  local flag="$1"
+  local target="$2"
+  local kernel_img_name="$3"
+  local name="$4"
+  local arch=${5-${configurations[arch]}}
+  local build_and_deploy="$6"
+  local base_boot_path
+  local config_path
   local config_local_version
-  local complain_msg='Undefined .config file for the target kernel. Consider using kw bd'
-  local config_path="$PWD/.config"
+  local cache_boot_files_path
+  local compression_type
+  local cache_to_deploy_path
+  local dts_base_path
+  local tar_file_path
+  local kernel_name_arch
 
+  config_path='.config'
+  compression_type="${configurations[deploy_default_compression]}"
+  cache_to_deploy_path="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
+  cache_boot_files_path="${cache_to_deploy_path}/boot"
+  tar_file_path="${cache_to_deploy_path}/${name}_boot.tar"
+
+  base_boot_path="arch/$arch_target/boot"
+  dts_base_path="${base_boot_path}/dts"
+
+  # Centralizing kernel files in a single place
+  mkdir -p "$cache_boot_files_path"
+
+  # 1. Copying .config file, we don't want to mislead developers by deploying
+  # the wrong config file.
   if [[ ! -f "$config_path" ]]; then
-    warning "$complain_msg"
-    return
-  fi
-
-  config_local_version=$(sed -nr '/CONFIG_LOCALVERSION=/s/CONFIG_LOCALVERSION="(.*)"/\1/p' "$config_path")
-
-  if [[ -n "$build_and_deploy" || "$name" =~ $config_local_version.*$ ]]; then
-    case "$target" in
-      1) # VM_TARGET
-        cmd="cp $config_path ${configurations[mount_point]}/boot/config-$name"
-        cmd_manager "$flag" "$cmd"
-        ;;
-      2) # LOCAL_TARGET
-        cmd="sudo -E cp $config_path /boot/config-$name"
-        cmd_manager "$flag" "$cmd"
-        ;;
-      3) # REMOTE_TARGET
-        cp2remote "$flag" "$config_path" "/boot/config-$name"
-        ;;
-    esac
+    warning 'Undefined .config file for the target kernel. Consider using kw bd'
   else
-    warning "$complain_msg"
+    config_local_version=$(sed -nr '/CONFIG_LOCALVERSION=/s/CONFIG_LOCALVERSION="(.*)"/\1/p' "$config_path")
+
+    if [[ -n "$build_and_deploy" || "$name" =~ $config_local_version.*$ ]]; then
+      cmd="cp $config_path ${cache_boot_files_path}/config-$name"
+      cmd_manager "$flag" "$cmd"
+    fi
   fi
+
+  # 2. Copy kernel image
+  case "$arch" in
+    'arm')
+      kernel_name_arch="kernel-${name}.img"
+      ;;
+    *)
+      kernel_name_arch="vmlinuz-${name}"
+      ;;
+  esac
+
+  cmd="cp ${base_boot_path}/${kernel_img_name}"
+  cmd+=" ${cache_boot_files_path}/${kernel_name_arch}"
+  cmd_manager "$flag" "$cmd"
+
+  # 3. If we have dtb files, let's copy it
+  if [[ -d "$dts_base_path" ]]; then
+    cmd_manager "$flag" "cp ${dts_base_path}/*.dtb ${cache_boot_files_path}/"
+    if [[ -d "${dts_base_path}/overlays" ]]; then
+      cmd_manager "$flag" "mkdir -p ${cache_boot_files_path}/overlays"
+      cmd_manager "$flag" "cp ${dts_base_path}/overlays/*.dtbo ${cache_boot_files_path}/overlays"
+    fi
+  fi
+
+  case "$target" in
+    1) # VM_TARGET
+      cmd="cp -r ${cache_to_deploy_path}/boot/* ${configurations[mount_point]}/boot/"
+      cmd_manager "$flag" "$cmd"
+      ;;
+    2) # LOCAL_TARGET
+      cmd="cp -r ${cache_to_deploy_path}/boot/* /boot/"
+      cmd_manager "$flag" "$cmd"
+      ;;
+    3) # REMOTE_TARGET
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+      local user="${remote_parameters['REMOTE_USER']}"
+
+      generate_tarball "${cache_to_deploy_path}" \
+        "$tar_file_path" "$compression_type" 'boot' "$flag"
+
+      cp2remote "$flag" "$tar_file_path" "$KW_DEPLOY_TMP_FILE"
+      ;;
+  esac
 }
 
 # This function behaves like a kernel installation manager. It handles some
@@ -912,6 +966,7 @@ function run_kernel_install()
   if [[ ! -f "arch/$arch_target/boot/$kernel_img_name" ]]; then
     # Try to infer the kernel image name
     kernel_img_name=$(find "arch/$arch_target/boot/" -name '*Image' 2> /dev/null)
+    kernel_img_name=$(basename "$kernel_img_name")
     if [[ -z "$kernel_img_name" ]]; then
       complain "We could not find a valid kernel image at arch/$arch_target/boot"
       complain 'Please, check your compilation and/or the option kernel_img_name inside kworkflow.config'
@@ -919,6 +974,10 @@ function run_kernel_install()
     fi
     warning "kw inferred arch/$arch_target/boot/$kernel_img_name as a kernel image"
   fi
+
+  say '* Sending kernel boot files'
+  pack_kernel_files_and_send "$flag" "$target" "$kernel_img_name" \
+    "$name" "$arch_target" "$build_and_deploy"
 
   case "$target" in
     1) # VM_TARGET
@@ -929,9 +988,6 @@ function run_kernel_install()
         vm_umount
         exit 95 # ENOTSUP
       fi
-
-      # Copy .config
-      deploy_config_file "$name" "$flag" "$target" "$build_and_deploy"
 
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
@@ -954,9 +1010,6 @@ function run_kernel_install()
         exit 1 # EPERM
       fi
 
-      # Copy .config
-      deploy_config_file "$name" "$flag" "$target" "$build_and_deploy"
-
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Ensure that we are using the right variable
@@ -971,13 +1024,6 @@ function run_kernel_install()
 
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro '/' "$distro_info")
-
-      say '* Sending kernel image and config file to the remote'
-      cp2remote "$flag" \
-        "arch/$arch_target/boot/$kernel_img_name" "$KW_DEPLOY_TMP_FILE/vmlinuz-$name"
-
-      # Copy .config
-      deploy_config_file "$name" "$flag" "$target" "$build_and_deploy"
 
       # Deploy
       local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
