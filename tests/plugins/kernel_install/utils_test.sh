@@ -25,6 +25,8 @@ function oneTimeSetUp()
   shopt -s expand_aliases
   alias identify_bootloader_from_files='identify_bootloader_from_files_mock'
   alias run_bootloader_for_vm='run_bootloader_for_vm_mock'
+  alias run_bootloader_update='run_bootloader_update_mock'
+  alias generate_debian_temporary_root_file_system='generate_debian_temporary_root_file_system_mock'
   alias findmnt='findmnt_mock'
   alias vm_umount='vm_umount'
   alias vm_mount='vm_mount_mock'
@@ -82,10 +84,16 @@ function run_bootloader_for_vm_mock()
   printf 'run_bootloader_for_vm_mock\n'
 }
 
+function run_bootloader_update_mock()
+{
+  printf 'run_bootloader_update_mock\n'
+}
+
 # Mock funtions for install tests
 function generate_debian_temporary_root_file_system()
 {
   printf '%s\n' 'generate_debian_temporary_root_file_system_mock'
+  return 0
 }
 
 function update_debian_boot_loader()
@@ -266,8 +274,8 @@ function test_kernel_force_uninstall_unmanaged()
     "Can't find $initramfs_tools_var_path"
     "Can't find $modules_lib_path"
     "sudo sed -i '/xpto/d' '$INSTALLED_KERNELS_PATH'"
-    "update_bootloader xpto local TEST_MODE"
-    "sudo -E grub-mkconfig -o /boot/grub/grub.cfg"
+    'update_bootloader xpto local TEST_MODE'
+    'run_bootloader_update_mock'
   )
 
   output=$(kernel_uninstall 0 'local' 'xpto' 'TEST_MODE' 1)
@@ -312,7 +320,7 @@ function test_remove_managed_kernel()
     "Can't find $SHUNIT_TMPDIR//lib/modules/$kernel_name"
     "sudo sed -i '/$kernel_name/d' '$INSTALLED_KERNELS_PATH'"
     "update_bootloader $kernel_name local TEST_MODE"
-    'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
+    'run_bootloader_update_mock'
   )
 
   output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' '' "$SHUNIT_TMPDIR/")
@@ -461,8 +469,8 @@ function test_install_kernel_remote()
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
     "tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}_boot.tar --directory=/ --no-same-owner"
-    'generate_debian_temporary_root_file_system_mock'
-    'grub-mkconfig -o /boot/grub/grub.cfg'
+    "generate_debian_temporary_root_file_system $flag $name $target GRUB"
+    'run_bootloader_update_mock'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
     'reboot'
   )
@@ -485,10 +493,9 @@ function test_install_kernel_local()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    'generate_debian_temporary_root_file_system_mock'
-    'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
+    "generate_debian_temporary_root_file_system $flag $name $target GRUB"
+    'run_bootloader_update_mock'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
-    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
     "$sudo_cmd reboot"
   )
 
@@ -517,9 +524,9 @@ function test_install_kernel_vm()
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
     "cp  .config $path_prefix/boot/config-$name"
-    'generate_debian_temporary_root_file_system_mock'
     'vm_mount'
-    'run_bootloader_for_vm_mock'
+    "generate_debian_temporary_root_file_system TEST_MODE $name $target GRUB $path_prefix"
+    'run_bootloader_update_mock'
     'vm_umount'
     'vm_mount'
     "touch $SHUNIT_TMPDIR/$INSTALLED_KERNELS_PATH"

@@ -223,25 +223,30 @@ function install_modules()
 # generic function name that will be called in a specific order to update the
 # bootloader in the target machine. The trick here consists of first loading
 # the target bootloader and specific distro script and executing the required
-# update.
+# update. Also notice that in some cases we need to update the initramfs.
 #
-# @name
-# @distro
-# @target
-# @cmd_init
-# @grub_install
-# @flag
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @name Kernel name used during the deploy
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @kernel_image_name Kernel binary file name
+# @distro Target distro (e.g., arch or debian)
+# @prefix Set a base prefix for searching for kernels.
 function update_bootloader()
 {
-  local name="$1"
-  local target="$2"
-  local flag="$3"
-  local prefix=''
+  local flag="$1"
+  local name="$2"
+  local target="$3"
+  local kernel_image_name="$4"
+  local distro="$5"
+  local prefix="$6"
   local deploy_data_string
   local bootloader_path_prefix
   local ret
+  local generate_initram=0
 
-  prefix='/'
+  [[ -n "$distro" ]] && generate_initram=1
+  [[ -z "$prefix" ]] && prefix='/'
 
   if [[ "$target" == 'vm' ]]; then
     vm_mount
@@ -259,6 +264,9 @@ function update_bootloader()
     GRUB)
       bootloader_path_prefix+='grub.sh'
       ;;
+    RPI_BOOTLOADER)
+      bootloader_path_prefix+='rpi_bootloader.sh'
+      ;;
     *)
       return 95 # ENOTSUP
       ;;
@@ -267,10 +275,24 @@ function update_bootloader()
   # Load specific bootloader action
   . "$bootloader_path_prefix" --source-only
 
-  # Update bootloader
-  run_bootloader_update "$flag" "$target"
-  ret="$?"
+  # Each distro has their own way to generate their temporary root file system.
+  if [[ "$generate_initram" == 1 ]]; then
+    # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
+    cmd="generate_${distro}_temporary_root_file_system"
+    cmd+=" $flag $name $target ${deploy_data['bootloader']} $path_prefix"
 
+    cmd_manager "$flag" "$cmd"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain 'Error when trying to generate the temporary root file system'
+      [[ "$target" == 'vm' ]] && vm_umount
+      exit "$ret"
+    fi
+  fi
+
+  # Update bootloader
+  run_bootloader_update "$flag" "$target" "$name" "$kernel_image_name"
+  ret="$?"
   [[ "$target" == 'vm' ]] && vm_umount
 
   return "$ret"
@@ -355,7 +377,7 @@ function kernel_uninstall()
   # Each distro script should implement update_bootloader
   if [[ "$update_grub" -gt 0 ]]; then
     printf '%s\n' "update_bootloader $kernel $target $flag"
-    update_bootloader "$kernel" "$target" "$flag"
+    update_bootloader "$flag" "$kernel" "$target" "$kernel_image_name" '' "$path_prefix"
 
     # Reboot
     reboot_machine "$reboot" "$target" "$flag"
@@ -416,20 +438,8 @@ function install_kernel()
     cmd_manager "$flag" "$cmd"
   fi
 
-  # Each distro has their own way to generate their temporary root file system.
-  # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
-  cmd="generate_${distro}_temporary_root_file_system"
-
-  eval "$cmd" "$name" "$target" "$flag" "$path_prefix"
-  ret="$?"
-  if [[ "$ret" != 0 ]]; then
-    complain 'Error when trying to generate the temporary root file system'
-    [[ "$target" == 'vm' ]] && vm_umount
-    exit "$ret"
-  fi
-
   # Each distro has their own way to update their bootloader
-  update_bootloader "$name" "$target" "$flag"
+  update_bootloader "$flag" "$name" "$target" "$kernel_image_name" "$distro" "$path_prefix"
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then

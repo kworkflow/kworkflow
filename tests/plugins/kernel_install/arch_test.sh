@@ -35,7 +35,7 @@ function test_generate_arch_temporary_root_file_system()
     "$sudo_cmd mkinitcpio --preset $name"
   )
 
-  output=$(generate_arch_temporary_root_file_system "$name" 'local' 'TEST_MODE')
+  output=$(generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'local' 'GRUB')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # Remote
@@ -45,7 +45,7 @@ function test_generate_arch_temporary_root_file_system()
     "mkinitcpio --preset $name"
   )
 
-  output=$(generate_arch_temporary_root_file_system "$name" 'remote' 'TEST_MODE')
+  output=$(generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'remote' 'GRUB')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # VM
@@ -59,7 +59,7 @@ function test_generate_arch_temporary_root_file_system()
     'Done.'
   )
 
-  output=$(generate_arch_temporary_root_file_system "$name" 'vm' 'TEST_MODE' 'something')
+  output=$(generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'vm' 'GRUB' 'something')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
