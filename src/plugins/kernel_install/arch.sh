@@ -23,15 +23,19 @@ declare -g package_manager_cmd='yes | pacman -Syu'
 # Make initcpio and update grub on VM using Guestfish
 function generate_arch_temporary_root_file_system()
 {
-  local name="$1"
-  local target="$2"
-  local flag="$3"
-  local path_prefix="$4"
+  local flag="$1"
+  local name="$2"
+  local target="$3"
+  local bootloader_type="$4"
+  local path_prefix="$5"
   local cmd=''
   local sudo_cmd
   local template_path
   local mkinitcpio_destination_path
   local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
+
+  # We do not support initramfs outside grub scope
+  [[ "$bootloader_type" != 'GRUB' ]] && return
 
   # Step 1: Generate specific preset file
   mkinitcpio_destination_path="$path_prefix/etc/mkinitcpio.d/$name.preset"

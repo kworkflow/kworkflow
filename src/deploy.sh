@@ -491,7 +491,7 @@ function prepare_remote_dir()
   fi
 
   target_deploy_path=$(join_path "$target_deploy_path" "$distro.sh")
-  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh,bootloader_utils.sh,grub.sh}"
+  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh}"
 
   # Send required scripts for running the deploy inside the target machine
   # Note: --archive will force the creation of /root/kw_deploy in case it does

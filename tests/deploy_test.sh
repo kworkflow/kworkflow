@@ -85,7 +85,7 @@ function setUp()
     "$UNDEFINED_CONFIG"
     "$COPY_KERNEL_IMAGE"
     "cp -r $LOCAL_TO_DEPLOY_PATH/boot/* /boot/"
-    'sudo -E update-initramfs -c -k test'
+    'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
     'touch /opt/kw/INSTALLED_KERNELS'
     'grep -Fxq test /opt/kw/INSTALLED_KERNELS'
@@ -1037,7 +1037,7 @@ function prepare_remote_list_of_files()
 {
   local distro="$1"
 
-  printf '{remote_deploy.sh,utils.sh,%s.sh,bootloader_utils.sh,grub.sh}' "$distro"
+  printf '{remote_deploy.sh,utils.sh,%s.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh}' "$distro"
 }
 
 function test_prepare_remote_dir()

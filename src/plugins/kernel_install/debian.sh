@@ -23,10 +23,20 @@ declare -g package_manager_cmd='apt-get install -y'
 
 function generate_debian_temporary_root_file_system()
 {
-  local name="$1"
-  local target="$2"
-  local flag="$3"
-  local cmd="update-initramfs -c -k"
+  local flag="$1"
+  local name="$2"
+  local target="$3"
+  local bootloader_type="$4"
+  local path_prefix="$5"
+  local cmd='update-initramfs -c -k'
+  local prefix='/'
+
+  if [[ -n "$path_prefix" ]]; then
+    prefix="${path_prefix}"
+  fi
+
+  # We do not support initramfs outside grub scope
+  [[ "$bootloader_type" != 'GRUB' ]] && return
 
   cmd+=" $name"
 
