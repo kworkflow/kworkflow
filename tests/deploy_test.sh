@@ -235,6 +235,7 @@ function test_check_setup_status()
 function test_modules_install_to()
 {
   local output
+  local original="$PWD"
   local make_cmd="make INSTALL_MOD_PATH=$test_path modules_install"
 
   declare -a expected_cmd=(
@@ -242,8 +243,20 @@ function test_modules_install_to()
     "$make_cmd"
   )
 
+  cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
   output=$(modules_install_to "$test_path" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 function test_kernel_install_to_remote()
@@ -576,6 +589,7 @@ function test_kernel_modules()
   local local_remote_path="$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
   local version='5.4.0-rc7-test'
   local deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
+  local original="$PWD"
   local output
   local dir_kw_deploy
   local rsync_debian
@@ -609,6 +623,11 @@ function test_kernel_modules()
   exec_module_install="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_remote_cmd\""
 
   # Test 1: Check modules deploy for a remote
+  cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   declare -a expected_cmd=(
     "$PREPARING_MODULES_MSG"
@@ -641,6 +660,11 @@ function test_kernel_modules()
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 # This test validates the correct behavior of list kernel on a remote machine

@@ -774,6 +774,13 @@ function modules_install()
   esac
 }
 
+function is_sign_module_enabled()
+{
+  grep --quiet --fixed-strings --line-regexp 'CONFIG_MODULE_SIG=y' "${PWD}/.config"
+  [[ "$?" != 0 ]] && return 1
+  return 0
+}
+
 # This function is responsible for handling the command to
 # `make install_modules`, and it expects a target path for saving the modules
 # files.
@@ -789,13 +796,16 @@ function modules_install_to()
   local total_lines
   local pv_cmd
   local cmd=''
-  local sign_extra_line=2
+  local sign_extra_line=1
 
   flag=${flag:-'SILENT'}
 
+  if is_sign_module_enabled; then
+    sign_extra_line=2
+  fi
+
   if [[ "$local_deploy" == 'local' ]]; then
     cmd='sudo -E make modules_install'
-    sign_extra_line=1
   else
     cmd="make INSTALL_MOD_PATH=$install_to modules_install"
   fi
