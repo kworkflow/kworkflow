@@ -303,22 +303,27 @@ function do_uninstall()
   local target="$1"
   local prefix="$2"
   local flag="$3"
-  local modules_lib_path="$prefix/lib/modules/$target"
+  local modules_lib_path="${prefix}/lib/modules/${target}"
   local -a files_to_be_removed=(
-    "$prefix/boot/vmlinuz-$target"
-    "$prefix/boot/vmlinuz-$target.old"
-    "$prefix/boot/initrd.img-$target"
-    "$prefix/boot/initramfs-$target.img"
-    "$prefix/boot/initramfs-$target-fallback.img"
-    "$prefix/boot/config-$target"
-    "$prefix/etc/mkinitcpio.d/$target.preset"
-    "$prefix/var/lib/initramfs-tools/$target"
+    "${prefix}/etc/mkinitcpio.d/${target}.preset"
+    "${prefix}/var/lib/initramfs-tools/${target}"
   )
 
   if [[ -z "$target" ]]; then
     printf '%s\n' 'No parameter, nothing to do'
     exit 22 # EINVAL
   fi
+
+  to_remove_from_boot=$(find "${prefix}/boot/" -name "*$target*" | sort)
+  # shellcheck disable=SC2068
+  for element in ${to_remove_from_boot[@]}; do
+    if [[ -f "$element" ]]; then
+      printf ' %s\n' "Removing: $element"
+      cmd_manager "$flag" "rm $element"
+    else
+      printf ' %s\n' "Can't find $element"
+    fi
+  done
 
   for del_file in "${files_to_be_removed[@]}"; do
     if [[ -f "$del_file" ]]; then
@@ -376,7 +381,7 @@ function kernel_uninstall()
 
   # Each distro script should implement update_bootloader
   if [[ "$update_grub" -gt 0 ]]; then
-    printf '%s\n' "update_bootloader $kernel $target $flag"
+    #printf '%s\n' "update_bootloader $kernel $target $flag"
     update_bootloader "$flag" "$kernel" "$target" "$kernel_image_name" '' "$path_prefix"
 
     # Reboot

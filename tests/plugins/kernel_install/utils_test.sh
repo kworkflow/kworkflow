@@ -21,6 +21,9 @@ function oneTimeSetUp()
   }
   export -f grub-mkconfig
 
+  # Setup a fake path to make easier to mock some scenarios
+  TARGET_PATH="$SHUNIT_TMPDIR"
+
   # Mock functions
   shopt -s expand_aliases
   alias identify_bootloader_from_files='identify_bootloader_from_files_mock'
@@ -42,6 +45,8 @@ function oneTimeSetUp()
 function oneTimeTearDown()
 {
   rm -f "$INSTALLED_KERNELS_PATH"
+  # shellcheck disable=SC2115
+  [[ -d ${TARGET_PATH} ]] && rm -rf "${TARGET_PATH}/*"
 }
 
 function setUp()
@@ -247,14 +252,9 @@ function test_kernel_uninstall_unmanaged()
 function test_kernel_force_uninstall_unmanaged()
 {
   local target='xpto'
-  local prefix="./test"
-  local kernel_boot_img_path="/boot/vmlinuz-$target"
-  local initrd_boot_path="/boot/initrd.img-$target"
-  local modules_lib_path="/lib/modules/$target"
-  local initramfs_tools_var_path="/var/lib/initramfs-tools/$target"
-  local initramfs_boot_img_path="/boot/initramfs-$target.img"
-  local initramfs_fallback_boot_img_path="/boot/initramfs-$target-fallback.img"
-  local mkinitcpio_d_path="/etc/mkinitcpio.d/$target.preset"
+  local modules_lib_path="${TARGET_PATH}/lib/modules/${target}"
+  local initramfs_tools_var_path="${TARGET_PATH}/var/lib/initramfs-tools/$target"
+  local mkinitcpio_d_path="${TARGET_PATH}/etc/mkinitcpio.d/${target}.preset"
   local output
 
   # Notice that we are only testing the force feature, we did not create fake
@@ -264,21 +264,16 @@ function test_kernel_force_uninstall_unmanaged()
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     "sudo grep -q 'xpto' '$INSTALLED_KERNELS_PATH'"
     "Removing: $target"
-    "Can't find $kernel_boot_img_path"
-    "Can't find $kernel_boot_img_path.old"
-    "Can't find $initrd_boot_path"
-    "Can't find $initramfs_boot_img_path"
-    "Can't find $initramfs_fallback_boot_img_path"
-    "Can't find /boot/config-$target"
     "Can't find $mkinitcpio_d_path"
     "Can't find $initramfs_tools_var_path"
     "Can't find $modules_lib_path"
     "sudo sed -i '/xpto/d' '$INSTALLED_KERNELS_PATH'"
-    'update_bootloader xpto local TEST_MODE'
     'run_bootloader_update_mock'
   )
 
-  output=$(kernel_uninstall 0 'local' 'xpto' 'TEST_MODE' 1)
+  mkdir -p "${TARGET_PATH}/boot"
+
+  output=$(kernel_uninstall 0 'local' 'xpto' 'TEST_MODE' 1 "$TARGET_PATH")
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
@@ -293,67 +288,67 @@ function test_remove_managed_kernel()
   local initramfs_tools_var_path="/var/lib/initramfs-tools/$target"
   local initramfs_boot_img_path="/boot/initramfs-$kernel_name.img"
   local initramfs_fallback_boot_img_path="/boot/initramfs-$kernel_name-fallback.img"
-  local mkinitcpio_d_path="/etc/mkinitcpio.d/$kernel_name.preset"
+  local mkinitcpio_d_path="etc/mkinitcpio.d/$kernel_name.preset"
   local output
+  local boot_files
+  local index
 
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
+  # Adding mock file
+  mkdir -p "${TARGET_PATH}/boot"
+  touch "${TARGET_PATH}/boot/vmlinuz-${kernel_name}"
+  touch "${TARGET_PATH}/boot/initrd.img-${kernel_name}"
+  touch "${TARGET_PATH}/boot/initramfs-${kernel_name}.img"
+  touch "${TARGET_PATH}/boot/initramfs-${kernel_name}-fallback.img"
+  touch "${TARGET_PATH}/boot/config-${kernel_name}"
 
+  # Composing command sequence list
   local -a cmd_sequence=(
     "sudo mkdir -p $REMOTE_KW_DEPLOY"
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     "sudo grep -q '$kernel_name' '$INSTALLED_KERNELS_PATH'"
     "Removing: $kernel_name"
-    "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name"
-    "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name"
-    "Removing: $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
-    "rm $SHUNIT_TMPDIR//boot/vmlinuz-$kernel_name.old"
-    "Can't find $SHUNIT_TMPDIR//boot/initrd.img-$kernel_name"
-    "Can't find $SHUNIT_TMPDIR/$initramfs_boot_img_path"
-    "Can't find $SHUNIT_TMPDIR/$initramfs_fallback_boot_img_path"
-    "Removing: $SHUNIT_TMPDIR//boot/config-$kernel_name"
-    "rm $SHUNIT_TMPDIR//boot/config-$kernel_name"
-    "Can't find $SHUNIT_TMPDIR/$mkinitcpio_d_path"
-    "Can't find $SHUNIT_TMPDIR//var/lib/initramfs-tools/$kernel_name"
-    "Can't find $SHUNIT_TMPDIR//lib/modules/$kernel_name"
+  )
+
+  index=${#cmd_sequence[@]}
+
+  local -a cmd_last_part=(
+    "Can't find ${TARGET_PATH}//$mkinitcpio_d_path"
+    "Can't find ${TARGET_PATH}//var/lib/initramfs-tools/$kernel_name"
+    "Can't find ${TARGET_PATH}//lib/modules/$kernel_name"
     "sudo sed -i '/$kernel_name/d' '$INSTALLED_KERNELS_PATH'"
-    "update_bootloader $kernel_name local TEST_MODE"
     'run_bootloader_update_mock'
   )
 
+  boot_files=$(find "${TARGET_PATH}//boot/" -name "*${kernel_name}*" | sort)
+
+  # shellcheck disable=SC2068
+  for file in ${boot_files[@]}; do
+    cmd_sequence["$index"]="Removing: $file"
+    ((index++))
+    cmd_sequence["$index"]="rm $file"
+    ((index++))
+  done
+
+  for cmd in "${cmd_last_part[@]}"; do
+    cmd_sequence["$index"]="$cmd"
+    ((index++))
+  done
+
+  # Check
   output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' '' "$SHUNIT_TMPDIR/")
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
-
-  cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
 }
 
-function test_do_uninstall_cmd_sequence()
+function test_do_uninstall_invalid_path_cmd_sequence()
 {
   local target='xpto'
-  local prefix="./test"
-  local kernel_boot_img_path="$prefix/boot/vmlinuz-$target"
-  local initrd_boot_path="$prefix/boot/initrd.img-$target"
+  local prefix="${TARGET_PATH}"
   local modules_lib_path="$prefix/lib/modules/$target"
   local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
-  local config_boot_path="$prefix/boot/config-$target"
-  local initramfs_boot_img_path="$prefix/boot/initramfs-$target.img"
-  local initramfs_fallback_boot_img_path="$prefix/boot/initramfs-$target-fallback.img"
   local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
   local output
 
-  # TEST 1: Invalid path
   declare -a cmd_sequence=(
-    "Can't find $kernel_boot_img_path"
-    "Can't find $kernel_boot_img_path.old"
-    "Can't find $initrd_boot_path"
-    "Can't find $initramfs_boot_img_path"
-    "Can't find $initramfs_fallback_boot_img_path"
-    "Can't find $config_boot_path"
     "Can't find $mkinitcpio_d_path"
     "Can't find $initramfs_tools_var_path"
     "Can't find $modules_lib_path"
@@ -361,28 +356,39 @@ function test_do_uninstall_cmd_sequence()
 
   output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+}
+
+function test_do_uninstall_valid_path_cmd_sequence()
+{
+  local target='xpto'
+  local prefix="${TARGET_PATH}"
+  local modules_lib_path="$prefix/lib/modules/$target"
+  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
+  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
+  local output
+  local boot_files
+  local index=0
 
   # TEST 2: Valid paths
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
   mkdir -p "$prefix"
   mk_fake_remote_system "$prefix" "$target"
 
-  declare -a cmd_sequence=(
-    "Removing: $kernel_boot_img_path"
-    "rm $kernel_boot_img_path"
-    "Removing: $kernel_boot_img_path.old"
-    "rm $kernel_boot_img_path.old"
-    "Removing: $initrd_boot_path"
-    "rm $initrd_boot_path"
-    "Removing: $initramfs_boot_img_path"
-    "rm $initramfs_boot_img_path"
-    "Removing: $initramfs_fallback_boot_img_path"
-    "rm $initramfs_fallback_boot_img_path"
-    "Removing: $config_boot_path"
-    "rm $config_boot_path"
+  # Composing command
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${target}*" | sort)
+  # shellcheck disable=SC2068
+  for file in ${boot_files[@]}; do
+    cmd_sequence["$index"]="Removing: $file"
+    ((index++))
+    cmd_sequence["$index"]="rm $file"
+    ((index++))
+  done
+
+  declare -a cmd_sequence_last_part=(
     "Removing: $mkinitcpio_d_path"
     "rm $mkinitcpio_d_path"
     "Removing: $initramfs_tools_var_path"
@@ -391,30 +397,58 @@ function test_do_uninstall_cmd_sequence()
     "rm -rf $modules_lib_path"
   )
 
+  for cmd in "${cmd_sequence_last_part[@]}"; do
+    cmd_sequence["$index"]="$cmd"
+    ((index++))
+  done
+
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
-  # Partial sequence
-  rm "$kernel_boot_img_path.old"
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_do_uninstall_partial_cmd_sequence()
+{
+  local target='xpto'
+  local prefix="$TARGET_PATH"
+  local modules_lib_path="$prefix/lib/modules/$target"
+  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
+  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
+  local output
+  local index=0
+  local boot_files
+
+  mkdir -p "$prefix"
+  mk_fake_remote_system "$prefix" "$target"
+
   rm -rf "$modules_lib_path"
-  declare -a cmd_sequence=(
-    "Removing: $kernel_boot_img_path"
-    "rm $kernel_boot_img_path"
-    "Can't find $kernel_boot_img_path.old"
-    "Removing: $initrd_boot_path"
-    "rm $initrd_boot_path"
-    "Removing: $initramfs_boot_img_path"
-    "rm $initramfs_boot_img_path"
-    "Removing: $initramfs_fallback_boot_img_path"
-    "rm $initramfs_fallback_boot_img_path"
-    "Removing: $config_boot_path"
-    "rm $config_boot_path"
+
+  # Composing command
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${target}*" | sort)
+  # shellcheck disable=SC2068
+  for file in ${boot_files[@]}; do
+    cmd_sequence["$index"]="Removing: $file"
+    ((index++))
+    cmd_sequence["$index"]="rm $file"
+    ((index++))
+  done
+
+  declare -a cmd_sequence_last_part=(
     "Removing: $mkinitcpio_d_path"
     "rm $mkinitcpio_d_path"
     "Removing: $initramfs_tools_var_path"
     "rm $initramfs_tools_var_path"
     "Can't find $modules_lib_path"
   )
+
+  for cmd in "${cmd_sequence_last_part[@]}"; do
+    cmd_sequence["$index"]="$cmd"
+    ((index++))
+  done
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
