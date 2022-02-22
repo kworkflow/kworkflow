@@ -281,6 +281,7 @@ function detect_distro()
   local etc_path
   declare -a debian_family=('debian' 'ubuntu' 'raspbian')
   declare -a arch_family=('arch' 'manjaro')
+  declare -a fedora_family=('fedora')
 
   etc_path=$(join_path "$root_path" /etc)
 
@@ -296,6 +297,9 @@ function detect_distro()
   # ArchLinux family
   elif [[ "${arch_family[*]}" =~ ${distro_id} ]]; then
     printf '%s\n' 'arch'
+  # Fedora family
+  elif [[ "${fedora_family[*]}" =~ ${distro_id} ]]; then
+    printf '%s\n' 'fedora'
   else
     printf '%s\n' 'none'
   fi
