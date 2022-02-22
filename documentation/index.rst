@@ -11,6 +11,11 @@ developing for Linux. **kw** is composed of different software components
 unified in a single interface. After installation, ``kw`` commands become
 available in the command line interface.
 
+The kw project is available at
+`GitHub <https://github.com/kworkflow/kworkflow>`, and we also have a blog post
+which can be accessed at `here <https://blog.kworkflow.org/>`. For more
+information, check:
+
 .. toctree::
    :maxdepth: 1
 
