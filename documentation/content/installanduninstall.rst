@@ -13,7 +13,7 @@ Install and Remove `kw`
 
 Package Dependencies
 --------------------
-We currently support *arch* and *debian* for automatic dependencies
+We currently support *arch*, *debian* and *fedora* for automatic dependencies
 installation. These are the current dependencies for *Arch*:
 
    .. include:: ../dependencies/arch.dependencies
@@ -21,6 +21,10 @@ installation. These are the current dependencies for *Arch*:
 These are the current dependencies for *Debian*:
 
    .. include:: ../dependencies/debian.dependencies
+
+These are the current dependencies for *Fedora*:
+
+   .. include:: ../dependencies/fedora.dependencies
 
 If you want to build the documentation as it is displayed on our website you
 also need this pip package:
