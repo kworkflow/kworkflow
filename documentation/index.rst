@@ -33,6 +33,8 @@ Check out our tutorials to see how you can use kw.
    tutorials/buildlinux
    tutorials/configm
    tutorials/deploy-kernel
+   tutorials/codestyle
+   tutorials/find-maintainers
    tutorials/kernel-debug
    tutorials/pomodoro-report
 
