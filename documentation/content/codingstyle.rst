@@ -283,6 +283,17 @@ example::
   kernel_path="${PWD}/"
   kw_path="${HOME}/.local/.config"
 
+How to handle return
+--------------------
+
+When handling return value and its manipulation inside kw, use the errno code
+pattern. By adopting this pattern, we standardize the expected errors and
+provide meaningful error codes for the user. Finally, always add a comment next
+to the return value with the string reference to it, for example::
+
+  return 22 # EINVAL
+  return 2 # ENOENT
+
 Conclusion
 ----------
 
