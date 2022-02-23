@@ -26,7 +26,7 @@ To make sure our code is working as it is supposed to, we add
 :ref:`tests<tests>` to check that.
 
 All our tests can be found in the `tests` folder. Notice that every test file
-name ends with test before the .sh extension (i.e. `mk_test.sh` and
+name ends with test before the .sh extension (i.e. `build_test.sh` and
 `statistics_test.sh`). This is done so that the `run_tests.sh` file can detect
 those tests and run or list them.
 
@@ -36,7 +36,7 @@ Unit testing is an essential part of our development workflow and we use the
 `shUnit2 <https://github.com/kward/shunit2/>`_ framework to write our tests.
 Ideally, every new function should have a test related to it. So, if you're
 working on a new feature, added a new function, or changed the behavior of an
-existing one, it's fundamental to make the necessary ajustments related to
+existing one, it's fundamental to make the necessary adjustments related to
 testing.
 
 To see how to run individual test files, check our :ref:`page on that<tests>`.
@@ -157,14 +157,14 @@ Dependencies
 
 Installing ShellCheck
 ~~~~~~~~~~~~~~~~~~~~~
-Shellcheck is available as a package for most distributions. On debian based
+Shellcheck is available as a package for most distributions. On Debian based
 distros, use ``sudo apt install shellcheck``. On Arch based distros, use ``sudo
 pacman -S shellcheck``.
 
 Installing shfmt
 ~~~~~~~~~~~~~~~~
 
-To install shfmt, ``go`` must be installed. On debian based distros::
+To install shfmt, ``go`` must be installed. On Debian based distros::
 
   sudo apt install golang
 
@@ -180,7 +180,7 @@ More information can be found in their `github page <https://github.com/mvdan/sh
 
 Installing pre-commit
 ~~~~~~~~~~~~~~~~~~~~~
-``pre-commit`` is available as a package for some distributions. On debian based
+``pre-commit`` is available as a package for some distributions. On Debian based
 distros, try using ``sudo apt install pre-commit``. On Arch based distros, use
 ``sudo pacman -S python-pre-commit``. If that doesn't work, you can install it
 using pip with ``pip install pre-commit``.
