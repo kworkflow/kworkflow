@@ -92,6 +92,9 @@ function kernel_build()
     parallel_cores=$(grep -c ^processor /proc/cpuinfo)
   fi
 
+  # Let's avoid menu question by default
+  cmd_manager "$flag" "make ARCH=$arch $cross_compile olddefconfig --silent"
+
   command="make -j$parallel_cores ARCH=$arch $cross_compile"
 
   start=$(date +%s)

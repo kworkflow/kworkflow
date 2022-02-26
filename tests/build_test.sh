@@ -53,25 +53,74 @@ tearDown()
   }
 }
 
-function test_kernel_build()
+function test_kernel_build_cross_compilation_flags()
 {
   local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -1) # Remove statistics output
+  declare -a expected_cmd=(
+    "make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig --silent"
+    "make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
+  )
+
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+}
+
+function test_kernel_build_menu_cross_compilation_flags()
+{
+  local expected_result
+  local output
 
   output=$(kernel_build 'TEST_MODE' '--menu')
   expected_result="make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig"
   assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_kernel_build_html_doc()
+{
+  local expected_result
+  local output
 
   output=$(kernel_build 'TEST_MODE' '--doc')
   expected_result="make htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_kernel_build_invalid_flag()
+{
+  local output
+  local ret
 
   output=$(kernel_build 'TEST_MODE' '--notvalid' 2> /dev/null)
   ret="$?"
-  assertEquals "($LINENO)" "$ret" "22"
+  assertEquals "($LINENO)" "$ret" 22
+}
 
-  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -1) # Remove statistics output
-  expected_result="make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
-  assertEquals "($LINENO)" "$expected_result" "${output}"
+function test_kernel_build_outside_kernel_repository()
+{
+  local ret
+  local output
+
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
+
+  output=$(kernel_build 'TEST_MODE')
+  ret="$?"
+  assertEquals "($LINENO) We expected an error" "$ret" 125
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move into temporary directory"
+    return
+  }
+}
+
+function test_kernel_build_x86()
+{
+  local expected_result
+  local output
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"
@@ -91,10 +140,14 @@ function test_kernel_build()
     return
   }
 
-  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -1) # Remove statistics output
-  expected_result="make -j$PARALLEL_CORES ARCH=x86_64"
-  assertEquals "($LINENO)" "$expected_result" "${output}"
+  output=$(kernel_build 'TEST_MODE' | tail -n +1) # Remove statistics output
+  declare -a expected_cmd=(
+    "make ARCH=x86_64  olddefconfig --silent"
+    "make -j$PARALLEL_CORES ARCH=x86_64"
+    "-> Execution time: 00:00:00"
+  )
 
+  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
 }
 
 function test_parse_build_options()
