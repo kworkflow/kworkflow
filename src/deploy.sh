@@ -904,7 +904,7 @@ function pack_kernel_files_and_send()
       cmd_manager "$flag" "$cmd"
       ;;
     2) # LOCAL_TARGET
-      cmd="cp -r ${cache_to_deploy_path}/boot/* /boot/"
+      cmd="sudo cp -r ${cache_to_deploy_path}/boot/* /boot/"
       cmd_manager "$flag" "$cmd"
       ;;
     3) # REMOTE_TARGET

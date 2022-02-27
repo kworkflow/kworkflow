@@ -20,6 +20,9 @@ function run_bootloader_update()
   local target="$2"
   local name="$3"
   local find_target
+  local sudo_cmd
+
+  [[ "$target" == 'local' ]] && sudo_cmd='sudo'
 
   # Find kernel name
   find_target=$(find "$BOOT_PATH" -name "*${name}*" -not -name '*.old' -not -name 'config-*')
@@ -32,13 +35,21 @@ function run_bootloader_update()
   # If we find a kernel name in the config file, and no kernel image we
   # want to remove that reference.
   if [[ -z "$find_target" ]]; then
-    sed -i "/$name/d" "$RPI_CONFIG_TXT_PATH"
+    cmd="$sudo_cmd sed -i '/$name/d' $RPI_CONFIG_TXT_PATH"
+    cmd_manager "$flag" "$cmd"
     return
   fi
 
   # Comment all kernel= entrance
-  sed -i '/^kernel=/s/^/#/' "$RPI_CONFIG_TXT_PATH"
+  cmd="$sudo_cmd sed -i '/^kernel=/s/^/#/' $RPI_CONFIG_TXT_PATH"
+  cmd_manager "$flag" "$cmd"
 
   # Add new kernel to the config file
-  printf '%s\n' "kernel=$find_target" >> "$RPI_CONFIG_TXT_PATH"
+  cmd="printf \"%s\n\" kernel=$find_target >> $RPI_CONFIG_TXT_PATH"
+  if [[ "$target" == 'local' ]]; then
+    # Since we have a redirect, we need sh -c
+    cmd="$sudo_cmd sh -c '$cmd'"
+  fi
+
+  cmd_manager "$flag" "$cmd"
 }
