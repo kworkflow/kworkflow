@@ -84,7 +84,7 @@ function setUp()
     "$SENDING_KERNEL_MSG"
     "$UNDEFINED_CONFIG"
     "$COPY_KERNEL_IMAGE"
-    "cp -r $LOCAL_TO_DEPLOY_PATH/boot/* /boot/"
+    "sudo cp -r $LOCAL_TO_DEPLOY_PATH/boot/* /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
     'touch /opt/kw/INSTALLED_KERNELS'
