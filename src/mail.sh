@@ -18,8 +18,6 @@ declare -ga essential_config_options=('user.name' 'user.email'
   'sendemail.smtpuser' 'sendemail.smtpserver' 'sendemail.smtpserverport')
 declare -ga optional_config_options=('sendemail.smtpencryption' 'sendemail.smtppass')
 
-declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
-
 #shellcheck disable=SC2119
 function mail_main()
 {
@@ -126,35 +124,6 @@ function mail_send()
   [[ -n "$extra_opts" ]] && cmd+=" $extra_opts"
 
   cmd_manager "$flag" "$cmd"
-}
-
-# Validates the recipient list given by the user to the options `--to` and
-# `--cc` to make sure the all the recipients are valid.
-#
-# @raw: The list of email recipients to be validated
-#
-# Return:
-# 22 if there are invalid entries; 0 otherwise
-function validate_email_list()
-{
-  local raw="$1"
-  local -a list
-  local value
-  local error=0
-
-  IFS=',' read -ra list <<< "$raw"
-
-  for value in "${list[@]}"; do
-    if [[ ! "$value" =~ ${email_regex} ]]; then
-      warning -n 'The given recipient: '
-      printf '%s' "$value"
-      warning ' does not contain a valid e-mail.'
-      error=1
-    fi
-  done
-
-  [[ "$error" == 1 ]] && return 22 # EINVAL
-  return 0
 }
 
 # This function generates the patches beforehand, these are used to count the
@@ -401,26 +370,6 @@ function validate_encryption()
   warning 'Empty value defaults to plain smtp.'
 
   return 22 # EINVAL
-}
-
-# This function validates the encryption. If the passed encryption is not valid
-# this will warn the user and clear the option.
-#
-# @option: The option to determine if it should be an email
-# @value:  The value being passed
-#
-# Return:
-# Returns 0 if valid; 22 if invalid
-function validate_email()
-{
-  local value="$1"
-
-  if [[ ! "$value" =~ ^${email_regex}$ ]]; then
-    complain "Invalid email: $value"
-    return 22 #EINVAL
-  fi
-
-  return 0
 }
 
 # Gets the values associated to a certain config option and puts them in the

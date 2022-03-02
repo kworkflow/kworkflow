@@ -1,3 +1,7 @@
+include "$KW_LIB_DIR/kwio.sh"
+
+declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
+
 # @@ Expect a string
 #
 # Return:
@@ -192,4 +196,53 @@ function concatenate_with_commas()
   local IFS=','
 
   printf '%s\n' "$*"
+}
+
+# This function validates the encryption. If the passed encryption is not valid
+# this will warn the user and clear the option.
+#
+# @option: The option to determine if it should be an email
+# @value:  The value being passed
+#
+# Return:
+# Returns 0 if valid; 22 if invalid
+function validate_email()
+{
+  local value="$1"
+
+  if [[ ! "$value" =~ ^${email_regex}$ ]]; then
+    complain "Invalid email: $value"
+    return 22 #EINVAL
+  fi
+
+  return 0
+}
+
+# Validates the recipient list given by the user to the options `--to` and
+# `--cc` to make sure the all the recipients are valid.
+#
+# @raw: The list of email recipients to be validated
+#
+# Return:
+# 22 if there are invalid entries; 0 otherwise
+function validate_email_list()
+{
+  local raw="$1"
+  local -a list
+  local value
+  local error=0
+
+  IFS=',' read -ra list <<< "$raw"
+
+  for value in "${list[@]}"; do
+    if [[ ! "$value" =~ ${email_regex} ]]; then
+      warning -n 'The given recipient: '
+      printf '%s' "$value"
+      warning ' does not contain a valid e-mail.'
+      error=1
+    fi
+  done
+
+  [[ "$error" == 1 ]] && return 22 # EINVAL
+  return 0
 }
