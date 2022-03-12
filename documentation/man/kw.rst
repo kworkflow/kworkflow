@@ -55,7 +55,66 @@ provide the *remote* option, which is much more flexible since it uses network;
 notice that this approach is the most generic one because you can use it for
 *vm* and *local*.
 
-  :ref:`kw-deploy<deploy-doc>`
+.. note::
+  **Currently, we don't support the Kernel image update in the --vm option.
+  However, you can use the remote option for a workaround this issue**.
+
+d, deploy [--remote [REMOTE:PORT]|--local|--vm] [--reboot|-r] [--modules|-m] [--ls-line|-s] [--list|-l] [--uninstall|-u KERNEL_NAME]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you are in a kernel directory, this command will try to install the current
+kernel version in your target machine (remote, host, and VM). If you want to
+install a kernel version in a remote machine, the following steps will be
+executed:
+
+1. Prepare a local directory with all the required files;
+
+2. Send all the files to the target machine; and
+
+3. Execute the operations that will update the target machine.
+
+You can specify the deploy target via command line by using the flag *--remote
+[REMOTE:PORT]* (e.g., *--remote 172.16.254.1:22*); however, if you do it
+frequently you probably will prefer to add this information in your local
+*kworkflow.config*. See the example below::
+
+  default_deploy_target=remote
+  ssh_ip=172.16.254.1
+  ssh_port=22
+
+If you want to install a new kernel version in your host machine, you can use
+the flag *--local*; you will need to use your root password.
+
+Another typical operation when deploying a new kernel to a test machine, it is
+the reboot after the update. You can explicitly say it for *kw* by adding the
+flag *--reboot*, or again, add this to the *kworkflow.config* with::
+
+  reboot_after_deploy=yes
+
+Follows the summary of the options:
+
+1. --remote [REMOTE:PORT]: Deploy the Kernel image and modules to a machine in
+the network.
+
+2. --local: Deploy the Kernel image and modules in the host machine, you will
+need root access.
+
+3. --vm: Deploy the Kernel image and modules to QEMU vm.
+
+4. --reboot: Reboot machine after deploy.
+
+5. --modules: Only install/update modules.
+
+6. --list: List available kernels in a single column the target.
+
+7. --ls-line: List available kernels separated by comma.
+
+8. --uninstall|-u: Remove a single kernel or multiple kernels; for removing
+   multiple kernels it is necessary to separate them with comma.
+
+.. note::
+  **Only run commands related to VM after you turn it off**. Under the hood, it
+  executes the mount operation, followed by **make modules_install** with a
+  specific target, and finally umounts the QEMU image.
 
 COMMANDS FOR WORKING WITH CODE
 ------------------------------
