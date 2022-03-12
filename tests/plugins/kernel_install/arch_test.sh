@@ -11,6 +11,7 @@ function setUp()
 
   export kw_path='/fake/remote/path'
   export KW_ETC_DIR='/fake/local/path'
+  export REMOTE_KW_DEPLOY='/fake/run/kw/etc'
 }
 
 function tearDown()
@@ -39,7 +40,7 @@ function test_generate_arch_temporary_root_file_system()
 
   # Remote
   declare -a cmd_sequence=(
-    "bash -c \"sed 's/NAME/$name/g' '$kw_path/template_mkinitcpio.preset' > /etc/mkinitcpio.d/$name.preset\""
+    "bash -c \"sed 's/NAME/$name/g' '$REMOTE_KW_DEPLOY/template_mkinitcpio.preset' > /etc/mkinitcpio.d/$name.preset\""
     "depmod --all $name"
     "mkinitcpio --preset $name"
   )

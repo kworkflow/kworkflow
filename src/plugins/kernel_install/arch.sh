@@ -38,7 +38,7 @@ function generate_arch_temporary_root_file_system()
       cmd="$sudo_cmd "
       ;;
     'remote') # REMOTE_TARGET
-      template_path="$kw_path/template_mkinitcpio.preset"
+      template_path="$REMOTE_KW_DEPLOY/template_mkinitcpio.preset"
       ;;
   esac
 
