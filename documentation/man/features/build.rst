@@ -11,6 +11,9 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-d | \--doc)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-c | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [\--ccache] [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [(-w | \--warnings)] [warning-levels] [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [(-s | \--save-log-to)] <path> [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [\--llvm] [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
 ===========
@@ -50,6 +53,18 @@ OPTIONS
 \--ccache:
   This option allows the user to enable ``ccache`` usage during compilation
   tasks, which should improve compile times in subsequent compilations. 
+
+-w, \--warnings=(1 | 2 | 3 | 12 | 13 | 23 | 123):
+  This can be used to enable compilation warnings accordingly. Please check the
+  kernel's ``make help`` for more info.
+
+-s, \--save-log-to=path:
+  This option will save the full compilation log with the enabled warnings to
+  the specified path.
+
+\--llvm:
+  This option can be set to enable the usage of the LLVM toolchain during
+  compilation/linking tasks. It can be better for some applications.
 
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.

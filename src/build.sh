@@ -47,8 +47,10 @@ function kernel_build()
   local platform_ops
   local menu_config
   local doc_type
+  local llvm
   local optimizations
   local cpu_scaling_factor
+  local output_path
 
   parse_build_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -63,6 +65,9 @@ function kernel_build()
   parallel_cores=${options_values['PARALLEL_CORES']}
   doc_type=${options_values['DOC_TYPE']}
   cpu_scaling_factor=${options_values['CPU_SCALING_FACTOR']}
+  warnings=${options_values['WARNINGS']}
+  llvm=${options_values['USE_LLVM_TOOLCHAIN']}
+  output_path=${options_values['LOG_PATH']}
 
   if [[ -n "${options_values['INFO']}" ]]; then
     build_info ''
@@ -86,6 +91,18 @@ function kernel_build()
     exit 125 # ECANCELED
   fi
 
+  if [[ -n "$warnings" ]]; then
+    warnings=" W=$warnings"
+  fi
+
+  if [[ -n "$output_path" ]]; then
+    output_path=" 2>&1 > $output_path"
+  fi
+
+  if [[ -n "$llvm" ]]; then
+    llvm='LLVM=1 '
+  fi
+
   if command_exists nproc; then
     parallel_cores="$(nproc --all)"
   else
@@ -95,16 +112,17 @@ function kernel_build()
   optimizations="-j$((parallel_cores * cpu_scaling_factor / 100))"
 
   if [[ -n "${options_values['CCACHE']}" ]]; then
-    optimizations="CC=\"ccache gcc -fdiagnostics-color\" $optimizations"
+    [[ -n "$llvm" ]] && compiler='clang' || compiler='gcc'
+    optimizations="CC=\"ccache $compiler -fdiagnostics-color\" $optimizations"
   fi
 
   if [[ -n "$doc_type" ]]; then
-    command="make $optimizations $doc_type"
+    command="make $optimizations ${doc_type}${output_path}"
     cmd_manager "$flag" "$command"
     return
   fi
 
-  command="make $optimizations ARCH=$platform_ops"
+  command="make ${llvm}${optimizations} ARCH=${platform_ops}${warnings}${output_path}"
 
   # Let's avoid menu question by default
   cmd_manager "$flag" "make -j olddefconfig --silent ARCH=$platform_ops"
@@ -171,8 +189,8 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:'
-  local short_options='h,i,n,d,c:'
+  local long_options='help,info,menu,doc,ccache,,cpu-scaling,llvm,warnings::,save-log-to:'
+  local short_options='h,i,n,d,c,w::,s:'
   local doc_type
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
@@ -189,7 +207,11 @@ function parse_build_options()
   options_values['MENU_CONFIG']=''
   options_values['CROSS_COMPILE']="${build_config[cross_compile]}"
   options_values['CCACHE']="${build_config[ccache]}"
-  options_values['CPU_SCALING_FACTOR']="${build_config[cpu_scaling_factor]:-100}"
+  scaling_factor_fallback="${configurations[cpu_scaling_factor]:-100}"
+  options_values['CPU_SCALING_FACTOR']="${build_config[cpu_scaling_factor]:-$scaling_factor_fallback}"
+  options_values['USE_LLVM_TOOLCHAIN']="${build_config[use_llvm_toolchain]:-${configurations[use_llvm_toolchain]}}"
+  options_values['LOG_PATH']="${build_config[save_log_to]:-${configurations[save_log_to]}}"
+  options_values['WARNINGS']=''
   options_values['INFO']=''
   options_values['DOC_TYPE']=''
 
@@ -223,10 +245,32 @@ function parse_build_options()
         options_values['CCACHE']=1
         shift
         ;;
+      --llvm)
+        options_values['USE_LLVM_TOOLCHAIN']=1
+        shift
+        ;;
       --doc | -d)
         doc_type_fallback="${configurations[doc_type]:-htmldocs}"
         options_values['DOC_TYPE']="${build_config[doc_type]:-$doc_type_fallback}"
         shift
+        ;;
+      --warnings | -w)
+        # Handling optional parameter
+        if [[ "$2" =~ [0-9]+ ]]; then
+          options_values['WARNINGS']="$2"
+          shift 2
+        else
+          options_values['WARNINGS']="${configurations[warnings]:-1}"
+          shift
+        fi
+        ;;
+      --save-log-to | -s)
+        if [[ ! "$2" =~ [a-z]+ || -w "$2" ]]; then
+          options_values['ERROR']="$2"
+          return 22 # EINVAL
+        fi
+        options_values['LOG_PATH']="$2"
+        shift 2
         ;;
       --)
         shift
@@ -253,7 +297,10 @@ function build_help()
     '  build (-i | --info) - Display build information' \
     '  build (-d | --doc) - Build kernel documentation' \
     '  build (-c | --cpu-scaling) <percentage> - Scale CPU usage by factor' \
-    '  build (--ccache) - Enable use of ccache'
+    '  build (--ccache) - Enable use of ccache' \
+    '  build (-w | --warnings) [warning_levels] - Enable warnings' \
+    '  build (-s | --save-log-to) <path> - Save compilation log to path' \
+    '  build (--llvm) - Enable use of the LLVM toolchain'
 }
 
 # This function is used to show the current set up used by kworkflow.
@@ -281,6 +328,9 @@ function show_build_variables()
     [arch]='Target arch'
     [cpu_scaling_factor]='CPU scaling factor'
     [enable_ccache]='Enable ccache'
+    [use_llvm]='Use the LLVM toolchain'
+    [warning_level]='Compilation warning level'
+    [log_path]='Path kw should save the `make` output to'
     [kernel_img_name]='Kernel image name'
     [cross_compile]='Cross-compile name'
     [menu_config]='Kernel menu config'
