@@ -890,9 +890,10 @@ function pack_kernel_files_and_send()
   local target="$2"
   local kernel_binary_file_name="$3"
   local kernel_name="$4"
-  local arch=${5-${configurations[arch]}}
+  arch_fallback="${build_config[arch]:-${configurations[arch]}}"
+  local arch=${5:-$arch_fallback}
   local build_and_deploy="$6"
-  local config_kernel_img_name=${configurations[kernel_img_name]}
+  local config_kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
   local base_boot_path
   local config_path
   local config_local_version
@@ -1000,9 +1001,10 @@ function run_kernel_install()
   local user="${5:-${remote_parameters['REMOTE_USER']}}"
   local build_and_deploy="$6"
   local distro='none'
-  local kernel_name="${configurations[kernel_img_name]}"
+  local kernel_name="${build_config[kernel_name]:-${configurations[kernel_name]}}"
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
-  local arch_target="${configurations[arch]}"
+  local arch_target="${build_config[arch]:-${configurations[arch]}}"
+  local kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
   local kernel_binary_file_name
   local remote
   local port
