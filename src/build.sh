@@ -44,6 +44,7 @@ function kernel_build()
   local end
   local cross_compile
   local arch
+  local platform_ops
   local menu_config
   local parallel_cores
   local doc_type
@@ -67,11 +68,13 @@ function kernel_build()
   fi
 
   if [[ -n "$cross_compile" ]]; then
-    cross_compile="CROSS_COMPILE=$cross_compile"
+    cross_compile=" CROSS_COMPILE=${cross_compile} "
   fi
 
+  platform_ops="${arch}${cross_compile}"
+
   if [[ -n "$menu_config" ]]; then
-    command="make -j ARCH=$arch $cross_compile $menu_config"
+    command="make -j ARCH=${platform_ops}${menu_config}"
     cmd_manager "$flag" "$command"
     return
   fi
@@ -93,8 +96,10 @@ function kernel_build()
     return
   fi
 
+  command="make $optimizations ARCH=$platform_ops"
+
   # Let's avoid menu question by default
-  cmd_manager "$flag" "make -j ARCH=$arch $cross_compile olddefconfig --silent"
+  cmd_manager "$flag" "make -j olddefconfig --silent ARCH=$platform_ops"
 
   command="make -j$parallel_cores ARCH=$arch $cross_compile"
 
