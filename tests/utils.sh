@@ -9,7 +9,9 @@ TMP_TEST_DIR="$TEST_DIR/.tmp"
 # Common samples
 MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
 KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
+KW_BUILD_CONFIG_SAMPLE="$SAMPLES_DIR/build.config"
 KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
+KW_BUILD_CONFIG_SAMPLE_X86="$SAMPLES_DIR/build_x86.config"
 
 # External files
 CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
@@ -23,6 +25,7 @@ function init_env()
 {
   unset -v KW_LIB_DIR KWORKFLOW
   KW_LIB_DIR="./src"
+  KWORKFLOW=".kw"
   export KW_LIB_DIR KWORKFLOW
   export -f include
 }

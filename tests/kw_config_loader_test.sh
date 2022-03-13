@@ -5,7 +5,7 @@ include './src/kw_config_loader.sh'
 
 KWORKFLOW='kw'
 
-TMP_DIR=tests/.tmp_kw_config_loader_test
+TMP_DIR="$PWD/tests/.tmp_kw_config_loader_test"
 
 function setUp()
 {
@@ -16,12 +16,24 @@ function setUp()
 
 function tearDown()
 {
-  rm -rf "$TMP_DIR"
+  if [[ -d "$TMP_DIR" ]]; then
+    rm -rf "$TMP_DIR"
+  fi
+}
+
+function oneTimeSetUp()
+{
+  mkdir -p "$SHUNIT_TMPDIR"
+}
+
+function oneTimeTearDown()
+{
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
 function test_parse_configuration_success_exit_code()
 {
-  parse_configuration tests/samples/kworkflow.config
+  parse_configuration "$KW_CONFIG_SAMPLE"
   assertTrue 'kw failed to load a regular config file' "[ 0 -eq $? ]"
 }
 
@@ -30,8 +42,8 @@ function test_parse_configuration_config_with_spaces_and_comments()
   parse_configuration 'tests/samples/kworkflow_space_comments.config'
   assertTrue "($LINENO): Kw failed to load a regular config file" "[ 0 -eq $? ]"
 
-  assertEquals "($LINENO)" "${configurations['arch']}" 'arm64'
-  assertEquals "($LINENO)" "${configurations['kernel_img_name']}" 'Image'
+  assertEquals "($LINENO)" "${configurations['ssh_user']}" 'juca'
+  assertEquals "($LINENO)" "${configurations['mount_point']}" '/home/lala'
   assertEquals "($LINENO)" "${configurations['virtualizer']}" 'libvirt'
   assertEquals "($LINENO)" "${configurations['reboot_after_deploy']}" 'no'
 }
@@ -68,10 +80,8 @@ function assertConfigurations()
 # Test if parse_configuration correctly parses all settings in a file
 function test_parse_configuration_output()
 {
+  # shellcheck disable=2016
   declare -A expected_configurations=(
-    [arch]='arm64'
-    [kernel_img_name]='Image'
-    [cross_compile]='aarch64-linux-gnu-'
     [virtualizer]='libvirt'
     [qemu_path_image]='/home/xpto/p/virty.qcow2'
     [ssh_user]='juca'
@@ -82,7 +92,6 @@ function test_parse_configuration_output()
     [reboot_after_deploy]='no'
     [gui_on]='turn on'
     [gui_off]='turn off'
-    [doc_type]='htmldocs'
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
     [blocked_emails]='test@email.com'
     [checkpatch_opts]='--no-tree --color=always --strict'
@@ -111,11 +120,7 @@ function test_parse_configuration_output()
 # Test if etc/kworkflow_template.config contains all the expected settings
 function test_parse_configuration_standard_config()
 {
-  # shellcheck disable=2016
   declare -A expected_configurations=(
-    [arch]='x86_64'
-    [kernel_img_name]='bzImage'
-    [menu_config]='nconfig'
     [virtualizer]='qemu-system-x86_64'
     [qemu_path_image]='/home/USERKW/p/virty.qcow2'
     [qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
@@ -130,7 +135,6 @@ function test_parse_configuration_standard_config()
     [default_deploy_target]='vm'
     [reboot_after_deploy]='no'
     [disable_statistics_data_track]='no'
-    [doc_type]='htmldocs'
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
     [checkpatch_opts]='--no-tree --color=always --strict'
     [get_maintainer_opts]='--separator , --nokeywords --nogit --nogit-fallback --norolestats'
@@ -175,7 +179,7 @@ function test_parse_configuration_files_loading_order()
   output="$(
     function parse_configuration()
     {
-      printf '%s\n' "$@"
+      printf '%s\n' "$1"
     }
     load_configuration
   )"
@@ -197,7 +201,7 @@ function test_parse_configuration_files_loading_order()
   output="$(
     function parse_configuration()
     {
-      printf '%s\n' "$@"
+      printf '%s\n' "$1"
     }
     load_configuration
   )"
@@ -234,7 +238,7 @@ function test_show_variables_completeness()
 
   for option in "${!possible_options[@]}"; do
     if [[ ! -v shown_options["$option"] ]]; then
-      fail "($LINENO): show_variables is missing option $option"
+      fail "($LINENO): shown_options is missing option $option"
     fi
   done
 
@@ -336,7 +340,7 @@ function test_load_configuration()
   output="$(
     function parse_configuration()
     {
-      printf '%s\n' "$@"
+      printf '%s\n' "$1"
     }
     load_configuration
   )"

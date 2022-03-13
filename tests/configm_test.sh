@@ -39,6 +39,7 @@ function setUp()
   configs_path="$KW_DATA_DIR/configs"
 
   parse_configuration "$KW_CONFIG_SAMPLE"
+  parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
   declare -la expected_cmd=()
 }
 
@@ -580,12 +581,12 @@ function test_get_config_from_defconfig()
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
   assert_equals_helper 'Cross compilation failed' "$LINENO" "$output" "$single_cmd"
 
-  configurations[arch]=''
+  build_config[arch]=''
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
   single_cmd='make defconfig CROSS_COMPILE=aarch64-linux-gnu-'
   assert_equals_helper 'No arch' "$LINENO" "$output" "$single_cmd"
 
-  configurations[cross_compile]=''
+  build_config[cross_compile]=''
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
   single_cmd='make defconfig'
   assert_equals_helper 'No arch' "$LINENO" "$output" "$single_cmd"
