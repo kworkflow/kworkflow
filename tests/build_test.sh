@@ -277,7 +277,7 @@ function test_kernel_build_cross_compilation_flags()
 
   output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2) # Remove statistics output
   declare -a expected_cmd=(
-    "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig --silent"
+    "make -j olddefconfig --silent ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
     "make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
   )
 
@@ -366,7 +366,7 @@ function test_kernel_build_x86()
 
   output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2) # Remove statistics output
   declare -a expected_cmd=(
-    "make -j ARCH=x86_64  olddefconfig --silent"
+    "make -j olddefconfig --silent ARCH=x86_64"
     "make -j$PARALLEL_CORES ARCH=x86_64"
   )
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
@@ -379,14 +379,14 @@ function test_kernel_isolated_build_options()
 
   output=$(kernel_build 'TEST_MODE' --ccache | tail -n +1 | head -2)
   declare -a expected_cmd=(
-    "make -j ARCH=x86_64  olddefconfig --silent"
+    "make -j olddefconfig --silent ARCH=x86_64"
     "make CC=\"ccache gcc -fdiagnostics-color\" -j$PARALLEL_CORES ARCH=x86_64"
   )
   compare_command_sequence '' "($LINENO)" "expected_cmd" "$output"
 
   output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 | tail -n +1 | head -2)
   declare -a expected_cmd=(
-    "make -j ARCH=x86_64  olddefconfig --silent"
+    "make -j olddefconfig --silent ARCH=x86_64"
     "make -j$SCALING ARCH=x86_64"
   )
   compare_command_sequence '' "($LINENO)" "expected_cmd" "$output"
@@ -399,7 +399,7 @@ function test_kernel_2composed_build_options()
 
   output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 | tail -n +1 | head -2)
   declare -a expected_cmd=(
-    "make -j ARCH=x86_64  olddefconfig --silent"
+    "make -j olddefconfig --silent ARCH=x86_64"
     "make CC=\"ccache gcc -fdiagnostics-color\" -j$SCALING ARCH=x86_64"
   )
   compare_command_sequence '' "($LINENO)" "expected_cmd" "$output"
