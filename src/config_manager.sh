@@ -287,11 +287,8 @@ function get_config_from_defconfig()
     return 125 # ECANCELED
   fi
 
-  cross_compile=${configurations[cross_compile]}
-  arch=${configurations[arch]}
-  # TODO: Right now, the below variable has no meaning and will be empty. Let's
-  # expand the config file to enable developers to define ASIC targets.
-  asic=${configurations[asic]}
+  cross_compile=${build_config[cross_compile]:-${configurations[cross_compile]}}
+  arch=${build_config[arch]:-${configurations[arch]}}
 
   # Build command
   [[ -n "$arch" ]] && cmd+=" ARCH=$arch"

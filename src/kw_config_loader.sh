@@ -1,7 +1,9 @@
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
+# these should be the default names for config files
 CONFIG_FILENAME=kworkflow.config
+BUILD_CONFIG_FILENAME=build.config
 KW_DIR='.kw'
 
 # Basic targets
@@ -15,6 +17,9 @@ TARGET="$VM_TARGET"
 # Default configuration
 declare -gA configurations
 
+# Build configuration
+declare -gA build_config
+
 # Default target option from kworkflow.config
 declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
 
@@ -22,7 +27,7 @@ declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
 function show_variables()
 {
   local test_mode=0
-  local has_local_config_path='No'
+  local has_local_config='No'
 
   if [[ "$1" =~ -h|--help ]]; then
     vars_help "$1"
@@ -30,8 +35,8 @@ function show_variables()
   fi
 
   # TODO: Drop [[ -f "$PWD/$CONFIG_FILENAME" ]] in the future
-  if [[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" ]] || [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
-    has_local_config_path='Yes'
+  if [[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" || -f "$PWD/$CONFIG_FILENAME" ]]; then
+    has_local_config='Yes'
   fi
 
   if [[ "$1" == 'TEST_MODE' ]]; then
@@ -44,15 +49,6 @@ function show_variables()
     [ssh_port]='SSH port'
     [ssh_configfile]='SSH configuration file'
     [hostname]='Hostname of the target in the SSH configuration file'
-  )
-
-  local -Ar build=(
-    [mount_point]='Mount point'
-    [arch]='Target arch'
-    [kernel_img_name]='Kernel image name'
-    [cross_compile]='Cross-compile name'
-    [menu_config]='Kernel menu config'
-    [doc_type]='Command to generate kernel-doc'
   )
 
   local -Ar qemu=(
@@ -76,6 +72,7 @@ function show_variables()
     [deploy_default_compression]='Default compression option used in the deploy'
     [dtb_copy_pattern]='How kw should copy dtb files to the boot folder'
     [strip_modules_debug_option]='Modules will be stripped after they are installed which will reduce the initramfs size'
+    [mount_point]='VM mount point'
   )
 
   local -Ar mail=(
@@ -92,7 +89,6 @@ function show_variables()
   )
 
   local -Ar group_descriptions=(
-    [build]='Kernel build options'
     [deploy]='Kernel deploy options'
     [mail]='Send-email options'
     [ssh]='SSH options'
@@ -102,9 +98,9 @@ function show_variables()
   )
 
   say 'kw configuration variables:'
-  printf '%s\n' "  Local config file: $has_local_config_path"
+  printf '%s\n' "  Local config file: $has_local_config"
 
-  for group in 'build' 'deploy' 'qemu' 'mail' 'ssh' 'notification' 'misc'; do
+  for group in 'deploy' 'qemu' 'mail' 'ssh' 'notification' 'misc'; do
     printf '%s\n' "  ${group_descriptions["$group"]}:"
     local -n descriptions="$group"
 
@@ -134,6 +130,7 @@ function vars_help()
 function parse_configuration()
 {
   local config_path="$1"
+  local config_array="${2:-configurations}"
   local value
 
   if [ ! -f "$config_path" ]; then
@@ -144,12 +141,12 @@ function parse_configuration()
     # Line started with # or that are blank should be ignored
     [[ "$line" =~ ^# || "$line" =~ ^$ ]] && continue
 
-    if printf '%s\n' "$line" | grep -F = &> /dev/null; then
-      varname="$(printf '%s\n' "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
-      value="$(printf '%s\n' "${line%#*}" | cut -d '=' -f 2-)"
-      value="$(printf '%s\n' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    if grep -qF = <<< "$line"; then
+      varname="$(cut -d '=' -f 1 <<< "$line" | tr -d '[:space:]')"
+      value="$(cut -d '=' -f 2- <<< "${line%#*}")"
+      value="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' <<< "$value")"
 
-      configurations["$varname"]="$value"
+      eval "${config_array}"'["$varname"]="$value"'
     fi
   done < "$config_path"
 }
@@ -189,20 +186,18 @@ function load_configuration()
 
   parse_configuration "${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW/$CONFIG_FILENAME"
 
-  # New users may not have kworkflow.config at $PWD
+  # Old users may have kworkflow.config at $PWD
   if [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
     warning 'We will stop supporting kworkflow.config in the kernel root directory in favor of using a .kw/ directory.'
     if is_kernel_root "$PWD" &&
       [[ $(ask_yN 'Do you want to migrate to the new configuration file approach? (Recommended)') =~ 1 ]]; then
       mkdir -p "$PWD/$KW_DIR/"
       mv "$PWD/$CONFIG_FILENAME" "$PWD/$KW_DIR/$CONFIG_FILENAME"
-      parse_configuration "$PWD/$KW_DIR/$CONFIG_FILENAME"
     else
       parse_configuration "$PWD/$CONFIG_FILENAME"
     fi
   fi
 
-  # Old users may not have used kw init yet, so they wouldn't have .kw
   if [[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" ]]; then
     parse_configuration "$PWD/$KW_DIR/$CONFIG_FILENAME"
   fi

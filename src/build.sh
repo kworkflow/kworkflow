@@ -119,6 +119,50 @@ function kernel_build()
   return "$ret"
 }
 
+# This function loads the kw build configuration files into memory, populating
+# the $build_config hashtable. The files are parsed in a specific order,
+# allowing higher level setting definitions to overwrite lower level ones.
+function load_build_config()
+{
+  if [[ -v build_config && "$OVERRIDE_BUILD_CONFIG" != 1 ]]; then
+    unset OVERRIDE_BUILD_CONFIG
+    return
+  fi
+
+  local -a config_dirs
+  local config_dirs_size
+
+  if [[ -v XDG_CONFIG_DIRS ]]; then
+    IFS=: read -ra config_dirs <<< "$XDG_CONFIG_DIRS"
+  else
+    [[ -d '/etc/xdg' ]] && config_dirs=('/etc/xdg')
+  fi
+
+  # Old users may not have split their configs yet
+  parse_configuration "$KW_ETC_DIR/$BUILD_CONFIG_FILENAME" build_config
+
+  # XDG_CONFIG_DIRS is a colon-separated list of directories for config
+  # files to be searched, in order of preference. Since this function
+  # reads config files in a reversed order of preference, we must
+  # traverse it from back to top. Example: if
+  # XDG_CONFIG_DIRS=/etc/xdg:/home/user/myconfig:/etc/myconfig
+  # we will want to parse /etc/myconfig, then /home/user/myconfig, then
+  # /etc/xdg.
+  config_dirs_size="${#config_dirs[@]}"
+  for ((i = config_dirs_size - 1; i >= 0; i--)); do
+    parse_configuration "${config_dirs["$i"]}/$KWORKFLOW/$BUILD_CONFIG_FILENAME" build_config
+  done
+
+  parse_configuration "${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW/$BUILD_CONFIG_FILENAME" build_config
+
+  if [[ -f "$PWD/$KW_DIR/$BUILD_CONFIG_FILENAME" ]]; then
+    parse_configuration "$PWD/$KW_DIR/$BUILD_CONFIG_FILENAME" build_config
+  else
+    # Old users may not have used kw init yet, so they wouldn't have .kw
+    warning "Please use kw init to update your config files"
+  fi
+}
+
 function parse_build_options()
 {
   local long_options='help,info,menu,doc'
@@ -134,9 +178,10 @@ function parse_build_options()
   fi
 
   # Default values
-  options_values['ARCH']="${configurations[arch]:-'x86_64'}"
+  arch_fallback="${configurations[arch]:-x86_64}"
+  options_values['ARCH']="${build_config[arch]:-$arch_fallback}"
   options_values['MENU_CONFIG']=''
-  options_values['CROSS_COMPILE']="${configurations[cross_compile]}"
+  options_values['CROSS_COMPILE']="${build_config[cross_compile]}"
   options_values['PARALLEL_CORES']=1
   options_values['INFO']=''
   options_values['DOC_TYPE']=''
@@ -152,11 +197,13 @@ function parse_build_options()
         shift
         ;;
       --menu | -n)
-        options_values['MENU_CONFIG']="${configurations[menu_config]:-nconfig}"
+        menu_fallback="${configurations[menu_config]:-nconfig}"
+        options_values['MENU_CONFIG']="${build_config[menu_config]:-$menu_fallback}"
         shift
         ;;
       --doc | -d)
-        options_values['DOC_TYPE']="${configurations[doc_type]:-htmldocs}"
+        doc_type_fallback="${configurations[doc_type]:-htmldocs}"
+        options_values['DOC_TYPE']="${build_config[doc_type]:-$doc_type_fallback}"
         shift
         ;;
       --)
@@ -184,3 +231,45 @@ function build_help()
     '  build (-i | --info) - Display build information' \
     '  build (-d | --doc) - Build kernel documentation'
 }
+
+# This function is used to show the current set up used by kworkflow.
+function show_build_variables()
+{
+  local test_mode=0
+  local has_local_build_config='No'
+
+  if [[ "$1" =~ -h|--help ]]; then
+    vars_help "$1"
+    exit 0
+  fi
+
+  [ -f "$PWD/$KW_DIR/$BUILD_CONFIG_FILENAME" ] &&
+    has_local_build_config='Yes'
+
+  say 'kw build configuration variables:'
+  printf '%s\n' "  Local build config file: $has_build_local_config"
+
+  if [[ "$1" == 'TEST_MODE' ]]; then
+    test_mode=1
+  fi
+
+  local -Ar build=(
+    [arch]='Target arch'
+    [kernel_img_name]='Kernel image name'
+    [cross_compile]='Cross-compile name'
+    [menu_config]='Kernel menu config'
+    [doc_type]='Command to generate kernel-doc'
+  )
+
+  printf '%s\n' "  Kernel build options:"
+  local -n descriptions="build"
+
+  for option in "${!descriptions[@]}"; do
+    if [[ -v build_config["$option"] || "$test_mode" == 1 ]]; then
+      printf '%s\n' "    ${descriptions[$option]} ($option): ${build_config[$option]}"
+    fi
+  done
+}
+
+# Every time build.sh is loaded its proper configuration has to be loaded as well
+load_build_config

@@ -17,9 +17,12 @@ declare -gA options_values
 function init_kw()
 {
   local config_template_folder="${KW_ETC_DIR}/init_templates"
+  local config_file_template="${KW_ETC_DIR}/kworkflow_template.config"
+  local build_config_file_template="${KW_ETC_DIR}/build_template.config"
   local name='kworkflow.config'
   local config_file_template
   local ret
+  local build_name='build.config'
 
   if [[ "$1" =~ -h|--help ]]; then
     init_help "$1"
@@ -57,12 +60,13 @@ function init_kw()
   if [[ -f "$config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
     cp "$config_file_template" "$PWD/$KW_DIR/$name"
+    cp "$build_config_file_template" "${PWD}/${KW_DIR}/${build_name}"
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' \
       "$PWD/$KW_DIR/$name"
 
     if [[ -n "${options_values['ARCH']}" ]]; then
       if [[ -d "$PWD/arch/${options_values['ARCH']}" || -n "${options_values['FORCE']}" ]]; then
-        set_config_value 'arch' "${options_values['ARCH']}"
+        set_config_value 'arch' "${options_values['ARCH']}" "${PWD}/${KW_DIR}/${build_name}"
       elif [[ -z "${options_values['FORCE']}" ]]; then
         complain 'This arch was not found in the arch directory'
         complain 'You can use --force next time if you want to proceed anyway'
