@@ -60,7 +60,7 @@ function test_kernel_build_cross_compilation_flags()
 
   output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2) # Remove statistics output
   declare -a expected_cmd=(
-    "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig --silent"
+    'make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig'
     "make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
   )
 
@@ -73,7 +73,7 @@ function test_kernel_build_menu_cross_compilation_flags()
   local output
 
   output=$(kernel_build 'TEST_MODE' --menu)
-  expected_result="make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig"
+  expected_result='make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig'
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
@@ -142,7 +142,7 @@ function test_kernel_build_x86()
 
   output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2) # Remove statistics output
   declare -a expected_cmd=(
-    "make -j ARCH=x86_64  olddefconfig --silent"
+    'make -j ARCH=x86_64 --silent olddefconfig'
     "make -j$PARALLEL_CORES ARCH=x86_64"
   )
 

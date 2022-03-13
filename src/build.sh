@@ -43,20 +43,19 @@ function kernel_build()
   local start
   local end
   local cross_compile
-  local arch
+  local platform_ops
   local menu_config
   local parallel_cores
   local doc_type
 
   parse_build_options "$@"
-  if [[ "$?" -gt 0 ]]; then
+  if [[ $? -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
     build_help
     return 22 # EINVAL
   fi
 
   cross_compile="${options_values['CROSS_COMPILE']}"
-  arch=${options_values['ARCH']}
   menu_config=${options_values['MENU_CONFIG']}
   parallel_cores=${options_values['PARALLEL_CORES']}
   doc_type=${options_values['DOC_TYPE']}
@@ -66,12 +65,14 @@ function kernel_build()
     exit
   fi
 
+  platform_ops=${options_values['ARCH']}
+
   if [[ -n "$cross_compile" ]]; then
-    cross_compile="CROSS_COMPILE=$cross_compile"
+    platform_ops="${platform_ops} CROSS_COMPILE=${cross_compile}"
   fi
 
   if [[ -n "$menu_config" ]]; then
-    command="make -j ARCH=$arch $cross_compile $menu_config"
+    command="make -j ARCH=${platform_ops} ${menu_config}"
     cmd_manager "$flag" "$command"
     return
   fi
@@ -81,7 +82,7 @@ function kernel_build()
     exit 125 # ECANCELED
   fi
 
-  if [ -x "$(command -v nproc)" ]; then
+  if [[ -x "$(command -v nproc)" ]]; then
     parallel_cores=$(nproc --all)
   else
     parallel_cores=$(grep -c ^processor /proc/cpuinfo)
@@ -94,9 +95,9 @@ function kernel_build()
   fi
 
   # Let's avoid menu question by default
-  cmd_manager "$flag" "make -j ARCH=$arch $cross_compile olddefconfig --silent"
+  cmd_manager "$flag" "make -j ARCH=$platform_ops --silent olddefconfig "
 
-  command="make -j$parallel_cores ARCH=$arch $cross_compile"
+  command="make -j$parallel_cores ARCH=$platform_ops"
 
   start=$(date +%s)
   cmd_manager "$flag" "$command"
@@ -120,7 +121,7 @@ function parse_build_options()
   local short_options='h,i,n,d'
   local doc_type
 
-  options=$(kw_parse "$short_options" "$long_options" "$@")
+  kw_parse "$short_options" "$long_options" "$@" > /dev/null
 
   if [[ "$?" != 0 ]]; then
     options_values['ERROR']="$(kw_parse_get_errors 'kw build' "$short_options" \
