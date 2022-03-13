@@ -31,6 +31,7 @@ function setUp()
 
   # Define some basic values for configurations
   parse_configuration "$KW_CONFIG_SAMPLE"
+  parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
 
   # Usually, we call populate_remote_info to fill out remote info. However, to
   # keep the test more reliable, we manually set this values here
@@ -525,7 +526,9 @@ function test_kernel_install_x86_64_to_remote()
   configurations=()
   remote_parameters=()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
+  cp "$KW_BUILD_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/build.config"
   parse_configuration "$FAKE_KERNEL/kworkflow.config"
+  parse_configuration "$FAKE_KERNEL/build.config" build_config
 
   remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
   remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
@@ -562,11 +565,14 @@ function test_kernel_install_x86_64_to_remote_no_kernel_image_failure()
 
   # Reset values
   configurations=()
+  build_config=()
   remote_parameters=()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
+  cp "$KW_BUILD_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/build.config"
   parse_configuration "$FAKE_KERNEL/kworkflow.config"
+  parse_configuration "$FAKE_KERNEL/build.config" build_config
 
-  configurations['kernel_img_name']=''
+  build_config['kernel_img_name']=''
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -578,8 +584,7 @@ function test_kernel_install_x86_64_to_remote_no_kernel_image_failure()
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
     tail -n +1 | head -1)
   expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
-  assertEquals "($LINENO)" "$output" "$expected_msg"
-  assert_equals_helper "Could not find a valid image" "$LINENO" "$expected_msg" "$output"
+  assert_equals_helper "Could not find a valid image" "$LINENO" "$output" "$expected_msg"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -603,7 +608,7 @@ function test_kernel_install_binary_name_without_kernel_img_name_param()
   declare -ga BASE_EXPECTED_CMD_CUSTOM_ARM_REMOTE=(
     "$SENDING_KERNEL_MSG"
     "$UNDEFINED_CONFIG"
-    "cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/kernel-${NAME}"
+    "cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/Image-${NAME}"
     "$GENERATE_BOOT_TAR_FILE"
     "rsync --info=progress2 -e 'ssh -p 3333' ${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar juca@127.0.0.1:$KW_DEPLOY_TMP_FILE $STD_RSYNC_FLAG"
     "$execute_deploy_remote"

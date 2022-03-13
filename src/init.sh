@@ -18,6 +18,7 @@ function init_kw()
 {
   local config_template_folder="${KW_ETC_DIR}/init_templates"
   local name='kworkflow.config'
+  local build_name='build.config'
   local config_file_template
   local ret
 
@@ -53,16 +54,21 @@ function init_kw()
   fi
 
   config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/kworkflow_template.config"
+  build_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/build_template.config"
 
-  if [[ -f "$config_file_template" ]]; then
+  if [[ -f "$config_file_template" && -f "$build_config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
     cp "$config_file_template" "$PWD/$KW_DIR/$name"
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' \
       "$PWD/$KW_DIR/$name"
 
+    cp "$build_config_file_template" "${PWD}/${KW_DIR}/${build_name}"
+    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' \
+      "${PWD}/${KW_DIR}/${build_name}"
+
     if [[ -n "${options_values['ARCH']}" ]]; then
       if [[ -d "$PWD/arch/${options_values['ARCH']}" || -n "${options_values['FORCE']}" ]]; then
-        set_config_value 'arch' "${options_values['ARCH']}"
+        set_config_value 'arch' "${options_values['ARCH']}" "${PWD}/${KW_DIR}/${build_name}"
       elif [[ -z "${options_values['FORCE']}" ]]; then
         complain 'This arch was not found in the arch directory'
         complain 'You can use --force next time if you want to proceed anyway'
@@ -110,9 +116,7 @@ function set_config_value()
 {
   local option="$1"
   local value="$2"
-  local path="$3"
-
-  path=${path:-"$PWD/$KW_DIR/$name"}
+  local path="${3:-"$PWD/$KW_DIR/$name"}"
 
   sed -i -r "s/($option=).*/\1$value/" "$path"
 }

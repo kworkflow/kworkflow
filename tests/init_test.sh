@@ -3,11 +3,10 @@
 include './src/init.sh'
 include './tests/utils.sh'
 
-function setUp()
+function oneTimeSetUp()
 {
   original_path="$PWD"
 
-  export KW_ETC_DIR="$PWD/etc"
   export KW_SOUND_DIR="$PWD/tests/samples/share/sound/kw"
   export HOME="$SHUNIT_TMPDIR"
   export USER="kw_test"
@@ -15,16 +14,22 @@ function setUp()
   export PWD="$SHUNIT_TMPDIR/$KWORKFLOW"
 
   export PATH_TO_KW_DIR="$SHUNIT_TMPDIR/$KWORKFLOW/$KW_DIR"
-  export PATH_TO_KW_KWORKFLOW_CONFIG="$SHUNIT_TMPDIR/$KWORKFLOW/$KW_DIR/kworkflow.config"
+  export PATH_TO_KW_CONFIG="${PATH_TO_KW_DIR}/kworkflow.config"
+  export PATH_TO_KW_BUILD_CONFIG="${PATH_TO_KW_DIR}/build.config"
+}
+
+function setUp()
+{
+  export KW_ETC_DIR="$PWD/etc"
 
   mkdir -p "$SHUNIT_TMPDIR/$KWORKFLOW"
+  options_values=()
 
   mk_fake_kernel_root "$SHUNIT_TMPDIR/$KWORKFLOW/"
   cd "$SHUNIT_TMPDIR/$KWORKFLOW/" || {
     fail "($LINENO): It was not possible to move to temporary directory"
     return
   }
-
 }
 
 function tearDown()
@@ -56,10 +61,10 @@ function test_standard_init_check_variable_replacements()
   local kworkflow_content
 
   output=$(init_kw)
-  kworkflow_content=$(grep "$USER" -o "$PATH_TO_KW_KWORKFLOW_CONFIG" | head -n 1)
+  kworkflow_content=$(grep "$USER" -o "$PATH_TO_KW_CONFIG" | head -n 1)
   assertEquals "($LINENO): USERKW wasn't updated to $USER" "$USER" "$kworkflow_content"
 
-  kworkflow_content=$(grep "$KW_SOUND_DIR" -o "$PATH_TO_KW_KWORKFLOW_CONFIG" | head -n 1)
+  kworkflow_content=$(grep "$KW_SOUND_DIR" -o "$PATH_TO_KW_CONFIG" | head -n 1)
   assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SOUND_DIR" "$KW_SOUND_DIR" "$kworkflow_content"
 }
 
@@ -82,7 +87,7 @@ function test_use_arch_parameter()
   local kworkflow_content
 
   output=$(init_kw --arch arm64)
-  kworkflow_content=$(grep arch= "$PATH_TO_KW_KWORKFLOW_CONFIG")
+  kworkflow_content=$(grep arch= "$PATH_TO_KW_BUILD_CONFIG")
   assertEquals "($LINENO):" 'arch=arm64' "$kworkflow_content"
 }
 
@@ -101,7 +106,7 @@ function test_try_to_set_an_invalid_arch()
   )
 
   output=$(init_kw --arch baroque)
-  kworkflow_content=$(grep arch= "$PATH_TO_KW_KWORKFLOW_CONFIG")
+  kworkflow_content=$(grep arch= "$PATH_TO_KW_BUILD_CONFIG")
   compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 }
 
@@ -111,7 +116,7 @@ function test_force_unsupported_arch()
   local kworkflow_content
 
   output=$(init_kw --arch baroque --force)
-  kworkflow_content=$(grep arch= "$PATH_TO_KW_KWORKFLOW_CONFIG")
+  kworkflow_content=$(grep arch= "$PATH_TO_KW_BUILD_CONFIG")
   assertEquals "($LINENO):" 'arch=baroque' "$kworkflow_content"
 }
 
@@ -121,13 +126,13 @@ function test_set_remote()
   local kworkflow_content
 
   output=$(init_kw --remote juca@123.456.789.123:2222)
-  kworkflow_content=$(grep ssh_user= "$PATH_TO_KW_KWORKFLOW_CONFIG")
+  kworkflow_content=$(grep ssh_user= "$PATH_TO_KW_CONFIG")
   assertEquals "($LINENO)" 'ssh_user=juca' "$kworkflow_content"
 
-  kworkflow_content=$(grep ssh_ip= "$PATH_TO_KW_KWORKFLOW_CONFIG")
+  kworkflow_content=$(grep ssh_ip= "$PATH_TO_KW_CONFIG")
   assertEquals "($LINENO)" 'ssh_ip=123.456.789.123' "$kworkflow_content"
 
-  kworkflow_content=$(grep ssh_port= "$PATH_TO_KW_KWORKFLOW_CONFIG")
+  kworkflow_content=$(grep ssh_port= "$PATH_TO_KW_CONFIG")
   assertEquals "($LINENO)" 'ssh_port=2222' "$kworkflow_content"
 }
 
@@ -150,7 +155,7 @@ function test_set_default_target()
   local kworkflow_content
 
   output=$(init_kw --target local)
-  kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_KWORKFLOW_CONFIG")
+  kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_CONFIG")
   assertEquals "($LINENO)" 'default_deploy_target=local' "$kworkflow_content"
 }
 
@@ -160,7 +165,7 @@ function test_set_an_invalid_target()
   local kworkflow_content
 
   output=$(init_kw --target dartboard | tail -n +1 | head -n 1)
-  kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_KWORKFLOW_CONFIG")
+  kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_CONFIG")
   assertEquals "($LINENO)" 'Target can only be vm, local or remote.' "$output"
 }
 
@@ -169,7 +174,7 @@ function test_force_wrong_etc_path()
   local kworkflow_content
   local output
 
-  export KW_ETC_DIR='break/on/purpose'
+  KW_ETC_DIR='break/on/purpose'
 
   output=$(init_kw -f) # avoids the overwrite prompt
   ret="$?"
