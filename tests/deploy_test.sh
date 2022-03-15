@@ -333,6 +333,60 @@ function test_modules_install_to()
   }
 }
 
+function test_compose_copy_source_parameter_for_dtb_no_pattern()
+{
+  local output
+  local expected_result
+
+  configurations[dtb_copy_pattern]=''
+  expected_result='arch/arm64/boot/dts/*.dtb'
+  output=$(compose_copy_source_parameter_for_dtb 'arm64')
+
+  assert_equals_helper 'Expected *.dtb pattern' "$LINENO" "$expected_result" "$output"
+}
+
+function test_compose_copy_source_parameter_for_dtb_multiple_folder()
+{
+  local output
+  local expected_result
+
+  configurations[dtb_copy_pattern]='broadcom,rockchip,arm'
+  expected_result=' -r arch/arm/boot/dts/{broadcom,rockchip,arm}'
+  output=$(compose_copy_source_parameter_for_dtb 'arm')
+
+  assert_equals_helper 'Expected {} pattern' "$LINENO" "$expected_result" "$output"
+}
+
+function test_compose_copy_source_parameter_for_dtb_wildcard()
+{
+  local output
+  local expected_result
+
+  configurations[dtb_copy_pattern]='broadcom,rockchip/*,arm'
+  expected_result=' -r arch/arm/boot/dts/{broadcom,rockchip/*,arm}'
+  output=$(compose_copy_source_parameter_for_dtb 'arm')
+
+  assert_equals_helper 'Expected * pattern' "$LINENO" "$expected_result" "$output"
+
+  configurations[dtb_copy_pattern]='rockchip/*'
+  expected_result='arch/arm64/boot/dts/rockchip/*'
+  output=$(compose_copy_source_parameter_for_dtb 'arm64')
+
+  assert_equals_helper 'Expected * pattern' "$LINENO" "$expected_result" "$output"
+}
+
+function test_compose_copy_source_parameter_for_dtb_any_other_pattern()
+{
+  local output
+  local expected_result
+
+  configurations[dtb_copy_pattern]='broadcom'
+  expected_result=' -r arch/arm/boot/dts/broadcom'
+  output=$(compose_copy_source_parameter_for_dtb 'arm')
+
+  assert_equals_helper 'Expected folder name' "$LINENO" "$expected_result" "$output"
+}
+
 function test_kernel_install_to_remote_reboot()
 {
   local original="$PWD"

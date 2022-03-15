@@ -137,6 +137,7 @@ function test_parse_configuration_standard_config()
     [kw_files_remote_path]='/opt/kw'
     [deploy_temporary_files_path]='/tmp/kw'
     [deploy_default_compression]='lzop'
+    [dtb_copy_pattern]=''
   )
 
   parse_configuration "$TMP_DIR/kworkflow.config"
