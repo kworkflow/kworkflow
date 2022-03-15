@@ -74,6 +74,7 @@ function show_variables()
     [kw_files_remote_path]='kw files in the remote machine'
     [deploy_temporary_files_path]='Temporary files path used in the remote machine'
     [deploy_default_compression]='Default compression option used in the deploy'
+    [dtb_copy_pattern]='How kw should copy dtb files to the boot folder'
   )
 
   local -Ar mail=(

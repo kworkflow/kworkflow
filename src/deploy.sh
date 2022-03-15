@@ -821,6 +821,48 @@ function modules_install_to()
   cmd_manager "$flag" "$cmd"
 }
 
+# This function manages three different patterns from the config file: empty,
+# single folder with a pattern, multiple folders.
+#
+# @arch_target: Target architecture
+#
+# Return:
+# Return a string to be used in the source parameter of a cp command.
+function compose_copy_source_parameter_for_dtb()
+{
+  local arch_target="$1"
+  local copy_pattern
+  local char_count
+  local dts_base_path
+
+  copy_pattern="${configurations[dtb_copy_pattern]}"
+  dts_base_path="arch/$arch_target/boot/dts"
+
+  # Pattern 1: No pattern. Let's copy all dtb files, e.g., copy_pattern='*.dtb'
+  if [[ -z "$copy_pattern" ]]; then
+    printf '%s/*.dtb' "$dts_base_path"
+    return
+  fi
+
+  # Pattern 2: Mupliple dts folder, e.g., copy_pattern={broadcom,rockchip,arm}
+  char_count=$(str_count_char_repetition "$copy_pattern" ',')
+  if [[ "$char_count" -ge 1 ]]; then
+    printf ' -r %s/{%s}' "$dts_base_path" "$copy_pattern"
+    return
+  fi
+
+  # Pattern 3: The '*' wildcard. E.g., copy_pattern='broadcom/*'
+  char_count=$(str_count_char_repetition "$copy_pattern" '*')
+  if [[ "$char_count" -ge 1 ]]; then
+    printf '%s/%s' "$dts_base_path" "$copy_pattern"
+    return
+  fi
+
+  # Pattern 3: All other cases, e.g., dts_copy_pattern=broadcom
+  printf ' -r %s/%s' "$dts_base_path" "$copy_pattern"
+  return
+}
+
 # This function is responsible for putting all the required boot files in a
 # single place (~/.cache/kw/to_deploy) to be deployed to the /boot folder
 # later. This function checks if there are dtb/dtbo files; if so, it moves
@@ -891,7 +933,10 @@ function pack_kernel_files_and_send()
 
   # 3. If we have dtb files, let's copy it
   if [[ -d "$dts_base_path" ]]; then
-    cmd_manager "$flag" "cp ${dts_base_path}/*.dtb ${cache_boot_files_path}/"
+    # Simple patter, e.g., copy_pattern='broadcom/*'
+    copy_pattern=$(compose_copy_source_parameter_for_dtb "$arch_target")
+    cmd_manager "$flag" "cp ${copy_pattern} ${cache_boot_files_path}/"
+
     if [[ -d "${dts_base_path}/overlays" ]]; then
       cmd_manager "$flag" "mkdir -p ${cache_boot_files_path}/overlays"
       cmd_manager "$flag" "cp ${dts_base_path}/overlays/*.dtbo ${cache_boot_files_path}/overlays"
