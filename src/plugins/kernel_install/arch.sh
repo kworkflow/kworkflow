@@ -10,6 +10,11 @@ declare -ga required_packages=(
   'rsync'
   'screen'
   'pv'
+  'bzip2'
+  'lzip'
+  'lzop'
+  'zstd'
+  'xz'
 )
 
 # ArchLinux package manager

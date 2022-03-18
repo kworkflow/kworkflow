@@ -11,6 +11,11 @@ declare -ag required_packages=(
   'rsync'
   'screen'
   'pv'
+  'bzip2'
+  'lzip'
+  'xz-utils'
+  'lzop'
+  'zstd'
 )
 
 # Debian package manager command
