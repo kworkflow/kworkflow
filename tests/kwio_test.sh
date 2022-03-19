@@ -278,7 +278,7 @@ function test_load_module_text_bad_keys()
   output=$(load_module_text "$load_module_text_path/file_wrong_key")
   assertEquals 'This file has invalid keys, this should return multiple errors.' 129 "$?"
 
-  compare_command_sequence 'expected_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_sequence' "$output"
 }
 
 function test_load_module_text_invalid_files()

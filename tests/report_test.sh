@@ -98,7 +98,7 @@ function test_statistics()
 
   configurations[disable_statistics_data_track]='yes'
   output=$(report_main --statistics)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   configurations[disable_statistics_data_track]='no'
 

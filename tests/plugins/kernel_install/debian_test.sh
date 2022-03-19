@@ -61,7 +61,7 @@ function test_generate_rootfs_with_libguestfs()
   }
 
   output=$(generate_rootfs_with_libguestfs 'TEST_MODE' "$name")
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 invoke_shunit

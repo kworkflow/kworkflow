@@ -634,7 +634,7 @@ function test_mail_setup()
     '--smtpuser' 'test@email.com' '--smtpserver' 'test.email.com'
 
   output=$(mail_setup 'TEST_MODE' | sort -d)
-  compare_command_sequence 'expected_results' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
   unset options_values
   declare -gA options_values
@@ -884,7 +884,7 @@ function test_template_setup()
   # empty template flag should trigger menu
   output=$(printf '1\n' | template_setup 2>&1)
   # couldn't find a way to test the loaded values
-  compare_command_sequence 'expected_results' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
   options_values['TEMPLATE']=':test1'
 
@@ -934,7 +934,7 @@ function test_mail_verify()
   output=$(mail_verify)
   ret="$?"
   assert_equals_helper 'Failed verify expected an error' "$LINENO" "$ret" 22
-  compare_command_sequence 'expected_results' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
   unset options_values
   unset set_confs
@@ -959,7 +959,7 @@ function test_mail_verify()
   output=$(mail_verify)
   ret="$?"
   assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
-  compare_command_sequence 'expected_results' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
   unset options_values
   unset set_confs
@@ -996,7 +996,7 @@ function test_mail_verify()
   get_configs
 
   output=$(mail_verify)
-  compare_command_sequence 'expected_results' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
   rm -rf ./fake_server
 
@@ -1046,7 +1046,7 @@ function test_mail_list()
   parse_mail_options '-t' '--local' '--smtpencryption' 'ssl'
 
   output=$(mail_list)
-  compare_command_sequence 'expected_results' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"

@@ -70,7 +70,7 @@ function test_vm_mount()
   )
 
   output=$(printf '%s\n' 'y' | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Suppose it's not debian
   rm -rf "${etc:?}/"*
@@ -78,7 +78,7 @@ function test_vm_mount()
 
   expected_cmd[1]="sudo chmod +r ${prefix}boot/vmlinuz-$(uname -r)"
   output=$(printf '%s\n' 'y' | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Adding back read permission
   chmod +r "${prefix}boot/vmlinuz-$(uname)"
@@ -104,7 +104,7 @@ function test_vm_mount()
   assertTrue "($LINENO)" "$ret"
 
   output=$(vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   load_configuration "$KW_CONFIG_SAMPLE"
 
@@ -114,7 +114,7 @@ function test_vm_mount()
   expected_cmd[1]="$guestmount_cmd"
 
   output=$(vm_mount 'TEST_MODE' '' "$mount_point")
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -155,7 +155,7 @@ function test_vm_umount()
   assertTrue "($LINENO)" "$ret"
 
   output=$(vm_umount 'TEST_MODE' '' "$mount_point")
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -182,7 +182,7 @@ function test_vm_up()
   )
 
   output=$(vm_up 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_vm_parse_options()

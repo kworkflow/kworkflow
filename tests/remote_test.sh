@@ -244,7 +244,7 @@ function test_which_distro()
   remote='127.0.0.1'
   output=$(which_distro '' '' '' "$flag")
   expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
-  assertEquals "Command did not match ($ID)" "$expected_str" "$output"
+  assert_equals_helper 'Command did not match' "$LINENO" "$expected_str" "$output"
 }
 
 invoke_shunit

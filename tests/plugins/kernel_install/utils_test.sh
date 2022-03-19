@@ -133,7 +133,7 @@ function test_human_list_installed_kernels()
   printf '%s\n' "${expected_out[@]:2}" > "$INSTALLED_KERNELS_PATH"
 
   output=$(list_installed_kernels 'TEST_MODE' '0' '' "$SHUNIT_TMPDIR")
-  compare_command_sequence 'expected_out' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_out' "$output"
 }
 
 function test_command_list_installed_kernels()
@@ -149,7 +149,7 @@ function test_command_list_installed_kernels()
   printf '%s\n' "${expected_out[-1]/,/$'\n'}" > "$INSTALLED_KERNELS_PATH"
 
   output=$(list_installed_kernels 'TEST_MODE' '1' '' "$SHUNIT_TMPDIR")
-  compare_command_sequence 'expected_out' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_out' "$output"
 }
 
 function test_list_unmanaged_kernels()
@@ -168,13 +168,13 @@ function test_list_unmanaged_kernels()
 
   # arguments: $flag $single_line $prefix $all
   output=$(list_installed_kernels 'TEST_MODE' '1' '1' "$SHUNIT_TMPDIR")
-  compare_command_sequence 'expected' "$output" "($LINENO)"
+  compare_command_sequence '' "$LINENO" 'expected' "$output"
 
   rm -rf "$SHUNIT_TMPDIR/boot/grub"
 
   expected[2]='Could not find grub installed. Cannot list all installed kernels'
   output=$(list_installed_kernels 'TEST_MODE' "1" "$SHUNIT_TMPDIR" "1")
-  compare_command_sequence 'expected' "$output" "($LINENO)"
+  compare_command_sequence '' "$LINENO" 'expected' "$output"
 }
 
 function test_list_kernels_based_on_grub()
@@ -228,7 +228,7 @@ function test_kernel_uninstall_unmanaged()
   }
 
   output=$(kernel_uninstall '0' 'local' 'kname')
-  compare_command_sequence 'expected' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected' "$output"
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -271,7 +271,7 @@ function test_kernel_force_uninstall_unmanaged()
   )
 
   output=$(kernel_uninstall 0 'local' 'xpto' 'TEST_MODE' 1)
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 function test_remove_managed_kernel()
@@ -316,7 +316,7 @@ function test_remove_managed_kernel()
   )
 
   output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' '' "$SHUNIT_TMPDIR/")
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -352,7 +352,7 @@ function test_do_uninstall_cmd_sequence()
   )
 
   output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # TEST 2: Valid paths
   cd "$SHUNIT_TMPDIR" || {
@@ -384,7 +384,7 @@ function test_do_uninstall_cmd_sequence()
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # Partial sequence
   rm "$kernel_boot_img_path.old"
@@ -409,7 +409,7 @@ function test_do_uninstall_cmd_sequence()
   )
 
   output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -469,7 +469,7 @@ function test_install_kernel_remote()
   )
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 function test_install_kernel_local()
@@ -495,7 +495,7 @@ function test_install_kernel_local()
   )
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 function test_install_kernel_vm()
@@ -532,7 +532,7 @@ function test_install_kernel_vm()
   )
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 function test_distro_deploy_setup()
