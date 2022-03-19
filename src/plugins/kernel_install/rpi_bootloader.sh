@@ -29,8 +29,10 @@ function run_bootloader_update()
   find_target=$(basename "$find_target")
 
   # Check if the kernel name were already added to config.txt
-  grep --quiet --extended-regexp "kernel=*.$find_target*." "$RPI_CONFIG_TXT_PATH"
-  [[ "$?" == 0 && -n "$find_target" ]] && return
+  grep --quiet --extended-regexp "^kernel=*.$find_target" "$RPI_CONFIG_TXT_PATH"
+  if [[ "$?" == 0 && -n "$find_target" ]]; then
+    return
+  fi
 
   # If we find a kernel name in the config file, and no kernel image we
   # want to remove that reference.
@@ -43,6 +45,14 @@ function run_bootloader_update()
   # Comment all kernel= entrance
   cmd="$sudo_cmd sed -i '/^kernel=/s/^/#/' $RPI_CONFIG_TXT_PATH"
   cmd_manager "$flag" "$cmd"
+
+  # If the target kernel is commented in the file, let's remove it and add it
+  # to the end of the file (easier to debug).
+  grep --quiet --extended-regexp "#kernel=*.$find_target" "$RPI_CONFIG_TXT_PATH"
+  if [[ "$?" == 0 ]]; then
+    cmd="$sudo_cmd sed -i '/#kernel=*.$find_target/d' $RPI_CONFIG_TXT_PATH"
+    cmd_manager "$flag" "$cmd"
+  fi
 
   # Add new kernel to the config file
   cmd="printf \"%s\n\" kernel=$find_target >> $RPI_CONFIG_TXT_PATH"
