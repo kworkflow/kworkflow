@@ -88,6 +88,28 @@ function test_remote_other_files_with_similar_name()
   assertEquals "($LINENO): " "kernel-$kernel_name-42" "$output"
 }
 
+function test_remote_add_the_same_kernel_twice()
+{
+  local output
+  local kernel_name='CASUAL'
+
+  touch "kernel-${kernel_name}-42"
+  touch "config-${kernel_name}-42"
+
+  touch "kernel-${kernel_name}-41"
+  touch "config-${kernel_name}-41"
+
+  run_bootloader_update 'SILENT' 'remote' "$kernel_name-42"
+  run_bootloader_update 'SILENT' 'remote' "$kernel_name-41"
+  run_bootloader_update 'SILENT' 'remote' "$kernel_name-42"
+
+  output=$(get_kernel_from_config)
+  assertEquals "($LINENO): " "kernel-$kernel_name-42" "$output"
+
+  output=$(grep "#kernel=kernel-$kernel_name-42" 'config.txt')
+  assertEquals "($LINENO): " "" "$output"
+}
+
 function test_remote_remove_kernel()
 {
   local output
