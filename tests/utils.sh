@@ -241,6 +241,13 @@ function assert_substring_match()
   fi
 }
 
+# This function expects an array of string with the command sequence and a
+# string containing the output.
+#
+# @msg Message to display in case of failure
+# @line $LINENO variable
+# @expected Expected value
+# @result_to_compare Raw output to be compared
 function assert_equals_helper()
 {
   local msg="$1"
@@ -248,13 +255,13 @@ function assert_equals_helper()
   # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
   # shellcheck disable=SC2178
   local expected="$3"
-  local target="$4"
+  local result_to_compare="$4"
 
   line=${line:-'Unknown line'}
 
   # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
   # shellcheck disable=2128
-  assertEquals "line $line: $msg" "$target" "$expected"
+  assertEquals "line $line: $msg" "$result_to_compare" "$expected"
 }
 
 # Create an invalid file path
