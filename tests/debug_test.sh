@@ -123,7 +123,7 @@ function test_process_list()
   raw_input=''
   output=$(process_list "$raw_input" 1)
   ret="$?"
-  assertEquals "($LINENO) Return error:" "$ret" 22
+  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
 }
 
 function test_convert_event_syntax_to_sys_path_hash()
@@ -226,8 +226,8 @@ function test_convert_event_syntax_to_sys_path_hash()
     IFS=$'\n'
     printf '%s\n' "${!events_hash[*]}"
   )
-  assertEquals "($LINENO) Wrong syntax:" "$output" ''
-  assertEquals "($LINENO) Return error:" "$ret" 22
+  assert_equals_helper 'Wrong syntax:' "($LINENO)" "$output" ''
+  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
 
   events_hash=()
   convert_event_syntax_to_sys_path_hash ':'
@@ -236,8 +236,8 @@ function test_convert_event_syntax_to_sys_path_hash()
     IFS=$'\n'
     printf '%s\n' "${!events_hash[*]}"
   )
-  assertEquals "($LINENO) Wrong syntax:" "$output" ''
-  assertEquals "($LINENO) Return error:" "$ret" 22
+  assert_equals_helper 'Wrong syntax:' "($LINENO)" "$output" ''
+  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
 }
 
 function test_build_event_command_string()
