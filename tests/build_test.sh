@@ -109,7 +109,7 @@ function test_kernel_build_outside_kernel_repository()
 
   output=$(kernel_build 'TEST_MODE')
   ret="$?"
-  assertEquals "($LINENO) We expected an error" "$ret" 125
+  assert_equals_helper 'We expected an error' "($LINENO)" "$ret" 125
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move into temporary directory"
@@ -129,7 +129,7 @@ function test_kernel_build_x86()
 
   output=$(kernel_build 'TEST_MODE')
   ret="$?"
-  assertEquals "($LINENO) We expected an error" "125" "$ret"
+  assert_equals_helper 'We expected an error' "($LINENO)" "125" "$ret"
 
   configurations=()
   cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
@@ -158,44 +158,44 @@ function test_parse_build_options()
 
   # test default options
   parse_build_options
-  assertEquals "($LINENO)" 'x86_64' "${options_values['ARCH']}"
-  assertEquals "($LINENO)" '' "${options_values['MENU_CONFIG']}"
-  assertEquals "($LINENO)" '' "${options_values['CROSS_COMPILE']}"
-  assertEquals "($LINENO)" '1' "${options_values['PARALLEL_CORES']}"
-  assertEquals "($LINENO)" '' "${options_values['INFO']}"
-  assertEquals "($LINENO)" '' "${options_values['DOC_TYPE']}"
+  assert_equals_helper 'Default ARCH did not match expectation' "($LINENO)" 'x86_64' "${options_values['ARCH']}"
+  assert_equals_helper 'Default MENU_CONFIG did not match expectation' "($LINENO)" '' "${options_values['MENU_CONFIG']}"
+  assert_equals_helper 'Default CROSS_COMPILE did not match expectation' "($LINENO)" '' "${options_values['CROSS_COMPILE']}"
+  assert_equals_helper 'Default PARALLEL_CORES did not match expectation' "($LINENO)" '1' "${options_values['PARALLEL_CORES']}"
+  assert_equals_helper 'Default INFO did not match expectation' "($LINENO)" '' "${options_values['INFO']}"
+  assert_equals_helper 'Default DOC_TYPE did not match expectation' "($LINENO)" '' "${options_values['DOC_TYPE']}"
 
   # test individual options
   help_output="$(build_help)"
   unset options_values
   declare -gA options_values
   output="$(parse_build_options -h)"
-  assertEquals "($LINENO)" "$help_output" "$output"
+  assert_equals_helper 'Could not access build help' "($LINENO)" "$help_output" "$output"
 
   unset options_values
   declare -gA options_values
   parse_build_options --info
-  assertEquals "($LINENO)" '1' "${options_values['INFO']}"
+  assert_equals_helper 'Could not set build INFO' "($LINENO)" '1' "${options_values['INFO']}"
 
   unset options_values
   declare -gA options_values
   parse_build_options -i
-  assertEquals "($LINENO)" '1' "${options_values['INFO']}"
+  assert_equals_helper 'Could not set build INFO' "($LINENO)" '1' "${options_values['INFO']}"
 
   unset options_values
   declare -gA options_values
   parse_build_options --menu
-  assertEquals "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
+  assert_equals_helper 'Could not set build MENU_CONFIG' "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
 
   unset options_values
   declare -gA options_values
   parse_build_options --doc
-  assertEquals "($LINENO)" 'htmldocs' "${options_values['DOC_TYPE']}"
+  assert_equals_helper 'Could not set build DOC_TYPE' "($LINENO)" 'htmldocs' "${options_values['DOC_TYPE']}"
 
   unset options_values
   declare -gA options_values
   parse_build_options -d
-  assertEquals "($LINENO)" 'htmldocs' "${options_values['DOC_TYPE']}"
+  assert_equals_helper 'Could not set build DOC_TYPE' "($LINENO)" 'htmldocs' "${options_values['DOC_TYPE']}"
 
   output="$(parse_build_options --mispelled 2>&1)"
   assertEquals "($LINENO)" 22 "$?"

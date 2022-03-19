@@ -224,12 +224,12 @@ function test_check_setup_status()
 
   # 1. Fail case
   check_setup_status 1
-  assertEquals "($LINENO)" 2 "$?"
+  assert_equals_helper 'Wrong return value' "($LINENO)" 2 "$?"
 
   # 2. Success case
   touch "$REMOTE_KW_DEPLOY/status"
   check_setup_status 1
-  assertEquals "($LINENO)" 0 "$?"
+  assert_equals_helper 'Wrong return value' "($LINENO)" 0 "$?"
 }
 
 function test_modules_install_to()
@@ -425,7 +425,7 @@ function test_kernel_install_x86_64_to_remote()
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
     tail -n +1 | head -1)
   expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
-  assertEquals "($LINENO): " "$output" "$expected_msg"
+  assertEquals "($LINENO)" "$output" "$expected_msg"
   assert_equals_helper "Could not find a valid image" "$LINENO" "$expected_msg" "$output"
 
   cd "$original" || {
@@ -495,12 +495,12 @@ function test_kernel_install_local()
   alias id='root_id_mock;true'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
   ret="$?"
-  assertEquals "($LINENO)" 1 "$ret"
+  assert_equals_helper 'Wrong return value' "($LINENO)" 1 "$ret"
 
   # Test 3: Unknown distro
   alias detect_distro='which_distro_none_mock'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  assertEquals "($LINENO)" 95 "$?"
+  assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -553,13 +553,13 @@ function test_kernel_install_to_vm()
   )
 
   output=$(run_kernel_install 0 "$name" 'TEST_MODE' 1)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 3: Invalid distro
   alias detect_distro='which_distro_none_mock'
 
   output=$(run_kernel_install 0 "$name" 'TEST_MODE' 1)
-  assertEquals "($LINENO)" 95 "$?"
+  assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -726,139 +726,139 @@ function test_parse_deploy_options()
 
   # test default options
   parse_deploy_options
-  assertEquals "($LINENO)" '' "${options_values['UNINSTALL']}"
-  assertEquals "($LINENO)" '' "${options_values['UNINSTALL_FORCE']}"
-  assertEquals "($LINENO)" '0' "${options_values['LS']}"
-  assertEquals "($LINENO)" '0' "${options_values['REBOOT']}"
-  assertEquals "($LINENO)" '0' "${options_values['MODULES']}"
-  assertEquals "($LINENO)" '0' "${options_values['LS_LINE']}"
-  assertEquals "($LINENO)" '' "${options_values['LS_ALL']}"
-  assertEquals "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
-  assertEquals "($LINENO)" '1' "${options_values['TARGET']}"
+  assert_equals_helper 'Default UNINSTALL did not match expectation' "($LINENO)" '' "${options_values['UNINSTALL']}"
+  assert_equals_helper 'Default UNINSTALL_FORCE did not match expectation' "($LINENO)" '' "${options_values['UNINSTALL_FORCE']}"
+  assert_equals_helper 'Default LS did not match expectation' "($LINENO)" '0' "${options_values['LS']}"
+  assert_equals_helper 'Default REBOOT did not match expectation' "($LINENO)" '0' "${options_values['REBOOT']}"
+  assert_equals_helper 'Default MODULES did not match expectation' "($LINENO)" '0' "${options_values['MODULES']}"
+  assert_equals_helper 'Default LS_LINE did not match expectation' "($LINENO)" '0' "${options_values['LS_LINE']}"
+  assert_equals_helper 'Default LS_ALL did not match expectation' "($LINENO)" '' "${options_values['LS_ALL']}"
+  assert_equals_helper 'Default MENU_CONFIG did not match expectation' "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
+  assert_equals_helper 'Default TARGET did not match expectation' "($LINENO)" '1' "${options_values['TARGET']}"
 
   # test individual options
   unset options_values
   declare -gA options_values
   parse_deploy_options --remote 'user@127.0.2.1:8888'
-  assertEquals "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
-  assertEquals "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
-  assertEquals "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
-  assertEquals "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
+  assert_equals_helper 'Could not set deploy REMOTE_USER' "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
+  assert_equals_helper 'Could not set deploy REMOTE' "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
+  assert_equals_helper 'Could not set deploy REMOTE_PORT' "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
+  assert_equals_helper 'Could not set deploy REMOTE_IP' "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
 
   unset options_values
   declare -gA options_values
   expected="kw deploy: option '--remote' requires an argument"
   parse_deploy_options --remote
-  assertEquals "($LINENO)" '22' "$?"
+  assert_equals_helper 'Wrong return value' "($LINENO)" '22' "$?"
   assertEquals "($LINENO)" "$expected" "${options_values['ERROR']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --remote ':8888' > /dev/null
-  assertEquals "($LINENO)" '22' "$?"
+  assert_equals_helper 'Wrong return value' "($LINENO)" '22' "$?"
   assertEquals "($LINENO)" 'Invalid remote: :8888' "${options_values['ERROR']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --local
-  assertEquals "($LINENO)" '2' "${options_values['TARGET']}"
+  assert_equals_helper 'Could not set deploy TARGET' "($LINENO)" '2' "${options_values['TARGET']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --vm
-  assertEquals "($LINENO)" '1' "${options_values['TARGET']}"
+  assert_equals_helper 'Could not set deploy TARGET' "($LINENO)" '1' "${options_values['TARGET']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --reboot
-  assertEquals "($LINENO)" '1' "${options_values['REBOOT']}"
+  assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '1' "${options_values['REBOOT']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -r
-  assertEquals "($LINENO)" '1' "${options_values['REBOOT']}"
+  assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '1' "${options_values['REBOOT']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --modules
-  assertEquals "($LINENO)" '1' "${options_values['MODULES']}"
+  assert_equals_helper 'Could not set deploy MODULES' "($LINENO)" '1' "${options_values['MODULES']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -m
-  assertEquals "($LINENO)" '1' "${options_values['MODULES']}"
+  assert_equals_helper 'Could not set deploy MODULES' "($LINENO)" '1' "${options_values['MODULES']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --list
-  assertEquals "($LINENO)" '1' "${options_values['LS']}"
+  assert_equals_helper 'Could not set deploy LS' "($LINENO)" '1' "${options_values['LS']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -l
-  assertEquals "($LINENO)" '1' "${options_values['LS']}"
+  assert_equals_helper 'Could not set deploy LS' "($LINENO)" '1' "${options_values['LS']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --ls-line
-  assertEquals "($LINENO)" '1' "${options_values['LS_LINE']}"
+  assert_equals_helper 'Could not set deploy LS_LINE' "($LINENO)" '1' "${options_values['LS_LINE']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -s
-  assertEquals "($LINENO)" '1' "${options_values['LS_LINE']}"
+  assert_equals_helper 'Could not set deploy LS_LINE' "($LINENO)" '1' "${options_values['LS_LINE']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --list-all
-  assertEquals "($LINENO)" '1' "${options_values['LS_ALL']}"
+  assert_equals_helper 'Could not set deploy LS_ALL' "($LINENO)" '1' "${options_values['LS_ALL']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -a
-  assertEquals "($LINENO)" '1' "${options_values['LS_ALL']}"
+  assert_equals_helper 'Could not set deploy LS_ALL' "($LINENO)" '1' "${options_values['LS_ALL']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto'
-  assertEquals "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL' "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -u 'kernel_xpto'
-  assertEquals "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL' "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto' --force
-  assertEquals "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -u 'kernel_xpto' -f
-  assertEquals "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto' --force
-  assertEquals "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options 'TEST_MODE'
-  assertEquals "($LINENO)" 'TEST_MODE' "${options_values['TEST_MODE']}"
+  assert_equals_helper 'Could not set deploy TEST_MODE' "($LINENO)" 'TEST_MODE' "${options_values['TEST_MODE']}"
 
   # test integration of options
   unset options_values
   declare -gA options_values
   parse_deploy_options --remote 'user@127.0.2.1:8888' -m --ls-line -u 'kernel_xpto'
-  assertEquals "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
-  assertEquals "($LINENO)" '1' "${options_values['MODULES']}"
-  assertEquals "($LINENO)" '1' "${options_values['LS_LINE']}"
-  assertEquals "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
-  assertEquals "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
-  assertEquals "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
-  assertEquals "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
+  assert_equals_helper 'Option composition failed on UNINSTALL' "($LINENO)" 'kernel_xpto' "${options_values['UNINSTALL']}"
+  assert_equals_helper 'Option composition failed on MODULES' "($LINENO)" '1' "${options_values['MODULES']}"
+  assert_equals_helper 'Option composition failed on LS_LINE' "($LINENO)" '1' "${options_values['LS_LINE']}"
+  assert_equals_helper 'Option composition failed on REMOTE_USER' "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
+  assert_equals_helper 'Option composition failed on REMOTE' "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
+  assert_equals_helper 'Option composition failed on REMOTE_PORT' "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
+  assert_equals_helper 'Option composition failed on REMOTE_IP' "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
 }
 
 function test_prepare_host_deploy_dir()
@@ -936,7 +936,7 @@ function test_prepare_remote_dir()
   alias detect_distro='which_distro_none_mock'
 
   output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
-  assertEquals "($LINENO)" 95 "$?"
+  assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
 }
 
 function test_collect_target_info_for_deploy()
@@ -946,19 +946,19 @@ function test_collect_target_info_for_deploy()
   # Corner-cases
   alias detect_distro='which_distro_none_mock'
   output=$(collect_target_info_for_deploy 1 'TEST_MODE')
-  assertEquals "($LINENO)" 95 "$?"
+  assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
 
   # VM
   alias detect_distro='which_distro_mock'
   collect_target_info_for_deploy 1 'TEST_MODE'
-  assertEquals "$LINENO: Check bootloader" "${target_deploy_info[bootloader]}" 'GRUB'
-  assertEquals "$LINENO: Check distro" "${target_deploy_info[distro]}" 'arch'
+  assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'GRUB'
+  assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'arch'
 
   # LOCAL
   alias collect_deploy_info='collect_deploy_info_other_mock'
   collect_target_info_for_deploy 2 'TEST_MODE'
-  assertEquals "$LINENO: Check bootloader" "${target_deploy_info[bootloader]}" 'LILO'
-  assertEquals "$LINENO: Check distro" "${target_deploy_info[distro]}" 'fedora'
+  assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'LILO'
+  assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'fedora'
 
   # REMOTE
   function cmd_remotely()
@@ -966,8 +966,8 @@ function test_collect_target_info_for_deploy()
     printf '[bootloader]=syslinux [distro]=chrome'
   }
   collect_target_info_for_deploy 3 'TEST_MODE'
-  assertEquals "$LINENO: Check bootloader" "${target_deploy_info[bootloader]}" 'syslinux'
-  assertEquals "$LINENO: Check distro" "${target_deploy_info[distro]}" 'chrome'
+  assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'syslinux'
+  assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'chrome'
 }
 
 invoke_shunit

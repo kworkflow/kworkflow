@@ -533,7 +533,7 @@ function test_get_config_from_boot()
   }
 
   get_config_from_boot 'TEST_MODE' '' 1
-  assert_equals_helper 'We do not support VM yet' "$LINENO" "$?" 95
+  assert_equals_helper 'We do not support VMs yet' "$LINENO" "$?" 95
 
   # Preparing
   export root="./"
@@ -561,7 +561,7 @@ function test_get_config_from_defconfig()
   local single_cmd
 
   get_config_from_defconfig 'TEST_MODE' '.config' > /dev/null
-  assert_equals_helper 'We should fail if we are not in the kernel' "$LINENO" "$?" 125
+  assert_equals_helper 'We should fail if we are not in a kernel dir' "$LINENO" "$?" 125
 
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -578,7 +578,7 @@ function test_get_config_from_defconfig()
   # Case with cross-compile
   single_cmd='make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-'
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
-  assert_equals_helper 'Cross compile failed' "$LINENO" "$output" "$single_cmd"
+  assert_equals_helper 'Cross compilation failed' "$LINENO" "$output" "$single_cmd"
 
   configurations[arch]=''
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
@@ -679,7 +679,7 @@ function test_fetch_config()
   mk_fake_kernel_root "$PWD"
 
   output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
-  assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
+  assert_equals_helper 'The operation should have been aborted' "$LINENO" "$output" 'Operation aborted'
 
   rm "$PWD/.config"
   mkdir "${root}proc"
@@ -758,11 +758,11 @@ function test_configm_parser()
 
   parse_configm_options '--LalaXpto' 'lala xpto'
   ret="$?"
-  assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid option' "$LINENO" "$ret" 22
 
   parse_configm_options '--wrongOption' 'lala xpto'
   ret="$?"
-  assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid option' "$LINENO" "$ret" 22
 
   # valid options
   parse_configm_options '--force'

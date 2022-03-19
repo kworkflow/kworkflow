@@ -13,16 +13,16 @@ function test_get_ram()
 
   configurations[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
   get_ram "$VM_TARGET"
-  assertEquals "($LINENO)" 1024000 "${device_info_data['ram']}"
+  assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
 
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
   output=$(get_ram "$LOCAL_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "$cmd" "$output"
+  assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
 
   device_options['ip']='127.0.0.1'
   device_options['port']='2222'
   output=$(get_ram "$REMOTE_TARGET" 'TEST_MODE')
-  assertEquals "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
+  assert_equals_helper 'Remote target RAM info gathering command did not match expectation' "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
 }
 
 function test_get_cpu()
@@ -34,7 +34,7 @@ function test_get_cpu()
   )
 
   get_cpu "$VM_TARGET"
-  assertEquals "($LINENO)" 'Virtual' "${device_info_data['cpu_model']}"
+  assert_equals_helper 'Failed to gather VM target CPU data' "($LINENO)" 'Virtual' "${device_info_data['cpu_model']}"
 
   output=$(get_cpu "$LOCAL_TARGET" 'TEST_MODE')
   compare_command_sequence 'Failed to gather local target CPU data' "$LINENO" 'expected_cmd' "$output"
@@ -58,16 +58,16 @@ function test_get_disk()
   configurations[mount_point]='somewhere/to/mount'
   cmd="df -h ${configurations[mount_point]} | tail -n 1 | tr -s ' '"
   output=$(get_disk "$VM_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "$cmd" "$output"
+  assert_equals_helper 'Failed to gather VM target disk data' "($LINENO)" "$cmd" "$output"
 
   cmd="df -h / | tail -n 1 | tr -s ' '"
   output=$(get_disk "$LOCAL_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "$cmd" "$output"
+  assert_equals_helper 'Failed to gather local target disk data' "($LINENO)" "$cmd" "$output"
 
   device_options['ip']='127.0.0.1'
   device_options['port']='2222'
   output=$(get_disk "$REMOTE_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
+  assert_equals_helper 'Failed to gather remote target disk data' "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
 }
 
 function test_get_motherboard()
@@ -89,7 +89,7 @@ function test_get_chassis()
 
   cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
   output=$(get_chassis "$LOCAL_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "$cmd" "$output"
+  assert_equals_helper 'Failed to gather local target chassis data' "($LINENO)" "$cmd" "$output"
 }
 
 function test_display_data()
@@ -150,16 +150,16 @@ function test_get_os()
   shopt -s expand_aliases
   alias detect_distro='detect_distro_mock'
   get_os "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'lala' "${device_info_data['os']}"
+  assert_equals_helper 'Failed to gather local target OS data' "($LINENO)" 'lala' "${device_info_data['os']}"
 
   # VM
   get_os "$VM_TARGET"
-  assertEquals "($LINENO)" 'lala' "${device_info_data['os']}"
+  assert_equals_helper 'Failed to gather VM target OS data' "($LINENO)" 'lala' "${device_info_data['os']}"
 
   # Remote
   alias which_distro='which_distro_mock'
   get_os "$REMOTE_TARGET"
-  assertEquals "($LINENO)" 'xpto' "${device_info_data['os']}"
+  assert_equals_helper 'Failed to gather remote target OS data' "($LINENO)" 'xpto' "${device_info_data['os']}"
 }
 
 function ps_mock()
@@ -177,31 +177,31 @@ function test_get_desktop_environment()
   # Check local deploy and some DE variations
   alias ps='ps_mock lxsession'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'lxde' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'lxde' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock kde'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'kde' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'kde' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock mate'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'mate' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'mate' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock cinnamon'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'cinnamon' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'cinnamon' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock openbox'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'openbox' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'openbox' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock gnome-shell'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'gnome' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'gnome' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock something'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'unidentified' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'unidentified' "${device_info_data['desktop_environment']}"
 }
 
 invoke_shunit
