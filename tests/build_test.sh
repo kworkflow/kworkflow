@@ -58,7 +58,7 @@ function test_kernel_build_cross_compilation_flags()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -1) # Remove statistics output
+  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2) # Remove statistics output
   declare -a expected_cmd=(
     "make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig --silent"
     "make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
@@ -140,11 +140,10 @@ function test_kernel_build_x86()
     return
   }
 
-  output=$(kernel_build 'TEST_MODE' | tail -n +1) # Remove statistics output
+  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2) # Remove statistics output
   declare -a expected_cmd=(
     "make ARCH=x86_64  olddefconfig --silent"
     "make -j$PARALLEL_CORES ARCH=x86_64"
-    "-> Execution time: 00:00:00"
   )
 
   compare_command_sequence 'expected_cmd' "$output" "$LINENO"
