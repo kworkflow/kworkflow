@@ -119,15 +119,15 @@ function test_execute_command_db()
 
   output=$(execute_command_db 'SELECT * FROM not_a_table;' 2>&1)
   ret="$?"
-  expected='Error: no such table: not_a_table'
+  expected='no such table: not_a_table'
   assert_equals_helper 'Invalid table.' "$LINENO" "$ret" 1
-  assert_equals_helper 'Wrong output.' "$LINENO" "$output" "$expected"
+  assert_substring_match 'Wrong output.' "($LINENO)" "$output" "$expected"
 
   output=$(execute_command_db 'SELEC * FROM tags;' 2>&1)
   ret="$?"
-  expected='Error: near "SELEC": syntax error'
+  expected='near "SELEC": syntax error'
   assert_equals_helper 'Invalid table.' "$LINENO" "$ret" 1
-  assert_equals_helper 'Wrong output.' "$LINENO" "$output" "$expected"
+  assert_substring_match 'Wrong output.' "($LINENO)" "$output" "$expected"
 
   entries="$(concatenate_with_commas label dt_start)"
 
