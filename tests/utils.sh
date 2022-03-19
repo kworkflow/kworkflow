@@ -222,6 +222,25 @@ but got:  \"${f}\"
   done <<< "$result_to_compare"
 }
 
+# This function tries to match a substring (case insensitive).
+#
+# @msg Message to display in case of failure
+# @line $LINENO variable
+# @expected Expected value
+# @result_to_compare Raw output to be compared
+function assert_substring_match()
+{
+  local msg="$1"
+  local line="$2"
+  local expected="$3"
+  local result_to_compare="$4"
+
+  if ! grep -qi "$expected" <<< "$output"; then
+    fail "line $line: $msg"
+    return
+  fi
+}
+
 function assert_equals_helper()
 {
   local msg="$1"
