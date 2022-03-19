@@ -240,7 +240,13 @@ unit test framework.
 We also encourage each assertion in each test to be identified with the
 variable ``LINENO``. This variable expands to the line number currently being
 executed. This way the origin of an error message can quickly be identified by
-a developer. For example::
+a developer. We also encourage using the ``assert_equals_helper`` helper
+function, which provides a wrapper capable of spitting a useful error message
+in case the assertion fails. Ideally, one should do either::
+
+   assert_equals_helper "$error_message" "($LINENO)" "$output" "$expected_output"
+
+or::
 
    assertEquals "($LINENO)" "$output" "$expected_output"
 
