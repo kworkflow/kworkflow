@@ -74,11 +74,6 @@ function check_dependencies()
     return 0
   fi
 
-  while IFS='' read -r package; do
-    pip list | grep -F "$package" > /dev/null
-    [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
-  done < "$DOCUMENTATION/dependencies/pip.dependencies"
-
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
       if [[ $(ask_yN "Can we install the following dependencies $package_list?") =~ '0' ]]; then
@@ -89,6 +84,11 @@ function check_dependencies()
     # Install system packages
     eval "sudo $cmd"
   fi
+
+  while IFS='' read -r package; do
+    pip list | grep -F "$package" > /dev/null
+    [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
+  done < "$DOCUMENTATION/dependencies/pip.dependencies"
 
   if [[ -n "$pip_package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
