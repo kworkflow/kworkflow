@@ -338,7 +338,7 @@ function test_get_config()
     return
   }
   output=$(printf '%s\n' 'y' | get_config "$NAME_1")
-  compare_command_sequence 'expected_output' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   # Case 2: There's no local .config file
   rm -f .config
@@ -456,7 +456,7 @@ function test_cleanup()
   )
 
   output=$(cleanup 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_get_config_from_proc()
@@ -484,7 +484,7 @@ function test_get_config_from_proc()
   )
 
   output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Creating a fake config
   touch "proc/config.gz"
@@ -495,7 +495,7 @@ function test_get_config_from_proc()
   )
 
   output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # 3) Remote
   unset expected_cmd
@@ -506,7 +506,7 @@ function test_get_config_from_proc()
   )
 
   output=$(get_config_from_proc 'TEST_MODE' '.config' 3)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Removing fake proc
   rm -rf 'proc'
@@ -636,7 +636,7 @@ function test_fetch_config()
     'Successfully retrieved .config'
   )
   output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
-  compare_command_sequence 'expected_output' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   expected_output=(
     'zcat /proc/config.gz > .config'
@@ -648,21 +648,21 @@ function test_fetch_config()
   touch "${root}proc/config.gz"
   export PROC_CONFIG_PATH="${root}proc/config.gz"
   output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
-  compare_command_sequence 'expected_output' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   touch "$root/.config"
 
   # Say no to overwriting the file
   output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
-  assert_equals_helper 'The operation should have be aborted' "$LINENO" "$output" 'Operation aborted'
+  assert_equals_helper 'The operation should have been aborted' "$LINENO" "$output" 'Operation aborted'
 
   # Say yes to overwriting the file
   output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
-  compare_command_sequence 'expected_output' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   # Now using the --force option
   output=$(fetch_config 'TEST_MODE' 1 '' '' "$LOCAL_TARGET")
-  compare_command_sequence 'expected_output' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   expected_output=(
     'zcat /proc/config.gz > newconfig'
@@ -671,7 +671,7 @@ function test_fetch_config()
   )
 
   output=$(fetch_config 'TEST_MODE' '' 'newconfig' '' "$LOCAL_TARGET")
-  compare_command_sequence 'expected_output' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   # Optimized
   rm -rf "${root:?}/"*
@@ -692,7 +692,7 @@ function test_fetch_config()
   )
 
   output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
-  compare_command_sequence 'expected_output' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   expected_output=(
     "ssh -p 1234 mary@localhost sudo \"mkdir -p /tmp/kw\""

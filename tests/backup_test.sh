@@ -39,7 +39,7 @@ function test_create_backup()
   assertTrue "($LINENO) - Tar file was not created" "[[ -f $filepath ]]"
 
   tar_files=("$(tar -taf "$filepath" | grep -e '[^/]$' | sort -d | cut -c3-)")
-  compare_command_sequence 'expected_files' "${tar_files[@]}" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_files' "${tar_files[@]}"
 }
 
 function test_restore_backup()
@@ -116,14 +116,14 @@ function test_restore_data_from_dir()
   assertNotEquals "$LINENO" '# This line is different' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 
   output=$(printf '%s\n' '1' | restore_data_from_dir 'pomodoro')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
   assertEquals "$LINENO" '# This line is different' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 
   expected_cmd+=("patching file $KW_DATA_DIR/pomodoro/2021/04/04")
 
   printf '%s\n' '# Another different line' >> "$decompress_path/pomodoro/2021/04/04"
   output=$(printf '%s\n' '3' | restore_data_from_dir 'pomodoro')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
   assertEquals "$LINENO" '# Another different line' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 }
 

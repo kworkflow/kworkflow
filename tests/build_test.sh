@@ -64,7 +64,7 @@ function test_kernel_build_cross_compilation_flags()
     "make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
   )
 
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_kernel_build_menu_cross_compilation_flags()
@@ -146,7 +146,7 @@ function test_kernel_build_x86()
     "make -j$PARALLEL_CORES ARCH=x86_64"
   )
 
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_parse_build_options()
@@ -217,12 +217,12 @@ function test_build_info()
   )
 
   output=$(kernel_build 'TEST_MODE' '--info')
-  compare_command_sequence 'expected_cmd' "$output" "($LINENO)"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   cp "$original_dir/tests/samples/.config" .config
   expected_cmd[3]="$modules"
   output=$(kernel_build 'TEST_MODE' '--info')
-  compare_command_sequence 'expected_cmd' "$output" "($LINENO)"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
   rm .config
 }
 

@@ -36,7 +36,7 @@ function test_generate_arch_temporary_root_file_system()
   )
 
   output=$(generate_arch_temporary_root_file_system "$name" 'local' 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # Remote
   declare -a cmd_sequence=(
@@ -46,7 +46,7 @@ function test_generate_arch_temporary_root_file_system()
   )
 
   output=$(generate_arch_temporary_root_file_system "$name" 'remote' 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # VM
   touch "$qemu_mock_img"
@@ -60,7 +60,7 @@ function test_generate_arch_temporary_root_file_system()
   )
 
   output=$(generate_arch_temporary_root_file_system "$name" 'vm' 'TEST_MODE' 'something')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 invoke_shunit

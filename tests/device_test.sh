@@ -37,7 +37,7 @@ function test_get_cpu()
   assertEquals "($LINENO)" 'Virtual' "${device_info_data['cpu_model']}"
 
   output=$(get_cpu "$LOCAL_TARGET" 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence 'Failed to gather local target CPU data' "$LINENO" 'expected_cmd' "$output"
 
   declare -a expected_cmd=(
     "ssh -p 2222 john@127.0.0.1 sudo \"lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1\""
@@ -47,7 +47,7 @@ function test_get_cpu()
   device_options['ip']='127.0.0.1'
   device_options['port']='2222'
   output=$(get_cpu "$REMOTE_TARGET" 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence 'Failed to gather remote target CPU data' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_get_disk()
@@ -79,7 +79,7 @@ function test_get_motherboard()
   )
 
   output=$(get_motherboard "$LOCAL_TARGET" 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence 'Failed to gather local target motherboard data' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_get_chassis()
@@ -129,7 +129,7 @@ function test_display_data()
   device_info_data['motherboard_vendor']='Vendor'
   device_info_data['motherboard_name']='ABC123'
   output=$(show_data)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence 'Failed to set target data' "$LINENO" 'expected_cmd' "$output"
 }
 
 function detect_distro_mock()

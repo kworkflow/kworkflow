@@ -117,11 +117,9 @@ function test_gui_control()
   local bind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 1 > $i; done; sleep 0.5'
   local unbind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 0 > $i; done; sleep 0.5'
   local output
-  local ID
 
   tearDown # We want to test the default cases first
   # REMOTE = 3
-  ID=1
   ssh_part="ssh -p 8888 juca@127.0.0.1"
   full_turn_on_gui_cmd="$ssh_part sudo \"$gui_on_cmd\""
   full_bind_cmd="$ssh_part 'sudo bash -c '\''$bind_cmd'\'"
@@ -132,9 +130,8 @@ function test_gui_control()
   )
 
   output=$(gui_control 'ON' '3' '127.0.0.1:8888' 'TEST_MODE')
-  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
-  ID=2
   full_turn_off_gui_cmd="$ssh_part sudo \"$gui_off_cmd\""
   full_unbind_cmd="$ssh_part 'sudo bash -c '\''$unbind_cmd'\'"
 
@@ -144,9 +141,8 @@ function test_gui_control()
   )
 
   output=$(gui_control 'OFF' '3' '127.0.0.1:8888' 'TEST_MODE')
-  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
-  ID=3
   # Test with config file
   parse_configuration "$KW_CONFIG_SAMPLE"
 
@@ -161,9 +157,8 @@ function test_gui_control()
   )
 
   output=$(gui_control 'OFF' '3' '' 'TEST_MODE')
-  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
-  ID=4
   gui_on_cmd='turn on'
   full_turn_on_gui_cmd="$ssh_part sudo \"$gui_on_cmd\""
   full_bind_cmd="$ssh_part 'sudo bash -c '\''$bind_cmd'\'"
@@ -174,7 +169,7 @@ function test_gui_control()
   )
 
   output=$(gui_control 'ON' '3' '' 'TEST_MODE')
-  compare_command_sequence 'expected_cmd_seq' "$output" "$ID"
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 }
 
 function test_get_supported_mode_per_connector()
@@ -210,7 +205,7 @@ function test_get_supported_mode_per_connector()
 
   export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
   output=$(get_supported_mode_per_connector 2)
-  compare_command_sequence 'expected_output' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 }
 
 function test_module_control()
@@ -255,35 +250,27 @@ function test_module_control()
   output=$(module_control "UNLOAD" "3" "" "amdgpu;vkms" "TEST_MODE")
   assertEquals "($LINENO): Load modules with parameters" "$expected" "$output"
 }
-#compare_command_sequence 'expected_cmd' "$output" "$ID"
 
 function test_convert_module_info()
 {
-  local ID
-
-  ID=1
   output=$(convert_module_info "LOAD" "amdgpu;vkms")
   expected="modprobe  amdgpu && modprobe  vkms"
-  assertEquals "$ID" "$expected" "$output"
+  assertEquals "$LINENO" "$expected" "$output"
 
-  ID=2
   output=$(convert_module_info "LOAD" "amdgpu;vkms;lala;xpto")
   expected="modprobe  amdgpu && modprobe  vkms && modprobe  lala && modprobe  xpto"
-  assertEquals "$ID" "$expected" "$output"
+  assertEquals "$LINENO" "$expected" "$output"
 
-  ID=3
   output=$(convert_module_info "LOAD" "amdgpu:dc=0,emu_mode=1,vm_debug=0;vkms enable_cursor=1")
   expected="modprobe  amdgpu dc=0 emu_mode=1 vm_debug=0  && modprobe  vkms enable_cursor=1"
-  assertEquals "$ID" "$expected" "$output"
+  assertEquals "$LINENO" "$expected" "$output"
 
-  ID=4
   output=$(convert_module_info "UNLOAD" "amdgpu;vkms;xpto")
   expected="modprobe -r amdgpu && modprobe -r vkms && modprobe -r xpto"
-  assertEquals "$ID" "$expected" "$output"
+  assertEquals "$LINENO" "$expected" "$output"
 
-  ID=5
   output=$(convert_module_info "LOAD" "")
-  assertEquals "$ID" "$?" "22"
+  assertEquals "$LINENO" "$?" "22"
 }
 
 invoke_shunit

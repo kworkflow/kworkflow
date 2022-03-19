@@ -198,23 +198,23 @@ function mk_fake_git()
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #
-# @_expected Name of the array variable containing expected strings
+# @msg Message to display in case of failure
+# @line $LINENO variable
+# @expected_res Name of the array variable containing expected strings
 # @result_to_compare A raw output from the string
-# @ID An ID identification
 function compare_command_sequence()
 {
+  local msg="$1"
+  local line="$2"
   # This variable name must be unique
-  local -n _expected="$1"
-  local result_to_compare="$2"
-  local ID="$3"
+  local -n expected_res="$3"
+  local result_to_compare="$4"
   local count=0
 
-  ID=${ID:-0}
-
   while read -r f; do
-    if [[ "${_expected[$count]}" != "${f}" ]]; then
-      fail "($ID) $count
-Expected: \"${_expected[$count]}\"
+    if [[ "${expected_res[$count]}" != "${f}" ]]; then
+      fail "line $line, statement $count: $msg
+Expected: \"${expected_res[$count]}\"
 but got:  \"${f}\"
 "
     fi

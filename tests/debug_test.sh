@@ -514,7 +514,7 @@ function test_ftrace_debug()
     "sudo cp /root/kw_2021_10_22-07_34_07 kw_debug/ftrace && sudo chown $USER:$USER kw_debug/ftrace"
   )
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*' 'kw_debug' '' './root/something')
-  compare_command_sequence 'expected_cmd_seq' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"
@@ -552,11 +552,11 @@ function test_ftrace_list()
 
   # Local
   output=$(ftrace_list 2)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Remote
   output=$(ftrace_list 3)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # VM
   output=$(ftrace_list 1)
@@ -572,7 +572,7 @@ function test_ftrace_list()
     '8. function'
     '9. nop'
   )
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Let's reload cmd_manager
   source 'src/kwlib.sh' --source-only
@@ -734,7 +734,7 @@ function test_event_debug()
   )
 
   output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' 'kw_debug' '' "$igt_cmd_sample")
-  compare_command_sequence 'expected_cmd_seq' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"

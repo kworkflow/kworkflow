@@ -261,110 +261,91 @@ function test_is_a_patch()
 
 function test_get_based_on_delimiter()
 {
-  local ID
   local ip_port_str="IP:PORT"
   local hostname="kw@remote-machine"
   local a_weird_pattern="IP:PORT:kw@remote-machine"
   local incorrect_str="IPPORT"
 
-  ID=1
   output=$(get_based_on_delimiter "$ip_port_str" ":" 1)
   ret="$?"
 
-  assertEquals "$ID - We should find IP" "IP" "$output"
-  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+  assert_equals_helper 'We should find IP' "$LINENO" "IP" "$output"
+  assert_equals_helper 'We expected 0 as a return' "$LINENO" 0 "$ret"
 
-  ID=2
   output=$(get_based_on_delimiter "$ip_port_str" ":" 2)
   ret="$?"
 
-  assertEquals "$ID - We should find PORT" "PORT" "$output"
-  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+  assert_equals_helper 'We should find PORT' "$LINENO" "PORT" "$output"
+  assert_equals_helper 'We expected 0 as a return' "$LINENO" 0 "$ret"
 
-  ID=3
   output=$(get_based_on_delimiter "$ip_port_str" ":" 3)
   ret="$?"
-  assertEquals "$ID - We expected the same string" "$ip_port_str" "$output"
-  assertEquals "$ID - We expected 22 as a return" 22 "$ret"
+  assert_equals_helper 'We expected the same string' "$LINENO" "$ip_port_str" "$output"
+  assert_equals_helper 'We expected 22 as a return' "$LINENO" 22 "$ret"
 
-  ID=4
   output=$(get_based_on_delimiter "$incorrect_str" ":" 1)
   ret="$?"
-  assertEquals "$ID - We expected the same string" "$incorrect_str" "$output"
-  assertEquals "$ID - We expected 22 as a return" 22 "$ret"
+  assert_equals_helper 'We expected the same string' "$LINENO" "$incorrect_str" "$output"
+  assert_equals_helper 'We expected 22 as a return' "$LINENO" 22 "$ret"
 
-  ID=5
   output=$(get_based_on_delimiter "$hostname" "@" 1)
   ret="$?"
-  assertEquals "$ID - We used $hostname, @, and 1 args; we should see kw" "kw" "$output"
-  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+  assert_equals_helper 'We used $hostname, @, and 1 args; we should see kw' "$LINENO" "kw" "$output"
+  assert_equals_helper 'We expected 0 as a return' "$LINENO" 0 "$ret"
 
-  ID=6
   output=$(get_based_on_delimiter "$hostname" "@" 2)
   ret="$?"
-  assertEquals "$ID - We used $hostname, @, and 2 args; we should see remote-machine" "remote-machine" "$output"
-  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+  assert_equals_helper 'We used $hostname, @, and 2 args; we should see remote-machine' "$LINENO" "remote-machine" "$output"
+  assert_equals_helper 'We expected 0 as a return' "$LINENO" 0 "$ret"
 
-  ID=7
   output=$(get_based_on_delimiter "$a_weird_pattern" "@" 2)
   ret="$?"
-  assertEquals "$ID - We used $a_weird_pattern, @, and 2 args; we should see remote-machine" "remote-machine" "$output"
-  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
+  assert_equals_helper "We used $a_weird_pattern, @, and 2 args; we should see remote-machine" "$LINENO" "remote-machine" "$output"
+  assert_equals_helper 'We expected 0 as a return' "$LINENO" 0 "$ret"
 
   output=$(get_based_on_delimiter "$a_weird_pattern" ":" 2)
   ret="$?"
-  assertEquals "$ID - We used $a_weird_pattern, :, and 2 args; we should see PORT" "PORT" "$output"
-  assertEquals "$ID - We expected 0 as a return" 0 "$ret"
-
+  assert_equals_helper "We used $a_weird_pattern, :, and 2 args; we should see PORT" "$LINENO" "PORT" "$output"
+  assert_equals_helper 'We expected 0 as a return' "$LINENO" 0 "$ret"
 }
 
 function test_store_statistics_data()
 {
-  local ID
   local fake_day_path="$FAKE_STATISTICS_DAY_PATH"
 
   setupPatch
 
-  ID=1
   store_statistics_data "$fake_day_path" "test_value" "33"
   stored_value=$(cat "$fake_day_path")
-  assertEquals "($ID) - " "test_value 33" "$stored_value"
+  assertEquals "($LINENO)" "test_value 33" "$stored_value"
 
-  ID=2
   store_statistics_data "/wrong/path" "test_value" "33"
   ret="$?"
-  assertEquals "($ID) - " "22" "$ret"
+  assertEquals "($LINENO)" "22" "$ret"
 
-  ID=3
   store_statistics_data "$fake_day_path" "" "33"
   ret="$?"
-  assertEquals "($ID) - " "22" "$ret"
+  assertEquals "($LINENO)" "22" "$ret"
 
-  ID=4
   store_statistics_data "$fake_day_path"
   ret="$?"
-  assertEquals "($ID) - " "22" "$ret"
+  assertEquals "($LINENO)" "22" "$ret"
 }
 
 function test_update_statistics_database()
 {
-  local ID
-
   setupPatch
 
-  ID=1
   update_statistics_database "$TARGET_YEAR_MONTH" "19"
   assertTrue "Statistics update failure" '[[ -f "$FAKE_STATISTICS_MONTH_PATH/19" ]]'
 
-  ID=2
   update_statistics_database "$TARGET_YEAR_MONTH" ""
   ret="$?"
-  assertEquals "($ID) - " "22" "$ret"
+  assertEquals "($LINENO)" "22" "$ret"
 }
 
 function test_statistics_manager()
 {
-  local ID
   local this_year_and_month
   local today
 
@@ -373,22 +354,18 @@ function test_statistics_manager()
 
   setupPatch
 
-  ID=1
   output=$(statistics_manager "values" "33")
-  assertTrue "($ID) Database folders failures" '[[ -d "$FAKE_STATISTICS_PATH/$this_year_and_month" ]]'
+  assertTrue "($LINENO) - Database folders failures" '[[ -d "$FAKE_STATISTICS_PATH/$this_year_and_month" ]]'
 
-  ID=2
-  assertTrue "($ID) Database day" '[[ -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
+  assertTrue "($LINENO) Database day" '[[ -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
 
-  ID=3
   stored_value=$(cat "$FAKE_STATISTICS_PATH/$this_year_and_month/$today")
-  assertEquals "($ID) - " "values 33" "$stored_value"
+  assertEquals "($LINENO)" "values 33" "$stored_value"
 
   tearDown
 
-  ID=4
   configurations['disable_statistics_data_track']='yes'
-  assertTrue "($ID) Database day" '[[ ! -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
+  assertTrue "($LINENO) - Database day" '[[ ! -f "$FAKE_STATISTICS_PATH/$this_year_and_month/$today" ]]'
 }
 
 function test_command_exists()
@@ -456,7 +433,7 @@ function test_kw_parse_get_errors()
     "kw: unrecognized option '--fee'"
     "kw: option '--xpto' requires an argument"
   )
-  compare_command_sequence 'expected_output' "$out" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_output' "$out"
 }
 
 function test_generate_tarball()
@@ -481,7 +458,7 @@ function test_generate_tarball()
   assertTrue 'Compressed file was not created' "[[ -f $SHUNIT_TMPDIR/compressed.tar.gz ]]"
 
   output=$(tar -taf "$file_path" | sort -d)
-  compare_command_sequence expected_files "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_files' "$output"
 
   output=$(generate_tarball "$SHUNIT_TMPDIR/vacation/photos" "$file_path" 'gzip' '' 'SUCCESS')
   assertEquals "($LINENO)" "$SHUNIT_TMPDIR/vacation/photos does not exist" "$output"

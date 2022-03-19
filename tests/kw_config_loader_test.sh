@@ -178,7 +178,7 @@ function test_parse_configuration_files_loading_order()
     load_configuration
   )"
 
-  compare_command_sequence 'expected' "$output" "($LINENO): Wrong config file reading order."
+  compare_command_sequence 'Wrong config file reading order' "$LINENO" 'expected' "$output"
 
   # IF XDG global variables are not defined
   unset XDG_CONFIG_DIRS
@@ -200,7 +200,7 @@ function test_parse_configuration_files_loading_order()
     load_configuration
   )"
 
-  compare_command_sequence 'expected' "$output" "($LINENO): Wrong config file reading order."
+  compare_command_sequence 'Wrong config file reading order' "$LINENO" 'expected' "$output"
 
   cd "$original_dir" || {
     fail "($LINENO): It was not possible to move back to original directory"
@@ -340,7 +340,7 @@ function test_load_configuration()
     load_configuration
   )"
 
-  compare_command_sequence 'expected' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected' "$output"
 
   cd "$current_path" || {
     fail "($LINENO): It was not possible to move back from temp directory"

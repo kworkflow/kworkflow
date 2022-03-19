@@ -63,7 +63,7 @@ function test_init_kw()
   rm -rf "${path:?}"/*
   output=$(init_kw --arch baroque)
   kworkflow_content=$(grep arch= "$path_config")
-  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+  compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 
   output=$(init_kw --arch baroque --force)
   kworkflow_content=$(grep arch= "$path_config")
@@ -85,7 +85,7 @@ function test_init_kw()
     'Invalid remote: :8888')
   output=$(init_kw --remote ':8888')
   assertEquals "($LINENO)" '22' "$?"
-  compare_command_sequence 'expected_content' "$output" "($LINENO)"
+  compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 
   rm -rf "${path:?}"/*
   output=$(init_kw --target local)

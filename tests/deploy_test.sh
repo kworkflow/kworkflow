@@ -147,7 +147,7 @@ function test_setup_remote_ssh_with_passwordless()
   )
 
   output=$(setup_remote_ssh_with_passwordless 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_prepare_distro_for_deploy()
@@ -166,7 +166,7 @@ function test_prepare_distro_for_deploy()
 
   # Remote
   output=$(prepare_distro_for_deploy 3 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Local - We need to force a specific distro
   expected_cmd=()
@@ -180,7 +180,7 @@ function test_prepare_distro_for_deploy()
     'yes | pacman -Syu rsync screen pv'
   )
 
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_update_status_log()
@@ -243,7 +243,7 @@ function test_modules_install_to()
   )
 
   output=$(modules_install_to "$test_path" 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_kernel_install_to_remote()
@@ -284,7 +284,7 @@ function test_kernel_install_to_remote()
 
   # Test 1: Local deploy: reboot
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Update values
   # NOTICE: I added one extra space in the below line for match what we
@@ -306,7 +306,7 @@ function test_kernel_install_to_remote()
   )
 
   output=$(run_kernel_install 0 'test' 'TEST_MODE' 3 '127.0.0.1:3333')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -351,7 +351,7 @@ function test_kernel_archlinux_install_to_remote()
   }
 
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -411,7 +411,7 @@ function test_kernel_install_x86_64_to_remote()
   )
 
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test kernel image infer
   configurations['kernel_img_name']=''
@@ -474,7 +474,7 @@ function test_kernel_install_local()
   # This mock refers to the function run_bootloader_update
   alias find='find_kernels_mock'
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 2: Copy config file
   cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
@@ -489,7 +489,7 @@ function test_kernel_install_local()
   )
 
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   ## Make sure that we are not running as a root user
   alias id='root_id_mock;true'
@@ -542,7 +542,7 @@ function test_kernel_install_to_vm()
 
   # Test 1: No config file
   output=$(run_kernel_install 0 'test' 'TEST_MODE' 1)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 2: Create a config file that matches the kernel build
   cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
@@ -623,7 +623,7 @@ function test_kernel_modules()
   mkdir -p "$local_remote_path/lib/modules/$version"
 
   output=$(modules_install 'TEST_MODE' 3)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 2: Deploy modules to local
   output=$(modules_install 'TEST_MODE' 1)
@@ -631,7 +631,7 @@ function test_kernel_modules()
     "$PREPARING_MODULES_MSG"
     'make INSTALL_MOD_PATH=/home/lala modules_install'
   )
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 3: Deploy modules locally vm
   output=$(modules_install 'TEST_MODE' 2)
@@ -640,7 +640,7 @@ function test_kernel_modules()
     'sudo -E make modules_install'
   )
 
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 # This test validates the correct behavior of list kernel on a remote machine
@@ -713,7 +713,7 @@ function test_cleanup()
   #shellcheck disable=SC2153
   options_values[REMOTE]=1
   output=$(cleanup 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_parse_deploy_options()
@@ -901,7 +901,7 @@ function test_prepare_remote_dir()
   )
 
   output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 2: Force ArchLinux
   expected_cmd=()
@@ -915,7 +915,7 @@ function test_prepare_remote_dir()
 
   alias detect_distro='detect_distro_arch_mock'
   output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 3: First deploy
   alias detect_distro='which_distro_mock'
@@ -930,7 +930,7 @@ function test_prepare_remote_dir()
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
   )
 
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 4: Unsupported distro
   alias detect_distro='which_distro_none_mock'

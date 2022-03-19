@@ -62,7 +62,7 @@ function test_run_bootloader_for_vm()
   )
 
   output=$(run_bootloader_for_vm 'TEST_MODE')
-  compare_command_sequence 'cmd_sequence' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 invoke_shunit
