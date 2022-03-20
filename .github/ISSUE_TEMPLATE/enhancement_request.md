@@ -1,6 +1,6 @@
 ---
-name: Enhancement report
-about: Create an enhancement report
+name: Enhancement request
+about: Request an improvement over an existing feature that's unrelated to a bug
 title: ''
 labels: 'enhancement'
 assignees: ''
@@ -9,7 +9,7 @@ assignees: ''
 
 **Description:**
 
-[Summarize your enhancement suggestion]
+[Summarize your suggestion]
 
 **Type:**
 

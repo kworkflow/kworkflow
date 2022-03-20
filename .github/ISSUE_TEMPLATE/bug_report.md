@@ -28,8 +28,8 @@ assignees: ''
 **System information:**
 
  - OS: [e.g. Debian Bullseye]
- - Kw Version: [e.g. use `kw version`]
- - Bash Version [e.g. 5.1.4]
+ - kw Version: [use `kw version`]
+ - Bash Version [use `bash --version`]
 
 **Additional context:**
 

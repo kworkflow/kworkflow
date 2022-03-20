@@ -15,12 +15,13 @@ assignees: ''
 
 [Explain why do we want this feature]
 
-**Target user:**
+**Targeted users:**
 
-[Try to describe the user for this feature. For example, if you think this will
-be helpful for maintainers, developers, newcomers, etc]
+[Try to describe who'd be using this feature. For example, if you think this
+will be helpful for maintainers, developers, newcomers, etc]
 
 **API draft:**
 
-[Describe your API idea here. Do not shy from details here, and please explain
-the parameters and the internal details]
+[Describe your conception of the ideal API for this feature. Do not shy away
+from details here, and please explain the parameters and internals as best as
+you can]
