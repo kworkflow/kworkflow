@@ -6,7 +6,6 @@ declare -gA options_values
 
 # This function retrieves and prints information related to the kernel that
 # will be compiled.
-# shellcheck disable=2120
 function build_info()
 {
   local flag
@@ -61,7 +60,7 @@ function kernel_build()
   doc_type=${options_values['DOC_TYPE']}
 
   if [[ -n "${options_values['INFO']}" ]]; then
-    build_info
+    build_info ''
     exit
   fi
 
