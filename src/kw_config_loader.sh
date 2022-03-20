@@ -141,8 +141,8 @@ function parse_configuration()
   fi
   # shellcheck disable=SC2162
   while read line; do
-    # Line started with # should be ignored
-    [[ "$line" =~ ^# ]] && continue
+    # Line started with # or that are blank should be ignored
+    [[ "$line" =~ ^# || "$line" =~ ^$ ]] && continue
 
     if printf '%s\n' "$line" | grep -F = &> /dev/null; then
       varname="$(printf '%s\n' "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
@@ -159,11 +159,19 @@ function parse_configuration()
 # higher level setting definitions to overwrite lower level ones.
 function load_configuration()
 {
+  if [[ -v configurations && "$OVERRIDE_CONFIG" != 1 ]]; then
+    unset OVERRIDE_CONFIG
+    return
+  fi
+
   local -a config_dirs
   local config_dirs_size
-  local IFS=:
-  read -ra config_dirs <<< "${XDG_CONFIG_DIRS:-"/etc/xdg"}"
-  unset IFS
+
+  if [[ -v XDG_CONFIG_DIRS ]]; then
+    IFS=: read -ra config_dirs <<< "$XDG_CONFIG_DIRS"
+  else
+    [[ -d '/etc/xdg' ]] && config_dirs=('/etc/xdg')
+  fi
 
   parse_configuration "$KW_ETC_DIR/$CONFIG_FILENAME"
 
