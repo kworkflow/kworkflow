@@ -226,7 +226,6 @@ function test_show_variables_completeness()
   done
 
   output="$(show_variables 'TEST_MODE' | grep -E '^    ')"
-  # shellcheck disable=2001
   output="$(printf '%s\n' "$output" | sed 's/.*(\(\S*\)).*/\1/')"
 
   for option in $output; do
