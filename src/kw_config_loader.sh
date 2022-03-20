@@ -141,8 +141,8 @@ function parse_configuration()
   fi
   # shellcheck disable=SC2162
   while read line; do
-    # Line started with # should be ignored
-    [[ "$line" =~ ^# ]] && continue
+    # Line started with # or that are blank should be ignored
+    [[ "$line" =~ ^# || "$line" =~ ^$ ]] && continue
 
     if printf '%s\n' "$line" | grep -F = &> /dev/null; then
       varname="$(printf '%s\n' "$line" | cut -d '=' -f 1 | tr -d '[:space:]')"
