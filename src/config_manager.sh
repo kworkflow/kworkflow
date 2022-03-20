@@ -293,7 +293,6 @@ function get_config_from_defconfig()
   # Build command
   [[ -n "$arch" ]] && cmd+=" ARCH=$arch"
   [[ -n "$cross_compile" ]] && cmd+=" CROSS_COMPILE=$cross_compile"
-  [[ -n "$asic" ]] && cmd+=" $asic\_defconfig"
 
   # If the --output option is passed, we don't want to override the current
   # config
