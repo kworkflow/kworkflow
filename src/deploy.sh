@@ -878,10 +878,11 @@ function pack_kernel_files_and_send()
 {
   local flag="$1"
   local target="$2"
-  local kernel_img_name="$3"
-  local name="$4"
+  local kernel_binary_file_name="$3"
+  local kernel_name="$4"
   local arch=${5-${configurations[arch]}}
   local build_and_deploy="$6"
+  local config_kernel_img_name=${configurations[kernel_img_name]}
   local base_boot_path
   local config_path
   local config_local_version
@@ -898,8 +899,10 @@ function pack_kernel_files_and_send()
   cache_boot_files_path="${cache_to_deploy_path}/boot"
   tar_file_path="${cache_to_deploy_path}/${name}_boot.tar"
 
-  base_boot_path="arch/$arch_target/boot"
+  base_boot_path="arch/$arch/boot"
   dts_base_path="${base_boot_path}/dts"
+
+  [[ -z "$config_kernel_img_name" ]] && config_kernel_img_name='kernel'
 
   # Centralizing kernel files in a single place
   mkdir -p "$cache_boot_files_path"
@@ -911,30 +914,31 @@ function pack_kernel_files_and_send()
   else
     config_local_version=$(sed -nr '/CONFIG_LOCALVERSION=/s/CONFIG_LOCALVERSION="(.*)"/\1/p' "$config_path")
 
-    if [[ -n "$build_and_deploy" || "$name" =~ $config_local_version.*$ ]]; then
-      cmd="cp $config_path ${cache_boot_files_path}/config-$name"
+    if [[ -n "$build_and_deploy" || "$kernel_name" =~ $config_local_version.*$ ]]; then
+      cmd="cp $config_path ${cache_boot_files_path}/config-$kernel_name"
       cmd_manager "$flag" "$cmd"
     fi
   fi
 
   # 2. Copy kernel image
   case "$arch" in
-    'arm')
-      kernel_name_arch="kernel-${name}.img"
+    'arm' | 'arm64')
+      kernel_name_arch="${config_kernel_img_name}-${kernel_name}"
       ;;
     *)
-      kernel_name_arch="vmlinuz-${name}"
+      # X86 system usually uses vmlinuz
+      kernel_name_arch="vmlinuz-${kernel_name}"
       ;;
   esac
 
-  cmd="cp ${base_boot_path}/${kernel_img_name}"
+  cmd="cp ${base_boot_path}/${kernel_binary_file_name}"
   cmd+=" ${cache_boot_files_path}/${kernel_name_arch}"
   cmd_manager "$flag" "$cmd"
 
   # 3. If we have dtb files, let's copy it
   if [[ -d "$dts_base_path" ]]; then
     # Simple patter, e.g., copy_pattern='broadcom/*'
-    copy_pattern=$(compose_copy_source_parameter_for_dtb "$arch_target")
+    copy_pattern=$(compose_copy_source_parameter_for_dtb "$arch")
     cmd_manager "$flag" "cp ${copy_pattern} ${cache_boot_files_path}/"
 
     if [[ -d "${dts_base_path}/overlays" ]]; then
@@ -986,17 +990,17 @@ function run_kernel_install()
   local user="${5:-${remote_parameters['REMOTE_USER']}}"
   local build_and_deploy="$6"
   local distro='none'
-  local kernel_name="${configurations[kernel_name]}"
+  local kernel_name="${configurations[kernel_img_name]}"
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
   local arch_target="${configurations[arch]}"
-  local kernel_img_name="${configurations[kernel_img_name]}"
+  local kernel_binary_file_name
   local remote
   local port
   local config_local_version
   local cmd
 
   # We have to guarantee some default values values
-  kernel_name=${kernel_name:-'nothing'}
+  kernel_name=${kernel_img_name:-'nothing'}
   mkinitcpio_name=${mkinitcpio_name:-'nothing'}
   name=${name:-'kw'}
   flag=${flag:-'SILENT'}
@@ -1008,20 +1012,19 @@ function run_kernel_install()
     fi
   fi
 
-  if [[ ! -f "arch/$arch_target/boot/$kernel_img_name" ]]; then
-    # Try to infer the kernel image name
-    kernel_img_name=$(find "arch/$arch_target/boot/" -name '*Image' 2> /dev/null)
-    kernel_img_name=$(basename "$kernel_img_name")
-    if [[ -z "$kernel_img_name" ]]; then
-      complain "We could not find a valid kernel image at arch/$arch_target/boot"
-      complain 'Please, check your compilation and/or the option kernel_img_name inside kworkflow.config'
-      exit 125 # ECANCELED
-    fi
-    warning "kw inferred arch/$arch_target/boot/$kernel_img_name as a kernel image"
+  # Try to find the latest generated kernel image
+  kernel_binary_file_name=$(find "arch/$arch_target/boot/" -name '*Image' \
+    -printf '%T+ %p\n' 2> /dev/null | sort -r | head -1)
+  kernel_binary_file_name=$(basename "$kernel_binary_file_name")
+  if [[ -z "$kernel_binary_file_name" ]]; then
+    complain "We could not find a valid kernel image at arch/$arch_target/boot"
+    complain 'Please, check if your compilation successfully completed or'
+    complain 'check your kworkflow.config'
+    exit 125 # ECANCELED
   fi
 
   say '* Sending kernel boot files'
-  pack_kernel_files_and_send "$flag" "$target" "$kernel_img_name" \
+  pack_kernel_files_and_send "$flag" "$target" "$kernel_binary_file_name" \
     "$name" "$arch_target" "$build_and_deploy"
 
   case "$target" in
@@ -1038,7 +1041,7 @@ function run_kernel_install()
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Make sure we use the right variable values
 
-      install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'vm' "$flag"
+      install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
       ;;
     2) # LOCAL_TARGET
@@ -1059,7 +1062,7 @@ function run_kernel_install()
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Ensure that we are using the right variable
 
-      install_kernel "$name" "$distro" "$kernel_img_name" "$reboot" "$arch_target" 'local' "$flag"
+      install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
       ;;
     3) # REMOTE_TARGET
@@ -1071,7 +1074,7 @@ function run_kernel_install()
       distro=$(detect_distro '/' "$distro_info")
 
       # Deploy
-      local cmd_parameters="$name $distro $kernel_img_name $reboot $arch_target 'remote' $flag"
+      local cmd_parameters="$name $distro $kernel_binary_file_name $reboot $arch_target 'remote' $flag"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 
