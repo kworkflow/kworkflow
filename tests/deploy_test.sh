@@ -71,7 +71,7 @@ function setUp()
   # Repetive command composing
   NAME='test'
   COPY_CONFIG_FILE="cp .config ${TO_DEPLOY_BOOT_PATH}/config-${NAME}"
-  COPY_KERNEL_IMAGE="cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/vmlinuz-${NAME}"
+  COPY_KERNEL_IMAGE="cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/Image-${NAME}"
 
   GENERATE_BOOT_TAR_FILE="tar --auto-compress --directory='${LOCAL_TO_DEPLOY_PATH}'"
   GENERATE_BOOT_TAR_FILE+=" --create --file='${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar' boot"
@@ -83,7 +83,7 @@ function setUp()
   declare -ga BASE_EXPECTED_CMD_ARM_LOCAL=(
     "$SENDING_KERNEL_MSG"
     "$UNDEFINED_CONFIG"
-    "$COPY_KERNEL_IMAGE"
+    "cp arch/arm64/boot/vmlinuz-5 ${TO_DEPLOY_BOOT_PATH}/Image-${NAME}"
     "sudo cp -r $LOCAL_TO_DEPLOY_PATH/boot/* /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
@@ -141,7 +141,9 @@ function tearDown()
   configurations=()
   BASE_EXPECTED_CMD_ARM_REMOTE=()
   BASE_EXPECTED_CMD_X86_REMOTE=()
+  BASE_EXPECTED_CMD_ARM_LOCAL=()
 
+  unalias -a find
   rm -rf "$FAKE_KERNEL"
 }
 
@@ -562,25 +564,26 @@ function test_kernel_install_x86_64_to_remote_no_kernel_image_failure()
 
 }
 
-function test_kernel_install_x86_64_to_remote_name_infer()
+function test_kernel_install_binary_name_without_kernel_img_name_param()
 {
   local original="$PWD"
   local expected_msg
   local output
-
-  # Test preparation
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-  # Reset values
-  configurations=()
-  remote_parameters=()
-  cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
-  parse_configuration "$FAKE_KERNEL/kworkflow.config"
+  local deploy_params
+  local execute_deploy_remote
 
   configurations['kernel_img_name']=''
+  deploy_params="${NAME} debian Image 1 arm64 'remote' TEST_MODE"
+  execute_deploy_remote=$(get_deploy_cmd_helper "$deploy_params")
+
+  declare -ga BASE_EXPECTED_CMD_CUSTOM_ARM_REMOTE=(
+    "$SENDING_KERNEL_MSG"
+    "$UNDEFINED_CONFIG"
+    "cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/kernel-${NAME}"
+    "$GENERATE_BOOT_TAR_FILE"
+    "rsync --info=progress2 -e 'ssh -p 3333' ${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar juca@127.0.0.1:$KW_DEPLOY_TMP_FILE $STD_RSYNC_FLAG"
+    "$execute_deploy_remote"
+  )
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -589,9 +592,8 @@ function test_kernel_install_x86_64_to_remote_name_infer()
 
   # Test kernel image infer
   output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
-    tail -n +1 | head -1)
-  expected_msg='kw inferred arch/x86_64/boot/bzImage as a kernel image'
-  assert_equals_helper "Infer kernel image" "$LINENO" "$expected_msg" "$output"
+    tail -n +1)
+  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_CUSTOM_ARM_REMOTE' "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -610,10 +612,11 @@ function test_kernel_install_arm_local_no_config()
   }
 
   alias collect_deploy_info='collect_deploy_info_mock'
-  # This mock refers to the function run_bootloader_update
-  alias find='find_kernels_mock'
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
 
+  # This mock the find command, to add multiple kernel images
+  alias find='find_kernels_mock'
+
+  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
   compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
 
   cd "$original" || {
@@ -1154,13 +1157,18 @@ function test_collect_target_info_for_deploy()
 {
   local output
 
+  # Avoid alias overwrite
+  include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
+  include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+
   # Corner-cases
   alias detect_distro='which_distro_none_mock'
   output=$(collect_target_info_for_deploy 1 'TEST_MODE')
   assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
 
   # VM
-  alias detect_distro='which_distro_mock'
+  alias collect_deploy_info='collect_deploy_info_mock'
+  alias detect_distro='detect_distro_arch_mock'
   collect_target_info_for_deploy 1 'TEST_MODE'
   assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'GRUB'
   assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'arch'
