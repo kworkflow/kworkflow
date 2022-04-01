@@ -131,7 +131,7 @@ function test_local_remove_kernel()
     "sudo sh -c 'printf \"%s\n\" kernel=kernel-${KERNEL_NAME}.img >> ${FAKE_RPI_PATH}/config.txt'"
   )
 
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 invoke_shunit
