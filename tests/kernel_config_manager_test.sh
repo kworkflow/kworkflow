@@ -23,6 +23,10 @@ function oneTimeSetUp()
   # Loading sample configurations
   parse_configuration "${KW_CONFIG_SAMPLE}"
   parse_configuration "${KW_BUILD_CONFIG_SAMPLE}" build_config
+
+  # Database values
+  declare -g KW_DB_DIR
+  KW_DB_DIR="$(realpath './database')"
 }
 
 function setUp()
@@ -31,6 +35,8 @@ function setUp()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
+  setupDatabase
 
   mkdir -p "${dot_configs_dir}"
 
@@ -44,10 +50,25 @@ function tearDown()
     rm -rf "${dot_configs_dir}"
   fi
 
+  teardownDatabase
+
   cd "${original_dir}" || {
     fail "($LINENO) It was not possible to back to the kw folder"
     return
   }
+}
+
+function setupDatabase()
+{
+  execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
+}
+
+function teardownDatabase()
+{
+  is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
+  if [[ "$?" == 0 ]]; then
+    rm "${KW_DATA_DIR}/kw.db"
+  fi
 }
 
 function test_kernel_config_manager_main_SAVE_fails()
@@ -96,10 +117,7 @@ function test_save_config_file_check_directories_creation()
 {
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
 
-  # Check if all the expected files were created
   assertTrue "${LINENO}: The configs dir was not created" '[[ -d ${dot_configs_dir} ]]'
-  assertTrue "${LINENO}: The metadata dir is not available" '[[ -d ${dot_configs_dir}/metadata ]]'
-  assertTrue "${LINENO}: The configs dir is not available" '[[ -d ${dot_configs_dir}/configs ]]'
 }
 
 function test_save_config_file_check_saved_config()
@@ -107,15 +125,16 @@ function test_save_config_file_check_saved_config()
   local output
 
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
-
-  assertTrue "${LINENO}: Failed to find ${NAME_1}" '[[ -f ${dot_configs_dir}/configs/${NAME_1} ]]'
-  assertTrue "${LINENO}: Failed the metadata related to ${NAME_1}" '[[ -f $dot_configs_dir/metadata/${NAME_1} ]]'
+  assertTrue "${LINENO}: Failed to find .config file for ${NAME_1}" '[[ -f ${dot_configs_dir}/${NAME_1} ]]'
+  output=$(select_from "kernel_config WHERE name IS '${NAME_1}'" 'name')
+  assert_equals_helper "Failed to find db entry for ${NAME_1}" "$LINENO" "$NAME_1" "$output"
 
   save_config_file "$NO_FORCE" "$NAME_2" > /dev/null
-  assertTrue "${LINENO}: Failed to find ${NAME_2}" '[[ -f ${dot_configs_dir}/configs/${NAME_2} ]]'
-  assertTrue "${LINENO}: Failed the metadata related to ${NAME_2}" '[[ -f ${dot_configs_dir}/metadata/${NAME_2} ]]'
+  assertTrue "${LINENO}: Failed to find .config file for ${NAME_2}" '[[ -f ${dot_configs_dir}/${NAME_2} ]]'
+  output=$(select_from "kernel_config WHERE name IS '${NAME_2}'" 'name')
+  assert_equals_helper "Failed to find db entry for ${NAME_2}" "$LINENO" "$NAME_2" "$output"
 
-  output=$(cat "${dot_configs_dir}/configs/${NAME_2}")
+  output=$(cat "${dot_configs_dir}/${NAME_2}")
   assert_equals_helper 'Content in the file does not match' "$LINENO" "$CONTENT" "$output"
 }
 
@@ -124,11 +143,11 @@ function test_save_config_file_check_description()
   local output
 
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
-  output=$(cat "${dot_configs_dir}/metadata/${NAME_1}")
+  output=$(select_from "kernel_config WHERE name IS '${NAME_1}'" 'description')
   assert_equals_helper "The description content for ${NAME_1} does not match" "$LINENO" "$DESCRIPTION_1" "$output"
 
   save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
-  output=$(cat "${dot_configs_dir}/metadata/${NAME_2}")
+  output=$(select_from "kernel_config WHERE name IS '${NAME_2}'" 'description')
   assert_equals_helper "The description content for ${NAME_2} does not match" "$LINENO" "$DESCRIPTION_2" "$output"
 }
 
@@ -139,9 +158,7 @@ function test_save_config_file_check_force()
 
   save_config_file "$YES_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
   output=$(save_config_file "$YES_FORCE" "$NAME_2" "$DESCRIPTION_2")
-  expected="Warning: ${NAME_2}: there's nothing new in this file"$'\n'
-  expected+="Saved ${NAME_2}"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Wrong output' "$LINENO" "Saved kernel config '${NAME_2}'" "$output"
 }
 
 function test_list_config_check_when_there_is_no_config()
@@ -149,7 +166,7 @@ function test_list_config_check_when_there_is_no_config()
   local output
 
   output=$(list_configs)
-  assert_equals_helper 'Wrong output' "$LINENO" 'There is no tracked .config file' "$output"
+  assert_equals_helper 'Wrong output' "$LINENO" 'There are no .config files managed by kw' "$output"
 }
 
 function test_list_config_normal_output()
@@ -177,7 +194,7 @@ function test_kernel_config_manager_main_get_config_invalid_option()
   assert_equals_helper ' --get' "$LINENO" 22 "$?"
 
   output=$(kernel_config_manager_main '--get' 'something_wrong')
-  assert_equals_helper ' --get' "$LINENO" 'No such file or directory: something_wrong' "$output"
+  assert_equals_helper ' --get' "$LINENO" 'Couldn'"'"'t find config file named: something_wrong' "$output"
 }
 
 function test_get_config()
@@ -226,6 +243,26 @@ function test_get_config_with_force()
   assert_equals_helper "We expected ${CONTENT}, but we got ${output}" "$LINENO" "$CONTENT" "$output"
 }
 
+function test_get_config_with_file_and_without_database_entry()
+{
+  local output
+  local expected
+
+  touch "${dot_configs_dir}/${NAME_1}"
+
+  output=$(get_config "$NAME_1" <<< 'n')
+  expected="Couldn't find config in database named: ${NAME_1}"$'\n'
+  expected+="${dot_configs_dir}/${NAME_1} not removed"
+  assertTrue "${LINENO}: Shouldn't remove ${NAME_1} file from local fs" '[[ -f "${dot_configs_dir}/${NAME_1}" ]]'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  output=$(get_config "$NAME_1" <<< 'y')
+  expected="Couldn't find config in database named: ${NAME_1}"$'\n'
+  expected+="Removing file: ${dot_configs_dir}/${NAME_1}"
+  assertTrue "${LINENO}: Should remove ${NAME_1} file from local fs" '[[ ! -f "${dot_configs_dir}/${NAME_1}" ]]'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+}
+
 function test_kernel_config_manager_main_remove_that_should_fail()
 {
   local output
@@ -234,7 +271,7 @@ function test_kernel_config_manager_main_remove_that_should_fail()
   assert_equals_helper ' --remove' "$LINENO" 22 "$?"
 
   output=$(kernel_config_manager_main '--remove' something_wrong)
-  assert_equals_helper ' --remove' "$LINENO" 'No such file or directory: something_wrong' "$output"
+  assert_equals_helper ' --remove' "$LINENO" 'Couldn'"'"'t find config file named: something_wrong' "$output"
 }
 
 function test_remove_config()
@@ -245,17 +282,24 @@ function test_remove_config()
   save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
 
   # Case 1: We should have two files
-  output=$(find 'configs/configs' -mindepth 1 -type f | wc -l)
+  output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
   assert_equals_helper "We expected 2 files but got ${output}" "$LINENO" 2 "$output"
+  output=$(select_from 'kernel_config' 'count(*)')
+  assert_equals_helper "We expected 2 entries in the db but got ${output}" "$LINENO" 2 "$output"
 
   # Case 2: Remove one config file
   remove_config "$NAME_1" 1 > /dev/null 2>&1
-  output=$(find configs/configs -mindepth 1 -type f | wc -l)
+  output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
   assert_equals_helper "We expected 1 file but got ${output}" "$LINENO" 1 "$output"
+  output=$(select_from 'kernel_config' 'count(*)')
+  assert_equals_helper "We expected 1 entry in the db but got ${output}" "$LINENO" 1 "$output"
 
-  # Case 2: Remove all config files
+  # Case 3: Remove all config files
   remove_config "$NAME_2" 1 > /dev/null 2>&1
-  assertTrue "${LINENO}: We expected no file related to config" '[[ ! -f "configs/configs" ]]'
+  output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
+  assert_equals_helper "We expected no files but got ${output}" "$LINENO" 0 "$output"
+  output=$(select_from 'kernel_config' 'count(*)')
+  assert_equals_helper "We expected no entry in the db but got ${output}" "$LINENO" 0 "$output"
 }
 
 function test_cleanup()
@@ -518,8 +562,11 @@ function test_get_config_with_env()
   options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${PWD}/fake_env"
 
   # Create a fake config file
-  mkdir -p "${dot_configs_dir}/configs"
-  touch "${dot_configs_dir}/configs/FAKE_CONFIG"
+  mkdir -p "${dot_configs_dir}"
+  touch "${dot_configs_dir}/FAKE_CONFIG"
+
+  # Add entry in the database
+  insert_into 'kernel_config' '(name,path,last_updated_datetime)' "('FAKE_CONFIG','${dot_configs_dir}/FAKE_CONFIG','1998-04-17 12:23:21')"
 
   output=$(get_config 'FAKE_CONFIG' <<< 'y')
   assertTrue "${LINENO}: config file was not added to the env" '[[ -f "./fake_env/.config" ]]'

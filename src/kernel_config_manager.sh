@@ -1,10 +1,9 @@
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kwio.sh"
+include "${KW_LIB_DIR}/kw_db.sh"
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
-declare -gr metadata_dir='metadata'
-declare -gr configs_dir='configs'
 declare -gA options_values
 declare -g root='/'
 declare -g PROC_CONFIG_PATH='/proc/config.gz'
@@ -80,70 +79,107 @@ function kernel_config_manager_main()
   fi
 }
 
-# This function handles the save operation of kernel's '.config' file. It
-# checks if the '.config' exists and saves it using git (dir.:
-# <kw_install_path>/configs)
+# This function handles the save operation of kernel's '.config' file. It first
+# checks if the '.config' is registered in the database. If it isn't or if the user
+# wants to overwrite the file, kw saves the '.config' file in 'KW_DATA_DIR/configs'
+# and adds its metadata to the database.
 #
 # @force Force option. If it is set and the current name was already saved,
 #        this option will override the '.config' file under the 'name'
 #        specified by '-n' without any message.
-# @name This option specifies a name for a target .config file. This name
-#       represents the access key for .config.
+# @config_name Name for identifying a target .config file. This name
+#              represents the access key for .config.
 # @description Description for a config file, de descrition from '-d' flag.
+# @flag: Flag to control function output
+#
+# Return:
+# Returns 0 if operation is successful or aborted (no overwrite) and 2 if
+# kw can't find a .config file to save.
 function save_config_file()
 {
   local -r force="$1"
-  local -r name="$2"
-  local -r description="$3"
-  local original_path="$PWD"
-  local -r dot_configs_dir="$KW_DATA_DIR/configs"
+  local -r config_name="$2"
+  local description="$3"
+  local flag="${4:-SILENT}"
+  local kernel_source_tree_path="$PWD"
+  local -r kernel_configs_dir="${KW_DATA_DIR}/configs"
+  local is_on_database=''
+  local datetime
+  local database_columns='("name","description","path","last_updated_datetime")'
+  local -a values=()
+  local rows
+  local cmd
+  local ret
 
+  # Get env's kernel source tree
   if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
-    original_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+    kernel_source_tree_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
   fi
 
-  if [[ ! -f "$original_path/.config" ]]; then
-    complain 'There is no .config file in the current directory'
+  # Checks if there is a kernel config file named '.config' in the target dir
+  if [[ ! -f "${kernel_source_tree_path}/.config" ]]; then
+    complain "There is no kernel config file named '.config' in the directory ${kernel_source_tree_path}"
     return 2 # ENOENT
   fi
 
-  if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
-    mkdir -p "$dot_configs_dir"
-    cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
-    mkdir -p "$metadata_dir" "$configs_dir"
-  fi
-
-  cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
-
-  # Check if the metadata related to .config file already exists
-  if [[ ! -f "$metadata_dir/$name" ]]; then
-    touch "$metadata_dir/$name"
-  elif [[ "$force" != 1 ]]; then
-    if [[ $(ask_yN "$name already exists. Update?") =~ '0' ]]; then
-      complain 'Save operation aborted'
-      cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
+  # Checks if there is already an entry for that kernel config file in the database
+  is_on_database="$(select_from "kernel_config WHERE name IS '${config_name}'")"
+  if [[ -n "${is_on_database}" && "$force" != 1 ]]; then
+    warning "Kernel config file named '${config_name}' already exists."
+    if [[ $(ask_yN "Do you want to overwrite it?") =~ '0' ]]; then
+      say 'Save operation aborted'
       return 0
     fi
   fi
 
-  if [[ -n "$description" ]]; then
-    printf '%s\n' "$description" > "$metadata_dir/$name"
+  # Create local dir for storing the kernel config files if it doesn't exists
+  if [[ ! -d "${kernel_configs_dir}" ]]; then
+    cmd="mkdir --parents ${kernel_configs_dir}"
+    cmd_manager "$flag" "$cmd"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain 'Could not create kernel configs directory'
+      return "$ret"
+    fi
   fi
 
-  if cmp -s "${original_path}/.config" "${dot_configs_dir}/${configs_dir}/${name}"; then
-    warning "Warning: $name: there's nothing new in this file"
+  cmp --silent "${kernel_source_tree_path}/.config" "${kernel_configs_dir}/${config_name}"
+  if [[ "$?" == 0 && "$force" != 1 ]]; then
+    warning "'${config_name}' kernel config file stored in local filesystem is up to date"
+    if [[ $(ask_yN "Do you want to continue?") =~ '0' ]]; then
+      say 'Save operation aborted'
+      return 0
+    fi
   fi
 
-  cp "$original_path/.config" "$dot_configs_dir/$configs_dir/$name"
+  # Store kernel config file in local filesystem
+  cmd="cp ${kernel_source_tree_path}/.config ${kernel_configs_dir}/${config_name}"
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Couldn't copy ${kernel_source_tree_path}/.config to ${kernel_configs_dir}/${config_name}"
+    return "$ret"
+  fi
+
+  if [[ -z "$description" ]]; then
+    description='NULL'
+  fi
+
+  # Add/Update kernel config entry in local database
+  datetime=$(date '+%Y-%m-%d %H:%M:%S')
+  values=("$config_name" "$description" "${kernel_configs_dir}/${config_name}" "$datetime")
+  rows="$(format_values_db 4 "${values[@]}")"
+  replace_into '"kernel_config"' "$database_columns" "$rows"
   ret="$?"
 
   if [[ "$ret" -gt 0 ]]; then
-    complain "Could not save user config files"
+    complain "Could not save user kernel config file"
+    if is_safe_path_to_remove "${kernel_configs_dir}/${config_name}"; then
+      cmd_manager "$flag" "rm ${kernel_configs_dir}/${config_name}"
+    fi
   else
-    success "Saved $name"
+    success "Saved kernel config '${config_name}'"
   fi
-
-  cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
 }
 
 # Clean-up for fetch_config. When running --fetch, some files may be
@@ -454,54 +490,70 @@ function fetch_config()
   success 'Successfully retrieved' "$output"
 }
 
+# List name, description and last updated datetime of all kernel config files
+# managed by kw.
 function list_configs()
 {
-  local -r dot_configs_dir="$KW_DATA_DIR/configs"
-  local name
-  local content
+  local configs
 
-  if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
-    say 'There is no tracked .config file'
+  configs="$(select_from 'kernel_config' 'name AS "Name", description AS "Description", last_updated_datetime AS "Last updated"' '.mode column')"
+
+  if [[ -z "$configs" ]]; then
+    say 'There are no .config files managed by kw'
     return 0
   fi
 
-  printf '%-30s | %-30s\n' 'Name' $'Description\n'
-  for filename in "$dot_configs_dir/$metadata_dir"/*; do
-    [[ ! -f "$filename" ]] && continue
-    name=$(basename "$filename")
-    content=$(< "$filename")
-    printf '%-30s | %-30s\n' "$name" "$content"
-  done
+  say 'List of .config files managed by kw'
+  printf '%s\n' "$configs"
 }
 
 # Remove and Get operation in the kernel-config-manager has similar criteria for working,
 # because of this, basic_config_validations centralize the basic requirement
 # validation.
 #
-# @target File name of the target config file
+# @config_name Name that identifies .config
 # @force Force option. If set, it will ignores the warning message.
 # @operation You can specify the operation name here
 # @message Customized message to be showed to the users
+# @flag: Flag to control function output
 #
 # Returns:
-# Return 0 if everything ends well, otherwise return an errno code.
+# Exits with 0 if everything ends well, otherwise exits an errno code.
+# TODO: Best to return and let the caller handle it
 function basic_config_validations()
 {
-  local target="$1"
+  local config_name="$1"
   local force="$2"
-  local operation="$3" && shift 3
-  local message="$*"
-  local -r dot_configs_dir="$KW_DATA_DIR/configs/configs"
+  local operation="$3"
+  local message="$4"
+  local flag="${5:-SILENT}"
+  local query_output
+  local -r kernel_configs_dir="${KW_DATA_DIR}/configs"
 
-  if [[ ! -f "$dot_configs_dir/$target" ]]; then
-    complain "No such file or directory: $target"
+  if [[ ! -f "${kernel_configs_dir}/${config_name}" ]]; then
+    complain "Couldn't find config file named: ${config_name}"
+    exit 2 # ENOENT
+  fi
+
+  query_output=$(select_from "kernel_config WHERE name IS '${config_name}'")
+  if [[ -z "${query_output}" ]]; then
+    complain "Couldn't find config in database named: ${config_name}"
+    # Ask user what to do with hanging local .config
+    if [[ $(ask_yN "Remove file ${kernel_configs_dir}/${config_name}?") =~ '1' ]]; then
+      if is_safe_path_to_remove "${kernel_configs_dir}/${config_name}"; then
+        say "Removing file: ${kernel_configs_dir}/${config_name}"
+        cmd_manager "$flag" "rm ${kernel_configs_dir}/${config_name}"
+      fi
+    else
+      say "${kernel_configs_dir}/${config_name} not removed"
+    fi
     exit 2 # ENOENT
   fi
 
   if [[ "$force" != 1 ]]; then
     warning "$message"
     if [[ $(ask_yN 'Are you sure that you want to proceed?') =~ '0' ]]; then
-      complain "$operation operation aborted"
+      say "$operation operation aborted"
       exit 0
     fi
   fi
@@ -512,7 +564,7 @@ function basic_config_validations()
 # will override the existing .config file; because of this, it has a warning
 # message.
 #
-# @target File name of the target config file
+# @config_name Name that identifies .config
 # @force Force option. If it is set and the current name was already saved,
 #        this option will override the '.config' file under the 'name'
 #        specified by '-n' without any message.
@@ -521,9 +573,9 @@ function basic_config_validations()
 # Exit with 0 if everything ends well, otherwise exit an errno code.
 function get_config()
 {
-  local target="$1"
+  local config_name="$1"
   local force="$2"
-  local -r dot_configs_dir="${KW_DATA_DIR}/configs/configs"
+  local -r kernel_configs_dir="${KW_DATA_DIR}/configs"
   local -r msg='This operation will override the current .config file'
   local config_base_path="$PWD"
 
@@ -536,48 +588,44 @@ function get_config()
   # If we does not have a local config, there's no reason to warn the user
   [[ ! -f "${config_base_path}/.config" ]] && force=1
 
-  basic_config_validations "$target" "$force" 'Get' "$msg"
+  basic_config_validations "$config_name" "$force" 'Get' "$msg"
 
-  cp "${dot_configs_dir}/${target}" "${config_base_path}/.config"
-  say "Current config file updated based on ${target}"
+  cp "${kernel_configs_dir}/${config_name}" "${config_base_path}/.config"
+  say "Current config file updated based on ${config_name}"
 }
 
 # Remove a config file under kw management
 #
-# @target File name of the target config file
+# @config_name Name that identifies .config
 # @force Force option.
+# @flag: Flag to control function output
 #
 # Returns:
 # Exit 0 if everything ends well, otherwise exit an errno code.
 function remove_config()
 {
-  local target="$1"
+  local config_name="$1"
   local force="$2"
-  local original_path="$PWD"
-  local -r dot_configs_dir="$KW_DATA_DIR/configs"
-  local -r msg="This operation will remove $target from kw management"
+  local flag="${3:-SILENT}"
+  declare -A condition_array
+  local -r kernel_configs_dir="${KW_DATA_DIR}/configs"
+  local -r msg="This operation will remove ${config_name} from kw management"
   local ret
-  local configs
 
-  basic_config_validations "$target" "$force" 'Remove' "$msg"
+  basic_config_validations "$config_name" "$force" 'Remove' "$msg"
 
-  cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
-
-  rm "${configs_dir}/${target}" "${dot_configs_dir}/${metadata_dir}/${target}"
-  ret="$?"
-  if [[ "$ret" -ne 0 ]]; then
-    exit_msg 'Could not remove config file'
+  if is_safe_path_to_remove "${kernel_configs_dir}/${config_name}"; then
+    cmd_manager "$flag" "rm ${kernel_configs_dir}/${config_name}"
+    if [[ "$?" -gt 0 ]]; then
+      complain "Could not remove ${kernel_configs_dir}/${config_name}"
+      return 1 # EPERM
+    fi
   fi
-  cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
 
-  say "The $target config file was removed from kw management"
+  condition_array=(['name']="${config_name}")
+  remove_from '"kernel_config"' 'condition_array'
 
-  # Without config file, there's no reason to keep config directory
-  configs=$(ls "${dot_configs_dir}/${configs_dir}")
-  if [[ -z "$configs" ]]; then
-    rm -rf "/tmp/${configs_dir}"
-    mv "$dot_configs_dir" /tmp
-  fi
+  say "The ${config_name} config file was removed from kw management"
 }
 
 # This function parses the options from 'kw kernel-config-manager', and populates the global

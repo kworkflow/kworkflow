@@ -44,7 +44,7 @@ function test_execute_sql_script()
   # Here we make use of SQLite's internal commands to return a list of the
   # tables in the db, the semicolon ensures sqlite3 closes
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -cmd '.tables' -batch ';')
-  expected='^pomodoro[[:space:]]+statistic[[:space:]]+tags[[:space:]]*$'
+  expected='^fake_table[[:space:]]+pomodoro[[:space:]]+statistic[[:space:]]+tags[[:space:]]*$'
   assertTrue "($LINENO) Testing tables" '[[ "$output" =~ $expected ]]'
 
   execute_sql_script "$DB_FILES/insert.sql"
@@ -228,7 +228,7 @@ function test_select_from()
   local entries
 
   # invalid
-  output=$(select_from table columns 'wrong/path/invalid_db.db')
+  output=$(select_from table columns '' 'wrong/path/invalid_db.db')
   ret="$?"
   expected='Database does not exist'
   assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 2
@@ -259,6 +259,123 @@ function test_select_from()
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT dt_start,dt_end,descript FROM pomodoro;')
   assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
   assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+}
+
+test_replace_into()
+{
+  local output
+  local expected
+  local ret
+
+  # invalid operations
+  output=$(replace_into table columns rows 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
+  assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
+
+  output=$(replace_into '' columns rows)
+  ret="$?"
+  expected='Empty table or rows.'
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
+
+  output=$(replace_into table columns '')
+  ret="$?"
+  expected='Empty table or rows.'
+  assert_equals_helper 'Empty rows, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
+
+  # valid operation with non-existent row
+  replace_into 'fake_table' '("name","attribute1","attribute2")' "('someName','someAtt1','someAtt2')"
+  ret="$?"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT 'f'.'name' FROM 'fake_table' AS 'f' WHERE 'f'.'name'='someName' ;")
+  expected='someName'
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # valid operation with existent row
+  replace_into 'fake_table' '("name","attribute1","attribute2")' "('someName','anotherAtt1','anotherAtt2')"
+  ret="$?"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT count(*) FROM 'fake_table' AS 'f' WHERE 'f'.'name'='someName' ;")
+  assert_equals_helper 'Wrong number of rows' "$LINENO" 1 "$output"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT 'f'.'attribute1' FROM 'fake_table' AS 'f' WHERE 'f'.'name'='someName' ;")
+  expected='anotherAtt1'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+}
+
+function test_remove_from()
+{
+  local columnns
+  local values
+  declare -A condition_array
+  local output
+  local expected
+  local ret
+
+  # invalid operations
+  output=$(remove_from 'table' 'condition_array' 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
+  assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
+
+  output=$(remove_from '' 'condition_array')
+  ret="$?"
+  expected='Empty table or condition array.'
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
+
+  output=$(remove_from table 'condition_array')
+  ret="$?"
+  expected='Empty table or condition array.'
+  assert_equals_helper 'Empty condition array expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
+
+  # remove one row using one unique attribute
+  columns=$(concatenate_with_commas 'name' 'attribute1' 'attribute2')
+  values=$(format_values_db 3 'name1' 'att1' 'att2')
+  insert_into 'fake_table' "$columns" "$values"
+  condition_array=(['name']='name1')
+  remove_from 'fake_table' 'condition_array'
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM 'fake_table' WHERE name='name1' ;")
+  expected=''
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # remove one row using one unique attribute and some non-unique
+  columns=$(concatenate_with_commas 'name' 'attribute1' 'attribute2')
+  values=$(format_values_db 3 'name1' 'att1' 'att2')
+  insert_into 'fake_table' "$columns" "$values"
+  condition_array=(['name']='name1' ['attribute1']='att1' ['attribute2']='att2')
+  remove_from 'fake_table' 'condition_array'
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM 'fake_table' WHERE name='name1' ;")
+  expected=''
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # remove one row using non-unique attributes
+  columns=$(concatenate_with_commas 'name' 'attribute1' 'attribute2')
+  values=$(format_values_db 3 'name1' 'att1' 'att2' 'name2' 'att1' 'ATT2')
+  insert_into 'fake_table' "$columns" "$values"
+  condition_array=(['attribute1']='att1' ['attribute2']='att2')
+  remove_from 'fake_table' 'condition_array'
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM 'fake_table' WHERE name='name1' ;")
+  expected=''
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name,attribute1,attribute2 FROM 'fake_table' WHERE name='name2' ;")
+  expected='name2|att1|ATT2'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # remove two rows using non-unique attribute
+  columns=$(concatenate_with_commas 'name' 'attribute1' 'attribute2')
+  values=$(format_values_db 3 'name1' 'att1' 'att2')
+  insert_into 'fake_table' "$columns" "$values"
+  condition_array=(['attribute1']='att1')
+  remove_from 'fake_table' 'condition_array'
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM 'fake_table' WHERE attribute1='att1' ;")
+  expected=''
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM 'fake_table' ;")
 }
 
 invoke_shunit
