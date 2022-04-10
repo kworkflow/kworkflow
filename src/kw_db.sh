@@ -95,10 +95,93 @@ function insert_into()
   sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -batch "INSERT INTO $table $entries VALUES $values;"
 }
 
+# This function updates or insert rows into table of given database,
+# depending if the rows already exist or not.
+#
+# @table:     Table to replace/insert data into
+# @columns:   Columns on the table where to update/add the data
+# @rows:      Rows of data to be added
+# @db:        Name of the database file
+# @db_folder: Path to the folder that contains @db
+#
+# Return:
+# 2 if db doesn't exist;
+# 22 if empty table or empty rows are passed;
+# 0 if succesful.
+function replace_into()
+{
+  local table="$1"
+  local columns="$2"
+  local rows="$3"
+  local db="${4:-"$DB_NAME"}"
+  local db_folder="${5:-"$KW_DATA_DIR"}"
+  local db_path
+
+  db_path="$(join_path "$db_folder" "$db")"
+
+  if [[ ! -f "$db_path" ]]; then
+    complain 'Database does not exist'
+    return 2 # ENOENT
+  fi
+
+  if [[ -z "$table" || -z "$rows" ]]; then
+    complain 'Empty table or rows.'
+    return 22 # EINVAL
+  fi
+
+  [[ -n "$columns" && ! "$columns" =~ ^\(.*\)$ ]] && columns="($columns)"
+
+  sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" "${db_path}" -batch "REPLACE INTO ${table} ${columns} VALUES ${rows};"
+}
+
+# This function removes every matching row from a given table.
+#
+# @table:     Table to replace/insert data into
+# @_condition_array: An array reference of condition pairs
+#                    <column,value> to match rows
+# @db:        Name of the database file
+# @db_folder: Path to the folder that contains @db
+#
+# Return:
+# 2 if db doesn't exist;
+# 22 if empty table, columns or values are passed;
+# 0 if succesful.
+function remove_from()
+{
+  local table="$1"
+  local -n _condition_array="$2"
+  local db="${3:-"${DB_NAME}"}"
+  local db_folder="${4:-"${KW_DATA_DIR}"}"
+  local where_clause=''
+  local db_path
+
+  db_path="$(join_path "${db_folder}" "$db")"
+
+  if [[ ! -f "${db_path}" ]]; then
+    complain 'Database does not exist'
+    return 2
+  fi
+
+  if [[ -z "$table" || -z "${!_condition_array[*]}" ]]; then
+    complain 'Empty table or condition array.'
+    return 22 # EINVAL
+  fi
+
+  for column in "${!_condition_array[@]}"; do
+    where_clause+="$column='${_condition_array["${column}"]}'"
+    where_clause+=' AND '
+  done
+  # Remove trailing ' AND '
+  where_clause="${where_clause::-5}"
+
+  sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" "${db_path}" -batch "DELETE FROM ${table} WHERE ${where_clause};"
+}
+
 # This function gets the values in the table of given database
 #
 # @table:     Table to select info from
 # @columns:   Columns of the table to get
+# @pre_cmd:   Pre command to execute
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
 #
@@ -109,8 +192,9 @@ function select_from()
 {
   local table="$1"
   local columns="${2:-"*"}"
-  local db="${3:-"$DB_NAME"}"
-  local db_folder="${4:-"$KW_DATA_DIR"}"
+  local pre_cmd="$3"
+  local db="${4:-"$DB_NAME"}"
+  local db_folder="${5:-"$KW_DATA_DIR"}"
   local db_path
 
   db_path="$(join_path "$db_folder" "$db")"
@@ -125,7 +209,7 @@ function select_from()
     return 22 # EINVAL
   fi
 
-  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -batch "SELECT $columns FROM $table;"
+  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" -cmd "$pre_cmd" "$db_path" -batch "SELECT $columns FROM $table;"
 }
 
 # This function takes arguments and assembles them into the correct format to

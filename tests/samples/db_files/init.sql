@@ -15,3 +15,11 @@ CREATE TABLE IF NOT EXISTS statistic(
 	dt_start DATETIME NOT NULL,
 	dt_end DATETIME NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS "fake_table" (
+  "id" INTEGER NOT NULL UNIQUE,
+  "name" TEXT NOT NULL UNIQUE,
+  "attribute1" TEXT,
+  "attribute2" TEXT,
+  PRIMARY KEY("id")
+);
