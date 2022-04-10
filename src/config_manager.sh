@@ -1,5 +1,6 @@
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kwio.sh"
+include "$KW_LIB_DIR/kw_db.sh"
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
@@ -92,25 +93,23 @@ function save_config_file()
   local -r description="$3"
   local -r original_path="$PWD"
   local -r dot_configs_dir="$KW_DATA_DIR/configs"
+  local metadata=''
 
   if [[ ! -f "$original_path/.config" ]]; then
     complain 'There is no .config file in the current directory'
     return 2 # ENOENT
   fi
 
-  if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
+  if [[ ! -d "$dot_configs_dir" ]]; then
     mkdir -p "$dot_configs_dir"
     cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
     git init --quiet
-    mkdir -p "$metadata_dir" "$configs_dir"
   fi
 
-  cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
+  metadata="$(select_from "\"config\" WHERE \"name\" IS '$name'" '"name","description"')"
 
   # Check if the metadata related to .config file already exists
-  if [[ ! -f "$metadata_dir/$name" ]]; then
-    touch "$metadata_dir/$name"
-  elif [[ "$force" != 1 ]]; then
+  if [[ -n "$metadata" && "$force" != 1 ]]; then
     if [[ $(ask_yN "$name already exists. Update?") =~ '0' ]]; then
       complain 'Save operation aborted'
       cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
@@ -118,12 +117,13 @@ function save_config_file()
     fi
   fi
 
-  if [[ -n "$description" ]]; then
-    printf '%s\n' "$description" > "$metadata_dir/$name"
+  if [[ -z "$description" ]]; then
+    description='NULL'
   fi
 
-  cp "$original_path/.config" "$dot_configs_dir/$configs_dir/$name"
-  git add "$configs_dir/$name" "$metadata_dir/$name"
+  cp "$original_path/.config" "$dot_configs_dir/$name"
+  git add "$configs_dir/$name"
+  # execute_command_db "UPDATE \"config\"
   current_date=$(date)
   git commit -m "New config file added: $USER - $current_date" > /dev/null 2>&1
   ret="$?"
@@ -446,22 +446,16 @@ function fetch_config()
 
 function list_configs()
 {
-  local -r dot_configs_dir="$KW_DATA_DIR/configs"
-  local name
-  local content
+  local configs
 
-  if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
-    say 'There is no tracked .config file'
+  configs="$(select_from '"config"' '"name" AS "Name", "description" AS "Description"' '.mode column')"
+
+  if [[ -z "$configs" ]]; then
+    say 'There are no tracked .config files'
     return 0
   fi
 
-  printf '%-30s | %-30s\n' 'Name' $'Description\n'
-  for filename in "$dot_configs_dir/$metadata_dir"/*; do
-    [[ ! -f "$filename" ]] && continue
-    name=$(basename "$filename")
-    content=$(< "$filename")
-    printf '%-30s | %-30s\n' "$name" "$content"
-  done
+  printf '%s\n' "$configs"
 }
 
 # Remove and Get operation in the configm has similar criteria for working,

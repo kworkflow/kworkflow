@@ -109,8 +109,9 @@ function select_from()
 {
   local table="$1"
   local columns="${2:-"*"}"
-  local db="${3:-"$DB_NAME"}"
-  local db_folder="${4:-"$KW_DATA_DIR"}"
+  local pre_cmd="$3"
+  local db="${4:-"$DB_NAME"}"
+  local db_folder="${5:-"$KW_DATA_DIR"}"
   local db_path
 
   db_path="$(join_path "$db_folder" "$db")"
@@ -125,7 +126,7 @@ function select_from()
     return 22 # EINVAL
   fi
 
-  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -batch "SELECT $columns FROM $table;"
+  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" -cmd "$pre_cmd" "$db_path" -batch "SELECT $columns FROM $table;"
 }
 
 # This function takes arguments and assembles them into the correct format to
