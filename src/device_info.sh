@@ -301,7 +301,7 @@ function get_gpu()
   # The first thing we want to do is retrieve all PCI addresses from any GPU in
   # the target machine. After that, we will get, for each GPU, the desired
   # information.
-  cmd_pci_address="lspci | grep -e VGA -e 3D | cut -d' ' -f1"
+  cmd_pci_address="lspci | grep -e VGA -e Display -e 3D | cut -d' ' -f1"
   case "$target" in
     2) # LOCAL_TARGET
       pci_addresses=$(cmd_manager "$flag" "$cmd_pci_address")
@@ -322,6 +322,11 @@ function get_gpu()
       done
       ;;
   esac
+
+  if [[ "$flag" == 'TEST_MODE' ]]; then
+    printf '%s\n' "$cmd_pci_address"
+    return 0
+  fi
 }
 
 # This function retrieves both the name and vendor from the motherboard of a
