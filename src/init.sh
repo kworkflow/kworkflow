@@ -16,8 +16,10 @@ declare -gA options_values
 # In case of failure, this function returns ENOENT.
 function init_kw()
 {
-  local config_file_template="$KW_ETC_DIR/kworkflow_template.config"
+  local config_template_folder="${KW_ETC_DIR}/init_templates"
   local name='kworkflow.config'
+  local config_file_template
+  local ret
 
   if [[ "$1" =~ -h|--help ]]; then
     init_help "$1"
@@ -37,15 +39,20 @@ function init_kw()
     return 22 # EINVAL
   fi
 
-  if [[ -f "$PWD/$KW_DIR/$name" ]]; then
-    if [[ -n "${options_values['FORCE']}" ||
-      $(ask_yN 'It looks like you already have a kw config file. Do you want to overwrite it?') =~ '1' ]]; then
-      mv "$PWD/$KW_DIR/$name" "$PWD/$KW_DIR/$name.old"
-    else
-      say 'Initialization aborted!'
-      exit 0
+  config_file_already_exist_question
+
+  if [[ -n "${options_values['TEMPLATE']}" ]]; then
+    get_template_name ''
+    ret="$?"
+    if [[ "$?" != 0 ]]; then
+      complain 'Invalid template, try: kw init --template'
+      return "$ret"
     fi
+  else
+    options_values['TEMPLATE']='x86-64'
   fi
+
+  config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/kworkflow_template.config"
 
   if [[ -f "$config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
@@ -110,9 +117,70 @@ function set_config_value()
   sed -i -r "s/($option=).*/\1$value/" "$path"
 }
 
+function config_file_already_exist_question()
+{
+  local name='kworkflow.config'
+
+  if [[ -f "$PWD/$KW_DIR/$name" ]]; then
+    if [[ -n "${options_values['FORCE']}" ||
+      $(ask_yN 'It looks like you already have a kw config file. Do you want to overwrite it?') =~ '1' ]]; then
+      mv "$PWD/$KW_DIR/$name" '/tmp'
+    else
+      say 'Initialization aborted!'
+      exit 0
+    fi
+  fi
+}
+
+# This function is responsible for returning the target template name. If the
+# user does not provide any template in advance, this function asks which
+# template to select.
+#
+# @_target_template: The variable reference used to save the template name
+function get_template_name()
+{
+  local test_mode="$1"
+  local template="${options_values['TEMPLATE']:1}" # removes colon
+  local templates_path="$KW_ETC_DIR/init_templates"
+
+  if [[ -z "$template" ]]; then
+    mapfile -t available_templates < <(find "$templates_path" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -r)
+    available_templates+=('exit kw init templates')
+    say 'You may choose one of the following templates to start your configuration.'
+    printf '(enter the corresponding number to choose)\n'
+    select user_choice in "${available_templates[@]^}"; do
+      [[ "$user_choice" =~ ^Skip ]] && return
+      [[ "$user_choice" =~ ^Exit ]] && exit
+
+      template="${user_choice,,}"
+      break
+    done
+  fi
+
+  # Check if the template exist
+  if [[ ! -d "${templates_path}/${template}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  options_values['TEMPLATE']="$template"
+
+  # TODO:
+  # Every time we use pipe in bash, it creates a subshell; as a result,
+  # global variables are not visible outside the pipe command. This situation
+  # creates a small problem for testing interactive functions like this one,
+  # and we need to workaround this issue by printing the result that we want to
+  # check in the terminal. In a few words, this code only exists for enabling
+  # us to test this function; I'm not sure if we have a more elegant way to
+  # approach this problem, but it would be nice if someone could help with
+  # that.
+  [[ -n "$test_mode" ]] && printf '\n%s\n' "${options_values['TEMPLATE']}"
+
+  return 0
+}
+
 function parse_init_options()
 {
-  local long_options='arch:,remote:,target:,force'
+  local long_options='arch:,remote:,target:,force,template::'
   local short_options='a:,r:,t:,f'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -125,6 +193,7 @@ function parse_init_options()
 
   options_values['ARCH']=''
   options_values['FORCE']=''
+  options_values['TEMPLATE']=''
 
   eval "set -- $options"
 
@@ -147,6 +216,11 @@ function parse_init_options()
         shift
         options_values['FORCE']=1
         ;;
+      --template)
+        option="$(str_strip "${2,,}")"
+        options_values['TEMPLATE']=":$option" # colon sets the option
+        shift 2
+        ;;
       --)
         shift
         ;;
@@ -168,6 +242,7 @@ function init_help()
   fi
   printf '%s\n' 'kw init:' \
     '  init - Creates a kworkflow.config file in the current directory.' \
+    '  init --template[=name] - Create kw config file from template.' \
     '  init --arch <arch> - Set the arch field in the kworkflow.config file.' \
     '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
     '  init --target <target> Set the default_deploy_target field in the kworkflow.config file'

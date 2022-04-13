@@ -43,7 +43,7 @@ function _kw_autocomplete()
   kw_options['explore']='--log --grep --all'
   kw_options['e']="${kw_options['explore']}"
 
-  kw_options['init']='--arch --force --remote --target'
+  kw_options['init']='--arch --force --remote --target --template'
 
   kw_options['mail']='--setup --local --global --force --verify --list --email
                      --name --smtpuser --smtpencryption --smtpserver
