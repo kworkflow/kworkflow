@@ -36,6 +36,7 @@ Check out our tutorials to see how you can use kw.
 
    tutorials/setup
    tutorials/buildlinux
+   tutorials/cross-compilation
    tutorials/configm
    tutorials/deploy-kernel
    tutorials/codestyle
