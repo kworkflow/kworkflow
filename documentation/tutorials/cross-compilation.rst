@@ -135,4 +135,4 @@ system, it is time to use ``kw deploy``. If your system follows the traditional
 x86 approach, you can follow :ref:`How to Install a New Kernel<deploy-kernel>`.
 However, if your target system does not follow the traditional x86 approach
 (e.g., Raspberry Pi) and requires dealing with dtb files, you probably want to
-check LINK.
+check :ref:`Raspberry Pi (RPI): How to Install a New Kernel<rpi-deploy-kernel>`.

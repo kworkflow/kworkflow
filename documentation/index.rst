@@ -39,6 +39,7 @@ Check out our tutorials to see how you can use kw.
    tutorials/cross-compilation
    tutorials/configm
    tutorials/deploy-kernel
+   tutorials/rpi-deploy-kernel
    tutorials/codestyle
    tutorials/find-maintainers
    tutorials/kernel-debug
