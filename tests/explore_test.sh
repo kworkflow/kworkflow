@@ -20,7 +20,7 @@ function setUp()
     return
   }
   # Setup git repository for test
-  git init &> /dev/null
+  mk_fake_git
 
   for commit in {0..3}; do
     local file_name="${samples_names[$commit]}"
