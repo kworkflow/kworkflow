@@ -280,7 +280,7 @@ function detect_distro()
   local distro_id='none'
   local etc_path
   declare -a debian_family=('debian' 'ubuntu' 'raspbian')
-  declare -a arch_family=('arch' 'manjaro')
+  declare -a arch_family=('arch' 'manjaro' 'archarm')
   declare -a fedora_family=('fedora')
 
   etc_path=$(join_path "$root_path" /etc)
