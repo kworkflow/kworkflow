@@ -559,13 +559,11 @@ function test_get_all_git_config()
   }
 
   output=$(get_all_git_config test-config '' 'TEST_MODE' | sort -d)
-  # expected='git config --get-all --show-scope -- test-config'
-  expected=$'global\t'"git config --get-all --global test-config"$'\n'
-  expected+=$'local\t'"git config --get-all --local test-config"
+  expected=$'global\t'"git config --get-all --global test-config"
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   output=$(get_all_git_config test-config 'local' 'TEST_MODE')
-  expected=$'local\tgit config --get-all --local test-config'
+  expected=$'global\tgit config --get-all --global test-config'
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   # only possible test at a global scope, as we have limited control over
@@ -575,6 +573,19 @@ function test_get_all_git_config()
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   mk_fake_git
+
+  output=$(get_all_git_config test-config '' 'TEST_MODE' | sort -d)
+  expected=$'global\t'"git config --get-all --global test-config"$'\n'
+  expected+=$'local\t'"git config --get-all --local test-config"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_all_git_config test-config 'local' 'TEST_MODE')
+  expected=$'local\tgit config --get-all --local test-config'
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_all_git_config test-config 'global' 'TEST_MODE')
+  expected=$'global\tgit config --get-all --global test-config'
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   output=$(get_all_git_config user.name)
   expected='Xpto Lala'
@@ -614,12 +625,11 @@ function test_get_git_config_regex()
   }
 
   output=$(get_git_config_regex test-config '' 'TEST_MODE' | sort -d)
-  expected=$'global\t'"git config --get-regexp --global 'test-config'"$'\n'
-  expected+=$'local\t'"git config --get-regexp --local 'test-config'"
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   output=$(get_git_config_regex test-config 'local' 'TEST_MODE')
-  expected=$'local\t'"git config --get-regexp --local 'test-config'"
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   # only possible test with at global scope, as we have limited control over
@@ -629,6 +639,19 @@ function test_get_git_config_regex()
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   mk_fake_git
+
+  output=$(get_git_config_regex test-config '' 'TEST_MODE' | sort -d)
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"$'\n'
+  expected+=$'local\t'"git config --get-regexp --local 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_git_config_regex test-config 'local' 'TEST_MODE')
+  expected=$'local\t'"git config --get-regexp --local 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_git_config_regex test-config 'global' 'TEST_MODE')
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   output=$(get_git_config_regex name)
   expected='Xpto Lala'
