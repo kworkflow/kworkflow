@@ -583,6 +583,11 @@ function get_all_git_config()
 
   flag=${flag:-'SILENT'}
 
+  # shellcheck disable=2119
+  if ! is_inside_work_tree; then
+    scope='global'
+  fi
+
   for scp in {'global','local'}; do
     if [[ -z "$scope" || "$scope" == "$scp" ]]; then
       output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp $config" | sed -E "s/^/$scp\t/g")"
@@ -612,6 +617,11 @@ function get_git_config_regex()
   local scp
 
   flag=${flag:-'SILENT'}
+
+  # shellcheck disable=2119
+  if ! is_inside_work_tree; then
+    scope='global'
+  fi
 
   for scp in {'global','local'}; do
     if [[ -z "$scope" || "$scope" == "$scp" ]]; then
