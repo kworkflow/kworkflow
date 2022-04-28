@@ -37,8 +37,6 @@ jobs:
 
       - name: Check documentation
         run: |
-          # FIXME: Workaround, see https://github.com/kworkflow/kworkflow/issues/583
-          echo '' > 'documentation/dependencies/pip.dependencies'
           ./setup.sh --docs --force
 
       - name: Check installation

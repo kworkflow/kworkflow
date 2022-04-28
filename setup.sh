@@ -86,8 +86,8 @@ function check_dependencies()
   fi
 
   while IFS='' read -r package; do
-    pip list | grep -F "$package" > /dev/null
-    [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
+    python3 -c "import pkg_resources; pkg_resources.require('$package')" &> /dev/null
+    [[ "$?" != 0 ]] && pip_package_list="\"$package\" $pip_package_list"
   done < "$DOCUMENTATION/dependencies/pip.dependencies"
 
   if [[ -n "$pip_package_list" ]]; then
