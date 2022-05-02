@@ -28,7 +28,7 @@ function is_ssh_connection_configured()
 function ssh_connection_failure_message
 {
   complain 'We could not reach the remote machine by using:'
-  complain " User: ${remote_parameters['REMOTE_IP']}"
+  complain " IP: ${remote_parameters['REMOTE_IP']}"
   complain " User: ${remote_parameters['REMOTE_USER']}"
   complain " Port: ${remote_parameters['REMOTE_PORT']}"
   complain 'Please ensure that the above info is correct.'
