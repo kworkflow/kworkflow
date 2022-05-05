@@ -312,7 +312,7 @@ function test_modules_install_to()
 {
   local output
   local original="$PWD"
-  local make_cmd="make INSTALL_MOD_PATH=$test_path modules_install"
+  local make_cmd="make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=$test_path modules_install"
 
   declare -a expected_cmd=(
     '* Preparing modules'
@@ -328,6 +328,30 @@ function test_modules_install_to()
 
   output=$(modules_install_to "$test_path" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_modules_install_to_no_strip_and_config_debug_info_enabled()
+{
+  local output
+  local original="$PWD"
+
+  # Test preparation
+  cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
+  configurations[strip_modules_debug_option]='no'
+  KW_ETC_DIR="$PWD/etc"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  output=$(modules_install_to "$test_path" 'TEST_MODE')
+  assert_substring_match "Wrong output: $output" "($LINENO)" 'strip_modules_debug_option' "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -799,7 +823,7 @@ function test_kernel_modules()
   rsync_utils="$CONFIG_RSYNC $kernel_install_path/utils.sh $CONFIG_REMOTE:$remote_path/ $STD_RSYNC_FLAG"
 
   # Install modules
-  make_install_cmd="make INSTALL_MOD_PATH=$local_remote_path/ modules_install"
+  make_install_cmd="make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=$local_remote_path/ modules_install"
 
   # Compress modules for sending
   compress_cmd="tar --auto-compress --directory='$local_remote_path/lib/modules/' --create --file='$to_deploy_path/$version.tar' $version"
@@ -838,7 +862,7 @@ function test_kernel_modules()
   output=$(modules_install 'TEST_MODE' 1)
   declare -a expected_cmd=(
     "$PREPARING_MODULES_MSG"
-    'make INSTALL_MOD_PATH=/home/lala modules_install'
+    'make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=/home/lala modules_install'
   )
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
@@ -846,7 +870,7 @@ function test_kernel_modules()
   output=$(modules_install 'TEST_MODE' 2)
   declare -a expected_cmd=(
     "$PREPARING_MODULES_MSG"
-    'sudo -E make modules_install'
+    'sudo -E make INSTALL_MOD_STRIP=1 modules_install'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
