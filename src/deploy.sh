@@ -796,6 +796,7 @@ function modules_install_to()
   local total_lines
   local pv_cmd
   local cmd=''
+  local strip_modules_debug='INSTALL_MOD_STRIP=1 '
   local sign_extra_line=1
 
   flag=${flag:-'SILENT'}
@@ -804,10 +805,19 @@ function modules_install_to()
     sign_extra_line=2
   fi
 
+  if [[ ${configurations[strip_modules_debug_option]} == 'no' ]]; then
+    strip_modules_debug=''
+    grep --quiet --fixed-strings --line-regexp 'CONFIG_DEBUG_INFO=y' "${PWD}/.config"
+    if [[ "$?" == 0 ]]; then
+      load_module_text "${KW_ETC_DIR}/strings/deploy.txt"
+      warning "${module_text_dictionary[large_initramfs_warning]}"
+    fi
+  fi
+
   if [[ "$local_deploy" == 'local' ]]; then
-    cmd='sudo -E make modules_install'
+    cmd="sudo -E make ${strip_modules_debug}modules_install"
   else
-    cmd="make INSTALL_MOD_PATH=$install_to modules_install"
+    cmd="make ${strip_modules_debug}INSTALL_MOD_PATH=$install_to modules_install"
   fi
 
   if [[ "$flag" != 'VERBOSE' && -f './modules.order' ]]; then

@@ -1,0 +1,2 @@
+[large_initramfs_warning]:
+It looks like that 'strip_modules_debug_option' is set 'no' in the kworkflow.config, and you have the CONFIG_DEBUG_INFO=y in your .config file, which can lead to a large initramfs and consequently boot failure like "error: out of memory". Consider enabling the strip option on kworkflow.config.

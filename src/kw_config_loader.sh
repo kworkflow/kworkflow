@@ -75,6 +75,7 @@ function show_variables()
     [deploy_temporary_files_path]='Temporary files path used in the remote machine'
     [deploy_default_compression]='Default compression option used in the deploy'
     [dtb_copy_pattern]='How kw should copy dtb files to the boot folder'
+    [strip_modules_debug_option]='Modules will be stripped after they are installed which will reduce the initramfs size'
   )
 
   local -Ar mail=(
