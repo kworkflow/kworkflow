@@ -79,7 +79,7 @@ disable_statistics_data_track option in your kworkflow.config enabled for a
 while.
 
 You can see data related to your kw usage by using the report option, see
-some examples below:
+some examples below::
 
   kw report
   kw report --day
