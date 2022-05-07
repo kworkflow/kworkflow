@@ -100,7 +100,9 @@ Or just::
 
   $ kw r --week
 
-The report will look like this::
+The report will look like this:
+
+.. code-block:: md
 
     # Report: YYYY/MM/DDD
      * Total hours of focus: 48:43:00
