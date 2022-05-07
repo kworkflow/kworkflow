@@ -46,7 +46,7 @@ Since you are working on a highly complex bug, you decide to dedicate 30
 minutes to make sure that you know how to reproduce the issue; you can start
 with::
 
-  kw pomodoro --time 30m --tag "Super weird bug" --description "Let's make sure that I know how to reproduce this bug..."
+  kw pomodoro --set-timer 30m --tag "Super weird bug" --description "Let's make sure that I know how to reproduce this bug..."
 
 Notice that you can use the short version of the above command::
 
