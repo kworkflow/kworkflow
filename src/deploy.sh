@@ -815,7 +815,7 @@ function modules_install_to()
   fi
 
   if [[ "$local_deploy" == 'local' ]]; then
-    cmd="sudo -E make ${strip_modules_debug}modules_install"
+    cmd="sudo true && sudo -E make ${strip_modules_debug}modules_install"
   else
     cmd="make ${strip_modules_debug}INSTALL_MOD_PATH=$install_to modules_install"
   fi
