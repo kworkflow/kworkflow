@@ -846,7 +846,7 @@ function test_kernel_modules()
   output=$(modules_install 'TEST_MODE' 2)
   declare -a expected_cmd=(
     "$PREPARING_MODULES_MSG"
-    'sudo -E make modules_install'
+    'sudo true && sudo -E make modules_install'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
