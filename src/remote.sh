@@ -1,6 +1,7 @@
 # NOTE: It is recommended that src/kw_config_loader.sh be included before this
 # file
 include "$KW_LIB_DIR/kw_config_loader.sh"
+include "$KW_LIB_DIR/kwlib.sh"
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
@@ -159,9 +160,17 @@ function which_distro()
   local port=${2:-${remote_parameters[ssh_port]}}
   local user=${3:-${remote_parameters[ssh_user]}}
   local flag=${4:-'SILENT'}
+  local output
 
-  cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
-  cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user"
+  cmd='cat /etc/os-release'
+  output=$(cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user")
+  # TODO: I think we can find a better way to test this...
+  if [[ "$flag" =~ 'TEST_MODE' ]]; then
+    printf '%s' "$output"
+    return
+  fi
+
+  detect_distro '' '' "$output"
 }
 
 # Populate remote info

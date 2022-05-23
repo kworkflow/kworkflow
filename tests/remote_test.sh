@@ -217,7 +217,7 @@ function test_cp2remote()
 
 function test_which_distro()
 {
-  local cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
+  local cmd='cat /etc/os-release'
   local remote='172.16.224.1'
   local user='xpto'
   local port='2222'
