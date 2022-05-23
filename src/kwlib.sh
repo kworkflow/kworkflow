@@ -265,11 +265,13 @@ function join_path()
 # This function checks if the target distro is supported by kw. This function
 # is handy for plugins that have some dependency with distros.
 #
-# Note: We handle OS family instead of a specific distro_id, for example,
-# Ubuntu and Mint are Debian based distro_id.
+# Accordingly, with os-release documentation, when we find ID_LIKE, we are in a
+# derivative distro. If we don't have it, the distro is the original one and
+# will only have ID.
 #
-# @root_path Expects the root path wherein we can find the /etc
-# @str_check String with a distro name
+# @root_path: Expects the root path wherein we can find the /etc
+# @str_check: String with a distro name
+# @raw_os_release: os-release file in a string
 #
 # Returns:
 # It returns the family name in lowercase, otherwise return none.
@@ -277,32 +279,36 @@ function detect_distro()
 {
   local root_path="$1"
   local str_check="$2"
-  local distro_id='none'
+  local raw_os_release="$3"
+  local distro_ids='none'
   local etc_path
-  declare -a debian_family=('debian' 'ubuntu' 'raspbian')
-  declare -a arch_family=('arch' 'manjaro')
-  declare -a fedora_family=('fedora')
+  local os_release_process
+  declare -a os_family=('debian' 'arch' 'fedora')
 
-  etc_path=$(join_path "$root_path" /etc)
+  etc_path=$(join_path "$root_path" '/etc')
+
+  if [[ -d "$etc_path" && -z "$str_check" && -z "$raw_os_release" ]]; then
+    os_release_process=$(< "${etc_path}/os-release")
+  elif [[ -n "$raw_os_release" ]]; then
+    os_release_process="$raw_os_release"
+  fi
+
+  if [[ -n "$os_release_process" ]]; then
+    distro_ids=$(printf '%s' "$os_release_process" | grep -w 'ID\(_LIKE\)\?' | tr -d '"' | cut -d = -f 2)
+  fi
 
   if [[ -n "$str_check" ]]; then
-    distro_id="$str_check"
-  elif [[ -d $etc_path ]]; then
-    distro_id=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
+    distro_ids="$str_check"
   fi
 
-  # Debian family
-  if [[ "${debian_family[*]}" =~ ${distro_id} ]]; then
-    printf '%s\n' 'debian'
-  # ArchLinux family
-  elif [[ "${arch_family[*]}" =~ ${distro_id} ]]; then
-    printf '%s\n' 'arch'
-  # Fedora family
-  elif [[ "${fedora_family[*]}" =~ ${distro_id} ]]; then
-    printf '%s\n' 'fedora'
-  else
-    printf '%s\n' 'none'
-  fi
+  for distro_id in $distro_ids; do
+    if [[ ${os_family[*]} =~ ${distro_id} ]]; then
+      printf '%s\n' "$distro_id"
+      return
+    fi
+  done
+
+  printf '%s\n' 'none'
 }
 
 # This function maps a label with a value that is used to store statistics data
