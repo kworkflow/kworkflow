@@ -4,7 +4,29 @@
 # 1. run_bootloader_update: Update GRUB in a local and remote machine.
 # 2. run_bootloader_for_vm: Update GRUB in a virtual machine.
 
-declare -rg DEFAULT_GRUB_CMD_UPDATE='grub-mkconfig -o /boot/grub/grub.cfg'
+declare -g DEFAULT_GRUB_CMD_UPDATE='grub-mkconfig -o /boot/grub/grub.cfg'
+
+# Some distributions, such as Fedora, use GRUB2 as the default bootloader. On
+# those systems, grub-mkconfig command is replaced by grub2-mkconfig. This function
+# checks if the grub-mkconfig command exists and if doesn't, the default grub
+# update command is set to grub2-mkconfig.
+#
+# Returns:
+# 0 if a grub update command exists and 2 otherwise.
+function define_grub_cmd_update()
+{
+  local grub_cmd='grub-mkconfig'
+  local grub2_cmd='grub2-mkconfig'
+
+  if ! command_exists "$grub_cmd"; then
+    if ! command_exists "$grub2_cmd"; then
+      return 2 # ENOENT
+    fi
+    DEFAULT_GRUB_CMD_UPDATE='grub2-mkconfig -o /boot/grub2/grub.cfg'
+  fi
+
+  return 0
+}
 
 # Update grub bootloader in a target machine.
 function run_bootloader_update()
@@ -21,6 +43,12 @@ function run_bootloader_update()
   elif [[ "$target" == 'vm' ]]; then
     run_bootloader_for_vm "$flag"
     return "$?"
+  fi
+
+  define_grub_cmd_update
+  if [[ "$?" -gt 0 ]]; then
+    complain "There is no grub-mkconfig command in the system."
+    return 125 # ECANCELED
   fi
 
   cmd_grub+="$DEFAULT_GRUB_CMD_UPDATE"
@@ -81,6 +109,12 @@ function run_bootloader_for_vm()
   # For executing libguestfs commands we need to umount the vm
   if [[ $(findmnt "${configurations[mount_point]}") ]]; then
     vm_umount
+  fi
+
+  define_grub_cmd_update
+  if [[ "$?" -gt 0 ]]; then
+    complain "There is no grub-mkconfig command in the system."
+    return 125 # ECANCELED
   fi
 
   cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
