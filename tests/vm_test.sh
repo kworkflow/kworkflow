@@ -25,8 +25,8 @@ function tearDown()
 
 function test_vm_mount()
 {
-  local mount_point="$SHUNIT_TMPDIR/lala"
-  local qemu_path="/any/path"
+  local mount_point="${SHUNIT_TMPDIR}/lala"
+  local qemu_path='/any/path'
   local -r current_path="$PWD"
   local ret
   local expected_ret
@@ -60,7 +60,7 @@ function test_vm_mount()
   chmod a-r "${prefix}boot/vmlinuz-$(uname)"
 
   # Suppose it's a debian system
-  cp -f "$tests/samples/os/debian/"* "$prefix/etc"
+  cp -f "$tests/samples/os/debian/etc/os-release" "$prefix/etc"
 
   expected_cmd=(
     'To mount the VM, the kernel image needs to be readable'
@@ -74,7 +74,7 @@ function test_vm_mount()
 
   # Suppose it's not debian
   rm -rf "${etc:?}/"*
-  cp -f "$tests/samples/os/arch/"* "$prefix/etc"
+  cp -f "$tests/samples/os/arch/etc/os-release" "$prefix/etc"
 
   expected_cmd[1]="sudo chmod +r ${prefix}boot/vmlinuz-$(uname -r)"
   output=$(printf '%s\n' 'y' | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
