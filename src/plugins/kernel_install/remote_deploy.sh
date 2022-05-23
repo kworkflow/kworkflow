@@ -111,6 +111,8 @@ if [[ -f 'debian.sh' ]]; then
   . 'debian.sh' --source-only
 elif [[ -f 'arch.sh' ]]; then
   . 'arch.sh' --source-only
+elif [[ -f 'fedora.sh' ]]; then
+  . 'fedora.sh' --source-only
 else
   printf '%s\n' 'It looks like kw does not support your distro'
   exit 95 # Not supported

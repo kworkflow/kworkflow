@@ -38,7 +38,7 @@ Kw Deploy Limitations
 Let's start by setting the expectations around `kw deploy` and describing its
 current limitations:
 
-* The target machine must be Debian or Arch Linux family (by family, we are
+* The target machine must be Debian, Fedora or Arch Linux family (by family, we are
   talking about derivative distros). For example, Ubuntu and Mint are derivated
   from Debian, meaning that kw supports those distros.
 * Right now, kw only supports the GRUB2 bootloader.
