@@ -1,4 +1,5 @@
 declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+declare -g AB_ROOTFS_PARTITION='/dev/disk/by-partsets/self/rootfs'
 
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
@@ -49,6 +50,84 @@ function command_exists()
   return 0
 }
 
+# Identify partition type
+#
+# @target_path By default, it is / but developers can set any path.
+#
+# Return:
+# Return filesystem type
+function detect_filesystem_type()
+{
+  local target_path=${1:-'/'}
+  local file_system
+
+  file_system=$(findmnt --first-only --noheadings --output FSTYPE "$target_path")
+
+  printf '%s' "$file_system"
+}
+
+# Check if the partition that will receive the new kernel is writable. This is
+# especially important for OSes that block the write to the / path, such as
+# SteamOS and ChromeOS.
+#
+# Return
+# An error code in case of failure or 0 in case of success.
+function is_filesystem_writable()
+{
+  local file_system_type="$1"
+  local flag="$2"
+  local cmd=''
+  local file_system_type
+
+  case "$file_system_type" in
+    ext4)
+      # Is this A/b partition?
+      if [[ -f "$AB_ROOTFS_PARTITION" ]]; then
+        cmd="tune2fs -l '$AB_ROOTFS_PARTITION' | grep -q '^Filesystem features: .*read-only.*$'"
+      fi
+      ;;
+    btrfs)
+      cmd='btrfs property get / ro | grep "ro=false" --silent'
+      ;;
+    *)
+      return 95 # EOPNOTSUPP
+      ;;
+  esac
+
+  # We don't need to do anything else here
+  [[ -z "$cmd" ]] && return 0
+
+  cmd_manager "$flag" "$cmd"
+  return "$?"
+}
+
+# If the target partition is not in the writable mode, this function enables it
+# to write.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function make_root_partition_writable()
+{
+  local flag="$1"
+  local file_system_type
+
+  file_system_type=$(detect_filesystem_type '')
+  is_filesystem_writable "$file_system_type"
+
+  if [[ "$?" != 0 ]]; then
+    case "$file_system_type" in
+      ext4)
+        cmd_manager "$flag" "tune2fs -O ^read-only ${AB_ROOTFS_PARTITION}"
+        cmd_manager "$flag" 'mount -o remount,rw /'
+        ;;
+      btrfs)
+        cmd_manager "$flag" 'mount -o remount,rw /'
+        cmd_manager "$flag" 'btrfs property set / ro false'
+        ;;
+    esac
+  fi
+}
+
 function collect_deploy_info()
 {
   local flag="$1"
@@ -89,6 +168,10 @@ function distro_deploy_setup()
   local package_list
   local install_package_cmd
 
+  # Make sure that / is writable
+  make_root_partition_writable "$flag"
+
+  # Install required packages
   printf -v package_list '%s ' "${required_packages[@]}"
 
   install_package_cmd="$package_manager_cmd $package_list"

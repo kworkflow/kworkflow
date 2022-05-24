@@ -113,6 +113,12 @@ function findmnt_mock()
   printf '%s\n' '/home  /dev/lala ext4   rw,relatime'
 }
 
+function findmnt_only_filesystem_mock()
+{
+  # findmnt --first-only --noheadings --output FSTYPE "$target_path"
+  printf 'btrfs'
+}
+
 function vm_umount()
 {
   printf '%s\n' 'vm_umount'
@@ -589,6 +595,90 @@ function test_distro_deploy_setup()
   expected_cmd="$package_manager_cmd ${required_packages[*]} "
 
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_detect_filesystem_type()
+{
+  local output
+
+  alias findmnt='findmnt_only_filesystem_mock'
+
+  output=$(detect_filesystem_type '')
+  assert_equals_helper 'We expected btrfs' "$LINENO" 'btrfs' "$output"
+}
+
+function test_is_filesystem_writable()
+{
+  local output
+  local expected_cmd
+
+  output=$(is_filesystem_writable 'ext4' 'TEST_MODE')
+  assert_equals_helper 'Expected nothing' "$LINENO" "$?" 0
+
+  output=$(is_filesystem_writable 'xpto-lala' 'TEST_MODE')
+  assert_equals_helper 'Expected EOPNOTSUPP error' "$LINENO" "$?" 95
+
+  output=$(is_filesystem_writable 'btrfs' 'TEST_MODE')
+  expected_cmd='btrfs property get / ro | grep "ro=false" --silent'
+  assert_equals_helper 'Expected btrfs property get command' "$LINENO" "$output" "$expected_cmd"
+
+  AB_ROOTFS_PARTITION="${PWD}/kw"
+  output=$(is_filesystem_writable 'ext4' 'TEST_MODE')
+  expected_cmd="tune2fs -l '$AB_ROOTFS_PARTITION' | grep -q '^Filesystem features: .*read-only.*$'"
+  assert_equals_helper 'Expected tune2fs command' "$LINENO" "$output" "$expected_cmd"
+}
+
+function test_make_root_partition_writable()
+{
+  local output
+  local expected_sequence
+
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 0
+    }
+    make_root_partition_writable 'TEST_MODE'
+  )"
+  assert_equals_helper 'It is writable, do nothing' "$LINENO" "$?" 0
+
+  # Check ext4
+  AB_ROOTFS_PARTITION='/xpto/la'
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 1
+    }
+    function detect_filesystem_type()
+    {
+      printf 'ext4'
+    }
+    make_root_partition_writable 'TEST_MODE'
+  )"
+  expected_sequence=(
+    "tune2fs -O ^read-only ${AB_ROOTFS_PARTITION}"
+    'mount -o remount,rw /'
+  )
+  compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
+
+  # Check btrfs
+  AB_ROOTFS_PARTITION='/xpto/la'
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 1
+    }
+    function detect_filesystem_type()
+    {
+      printf 'btrfs'
+    }
+    make_root_partition_writable 'TEST_MODE'
+  )"
+  expected_sequence=(
+    'mount -o remount,rw /'
+    'btrfs property set / ro false'
+  )
+  compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
 }
 
 invoke_shunit

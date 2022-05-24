@@ -15,6 +15,7 @@ declare -ga required_packages=(
   'lzop'
   'zstd'
   'xz'
+  'os-prober'
 )
 
 # ArchLinux package manager

@@ -260,7 +260,7 @@ function test_prepare_distro_for_deploy()
   expected_cmd=(
     '-> Basic distro set up'
     '' # Extra space for the \n
-    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz'
+    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"

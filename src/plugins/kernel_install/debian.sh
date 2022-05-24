@@ -16,6 +16,7 @@ declare -ag required_packages=(
   'xz-utils'
   'lzop'
   'zstd'
+  'os-prober'
 )
 
 # Debian package manager command
