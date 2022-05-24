@@ -25,6 +25,17 @@ information, check:
    content/codingstyle
    content/developmentworkflow
 
+Kw code doc
+===========
+
+Check out our code documentation.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Code documentation:
+
+   content/project_structure
+
 kw Tutorials
 ============
 
