@@ -20,6 +20,7 @@ information, check:
    :maxdepth: 1
 
    content/installanduninstall
+   content/project_structure
    content/howtocontribute
    content/tests
    content/codingstyle
