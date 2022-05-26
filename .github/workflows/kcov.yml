@@ -1,8 +1,8 @@
-name: Unit tests
+name: Kcov test
 on:
   [push, pull_request]
 jobs:
-  unit-tests:
+  kcov-test:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -20,14 +20,25 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt install -y shunit2 bc sqlite3 bsdmainutils
+          sudo apt install -y kcov shunit2 bc sqlite3 bsdmainutils
 
       - name: Prepare for tests
         run: |
           ./run_tests.sh prepare
+          mkdir kcov_out/
           git config --global user.email "kw@kworkflow.net"
           git config --global user.name "Kworkflow"
 
-      - name: Unit tests
+      - name: Prepare for coverage test
         run: |
-          ./run_tests.sh
+          ./run_tests.sh prepare
+
+      - name: Kcov test
+        run: |
+          kcov --include-path=src,kw \
+          --exclude-pattern=src/bash_autocomplete.sh,src/help.sh \
+          kcov_out/ ./run_tests.sh
+
+      - name: Upload coverage do codecov
+        run: |
+          bash <(curl -s https://codecov.io/bash) -s kcov_out/
