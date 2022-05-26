@@ -214,8 +214,12 @@ function test_save_config_file_check_git_save_schema()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
+
+  save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
+  ret=$(save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2")
+
+  assert_equals_helper '' "$LINENO" "$ret" "Saved $NAME_2"
+
   cd "configs" || {
     fail "($LINENO) It was not possible to move to configs directory"
     return
