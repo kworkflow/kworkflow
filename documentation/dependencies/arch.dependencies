@@ -21,3 +21,6 @@ python-pip
 bc
 perl-authen-sasl
 perl-io-socket-ssl
+sqlite3
+pv
+rsync

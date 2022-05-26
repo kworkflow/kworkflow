@@ -1,0 +1,3 @@
+sendemail.smtpserver=smtp.gmail.com
+sendemail.smtpencryption=tls
+sendemail.smtpserverport=587

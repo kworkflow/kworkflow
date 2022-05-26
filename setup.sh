@@ -61,17 +61,18 @@ function check_dependencies()
       [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/debian.dependencies"
     cmd="apt install -y $package_list"
+  elif [[ "$distro" =~ 'fedora' ]]; then
+    while IFS='' read -r package; do
+      installed=$(dnf list installed "$package" 2> /dev/null | grep -c "$package")
+      [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
+    done < "$DOCUMENTATION/dependencies/fedora.dependencies"
+    cmd="dnf install -y $package_list"
   else
     warning 'Unfortunately, we do not have official support for your distro (yet)'
     warning 'Please, try to find the following packages:'
     warning "$(cat "$DOCUMENTATION/dependencies/arch.dependencies")"
     return 0
   fi
-
-  while IFS='' read -r package; do
-    pip list | grep -F "$package" > /dev/null
-    [[ "$?" != 0 ]] && pip_package_list="$package $pip_package_list"
-  done < "$DOCUMENTATION/dependencies/pip.dependencies"
 
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
@@ -83,6 +84,11 @@ function check_dependencies()
     # Install system packages
     eval "sudo $cmd"
   fi
+
+  while IFS='' read -r package; do
+    python3 -c "import pkg_resources; pkg_resources.require('$package')" &> /dev/null
+    [[ "$?" != 0 ]] && pip_package_list="\"$package\" $pip_package_list"
+  done < "$DOCUMENTATION/dependencies/pip.dependencies"
 
   if [[ -n "$pip_package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then

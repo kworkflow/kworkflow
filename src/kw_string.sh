@@ -179,3 +179,17 @@ function str_drop_all_spaces()
 
   printf '%s' "$str" | tr --delete ' '
 }
+
+# This function takes arguments and concatenates them with commas as
+# separators
+#
+# @@: Values to be formatted
+#
+# Return:
+# A string of the arguments separated by commas
+function concatenate_with_commas()
+{
+  local IFS=','
+
+  printf '%s\n' "$*"
+}

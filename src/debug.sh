@@ -41,6 +41,7 @@ function debug_main()
   local disable=''
   local list=''
   local follow=''
+  local reset=''
   local base_log_path
 
   parser_debug_options "$@"
@@ -60,6 +61,7 @@ function debug_main()
   disable="${options_values['DISABLE']}"
   list="${options_values['LIST']}"
   follow="${options_values['FOLLOW']}"
+  reset="${options_values['RESET']}"
 
   # Base path for saving log files
   base_log_path=$(prepare_log_database "$keep_history")
@@ -75,8 +77,20 @@ function debug_main()
     fi
   fi
 
+  # --list change the behaviour inside event, for this reason let's ignore
+  # list if event is set
+  if [[ -n "$list" && -z "$event" ]]; then
+    list_debug "$target" "$list" "$flag"
+    return
+  fi
+
+  if [[ -n "$reset" ]]; then
+    reset_debug "$target"
+    return "$?"
+  fi
+
   if [[ -n "$event" ]]; then
-    event_trace "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list"
+    event_debug "$target" "$flag" "$event" "$base_log_path" "$follow" "$user_cmd" "$list" "$disable"
     return "$?"
   fi
 
@@ -94,6 +108,100 @@ function debug_main()
     printf '%s\n' "${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']} $target $event $user_cmd"
     return 0
   fi
+}
+
+# List debug options for ftrace and event.
+#
+# @target: Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
+# @list_target: List debug options
+# @flag: How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Return 22 in case of invalid option
+function list_debug()
+{
+  local target="$1"
+  local list_target="$2"
+  local flag="$3"
+  local char_repetition
+  local specific_event
+
+  # List all options
+  if [[ "$list_target" == 1 ]]; then
+    say "Ftrace options:"
+    ftrace_list "$target" "$flag"
+    say "Event options:"
+    event_debug "$target" "$flag" '' '' '' '' 1
+    return 0
+  fi
+
+  char_repetition=$(str_count_char_repetition "$list_target" ':')
+  if [[ "$char_repetition" -ge 1 ]]; then
+    specific_event=$(printf '%s' "$list_target" | cut -d ':' -f2)
+    list_target=$(printf '%s' "$list_target" | cut -d ':' -f1)
+  fi
+
+  case "$list_target" in
+    events)
+      event_debug "$target" "$flag" "$specific_event" '' '' '' 1
+      ;;
+    ftrace)
+      ftrace_list "$target" "$flag"
+      ;;
+    *)
+      complain "Invalid option: $list_target. Do you mean events or ftrace?"
+      return 22 # EINVAL
+      ;;
+  esac
+}
+
+# When users cancel some of the debug operations, we might have a situation
+# where we accidentally leave some configurations set, which may cause problems
+# when trying to use the debug option a second time. In particular, it is
+# common to have a hung process in the trace_pipe file. This function is
+# responsible for resetting and killing any debug option process.
+#
+# @target: Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
+# @flag: How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function reset_debug()
+{
+  local target="$1"
+  local flag="$2"
+  local reset_cmd
+  local kill_hang_cmd
+
+  # Note that event already clean part of the ftrace files, except by the
+  # ftrace filter
+  reset_cmd=$(build_event_command_string '' 0)
+  reset_cmd+=" && printf '' > $FTRACE_FILTER"
+
+  # We might have a hang process on trace_pipe, let's make sure we kill it
+  kill_hang_cmd="lsof 2>/dev/null | grep $TRACE_PIPE | tr -s ' ' | cut -d ' ' -f2"
+  kill_hang_cmd+=" | xargs -I{} kill -9 {}"
+
+  # Make sure the we clean trace pipe
+  reset_cmd+=" && printf '' > $TRACING_BASE_PATH/trace_pipe"
+  reset_cmd+=" && $kill_hang_cmd"
+
+  case "$target" in
+    2) # LOCAL
+      cmd_manager "$flag" "sudo bash -c \"$reset_cmd\""
+      ;;
+    3 | 1) # REMOTE && VM
+      local remote="${remote_parameters['REMOTE_IP']}"
+      local port="${remote_parameters['REMOTE_PORT']}"
+      local user="${remote_parameters['REMOTE_USER']}"
+
+      if [[ "$target" == 1 ]]; then
+        say 'Target is a VM'
+        # TODO: We should check if the VM is up and running
+      fi
+
+      cmd_remotely "$reset_cmd" "$flag" "$remote" "$port" "$user"
+      ;;
+  esac
 }
 
 # This function is responsible for handling dmesg logs.
@@ -183,7 +291,7 @@ function dmesg_debug()
 #
 # Return:
 # In case of an error, returns an errno code.
-function event_trace()
+function event_debug()
 {
   local target="$1"
   local flag="$2"
@@ -192,6 +300,7 @@ function event_trace()
   local follow="$5"
   local user_cmd="$6"
   local list="$7"
+  local disable="$8"
   local redirect_mode=''
   local base_log_path
   local disable_cmd
@@ -224,7 +333,7 @@ function event_trace()
     command="$command && cat $TRACE_PIPE"
   fi
 
-  if [[ -n "$user_cmd" ]]; then
+  if [[ -n "$user_cmd" && -z "$disable" ]]; then
     save_following_log="$base_log_path/event"
     screen_nick=$(get_today_info '+kw_%Y_%m_%d-%H_%M_%S')
     screen_cmd="screen -L -Logfile ~/$screen_nick -dmS $screen_nick cat $TRACE_PIPE"
@@ -242,14 +351,14 @@ function event_trace()
 
   case "$target" in
     2) # LOCAL
-      if [[ "$list" == "$LIST_OPTION" ]]; then
-        list_output=$(cmd_manager "SILENT" "$save_following_log" "sudo bash -c \"$command\"")
+      if [[ -n "$list" ]]; then
+        flag=${flag:-'SILENT'}
+        list_output=$(cmd_manager "$flag" "$save_following_log" "sudo bash -c \"$command\"")
         show_list "$list_output" "$event"
         return "$ret"
       fi
 
       [[ -n "$save_following_log" ]] && redirect_mode='KW_REDIRECT_MODE'
-
       cmd_manager "$flag" "sudo bash -c \"$command\"" "$redirect_mode" "$save_following_log"
 
       if [[ -n "$user_cmd" ]]; then
@@ -428,6 +537,7 @@ function ftrace_debug()
   if [[ "$ret" != 0 && "$ret" != 130 ]]; then
     complain "Fail to enable ftrace: $ftrace_syntax - $ret"
     complain 'Hint: try to use a wildcard in the filter'
+    complain 'Hint: try to use: kw debug --reset'
     return "$ret"
   fi
 }
@@ -446,13 +556,14 @@ function build_ftrace_command_string()
   local char_repetition
   local ftrace_filters
   local ftrace_type
-  local cmd_disable_ftrace="echo 0 > $TRACING_ON"
-  local cmd_enable_ftrace="echo 1 > $TRACING_ON"
+  local cmd_disable_ftrace="printf '0' > $TRACING_ON"
+  local cmd_enable_ftrace="printf '1' > $TRACING_ON"
   local cmd_ftrace="$cmd_disable_ftrace"
   declare -a filter_list
 
   if [[ -n "$ftrace_disable" ]]; then
-    cmd_ftrace+=" && echo '' > $FTRACE_FILTER"
+    cmd_ftrace+=" && printf '' > $FTRACE_FILTER"
+    cmd_ftrace+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
     printf '%s' "$cmd_ftrace"
     return
   fi
@@ -477,7 +588,7 @@ function build_ftrace_command_string()
   # Set ftrace type
   ftrace_type=$(printf '%s' "$ftrace_syntax" | cut -d ':' -f1)
   ftrace_type=$(str_strip "$ftrace_type")
-  cmd_ftrace+=" && echo '$ftrace_type' > $FTRACE_CURRENT_PATH"
+  cmd_ftrace+=" && printf '%s' '$ftrace_type' > $FTRACE_CURRENT_PATH"
 
   # We have filters
   if [[ "$char_repetition" -eq 1 ]]; then
@@ -505,7 +616,7 @@ function build_ftrace_command_string()
 
   # Set ftrace filters
   for filter in "${filter_list[@]}"; do
-    cmd_ftrace+=" && echo '$filter' >> $FTRACE_FILTER"
+    cmd_ftrace+=" && printf '%s' '$filter' >> $FTRACE_FILTER"
   done
 
   # Enable traces
@@ -666,7 +777,7 @@ function build_event_command_string()
 
     # If disable, clean filters
     if [[ "$enable" != 1 && -n "$event" ]]; then
-      filter="printf '%s\n' '0' > $event/filter"
+      filter="printf '0\n' > $event/filter"
       set_filters+="$filter;"
     fi
 
@@ -682,6 +793,8 @@ function build_event_command_string()
   else
     if [[ "$enable" != 1 ]]; then
       [[ -n "$set_filters" ]] && global_trace+=" && $set_filters $enable_events"
+      # Let's ensure that ftrace is disabled
+      global_trace+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
       printf '%s\n' "$global_trace"
     else
       printf '%s\n' "$set_filters $enable_events && $global_trace"
@@ -755,45 +868,15 @@ function stop_debug()
   local stop_dmesg_cmd
   local target
 
-  flag=${flag:-'SILENT'}
-
   # We only need to take action when following log
   [[ -z "${options_values['FOLLOW']}" ]] && return 0
 
   target="${options_values['TARGET']}"
+  flag=${flag:-'SILENT'}
 
-  if [[ "$target" == 3 || "$target" == 1 ]]; then
-    remote="${remote_parameters['REMOTE_IP']}"
-    port="${remote_parameters['REMOTE_PORT']}"
-    user="${remote_parameters['REMOTE_USER']}"
-  fi
-
-  if [[ -n "${options_values['EVENT']}" ]]; then
-    say "Disabling events in the target machine : ${options_values['EVENT']}"
-    disable_cmd=$(build_event_command_string '' 0)
-
-    case "$target" in
-      2) # LOCAL
-        cmd_manager "$flag" "sudo bash -c \"$disable_cmd\""
-        ;;
-      3 | 1) # REMOTE && VM
-        cmd_remotely "$disable_cmd" "$flag" "$remote" "$port" "$user"
-        ;;
-    esac
-  fi
-
-  if [[ -n "${options_values['FTRACE']}" ]]; then
-    say 'Disabling ftrace in the target machine'
-    disable_cmd=$(build_ftrace_command_string '' 1)
-
-    case "$target" in
-      2) # LOCAL
-        cmd_manager "$flag" "sudo bash -c \"$disable_cmd\""
-        ;;
-      3 | 1) # REMOTE && VM
-        cmd_remotely "$disable_cmd" "$flag" "$remote" "$port" "$user"
-        ;;
-    esac
+  if [[ -n "${options_values['EVENT']}" || -n "${options_values['FTRACE']}" ]]; then
+    say 'Restoring debug files'
+    reset_debug "$target" "$flag"
   fi
 
   if [[ -n "${options_values['DMESG']}" ]]; then
@@ -804,6 +887,10 @@ function stop_debug()
         cmd_manager "$flag" "$stop_dmesg_cmd"
         ;;
       3 | 1) # REMOTE && VM
+        remote="${remote_parameters['REMOTE_IP']}"
+        port="${remote_parameters['REMOTE_PORT']}"
+        user="${remote_parameters['REMOTE_USER']}"
+
         cmd_remotely "$stop_dmesg_cmd" "$flag" "$remote" "$port" "$user"
         ;;
     esac
@@ -817,8 +904,8 @@ function parser_debug_options()
   local long_options
   local transition_variables
 
-  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list,follow,help'
-  short_options='f,e,t,g,c,h,d,l,k'
+  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list::,follow,reset,help'
+  short_options='e:,t:,g,f,c:,k,d,l::,h'
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
 
@@ -897,9 +984,19 @@ function parser_debug_options()
         options_values['DISABLE']=1
         shift
         ;;
-      --list | -l)
-        options_values['LIST']=1
+      --reset)
+        options_values['RESET']=1
         shift
+        ;;
+      --list | -l)
+        # Handling optional parameter
+        if [[ "$2" =~ ^- || -z "${2// /}" ]]; then
+          options_values['LIST']=1
+          shift 2
+        else
+          options_values['LIST']="$2"
+          shift 2
+        fi
         ;;
       --follow | -f)
         options_values['FOLLOW']=1
@@ -934,12 +1031,13 @@ function debug_help()
   printf '%s\n' 'kw debug:' \
     '  debug - kw debug utilities' \
     '  debug (--remote <remote>:<port> | --local | --vm) - choose target' \
-    '  debug (--list | -l) - List trace options' \
+    '  debug (--list | -l)[=(<ftrace> | <event>)] - List trace options' \
     '  debug (--history | -k) - Store trace logs in a file' \
     '  debug (--follow | -f) - Follow traces in real-time' \
     '  debug (--cmd | -c) "command" - Trace log while running a command in the target.' \
     '  debug (--dmesg | -g) - Collect the dmesg log' \
     '  debug (--event | -e) [--disable] "<syntax>" - Trace specific event' \
     '  debug (--ftrace | -t) [--disable] "<syntax>" - Use ftrace to identify code path' \
+    '  debug (--reset) - Reset debug values in the target machine' \
     '  You can combine some of the above options'
 }

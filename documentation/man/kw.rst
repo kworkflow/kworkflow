@@ -100,7 +100,7 @@ the previous sections.
   | :ref:`kw-configm<configm-doc>`
   | :ref:`kw-vars<vars-doc>`
   | :ref:`kw-diff<diff-doc>`
-  | :ref:`kw-statistics<statistics-doc>`
+  | :ref:`kw-report<report-doc>`
   | :ref:`kw-pomodoro<pomodoro-doc>`
   | :ref:`kw-mail<mail-doc>`
 
@@ -288,20 +288,20 @@ After you start your VM you can ssh into it with::
   kw s -c="dmesg -wH"
   kw s
 
-You can see data related to your kw usage by using the statistics option, see
-some examples below::
+You can see data related to your kw usage by using the ``--statistics`` flag on
+the report option, see some examples below::
 
-  kw statistics --day
-  kw statistics --week
-  kw statistics --month
-  kw statistics --year
+  kw report --statistics --day
+  kw report --statistics --week
+  kw report --statistics --month
+  kw report --statistics --year
 
 You can also request a specific day, week, month, or year. For example::
 
-  kw statistics --day 2020/05/12
-  kw statistics --week 2020/02/29
-  kw statistics --month 2020/04
-  kw statistics --year 1984
+  kw report --statistics --day=2020/05/12
+  kw report --statistics --week=2020/02/29
+  kw report --statistics --month=2020/04
+  kw report --statistics --year=1984
 
 If you are working with DRM drivers, you can take advantage of load and unload
 commands combined with GUI control commands. For example::

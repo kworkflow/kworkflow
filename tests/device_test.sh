@@ -3,6 +3,11 @@
 include './src/device_info.sh'
 include './tests/utils.sh'
 
+function oneTimeSetUp()
+{
+  shopt -s expand_aliases
+}
+
 declare -gA configurations
 configurations[ssh_user]=john
 
@@ -13,16 +18,16 @@ function test_get_ram()
 
   configurations[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
   get_ram "$VM_TARGET"
-  assertEquals "($LINENO)" 1024000 "${device_info_data['ram']}"
+  assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
 
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
   output=$(get_ram "$LOCAL_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "$cmd" "$output"
+  assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
 
   device_options['ip']='127.0.0.1'
   device_options['port']='2222'
   output=$(get_ram "$REMOTE_TARGET" 'TEST_MODE')
-  assertEquals "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
+  assert_equals_helper 'Remote target RAM info gathering command did not match expectation' "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
 }
 
 function test_get_cpu()
@@ -34,10 +39,10 @@ function test_get_cpu()
   )
 
   get_cpu "$VM_TARGET"
-  assertEquals "($LINENO)" 'Virtual' "${device_info_data['cpu_model']}"
+  assert_equals_helper 'Failed to gather VM target CPU data' "($LINENO)" 'Virtual' "${device_info_data['cpu_model']}"
 
   output=$(get_cpu "$LOCAL_TARGET" 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence 'Failed to gather local target CPU data' "$LINENO" 'expected_cmd' "$output"
 
   declare -a expected_cmd=(
     "ssh -p 2222 john@127.0.0.1 sudo \"lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1\""
@@ -47,7 +52,7 @@ function test_get_cpu()
   device_options['ip']='127.0.0.1'
   device_options['port']='2222'
   output=$(get_cpu "$REMOTE_TARGET" 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence 'Failed to gather remote target CPU data' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_get_disk()
@@ -58,16 +63,16 @@ function test_get_disk()
   configurations[mount_point]='somewhere/to/mount'
   cmd="df -h ${configurations[mount_point]} | tail -n 1 | tr -s ' '"
   output=$(get_disk "$VM_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "$cmd" "$output"
+  assert_equals_helper 'Failed to gather VM target disk data' "($LINENO)" "$cmd" "$output"
 
   cmd="df -h / | tail -n 1 | tr -s ' '"
   output=$(get_disk "$LOCAL_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "$cmd" "$output"
+  assert_equals_helper 'Failed to gather local target disk data' "($LINENO)" "$cmd" "$output"
 
   device_options['ip']='127.0.0.1'
   device_options['port']='2222'
   output=$(get_disk "$REMOTE_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
+  assert_equals_helper 'Failed to gather remote target disk data' "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
 }
 
 function test_get_motherboard()
@@ -79,7 +84,7 @@ function test_get_motherboard()
   )
 
   output=$(get_motherboard "$LOCAL_TARGET" 'TEST_MODE')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence 'Failed to gather local target motherboard data' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_get_chassis()
@@ -89,7 +94,7 @@ function test_get_chassis()
 
   cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
   output=$(get_chassis "$LOCAL_TARGET" 'TEST_MODE')
-  assertEquals "($LINENO)" "$cmd" "$output"
+  assert_equals_helper 'Failed to gather local target chassis data' "($LINENO)" "$cmd" "$output"
 }
 
 function test_display_data()
@@ -129,7 +134,7 @@ function test_display_data()
   device_info_data['motherboard_vendor']='Vendor'
   device_info_data['motherboard_name']='ABC123'
   output=$(show_data)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence 'Failed to set target data' "$LINENO" 'expected_cmd' "$output"
 }
 
 function detect_distro_mock()
@@ -147,19 +152,18 @@ function test_get_os()
   local cmd
 
   # Check local deploy
-  shopt -s expand_aliases
   alias detect_distro='detect_distro_mock'
   get_os "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'lala' "${device_info_data['os']}"
+  assert_equals_helper 'Failed to gather local target OS data' "($LINENO)" 'lala' "${device_info_data['os']}"
 
   # VM
   get_os "$VM_TARGET"
-  assertEquals "($LINENO)" 'lala' "${device_info_data['os']}"
+  assert_equals_helper 'Failed to gather VM target OS data' "($LINENO)" 'lala' "${device_info_data['os']}"
 
   # Remote
   alias which_distro='which_distro_mock'
   get_os "$REMOTE_TARGET"
-  assertEquals "($LINENO)" 'xpto' "${device_info_data['os']}"
+  assert_equals_helper 'Failed to gather remote target OS data' "($LINENO)" 'xpto' "${device_info_data['os']}"
 }
 
 function ps_mock()
@@ -172,36 +176,134 @@ function test_get_desktop_environment()
   local cmd
   local output
 
-  shopt -s expand_aliases
-
   # Check local deploy and some DE variations
   alias ps='ps_mock lxsession'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'lxde' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'lxde' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock kde'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'kde' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'kde' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock mate'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'mate' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'mate' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock cinnamon'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'cinnamon' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'cinnamon' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock openbox'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'openbox' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'openbox' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock gnome-shell'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'gnome' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'gnome' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock something'
   get_desktop_environment "$LOCAL_TARGET"
-  assertEquals "($LINENO)" 'unidentified' "${device_info_data['desktop_environment']}"
+  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'unidentified' "${device_info_data['desktop_environment']}"
+}
+
+# mocked data for get_gpu test
+mocked_lspci=$(
+  cat << EOF
+00:00.0 Host bridge: Intel Corporation Xeon E3-1200 v6/7th Gen Core Processor Host Bridge/DRAM Registers (rev 08)
+00:02.0 VGA compatible controller: Intel Corporation UHD Graphics 620 (rev 07)
+00:04.0 Signal processing controller: Intel Corporation Xeon E3-1200 v5/E3-1500 v5/6th Gen Core Processor Thermal Subsystem (rev 08)
+00:14.0 USB controller: Intel Corporation Sunrise Point-LP USB 3.0 xHCI Controller (rev 21)
+00:14.2 Signal processing controller: Intel Corporation Sunrise Point-LP Thermal subsystem (rev 21)
+00:15.0 Signal processing controller: Intel Corporation Sunrise Point-LP Serial IO I2C Controller #0 (rev 21)
+00:16.0 Communication controller: Intel Corporation Sunrise Point-LP CSME HECI #1 (rev 21)
+00:17.0 SATA controller: Intel Corporation Sunrise Point-LP SATA Controller [AHCI mode] (rev 21)
+00:1c.0 PCI bridge: Intel Corporation Sunrise Point-LP PCI Express Root Port #1 (rev f1)
+00:1c.4 PCI bridge: Intel Corporation Sunrise Point-LP PCI Express Root Port #5 (rev f1)
+00:1c.5 PCI bridge: Intel Corporation Sunrise Point-LP PCI Express Root Port #6 (rev f1)
+00:1f.0 ISA bridge: Intel Corporation Sunrise Point LPC Controller/eSPI Controller (rev 21)
+00:1f.2 Memory controller: Intel Corporation Sunrise Point-LP PMC (rev 21)
+00:1f.3 Audio device: Intel Corporation Sunrise Point-LP HD Audio (rev 21)
+00:1f.4 SMBus: Intel Corporation Sunrise Point-LP SMBus (rev 21)
+01:00.0 Display controller: Advanced Micro Devices, Inc. [AMD/ATI] Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile] (rev c3)
+02:00.0 Ethernet controller: Realtek Semiconductor Co., Ltd. RTL810xE PCI Express Fast Ethernet controller (rev 07)
+03:00.0 Network controller: Qualcomm Atheros QCA9565 / AR9565 Wireless Network Adapter (rev 01)
+EOF
+)
+
+# Mocked lspci verbose output for the device identified by "01:00.0"
+mocked_lspci_verbose_select_01_00_0=$(
+  cat << EOF
+01:00.0 Display controller: Advanced Micro Devices, Inc. [AMD/ATI] Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile] (rev c3)
+  Subsystem: Dell Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile]
+  Flags: bus master, fast devsel, latency 0, IRQ 129
+  Memory at c0000000 (64-bit, prefetchable) [size=256M]
+  Memory at d0000000 (64-bit, non-prefetchable) [size=256K]
+  I/O ports at e000 [size=256]
+  Expansion ROM at d0040000 [disabled] [size=128K]
+  Capabilities: [48] Vendor Specific Information: Len=08 <?>
+  Capabilities: [50] Power Management version 3
+  Capabilities: [58] Express Legacy Endpoint, MSI 00
+  Capabilities: [a0] MSI: Enable+ Count=1/1 Maskable- 64bit+
+  Capabilities: [100] Vendor Specific Information: ID=0001 Rev=1 Len=010 <?>
+  Capabilities: [150] Advanced Error Reporting
+  Capabilities: [270] Secondary PCI Express
+  Kernel driver in use: radeon
+  Kernel modules: radeon, amdgpu
+EOF
+)
+
+# Mocked lspci verbose output for the device identified by "00:02.0"
+mocked_lspci_verbose_select_00_02_0=$(
+  cat << EOF
+00:02.0 VGA compatible controller: Intel Corporation UHD Graphics 620 (rev 07) (prog-if 00 [VGA controller])
+  DeviceName:  Onboard IGD
+  Subsystem: Dell UHD Graphics 620
+  Flags: bus master, fast devsel, latency 0, IRQ 128
+  Memory at d1000000 (64-bit, non-prefetchable) [size=16M]
+  Memory at b0000000 (64-bit, prefetchable) [size=256M]
+  I/O ports at f000 [size=64]
+  Expansion ROM at 000c0000 [virtual] [disabled] [size=128K]
+  Capabilities: <access denied>
+  Kernel driver in use: i915
+  Kernel modules: i915
+EOF
+)
+
+function lspci_mock()
+{
+  local raw_options="$*"
+  if [[ $raw_options == '-v -s 01:00.0' ]]; then
+    printf '%s\n' "$mocked_lspci_verbose_select_01_00_0"
+  elif [[ $raw_options == '-v -s 00:02.0' ]]; then
+    printf '%s\n' "$mocked_lspci_verbose_select_00_02_0"
+  else
+    printf '%s\n' "$mocked_lspci"
+  fi
+}
+
+function test_get_gpu()
+{
+  local output
+
+  alias lspci='lspci_mock'
+
+  # Check local deploy calls the expected commands
+  declare -a expected_cmd=(
+    "lspci | grep -e VGA -e Display -e 3D | cut -d' ' -f1"
+    'lspci -v -s 01:00.0'
+    'lspci -v -s 00:02.0'
+  )
+  output=$(get_gpu "$LOCAL_TARGET" 'TEST_MODE')
+  compare_command_sequence 'Unexpected cmd while trying to gather local target GPU data' "$LINENO" 'expected_cmd' "$output"
+
+  # Check local deploy fills global variable $gpus as expected
+  declare -a expected_result=(
+    'Dell UHD Graphics 620;Intel Corporation UHD Graphics 620'
+    'Dell Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile];Advanced Micro Devices, Inc.'
+  )
+
+  get_gpu "$LOCAL_TARGET"
+  compare_array_values expected_result gpus "$LINENO"
 }
 
 invoke_shunit

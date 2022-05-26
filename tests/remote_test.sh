@@ -174,7 +174,9 @@ function test_cp2remote()
   local user='kw'
   local flag='TEST_MODE'
   local rsync_params='--include="*/" --exclude="*"'
-  local expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync' $rsync_params"
+  local RSYNC_PREFIX='rsync --info=progress2 -e'
+  local RSYNC_FLAGS="-LrlptD --rsync-path='sudo rsync'"
+  local expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS $rsync_params"
 
   # Load default configureation, because we want to test default values
   output=$(cp2remote "$flag" "$src" "$dst" "$rsync_params" "$remote" "$port" "$user")
@@ -182,33 +184,33 @@ function test_cp2remote()
 
   # Default src
   src="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS"
   output=$(cp2remote "$flag" '' "$dst" '' "$remote" "$port" "$user")
   assert_equals_helper 'Default src' "$LINENO" "$expected_cmd_str" "$output"
 
   # Default src and dst
   dst="$REMOTE_KW_DEPLOY"
-  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS"
 
   output=$(cp2remote "$flag" '' '' '' "$remote" "$port" "$user")
   assert_equals_helper 'Default src and dst' "$LINENO" "$expected_cmd_str" "$output"
 
   # Default src, dst, and remote
   remote='127.0.0.1'
-  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS"
 
   output=$(cp2remote "$flag" '' '' '' '' "$port" "$user")
   assert_equals_helper 'Default src, dst, and remote' "$LINENO" "$expected_cmd_str" "$output"
 
   # Default port
   port='3333'
-  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS"
   output=$(cp2remote "$flag" '' '' '' '' '' "$user")
   assert_equals_helper 'Default src, dst, remote, and port' "$LINENO" "$expected_cmd_str" "$output"
 
   # Default user
   user='juca'
-  expected_cmd_str="rsync -e 'ssh -p $port' $src $user@$remote:$dst -LrlptD --rsync-path='sudo rsync'"
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS"
   output=$(cp2remote "$flag" '' '' '' '' '' '')
   assert_equals_helper 'Default src, dst, remote, port, and user' "$LINENO" "$expected_cmd_str" "$output"
 }
@@ -242,7 +244,7 @@ function test_which_distro()
   remote='127.0.0.1'
   output=$(which_distro '' '' '' "$flag")
   expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
-  assertEquals "Command did not match ($ID)" "$expected_str" "$output"
+  assert_equals_helper 'Command did not match' "$LINENO" "$expected_str" "$output"
 }
 
 invoke_shunit

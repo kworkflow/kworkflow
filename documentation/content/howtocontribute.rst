@@ -183,7 +183,6 @@ However, few of them deserve a brief explanation:
 * **optimization**: Issues that require optimization in kw.
 * **help wanted**: We don't know how to solve this or we don't have the time
   right now. Any help solving the issue will be highly appreciated.
-* **question**: We map user questions with this label.
 * **test**: Issues related to kw's test suite. Any kind of test or even the
   **run_tests.sh** script itself.
 * **bug**: Something is not working as expected.

@@ -1,13 +1,12 @@
 #!/bin/bash
 
 REPO_ROOT_PATH="$PWD"
-TEST_DIR="tests"
+TEST_DIR="$PWD/tests"
 SAMPLES_DIR="$TEST_DIR/samples"
 EXTERNAL_DIR="$TEST_DIR/external"
 TMP_TEST_DIR="$TEST_DIR/.tmp"
-FAKE_DRM_SYSFS="$TMP_TEST_DIR/sys/class/drm"
 
-# Samples
+# Common samples
 MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
 KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
 KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
@@ -104,61 +103,6 @@ function mk_fake_kernel_root()
   touch "$path/arch/arm64/boot/Image"
 }
 
-function mk_fake_sys_class_drm()
-{
-  declare -a fake_dirs=(
-    "card0"
-    "card0-DP-1"
-    "card0-DP-2"
-    "card0-DP-3"
-    "card0-DVI-D-1"
-    "card0-HDMI-A-1"
-    "card1"
-    "card1-DP-4"
-    "card1-DP-5"
-    "card1-DP-6"
-    "card1-HDMI-A-2"
-    "renderD128"
-    "renderD129"
-    "ttm")
-
-  for dir in "${fake_dirs[@]}"; do
-    mkdir -p "$FAKE_DRM_SYSFS/$dir"
-  done
-
-  touch "$FAKE_DRM_SYSFS/version"
-  touch "$FAKE_DRM_SYSFS/card0-DP-3/modes"
-
-  cat << END >> "$FAKE_DRM_SYSFS/card0-DP-3/modes"
-1920x2160
-2560x1440
-1920x1080
-1680x1050
-1280x1024
-1440x900
-1280x960
-1152x864
-1280x720
-1440x576
-1024x768
-1440x480
-800x600
-720x576
-720x480
-640x480
-720x400
-END
-
-  cat << END >> "$FAKE_DRM_SYSFS/card1-HDMI-A-2/modes"
-2560x1440
-1920x1080
-1280x1024
-640x480
-720x400
-END
-
-}
-
 function mk_fake_remote()
 {
   local -r FAKE_KW="$1"
@@ -182,17 +126,25 @@ function mk_fake_remote_system()
   local modulespath="$prefix/lib/modules/$target"
   local libpath="$prefix/var/lib/initramfs-tools/$target"
   local configpath="$prefix/boot/config-$target"
+  local initramfspath="$prefix/boot/initramfs-$target.img"
+  local initramfsfallbackpath="$prefix/boot/initramfs-$target-fallback.img"
+  local mkinitcpiodpath="$prefix/etc/mkinitcpio.d/"
+  local mkinitcpiofile="$mkinitcpiodpath/$target.preset"
 
   mkdir -p "$modulespath"
   mkdir -p "$prefix/boot/"
   mkdir -p "$prefix/lib/modules/"
   mkdir -p "$prefix/var/lib/initramfs-tools/"
+  mkdir -p "$mkinitcpiodpath"
 
   touch "$kernelpath"
   touch "$kernelpath.old"
   touch "$initrdpath"
   touch "$libpath"
   touch "$configpath"
+  touch "$initramfspath"
+  touch "$initramfsfallbackpath"
+  touch "$mkinitcpiofile"
 }
 
 function mock_target_machine()
@@ -213,9 +165,11 @@ function mk_fake_boot()
   local -r FAKE_BOOT_DIR=${1:-'./'}
 
   mkdir -p "$FAKE_BOOT_DIR"
-  cp -r "$REPO_ROOT_PATH/$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
+  cp -r "$SAMPLES_DIR/boot" "$FAKE_BOOT_DIR"
 }
 
+# Creates a new git repository in the current path and configure it locally.
+# Note: Git folder must be deleted afterward manually.
 function mk_fake_git()
 {
   local -r path="$PWD"
@@ -223,36 +177,44 @@ function mk_fake_git()
   git init -q "$path"
 
   touch "$path/first_file"
-  printf '%s\n' 'This is the first file.' > "$path/first_file"
-
-  git add first_file
-  git commit -q -m 'Initial commit'
+  printf 'This is the first file.\n' > "$path/first_file"
 
   git config --local user.name 'Xpto Lala'
   git config --local user.email 'test@email.com'
   git config --local test.config value
+
+  git add first_file
+  git commit -q -m 'Initial commit'
+
+  printf 'Second change\n' >> "$path/first_file"
+  git add --all
+  git commit --allow-empty -q -m 'Second commit'
+
+  printf 'Third change\n' >> "$path/first_file"
+  git add --all
+  git commit --allow-empty -q -m 'Third commit'
 }
 
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #
-# @_expected Name of the array variable containing expected strings
+# @msg Message to display in case of failure
+# @line $LINENO variable
+# @expected_res Name of the array variable containing expected strings
 # @result_to_compare A raw output from the string
-# @ID An ID identification
 function compare_command_sequence()
 {
+  local msg="$1"
+  local line="$2"
   # This variable name must be unique
-  local -n _expected="$1"
-  local result_to_compare="$2"
-  local ID="$3"
+  local -n expected_res="$3"
+  local result_to_compare="$4"
   local count=0
 
-  ID=${ID:-0}
-
   while read -r f; do
-    if [[ "${_expected[$count]}" != "${f}" ]]; then
-      fail "($ID) $count
-Expected: \"${_expected[$count]}\"
+    if [[ "${expected_res[$count]}" != "${f}" ]]; then
+      fail "line $line, statement $count: $msg
+Expected: \"${expected_res[$count]}\"
 but got:  \"${f}\"
 "
     fi
@@ -260,6 +222,32 @@ but got:  \"${f}\"
   done <<< "$result_to_compare"
 }
 
+# This function tries to match a substring (case insensitive).
+#
+# @msg Message to display in case of failure
+# @line $LINENO variable
+# @expected Expected value
+# @result_to_compare Raw output to be compared
+function assert_substring_match()
+{
+  local msg="$1"
+  local line="$2"
+  local expected="$3"
+  local result_to_compare="$4"
+
+  if ! grep -qi "$expected" <<< "$output"; then
+    fail "line $line: $msg"
+    return
+  fi
+}
+
+# This function expects an array of string with the command sequence and a
+# string containing the output.
+#
+# @msg Message to display in case of failure
+# @line $LINENO variable
+# @expected Expected value
+# @result_to_compare Raw output to be compared
 function assert_equals_helper()
 {
   local msg="$1"
@@ -267,13 +255,13 @@ function assert_equals_helper()
   # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
   # shellcheck disable=SC2178
   local expected="$3"
-  local target="$4"
+  local result_to_compare="$4"
 
   line=${line:-'Unknown line'}
 
   # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
   # shellcheck disable=2128
-  assertEquals "line $line: $msg" "$target" "$expected"
+  assertEquals "line $line: $msg" "$result_to_compare" "$expected"
 }
 
 # Create an invalid file path
@@ -304,6 +292,10 @@ function compare_array_values()
 
 function invoke_shunit()
 {
+  # Set some global variables to point to the source by default
+  KW_LIB_DIR="$PWD/src"
+  KW_PLUGINS_DIR="$PWD/src/plugins"
+
   command -v shunit2 > /dev/null
   if [[ "$?" -eq 0 ]]; then
     . shunit2

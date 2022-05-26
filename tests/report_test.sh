@@ -19,7 +19,7 @@ function tearDown()
   unset tags_details
 }
 
-function test_report_parse()
+function test_parse_report_options()
 {
   local output
   local expected_result
@@ -27,61 +27,106 @@ function test_report_parse()
   local ret
 
   # Default values
-  report_parse '--day'
+  parse_report_options '--day'
   expected_result=$(get_today_info '+%Y/%m/%d')
   assert_equals_helper 'Get today info' "$LINENO" "${options_values['DAY']}" "$expected_result"
 
-  report_parse '--week'
+  parse_report_options '--week'
   expected_result=$(get_week_beginning_day)
   assert_equals_helper 'Get this week info' "$LINENO" "${options_values['WEEK']}" "$expected_result"
 
-  report_parse '--month'
+  parse_report_options '--month'
   expected_result=$(get_today_info '+%Y/%m')
   assert_equals_helper 'Get this month info' "$LINENO" "${options_values['MONTH']}" "$expected_result"
 
-  report_parse '--year'
+  parse_report_options '--year'
   expected_result=$(get_today_info '+%Y')
   assert_equals_helper 'Get this year info' "$LINENO" "${options_values['YEAR']}" "$expected_result"
 
   # Values with parameters
   ## Days
   ref_date='1999/03/03'
-  report_parse "--day $ref_date"
+  parse_report_options "--day=$ref_date"
   expected_result=$(date_to_format "$ref_date" '+%Y/%m/%d')
   assert_equals_helper "$ref_date is a valid date" "$LINENO" "${options_values['DAY']}" "$expected_result"
 
   ref_date='2022/04/32'
-  output=$(report_parse "--day $ref_date" 2> /dev/null)
+  output=$(parse_report_options "--day=$ref_date" 2> /dev/null)
   ret="$?"
   assert_equals_helper "$ref_date is an invalid date" "$LINENO" "$ret" 22
 
   ## Weeks
   ref_date='1990/04/10'
-  report_parse "--week $ref_date"
+  parse_report_options "--week=$ref_date"
   expected_result=$(get_week_beginning_day "$ref_date")
   assert_equals_helper 'We expected 1990/04/04' "$LINENO" "${options_values['WEEK']}" "$expected_result"
 
   ref_date='2022/04/32'
-  output=$(report_parse "--week $ref_date" 2> /dev/null)
+  output=$(parse_report_options "--week=$ref_date" 2> /dev/null)
   ret="$?"
   assert_equals_helper "$ref_date is invalid" "$LINENO" "$ret" 22
 
   ## Month
   ref_date='1990/04'
-  report_parse "--month $ref_date"
+  parse_report_options "--month=$ref_date"
   expected_result=$(date_to_format "$ref_date/01" '+%Y/%m')
   assert_equals_helper 'We expected 1990/04' "$LINENO" "${options_values['MONTH']}" "$expected_result"
 
   ref_date='1990/30'
-  output=$(report_parse "--month $ref_date" 2> /dev/null)
+  output=$(parse_report_options "--month=$ref_date" 2> /dev/null)
   ret="$?"
   assert_equals_helper 'Invalid date' "$LINENO" "$ret" 22
 
   # Invalid parameter
   ref_date='2022/04/12'
-  output=$(report_parse "--month $ref_date --day $ref_date" 2> /dev/null)
+  output=$(parse_report_options "--month=$ref_date --day=$ref_date" 2> /dev/null)
   ret="$?"
   assert_equals_helper 'Invalid date' "$LINENO" "$ret" 22
+}
+
+function test_statistics()
+{
+  local msg
+  local start_target_week
+  local end_target_week
+
+  declare -a expected_cmd=(
+    'You have disable_statistics_data_track marked as "yes"'
+    'If you want to see the statistics, change this option to "no"'
+    '# Statistics:'
+  )
+
+  configurations[disable_statistics_data_track]='yes'
+  output=$(report_main --statistics)
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  configurations[disable_statistics_data_track]='no'
+
+  # DAY
+  msg=$'# Statistics: \nCurrently, kw does not have any data for the present date.'
+
+  output=$(report_main --statistics --day)
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  #WEEK
+  start_target_week='2021/11/14'
+  end_target_week='2021/11/20'
+  msg=$(printf "# Statistics: \nSorry, kw does not have any data from %s to %s" "$start_target_week" "$end_target_week")
+
+  output=$(report_main --statistics --week=2021/11/17)
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  #MONTH
+  msg=$'# Statistics: \nCurrently, kw does not have any data for the present month.'
+
+  output=$(report_main --statistics --month)
+  assertEquals "($LINENO)" "$msg" "$output"
+
+  #YEAR
+  msg=$'# Statistics: \nCurrently, kw does not have any data for the requested year.'
+
+  output=$(report_main --statistics --year=2019)
+  assertEquals "($LINENO)" "$msg" "$output"
 }
 
 function test_expand_time_labels()

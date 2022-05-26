@@ -71,17 +71,30 @@ function show_variables()
   local -Ar deploy=(
     [default_deploy_target]='Deploy target'
     [reboot_after_deploy]='Reboot after deploy'
+    [kw_files_remote_path]='kw files in the remote machine'
+    [deploy_temporary_files_path]='Temporary files path used in the remote machine'
+    [deploy_default_compression]='Default compression option used in the deploy'
+    [dtb_copy_pattern]='How kw should copy dtb files to the boot folder'
+    [strip_modules_debug_option]='Modules will be stripped after they are installed which will reduce the initramfs size'
+  )
+
+  local -Ar mail=(
+    [send_opts]='Options to be used when sending a patch'
+    [blocked_emails]='Blocked e-mail addresses'
   )
 
   local -Ar misc=(
     [disable_statistics_data_track]='Disable tracking of statistical data'
     [gui_on]='Command to activate GUI'
     [gui_off]='Command to deactivate GUI'
+    [checkpatch_opts]='Options to be used in the checkpatch script'
+    [get_maintainer_opts]='Options to be used in the get_maintainer script'
   )
 
   local -Ar group_descriptions=(
     [build]='Kernel build options'
     [deploy]='Kernel deploy options'
+    [mail]='Send-email options'
     [ssh]='SSH options'
     [qemu]='QEMU options'
     [notification]='Notification options'
@@ -91,7 +104,7 @@ function show_variables()
   say 'kw configuration variables:'
   printf '%s\n' "  Local config file: $has_local_config_path"
 
-  for group in 'build' 'deploy' 'qemu' 'ssh' 'notification' 'misc'; do
+  for group in 'build' 'deploy' 'qemu' 'mail' 'ssh' 'notification' 'misc'; do
     printf '%s\n' "  ${group_descriptions["$group"]}:"
     local -n descriptions="$group"
 

@@ -12,9 +12,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Update the system
+        run: |
+          sudo apt-get update -y
+
       - name: Install dependencies
         run: |
-          sudo apt install -y shunit2 kcov bash git \
+          sudo apt-get install -y shunit2 kcov bash git \
           python-docutils dash graphviz python3-sphinx
 
       - name: Prepare for tests

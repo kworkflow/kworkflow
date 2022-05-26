@@ -3,10 +3,20 @@
 include './src/debug.sh'
 include './tests/utils.sh'
 
+original_dir="$PWD"
+default_ssh='ssh -p 3333 juca@127.0.0.1'
+debug_on="printf '%s\n' 1 > /sys/kernel/debug/tracing/tracing_on"
+debug_off="printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on"
+event_path='/sys/kernel/debug/tracing/events'
+trace_pipe_path='/sys/kernel/debug/tracing/trace_pipe'
+disable_amdgpu_dm_event="printf '%s\n' 0 > $event_path/amdgpu_dm/enable"
+enable_amdgpu_dm_event="printf '%s\n' 1 > $event_path/amdgpu_dm/enable"
+disable_amdgpu_dm_filter="printf '0\n' > $event_path/amdgpu_dm/filter"
+igt_cmd_sample='$HOME/igt-gpu-tools/build/tests/kms_plane --run-subtest plane-position-covered'
+
 function setUp
 {
-  original_dir="$PWD"
-
+  # Default config
   parse_configuration "$KW_CONFIG_SAMPLE"
 
   # Create a mock folder for /sys/kernel/debug/tracing/events
@@ -113,7 +123,7 @@ function test_process_list()
   raw_input=''
   output=$(process_list "$raw_input" 1)
   ret="$?"
-  assertEquals "($LINENO) Return error:" "$ret" 22
+  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
 }
 
 function test_convert_event_syntax_to_sys_path_hash()
@@ -216,8 +226,8 @@ function test_convert_event_syntax_to_sys_path_hash()
     IFS=$'\n'
     printf '%s\n' "${!events_hash[*]}"
   )
-  assertEquals "($LINENO) Wrong syntax:" "$output" ''
-  assertEquals "($LINENO) Return error:" "$ret" 22
+  assert_equals_helper 'Wrong syntax:' "($LINENO)" "$output" ''
+  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
 
   events_hash=()
   convert_event_syntax_to_sys_path_hash ':'
@@ -226,8 +236,8 @@ function test_convert_event_syntax_to_sys_path_hash()
     IFS=$'\n'
     printf '%s\n' "${!events_hash[*]}"
   )
-  assertEquals "($LINENO) Wrong syntax:" "$output" ''
-  assertEquals "($LINENO) Return error:" "$ret" 22
+  assert_equals_helper 'Wrong syntax:' "($LINENO)" "$output" ''
+  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
 }
 
 function test_build_event_command_string()
@@ -281,6 +291,7 @@ function test_build_event_command_string()
     "printf '%s\n' 0 > /sys/kernel/debug/tracing/dummy/test2/enable"
     "printf '%s\n' 0 > /sys/kernel/debug/tracing/dummy/test1/enable"
     "printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on && printf '%s\n' '0' > /sys/kernel/debug/tracing/dummy/filter1/filter"
+    "printf 'nop' > $FTRACE_CURRENT_PATH"
   )
 
   output=$(build_event_command_string '' 0)
@@ -377,14 +388,14 @@ function test_build_ftrace_command_string()
 {
   local output
   local expected_cmd
-  local disable_trace='echo 0 > /sys/kernel/debug/tracing/tracing_on'
-  local enable_trace='echo 1 > /sys/kernel/debug/tracing/tracing_on'
+  local disable_trace="printf '0' > /sys/kernel/debug/tracing/tracing_on"
+  local enable_trace="printf '1' > /sys/kernel/debug/tracing/tracing_on"
   local current_tracer='/sys/kernel/debug/tracing/current_tracer'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
 
   # function_graph
   output=$(build_ftrace_command_string 'function_graph')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer && $enable_trace"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer && $enable_trace"
   assert_equals_helper 'Expected to enable function_graph' "$LINENO" "$output" "$expected_cmd"
 
   output=$(build_ftrace_command_string '    function_graph        ')
@@ -402,25 +413,25 @@ function test_build_ftrace_command_string()
 
   # function_graph:amdgpu_dm*
   output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
-  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
+  expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
   assert_equals_helper 'Expected amdgpu_dm filters' "$LINENO" "$output" "$expected_cmd"
 
   # function_graph:amdgpu_dm*,dc_*,drm_test
   output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*,dc_*,drm_test')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
-  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
-  expected_cmd+=" && echo 'dc_*' >> $ftracer_filter"
-  expected_cmd+=" && echo 'drm_test' >> $ftracer_filter"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
+  expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd+=" && printf '%s' 'dc_*' >> $ftracer_filter"
+  expected_cmd+=" && printf '%s' 'drm_test' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
   assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$output" "$expected_cmd"
 
   # function_graph: amdgpu_dm*,   dc_*
   output=$(build_ftrace_command_string 'function_graph: amdgpu_dm*,   dc_*')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
-  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter"
-  expected_cmd+=" && echo 'dc_*' >> $ftracer_filter"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
+  expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter"
+  expected_cmd+=" && printf '%s' 'dc_*' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
   assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$output" "$expected_cmd"
 
@@ -431,7 +442,7 @@ function test_build_ftrace_command_string()
 
   # Disable
   output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*' 1)
-  expected_cmd="$disable_trace && echo '' > $ftracer_filter"
+  expected_cmd="$disable_trace && printf '' > $ftracer_filter && printf 'nop' > $FTRACE_CURRENT_PATH"
   assert_equals_helper 'Expected disable command' "$LINENO" "$output" "$expected_cmd"
 }
 
@@ -440,8 +451,8 @@ function test_ftrace_debug()
   local output
   local expected_cmd
   local expected_cmd_base
-  local disable_trace='echo 0 > /sys/kernel/debug/tracing/tracing_on'
-  local enable_trace='echo 1 > /sys/kernel/debug/tracing/tracing_on'
+  local disable_trace="printf '0' > /sys/kernel/debug/tracing/tracing_on"
+  local enable_trace="printf '1' > /sys/kernel/debug/tracing/tracing_on"
   local current_tracer='/sys/kernel/debug/tracing/current_tracer'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
   local trace_pipe='/sys/kernel/debug/tracing/trace_pipe'
@@ -451,8 +462,8 @@ function test_ftrace_debug()
 
   # Local machine
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*')
-  expected_cmd="$disable_trace && echo 'function_graph' > $current_tracer"
-  expected_cmd+=" && echo 'amdgpu_dm*' >> $ftracer_filter && $enable_trace"
+  expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
+  expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter && $enable_trace"
   assert_equals_helper 'Expected command' "$LINENO" "$output" "$expected_cmd"
 
   expected_cmd_base="$expected_cmd"
@@ -493,7 +504,8 @@ function test_ftrace_debug()
   screen_id='kw_2021_10_22-07_34_07' # We mocked this value
   screen_command="screen -L -Logfile ~/$screen_id -dmS $screen_id cat $trace_pipe"
   expected_cmd+=" && $screen_command && ./root/something && $disable_trace"
-  expected_cmd+=" && echo '' > /sys/kernel/debug/tracing/set_ftrace_filter"
+  expected_cmd+=" && printf '' > /sys/kernel/debug/tracing/set_ftrace_filter"
+  expected_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
   screen_command="screen -S $screen_id -X quit > /dev/null"
   expected_cmd+=" && $screen_command | tee kw_debug/ftrace"
   USER='MOCK'
@@ -502,7 +514,7 @@ function test_ftrace_debug()
     "sudo cp /root/kw_2021_10_22-07_34_07 kw_debug/ftrace && sudo chown $USER:$USER kw_debug/ftrace"
   )
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*' 'kw_debug' '' './root/something')
-  compare_command_sequence 'expected_cmd_seq' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"
@@ -540,11 +552,11 @@ function test_ftrace_list()
 
   # Local
   output=$(ftrace_list 2)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Remote
   output=$(ftrace_list 3)
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # VM
   output=$(ftrace_list 1)
@@ -560,7 +572,7 @@ function test_ftrace_list()
     '8. function'
     '9. nop'
   )
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Let's reload cmd_manager
   source 'src/kwlib.sh' --source-only
@@ -664,67 +676,89 @@ function test_dmesg_debug()
   }
 }
 
+function test_event_debug()
+{
+  local expected_cmd="$default_ssh sudo \" $enable_amdgpu_dm_event && $debug_on\""
+  local ret
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mkdir 'kw_debug'
+
+  # Failure case
+  output=$(event_debug 3 'TEST_MODE' 'lala;:')
+  ret="$?"
+  assert_equals_helper 'Invalid syntax' "$LINENO" "$ret" 22
+
+  # List
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' '' '' '' 1)
+  ret="$?"
+  assert_equals_helper 'List' "$LINENO" "$ret" 0
+
+  output=$(event_debug 2 'TEST_MODE' 'amdgpu_dm' '' '' '' 1)
+  ret="$?"
+  assert_equals_helper 'List' "$LINENO" "$ret" 0
+
+  # Simple case
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm')
+  assert_equals_helper 'Expected to enable amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
+
+  expected_cmd="sudo bash -c \" $enable_amdgpu_dm_event && $debug_on\""
+  output=$(event_debug 2 'TEST_MODE' 'amdgpu_dm')
+  assert_equals_helper 'Expected to enable amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
+
+  # Follow
+  expected_cmd="$default_ssh sudo \" $enable_amdgpu_dm_event && $debug_on && cat $trace_pipe_path\""
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' '' 1)
+  assert_equals_helper 'Expected to follow amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
+
+  # Disable
+  expected_cmd="$default_ssh sudo \"$debug_off && $disable_amdgpu_dm_filter; $disable_amdgpu_dm_event && printf 'nop' > $FTRACE_CURRENT_PATH\""
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' '' 1 '' '' 1)
+  assert_equals_helper 'Expected to disable amdgpu_dm' "$LINENO" "$expected_cmd" "$output"
+
+  # CMD
+  # TODO: This is super ugly, let's rework this in the future
+  expected_cmd="$enable_amdgpu_dm_event && $debug_on"
+  expected_cmd+=" && screen -L -Logfile ~/kw_2021_10_22-07_34_07 -dmS kw_2021_10_22-07_34_07"
+  expected_cmd+=" cat $trace_pipe_path && $igt_cmd_sample"
+  expected_cmd+=" && $debug_off && $disable_amdgpu_dm_filter; $disable_amdgpu_dm_event"
+  expected_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
+  expected_cmd+=" && screen -S kw_2021_10_22-07_34_07 -X quit"
+  declare -a expected_cmd_seq=(
+    "$default_ssh sudo \" $expected_cmd\" | tee kw_debug/event"
+    'scp -P 3333 juca@127.0.0.1:~/kw_2021_10_22-07_34_07 kw_debug/event'
+  )
+
+  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' 'kw_debug' '' "$igt_cmd_sample")
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
+
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
+}
+
 function test_stop_debug()
 {
   local output
   local -a expected_cmd_sequence
   local std_ssh='ssh -p 3333 juca@127.0.0.1'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
-  local disable_trace="echo 0 > /sys/kernel/debug/tracing/tracing_on && echo '' > $ftracer_filter"
+  local disable_trace="printf '0' > /sys/kernel/debug/tracing/tracing_on && printf '' > $ftracer_filter"
+  local disable_cmd
 
   #Not a follow option
   output=$(stop_debug 'TEST_MODE')
   assert_equals_helper 'We should return 0' "$LINENO" '' "$output"
 
-  # Event: Local
-  options_values['DMESG']=''
-  options_values['FTRACE']=''
-  options_values['FOLLOW']=1
-  options_values['EVENT']=1
-  options_values['TARGET']=2
-  output=$(stop_debug 'TEST_MODE')
-
-  declare -a expected_cmd_sequence=(
-    'Disabling events in the target machine : 1'
-    "sudo bash -c \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on\""
-  )
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
-  # Event: Remote
-  options_values['TARGET']=3
-  output=$(stop_debug 'TEST_MODE')
-
-  declare -a expected_cmd_sequence=(
-    'Disabling events in the target machine : 1'
-    "$std_ssh sudo \"printf '%s\n' 0 > /sys/kernel/debug/tracing/tracing_on\""
-  )
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
-  # Ftrace: Local
-  options_values['EVENT']=''
-  options_values['DMESG']=''
-  options_values['TARGET']=2
-  options_values['FTRACE']=1
-
-  declare -a expected_cmd_sequence=(
-    'Disabling ftrace in the target machine'
-    "sudo bash -c \"$disable_trace\""
-  )
-  output=$(stop_debug 'TEST_MODE')
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
-  # Ftrace: Remote
-  options_values['TARGET']=3
-  declare -a expected_cmd_sequence=(
-    'Disabling ftrace in the target machine'
-    "$std_ssh sudo \"$disable_trace\""
-  )
-  output=$(stop_debug 'TEST_MODE')
-  compare_command_sequence 'expected_cmd_sequence' "$output" "$LINENO"
-
   # Dmesg: Local
   options_values['EVENT']=''
   options_values['FTRACE']=''
+  options_values['FOLLOW']=1
   options_values['DMESG']=1
   options_values['TARGET']=2
   interrupt_data_hash['DMESG']="screen -S XPTO-LA -X quit > /dev/null"
@@ -739,6 +773,29 @@ function test_stop_debug()
 
   output=$(stop_debug 'TEST_MODE')
   assert_equals_helper 'Stop remote dmesg' "$LINENO" "$external_cmd" "$output"
+}
+
+function test_reset_debug()
+{
+  local disable_cmd
+  local std_ssh='ssh -p 3333 juca@127.0.0.1 sudo'
+  local current_tracer='/sys/kernel/debug/tracing/current_tracer'
+  local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
+  local expected_cmd
+
+  disable_cmd="$debug_off && printf 'nop' > $current_tracer"
+  disable_cmd+=" && printf '' > $ftracer_filter && printf '' > $trace_pipe_path"
+  disable_cmd+=" && lsof 2>/dev/null | grep $trace_pipe_path | tr -s ' ' | cut -d ' ' -f2 | xargs -I{} kill -9 {}"
+
+  # Local
+  expected_cmd="sudo bash -c \"$disable_cmd\""
+  output=$(reset_debug 2 'TEST_MODE')
+  assert_equals_helper 'Local reset' "$LINENO" "$expected_cmd" "$output"
+
+  # Remote
+  expected_cmd="$std_ssh \"$disable_cmd\""
+  output=$(reset_debug 3 'TEST_MODE')
+  assert_equals_helper 'Remote reset' "$LINENO" "$expected_cmd" "$output"
 }
 
 invoke_shunit

@@ -172,3 +172,88 @@ function ask_with_default()
 
   printf '%s\n' "$response"
 }
+
+# Load text from a file into a dictionary. The file that will be read must have
+# a key before a text body to name that particular text as part of the key, for
+# example:
+#
+#  [KEY]:
+#  text
+#
+# [KEY] must be non-empty, alphanumeric and between square brackets followed by
+# a colon. The global array string_file can then be queried by key as in
+# ${string_file[<key>]} to obtain the string. <key> should be named according
+# to its respective module for compatibility. That is, if we have modules A and
+# B, name A's keys as [KEY_A] and B's keys as [KEY_B]. This makes it so the
+# module's keys are compatible with each other
+#
+# @text_file_to_be_loaded_path  The full path of the text file to be loaded as
+#   the first argument.
+#
+# Return:
+# SUCCESS      : In case of success.
+# EKEYREJECTED : If an invalid key is found, prints the line with a bad key.
+# ENOKEY       : If a key is not found.
+# ENOENT       : If @text_file_to_be_loaded_path is invalid, or is not a text file.
+# ENODATA      : If the file given in @text_file_to_be_loaded_path is empty.
+function load_module_text()
+{
+  local text_file_to_be_loaded_path="$1"
+  local key=''
+  local line_counter=0
+  local error=0 # SUCCESS
+  local key_set=0
+  local first_line=0
+
+  # Associative array to read strings from files
+  unset module_text_dictionary
+  declare -gA module_text_dictionary
+
+  if [[ ! -f "$text_file_to_be_loaded_path" ]]; then
+    complain "[ERROR]:$text_file_to_be_loaded_path: Does not exist or is not a text file."
+    return 2 # ENOENT
+  fi
+
+  if [[ ! -s "$text_file_to_be_loaded_path" ]]; then
+    complain "[ERROR]:$text_file_to_be_loaded_path: File is empty."
+    return 61 # ENODATA
+  fi
+
+  while read -r line; do
+    ((line_counter++))
+    # Match [VALUE]:
+    if [[ "$line" =~ ^\[(.*)\]:$ ]]; then
+      key=''
+      # Match to check if VALUE is composed of alphanumeric and underscores only
+      [[ "${BASH_REMATCH[1]}" =~ (^[A-Za-z0-9_][A-Za-z0-9_]*$) ]] && key="${BASH_REMATCH[1]}"
+      if [[ -z "$key" ]]; then
+        error=129 # EKEYREJECTED
+        complain "[ERROR]:$text_file_to_be_loaded_path:$line_counter: Keys should be alphanum chars."
+        continue
+      fi
+
+      if [[ -n "${module_text_dictionary[$key]}" ]]; then
+        warning "[WARNING]:$text_file_to_be_loaded_path:$line_counter: Overwriting '$key' key."
+      fi
+
+      key_set=1
+      first_line=1
+      module_text_dictionary["$key"]=''
+    # If we are inside a text block, collect the current line
+    elif [[ -n "$key" ]]; then
+      if [[ "$first_line" -eq 1 ]]; then
+        first_line=0
+      else
+        module_text_dictionary["$key"]+=$'\n'
+      fi
+      module_text_dictionary["$key"]+="$line"
+    fi
+  done < "$text_file_to_be_loaded_path"
+
+  if [[ "$key_set" -eq 0 ]]; then
+    error=126 # ENOKEY
+    complain "[ERROR]:$text_file_to_be_loaded_path: No key found."
+  fi
+
+  return "$error"
+}

@@ -325,7 +325,7 @@ function get_supported_mode_per_connector()
   local port
   local remote
 
-  cmd="for f in $SYSFS_CLASS_DRM/*/modes;"' do c=$(cat $f) && [[ ! -z $c ]] && printf "%s\n" "$f:" "$c" ""; done'
+  cmd="for f in $SYSFS_CLASS_DRM/*/modes;"' do c=$(< $f) && [[ ! -z $c ]] && printf "%s\n" "$f:" "$c" ""; done'
 
   case "$target" in
     2) # LOCAL TARGET

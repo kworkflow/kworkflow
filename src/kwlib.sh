@@ -106,7 +106,7 @@ function cmd_manager()
       say "$command_for_eval"
       return 0
       ;;
-    *)
+    *) # VERBOSE
       say "$command_for_eval"
       ;;
   esac
@@ -180,7 +180,7 @@ function get_kernel_release()
   local flag="$1"
   local cmd='make kernelrelease'
 
-  flag=${flag:-'SILENT'}
+  [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
 
   cmd_manager "$flag" "$cmd"
 }
@@ -217,7 +217,7 @@ function is_a_patch()
     return 1
   fi
 
-  file_content=$(cat "$FILE_PATH")
+  file_content=$(< "$FILE_PATH")
 
   # The following array stores strings that are expected to be present
   # in a patch file. The absence of any of these strings makes the
@@ -262,41 +262,44 @@ function join_path()
   printf '%s\n' "$joined" | tr -s '/'
 }
 
-# This function tries to identify the OS distribution. In order to make it work
-# as expected, it is required to inform the root path. This function is useful
-# for plugins; because of this, we limited here the supported distributions.
+# This function checks if the target distro is supported by kw. This function
+# is handy for plugins that have some dependency with distros.
 #
-# Note: We handle OS family instead of a specific distro, for example, Ubuntu
-# and Mint are Debian based distro. Currently, this approach works well and
-# avoids code duplication, in the future, if the distros families changes in
-# the way that they handle Linux Kernel we probably have to change our
-# approach.
-
+# Note: We handle OS family instead of a specific distro_id, for example,
+# Ubuntu and Mint are Debian based distro_id.
+#
 # @root_path Expects the root path wherein we can find the /etc
+# @str_check String with a distro name
 #
 # Returns:
-# It returns the distro name in lowercase, otherwise return none.
+# It returns the family name in lowercase, otherwise return none.
 function detect_distro()
 {
   local root_path="$1"
   local str_check="$2"
-  local distro='none'
+  local distro_id='none'
   local etc_path
+  declare -a debian_family=('debian' 'ubuntu' 'raspbian')
+  declare -a arch_family=('arch' 'manjaro')
+  declare -a fedora_family=('fedora')
 
   etc_path=$(join_path "$root_path" /etc)
 
   if [[ -n "$str_check" ]]; then
-    distro="$str_check"
+    distro_id="$str_check"
   elif [[ -d $etc_path ]]; then
-    distro=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
+    distro_id=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
   fi
 
-  # ArchLinux family
-  if [[ "$distro" =~ 'arch' ]] || [[ "$distro" =~ 'manjaro' ]]; then
-    printf '%s\n' 'arch'
   # Debian family
-  elif [[ "$distro" =~ 'debian' ]] || [[ "$distro" =~ 'ubuntu' ]]; then
+  if [[ "${debian_family[*]}" =~ ${distro_id} ]]; then
     printf '%s\n' 'debian'
+  # ArchLinux family
+  elif [[ "${arch_family[*]}" =~ ${distro_id} ]]; then
+    printf '%s\n' 'arch'
+  # Fedora family
+  elif [[ "${fedora_family[*]}" =~ ${distro_id} ]]; then
+    printf '%s\n' 'fedora'
   else
     printf '%s\n' 'none'
   fi
@@ -370,13 +373,12 @@ function store_statistics_data()
 function command_exists()
 {
   local command="$1"
-  #shellcheck disable=SC2206 #FIXME: see issue #388
-  local package=($command)
+  local package=${command%% *}
 
-  if [[ -x "$(command -v "${package[@]}")" ]]; then
-    return 0
+  if [[ ! -x "$(command -v "$package")" ]]; then
+    return 22 # EINVAL
   fi
-  return 22 # EINVAL
+  return 0
 }
 
 # This function exits with a custom error message
@@ -476,10 +478,11 @@ function generate_tarball()
 
   compression_type=${compression_type:-'--auto-compress'}
 
-  # -C: Go to $go_to_path_to_compress directory
-  # -cf: Compress the directory named $dir_name (inside $go_to_path_to_compress) to
-  #      $file_path
-  cmd="tar -C $go_to_path_to_compress $compression_type -cf $file_path $dir_name"
+  # --directory: Go to $go_to_path_to_compress directory
+  # --create --file: Compress the directory named $dir_name (inside
+  # $go_to_path_to_compress) to $file_path
+  cmd="tar $compression_type --directory='$go_to_path_to_compress'"
+  cmd+=" --create --file='$file_path' $dir_name"
   cmd_manager "$flag" "$cmd"
 
   ret="$?"

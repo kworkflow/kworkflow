@@ -7,6 +7,7 @@ kw-deploy
 SYNOPSIS
 ========
 *kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local | \--vm]
+                      [\--setup]
                       [-r | \--reboot] [-m | \--modules] [-s | \--ls-line]
                       [-l | \--list] [-a | \--list-all]
                       [(-u | \--uninstall) <kernel-name>[,...]] [-f \--force]
@@ -64,6 +65,10 @@ OPTIONS
 -r, \--reboot:
   Reboot machine after deploy.
 
+\--setup:
+  This command runs a basic setup in the target machine, including installing
+  packages and preparing the distro for the deploy.
+
 -m, \--modules:
   Only install/update modules.
 
@@ -117,3 +122,12 @@ version, you can use::
 
   cd <kernel-path>
   kw bd
+
+Now, let's say that you set up your configuration file to deploy your new
+kernel to a machine reachable via ssh. You can run the following command in
+order to prepare your target machine to receive your new kernel via `kw d`::
+
+  kw deploy --setup
+
+Alternatively, you can just run `kw d` directly; the standard behavior will
+automatically run the setup operation in your first deploy.

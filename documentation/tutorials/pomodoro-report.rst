@@ -46,11 +46,11 @@ Since you are working on a highly complex bug, you decide to dedicate 30
 minutes to make sure that you know how to reproduce the issue; you can start
 with::
 
-  kw pomodoro --time 30m --tag "Super weird bug" --description "Let's make sure that I know how to reproduce this bug..."
+  $ kw pomodoro --set-timer 30m --tag "Super weird bug" --description "Let's make sure that I know how to reproduce this bug..."
 
 Notice that you can use the short version of the above command::
 
-  kw p -t 30m -g "Super weird bug" -d "Let's make sure that I know how to reproduce this bug..."
+  $ kw p -t 30m -g "Super weird bug" -d "Let's make sure that I know how to reproduce this bug..."
 
 .. note::
     From now on, this tutorial will use the short version
@@ -58,7 +58,7 @@ Notice that you can use the short version of the above command::
 Now that you created this session, you can check how many minutes are left by
 using::
 
-  kw p --list # kw p -l
+  $ kw p --list # kw p -l
 
 
 Now, forget about the world and focus on your task for 30 minutes; don't worry,
@@ -70,18 +70,18 @@ Suppose that you already know how to reproduce that bug, and now you want to
 implement a workaround to fix it; let's create a new focus session associated
 with the same tag::
 
-  kw p -t 30m -g "Super weird bug" -d "I know how to reproduce the bug! I'm going to try THIS WORKAROUND to see if it fixes the issue"
+  $ kw p -t 30m -g "Super weird bug" -d "I know how to reproduce the bug! I'm going to try THIS WORKAROUND to see if it fixes the issue"
 
 Notice that typing "Super weird bug" is tedious and error-prone, but don't
 worry, kw provides a feature to list all tags and associates them with an ID.
 To see all the tags that you already created, use this command::
 
-  kw p -g
+  $ kw p -g
   1.Super weird bug
 
 In other words, you can use::
 
-  kw p -t 30m -g 1 -d "I know how to reproduce the bug! I'm going to try THIS WORKAROUND to see if it fixes the issue"
+  $ kw p -t 30m -g 1 -d "I know how to reproduce the bug! I'm going to try THIS WORKAROUND to see if it fixes the issue"
 
 You can create as many focus sessions as you want at any time and day.
 
@@ -94,13 +94,15 @@ a report on your last week, and you worked on so many things that you don't
 even know where to start; don't worry, kw has your back. It is now time to use
 the report feature. If you want to get this week's summary, you can use::
 
-  kw report --week
+  $ kw report --week
 
 Or just::
 
-  kw r --week
+  $ kw r --week
 
-The report will look like this::
+The report will look like this:
+
+.. code-block:: md
 
     # Report: YYYY/MM/DDD
      * Total hours of focus: 48:43:00
@@ -140,10 +142,10 @@ you to generate reports with the following granularity:
 By default, if you do not provide specific dates, kw report will assume the
 closest date; for example::
 
-    kw report         # Shows today's report
-    kw report --week  # Shows this week's report
-    kw report --month # Shows this month's report
-    kw report --year  # Shows this year's report
+    $ kw report         # Shows today's report
+    $ kw report --week  # Shows this week's report
+    $ kw report --month # Shows this month's report
+    $ kw report --year  # Shows this year's report
 
 Conclusion
 ----------

@@ -39,7 +39,7 @@ function test_create_backup()
   assertTrue "($LINENO) - Tar file was not created" "[[ -f $filepath ]]"
 
   tar_files=("$(tar -taf "$filepath" | grep -e '[^/]$' | sort -d | cut -c3-)")
-  compare_command_sequence 'expected_files' "${tar_files[@]}" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_files' "${tar_files[@]}"
 }
 
 function test_restore_backup()
@@ -86,7 +86,7 @@ function test_restore_config()
   assertEquals "$LINENO" "$(printf '%s\n' "$output" | head -n 1)" 'It looks like that the file config-2 differs from the backup version.'
 
   # Since we answered no above, we expect config-2 to remain the same
-  assertEquals "$LINENO" "$config_2_last_line" "$(tail -n 1 "$KW_DATA_DIR/configs/configs/config-2")"
+  assert_equals_helper "config-2 should've reamined the same" "$LINENO" "$config_2_last_line" "$(tail -n 1 "$KW_DATA_DIR/configs/configs/config-2")"
 
   output=$(printf '%s\n' 'y' | restore_config)
   assertEquals "$LINENO" "$(printf '%s\n' "$output" | head -n 1)" 'It looks like that the file config-2 differs from the backup version.'
@@ -116,14 +116,14 @@ function test_restore_data_from_dir()
   assertNotEquals "$LINENO" '# This line is different' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 
   output=$(printf '%s\n' '1' | restore_data_from_dir 'pomodoro')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
   assertEquals "$LINENO" '# This line is different' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 
   expected_cmd+=("patching file $KW_DATA_DIR/pomodoro/2021/04/04")
 
   printf '%s\n' '# Another different line' >> "$decompress_path/pomodoro/2021/04/04"
   output=$(printf '%s\n' '3' | restore_data_from_dir 'pomodoro')
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
   assertEquals "$LINENO" '# Another different line' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 }
 
@@ -162,42 +162,42 @@ function test_parse_backup_options()
   unset options_values
   declare -gA options_values
   parse_backup_options --restore backup.tar.gz
-  assertEquals "($LINENO)" 'backup.tar.gz' "${options_values['RESTORE_PATH']}"
+  assert_equals_helper 'RESTORE_PATH could not be set' "($LINENO)" 'backup.tar.gz' "${options_values['RESTORE_PATH']}"
 
   unset options_values
   declare -gA options_values
   parse_backup_options -r backup.tar.gz
-  assertEquals "($LINENO)" 'backup.tar.gz' "${options_values['RESTORE_PATH']}"
+  assert_equals_helper 'RESTORE_PATH could not be set' "($LINENO)" 'backup.tar.gz' "${options_values['RESTORE_PATH']}"
 
   unset options_values
   declare -gA options_values
   parse_backup_options --force
-  assertEquals "($LINENO)" '1' "${options_values['FORCE']}"
+  assert_equals_helper 'FORCE could not be set' "($LINENO)" '1' "${options_values['FORCE']}"
 
   unset options_values
   declare -gA options_values
   parse_backup_options -f
-  assertEquals "($LINENO)" '1' "${options_values['FORCE']}"
+  assert_equals_helper 'FORCE could not be set' "($LINENO)" '1' "${options_values['FORCE']}"
 
   unset options_values
   declare -gA options_values
   parse_backup_options /path
-  assertEquals "($LINENO)" '/path' "${options_values['BACKUP_PATH']}"
+  assert_equals_helper 'BACKUP_PATH could not be set' "($LINENO)" '/path' "${options_values['BACKUP_PATH']}"
 
   unset options_values
   declare -gA options_values
   parse_backup_options --restore > /dev/null
-  assertEquals "($LINENO)" "kw backup: option '--restore' requires an argument" "${options_values['ERROR']}"
+  assert_equals_helper 'ERROR could not be set' "($LINENO)" "kw backup: option '--restore' requires an argument" "${options_values['ERROR']}"
 
   unset options_values
   declare -gA options_values
   parse_backup_options -b > /dev/null
-  assertEquals "($LINENO)" "kw backup: invalid option -- 'b'" "${options_values['ERROR']}"
+  assert_equals_helper 'ERROR could not be set' "($LINENO)" "kw backup: invalid option -- 'b'" "${options_values['ERROR']}"
 
   unset options_values
   declare -gA options_values
   parse_backup_options --ristore > /dev/null
-  assertEquals "($LINENO)" "kw backup: unrecognized option '--ristore'" "${options_values['ERROR']}"
+  assert_equals_helper 'ERROR could not be set' "($LINENO)" "kw backup: unrecognized option '--ristore'" "${options_values['ERROR']}"
 
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO): It was not possible to move to temporary directory"
@@ -207,7 +207,7 @@ function test_parse_backup_options()
   unset options_values
   declare -gA options_values
   parse_backup_options
-  assertEquals "($LINENO)" "$SHUNIT_TMPDIR" "${options_values['BACKUP_PATH']}"
+  assert_equals_helper 'BACKUP_PATH could not be set' "($LINENO)" "$SHUNIT_TMPDIR" "${options_values['BACKUP_PATH']}"
 
   cd "$current_path" || {
     fail "($LINENO): It was not possible to move back from temp directory"

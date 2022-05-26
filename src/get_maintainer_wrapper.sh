@@ -63,8 +63,7 @@ function execute_get_maintainer()
   local is_file_inside_kernel_tree=true
 
   local -r script='scripts/get_maintainer.pl'
-  local script_options='--separator , --nokeywords --nogit'
-  script_options="$script_options --nogit-fallback --norolestats"
+  local script_options="${configurations[get_maintainer_opts]}"
 
   local -r original_working_dir=$PWD
   local kernel_root=''

@@ -79,11 +79,11 @@ function test_kw_ssh_command()
 
   output=$(kw_ssh test_mode -c 'pwd')
 
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   output=$(kw_ssh test_mode --command "ls /etc/" 2>&1)
   expected_cmd[1]='ssh -p 3333 juca@127.0.0.1 ls /etc/'
-  compare_command_sequence 'expected_cmd' "$output" "$LINENO"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_kw_ssh_script()

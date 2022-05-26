@@ -29,7 +29,6 @@ function kworkflow_help()
     '  man - Show manual pages' \
     '  pomodoro,p - kw pomodoro support' \
     '  ssh,s - SSH support' \
-    '  statistics - Provide basic statistics related to daily development' \
     '  vars - Show variables' \
     '  version,--version,-v - show kw version' \
     '  vm - Set of commands to work with QEMU VMs'

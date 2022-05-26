@@ -9,7 +9,8 @@ SYNOPSIS
 | *kw* *debug* [(-e | \--event) <event-syntax> [(-d | \--disable)] [(-k | \--history)] [(-f | \--follow)] ]
 | *kw* *debug* [(-t | \--ftrace)]
 | *kw* *debug* [(-g | \--dmesg) [(-f | \--follow)] [(-c | \--cmd) "COMMAND"] ]
-| *kw* *debug* [(-l | \--list)] [(-e | \--event)]
+| *kw* *debug* [(-l | \--list)[=(<ftrace> | <events>)]] [(-e | \--event)]
+| *kw* *debug* [\--reset]
 | *kw* *debug* [(-h | \--help)]
 
 DESCRIPTION
@@ -77,13 +78,32 @@ Dmesg log is vital for debugging issues in the Linux kernel, and kw debug
 provides the \--dmesg option to help developers quickly collect this
 information. Notice that this feature work in the local and remote context.
 
+LIST
+----
+
+There are multiple debug options available under ftrace and event. For this
+reason, kw debug provides the list feature responsible for showing the
+available options. If you use `\--list` with no parameters, kw will show all
+ftrace algorithms and events options; you can provide the specific debug option
+by using ftrace or event. In particular, if you want to list details about a
+particular event, you can use `event:TARGET_EVENT`.
+
+RESET
+-----
+
+When users cancel some of the debug operations, we might have a situation where
+we accidentally leave some configurations set, which may cause problems when
+trying to use the debug option a second time. In particular, it is common to
+have a hung process in the trace_pipe file. The option `\--reset` is
+responsible for resetting and killing any debug option process.
+
 OPTIONS
 =======
 -d, \--disable:
   Disable all events specified inside `\--event ""` and `\--ftrace`. This
   feature does not apply to `\--dmesg` option.
 
--l, \--list:
+-l, \--list[=(<ftrace> | <events>)]:
   If used together with the event option, it will list all available events. If
   a specific event is informed via *\--events "<event>"*, this option will only
   list specific events related to the "<event>".  This feature does not apply
@@ -116,6 +136,11 @@ Now that you can see all the available options let's suppose that you have the
 amdgpu driver; you can list its specific events by using::
 
   kw debug --list --event "amdgpu_dm"
+
+You can also use::
+
+  kw debug --list="ftrace"
+  kw debug --list="events:amdgpu_dm"
 
 Now that you found all the trace options available for your target driver, you
 can enable that event trace and follow it in real-time by using something like
@@ -161,3 +186,7 @@ behavior. You can use the below command to achieve this goal::
 If you want to run a command and capture the ftrace, you can use::
 
   kw debug --ftrace="function_graph:amdgpu_dm_*" --cmd="/root/igt-build/tests/kms_atomic --run-subtest test-only" --history
+
+Reset the debug option to its default::
+
+ kw debug --reset

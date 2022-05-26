@@ -92,7 +92,7 @@ function kw()
       (
         include "$KW_LIB_DIR/deploy.sh"
 
-        kernel_deploy '' "$@"
+        deploy_main '' "$@"
         local ret="$?"
         alert_completion 'kw deploy' "$1"
         return "$ret"
@@ -103,7 +103,7 @@ function kw()
         include "$KW_LIB_DIR/deploy.sh"
         include "$KW_LIB_DIR/build.sh"
 
-        kernel_build && kernel_deploy 1 "$@"
+        kernel_build && deploy_main 1 "$@"
         local ret="$?"
         alert_completion 'kw db' "$1"
         return "$ret"
@@ -185,13 +185,6 @@ function kw()
         kworkflow_version
       )
       ;;
-    statistics)
-      (
-        include "$KW_LIB_DIR/statistics.sh"
-
-        statistics "$@"
-      )
-      ;;
     pomodoro | p)
       (
         include "$KW_LIB_DIR/pomodoro.sh"
@@ -203,7 +196,7 @@ function kw()
       (
         include "$KW_LIB_DIR/report.sh"
 
-        report "$@"
+        report_main "$@"
       )
       ;;
     device)

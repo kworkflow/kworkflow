@@ -5,49 +5,109 @@
 #
 # Note: We use this script for ArchLinux and Manjaro
 
+# ArchLinux package names
+declare -ga required_packages=(
+  'rsync'
+  'screen'
+  'pv'
+  'bzip2'
+  'lzip'
+  'lzop'
+  'zstd'
+  'xz'
+)
+
+# ArchLinux package manager
+declare -g package_manager_cmd='yes | pacman -Syu'
+
 # Make initcpio and update grub on VM using Guestfish
-
-# Update boot loader API
-function update_arch_boot_loader()
-{
-  local name="$1"
-  local target="$2"
-  local flag="$3"
-  local cmd_init='dracut --regenerate-all -f'
-  local setup_grub=": write /boot/grub/device.map '(hd0,1) /dev/sda'"
-  local grub_install='grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda'
-
-  update_boot_loader "$name" 'arch' "$target" "$cmd_init" "$setup_grub" "$grub_install" "$flag"
-}
-
 function generate_arch_temporary_root_file_system()
 {
-  local name="$1"
-  local target="$2"
-  local flag="$3"
-  local path_prefix="$4"
+  local flag="$1"
+  local name="$2"
+  local target="$3"
+  local bootloader_type="$4"
+  local path_prefix="$5"
   local cmd=''
-  local sudo_cmd=''
+  local sudo_cmd
+  local template_path
+  local mkinitcpio_destination_path
   local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
 
-  if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E'
-  fi
+  # We do not support initramfs outside grub scope
+  [[ "$bootloader_type" != 'GRUB' ]] && return
 
-  # Update mkinitcpio
-  if [[ "$target" != 'remote' ]]; then
-    cmd="$sudo_cmd cp -v $LOCAL_KW_ETC $path_prefix/etc/mkinitcpio.d/$name.preset"
+  # Step 1: Generate specific preset file
+  mkinitcpio_destination_path="$path_prefix/etc/mkinitcpio.d/$name.preset"
+  template_path="$KW_ETC_DIR/template_mkinitcpio.preset"
+
+  case "$target" in
+    'local') # LOCAL_TARGET
+      sudo_cmd='sudo -E'
+      cmd="$sudo_cmd "
+      ;;
+    'remote') # REMOTE_TARGET
+      template_path="$REMOTE_KW_DEPLOY/template_mkinitcpio.preset"
+      ;;
+  esac
+
+  # We will eval a command that uses sudo and redirection which can cause
+  # errors. To avoid problems, let's use bash -c
+  cmd+="bash -c \""
+  cmd+="sed 's/NAME/$name/g' '$template_path' > $mkinitcpio_destination_path\""
+
+  cmd_manager "$flag" "$cmd"
+
+  # TODO: We need to handle VM
+  if [[ "$target" != 'vm' ]]; then
+    # Step 2: Make sure that we are generating a consistent modules.dep and map
+    cmd="$sudo_cmd depmod --all $name"
     cmd_manager "$flag" "$cmd"
-    cmd="$sudo_cmd sed -i -e 's/NAME/$name/g' '$path_prefix/etc/mkinitcpio.d/$name.preset'"
+
+    # Step 3: Generate the initcpio file
+    cmd="$sudo_cmd mkinitcpio --preset $name"
     cmd_manager "$flag" "$cmd"
   else
-    cmd="cp -v $name.preset $path_prefix/etc/mkinitcpio.d/"
-    cmd_manager "$flag" "$cmd"
+    generate_rootfs_with_libguestfs "$flag" "$name"
+  fi
+}
+
+function generate_rootfs_with_libguestfs()
+{
+  local flag="$1"
+  local name="$2"
+  # We assume Debian as a default option
+  local mount_root=': mount /dev/sda1 /'
+  local cmd_init='dracut --regenerate-all -f'
+  local ret=0
+
+  flag=${flag:-'SILENT'}
+
+  if [[ ! -f "${configurations[qemu_path_image]}" ]]; then
+    complain "There is no VM in ${configurations[qemu_path_image]}"
+    return 125 # ECANCELED
   fi
 
-  if [[ "$target" != 'vm' ]]; then
-    # Update mkinitcpio
-    cmd="$sudo_cmd mkinitcpio -p $name"
-    cmd_manager "$flag" "$cmd"
+  # For executing libguestfs commands we need to umount the vm
+  if [[ $(findmnt "${configurations[mount_point]}") ]]; then
+    vm_umount
   fi
+
+  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+      $mount_root : command '$cmd_init'"
+
+  warning " -> Generating rootfs $name on VM. This can take a few minutes."
+  cmd_manager "$flag" "sleep 0.5s"
+  {
+    cmd_manager "$flag" "$cmd"
+    ret="$?"
+  } 1> /dev/null # No visible stdout but still shows errors
+
+  # TODO: The below line is here for test purpose. We need a better way to
+  # do that.
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
+
+  say 'Done.'
+
+  return "$ret"
 }
