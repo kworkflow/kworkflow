@@ -1,0 +1,29 @@
+name: Test setup and doc build
+on:
+  [push, pull_request]
+jobs:
+  setup-and-doc-build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Update the system
+        run: |
+          sudo apt update -y
+
+      - name: Install dependencies
+        run: |
+          sudo apt install -y python-docutils python3-sphinx graphviz
+
+      - name: Check documentation
+        run: |
+          ./setup.sh --docs --force
+
+      - name: Check installation
+        run: |
+          ./setup.sh -i --force
