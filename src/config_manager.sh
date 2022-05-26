@@ -124,10 +124,14 @@ function save_config_file()
 
   cp "$original_path/.config" "$dot_configs_dir/$configs_dir/$name"
   git add "$configs_dir/$name" "$metadata_dir/$name"
-  git commit -m "New config file added: $USER - $(date)" > /dev/null 2>&1
+  current_date=$(date)
+  git commit -m "New config file added: $USER - $current_date" > /dev/null 2>&1
+  ret="$?"
 
-  if [[ "$?" == 1 ]]; then
+  if [[ "$ret" == 1 ]]; then
     warning "Warning: $name: there's nothing new in this file"
+  elif [[ "$ret" -gt 0 ]]; then
+    fail "Could not save user config files"
   else
     success "Saved $name"
   fi
