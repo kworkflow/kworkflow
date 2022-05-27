@@ -24,3 +24,4 @@ bc
 git-email
 sqlite3
 pv
+rsync
