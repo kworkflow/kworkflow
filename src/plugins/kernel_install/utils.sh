@@ -334,6 +334,7 @@ function update_bootloader()
   local kernel_image_name="$4"
   local distro="$5"
   local prefix="$6"
+  local root_file_system="$7"
   local deploy_data_string
   local bootloader_path_prefix
   local ret
@@ -373,7 +374,7 @@ function update_bootloader()
   if [[ "$generate_initram" == 1 ]]; then
     # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
     cmd="generate_${distro}_temporary_root_file_system"
-    cmd+=" $flag $name $target ${deploy_data['bootloader']} $path_prefix"
+    cmd+=" $flag $name $target ${deploy_data['bootloader']} $path_prefix $root_file_system"
 
     cmd_manager "$flag" "$cmd"
     ret="$?"
