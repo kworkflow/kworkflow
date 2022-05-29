@@ -54,7 +54,7 @@ function collect_deploy_info()
     . "$REMOTE_KW_DEPLOY/bootloader_utils.sh" --source-only
   fi
 
-  bootloader=$(identify_bootloader_from_files "$prefix")
+  bootloader=$(identify_bootloader_from_files "$prefix" "$target")
   bootloader="[bootloader]=$bootloader"
 
   # Get distro
