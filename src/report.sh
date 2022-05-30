@@ -173,6 +173,7 @@ function grouping_day_data()
   local timebox_sec
   local total_time_box_sec=0
   local total_repetition=0
+  local -A date_printed
 
   day_path=$(join_path "$KW_POMODORO_DATA" "$day")
   if [[ ! -f "$day_path" ]]; then
@@ -189,10 +190,15 @@ function grouping_day_data()
     time_label=$(expand_time_labels "$timebox")
     [[ "$?" != 0 ]] && continue
 
+    if [[ ! -v date_printed["$tag"] ]]; then
+      date_printed["$tag"]=1
+      tags_details["$tag"]+=" - $day"$'\n'
+    fi
+
     end_time=$(date --date="$start_time $time_label" +%H:%M:%S)
 
     [[ -n "$details" ]] && details=": $details"
-    tags_details["$tag"]+=" * [$start_time-$end_time][$timebox]$details"$'\n'
+    tags_details["$tag"]+="   * [$start_time-$end_time][$timebox]$details"$'\n'
 
     # Preparing metadata: total timebox in sec, total repetition
     timebox_sec=$(timebox_to_sec "$timebox")
