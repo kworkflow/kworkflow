@@ -163,12 +163,12 @@ function test_grouping_day_data()
 
   # Here we use $'...' to evaluate the newline at the end of the strings
   declare -a expected_content=(
-    $' * [06:00:40-06:20:40][20m]: Tag 1 description\n'
-    $' * [08:30:50-08:45:50][15m]: Tag 2 description\n'
-    $' * [09:00:00-10:00:00][1h]: Tag 3 description\n'
-    $' * [11:00:00-11:00:44][44s]: Tag 4 description\n'
-    $' * [14:00:00-14:30:00][30m]: Tag 5 description\n'
-    $' * [15:00:00-15:10:00][10m]\n'
+    $' - 2021/04/04\n   * [06:00:40-06:20:40][20m]: Tag 1 description\n'
+    $' - 2021/04/04\n   * [08:30:50-08:45:50][15m]: Tag 2 description\n'
+    $' - 2021/04/04\n   * [09:00:00-10:00:00][1h]: Tag 3 description\n'
+    $' - 2021/04/04\n   * [11:00:00-11:00:44][44s]: Tag 4 description\n'
+    $' - 2021/04/04\n   * [14:00:00-14:30:00][30m]: Tag 5 description\n'
+    $' - 2021/04/04\n   * [15:00:00-15:10:00][10m]\n'
   )
 
   declare -a expected_tags=(
@@ -183,15 +183,15 @@ function test_grouping_day_data()
   grouping_day_data '2021/04/04'
   for tag in "${expected_tags[@]}"; do
     line="${expected_content[$count]}"
-    assert_equals_helper "Loop $count failed" "$LINENO" "$line" "${tags_details[$tag]}"
+    assert_equals_helper "Loop $count failed" "$LINENO" "${tags_details[$tag]}" "$line"
     ((count++))
   done
 
   # Try to process file with bad data
   count=0
   declare -a expected_content=(
-    $' * [06:00:40-06:20:40][20m]: Tag 1 description\n'
-    $' * [09:00:00-10:00:00][1h]: Tag 3 description\n'
+    $' - bad_data/2021/04/04\n   * [06:00:40-06:20:40][20m]: Tag 1 description\n'
+    $' - bad_data/2021/04/04\n   * [09:00:00-10:00:00][1h]: Tag 3 description\n'
   )
 
   declare -a expected_tags=(
@@ -204,7 +204,7 @@ function test_grouping_day_data()
   grouping_day_data 'bad_data/2021/04/04'
   for tag in "${expected_tags[@]}"; do
     line="${expected_content[$count]}"
-    assert_equals_helper "Loop $count failed" "$LINENO" "$line" "${tags_details[$tag]}"
+    assert_equals_helper "Loop $count failed" "$LINENO" "${tags_details[$tag]}" "$line"
     ((count++))
   done
 }
