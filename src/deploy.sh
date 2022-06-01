@@ -102,6 +102,17 @@ function deploy_main()
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
   setup="${options_values['SETUP']}"
 
+  if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
+    say 'Available kernels:'
+    start=$(date +%s)
+    run_list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
+    end=$(date +%s)
+
+    runtime=$((end - start))
+    statistics_manager 'list' "$runtime"
+    return "$?"
+  fi
+
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
   update_deploy_variables
@@ -131,17 +142,6 @@ function deploy_main()
   fi
 
   collect_target_info_for_deploy "$target" "$flag"
-
-  if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
-    say 'Available kernels:'
-    start=$(date +%s)
-    run_list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
-    end=$(date +%s)
-
-    runtime=$((end - start))
-    statistics_manager 'list' "$runtime"
-    return "$?"
-  fi
 
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
@@ -552,13 +552,13 @@ function run_list_installed_kernels()
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line" "$all" "${configurations[mount_point]}"
+      list_installed_kernels "$flag" "$single_line" "$all" "${configurations[mount_point]}"
 
       vm_umount
       ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line" "$all"
+      list_installed_kernels "$flag" "$single_line" "$all"
       ;;
     3) # REMOTE_TARGET
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
