@@ -302,6 +302,10 @@ function test_mail_parser()
   expected='--suppress-cc=all'
   assert_equals_helper 'Set private flag' "$LINENO" "${options_values['PRIVATE']}" "$expected"
 
+  parse_mail_options '--rfc'
+  expected='--rfc'
+  assert_equals_helper 'Set rfc flag' "$LINENO" "${options_values['RFC']}" "$expected"
+
   parse_mail_options '--to=some@mail.com'
   expected='some@mail.com'
   assert_equals_helper 'Set to flag' "$LINENO" "${options_values['TO']}" "$expected"
@@ -451,6 +455,12 @@ function test_mail_send()
   output=$(mail_send 'TEST_MODE')
   expected="git send-email --suppress-cc=all @^"
   assert_equals_helper 'Testing send with to option' "$LINENO" "$output" "$expected"
+
+  parse_mail_options '--rfc'
+
+  output=$(mail_send 'TEST_MODE')
+  expected="git send-email --rfc @^"
+  assert_equals_helper 'Testing send with rfc option' "$LINENO" "$output" "$expected"
 
   parse_mail_options '--to=mail@test.com' 'HEAD~'
 
