@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './tests/utils.sh'
 include './src/kw_config_loader.sh'

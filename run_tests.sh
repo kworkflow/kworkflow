@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 . ./src/kw_include.sh --source-only
 include './tests/utils.sh'

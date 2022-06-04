@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 KW_LIB_DIR='src'
 . 'src/kw_include.sh' --source-only
 include "$KW_LIB_DIR/kwio.sh"
@@ -139,11 +139,6 @@ function update_path()
   done
 
   safe_append "PATH=$HOME/.local/bin:\$PATH # kw" "$HOME/$shellrc"
-}
-
-function update_current_bash()
-{
-  exec /bin/bash
 }
 
 function cmd_output_manager()
@@ -443,7 +438,6 @@ done
 case "$1" in
   --install | -i)
     install_home
-    #update_current_bash
     ;;
   --uninstall | -u)
     clean_legacy

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/kw_time_and_date.sh'
 include './tests/utils.sh'

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script will be executed via ssh, because of this, I can't see any good
 # reason (until now) for making things complicated here.

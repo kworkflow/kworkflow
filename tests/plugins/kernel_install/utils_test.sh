@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # We load utils in the oneTimeSetUp() to ensure we can replace some kw functions
 include './tests/utils.sh'

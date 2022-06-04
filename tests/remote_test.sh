@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/remote.sh'
 include './src/kwlib.sh'

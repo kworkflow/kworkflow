@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/pomodoro.sh'
 include './tests/utils.sh'

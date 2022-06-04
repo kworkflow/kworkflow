@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/get_maintainer_wrapper.sh'
 include './tests/utils.sh'

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/backup.sh'
 include './src/kwlib.sh'

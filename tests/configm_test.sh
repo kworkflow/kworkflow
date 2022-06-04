@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/config_manager.sh'
 include './tests/utils.sh'
