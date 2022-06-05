@@ -31,7 +31,7 @@ declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
 ##
 declare -r SRCDIR='src'
 declare -r MAN='documentation/man/'
-declare -r CONFIG_DIR='etc'
+declare -r CONFIG_DIR='etc/'
 declare -r KW_CACHE_DIR="$cachedir"
 
 declare -r SOUNDS='sounds'
@@ -262,26 +262,6 @@ function clean_legacy()
   remove_kw_from_PATH_variable
 }
 
-function setup_config_file()
-{
-  local config_files_path="$etcdir"
-  local config_file_template="$config_files_path/kworkflow_template.config"
-  local global_config_name='kworkflow.config'
-
-  if [[ -f "$config_file_template" ]]; then
-    cp "$config_file_template" "$config_files_path/$global_config_name"
-    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sounddir,g" \
-      -e "/^#?.*/d" "$config_files_path/$global_config_name"
-    ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      return "$ret"
-    fi
-  else
-    warning "setup could not find $config_file_template"
-    return 2
-  fi
-}
-
 function ASSERT_IF_NOT_EQ_ZERO()
 {
   local msg="$1"
@@ -336,10 +316,6 @@ function synchronize_files()
   mkdir -p "$datadir"
   mkdir -p "$datadir/statistics"
   mkdir -p "$datadir/configs"
-
-  # Copy and setup global config file
-  setup_config_file
-  ASSERT_IF_NOT_EQ_ZERO 'Config file failed' "$?"
 
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc
