@@ -11,6 +11,7 @@ COMPLETELY_REMOVE=0
 INSTALL=0
 UNINSTALL=0
 DOCS=0
+SYSTEM_INSTALL=0
 declare TRASH=''
 
 declare -r KWORKFLOW='kw'
@@ -18,16 +19,27 @@ declare -r KWORKFLOW='kw'
 ##
 ## Set install paths
 ##
+# System paths used during the installation process
+declare -r sysbindir="/bin"
+declare -r syslibdir="/usr/local/lib/$KWORKFLOW"
+declare -r syssharedir="/usr/local/share/$KWORKFLOW"
+declare -r sysdocdir="$syssharedir/doc"
+declare -r sysmandir="$syssharedir/man/man1"
+declare -r syssounddir="$syssharedir/sound"
+declare -r sysdatadir="$syssharedir"
+declare -r sysetcdir="/etc/$KWORKFLOW"
+declare -r syscachedir="/var/cache/$KWORKFLOW"
+
 # Local paths used during the installation process
-declare -r bindir="$HOME/.local/bin"
-declare -r libdir="$HOME/.local/lib/$app_name"
-declare -r sharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
-declare -r docdir="$sharedir/doc"
-declare -r mandir="$sharedir/man"
-declare -r sounddir="$sharedir/sound"
-declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
-declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
-declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
+declare -r localbindir="$HOME/.local/bin"
+declare -r locallibdir="$HOME/.local/lib/$KWORKFLOW"
+declare -r localsharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
+declare -r localdocdir="$localsharedir/doc"
+declare -r localmandir="$localsharedir/man"
+declare -r localsounddir="$localsharedir/sound"
+declare -r localdatadir="${XDG_DATA_HOME:-"$localsharedir"}/$KWORKFLOW"
+declare -r localetcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW"
+declare -r localcachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$KWORKFLOW"}"
 
 ##
 ## Source code references
@@ -254,6 +266,7 @@ function usage()
   say '--help      | -h     Display this usage message'
   say "--install   | -i     Install $KWORKFLOW (defaults to local install)"
   say "--uninstall | -u     Uninstall $KWORKFLOW"
+  say "--system    | -s     Install $KWORKFLOW to system"
   say '--skip-checks        Skip checks (use this when packaging)'
   say '--verbose   | -v     Explain what is being done'
   say '--force              Never prompt'
@@ -396,9 +409,13 @@ function update_version()
   local head_hash
   local branch_name
   local base_version
+  local prepend=''
 
-  head_hash=$(git rev-parse --short HEAD)
-  branch_name=$(git rev-parse --short --abbrev-ref HEAD)
+  if [[ "$SYSTEM_INSTALL" = 1 ]]; then
+    prepend="sudo --user=$(env | grep "SUDO_USER" | cut -d= -f2) "
+  fi
+  head_hash=$(eval "$prepend"git rev-parse --short HEAD)
+  branch_name=$(eval "$prepend"git rev-parse --short --abbrev-ref HEAD)
   base_version=$(head -n 1 "$libdir/VERSION")
 
   cat > "$libdir/VERSION" << EOF
@@ -410,7 +427,12 @@ EOF
 
 function add_completions()
 {
-  default_shell=$(grep -q "$(whoami)" /etc/passwd | cut -d: -f7)
+  if [[ "$SYSTEM_INSTALL" = 1 ]]; then
+    user="$(env | grep 'SUDO_USER' | cut -d= -f2)"
+  else
+    user="$(whoami)"
+  fi
+  default_shell=$(grep -q "$user" /etc/passwd | cut -d: -f7)
   default_shell=$(basename "$default_shell")
   local -r supported_shells=(
     'bash'
@@ -451,6 +473,25 @@ function add_completions()
   fi
 }
 
+function set_vars()
+{
+  var_locale="${1:-local}"
+  vars=(
+    bindir
+    libdir
+    sharedir
+    docdir
+    mandir
+    sounddir
+    datadir
+    etcdir
+    cachedir
+  )
+  for var in "${vars[@]}"; do
+    eval "$var=\$${var_locale}${var}"
+  done
+}
+
 function install()
 {
   # Install
@@ -465,7 +506,11 @@ function install()
 
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
-  say "$KWORKFLOW installed into $HOME"
+  if [[ "$SYSTEM_INSTALL" = 1 ]]; then
+    say "$KWORKFLOW installed to system"
+  else
+    say "$KWORKFLOW installed into $HOME"
+  fi
   warning ' -> For a better experience with kw, please, open a new terminal.'
   # Update version based on the current branch
   update_version
@@ -478,11 +523,28 @@ function main()
     # Move old folder structure to new one
     legacy_folders
 
+    set_vars
     clean_previous_install
+
+    if [[ -f "$bindir/$KWORKFLOW" ]]; then
+      if [[ "$(whoami)" != root ]]; then
+        warning 'Please run as root using `sudo -E`'
+        exit
+      fi
+      set_vars sys
+      clean_previous_install
+    fi
   fi
 
   if [[ "$INSTALL" = 1 ]]; then
     check_dependencies
+    if [[ "$SYSTEM_INSTALL" = 1 ]]; then
+      if [[ "$(whoami)" != root ]]; then
+        warning 'Please run as root using `sudo -E`'
+        exit 1
+      fi
+      set_vars sys
+    fi
     install
   elif [[ "$UNINSTALL" = 1 ]]; then
     [[ "$COMPLETELY_REMOVE" = 1 ]] &&
@@ -490,7 +552,8 @@ function main()
 
     # Completely remove user data
     if [[ "$COMPLETELY_REMOVE" = 1 ]]; then
-      mv "$datadir" "$TRASH/userdata"
+      mv "$localdatadir" "$TRASH/userdata"
+      mv "$sysdatadir" "$TRASH/userdata"
     fi
 
     say 'kw was removed.'
@@ -523,6 +586,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-checks)
       SKIPCHECKS=1
+      shift
+      ;;
+    --system | -s)
+      SYSTEM_INSTALL=1
       shift
       ;;
       # ATTENTION: This option is dangerous because it completely removes all files

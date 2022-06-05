@@ -2,46 +2,89 @@
 
 KWORKFLOW=${KWORKFLOW:-'kw'}
 
-# Global paths
-
-# Kw shell files
-KW_LIB_DIR="${KW_LIB_DIR:-"$HOME/.local/lib"}/$KWORKFLOW"
-KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}"
-
-# Share files
-KW_SHARE_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
-KW_DOC_DIR="$KW_SHARE_DIR/doc"
-KW_MAN_DIR="$KW_SHARE_DIR/man"
-KW_SOUND_DIR="$KW_SHARE_DIR/sound"
-
-# User specific data files (currently this collapses with the share dir,
-# but would not for a system-wide installation)
-KW_DATA_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
-
-# Configuration files
-KW_ETC_DIR="${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW"
-
-# Cache folder
-KW_CACHE_DIR="${XDG_CACHE_HOME:-"$HOME/.cache"}/$KWORKFLOW"
-
-# State files
-KW_STATE_DIR="${XDG_STATE_HOME:-"$HOME/.local/state"}/$KWORKFLOW"
-
-##BEGIN-DEV-MODE##
-KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
-KW_BASE_DIR="$(dirname "${KW_BIN}")"
+declare KW_LIB_DIR
+declare KW_PLUGINS_DIR
+declare KW_SHARE_DIR
+declare KW_DOC_DIR
+declare KW_MAN_DIR
+declare KW_SOUND_DIR
+declare KW_DATA_DIR
+declare KW_ETC_DIR
+declare KW_CACHE_DIR
+declare KW_STATE_DIR
+declare KW_BIN
+declare KW_BASE_DIR
 if [ -f "${KW_BASE_DIR}/src/kwlib.sh" ]; then
-  # running from source directory
-  KW_LIB_DIR="${KW_BASE_DIR}/src"
-  # KW_DATA_DIR # use default data folder
-  KW_DOC_DIR="${KW_BASE_DIR}/documentation"
-  KW_MAN_DIR="${KW_BASE_DIR}/documentation/man"
-  KW_SOUND_DIR="${KW_BASE_DIR}/sound"
-  KW_ETC_DIR="${KW_BASE_DIR}/etc"
-  KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
-  # KW_CACHE_DIR # use default cache folder
+  declare KW_LIB_DIR
+  declare KW_DOC_DIR
+  declare KW_MAN_DIR
+  declare KW_SOUND_DIR
+  declare KW_ETC_DIR
+  declare KW_PLUGINS_DIR
 fi
-##END-DEV-MODE##
+
+# Global paths
+function set_paths()
+{
+  if [[ $(which kw) =~ ^/usr ]]; then
+    # kw shell files
+    KW_LIB_DIR="${KW_LIB_DIR:-/usr/local/lib}/$KWORKFLOW"
+
+    # Share files
+    KW_SHARE_DIR="/usr/local/share/$KWORKFLOW"
+
+    # Configuration files
+    KW_ETC_DIR="/etc/$KWORKFLOW"
+
+    # Cache folder
+    KW_CACHE_DIR="/var/cache/$KWORKFLOW"
+
+    # State files
+    KW_STATE_DIR="/var/cache/$KWORKFLOW/state"
+  else
+    # kw shell files
+    KW_LIB_DIR="${KW_LIB_DIR:-"$HOME/.local/lib"}/$KWORKFLOW"
+
+    # Share files
+    KW_SHARE_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
+
+    # Configuration files
+    KW_ETC_DIR="${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW"
+
+    # Cache folder
+    KW_CACHE_DIR="${XDG_CACHE_HOME:-"$HOME/.cache"}/$KWORKFLOW"
+
+    # State files
+    KW_STATE_DIR="${XDG_STATE_HOME:-"$HOME/.local/state"}/$KWORKFLOW"
+  fi
+
+  # kw shell files
+  KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}"
+
+  # Share files
+  KW_DOC_DIR="$KW_SHARE_DIR/doc"
+  KW_MAN_DIR="$KW_SHARE_DIR/man"
+  KW_SOUND_DIR="$KW_SHARE_DIR/sound"
+  KW_DATA_DIR="$KW_SHARE_DIR"
+
+  ##BEGIN-DEV-MODE##
+  KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
+  KW_BASE_DIR="$(dirname "${KW_BIN}")"
+  if [ -f "${KW_BASE_DIR}/src/kwlib.sh" ]; then
+    # running from source directory
+    KW_LIB_DIR="${KW_BASE_DIR}/src"
+    # KW_DATA_DIR # use default data folder
+    KW_DOC_DIR="${KW_BASE_DIR}/documentation"
+    KW_MAN_DIR="${KW_BASE_DIR}/documentation/man"
+    KW_SOUND_DIR="${KW_BASE_DIR}/sound"
+    KW_ETC_DIR="${KW_BASE_DIR}/etc"
+    KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
+    # KW_CACHE_DIR # use default cache folder
+  fi
+  ##END-DEV-MODE##
+}
+
+set_paths
 
 # Export external variables required by kworkflow
 export KWORKFLOW
