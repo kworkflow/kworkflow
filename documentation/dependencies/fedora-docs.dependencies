@@ -1,0 +1,6 @@
+texlive-dvipng
+python3-docutils
+texlive-xetex
+python3-sphinx
+python3-pip
+librsvg2

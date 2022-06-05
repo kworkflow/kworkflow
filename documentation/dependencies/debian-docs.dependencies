@@ -1,0 +1,8 @@
+python3-docutils
+texlive-xetex
+python3-sphinx
+python3-dask-sphinx-theme
+python3-pip
+sphinx-doc
+dvipng
+librsvg2-bin

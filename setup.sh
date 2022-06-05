@@ -7,6 +7,11 @@ include "$KW_LIB_DIR/kwlib.sh"
 VERBOSE=0
 FORCE=0
 SKIPCHECKS=0
+COMPLETELY_REMOVE=0
+INSTALL=0
+UNINSTALL=0
+DOCS=0
+declare TRASH=''
 
 declare -r KWORKFLOW='kw'
 
@@ -29,15 +34,122 @@ declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
 ##
 declare -r CONFIG_DIR='etc/init_templates'
 
+declare missing_deps=()
+declare missing_pip_docs_deps=()
+
 function check_dependencies()
 {
+  deps_type="${1:-runtime}"
+
+  if [[ "$SKIPCHECKS" == 0 ]]; then
+    say 'Checking dependencies ...'
+  fi
+
+  local -Ar needed_runtime_commands=(
+    [qemu]=qemu-img
+    [git]=git
+    [tar]=tar
+    [pulseaudio]=pulseaudio
+    [dunst]=dunst
+    [graphviz]=graphml2gv
+    [virtualenv]=virtualenv
+    [bzip2]=bzip2
+    [lzip]=lzip
+    [lzop]=lzop
+    [pip]=pip
+    [bc]=bc
+    [perl]=perl
+    [sqlite3]=sqlite3
+    [pv]=pv
+    [rsync]=rsync
+  )
+  local -r needed_docs_commands=(
+    ['texlive-xetex']=xetex
+    [librsvg]=rsvg-convert
+    ['python-sphinx']=sphinx-build
+    [graphviz]=rst2html
+    [dvipng]=dvipng
+    [imagemagick]=convert
+  )
+
+  if [[ "$deps_type" = 'runtime' ]]; then
+    for cmd in "${!needed_runtime_commands[@]}"; do
+      [[ $(command_exists "$cmd") ]] ||
+        missing_deps+=("${needed_runtime_commands[$cmd]}")
+    done
+
+    printf '%s\n' \
+      $'#!/usr/bin/env perl\nuse Authen::SASL;\nuse IO::Socket::SSL;' > \
+      .test.pl
+
+    chmod +x .test.pl
+    if [[ ! $(./.test.pl) ]]; then
+      missing_deps+=(perl-authen-sasl)
+      missing_deps+=(perl-io-socket-ssl)
+    fi
+
+    rm -f .test.pl
+
+    [[ "${#missing_deps[@]}" -gt 0 ]] &&
+      return 1
+  else
+    for cmd in "${needed_docs_commands[@]}"; do
+      [[ $(command_exists "$cmd") ]] || missing_deps+=("$cmd")
+    done
+
+    while IFS='' read -r package; do
+      python3 -c "import pkg_resources; pkg_resources.require('$package')" &> /dev/null
+      [[ $? != 0 ]] && missing_pip_docs_deps+=("$package")
+    done < "documentation/dependencies/pip-docs.dependencies"
+
+    [[ "${#missing_deps[@]}" -gt 0 ||
+      "${#missing_pip_docs_deps[@]}" -gt 0 ]] &&
+      return 1
+  fi
+
+  return 0
+}
+
+function install_dependencies()
+{
+  deps_type="${1:-runtime}"
+
   local package_list=()
-  local pip_package_list=''
   local cmd=''
+  local docs_str=''
   local installed_cmd=''
   local distro
 
+  check_dependencies "$deps_type"
+
+  ret=$?
+
+  [[ $ret = 0 ]] && return 0
+
   distro=$(detect_distro '/')
+  supported_distros=(
+    'arch'
+    'debian'
+    'fedora'
+  )
+
+  if [[ ! ${supported_distros[*]} =~ $distro ]]; then
+    say 'User system not officially supported'
+    say 'Please install these packages:'
+    for pkg in "${!missing_deps[@]}"; do
+      printf '%s\n' "  - $pkg (provides ${missing_deps[$pkg]})"
+    done
+    if [[ "$deps_type" = 'docs' ]]; then
+      say 'And those pip packages:'
+      for pkg in "${!missing_pip_docs_deps[@]}"; do
+        printf '%s\n' "  - $pkg (provides ${missing_pip_docs_deps[$pkg]})"
+      done
+    fi
+    return 1
+  fi
+
+  [[ "$deps_type" != 'runtime' ]] &&
+    docs_str='-docs'
 
   if [[ "$distro" =~ 'arch' ]]; then
     installed_cmd="pacman -Qs"
@@ -45,20 +157,15 @@ function check_dependencies()
   elif [[ "$distro" =~ 'debian' ]]; then
     installed_cmd="dpkg-query -W --showformat='${Status}\n"
     cmd="apt install -y ${package_list[*]}"
-  elif [[ "$distro" =~ 'fedora' ]]; then
+  else
     installed_cmd="dnf list installed"
     cmd="dnf install -y ${package_list[*]}"
-  else
-    warning 'Unfortunately, we do not have official support for your distro (yet)'
-    warning 'Please, try to find the following packages:'
-    warning "$(< "$DOCUMENTATION/dependencies/arch.dependencies")"
-    return 0
   fi
 
   while IFS='' read -r package; do
     installed=$(eval "${installed_cmd} ${package}" > /dev/null)
     [[ $? != 0 ]] && package_list+=("$package")
-  done < "documentation/dependencies/${distro}.dependencies"
+  done < "documentation/dependencies/${distro}${docs_str}.dependencies"
 
   if [[ "${#package_list[@]}" -gt 0 ]]; then
     if [[ "$FORCE" = 0 &&
@@ -71,21 +178,17 @@ function check_dependencies()
     warning "Could not find missing packages"
   fi
 
-  while IFS='' read -r package; do
-    python3 -c "import pkg_resources; pkg_resources.require('$package')" &> /dev/null
-    [[ "$?" != 0 ]] && pip_package_list="\"$package\" $pip_package_list"
-  done < "$DOCUMENTATION/dependencies/pip.dependencies"
+  if [[ "$deps_type" = 'docs' ]]; then
+    if [[ "${#missing_pip_docs_deps[@]}" -gt 0 ]]; then
+      if [[ "$FORCE" = 0 &&
+        $(ask_yN "Can we install the following pip dependencies ${missing_pip_docs_deps[*]}?") = 0 ]]; then
 
-  if [[ -n "$pip_package_list" ]]; then
-    if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following pip dependencies $pip_package_list?") =~ '0' ]]; then
-        return 0
+        # Install pip packages
+        eval "pip install ${missing_pip_docs_deps[*]}" || return $?
       fi
+    else
+      warning "Could not find missing pip packages"
     fi
-
-    # Install pip packages
-    cmd="pip install $pip_package_list"
-    eval "$cmd"
   fi
 
   return 0
@@ -152,7 +255,7 @@ function usage()
   say "--install   | -i     Install $KWORKFLOW (defaults to local install)"
   say "--uninstall | -u     Uninstall $KWORKFLOW"
   say '--skip-checks        Skip checks (use this when packaging)'
-  say '--verbose            Explain what is being done'
+  say '--verbose   | -v     Explain what is being done'
   say '--force              Never prompt'
   say "--completely-remove  Remove $KWORKFLOW and all files under its responsibility"
   say "--docs               Build $KWORKFLOW's documentation as HTML pages into ./build"
@@ -161,8 +264,10 @@ function usage()
 function confirm_complete_removal()
 {
   warning 'This operation will completely remove all files related to kw,'
-  warning 'including the kernel '.config' files under its controls.'
-  if [[ $(ask_yN 'Do you want to proceed?') =~ '0' ]]; then
+  warning 'including the kernel .config files under its controls.'
+  if [[ $(ask_yN 'Do you want to proceed?') = 1 ]]; then
+    COMPLETELY_REMOVE=1
+  else
     exit 0
   fi
 }
@@ -174,8 +279,10 @@ function legacy_folders()
   local prefix="$HOME/.local"
 
   if [[ -d "$HOME/.kw" ]]; then
-    say 'Found an obsolete installation of kw:'
-    say "Moving files in $HOME/.kw/ to $datadir..."
+    if [[ "$COMPLETELY_REMOVE" = 0 ]]; then
+      say 'Found an obsolete installation of kw:'
+      say "Moving files in $HOME/.kw/ to $datadir..."
+    fi
     rsync -a "$HOME/.kw/" "$datadir"
 
     rm -rf "$HOME/.kw"
@@ -197,38 +304,30 @@ function legacy_folders()
   fi
 }
 
-function clean_legacy()
+function clean_previous_install()
 {
-  local trash
-
-  trash=$(mktemp -d)
+  [[ -z "$TRASH" ]] && TRASH=$(mktemp -d)
 
   [[ -e $HOME/.bashrc ]] &&
     eval "sed -i '/\<$KWORKFLOW\>/d' $HOME/.bashrc"
 
   # Remove kw binary
-  [[ -f "$bindir/$KWORKFLOW" ]] && mv "$bindir/$KWORKFLOW" "$trash"
+  [[ -f "$bindir/$KWORKFLOW" ]] && mv "$bindir/$KWORKFLOW" "$TRASH"
 
   # Remove kw library
-  [[ -d "$libdir" ]] && mv "$libdir" "$trash/lib"
+  [[ -d "$libdir" ]] && mv "$libdir" "$TRASH/lib"
 
   # Remove doc dir
-  [[ -d "$docdir" ]] && mv "$docdir" "$trash"
+  [[ -d "$docdir" ]] && mv "$docdir" "$TRASH"
 
   # Remove man
-  [[ -d "$mandir" ]] && mv "$mandir" "$trash"
+  [[ -d "$mandir" ]] && mv "$mandir" "$TRASH"
 
   # Remove sound files
-  [[ -d "$sounddir" ]] && mv "$sounddir" "$trash/sound"
+  [[ -d "$sounddir" ]] && mv "$sounddir" "$TRASH/sound"
 
   # Remove etc files
-  [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
-
-  # Completely remove user data
-  if [[ "$completely_remove" =~ '-d' ]]; then
-    mv "$datadir" "$trash/userdata"
-    return 0
-  fi
+  [[ -d "$etcdir" ]] && mv "$etcdir" "$TRASH/etc"
 
   # TODO: Remove me one day
   # Some old version of kw relies on a directory name `kw` at ~/, we changed
@@ -309,69 +408,146 @@ Commit: $head_hash
 EOF
 }
 
-function install_home()
+function add_completions()
 {
-  # Check Dependencies
-  if [[ "$SKIPCHECKS" == 0 ]]; then
-    say 'Checking dependencies ...'
-    check_dependencies
+  default_shell=$(grep -q "$(whoami)" /etc/passwd | cut -d: -f7)
+  default_shell=$(basename "$default_shell")
+  local -r supported_shells=(
+    'bash'
+    'zsh'
+  )
+
+  if [[ ! ${supported_shells[*]} = "$default_shell" ]]; then
+    warning "User default shell not supported"
+    return 1
   fi
-  # Move old folder structure to new one
-  legacy_folders
-  # First clean old installation
-  clean_legacy
-  # Synchronize source files
+
+  if [[ $default_shell = bash ]]; then
+    grep -q zsh "$HOME/.bashrc"
+    ret=$?
+    if [[ -e "$HOME/.bashrc" ]]; then
+      [[ $ret = 0 ]] && default_shell=zsh
+    else
+      warning 'Unable to find a .bashrc file.'
+    fi
+  fi
+
+  if [[ $default_shell = bash ]]; then
+    # Add tabcompletion to bashrc
+    append_bashcompletion '.bashrc'
+    update_path
+  else
+    # Add tabcompletion to zshrc
+    if [[ -e "$HOME/.zshrc" ]]; then
+      local zshcomp=$'# Enable bash completion for zsh\n'
+      zshcomp+='autoload bashcompinit && bashcompinit'
+
+      safe_append "$zshcomp" "$HOME/.zshrc"
+      append_bashcompletion '.zshrc'
+      update_path '.zshrc'
+    else
+      warning 'Unable to find a .zshrc file.'
+    fi
+  fi
+}
+
+function install()
+{
+  # Install
   say 'Installing ...'
   # Synchronize source files
   synchronize_files
+
+  # User data
+  mkdir -p "$datadir{,statistics,configs}"
+
+  add_completions
+
+  # Create ~/.cache/kw for support some of the operations
+  mkdir -p "$cachedir"
+  say "$KWORKFLOW installed into $HOME"
+  warning ' -> For a better experience with kw, please, open a new terminal.'
   # Update version based on the current branch
   update_version
 }
 
-# Options
-for arg; do
-  shift
-  if [ "$arg" = '--verbose' ]; then
-    VERBOSE=1
-    continue
+function main()
+{
+  if [[ "$INSTALL" = 1 ||
+    "$UNINSTALL" = 1 ]]; then
+    # Move old folder structure to new one
+    legacy_folders
+
+    clean_previous_install
   fi
-  if [ "$arg" = '--force' ]; then
-    FORCE=1
-    continue
+
+  if [[ "$INSTALL" = 1 ]]; then
+    check_dependencies
+    install
+  elif [[ "$UNINSTALL" = 1 ]]; then
+    [[ "$COMPLETELY_REMOVE" = 1 ]] &&
+      confirm_complete_removal
+
+    # Completely remove user data
+    if [[ "$COMPLETELY_REMOVE" = 1 ]]; then
+      mv "$datadir" "$TRASH/userdata"
+    fi
+
+    say 'kw was removed.'
+    return 0
   fi
-  if [ "$arg" = '--skip-checks' ]; then
-    SKIPCHECKS=1
-    continue
+
+  if [[ "$DOCS" = 1 ]]; then
+    check_dependencies docs
+    sphinx-build -nW -b html documentation/ build
   fi
-  set -- "$@" "$arg"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --install | -i)
+      INSTALL=1
+      shift
+      ;;
+    --uninstall | -u)
+      UNINSTALL=1
+      shift
+      ;;
+    --verbose | -v)
+      VERBOSE=1
+      shift
+      ;;
+    --force | -f)
+      FORCE=1
+      shift
+      ;;
+    --skip-checks)
+      SKIPCHECKS=1
+      shift
+      ;;
+      # ATTENTION: This option is dangerous because it completely removes all files
+      # related to kw, e.g., '.config' file under kw controls. For this reason, we do
+      # not want to add a short version, and the user has to be sure about this
+      # operation.
+    --completely-remove)
+      COMPLETELY_REMOVE=1
+      UNINSTALL=1
+      shift
+      ;;
+    --docs)
+      DOCS=1
+      shift
+      ;;
+    --help | -h)
+      usage
+      exit 0
+      ;;
+    *)
+      complain "Unrecognized argument $1"
+      usage
+      exit 1
+      ;;
+  esac
 done
 
-case "$1" in
-  --install | -i)
-    install_home
-    ;;
-  --uninstall | -u)
-    clean_legacy
-    say 'kw was removed.'
-    ;;
-    # ATTENTION: This option is dangerous because it completely removes all files
-    # related to kw, e.g., '.config' file under kw controls. For this reason, we do
-    # not want to add a short version, and the user has to be sure about this
-    # operation.
-  --completely-remove)
-    confirm_complete_removal
-    clean_legacy '-d'
-    ;;
-  --help | -h)
-    usage
-    ;;
-  --docs)
-    check_dependencies
-    sphinx-build -nW -b html documentation/ build
-    ;;
-  *)
-    complain 'Invalid number of arguments'
-    usage
-    exit 1
-    ;;
-esac
+main

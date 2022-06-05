@@ -29,7 +29,7 @@ These are the current dependencies for *Fedora*:
 If you want to build the documentation as it is displayed on our website you
 also need this pip package:
 
-   .. include:: ../dependencies/pip.dependencies
+   .. include:: ../dependencies/pip-docs.dependencies
 
 .. note::
    Our base support is Ubuntu LTS. i.e., the dependency packages installed in

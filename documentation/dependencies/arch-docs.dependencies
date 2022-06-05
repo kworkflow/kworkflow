@@ -1,0 +1,5 @@
+python-sphinx
+python-docutils
+texlive-bin
+python-pip
+librsvg
