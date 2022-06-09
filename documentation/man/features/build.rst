@@ -9,6 +9,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-i | \--info)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-n | \--menu)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-d | \--doc)] [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [(-c | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
 ===========
@@ -41,6 +42,10 @@ OPTIONS
   it will build htmldocs. Users can change the default documentation output by
   changing the parameter *doc_type* in the **kworkflow.config** file.
 
+-c, \--cpu-scaling:
+  The cpu-scaling option lets the user set whichever CPU usage they want from
+  their CPU, basically setting the ``-j`` flag accordingly.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -58,3 +63,9 @@ version, you can use::
 
   cd <kernel-path>
   kw bd
+
+Let's say that you are doing something else and don't want that your CPU cores
+to be super busy during the compilation; you can tell kw how much of the CPU
+utilization you are willing to give for the kernel compilation::
+
+  kw b --cpu-scaling=50
