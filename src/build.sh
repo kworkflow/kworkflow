@@ -93,6 +93,10 @@ function kernel_build()
 
   optimizations="-j$((parallel_cores * cpu_scaling_factor / 100))"
 
+  if [[ -n "${options_values['CCACHE']}" ]]; then
+    optimizations="CC=\"ccache gcc -fdiagnostics-color\" $optimizations"
+  fi
+
   if [[ -n "$doc_type" ]]; then
     command="make $optimizations $doc_type"
     cmd_manager "$flag" "$command"
@@ -183,6 +187,7 @@ function parse_build_options()
   options_values['ARCH']="${build_config[arch]:-$arch_fallback}"
   options_values['MENU_CONFIG']=''
   options_values['CROSS_COMPILE']="${build_config[cross_compile]}"
+  options_values['CCACHE']="${build_config[ccache]}"
   options_values['CPU_SCALING_FACTOR']="${build_config[cpu_scaling_factor]:-100}"
   options_values['INFO']=''
   options_values['DOC_TYPE']=''
@@ -212,6 +217,10 @@ function parse_build_options()
         fi
         options_values['CPU_SCALING_FACTOR']="$2"
         shift 2
+        ;;
+      --ccache)
+        options_values['CCACHE']=1
+        shift
         ;;
       --doc | -d)
         doc_type_fallback="${configurations[doc_type]:-htmldocs}"
@@ -254,6 +263,7 @@ function show_build_variables()
   local -Ar build=(
     [arch]='Target arch'
     [cpu_scaling_factor]='CPU scaling factor'
+    [enable_ccache]='Enable ccache'
     [kernel_img_name]='Kernel image name'
     [cross_compile]='Cross-compile name'
     [menu_config]='Kernel menu config'
@@ -282,7 +292,8 @@ function build_help()
     '  build (-n | --menu) - Open kernel menu config' \
     '  build (-i | --info) - Display build information' \
     '  build (-d | --doc) - Build kernel documentation' \
-    '  build (-c | --cpu-scaling) <percentage> - Scale CPU usage by factor'
+    '  build (-c | --cpu-scaling) <percentage> - Scale CPU usage by factor' \
+    '  build (--ccache) - Enable use of ccache'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well

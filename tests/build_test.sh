@@ -286,6 +286,9 @@ function test_kernel_build_html_doc()
   expected_result="make -j$PARALLEL_CORES htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
 
+  output=$(kernel_build 'TEST_MODE' --doc --ccache)
+  expected_result="make CC=\"ccache gcc -fdiagnostics-color\" -j$PARALLEL_CORES htmldocs"
+  assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
 function test_kernel_build_invalid_flag()
@@ -366,6 +369,7 @@ function test_parse_build_options()
   assert_equals_helper 'Default MENU_CONFIG did not match expectation' "($LINENO)" '' "${options_values['MENU_CONFIG']}"
   assert_equals_helper 'Default CROSS_COMPILE did not match expectation' "($LINENO)" '' "${options_values['CROSS_COMPILE']}"
   assert_equals_helper 'Default CPU_SCALING_FACTOR did not match expectation' "($LINENO)" '100' "${options_values['CPU_SCALING_FACTOR']}"
+  assert_equals_helper 'Default CCACHE did not match expectation' "($LINENO)" '' "${options_values['CCACHE']}"
   assert_equals_helper 'Default INFO did not match expectation' "($LINENO)" '' "${options_values['INFO']}"
   assert_equals_helper 'Default DOC_TYPE did not match expectation' "($LINENO)" '' "${options_values['DOC_TYPE']}"
 
@@ -403,6 +407,10 @@ function test_parse_build_options()
   options_values=()
   parse_build_options -c 150 > /dev/null
   assert_equals_helper 'Could not set build option CPU_SCALING_FACTOR' "($LINENO)" '150' "${options_values['CPU_SCALING_FACTOR']}"
+
+  options_values=()
+  parse_build_options --ccache
+  assert_equals_helper 'Could not set build option CCACHE' "($LINENO)" '1' "${options_values['CCACHE']}"
 
   output="$(parse_build_options --mispelled 2>&1)"
   assertEquals "($LINENO)" 22 "$?"

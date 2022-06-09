@@ -9,6 +9,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-i | \--info)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-n | \--menu)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-d | \--doc)] [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [\--ccache] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-c | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
@@ -46,6 +47,11 @@ OPTIONS
   The cpu-scaling option lets the user set whichever CPU usage they want from
   their CPU, basically setting the ``-j`` flag accordingly.
 
+\--ccache:
+  This option allows the user to enable ``ccache`` usage during compilation
+  tasks, which should improve compile times in subsequent compilations. If you
+  want, you can set this option in the build.config file.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -69,3 +75,7 @@ to be super busy during the compilation; you can tell kw how much of the CPU
 utilization you are willing to give for the kernel compilation::
 
   kw b --cpu-scaling=50
+
+If you like to use ccache to build your kernel, you can use::
+
+  kw b --ccache
