@@ -38,6 +38,17 @@ function cmd_manager()
   eval "$@"
 }
 
+function command_exists()
+{
+  local command="$1"
+  local package=${command%% *}
+
+  if [[ ! -x "$(command -v "$package")" ]]; then
+    return 22 # EINVAL
+  fi
+  return 0
+}
+
 function collect_deploy_info()
 {
   local flag="$1"
