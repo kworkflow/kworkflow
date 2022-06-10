@@ -11,6 +11,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-d | \--doc)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [\--ccache] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-c | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [(-w | \--warnings)] [warning-levels] [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
 ===========
@@ -52,6 +53,11 @@ OPTIONS
   tasks, which should improve compile times in subsequent compilations. If you
   want, you can set this option in the build.config file.
 
+-w, \--warnings (1 | 2 | 3 | 12 | 13 | 23 | 123):
+  This can be used to enable compilation warnings accordingly. You can set the
+  default log level via `build.config` file under the option `warning_level`.
+  Please check the kernel's ``make help`` for more info.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -70,6 +76,11 @@ version, you can use::
   cd <kernel-path>
   kw bd
 
+If you want that kw become more verbose about the compilation warning, you can
+use::
+
+  kw build --warnings=1
+
 Let's say that you are doing something else and don't want that your CPU cores
 to be super busy during the compilation; you can tell kw how much of the CPU
 utilization you are willing to give for the kernel compilation::
@@ -79,3 +90,13 @@ utilization you are willing to give for the kernel compilation::
 If you like to use ccache to build your kernel, you can use::
 
   kw b --ccache
+
+If you want to ensure that your change does not add any relevant warning, you
+can use::
+
+  kw b --warnings
+
+If you want to see other warning levels, you can change the log level by
+using::
+
+  kw b --warnings 2

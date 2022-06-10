@@ -49,6 +49,7 @@ function kernel_build()
   local optimizations
   local cpu_scaling_factor
   local parallel_cores
+  local warning
 
   parse_build_options "$@"
   if [[ $? -gt 0 ]]; then
@@ -62,10 +63,15 @@ function kernel_build()
   parallel_cores=${options_values['PARALLEL_CORES']}
   doc_type=${options_values['DOC_TYPE']}
   cpu_scaling_factor=${options_values['CPU_SCALING_FACTOR']}
+  warnings=${options_values['WARNINGS']}
 
   if [[ -n "${options_values['INFO']}" ]]; then
     build_info ''
     exit
+  fi
+
+  if [[ -n "$warnings" ]]; then
+    warnings=" W=$warnings"
   fi
 
   platform_ops=${options_values['ARCH']}
@@ -103,7 +109,7 @@ function kernel_build()
     return
   fi
 
-  command="make $optimizations ARCH=$platform_ops"
+  command="make ${optimizations} ARCH=${platform_ops}${warnings}"
 
   # Let's avoid menu question by default
   cmd_manager "$flag" "make -j ARCH=$platform_ops --silent olddefconfig "
@@ -170,8 +176,8 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:'
-  local short_options='h,i,n,d,c:'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::'
+  local short_options='h,i,n,d,c:,w::'
   local doc_type
 
   kw_parse "$short_options" "$long_options" "$@" > /dev/null
@@ -191,6 +197,16 @@ function parse_build_options()
   options_values['CPU_SCALING_FACTOR']="${build_config[cpu_scaling_factor]:-100}"
   options_values['INFO']=''
   options_values['DOC_TYPE']=''
+  options_values['WARNINGS']="${build_config[warning_level]}"
+  options_values['LOG_PATH']="${build_config[save_log_to]:-${configurations[save_log_to]}}"
+  options_values['USE_LLVM_TOOLCHAIN']="${build_config[use_llvm]:-${configurations[use_llvm]}}"
+
+  # Check llvm option
+  if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
+    options_values['USE_LLVM_TOOLCHAIN']=1
+  else
+    options_values['USE_LLVM_TOOLCHAIN']=''
+  fi
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -226,6 +242,16 @@ function parse_build_options()
         doc_type_fallback="${configurations[doc_type]:-htmldocs}"
         options_values['DOC_TYPE']="${build_config[doc_type]:-$doc_type_fallback}"
         shift
+        ;;
+      --warnings | -w)
+        # Handling optional parameter
+        if [[ "$2" =~ [0-9]+ ]]; then
+          options_values['WARNINGS']="$2"
+          shift 2
+        else
+          options_values['WARNINGS']="${configurations[warning_level]:-1}"
+          shift
+        fi
         ;;
       --)
         shift
@@ -264,6 +290,7 @@ function show_build_variables()
     [arch]='Target arch'
     [cpu_scaling_factor]='CPU scaling factor'
     [enable_ccache]='Enable ccache'
+    [warning_level]='Compilation warning level'
     [kernel_img_name]='Kernel image name'
     [cross_compile]='Cross-compile name'
     [menu_config]='Kernel menu config'
@@ -293,7 +320,8 @@ function build_help()
     '  build (-i | --info) - Display build information' \
     '  build (-d | --doc) - Build kernel documentation' \
     '  build (-c | --cpu-scaling) <percentage> - Scale CPU usage by factor' \
-    '  build (--ccache) - Enable use of ccache'
+    '  build (--ccache) - Enable use of ccache' \
+    '  build (-w | --warnings) [warning_levels] - Enable warnings'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well

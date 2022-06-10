@@ -261,7 +261,7 @@ function test_kernel_build_cross_compilation_flags()
   output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2) # Remove statistics output
   declare -a expected_cmd=(
     'make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig'
-    "make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"
+    "make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2"
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
@@ -373,6 +373,23 @@ function test_parse_build_options()
   assert_equals_helper 'Default INFO did not match expectation' "($LINENO)" '' "${options_values['INFO']}"
   assert_equals_helper 'Default DOC_TYPE did not match expectation' "($LINENO)" '' "${options_values['DOC_TYPE']}"
 
+  # Warning options
+  options_values=()
+  parse_build_options --warnings
+  assert_equals_helper 'Could not set build option WARNINGS' "($LINENO)" '1' "${options_values['WARNINGS']}"
+
+  options_values=()
+  parse_build_options -w
+  assert_equals_helper 'Could not set build option WARNINGS' "($LINENO)" '1' "${options_values['WARNINGS']}"
+
+  options_values=()
+  parse_build_options --warnings 123
+  assert_equals_helper 'Could not set build option WARNINGS' "($LINENO)" '123' "${options_values['WARNINGS']}"
+
+  options_values=()
+  parse_build_options -w 123
+  assert_equals_helper 'Could not set build option WARNINGS' "($LINENO)" '123' "${options_values['WARNINGS']}"
+
   # test individual options
   help_output="$(build_help)"
   options_values=()
@@ -439,5 +456,26 @@ function test_build_info()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
   rm .config
 }
+
+function test_kernel_cpu_scaling_2composed_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make -j$SCALING ARCH=x86_64"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make -j$SCALING ARCH=x86_64 W=123"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+}
+
 
 invoke_shunit
