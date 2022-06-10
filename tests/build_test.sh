@@ -289,6 +289,10 @@ function test_kernel_build_html_doc()
   output=$(kernel_build 'TEST_MODE' --doc --ccache)
   expected_result="make CC=\"ccache gcc -fdiagnostics-color\" -j$PARALLEL_CORES htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
+
+  output=$(kernel_build 'TEST_MODE' --doc --save-log-to docs.out)
+  expected_result="make -j$PARALLEL_CORES htmldocs 2>&1 | tee docs.out"
+  assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
 function test_kernel_build_invalid_flag()
@@ -372,6 +376,7 @@ function test_parse_build_options()
   assert_equals_helper 'Default CCACHE did not match expectation' "($LINENO)" '' "${options_values['CCACHE']}"
   assert_equals_helper 'Default INFO did not match expectation' "($LINENO)" '' "${options_values['INFO']}"
   assert_equals_helper 'Default DOC_TYPE did not match expectation' "($LINENO)" '' "${options_values['DOC_TYPE']}"
+  assert_equals_helper 'Default LOG_PATH did not match expectation' "($LINENO)" '' "${options_values['LOG_PATH']}"
 
   # Warning options
   options_values=()
@@ -429,6 +434,14 @@ function test_parse_build_options()
   parse_build_options --ccache
   assert_equals_helper 'Could not set build option CCACHE' "($LINENO)" '1' "${options_values['CCACHE']}"
 
+  options_values=()
+  parse_build_options --save-log-to out.log
+  assert_equals_helper 'Could not set build option LOG_PATH' "($LINENO)" 'out.log' "${options_values['LOG_PATH']}"
+
+  options_values=()
+  parse_build_options -s out.log
+  assert_equals_helper 'Could not set build option LOG_PATH' "($LINENO)" 'out.log' "${options_values['LOG_PATH']}"
+
   output="$(parse_build_options --mispelled 2>&1)"
   assertEquals "($LINENO)" 22 "$?"
 }
@@ -475,7 +488,52 @@ function test_kernel_cpu_scaling_2composed_build_options()
     "make -j$SCALING ARCH=x86_64 W=123"
   )
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make -j$SCALING ARCH=x86_64 2>&1 | tee log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
 
+function test_kernel_warnings_2composed_build_options()
+{
+  local expected_result
+  local output
+  output=$(kernel_build 'TEST_MODE' --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make -j$PARALLEL_CORES ARCH=x86_64 W=123 2>&1 | tee log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+}
+
+function test_kernel_ccache_3composed_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$SCALING ARCH=x86_64 W=123"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$SCALING ARCH=x86_64 2>&1 | tee log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$PARALLEL_CORES ARCH=x86_64 W=123 2>&1 | tee log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+}
 
 invoke_shunit

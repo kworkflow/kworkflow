@@ -12,6 +12,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [\--ccache] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-c | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-w | \--warnings)] [warning-levels] [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [(-s | \--save-log-to)] <path> [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
 ===========
@@ -58,6 +59,11 @@ OPTIONS
   default log level via `build.config` file under the option `warning_level`.
   Please check the kernel's ``make help`` for more info.
 
+-s, \--save-log-to=path:
+  This option will save the full compilation log with the enabled warnings to
+  the specified path. You can set the default log path in the `build.config`
+  file via `log_path` option.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -100,3 +106,8 @@ If you want to see other warning levels, you can change the log level by
 using::
 
   kw b --warnings 2
+
+Sometimes we have a lot of error message that does not fit in the terminal
+buffer; in these cases it is helpful to save all logs in a file::
+
+  kw b --warnings 123 --save-log-to=ALL_WARNINGS.log
