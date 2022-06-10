@@ -51,6 +51,7 @@ function kernel_build()
   local parallel_cores
   local warning
   local output_path
+  local llvm
 
   parse_build_options "$@"
   if [[ $? -gt 0 ]]; then
@@ -66,6 +67,7 @@ function kernel_build()
   cpu_scaling_factor=${options_values['CPU_SCALING_FACTOR']}
   warnings=${options_values['WARNINGS']}
   output_path=${options_values['LOG_PATH']}
+  llvm=${options_values['USE_LLVM_TOOLCHAIN']}
 
   if [[ -n "${options_values['INFO']}" ]]; then
     build_info ''
@@ -80,6 +82,10 @@ function kernel_build()
     output_path=" 2>&1 | tee $output_path"
   fi
 
+  if [[ -n "$llvm" ]]; then
+    llvm='LLVM=1 '
+  fi
+
   platform_ops=${options_values['ARCH']}
 
   if [[ -n "$cross_compile" ]]; then
@@ -87,7 +93,7 @@ function kernel_build()
   fi
 
   if [[ -n "$menu_config" ]]; then
-    command="make -j ARCH=${platform_ops} ${menu_config}"
+    command="make -j ${llvm}ARCH=${platform_ops} ${menu_config}"
     cmd_manager "$flag" "$command"
     return
   fi
@@ -106,7 +112,8 @@ function kernel_build()
   optimizations="-j$((parallel_cores * cpu_scaling_factor / 100))"
 
   if [[ -n "${options_values['CCACHE']}" ]]; then
-    optimizations="CC=\"ccache gcc -fdiagnostics-color\" $optimizations"
+    [[ -n "$llvm" ]] && compiler='clang' || compiler='gcc'
+    optimizations="CC=\"ccache ${compiler} -fdiagnostics-color\" ${optimizations}"
   fi
 
   if [[ -n "$doc_type" ]]; then
@@ -115,10 +122,10 @@ function kernel_build()
     return
   fi
 
-  command="make ${optimizations} ARCH=${platform_ops}${warnings}${output_path}"
+  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_path}"
 
   # Let's avoid menu question by default
-  cmd_manager "$flag" "make -j ARCH=$platform_ops --silent olddefconfig "
+  cmd_manager "$flag" "make -j ${llvm}ARCH=${platform_ops} --silent olddefconfig "
 
   start=$(date +%s)
   cmd_manager "$flag" "$command"
@@ -182,7 +189,7 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm'
   local short_options='h,i,n,d,c:,w::,s:'
   local doc_type
   local file_name_size
@@ -196,7 +203,7 @@ function parse_build_options()
   fi
 
   # Default values
-  arch_fallback="${configurations[arch]:-x86_64}"
+  arch_fallback="${build_config[arch]:-x86_64}"
   options_values['ARCH']="${build_config[arch]:-$arch_fallback}"
   options_values['MENU_CONFIG']=''
   options_values['CROSS_COMPILE']="${build_config[cross_compile]}"
@@ -243,6 +250,10 @@ function parse_build_options()
         ;;
       --ccache)
         options_values['CCACHE']=1
+        shift
+        ;;
+      --llvm)
+        options_values['USE_LLVM_TOOLCHAIN']=1
         shift
         ;;
       --doc | -d)
@@ -307,6 +318,7 @@ function show_build_variables()
     [arch]='Target arch'
     [cpu_scaling_factor]='CPU scaling factor'
     [enable_ccache]='Enable ccache'
+    [use_llvm]='Use the LLVM toolchain'
     [warning_level]='Compilation warning level'
     [log_path]='Path kw should save the `make` output to'
     [kernel_img_name]='Kernel image name'
@@ -340,7 +352,8 @@ function build_help()
     '  build (-c | --cpu-scaling) <percentage> - Scale CPU usage by factor' \
     '  build (--ccache) - Enable use of ccache' \
     '  build (-w | --warnings) [warning_levels] - Enable warnings' \
-    '  build (-s | --save-log-to) <path> - Save compilation log to path'
+    '  build (-s | --save-log-to) <path> - Save compilation log to path' \
+    '  build (--llvm) - Enable use of the LLVM toolchain'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well

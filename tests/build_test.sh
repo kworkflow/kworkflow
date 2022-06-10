@@ -253,12 +253,13 @@ function test_kernel_build_cross_compilation_flags()
 {
   build_config=()
 
-  parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
+  parse_configuration "$SAMPLES_DIR/build_no_llvm.config" build_config
 
   local expected_result
   local output
 
   output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2) # Remove statistics output
+
   declare -a expected_cmd=(
     'make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig'
     "make -j$PARALLEL_CORES ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2"
@@ -442,6 +443,10 @@ function test_parse_build_options()
   parse_build_options -s out.log
   assert_equals_helper 'Could not set build option LOG_PATH' "($LINENO)" 'out.log' "${options_values['LOG_PATH']}"
 
+  options_values=()
+  parse_build_options --llvm
+  assert_equals_helper 'Could not set build option USE_LLVM_TOOLCHAIN' "($LINENO)" '1' "${options_values['USE_LLVM_TOOLCHAIN']}"
+
   output="$(parse_build_options --mispelled 2>&1)"
   assertEquals "($LINENO)" 22 "$?"
 }
@@ -475,6 +480,8 @@ function test_kernel_cpu_scaling_2composed_build_options()
   local expected_result
   local output
 
+  parse_configuration "$KW_BUILD_CONFIG_SAMPLE_X86" build_config
+
   output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
@@ -493,6 +500,14 @@ function test_kernel_cpu_scaling_2composed_build_options()
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make -j$SCALING ARCH=x86_64 2>&1 | tee log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  build_config['USE_LLVM_TOOLCHAIN']='yes'
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --llvm | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make -j$SCALING LLVM=1 ARCH=x86_64"
   )
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
@@ -532,6 +547,155 @@ function test_kernel_ccache_3composed_build_options()
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j$PARALLEL_CORES ARCH=x86_64 W=123 2>&1 | tee log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+}
+
+function test_kernel_llvm_2composed_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --llvm --warnings 123 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make -j$PARALLEL_CORES LLVM=1 ARCH=x86_64 W=123"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --llvm --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make -j$PARALLEL_CORES LLVM=1 ARCH=x86_64 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+}
+
+function test_kernel_ccache_3composed_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --llvm | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache clang -fdiagnostics-color\" -j$SCALING LLVM=1 ARCH=x86_64"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$SCALING ARCH=x86_64 W=123"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$SCALING ARCH=x86_64 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --llvm --warnings 123 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache clang -fdiagnostics-color\" -j$PARALLEL_CORES LLVM=1 ARCH=x86_64 W=123"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --llvm --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache clang -fdiagnostics-color\" -j$PARALLEL_CORES LLVM=1 ARCH=x86_64 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$PARALLEL_CORES ARCH=x86_64 W=123 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+}
+
+function test_kernel_cpu_scaling_3composed_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --llvm --warnings 123 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make -j$SCALING LLVM=1 ARCH=x86_64 W=123"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --llvm --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make -j$SCALING LLVM=1 ARCH=x86_64 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make -j$SCALING ARCH=x86_64 W=123 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+}
+
+function test_kernel_llvm_3composed_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --llvm --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make -j$PARALLEL_CORES LLVM=1 ARCH=x86_64 W=123 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+}
+
+function test_kernel_4composed_build_options()
+{
+  local expected_result
+  local output
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --llvm --warnings 123 | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache clang -fdiagnostics-color\" -j$SCALING LLVM=1 ARCH=x86_64 W=123"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --llvm --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache clang -fdiagnostics-color\" -j$SCALING LLVM=1 ARCH=x86_64 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache gcc -fdiagnostics-color\" -j$SCALING ARCH=x86_64 W=123 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --ccache --llvm --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make CC=\"ccache clang -fdiagnostics-color\" -j$PARALLEL_CORES LLVM=1 ARCH=x86_64 W=123 2>&1 > log.out"
+  )
+  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
+
+  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --llvm --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  declare -a expected_cmd=(
+    'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
+    "make -j$SCALING LLVM=1 ARCH=x86_64 W=123 2>&1 > log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }

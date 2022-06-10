@@ -13,6 +13,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-c | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-w | \--warnings)] [warning-levels] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-s | \--save-log-to)] <path> [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [\--llvm] [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
 ===========
@@ -64,6 +65,11 @@ OPTIONS
   the specified path. You can set the default log path in the `build.config`
   file via `log_path` option.
 
+\--llvm:
+  This option can be set to enable the usage of the LLVM toolchain during
+  compilation/linking tasks. You can enable it by default via `use_llvm` option
+  in the `build.config` file.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -111,3 +117,7 @@ Sometimes we have a lot of error message that does not fit in the terminal
 buffer; in these cases it is helpful to save all logs in a file::
 
   kw b --warnings 123 --save-log-to=ALL_WARNINGS.log
+
+If you want to use llvm::
+
+  kw b --llvm
