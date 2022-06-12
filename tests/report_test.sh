@@ -160,6 +160,7 @@ function test_grouping_day_data()
 {
   local count=0
   local line
+  local expected
 
   # Here we use $'...' to evaluate the newline at the end of the strings
   declare -a expected_content=(
@@ -186,6 +187,10 @@ function test_grouping_day_data()
     assert_equals_helper "Loop $count failed" "$LINENO" "${tags_details[$tag]}" "$line"
     ((count++))
   done
+
+  expected=$' - 2021/04/05\n   * [06:00:40-06:20:40][20m]: Description, with comma\n'
+  grouping_day_data '2021/04/05'
+  assert_equals_helper 'Did not parse commas correctly' "$LINENO" "${tags_details['comma_tag']}" "$expected"
 
   # Try to process file with bad data
   count=0

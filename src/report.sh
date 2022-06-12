@@ -185,7 +185,7 @@ function grouping_day_data()
     tag=$(printf '%s\n' "$line" | cut -d ',' -f1)
     timebox=$(printf '%s\n' "$line" | cut -d ',' -f2)
     start_time=$(printf '%s\n' "$line" | cut -d ',' -f3)
-    details=$(printf '%s\n' "$line" | cut -d ',' -f4)
+    details=$(printf '%s\n' "$line" | cut -d ',' -f1,2,3 --complement)
 
     time_label=$(expand_time_labels "$timebox")
     [[ "$?" != 0 ]] && continue
