@@ -109,7 +109,6 @@ function test_parse_build_config_standard_config()
   declare -A expected_build_configurations=(
     [arch]='x86_64'
     [kernel_img_name]='bzImage'
-    [cross_compile]='aarch64-linux-gnu-'
     [menu_config]='nconfig'
     [doc_type]='htmldocs'
   )
