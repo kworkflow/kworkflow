@@ -61,6 +61,14 @@ function kw()
   mkdir -p "$KW_CACHE_DIR"
 
   case "$action" in
+    lore)
+      (
+        include "${KW_LIB_DIR}/lib/lore.sh"
+
+        test_lore "$@"
+        return "$?"
+      )
+      ;;
     init)
       (
         include "$KW_LIB_DIR/init.sh"
