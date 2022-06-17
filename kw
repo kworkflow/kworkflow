@@ -150,6 +150,13 @@ function kw()
         kernel_config_manager_main "$@"
       )
       ;;
+    config | g)
+      (
+        include "$KW_LIB_DIR/config.sh"
+
+        config_main "$@"
+      )
+      ;;
     help | --help)
       (
         include "$KW_LIB_DIR/help.sh"

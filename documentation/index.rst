@@ -46,6 +46,7 @@ Check out our tutorials to see how you can use kw.
    :caption: Tutorials:
 
    tutorials/setup
+   tutorials/manipulating-kw-config-file
    tutorials/buildlinux
    tutorials/cross-compilation
    tutorials/kernel-config-manager
