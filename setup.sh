@@ -312,6 +312,8 @@ function synchronize_files()
   cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
 
+  setup_global_config_file
+
   # User data
   mkdir -p "$datadir"
   mkdir -p "$datadir/statistics"
@@ -396,6 +398,26 @@ function install_home()
   synchronize_files
   # Update version based on the current branch
   update_version
+}
+
+function setup_global_config_file()
+{
+  local config_files_path="$etcdir"
+  local config_file_template="$config_files_path/kworkflow_template.config"
+  local global_config_name='kworkflow.config'
+
+  if [[ -f "$config_file_template" ]]; then
+    mv "$config_file_template" "$config_files_path/$global_config_name"
+    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sounddir,g" \
+      -e "/^#?.*/d" "$config_files_path/$global_config_name"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      return "$ret"
+    fi
+  else
+    warning "setup could not find $config_file_template"
+    return 2
+  fi
 }
 
 # Options
