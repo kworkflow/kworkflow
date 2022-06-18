@@ -293,6 +293,17 @@ function compare_array_values()
   fi
 }
 
+function get_config_option_to_string()
+{
+  local config_path="$1"
+  local output
+
+  output=$(< "$config_path")
+  output=$(printf '%s\n' "$output" | grep -oE '^(#?\w+=?)' | sed -E 's/[#=]//g')
+
+  printf '%s' "$output"
+}
+
 function invoke_shunit()
 {
   # Set some global variables to point to the source by default
