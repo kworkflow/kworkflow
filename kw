@@ -143,11 +143,11 @@ function kw()
         execute_get_maintainer "$@"
       )
       ;;
-    configm | g)
+    kernel-config-manager | k)
       (
         include "$KW_LIB_DIR/config_manager.sh"
 
-        execute_config_manager "$@"
+        kernel_config_manager_main "$@"
       )
       ;;
     help | --help)

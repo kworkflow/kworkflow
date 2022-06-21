@@ -159,7 +159,7 @@ man_pages = [
     ('man/features/backup', 'backup', 'save and restore kw data', [author], 1),
     ('man/features/build', 'build', 'build the kernel', [author], 1),
     ('man/features/codestyle', 'codestyle', 'checkpatch wrapper', [author], 1),
-    ('man/features/configm', 'configm', 'config manager', [author], 1),
+    ('man/features/kernel-config-manager', 'kernel-config-manager', 'config manager', [author], 1),
     ('man/features/debug', 'debug', 'kernel debug', [author], 1),
     ('man/features/deploy', 'deploy', 'deploy the kernel', [author], 1),
     ('man/features/device', 'device', 'hardware information', [author], 1),

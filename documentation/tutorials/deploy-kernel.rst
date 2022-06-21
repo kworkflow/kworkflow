@@ -14,7 +14,7 @@ Deploy Overview
 ---------------
 
 Alright, at this point, we expect that you have already learned how to compile
-the :ref:`Linux kernel from the source<buildlinux>` and :ref:`manage your config file<configm-tutorial>`
+the :ref:`Linux kernel from the source<buildlinux>` and :ref:`manage your config file<kernel-config-manager-tutorial>`
 as described in the previous tutorials (if not, please, read those tutorials
 first). Now that you know how to compile your new kernel, you probably want to
 know how to install it to a Linux-based system. Don't worry, kw is here to

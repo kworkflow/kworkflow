@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/config_manager.sh'
+include './src/kernel_config_manager.sh'
 include './tests/utils.sh'
 
 COMMAND_MSG_UNKNOWN='Unknown option'
@@ -50,30 +50,30 @@ function tearDown()
   unset expected_cmd
 }
 
-function test_execute_config_manager_SAVE_fails()
+function test_kernel_config_manager_main_SAVE_fails()
 {
   local msg_prefix=" --save"
   local ret
 
-  ret=$(execute_config_manager --save 2>&1 > /dev/null)
+  ret=$(kernel_config_manager_main --save 2>&1 > /dev/null)
   assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
 
-  ret=$(execute_config_manager --save --lala)
+  ret=$(kernel_config_manager_main --save --lala)
   assert_equals_helper "$msg_prefix --lala" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
-  ret=$(execute_config_manager --save -n)
+  ret=$(kernel_config_manager_main --save -n)
   assert_equals_helper "$msg_prefix -n" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
-  ret=$(execute_config_manager --save -d)
+  ret=$(kernel_config_manager_main --save -d)
   assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
-  ret=$(execute_config_manager --save -d)
+  ret=$(kernel_config_manager_main --save -d)
   assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
-  ret=$(execute_config_manager --save -d "lalala and xpto")
+  ret=$(kernel_config_manager_main --save -d "lalala and xpto")
   assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 
-  ret=$(execute_config_manager --save -f)
+  ret=$(kernel_config_manager_main --save -f)
   assert_equals_helper "$msg_prefix -f" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
 }
 
@@ -302,14 +302,14 @@ function test_list_config_normal_output()
   assertTrue "$LINENO:$msg" '[[ $ret =~ $DESCRIPTION_2 ]]'
 }
 
-function test_execute_config_manager_get_config_invalid_option()
+function test_kernel_config_manager_main_get_config_invalid_option()
 {
   local msg_prefix=" --get"
 
-  ret=$(execute_config_manager --get 2>&1 > /dev/null)
+  ret=$(kernel_config_manager_main --get 2>&1 > /dev/null)
   assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
 
-  ret=$(execute_config_manager --get something_wrong)
+  ret=$(kernel_config_manager_main --get something_wrong)
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
@@ -404,14 +404,14 @@ function test_get_config_with_force()
   assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
 }
 
-function test_execute_config_manager_remove_that_should_fail()
+function test_kernel_config_manager_main_remove_that_should_fail()
 {
   local msg_prefix=" -r"
 
-  ret=$(execute_config_manager -r 2>&1 > /dev/null)
+  ret=$(kernel_config_manager_main -r 2>&1 > /dev/null)
   assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
 
-  ret=$(execute_config_manager -r something_wrong)
+  ret=$(kernel_config_manager_main -r something_wrong)
   assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
 }
 
@@ -721,7 +721,7 @@ function test_fetch_config()
   }
 }
 
-function test_configm_parser()
+function test_kernel_config_manager_parser()
 {
   unset options_values
   declare -gA options_values
@@ -729,76 +729,76 @@ function test_configm_parser()
   local ret
 
   # Invalid options
-  parse_configm_options '--save'
+  parse_kernel_config_manager_options '--save'
   ret="$?"
-  parse_configm_options '-s'
+  parse_kernel_config_manager_options '-s'
   ret=$((ret + $?))
   assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
 
-  parse_configm_options '--remove'
+  parse_kernel_config_manager_options '--remove'
   ret="$?"
-  parse_configm_options '-r'
+  parse_kernel_config_manager_options '-r'
   ret=$((ret + $?))
   assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
 
-  parse_configm_options '--description'
+  parse_kernel_config_manager_options '--description'
   ret="$?"
-  parse_configm_options '-d'
+  parse_kernel_config_manager_options '-d'
   ret=$((ret + $?))
   assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
 
-  parse_configm_options '--output'
+  parse_kernel_config_manager_options '--output'
   ret="$?"
-  parse_configm_options '-o'
+  parse_kernel_config_manager_options '-o'
   ret=$((ret + $?))
   assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
 
-  parse_configm_options '--get'
+  parse_kernel_config_manager_options '--get'
   ret="$?"
   assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
 
-  parse_configm_options '--remote'
+  parse_kernel_config_manager_options '--remote'
   ret="$?"
   assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
 
-  parse_configm_options '--LalaXpto' 'lala xpto'
+  parse_kernel_config_manager_options '--LalaXpto' 'lala xpto'
   ret="$?"
   assert_equals_helper 'Invalid option' "$LINENO" "$ret" 22
 
-  parse_configm_options '--wrongOption' 'lala xpto'
+  parse_kernel_config_manager_options '--wrongOption' 'lala xpto'
   ret="$?"
   assert_equals_helper 'Invalid option' "$LINENO" "$ret" 22
 
   # valid options
-  parse_configm_options '--force'
+  parse_kernel_config_manager_options '--force'
   expected=1
   assert_equals_helper 'Set force flag' "$LINENO" "${options_values['FORCE']}" "$expected"
 
-  parse_configm_options '-s' "$NAME_1" '-d' "$DESCRIPTION_1"
+  parse_kernel_config_manager_options '-s' "$NAME_1" '-d' "$DESCRIPTION_1"
   assert_equals_helper 'Set save options' "$LINENO" "${options_values['SAVE']}" "$NAME_1"
   assert_equals_helper 'Set description options' "$LINENO" "${options_values['DESCRIPTION']}" "$DESCRIPTION_1"
 
-  parse_configm_options '--get' "$NAME_1"
+  parse_kernel_config_manager_options '--get' "$NAME_1"
   assert_equals_helper 'Set get flag' "$LINENO" "${options_values['GET']}" "$NAME_1"
 
-  parse_configm_options '--remove' "$NAME_1"
+  parse_kernel_config_manager_options '--remove' "$NAME_1"
   assert_equals_helper 'Set remove flag' "$LINENO" "${options_values['REMOVE']}" "$NAME_1"
 
-  parse_configm_options '--list'
+  parse_kernel_config_manager_options '--list'
   expected=1
   assert_equals_helper 'Set list flag' "$LINENO" "${options_values['LIST']}" "$expected"
 
-  parse_configm_options '--fetch'
+  parse_kernel_config_manager_options '--fetch'
   expected=1
   assert_equals_helper 'Set fetch flag' "$LINENO" "${options_values['FETCH']}" "$expected"
 
-  parse_configm_options '--output' "$NAME_1"
+  parse_kernel_config_manager_options '--output' "$NAME_1"
   assert_equals_helper 'Set output flag' "$LINENO" "${options_values['OUTPUT']}" "$NAME_1"
 
-  parse_configm_options '--remote' "$NAME_1"
+  parse_kernel_config_manager_options '--remote' "$NAME_1"
   assert_equals_helper 'Set remote flag' "$LINENO" "${options_values['TARGET']}" 3
 
-  parse_configm_options '--optimize'
+  parse_kernel_config_manager_options '--optimize'
   expected=1
   assert_equals_helper 'Set optimize flag' "$LINENO" "${options_values['OPTIMIZE']}" "$expected"
 }

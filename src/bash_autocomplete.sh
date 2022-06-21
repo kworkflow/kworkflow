@@ -13,7 +13,7 @@ function _kw_autocomplete()
   current_command="${COMP_WORDS[$COMP_CWORD]}"
   previous_command="${COMP_WORDS[$comp_curr - 1]}"
 
-  kw_options['kw']='backup bd build clear-cache codestyle configm debug deploy
+  kw_options['kw']='backup bd build clear-cache codestyle kernel-config-manager debug deploy
                     device diff drm explore help init maintainers mail man mount
                     pomodoro report ssh umount up vars version'
 
@@ -23,9 +23,9 @@ function _kw_autocomplete()
                        --save-log-to --llvm --help'
   kw_options['b']="${kw_options['build']}"
 
-  kw_options['configm']='--fetch --get --list --remove --save --force
+  kw_options['kernel-config-manager']='--fetch --get --list --remove --save --force
                          --description --output --optimize --remote'
-  kw_options['g']="${kw_options['configm']}"
+  kw_options['k']="${kw_options['kernel-config-manager']}"
 
   kw_options['debug']='--local --remote --event --ftrace --dmesg --cmd
                        --history --disable --list --follow --reset --help'
