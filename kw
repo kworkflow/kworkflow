@@ -157,6 +157,13 @@ function kw()
         config_main "$@"
       )
       ;;
+    remote)
+      (
+        include "$KW_LIB_DIR/kw_remote.sh"
+
+        remote_main "$@"
+      )
+      ;;
     help | --help)
       (
         include "$KW_LIB_DIR/help.sh"

@@ -15,7 +15,7 @@ function _kw_autocomplete()
 
   kw_options['kw']='backup bd build clear-cache codestyle kernel-config-manager debug deploy
                     device diff drm explore help init maintainers mail man mount
-                    pomodoro report ssh umount up vars version config'
+                    pomodoro report ssh umount up vars version config remote'
 
   kw_options['backup']='--restore --force --help'
 
@@ -65,6 +65,7 @@ function _kw_autocomplete()
 
   kw_options['vm']='--mount --umount --up'
   kw_options['config']='--local --global'
+  kw_options['remote']='add remove rename --verbose'
 
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
 
