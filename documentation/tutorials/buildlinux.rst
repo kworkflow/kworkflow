@@ -54,16 +54,9 @@ Or its shorter form::
 
 The default menu config option is set in the **kworkflow.config** file as
 nconfig, but it can be changed, for instance, to menuconfig, or whichever you
-prefer. To change this option, go into your **kworkflow.config** and look for::
+prefer. To change this option, you can use::
 
-  # Default kernel menu config option
-  menu_config=nconfig
-
-And, if you want to change it to `menuconfig`, change the value from the
-*menu_config* variable so that it becomes::
-
-  # Default kernel menu config option
-  menu_config=menuconfig
+  kw config build.menu_config menuconfig
 
 After running the command above, go to *General setup*, then *Local version -
 append to kernel release*, choose any name you like, save the new configuration

@@ -70,8 +70,8 @@ Before trying to deploy your new kernel, let's first update
 `kworkflow.config` by making sure that you set the following options
 correctly::
 
-   ssh_remote=<IP or NAME>
-   ssh_port=22
+  kw config kworkflow.ssh_remote <IP or NAME>
+  kw config kworkflow.ssh_port <PORT>
 
 Replace the `ssh_remote` with the IP or the destination name and the ssh port
 (the default port is 22, and you probably don't need to update this parameter).

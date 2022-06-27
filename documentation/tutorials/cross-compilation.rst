@@ -50,7 +50,8 @@ kw configuration options
 If you are following kw tutorials, you already read :ref:`How to setup
 kworkflow<setup-tutorial>`; if not, read that page and get back here later. In
 that tutorial, you generated the standard config file by using ``kw init``,
-inspect your `.kw/kworflow.config` file, you will see these config variables::
+inspect your `.kw/` folder, and you will find the `build.config` file, where
+you will see these config variables::
 
   arch=x86_64
   [..]
@@ -60,13 +61,13 @@ Those are the only two variables that you need to change in order to enable
 cross-compilation. Let's say you want to work with an ARM 64 system (e.g.,
 Raspberry Pi 4)::
 
-  arch=arm64
-  cross_compile=aarch64-linux-gnu-
+  kw config build.arch arm64
+  kw config build.cross_compile aarch64-linux-gnu-
 
 If you want to build a 32 bits kernel for ARM, use::
 
-  arch=arm
-  cross_compile=arm-linux-gnueabihf-
+  kw config build.arch arm
+  kw config build.cross_compile arm-linux-gnueabihf-
 
 I think at this point, you get the idea, right? You need to set the target
 architecture and the toolchain you want to use.
@@ -110,22 +111,22 @@ Follows some examples of cross-compile options.
 
 **ARM 64 bits**::
 
-  arch=arm64
-  cross_compile=aarch64-linux-gnu-
+  kw config build.arch arm64
+  kw config build.cross_compile aarch64-linux-gnu-
 
 **ARM 32 bits**::
 
-  arch=arm
-  cross_compile=arm-linux-gnueabihf-
+  kw config build.arch arm
+  kw config build.cross_compile arm-linux-gnueabihf-
 
 **x86 32 bits**::
 
-  arch=i386
+  kw config build.arch i386
 
 **PowerPC**::
 
-  arch=sparc64
-  cross_compile=gcc-11.2.0
+  kw config build.arch sparc64
+  kw config build.cross_compile gcc-11.2.0
 
 Keep in mind
 ------------
