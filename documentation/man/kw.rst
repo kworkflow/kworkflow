@@ -97,7 +97,7 @@ the previous sections.
   | :ref:`kw-init<init-doc>`
   | :ref:`kw-device<device-doc>`
   | :ref:`kw-ssh<ssh-doc>`
-  | :ref:`kw-configm<configm-doc>`
+  | :ref:`kw-kernel-config-manager<kernel-config-manager-doc>`
   | :ref:`kw-vars<vars-doc>`
   | :ref:`kw-diff<diff-doc>`
   | :ref:`kw-report<report-doc>`

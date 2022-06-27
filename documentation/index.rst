@@ -48,7 +48,7 @@ Check out our tutorials to see how you can use kw.
    tutorials/setup
    tutorials/buildlinux
    tutorials/cross-compilation
-   tutorials/configm
+   tutorials/kernel-config-manager
    tutorials/deploy-kernel
    tutorials/rpi-deploy-kernel
    tutorials/codestyle

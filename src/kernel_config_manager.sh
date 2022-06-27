@@ -9,13 +9,13 @@ declare -gA options_values
 declare -g root='/'
 declare -g PROC_CONFIG_PATH='/proc/config.gz'
 
-# This function handles the options available in 'configm'.
+# This function handles the options available in 'kernel-config-manager'.
 #
 # @* This parameter expects a list of parameters, such as '-n', '-d', and '-f'.
 #
 # Returns:
 # Return 0 if everything ends well, otherwise return an errno code.
-function execute_config_manager()
+function kernel_config_manager_main()
 {
   local name_config
   local description_config
@@ -37,7 +37,7 @@ function execute_config_manager()
     exit 0
   fi
 
-  parse_configm_options "$@"
+  parse_kernel_config_manager_options "$@"
 
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
@@ -464,7 +464,7 @@ function list_configs()
   done
 }
 
-# Remove and Get operation in the configm has similar criteria for working,
+# Remove and Get operation in the kernel-config-manager has similar criteria for working,
 # because of this, basic_config_validations centralize the basic requirement
 # validation.
 #
@@ -558,9 +558,9 @@ function remove_config()
   fi
 }
 
-# This function parses the options from 'kw configm', and populates the global
+# This function parses the options from 'kw kernel-config-manager', and populates the global
 # variable options_values accordingly.
-function parse_configm_options()
+function parse_kernel_config_manager_options()
 {
   local short_options
   local long_options
@@ -572,7 +572,7 @@ function parse_configm_options()
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
   if [[ "$?" != 0 ]]; then
-    options_values['ERROR']="$(kw_parse_get_errors 'kw configm' "$short_options" \
+    options_values['ERROR']="$(kw_parse_get_errors 'kw kernel-config-manager' "$short_options" \
       "$long_options" "$@")"
     return 22 # EINVAL
   fi
@@ -680,13 +680,13 @@ function config_manager_help()
 {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'configm'
+    kworkflow_man 'kernel-config-manager'
     return
   fi
   printf '%s\n' 'kw config manager:' \
-    '  configm --fetch [(-o | --output) <filename>] [-f | --force] [--optimize] [--remote [<user>@<ip>:<port>]] - Fetch a config' \
-    '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
-    '  configm (-l | --list) - List config files under kw management' \
-    '  configm --get <name> [-f | --force] - Get a config labeled with <name>' \
-    '  configm (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
+    '  kernel-config-manager --fetch [(-o | --output) <filename>] [-f | --force] [--optimize] [--remote [<user>@<ip>:<port>]] - Fetch a config' \
+    '  kernel-config-manager (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
+    '  kernel-config-manager (-l | --list) - List config files under kw management' \
+    '  kernel-config-manager --get <name> [-f | --force] - Get a config labeled with <name>' \
+    '  kernel-config-manager (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
 }
