@@ -186,7 +186,7 @@ function test_parse_configuration_files_loading_order()
     {
       printf '%s\n' "$1"
     }
-    load_configuration
+    load_kworkflow_config
   )"
 
   compare_command_sequence 'Wrong config file reading order' "$LINENO" 'expected' "$output"
@@ -208,7 +208,7 @@ function test_parse_configuration_files_loading_order()
     {
       printf '%s\n' "$1"
     }
-    load_configuration
+    load_configuration 'kworkflow'
   )"
 
   compare_command_sequence 'Wrong config file reading order' "$LINENO" 'expected' "$output"
@@ -345,7 +345,7 @@ function test_load_configuration()
     {
       printf '%s\n' "$1"
     }
-    load_configuration
+    load_configuration 'kworkflow'
   )"
 
   compare_command_sequence '' "$LINENO" 'expected' "$output"

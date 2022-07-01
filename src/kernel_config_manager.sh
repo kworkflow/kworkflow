@@ -690,3 +690,6 @@ function config_manager_help()
     '  kernel-config-manager --get <name> [-f | --force] - Get a config labeled with <name>' \
     '  kernel-config-manager (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
 }
+
+load_build_config
+load_kworkflow_config

@@ -195,13 +195,21 @@ function parse_configuration()
 # higher level setting definitions to overwrite lower level ones.
 function load_configuration()
 {
+  local target_config="$1"
+  local target_config_file
+  local target_array='configurations'
   local -a config_dirs
   local config_dirs_size
   local IFS=:
   read -ra config_dirs <<< "${XDG_CONFIG_DIRS:-"/etc/xdg"}"
   unset IFS
 
-  parse_configuration "$KW_ETC_DIR/$CONFIG_FILENAME"
+  if [[ "$target_config" == 'build' ]]; then
+    target_array='build_config'
+  fi
+
+  target_config_file="${target_config}.config"
+  parse_configuration "${KW_ETC_DIR}/${target_config_file}" "$target_array"
 
   # XDG_CONFIG_DIRS is a colon-separated list of directories for config
   # files to be searched, in order of preference. Since this function
@@ -212,10 +220,10 @@ function load_configuration()
   # /etc/xdg.
   config_dirs_size="${#config_dirs[@]}"
   for ((i = config_dirs_size - 1; i >= 0; i--)); do
-    parse_configuration "${config_dirs["$i"]}/$KWORKFLOW/$CONFIG_FILENAME"
+    parse_configuration "${config_dirs["$i"]}/${KWORKFLOW}/${target_config_file}" "$target_array"
   done
 
-  parse_configuration "${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW/$CONFIG_FILENAME"
+  parse_configuration "${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}/${target_config_file}" "$target_array"
 
   # Old users may have kworkflow.config at $PWD
   if [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
@@ -225,15 +233,27 @@ function load_configuration()
       mkdir -p "$PWD/$KW_DIR/"
       mv "$PWD/$CONFIG_FILENAME" "$PWD/$KW_DIR/$CONFIG_FILENAME"
     else
-      parse_configuration "$PWD/$CONFIG_FILENAME"
+      parse_configuration "${PWD}/${CONFIG_FILENAME}" "$target_array"
     fi
   fi
 
   if [[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" ]]; then
-    parse_configuration "$PWD/$KW_DIR/$CONFIG_FILENAME"
+    parse_configuration "${PWD}/${KW_DIR}/${target_config_file}" "$target_array"
   fi
 }
 
-# Every time that "kw_config_loader.sh" is included, the configuration file has
-# to be loaded
-load_configuration
+load_build_config()
+{
+  load_configuration 'build'
+}
+
+load_kworkflow_config()
+{
+  load_configuration 'kworkflow'
+}
+
+load_all_config()
+{
+  load_kworkflow_config
+  load_build_config
+}

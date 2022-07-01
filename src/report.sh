@@ -494,3 +494,5 @@ function report_help()
     '  report [--year[=<year>]] - Display all the information for the specified year' \
     '  report [--output <path>] - Save report to <path>'
 }
+
+load_kworkflow_config

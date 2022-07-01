@@ -145,6 +145,8 @@ function test_vm_umount()
     return
   }
 
+  load_kworkflow_config
+
   output=$(vm_umount 'TEST_MODE')
   ret="$?"
   expected_ret="125"

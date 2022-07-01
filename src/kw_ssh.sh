@@ -133,3 +133,5 @@ function ssh_help()
     '  ssh (-s | --script) <script-path> - Script path in the host that will run in the target' \
     '  ssh (-c | --command) <string-command> - Command to be executed in the target machine'
 }
+
+load_kworkflow_config

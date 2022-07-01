@@ -621,3 +621,5 @@ function device_info_help()
     '  device [--vm] - Retrieve information from a virtual machine' \
     '  device [--remote [<ip>:<port>]] - Retrieve information from a remote machine'
 }
+
+load_kworkflow_config

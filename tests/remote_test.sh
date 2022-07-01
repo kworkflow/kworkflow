@@ -63,7 +63,7 @@ function setUp()
     return
   }
 
-  load_configuration
+  load_kworkflow_config
   remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
   remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
   remote_parameters['REMOTE_USER']=${configurations[ssh_user]}

@@ -184,3 +184,5 @@ function maintainers_help()
     '  maintainers (-a | --authors) - Also shows module authors' \
     '  maintainers (-u | --update-patch) - Add maintainers to patch file header'
 }
+
+load_kworkflow_config

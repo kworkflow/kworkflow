@@ -1041,3 +1041,5 @@ function debug_help()
     '  debug (--reset) - Reset debug values in the target machine' \
     '  You can combine some of the above options'
 }
+
+load_kworkflow_config

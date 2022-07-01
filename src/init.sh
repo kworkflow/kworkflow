@@ -251,3 +251,6 @@ function init_help()
     '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
     '  init --target <target> Set the default_deploy_target field in the kworkflow.config file'
 }
+
+# Every time build.sh is loaded its proper configuration has to be loaded as well
+load_kworkflow_config

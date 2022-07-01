@@ -199,3 +199,5 @@ function vm_help()
     ' vm (-n|--umount) - Unmount VM' \
     ' vm (-u|--up) - Starts VM'
 }
+
+load_kworkflow_config

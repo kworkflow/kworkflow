@@ -1259,3 +1259,6 @@ function deploy_help()
     '  deploy (--ls-line | -s) - list kernels separeted by commas' \
     '  deploy (--list-all | -a) - list all available kernels'
 }
+
+load_build_config
+load_kworkflow_config

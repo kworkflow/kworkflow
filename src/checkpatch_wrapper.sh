@@ -93,3 +93,5 @@ function codestyle_help()
   printf '%s\n' 'kw codestyle:' \
     '  codestyle [<dir>|<file>|<patch>] - Use checkpatch on target'
 }
+
+load_kworkflow_config
