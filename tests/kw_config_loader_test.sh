@@ -5,24 +5,25 @@ include './src/kw_config_loader.sh'
 
 KWORKFLOW='kw'
 
-TMP_DIR="$PWD/tests/.tmp_kw_config_loader_test"
-
 function setUp()
 {
-  mkdir -p "$TMP_DIR"
+  export TMPDIR_KW_FOLDER="$SHUNIT_TMPDIR/.kw"
+  mkdir -p "$TMPDIR_KW_FOLDER"
+
   KW_CONFIG_TEMPLATE="$PWD/etc/init_templates/x86-64/kworkflow_template.config"
   KW_BUILD_CONFIG_TEMPLATE="$PWD/etc/init_templates/x86-64/build_template.config"
 
-  cp "$KW_CONFIG_TEMPLATE" "$TMP_DIR/kworkflow.config"
-  cp "$KW_BUILD_CONFIG_TEMPLATE" "$TMP_DIR/build.config"
+  cp "$KW_CONFIG_TEMPLATE" "$TMPDIR_KW_FOLDER/kworkflow.config"
+  cp "$KW_BUILD_CONFIG_TEMPLATE" "$TMPDIR_KW_FOLDER/build.config"
+
   configurations=()
   build_config=()
 }
 
 function tearDown()
 {
-  if [[ -d "$TMP_DIR" ]]; then
-    rm -rf "$TMP_DIR"
+  if [[ -d "$SHUNIT_TMPDIR" ]]; then
+    rm -rf "$SHUNIT_TMPDIR"
   fi
 }
 
@@ -33,7 +34,7 @@ function oneTimeSetUp()
 
 function oneTimeTearDown()
 {
-  rm -rf "$SHUNIT_TMPDIR" "$TMP_DIR"
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
 function test_parse_configuration_success_exit_code()
@@ -105,13 +106,13 @@ function test_parse_configuration_output()
     [deploy_temporary_files_path]='/tmp/kw'
   )
 
-  cp tests/samples/kworkflow.config "$TMP_DIR/"
+  cp tests/samples/kworkflow.config "$TMPDIR_KW_FOLDER"
 
-  pushd "$TMP_DIR" > /dev/null || {
+  pushd "$SHUNIT_TMPDIR" > /dev/null || {
     fail "($LINENO): It was not possible to pushd into temp directory"
     return
   }
-  parse_configuration "$PWD/kworkflow.config"
+  parse_configuration "$PWD/.kw/kworkflow.config"
   popd > /dev/null || {
     fail "($LINENO): It was not possible to popd from temp directory"
     return
@@ -168,7 +169,7 @@ function test_parse_configuration_files_loading_order()
     fail "($LINENO): It was not possible to move to temporary directory"
     return
   }
-
+  rm -rf .kw
   KW_ETC_DIR='1'
   XDG_CONFIG_DIRS='2:3:4'
   XDG_CONFIG_HOME='5'
@@ -186,9 +187,8 @@ function test_parse_configuration_files_loading_order()
     {
       printf '%s\n' "$1"
     }
-    load_kworkflow_config
+    load_configuration 'kworkflow'
   )"
-
   compare_command_sequence 'Wrong config file reading order' "$LINENO" 'expected' "$output"
 
   # IF XDG global variables are not defined
@@ -200,7 +200,7 @@ function test_parse_configuration_files_loading_order()
     "1/$CONFIG_FILENAME"
     "/etc/xdg/$KWORKFLOW/$CONFIG_FILENAME"
     "5/.config/$KWORKFLOW/$CONFIG_FILENAME"
-    "$PWD/$CONFIG_FILENAME"
+    "$PWD/.kw/$CONFIG_FILENAME"
   )
 
   output="$(
@@ -224,20 +224,36 @@ function test_show_variables_completeness()
   local -A shown_options
   local -A possible_options
   local output
+  local original_dir="$PWD"
+  configurations=()
 
   # get all assigned options, including commented ones
   # remove #'s and ='s to get option names
   output="$(< "$KW_CONFIG_TEMPLATE")"
   output="$(printf '%s\n' "$output" | grep -oE '^(#?\w+=?)' | sed -E 's/[#=]//g')"
 
+  output_build="$(< "$KW_BUILD_CONFIG_SAMPLE")"
+  output_build="$(printf '%s\n' "$output_build" | grep -oE '^(#?\w+=?)' | sed -E 's/[#=]//g')"
+
+  output+=" $output_build"
   for option in $output; do
     possible_options["$option"]='1'
   done
 
-  parse_configuration "$KW_CONFIG_TEMPLATE"
-  parse_configuration "$KW_BUILD_CONFIG_TEMPLATE"
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO): It was not possible to move to temporary directory"
+    return
+  }
 
-  output="$(show_variables 'TEST_MODE' --build | grep -E '^    ')"
+  rm -rf .kw
+  mkdir -p .kw
+
+  cp "$KW_CONFIG_SAMPLE" ./kw/kworkflow.config
+  cp "$KW_BUILD_CONFIG_SAMPLE" ./kw/build.config
+
+  load_all_config
+
+  output="$(show_variables 'TEST_MODE' | grep -E '^    ')"
   output="$(printf '%s\n' "$output" | sed 's/.*(\(\S*\)).*/\1/')"
 
   for option in $output; do
@@ -255,6 +271,11 @@ function test_show_variables_completeness()
       fail "($LINENO): show_variable is showing $option not present in kworkflow_template.config"
     fi
   done
+
+  cd "$original_dir" || {
+    fail "($LINENO): It was not possible to move back to original directory"
+    return
+  }
 }
 
 function test_show_variables_correctness()
@@ -316,7 +337,7 @@ function test_load_configuration()
   mk_fake_kernel_root "$PWD"
 
   # No to updating kworkflow.config to .kw/kworkflow.config
-  output="$(printf '%s\n' 'n' | load_configuration)"
+  output="$(printf '%s\n' 'n' | load_kworkflow_config)"
   assertEquals "($LINENO): There should have been a warning" "$output" "$msg"
   assertTrue 'kworkflow.config was moved' '[[ -f "$PWD/$CONFIG_FILENAME" ]]'
 

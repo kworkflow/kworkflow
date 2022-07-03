@@ -293,50 +293,6 @@ function parse_build_options()
 
 }
 
-# This function is used to show the current set up used by kworkflow.
-function show_build_variables()
-{
-  local test_mode=0
-  local has_local_build_config='No'
-
-  if [[ "$1" =~ -h|--help ]]; then
-    vars_help "$1"
-    exit 0
-  fi
-
-  [ -f "$PWD/$KW_DIR/$BUILD_CONFIG_FILENAME" ] &&
-    has_local_build_config='Yes'
-
-  say 'kw build configuration variables:'
-  printf '%s\n' "  Local build config file: $has_build_local_config"
-
-  if [[ "$1" == 'TEST_MODE' ]]; then
-    test_mode=1
-  fi
-
-  local -Ar build=(
-    [arch]='Target arch'
-    [cpu_scaling_factor]='CPU scaling factor'
-    [enable_ccache]='Enable ccache'
-    [use_llvm]='Use the LLVM toolchain'
-    [warning_level]='Compilation warning level'
-    [log_path]='Path kw should save the `make` output to'
-    [kernel_img_name]='Kernel image name'
-    [cross_compile]='Cross-compile name'
-    [menu_config]='Kernel menu config'
-    [doc_type]='Command to generate kernel-doc'
-  )
-
-  printf '%s\n' "  Kernel build options:"
-  local -n descriptions="build"
-
-  for option in "${!descriptions[@]}"; do
-    if [[ -v build_config["$option"] || "$test_mode" == 1 ]]; then
-      printf '%s\n' "    ${descriptions[$option]} ($option): ${build_config[$option]}"
-    fi
-  done
-}
-
 function build_help()
 {
   if [[ "$1" == --help ]]; then
