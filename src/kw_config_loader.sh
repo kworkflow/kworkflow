@@ -24,28 +24,60 @@ declare -gA build_config
 declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
 
 # This function is used to show the current set up used by kworkflow.
+function show_build_variables()
+{
+  local test_mode=0
+  local has_local_build_config='No'
+
+  [[ -f "${PWD}/${KW_DIR}/${BUILD_CONFIG_FILENAME}" ]] && has_local_build_config='Yes'
+
+  say 'kw build configuration variables:'
+  printf '%s\n' "  Local build config file: $has_local_build_config"
+
+  if [[ "$1" == 'TEST_MODE' ]]; then
+    test_mode=1
+  fi
+
+  local -Ar build=(
+    [arch]='Target arch'
+    [cpu_scaling_factor]='CPU scaling factor'
+    [enable_ccache]='Enable ccache'
+    [use_llvm]='Use the LLVM toolchain'
+    [warning_level]='Compilation warning level'
+    [log_path]='Path kw should save the `make` output to'
+    [kernel_img_name]='Kernel image name'
+    [cross_compile]='Cross-compile name'
+    [menu_config]='Kernel menu config'
+    [doc_type]='Command to generate kernel-doc'
+  )
+
+  printf '%s\n' "  Kernel build options:"
+  local -n descriptions="build"
+
+  for option in "${!build[@]}"; do
+    if [[ -n ${build_config["$option"]} || "$test_mode" == 1 ]]; then
+      printf '%s\n' "    ${descriptions[$option]} ($option): ${build_config[$option]}"
+    fi
+  done
+}
+
+# This function is used to show the current set up used by kworkflow.
 function show_variables()
 {
   local test_mode=0
   local has_local_config='No'
-  local has_local_build_config='No'
-  local show_build=false
 
-  if [[ "$#" -gt 1 ]]; then
-    if [[ "$1" =~ -h|--help ]]; then
-      vars_help "$1"
-      exit 0
-    elif [[ "$1" =~ -b|--build ]]; then
-      show_build=true
-    fi
+  load_all_config
+
+  if [[ "$1" =~ ^-h|^--help ]]; then
+    vars_help "$@"
+    exit 0
   fi
 
   # TODO: Drop [[ -f "$PWD/$CONFIG_FILENAME" ]] in the future
-  if [[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" || -f "$PWD/$CONFIG_FILENAME" ]]; then
+  if [[ -f "${PWD}/${KW_DIR}/${CONFIG_FILENAME}" || -f "${PWD}/${CONFIG_FILENAME}" ]]; then
     has_local_config='Yes'
   fi
-
-  [[ "$show_build" = true && -f "${PWD}/${KW_DIR}/${BUILD_CONFIG_FILENAME}" ]] && has_local_build_config='Yes'
 
   if [[ "$1" == 'TEST_MODE' ]]; then
     test_mode=1
@@ -83,14 +115,6 @@ function show_variables()
     [mount_point]='VM mount point'
   )
 
-  local -Ar build=(
-    [arch]='Target arch'
-    [kernel_img_name]='Kernel image name'
-    [cross_compile]='Cross-compile name'
-    [menu_config]='Kernel menu config'
-    [doc_type]='Command to generate kernel-doc'
-  )
-
   local -Ar mail=(
     [send_opts]='Options to be used when sending a patch'
     [blocked_emails]='Blocked e-mail addresses'
@@ -121,29 +145,26 @@ function show_variables()
     'qemu'
     'notification'
     'misc'
+    'build'
   )
 
   say 'kw configuration variables:'
   printf '%s\n' "  Local config file: $has_local_config"
 
-  if [[ "$show_build" = true ]]; then
-    groups+=('build')
-    printf '%s\n' "  Local build config file: $has_build_local_config"
-  fi
-
   for group in "${groups[@]}"; do
-    printf '%s\n' "  ${group_descriptions["$group"]}:"
     local -n descriptions="$group"
-
-    if [[ "$group" = 'build' ]]; then
-      local -n config_array=build_config
+    if [[ "$group" == 'build' ]]; then
+      #local -n config_array=build_config
+      show_build_variables "$@"
+      continue
     else
       local -n config_array=configurations
     fi
 
+    printf '%s\n' "  ${group_descriptions["$group"]}:"
+
     for option in "${!descriptions[@]}"; do
       setting="${config_array[$option]}"
-      echo "$setting"
       if [[ -n "$setting" || "$test_mode" == 1 ]]; then
         printf '%s\n' "    ${descriptions[$option]} ($option): $setting"
       fi
