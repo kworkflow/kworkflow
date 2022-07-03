@@ -145,7 +145,7 @@ function kw()
       ;;
     kernel-config-manager | k)
       (
-        include "$KW_LIB_DIR/config_manager.sh"
+        include "$KW_LIB_DIR/kernel_config_manager.sh"
 
         kernel_config_manager_main "$@"
       )
