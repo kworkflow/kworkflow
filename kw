@@ -126,7 +126,7 @@ function kw()
       (
         include "$KW_LIB_DIR/kw_config_loader.sh"
 
-        show_variables "$@"
+        show_variables_main "$@"
       )
       ;;
     codestyle | c)
