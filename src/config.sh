@@ -7,13 +7,15 @@ declare -gA options_values
 declare -gA config_file_list=(
   ['build']='arch kernel_img_name cross_compile menu_config doc_type
              cpu_scaling_factor enable_ccache warning_level use_llvm'
-  ['kworkflow']='ssh_user ssh_ip ssh_port kw_files_remote_path
-             deploy_temporary_files_path deploy_default_compression
-             strip_modules_debug_option ssh_configfile hostname dtb_copy_pattern
-             virtualizer mount_point qemu_hw_options qemu_net_options alert
-             sound_alert_command visual_alert_command default_deploy_target
-             reboot_after_deploy disable_statistics_data_track gui_on gui_off
-             send_opts blocked_emails checkpatch_opts get_maintainer_opts'
+  ['deploy']='kw_files_remote_path deploy_temporary_files_path
+              deploy_default_compression dtb_copy_pattern default_deploy_target
+              reboot_after_deploy strip_modules_debug_option
+              default_deploy_target reboot_after_deploy'
+  ['kworkflow']='ssh_user ssh_ip ssh_port ssh_configfile hostname virtualizer
+                 mount_point qemu_hw_options qemu_net_options alert
+                 sound_alert_command visual_alert_command
+                 disable_statistics_data_track gui_on gui_off send_opts
+                 blocked_emails checkpatch_opts get_maintainer_opts'
 )
 
 function config_main()

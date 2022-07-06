@@ -80,8 +80,8 @@ function parser_ssh_options()
   options_values['TEST_MODE']=''
 
   # Set default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    transition_variables=${configurations[default_deploy_target]}
+  if [[ -n ${deploy_config[default_deploy_target]} ]]; then
+    transition_variables=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$transition_variables]}
   fi
 

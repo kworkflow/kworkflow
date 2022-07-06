@@ -19,7 +19,9 @@ function init_kw()
   local config_template_folder="${KW_ETC_DIR}/init_templates"
   local name='kworkflow.config'
   local build_name='build.config'
+  local deploy_name='deploy.config'
   local config_file_template
+  local deploy_config_file_template
   local ret
 
   if [[ "$1" =~ -h|--help ]]; then
@@ -55,6 +57,7 @@ function init_kw()
 
   config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/kworkflow_template.config"
   build_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/build_template.config"
+  deploy_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/deploy.config"
 
   if [[ -f "$config_file_template" && -f "$build_config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
@@ -63,6 +66,7 @@ function init_kw()
       "$PWD/$KW_DIR/$name"
 
     cp "$build_config_file_template" "${PWD}/${KW_DIR}/${build_name}"
+    cp "$deploy_config_file_template" "${PWD}/${KW_DIR}/${deploy_name}"
     sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' \
       "${PWD}/${KW_DIR}/${build_name}"
 

@@ -578,8 +578,8 @@ function device_info_parser()
   device_options['ip']="${configurations[ssh_ip]}"
   device_options['port']="${configurations[ssh_port]}"
 
-  if [[ -z "$option" && -n "${configurations[default_deploy_target]}" ]]; then
-    option='--'"${configurations[default_deploy_target]}"
+  if [[ -z "$option" && -n "${deploy_config[default_deploy_target]}" ]]; then
+    option='--'"${deploy_config[default_deploy_target]}"
   fi
   option=${option:-'--local'}
 
@@ -623,3 +623,4 @@ function device_info_help()
 }
 
 load_kworkflow_config
+load_deploy_config

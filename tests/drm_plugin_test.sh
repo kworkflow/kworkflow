@@ -9,7 +9,8 @@ function setUp()
   # Create a temporary directory for holding different config file
   mkdir -p "$SHUNIT_TMPDIR"
 
-  cp "$SAMPLES_DIR/kworkflow_drm_plugin.config" "$SHUNIT_TMPDIR/kworkflow.config"
+  cp "${SAMPLES_DIR}/kworkflow_drm_plugin.config" "$SHUNIT_TMPDIR/kworkflow.config"
+  cp "${SAMPLES_DIR}/deploy_remote.config" "$SHUNIT_TMPDIR/deploy.config"
 
   FAKE_DRM_SYSFS="$SHUNIT_TMPDIR/sys/class/drm"
 
@@ -88,6 +89,7 @@ function test_drm_manager()
   local output
 
   parse_configuration "$SHUNIT_TMPDIR/kworkflow.config"
+  parse_configuration "$SHUNIT_TMPDIR/deploy.config" deploy_config
 
   output=$(drm_manager test_mode --remote --gui-on)
   expected_result='3 1 0 127.0.0.1 3333'
