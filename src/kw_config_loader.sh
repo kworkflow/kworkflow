@@ -4,6 +4,7 @@ include "$KW_LIB_DIR/kwlib.sh"
 # these should be the default names for config files
 CONFIG_FILENAME='kworkflow.config'
 BUILD_CONFIG_FILENAME='build.config'
+DEPLOY_CONFIG_FILENAME='deploy.config'
 KW_DIR='.kw'
 
 # Basic targets
@@ -19,6 +20,9 @@ declare -gA configurations
 
 # Build configuration
 declare -gA build_config
+
+# Deploy configuration
+declare -gA deploy_config
 
 # Default target option from kworkflow.config
 declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
@@ -66,17 +70,6 @@ function show_variables_main()
     [visual_alert_command]='Command for visual notification'
   )
 
-  local -Ar deploy=(
-    [default_deploy_target]='Deploy target'
-    [reboot_after_deploy]='Reboot after deploy'
-    [kw_files_remote_path]='kw files in the remote machine'
-    [deploy_temporary_files_path]='Temporary files path used in the remote machine'
-    [deploy_default_compression]='Default compression option used in the deploy'
-    [dtb_copy_pattern]='How kw should copy dtb files to the boot folder'
-    [strip_modules_debug_option]='Modules will be stripped after they are installed which will reduce the initramfs size'
-    [mount_point]='VM mount point'
-  )
-
   local -Ar mail=(
     [send_opts]='Options to be used when sending a patch'
     [blocked_emails]='Blocked e-mail addresses'
@@ -88,6 +81,7 @@ function show_variables_main()
     [gui_off]='Command to deactivate GUI'
     [checkpatch_opts]='Options to be used in the checkpatch script'
     [get_maintainer_opts]='Options to be used in the get_maintainer script'
+    [mount_point]='VM mount point'
   )
 
   local -Ar group_descriptions=(
@@ -118,6 +112,9 @@ function show_variables_main()
     if [[ "$group" == 'build' ]]; then
       #local -n config_array=build_config
       show_build_variables "$@"
+      continue
+    elif [[ "$group" == 'deploy' ]]; then
+      show_deploy_variables "$@"
       continue
     fi
 
@@ -182,6 +179,36 @@ function show_build_variables()
   print_array build_config build
 }
 
+# This function is used to show the current set up used by kworkflow.
+function show_deploy_variables()
+{
+  local test_mode=0
+  local has_local_deploy_config='No'
+
+  [[ -f "${PWD}/${KW_DIR}/${DEPLOY_CONFIG_FILENAME}" ]] && has_local_deploy_config='Yes'
+
+  say 'kw deploy configuration variables:'
+  printf '%s\n' "  Local deploy config file: $has_local_deploy_config"
+
+  if [[ "$1" == 'TEST_MODE' ]]; then
+    test_mode=1
+  fi
+
+  local -Ar deploy=(
+    [default_deploy_target]='Deploy target'
+    [reboot_after_deploy]='Reboot after deploy'
+    [kw_files_remote_path]='kw files in the remote machine'
+    [deploy_temporary_files_path]='Temporary files path used in the remote machine'
+    [deploy_default_compression]='Default compression option used in the deploy'
+    [dtb_copy_pattern]='How kw should copy dtb files to the boot folder'
+    [strip_modules_debug_option]='Modules will be stripped after they are installed which will reduce the initramfs size'
+  )
+
+  printf '%s\n' "  Kernel deploy options:"
+  local -n descriptions="deploy"
+  print_array deploy_config deploy
+}
+
 # This function read the configuration file and make the parser of the data on
 # it. For more information about the configuration file, take a look at
 # "etc/kworkflow.config" in the kworkflow directory.
@@ -226,6 +253,8 @@ function load_configuration()
 
   if [[ "$target_config" == 'build' ]]; then
     target_array='build_config'
+  elif [[ "$target_config" == 'deploy' ]]; then
+    target_array='deploy_config'
   fi
 
   target_config_file="${target_config}.config"
@@ -267,6 +296,11 @@ load_build_config()
   load_configuration 'build'
 }
 
+load_deploy_config()
+{
+  load_configuration 'deploy'
+}
+
 load_kworkflow_config()
 {
   load_configuration 'kworkflow'
@@ -275,6 +309,7 @@ load_kworkflow_config()
 load_all_config()
 {
   load_kworkflow_config
+  load_deploy_config
   load_build_config
 }
 

@@ -366,8 +366,8 @@ function drm_parser_options()
   drm_options_values['HELP']=0
 
   # Set basic default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    local config_file_deploy_target=${configurations[default_deploy_target]}
+  if [[ -n ${deploy_config[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${deploy_config[default_deploy_target]}
     drm_options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
     # VM is not a valid case for drm option
     if [[ "${drm_options_values['TARGET']}" == "$VM_TARGET" ]]; then
@@ -379,7 +379,7 @@ function drm_parser_options()
 
   populate_remote_info ''
   if [[ "$?" == 22 ]]; then
-    options_values['ERROR']="$remote"
+    drm_options_values['ERROR']="$remote"
     return 22 # EINVAL
   fi
 
@@ -495,3 +495,6 @@ function drm_help()
     '  drm [--local | --remote [<remote>:<port>]] --conn-available' \
     '  drm [--local | --remote [<remote>:<port>]] --modes'
 }
+
+load_deploy_config
+load_kworkflow_config

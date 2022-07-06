@@ -589,8 +589,8 @@ function parse_kernel_config_manager_options()
   eval "set -- $options"
 
   # Set basic default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    local config_file_deploy_target=${configurations[default_deploy_target]}
+  if [[ -n ${deploy_config[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
   else
     options_values['TARGET']="$VM_TARGET"

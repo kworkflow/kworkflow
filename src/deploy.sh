@@ -16,7 +16,8 @@
 # password.
 #
 
-include "$KW_LIB_DIR/vm.sh" # It includes kw_config_loader.sh and kwlib.sh
+include "$KW_LIB_DIR/kw_config_loader.sh"
+include "$KW_LIB_DIR/vm.sh"
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
@@ -426,8 +427,8 @@ function deploy_setup()
 # function is intended to centralize these required updates.
 function update_deploy_variables()
 {
-  local kw_remote_path="${configurations[kw_files_remote_path]}"
-  local kw_tmp_files="${configurations[deploy_temporary_files_path]}"
+  local kw_remote_path="${deploy_config[kw_files_remote_path]}"
+  local kw_tmp_files="${deploy_config[deploy_temporary_files_path]}"
 
   REMOTE_KW_DEPLOY="${kw_remote_path:-$REMOTE_KW_DEPLOY}"
   KW_DEPLOY_TMP_FILE="${kw_tmp_files:-$KW_DEPLOY_TMP_FILE}"
@@ -738,7 +739,7 @@ function modules_install()
   local port
   local distro
   local cmd
-  local compression_type="${configurations[deploy_default_compression]}"
+  local compression_type="${deploy_config[deploy_default_compression]}"
 
   flag=${flag:-'SILENT'}
 
@@ -805,7 +806,7 @@ function modules_install_to()
     sign_extra_line=2
   fi
 
-  if [[ ${configurations[strip_modules_debug_option]} == 'no' ]]; then
+  if [[ ${deploy_config[strip_modules_debug_option]} == 'no' ]]; then
     strip_modules_debug=''
     grep --quiet --fixed-strings --line-regexp 'CONFIG_DEBUG_INFO=y' "${PWD}/.config"
     if [[ "$?" == 0 ]]; then
@@ -845,7 +846,7 @@ function compose_copy_source_parameter_for_dtb()
   local char_count
   local dts_base_path
 
-  copy_pattern="${configurations[dtb_copy_pattern]}"
+  copy_pattern="${deploy_config[dtb_copy_pattern]}"
   dts_base_path="arch/$arch_target/boot/dts"
 
   # Pattern 1: No pattern. Let's copy all dtb files, e.g., copy_pattern='*.dtb'
@@ -905,7 +906,7 @@ function pack_kernel_files_and_send()
   local kernel_name_arch
 
   config_path='.config'
-  compression_type="${configurations[deploy_default_compression]}"
+  compression_type="${deploy_config[deploy_default_compression]}"
   cache_to_deploy_path="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
   cache_boot_files_path="${cache_to_deploy_path}/boot"
   tar_file_path="${cache_to_deploy_path}/${name}_boot.tar"
@@ -1018,7 +1019,7 @@ function run_kernel_install()
   flag=${flag:-'SILENT'}
 
   if [[ "$reboot" == 0 ]]; then
-    reboot_default="${configurations[reboot_after_deploy]}"
+    reboot_default="${deploy_config[reboot_after_deploy]}"
     if [[ "$reboot_default" =~ 'yes' ]]; then
       reboot=1
     fi
@@ -1137,8 +1138,8 @@ function parse_deploy_options()
   remote_parameters['REMOTE_USER']=''
 
   # Set basic default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    local config_file_deploy_target=${configurations[default_deploy_target]}
+  if [[ -n ${deploy_config[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
   else
     options_values['TARGET']="$VM_TARGET"
@@ -1150,7 +1151,7 @@ function parse_deploy_options()
     return 22 # EINVAL
   fi
 
-  if [[ ${configurations[reboot_after_deploy]} == 'yes' ]]; then
+  if [[ ${deploy_config[reboot_after_deploy]} == 'yes' ]]; then
     options_values['REBOOT']=1
   fi
 
@@ -1261,4 +1262,5 @@ function deploy_help()
 }
 
 load_build_config
+load_deploy_config
 load_kworkflow_config

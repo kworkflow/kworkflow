@@ -100,16 +100,12 @@ function test_parse_configuration_check_parser_values_only_for_kworkflow_config_
     [ssh_ip]='127.0.0.1'
     [ssh_port]='3333'
     [mount_point]='/home/lala'
-    [default_deploy_target]='vm'
-    [reboot_after_deploy]='no'
     [gui_on]='turn on'
     [gui_off]='turn off'
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
     [blocked_emails]='test@email.com'
     [checkpatch_opts]='--no-tree --color=always --strict'
     [get_maintainer_opts]='--separator , --nokeywords --nogit --nogit-fallback --norolestats'
-    [kw_files_remote_path]='/opt/kw'
-    [deploy_temporary_files_path]='/tmp/kw'
   )
 
   # Let's replace the current config file for this test
@@ -229,6 +225,7 @@ function test_show_variables_main_completeness()
   local -A shown_options
   local -A possible_options
   local output
+  local output_deploy
 
   configurations=()
 
@@ -236,14 +233,16 @@ function test_show_variables_main_completeness()
   # remove #'s and ='s to get option names
   output=$(get_all_assigned_options_to_string_helper "$KW_CONFIG_TEMPLATE")
   output_build="$(get_all_assigned_options_to_string_helper "$KW_BUILD_CONFIG_SAMPLE")"
+  output_deploy="$(get_all_assigned_options_to_string_helper "$KW_DEPLOY_CONFIG_SAMPLE")"
 
-  output+=" $output_build"
+  output+=" $output_build $output_deploy"
   for option in $output; do
     possible_options["$option"]=1
   done
 
   cp "$KW_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "$KW_BUILD_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
+  cp "${SAMPLES_DIR}/deploy_all_options.config" "${TMPDIR_KW_FOLDER}/deploy.config"
 
   load_all_config
 
@@ -280,11 +279,17 @@ function test_show_variables_main_correctness()
     [alert]=9
     [sound_alert_command]=10
     [visual_alert_command]=11
-    [default_deploy_target]=12
-    [reboot_after_deploy]=13
+    [default_deploy_target]=vm
+    [reboot_after_deploy]='no'
+    [deploy_temporary_files_path]='/tmp/kw'
+    [dtb_copy_pattern]='broadcom/*.dtb'
+    [strip_modules_debug_option]='yes'
+    [deploy_default_compression]='lzop'
+    [kw_files_remote_path]='/opt/kw'
     [disable_statistics_data_track]=14
     [gui_on]=15
     [gui_off]=16
+
   )
 
   output="$(show_variables_main | grep -E '^\s{3,}')"

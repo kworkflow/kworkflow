@@ -18,7 +18,7 @@ function setUp()
   # Override some global variable
   export test_path="$FAKE_KERNEL"
   export KW_CACHE_DIR="$SHUNIT_TMPDIR/.cache"
-  export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
+  export KW_ETC_DIR="${SAMPLES_DIR}/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export KW_PLUGINS_DIR="$PWD/src/plugins"
   export REMOTE_KW_DEPLOY='/opt/kw'
@@ -32,6 +32,7 @@ function setUp()
   # Define some basic values for configurations
   parse_configuration "$KW_CONFIG_SAMPLE"
   parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
+  parse_configuration "$KW_DEPLOY_CONFIG_SAMPLE" deploy_config
 
   # Usually, we call populate_remote_info to fill out remote info. However, to
   # keep the test more reliable, we manually set this values here
@@ -343,8 +344,8 @@ function test_modules_install_to_no_strip_and_config_debug_info_enabled()
 
   # Test preparation
   cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
-  configurations[strip_modules_debug_option]='no'
-  KW_ETC_DIR="$PWD/etc"
+  deploy_config[strip_modules_debug_option]='no'
+  KW_ETC_DIR="${PWD}/etc"
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -365,7 +366,7 @@ function test_compose_copy_source_parameter_for_dtb_no_pattern()
   local output
   local expected_result
 
-  configurations[dtb_copy_pattern]=''
+  deploy_config[dtb_copy_pattern]=''
   expected_result='arch/arm64/boot/dts/*.dtb'
   output=$(compose_copy_source_parameter_for_dtb 'arm64')
 
@@ -377,7 +378,7 @@ function test_compose_copy_source_parameter_for_dtb_multiple_folder()
   local output
   local expected_result
 
-  configurations[dtb_copy_pattern]='broadcom,rockchip,arm'
+  deploy_config[dtb_copy_pattern]='broadcom,rockchip,arm'
   expected_result=' -r arch/arm/boot/dts/{broadcom,rockchip,arm}'
   output=$(compose_copy_source_parameter_for_dtb 'arm')
 
@@ -389,13 +390,13 @@ function test_compose_copy_source_parameter_for_dtb_wildcard()
   local output
   local expected_result
 
-  configurations[dtb_copy_pattern]='broadcom,rockchip/*,arm'
+  deploy_config[dtb_copy_pattern]='broadcom,rockchip/*,arm'
   expected_result=' -r arch/arm/boot/dts/{broadcom,rockchip/*,arm}'
   output=$(compose_copy_source_parameter_for_dtb 'arm')
 
   assert_equals_helper 'Expected * pattern' "$LINENO" "$expected_result" "$output"
 
-  configurations[dtb_copy_pattern]='rockchip/*'
+  deploy_config[dtb_copy_pattern]='rockchip/*'
   expected_result='arch/arm64/boot/dts/rockchip/*'
   output=$(compose_copy_source_parameter_for_dtb 'arm64')
 
@@ -407,7 +408,7 @@ function test_compose_copy_source_parameter_for_dtb_any_other_pattern()
   local output
   local expected_result
 
-  configurations[dtb_copy_pattern]='broadcom'
+  deploy_config[dtb_copy_pattern]='broadcom'
   expected_result=' -r arch/arm/boot/dts/broadcom'
   output=$(compose_copy_source_parameter_for_dtb 'arm')
 
@@ -858,7 +859,7 @@ function test_kernel_modules()
   )
 
   # Create folder so generate_tarball won't complain
-  mkdir -p "$local_remote_path/lib/modules/$version"
+  mkdir -p "${local_remote_path}/lib/modules/${version}"
 
   output=$(modules_install 'TEST_MODE' 3)
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
