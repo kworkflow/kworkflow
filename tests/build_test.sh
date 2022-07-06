@@ -175,41 +175,6 @@ function test_parse_configuration_files_loading_order()
   compare_command_sequence 'Wrong config file reading order' "$LINENO" 'expected' "$output"
 }
 
-function test_show_build_variables_completeness()
-{
-  local -A shown_options
-  local -A possible_options
-  local output
-  build_config=()
-
-  # get all assigned options, including commented ones
-  # remove #'s and ='s to get option names
-  output=$(get_config_option_to_string "$KW_BUILD_CONFIG_SAMPLE")
-
-  for option in $output; do
-    possible_options["$option"]='1'
-  done
-
-  output=$(show_build_variables 'TEST_MODE' | grep -E '^    ')
-  output=$(sed 's/.*(\(\S*\)).*/\1/' <<< "$output")
-
-  for option in $output; do
-    shown_options["$option"]=1
-  done
-
-  for option in "${!possible_options[@]}"; do
-    if [[ ! -v shown_options["$option"] ]]; then
-      fail "($LINENO): shown_options is missing option $option"
-    fi
-  done
-
-  for option in "${!shown_options[@]}"; do
-    if [[ ! -v possible_options["$option"] ]]; then
-      fail "($LINENO): show_variable is showing $option not present in kworkflow_template.config"
-    fi
-  done
-}
-
 function test_load_build_config()
 {
   local current_path="$PWD"

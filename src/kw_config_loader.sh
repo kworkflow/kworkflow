@@ -24,45 +24,7 @@ declare -gA build_config
 declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
 
 # This function is used to show the current set up used by kworkflow.
-function show_build_variables()
-{
-  local test_mode=0
-  local has_local_build_config='No'
-
-  [[ -f "${PWD}/${KW_DIR}/${BUILD_CONFIG_FILENAME}" ]] && has_local_build_config='Yes'
-
-  say 'kw build configuration variables:'
-  printf '%s\n' "  Local build config file: $has_local_build_config"
-
-  if [[ "$1" == 'TEST_MODE' ]]; then
-    test_mode=1
-  fi
-
-  local -Ar build=(
-    [arch]='Target arch'
-    [cpu_scaling_factor]='CPU scaling factor'
-    [enable_ccache]='Enable ccache'
-    [use_llvm]='Use the LLVM toolchain'
-    [warning_level]='Compilation warning level'
-    [log_path]='Path kw should save the `make` output to'
-    [kernel_img_name]='Kernel image name'
-    [cross_compile]='Cross-compile name'
-    [menu_config]='Kernel menu config'
-    [doc_type]='Command to generate kernel-doc'
-  )
-
-  printf '%s\n' "  Kernel build options:"
-  local -n descriptions="build"
-
-  for option in "${!build[@]}"; do
-    if [[ -n ${build_config["$option"]} || "$test_mode" == 1 ]]; then
-      printf '%s\n' "    ${descriptions[$option]} ($option): ${build_config[$option]}"
-    fi
-  done
-}
-
-# This function is used to show the current set up used by kworkflow.
-function show_variables()
+function show_variables_main()
 {
   local test_mode=0
   local has_local_config='No'
@@ -157,30 +119,67 @@ function show_variables()
       #local -n config_array=build_config
       show_build_variables "$@"
       continue
-    else
-      local -n config_array=configurations
     fi
 
     printf '%s\n' "  ${group_descriptions["$group"]}:"
-
-    for option in "${!descriptions[@]}"; do
-      setting="${config_array[$option]}"
-      if [[ -n "$setting" || "$test_mode" == 1 ]]; then
-        printf '%s\n' "    ${descriptions[$option]} ($option): $setting"
-      fi
-    done
+    print_array configurations descriptions "$test_mode"
   done
 }
 
-function vars_help()
+# This is a helper function that prints the option description followed by the
+# option value.
+#
+# @config_array Array with values
+# @option_description Array with the option description
+# @test_mode only used for test
+#
+# Return:
+# Print <option description> (option): value
+function print_array()
 {
-  if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'vars'
-    return
+  local -n config_array="$1"
+  local -n option_description="$2"
+  local test_mode="$3"
+
+  for option in "${!option_description[@]}"; do
+    if [[ -n ${config_array["$option"]} || "$test_mode" == 1 ]]; then
+      printf '%s\n' "    ${option_description[$option]} ($option): ${config_array[$option]}"
+    fi
+  done
+}
+
+# This function is used to show the current set up used by kworkflow.
+function show_build_variables()
+{
+  local test_mode=0
+  local has_local_build_config='No'
+
+  [[ -f "${PWD}/${KW_DIR}/${BUILD_CONFIG_FILENAME}" ]] && has_local_build_config='Yes'
+
+  say 'kw build configuration variables:'
+  printf '%s\n' "  Local build config file: $has_local_build_config"
+
+  if [[ "$1" == 'TEST_MODE' ]]; then
+    test_mode=1
   fi
-  printf '%s\n' 'kw vars:' \
-    '  vars - Show current variable values being used by kw.'
+
+  local -Ar build=(
+    [arch]='Target arch'
+    [cpu_scaling_factor]='CPU scaling factor'
+    [enable_ccache]='Enable ccache'
+    [use_llvm]='Use the LLVM toolchain'
+    [warning_level]='Compilation warning level'
+    [log_path]='Path kw should save the `make` output to'
+    [kernel_img_name]='Kernel image name'
+    [cross_compile]='Cross-compile name'
+    [menu_config]='Kernel menu config'
+    [doc_type]='Command to generate kernel-doc'
+  )
+
+  printf '%s\n' "  Kernel build options:"
+  local -n descriptions="build"
+
+  print_array build_config build
 }
 
 # This function read the configuration file and make the parser of the data on
@@ -277,4 +276,15 @@ load_all_config()
 {
   load_kworkflow_config
   load_build_config
+}
+
+function vars_help()
+{
+  if [[ "$1" == --help ]]; then
+    include "$KW_LIB_DIR/help.sh"
+    kworkflow_man 'vars'
+    return
+  fi
+  printf '%s\n' 'kw vars:' \
+    '  vars - Show current variable values being used by kw.'
 }
