@@ -28,6 +28,9 @@ declare -gA deploy_config
 # VM configuration
 declare -gA vm_config
 
+# Mail configuration
+declare -gA mail_config
+
 # Default target option from kworkflow.config
 declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
 
@@ -65,11 +68,6 @@ function show_variables_main()
     [alert]='Default alert options'
     [sound_alert_command]='Command for sound notification'
     [visual_alert_command]='Command for visual notification'
-  )
-
-  local -Ar mail=(
-    [send_opts]='Options to be used when sending a patch'
-    [blocked_emails]='Blocked e-mail addresses'
   )
 
   local -Ar misc=(
@@ -112,6 +110,10 @@ function show_variables_main()
         ;;
       'deploy')
         show_deploy_variables "$@"
+        continue
+        ;;
+      'mail')
+        show_mail_variables "$@"
         continue
         ;;
       'vm')
@@ -211,6 +213,30 @@ function show_deploy_variables()
   print_array deploy_config deploy
 }
 
+function show_mail_variables()
+{
+  local test_mode=0
+  local has_local_mail_config='No'
+
+  [[ -f "${PWD}/${KW_DIR}/${VM_CONFIG_FILENAME}" ]] && has_local_mail_config='Yes'
+
+  say 'kw Mail configuration variables:'
+  printf '%s\n' "  Local Mail config file: $has_local_mail_config"
+
+  if [[ "$1" == 'TEST_MODE' ]]; then
+    test_mode=1
+  fi
+
+  local -Ar mail=(
+    [send_opts]='Options to be used when sending a patch'
+    [blocked_emails]='Blocked e-mail addresses'
+  )
+
+  printf '%s\n' "  Kernel vm options:"
+  local -n descriptions="mail"
+  print_array mail_config mail
+}
+
 function show_vm_variables()
 {
   local test_mode=0
@@ -287,6 +313,9 @@ function load_configuration()
     'deploy')
       target_array='deploy_config'
       ;;
+    'mail')
+      target_array='mail_config'
+      ;;
     'vm')
       target_array='vm_config'
       ;;
@@ -341,6 +370,11 @@ load_vm_config()
   load_configuration 'vm'
 }
 
+load_mail_config()
+{
+  load_configuration 'mail'
+}
+
 load_kworkflow_config()
 {
   load_configuration 'kworkflow'
@@ -351,6 +385,7 @@ load_all_config()
   load_kworkflow_config
   load_deploy_config
   load_build_config
+  load_mail_config
   load_vm_config
 }
 

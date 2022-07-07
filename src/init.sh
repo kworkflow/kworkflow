@@ -21,6 +21,7 @@ function init_kw()
   local build_name='build.config'
   local deploy_name='deploy.config'
   local vm_name='vm.config'
+  local mail_name='mail.config'
   local config_file_template
   local deploy_config_file_template
   local ret
@@ -60,6 +61,7 @@ function init_kw()
   build_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/build_template.config"
   deploy_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/deploy.config"
   vm_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/vm_template.config"
+  mail_config_file_template="${KW_ETC_DIR}/mail.config"
 
   if [[ -f "$config_file_template" && -f "$build_config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
@@ -67,6 +69,7 @@ function init_kw()
     cp "$vm_config_file_template" "${PWD}/${KW_DIR}/${vm_name}"
     cp "$build_config_file_template" "${PWD}/${KW_DIR}/${build_name}"
     cp "$deploy_config_file_template" "${PWD}/${KW_DIR}/${deploy_name}"
+    cp "$mail_config_file_template" "${PWD}/${KW_DIR}/${mail_name}"
 
     sed -i -e "s/USERKW/$USER/g" -e '/^#?.*/d' "$PWD/$KW_DIR/${vm_name}"
     sed -i -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' "$PWD/$KW_DIR/$name"

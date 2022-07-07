@@ -81,7 +81,7 @@ function mail_main()
 function mail_send()
 {
   local flag="$1"
-  local opts="${configurations[send_opts]}"
+  local opts="${mail_config[send_opts]}"
   local to_recipients="${options_values['TO']}"
   local cc_recipients="${options_values['CC']}"
   local dryrun="${options_values['SIMULATE']}"
@@ -207,7 +207,7 @@ function generate_kernel_recipients()
   local cc=''
   local to_list=''
   local cc_list=''
-  local blocked="${configurations[blocked_emails]}"
+  local blocked="${mail_config[blocked_emails]}"
   local patch_cache="${KW_CACHE_DIR}/patches"
   local cover_letter_to="${patch_cache}/to/cover-letter"
   local cover_letter_cc="${patch_cache}/cc/cover-letter"
@@ -460,7 +460,7 @@ function add_config()
   cmd_manager "$flag" "$cmd"
 }
 
-# This function gets all the currently set values for the configurations used
+# This function gets all the currently set values for the mail_config used
 # by this script and writes them to the global variable set_confs
 #
 # @cmd_scope:  The scope being imposed on the command
@@ -1096,3 +1096,5 @@ function mail_help()
     '  mail --verify - Check if required configurations are set' \
     '  mail --template[=<template>] [-n] - Set send-email configs based on <template>'
 }
+
+load_mail_config
