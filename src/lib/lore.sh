@@ -37,6 +37,14 @@ function retrieve_available_mailing_lists()
   done <<< "$pre_processed"
 }
 
+function get_n_newest_patches()
+{
+  local n_patches=${1:-'10'}
+  local page='patch_page.xml'
+
+  warning "$n_patches"
+}
+
 function test_lore()
 {
   retrieve_available_mailing_lists "$@"
