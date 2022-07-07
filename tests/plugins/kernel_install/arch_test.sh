@@ -50,7 +50,7 @@ function test_generate_arch_temporary_root_file_system()
 
   # VM
   touch "$qemu_mock_img"
-  configurations[qemu_path_image]="$qemu_mock_img"
+  vm_config[qemu_path_image]="$qemu_mock_img"
   declare -a cmd_sequence=(
     "bash -c \"sed 's/NAME/$name/g' '$KW_ETC_DIR/template_mkinitcpio.preset' > something/etc/mkinitcpio.d/$name.preset\""
     "-> Generating rootfs $name on VM. This can take a few minutes."

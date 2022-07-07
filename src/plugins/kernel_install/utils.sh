@@ -431,8 +431,8 @@ function install_kernel()
 
   if [[ "$target" == 'vm' ]]; then
     # Check if vm is mounted and get its path
-    if [[ $(findmnt "${configurations[mount_point]}") ]]; then
-      path_prefix="${configurations[mount_point]}"
+    if [[ $(findmnt "${vm_config[mount_point]}") ]]; then
+      path_prefix="${vm_config[mount_point]}"
       INSTALLED_KERNELS_PATH="$path_prefix/$INSTALLED_KERNELS_PATH"
       # Copy config file
       cmd_manager "$flag" "cp $verbose_cp .config $path_prefix/boot/config-$name"
@@ -490,6 +490,6 @@ function install_kernel()
 
   # If VM is mounted, umount before update boot loader
   if [[ "$target" == 'vm' ]]; then
-    [[ $(findmnt "${configurations[mount_point]}") ]] && vm_umount
+    [[ $(findmnt "${vm_config[mount_point]}") ]] && vm_umount
   fi
 }

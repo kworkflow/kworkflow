@@ -5,6 +5,7 @@ include "$KW_LIB_DIR/kwlib.sh"
 CONFIG_FILENAME='kworkflow.config'
 BUILD_CONFIG_FILENAME='build.config'
 DEPLOY_CONFIG_FILENAME='deploy.config'
+VM_CONFIG_FILENAME='vm.config'
 KW_DIR='.kw'
 
 # Basic targets
@@ -23,6 +24,9 @@ declare -gA build_config
 
 # Deploy configuration
 declare -gA deploy_config
+
+# VM configuration
+declare -gA vm_config
 
 # Default target option from kworkflow.config
 declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
@@ -57,13 +61,6 @@ function show_variables_main()
     [hostname]='Hostname of the target in the SSH configuration file'
   )
 
-  local -Ar qemu=(
-    [virtualizer]='Virtualisation tool'
-    [qemu_hw_options]='QEMU hardware setup'
-    [qemu_net_options]='QEMU Net options'
-    [qemu_path_image]='Path for QEMU image'
-  )
-
   local -Ar notification=(
     [alert]='Default alert options'
     [sound_alert_command]='Command for sound notification'
@@ -81,7 +78,6 @@ function show_variables_main()
     [gui_off]='Command to deactivate GUI'
     [checkpatch_opts]='Options to be used in the checkpatch script'
     [get_maintainer_opts]='Options to be used in the get_maintainer script'
-    [mount_point]='VM mount point'
   )
 
   local -Ar group_descriptions=(
@@ -89,7 +85,7 @@ function show_variables_main()
     [deploy]='Kernel deploy options'
     [mail]='Send-email options'
     [ssh]='SSH options'
-    [qemu]='QEMU options'
+    [vm]='VM options'
     [notification]='Notification options'
     [misc]='Miscellaneous options'
   )
@@ -98,7 +94,7 @@ function show_variables_main()
     'deploy'
     'mail'
     'ssh'
-    'qemu'
+    'vm'
     'notification'
     'misc'
     'build'
@@ -109,14 +105,20 @@ function show_variables_main()
 
   for group in "${groups[@]}"; do
     local -n descriptions="$group"
-    if [[ "$group" == 'build' ]]; then
-      #local -n config_array=build_config
-      show_build_variables "$@"
-      continue
-    elif [[ "$group" == 'deploy' ]]; then
-      show_deploy_variables "$@"
-      continue
-    fi
+    case "$group" in
+      'build')
+        show_build_variables "$@"
+        continue
+        ;;
+      'deploy')
+        show_deploy_variables "$@"
+        continue
+        ;;
+      'vm')
+        show_vm_variables "$@"
+        continue
+        ;;
+    esac
 
     printf '%s\n' "  ${group_descriptions["$group"]}:"
     print_array configurations descriptions "$test_mode"
@@ -209,6 +211,33 @@ function show_deploy_variables()
   print_array deploy_config deploy
 }
 
+function show_vm_variables()
+{
+  local test_mode=0
+  local has_local_vm_config='No'
+
+  [[ -f "${PWD}/${KW_DIR}/${VM_CONFIG_FILENAME}" ]] && has_local_vm_config='Yes'
+
+  say 'kw VM configuration variables:'
+  printf '%s\n' "  Local VM config file: $has_local_vm_config"
+
+  if [[ "$1" == 'TEST_MODE' ]]; then
+    test_mode=1
+  fi
+
+  local -Ar vm=(
+    [virtualizer]='Virtualisation tool'
+    [qemu_hw_options]='QEMU hardware setup'
+    [qemu_net_options]='QEMU Net options'
+    [qemu_path_image]='Path for QEMU image'
+    [mount_point]='VM mount point'
+  )
+
+  printf '%s\n' "  Kernel vm options:"
+  local -n descriptions="vm"
+  print_array vm_config vm
+}
+
 # This function read the configuration file and make the parser of the data on
 # it. For more information about the configuration file, take a look at
 # "etc/kworkflow.config" in the kworkflow directory.
@@ -251,11 +280,17 @@ function load_configuration()
   read -ra config_dirs <<< "${XDG_CONFIG_DIRS:-"/etc/xdg"}"
   unset IFS
 
-  if [[ "$target_config" == 'build' ]]; then
-    target_array='build_config'
-  elif [[ "$target_config" == 'deploy' ]]; then
-    target_array='deploy_config'
-  fi
+  case "$target_config" in
+    'build')
+      target_array='build_config'
+      ;;
+    'deploy')
+      target_array='deploy_config'
+      ;;
+    'vm')
+      target_array='vm_config'
+      ;;
+  esac
 
   target_config_file="${target_config}.config"
   parse_configuration "${KW_ETC_DIR}/${target_config_file}" "$target_array"
@@ -286,7 +321,7 @@ function load_configuration()
     fi
   fi
 
-  if [[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" ]]; then
+  if [[ -f "${PWD}/${KW_DIR}/${target_config_file}" ]]; then
     parse_configuration "${PWD}/${KW_DIR}/${target_config_file}" "$target_array"
   fi
 }
@@ -301,6 +336,11 @@ load_deploy_config()
   load_configuration 'deploy'
 }
 
+load_vm_config()
+{
+  load_configuration 'vm'
+}
+
 load_kworkflow_config()
 {
   load_configuration 'kworkflow'
@@ -311,6 +351,7 @@ load_all_config()
   load_kworkflow_config
   load_deploy_config
   load_build_config
+  load_vm_config
 }
 
 function vars_help()

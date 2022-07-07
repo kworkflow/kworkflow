@@ -39,7 +39,7 @@ function oneTimeSetUp()
 
   REMOTE_KW_DEPLOY="$PWD/tests/samples"
   INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
-  declare -gA configurations
+  declare -gA vm_config
 }
 
 function oneTimeTearDown()
@@ -548,13 +548,12 @@ function test_install_kernel_vm()
   local path_prefix="$SHUNIT_TMPDIR"
   local output
 
-  # Setup this specific test
   touch "$SHUNIT_TMPDIR/boot/vmlinuz-$name"
   touch "$SHUNIT_TMPDIR/.config"
   touch "$SHUNIT_TMPDIR/virty.qcow2"
   rm -rf "${SHUNIT_TMPDIR:?}"/boot
-  configurations[mount_point]="$SHUNIT_TMPDIR"
-  configurations[qemu_path_image]="$SHUNIT_TMPDIR/virty.qcow2"
+  vm_config[mount_point]="$SHUNIT_TMPDIR"
+  vm_config[qemu_path_image]="${SHUNIT_TMPDIR}/virty.qcow2"
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(

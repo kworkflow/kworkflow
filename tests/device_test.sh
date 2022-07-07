@@ -16,7 +16,7 @@ function test_get_ram()
   local cmd
   local output
 
-  configurations[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
+  vm_config[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
   get_ram "$VM_TARGET"
   assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
 
@@ -60,8 +60,8 @@ function test_get_disk()
   local cmd
   local output
 
-  configurations[mount_point]='somewhere/to/mount'
-  cmd="df -h ${configurations[mount_point]} | tail -n 1 | tr -s ' '"
+  vm_config[mount_point]='somewhere/to/mount'
+  cmd="df -h ${vm_config[mount_point]} | tail -n 1 | tr -s ' '"
   output=$(get_disk "$VM_TARGET" 'TEST_MODE')
   assert_equals_helper 'Failed to gather VM target disk data' "($LINENO)" "$cmd" "$output"
 

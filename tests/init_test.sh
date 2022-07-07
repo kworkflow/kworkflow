@@ -16,17 +16,19 @@ function oneTimeSetUp()
   export PATH_TO_KW_DIR="$SHUNIT_TMPDIR/$KWORKFLOW/$KW_DIR"
   export PATH_TO_KW_CONFIG="${PATH_TO_KW_DIR}/kworkflow.config"
   export PATH_TO_KW_BUILD_CONFIG="${PATH_TO_KW_DIR}/build.config"
+  export PATH_TO_KW_DEPLOY_CONFIG="${PATH_TO_KW_DIR}/deploy.config"
+  export PATH_TO_KW_VM_CONFIG="${PATH_TO_KW_DIR}/vm.config"
 }
 
 function setUp()
 {
   export KW_ETC_DIR="$PWD/etc"
 
-  mkdir -p "$SHUNIT_TMPDIR/$KWORKFLOW"
+  mkdir -p "${SHUNIT_TMPDIR}/${KWORKFLOW}"
   options_values=()
 
-  mk_fake_kernel_root "$SHUNIT_TMPDIR/$KWORKFLOW/"
-  cd "$SHUNIT_TMPDIR/$KWORKFLOW/" || {
+  mk_fake_kernel_root "${SHUNIT_TMPDIR}/${KWORKFLOW}/"
+  cd "${SHUNIT_TMPDIR}/${KWORKFLOW}/" || {
     fail "($LINENO): It was not possible to move to temporary directory"
     return
   }
@@ -61,7 +63,7 @@ function test_standard_init_check_variable_replacements()
   local kworkflow_content
 
   output=$(init_kw)
-  kworkflow_content=$(grep "$USER" -o "$PATH_TO_KW_CONFIG" | head -n 1)
+  kworkflow_content=$(grep "$USER" -o "$PATH_TO_KW_VM_CONFIG" | head -n 1)
   assertEquals "($LINENO): USERKW wasn't updated to $USER" "$USER" "$kworkflow_content"
 
   kworkflow_content=$(grep "$KW_SOUND_DIR" -o "$PATH_TO_KW_CONFIG" | head -n 1)
@@ -155,7 +157,7 @@ function test_set_default_target()
   local kworkflow_content
 
   output=$(init_kw --target local)
-  kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_CONFIG")
+  kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_DEPLOY_CONFIG")
   assertEquals "($LINENO)" 'default_deploy_target=local' "$kworkflow_content"
 }
 
