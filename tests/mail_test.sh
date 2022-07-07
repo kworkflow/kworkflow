@@ -475,8 +475,8 @@ function test_mail_send()
   assert_equals_helper 'Testing no options option' "$LINENO" "$output" "$expected"
 
   parse_mail_options '--to=mail@test.com'
-  parse_configuration "$KW_CONFIG_SAMPLE"
 
+  parse_configuration "$KW_MAIL_CONFIG_SAMPLE" mail_config
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" --annotate  --no-chain-reply-to --thread @^'
   assert_equals_helper 'Testing default option' "$LINENO" "$output" "$expected"
