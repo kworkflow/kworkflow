@@ -210,10 +210,11 @@ function test_show_variables_main_completeness()
   local -A shown_options
   local -A possible_options
   local output
+  local output_vm
   local output_mail
   local output_build
   local output_deploy
-  local output_vm
+  local output_notification
 
   configurations=()
 
@@ -224,8 +225,9 @@ function test_show_variables_main_completeness()
   output_deploy="$(get_all_assigned_options_to_string_helper "$KW_DEPLOY_CONFIG_SAMPLE")"
   output_vm="$(get_all_assigned_options_to_string_helper "$KW_VM_CONFIG_SAMPLE")"
   output_mail="$(get_all_assigned_options_to_string_helper "$KW_MAIL_CONFIG_SAMPLE")"
+  output_notification="$(get_all_assigned_options_to_string_helper "$KW_NOTIFICATION_CONFIG_SAMPLE")"
 
-  output+=" $output_build $output_deploy $output_vm $output_mail"
+  output+=" $output_build $output_deploy $output_vm $output_mail $output_notification"
   for option in $output; do
     possible_options["$option"]=1
   done
@@ -234,6 +236,7 @@ function test_show_variables_main_completeness()
   cp "$KW_BUILD_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "$KW_VM_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "$KW_MAIL_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
+  cp "$KW_NOTIFICATION_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "${SAMPLES_DIR}/deploy_all_options.config" "${TMPDIR_KW_FOLDER}/deploy.config"
 
   load_all_config
@@ -268,9 +271,9 @@ function test_show_variables_main_correctness()
     [qemu_hw_options]=6
     [qemu_net_options]=7
     [qemu_path_image]='/home/xpto/p/virty.qcow2'
-    [alert]=9
-    [sound_alert_command]=10
-    [visual_alert_command]=11
+    [alert]='n'
+    [sound_alert_command]='paplay SOUNDPATH/bell.wav'
+    [visual_alert_command]='notify-send lala'
     [default_deploy_target]=vm
     [reboot_after_deploy]='no'
     [deploy_temporary_files_path]='/tmp/kw'

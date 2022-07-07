@@ -442,4 +442,4 @@ function pomodoro_help()
     '  pomodoro (-l|--list) - Show elapsed time'
 }
 
-load_kworkflow_config
+load_notification_config

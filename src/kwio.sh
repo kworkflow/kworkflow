@@ -9,7 +9,7 @@ declare -gr SEPARATOR='=========================================================
 #
 # @COMMAND First argument should be the kw command string which the user wants
 #          to get notified about. It can be printed in visual notification if
-#          ${configurations[visual_alert_command]} uses it.
+#          ${notification_config[visual_alert_command]} uses it.
 # @ALERT_OPT Second argument is the string with the "--alert=" option or "" if
 #            no alert option was given by the user.
 function alert_completion()
@@ -22,24 +22,24 @@ function alert_completion()
   if [[ $# -gt 1 && "$ALERT_OPT" =~ ^--alert= ]]; then
     opts="$(printf '%s\n' "$ALERT_OPT" | sed s/--alert=//)"
   else
-    opts="${configurations[alert]}"
+    opts="${notification_config[alert]}"
   fi
 
   while read -rN 1 option; do
     if [ "$option" == 'v' ]; then
-      if command_exists "${configurations[visual_alert_command]}"; then
-        eval "${configurations[visual_alert_command]} &"
+      if command_exists "${notification_config[visual_alert_command]}"; then
+        eval "${notification_config[visual_alert_command]} &"
       else
         warning 'The following command set in the visual_alert_command variable could not be run:'
-        warning "${configurations[visual_alert_command]}"
+        warning "${notification_config[visual_alert_command]}"
         warning 'Check if the necessary packages are installed.'
       fi
     elif [ "$option" == 's' ]; then
-      if command_exists "${configurations[sound_alert_command]}"; then
-        eval "${configurations[sound_alert_command]} &"
+      if command_exists "${notification_config[sound_alert_command]}"; then
+        eval "${notification_config[sound_alert_command]} &"
       else
         warning 'The following command set in the sound_alert_command variable could not be run:'
-        warning "${configurations[sound_alert_command]}"
+        warning "${notification_config[sound_alert_command]}"
         warning 'Check if the necessary packages are installed.'
       fi
     fi

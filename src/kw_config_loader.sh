@@ -31,6 +31,9 @@ declare -gA vm_config
 # Mail configuration
 declare -gA mail_config
 
+# Notification configuration
+declare -gA notification_config
+
 # Default target option from kworkflow.config
 declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
 
@@ -62,12 +65,6 @@ function show_variables_main()
     [ssh_port]='SSH port'
     [ssh_configfile]='SSH configuration file'
     [hostname]='Hostname of the target in the SSH configuration file'
-  )
-
-  local -Ar notification=(
-    [alert]='Default alert options'
-    [sound_alert_command]='Command for sound notification'
-    [visual_alert_command]='Command for visual notification'
   )
 
   local -Ar misc=(
@@ -114,6 +111,10 @@ function show_variables_main()
         ;;
       'mail')
         show_mail_variables "$@"
+        continue
+        ;;
+      'notification')
+        show_notification_variables "$@"
         continue
         ;;
       'vm')
@@ -264,6 +265,32 @@ function show_vm_variables()
   print_array vm_config vm
 }
 
+function show_notification_variables()
+{
+  local test_mode=0
+  local has_local_notification_config='No'
+
+  [[ -f "${PWD}/${KW_DIR}/${BUILD_CONFIG_FILENAME}" ]] && has_local_notification_config='Yes'
+
+  say 'kw notification configuration variables:'
+  printf '%s\n' "  Local notification config file: $has_local_notification_config"
+
+  if [[ "$1" == 'TEST_MODE' ]]; then
+    test_mode=1
+  fi
+
+  local -Ar notification=(
+    [alert]='Default alert options'
+    [sound_alert_command]='Command for sound notification'
+    [visual_alert_command]='Command for visual notification'
+  )
+
+  printf '%s\n' "  Kernel notification options:"
+  local -n descriptions="notification"
+
+  print_array notification_config notification
+}
+
 # This function read the configuration file and make the parser of the data on
 # it. For more information about the configuration file, take a look at
 # "etc/kworkflow.config" in the kworkflow directory.
@@ -315,6 +342,9 @@ function load_configuration()
       ;;
     'mail')
       target_array='mail_config'
+      ;;
+    'notification')
+      target_array='notification_config'
       ;;
     'vm')
       target_array='vm_config'
@@ -380,8 +410,14 @@ load_kworkflow_config()
   load_configuration 'kworkflow'
 }
 
+load_notification_config()
+{
+  load_configuration 'notification'
+}
+
 load_all_config()
 {
+  load_notification_config
   load_kworkflow_config
   load_deploy_config
   load_build_config

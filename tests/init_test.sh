@@ -18,6 +18,7 @@ function oneTimeSetUp()
   export PATH_TO_KW_BUILD_CONFIG="${PATH_TO_KW_DIR}/build.config"
   export PATH_TO_KW_DEPLOY_CONFIG="${PATH_TO_KW_DIR}/deploy.config"
   export PATH_TO_KW_VM_CONFIG="${PATH_TO_KW_DIR}/vm.config"
+  export PATH_TO_KW_NOTIFICATON_CONFIG="${PATH_TO_KW_DIR}/notification.config"
 }
 
 function setUp()
@@ -66,7 +67,7 @@ function test_standard_init_check_variable_replacements()
   kworkflow_content=$(grep "$USER" -o "$PATH_TO_KW_VM_CONFIG" | head -n 1)
   assertEquals "($LINENO): USERKW wasn't updated to $USER" "$USER" "$kworkflow_content"
 
-  kworkflow_content=$(grep "$KW_SOUND_DIR" -o "$PATH_TO_KW_CONFIG" | head -n 1)
+  kworkflow_content=$(grep "$KW_SOUND_DIR" -o "$PATH_TO_KW_NOTIFICATON_CONFIG" | head -n 1)
   assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SOUND_DIR" "$KW_SOUND_DIR" "$kworkflow_content"
 }
 

@@ -403,17 +403,18 @@ function install_home()
 function setup_global_config_file()
 {
   local config_files_path="$etcdir"
-  local config_file_template="$config_files_path/kworkflow_template.config"
   local config_vm_file_template="$config_files_path/vm_template.config"
-  local global_config_name='kworkflow.config'
+  local config_file_template="$config_files_path/notification_template.config"
+  local global_config_name='notification.config'
 
   if [[ -f "$config_file_template" || -f "$config_vm_file_template" ]]; then
     mv "$config_vm_file_template" "$config_files_path/vm.config"
     sed -i -e "s/USERKW/$USER/g" -e "/^#?.*/d" "$config_files_path/vm.config"
 
-    mv "$config_file_template" "$config_files_path/$global_config_name"
+    # Default config
+    cp "$config_file_template" "$config_files_path/notification.config"
     sed -i -e "s,SOUNDPATH,$sounddir,g" \
-      -e "/^#?.*/d" "$config_files_path/$global_config_name"
+      -e "/^#?.*/d" "$config_files_path/notification.config"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
       return "$ret"
