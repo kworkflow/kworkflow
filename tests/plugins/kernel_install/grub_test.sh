@@ -93,7 +93,7 @@ function test_run_bootloader_for_vm()
   assertEquals "($LINENO)" 125 "$?"
 
   # Normal flow
-  configurations[qemu_path_image]="$FAKE_VM_IMG"
+  vm_config[qemu_path_image]="$FAKE_VM_IMG"
 
   # Let's replace vm_umount function
   function vm_umount()
@@ -101,7 +101,7 @@ function test_run_bootloader_for_vm()
     printf 'vm_umount'
   }
 
-  guest_fish_cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+  guest_fish_cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run \
       $mount_root \
       $mkdir_grub $setup_grub : command '$grub_install' \
       : command '$cmd_grub'"

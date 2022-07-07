@@ -83,17 +83,17 @@ function generate_rootfs_with_libguestfs()
 
   flag=${flag:-'SILENT'}
 
-  if [[ ! -f "${configurations[qemu_path_image]}" ]]; then
-    complain "There is no VM in ${configurations[qemu_path_image]}"
+  if [[ ! -f "${vm_config[qemu_path_image]}" ]]; then
+    complain "There is no VM in ${vm_config[qemu_path_image]}"
     return 125 # ECANCELED
   fi
 
   # For executing libguestfs commands we need to umount the vm
-  if [[ $(findmnt "${configurations[mount_point]}") ]]; then
+  if [[ $(findmnt "${vm_config[mount_point]}") ]]; then
     vm_umount
   fi
 
-  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+  cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run \
       $mount_root : command '$cmd_init'"
 
   warning " -> Generating rootfs $name on VM. This can take a few minutes."

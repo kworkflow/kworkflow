@@ -33,6 +33,7 @@ function setUp()
   parse_configuration "$KW_CONFIG_SAMPLE"
   parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
   parse_configuration "$KW_DEPLOY_CONFIG_SAMPLE" deploy_config
+  parse_configuration "$KW_VM_CONFIG_SAMPLE" vm_config
 
   # Usually, we call populate_remote_info to fill out remote info. However, to
   # keep the test more reliable, we manually set this values here
@@ -75,7 +76,7 @@ function setUp()
   COPY_CONFIG_FILE="cp .config ${TO_DEPLOY_BOOT_PATH}/config-${NAME}"
   COPY_KERNEL_IMAGE="cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/Image-${NAME}"
 
-  GENERATE_BOOT_TAR_FILE="tar --auto-compress --directory='${LOCAL_TO_DEPLOY_PATH}'"
+  GENERATE_BOOT_TAR_FILE="tar --lzop --directory='${LOCAL_TO_DEPLOY_PATH}'"
   GENERATE_BOOT_TAR_FILE+=" --create --file='${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar' boot"
 
   SEND_BOOT_FILES_HOST2REMOTE="$CONFIG_RSYNC ${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar"
@@ -108,7 +109,7 @@ function setUp()
     "$SENDING_KERNEL_MSG"
     "$UNDEFINED_CONFIG"
     "$COPY_KERNEL_IMAGE"
-    "cp -r $LOCAL_TO_DEPLOY_PATH/boot/* ${configurations[mount_point]}/boot/"
+    "cp -r $LOCAL_TO_DEPLOY_PATH/boot/* ${vm_config[mount_point]}/boot/"
     'Did you check if your VM is mounted?'
   )
 
@@ -860,6 +861,8 @@ function test_kernel_modules()
 
   # Create folder so generate_tarball won't complain
   mkdir -p "${local_remote_path}/lib/modules/${version}"
+
+  deploy_config['deploy_default_compression']=''
 
   output=$(modules_install 'TEST_MODE' 3)
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"

@@ -54,8 +54,8 @@ function test_generate_rootfs_with_libguestfs()
   assertEquals "($LINENO)" 125 "$?"
 
   # Normal flow
-  configurations[qemu_path_image]="$FAKE_VM_IMG"
-  guest_fish_cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+  vm_config[qemu_path_image]="$FAKE_VM_IMG"
+  guest_fish_cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run \
       $mount_root : command '$cmd_init'"
 
   declare -a cmd_sequence=(

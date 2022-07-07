@@ -20,6 +20,7 @@ function init_kw()
   local name='kworkflow.config'
   local build_name='build.config'
   local deploy_name='deploy.config'
+  local vm_name='vm.config'
   local config_file_template
   local deploy_config_file_template
   local ret
@@ -58,17 +59,17 @@ function init_kw()
   config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/kworkflow_template.config"
   build_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/build_template.config"
   deploy_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/deploy.config"
+  vm_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/vm_template.config"
 
   if [[ -f "$config_file_template" && -f "$build_config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
     cp "$config_file_template" "$PWD/$KW_DIR/$name"
-    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' \
-      "$PWD/$KW_DIR/$name"
-
+    cp "$vm_config_file_template" "${PWD}/${KW_DIR}/${vm_name}"
     cp "$build_config_file_template" "${PWD}/${KW_DIR}/${build_name}"
     cp "$deploy_config_file_template" "${PWD}/${KW_DIR}/${deploy_name}"
-    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' \
-      "${PWD}/${KW_DIR}/${build_name}"
+
+    sed -i -e "s/USERKW/$USER/g" -e '/^#?.*/d' "$PWD/$KW_DIR/${vm_name}"
+    sed -i -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' "$PWD/$KW_DIR/$name"
 
     if [[ -n "${options_values['ARCH']}" ]]; then
       if [[ -d "$PWD/arch/${options_values['ARCH']}" || -n "${options_values['FORCE']}" ]]; then
@@ -96,7 +97,8 @@ function init_kw()
     if [[ -n "${options_values['TARGET']}" ]]; then
       case "${options_values['TARGET']}" in
         vm | local | remote)
-          set_config_value 'default_deploy_target' "${options_values['TARGET']}"
+          set_config_value 'default_deploy_target' "${options_values['TARGET']}" \
+            "${PWD}/${KW_DIR}/${deploy_name}"
           ;;
         *)
           complain 'Target can only be vm, local or remote.'

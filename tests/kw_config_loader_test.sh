@@ -13,10 +13,12 @@ function setUp()
 
   KW_CONFIG_TEMPLATE="$PWD/etc/init_templates/x86-64/kworkflow_template.config"
   KW_BUILD_CONFIG_TEMPLATE="$PWD/etc/init_templates/x86-64/build_template.config"
+  KW_VM_CONFIG_TEMPLATE="$PWD/etc/init_templates/x86-64/vm_template.config"
 
   # Copy required files for test
   cp "$KW_CONFIG_TEMPLATE" "$TMPDIR_KW_FOLDER/kworkflow.config"
   cp "$KW_BUILD_CONFIG_TEMPLATE" "$TMPDIR_KW_FOLDER/build.config"
+  cp "$KW_VM_CONFIG_TEMPLATE" "$TMPDIR_KW_FOLDER/vm.config"
   cp "${SAMPLES_DIR}/kworkflow_space_comments.config" "$SHUNIT_TMPDIR"
 
   configurations=()
@@ -94,12 +96,9 @@ function test_parse_configuration_check_parser_values_only_for_kworkflow_config_
 {
   # shellcheck disable=2016
   declare -A expected_configurations=(
-    [virtualizer]='libvirt'
-    [qemu_path_image]='/home/xpto/p/virty.qcow2'
     [ssh_user]='juca'
     [ssh_ip]='127.0.0.1'
     [ssh_port]='3333'
-    [mount_point]='/home/lala'
     [gui_on]='turn on'
     [gui_off]='turn off'
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
@@ -118,28 +117,16 @@ function test_parse_configuration_check_parser_values_only_for_kworkflow_config_
 function test_parse_configuration_standard_config()
 {
   declare -A expected_configurations=(
-    [virtualizer]='qemu-system-x86_64'
-    [qemu_path_image]='/home/USERKW/p/virty.qcow2'
-    [qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
-    [qemu_net_options]='-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW'
     [ssh_user]='root'
     [ssh_ip]='localhost'
     [ssh_port]='22'
-    [mount_point]='/home/USERKW/p/mount'
     [alert]='n'
     [sound_alert_command]='paplay SOUNDPATH/bell.wav'
     [visual_alert_command]='notify-send -i checkbox -t 10000 "kw" "Command: \"$COMMAND\" completed!"'
-    [default_deploy_target]='vm'
-    [reboot_after_deploy]='no'
     [disable_statistics_data_track]='no'
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
     [checkpatch_opts]='--no-tree --color=always --strict'
     [get_maintainer_opts]='--separator , --nokeywords --nogit --nogit-fallback --norolestats'
-    [kw_files_remote_path]='/opt/kw'
-    [deploy_temporary_files_path]='/tmp/kw'
-    [deploy_default_compression]='lzop'
-    [dtb_copy_pattern]=''
-    [strip_modules_debug_option]='yes'
   )
 
   parse_configuration "$KW_CONFIG_TEMPLATE"
@@ -225,7 +212,9 @@ function test_show_variables_main_completeness()
   local -A shown_options
   local -A possible_options
   local output
+  local output_build
   local output_deploy
+  local output_vm
 
   configurations=()
 
@@ -234,14 +223,16 @@ function test_show_variables_main_completeness()
   output=$(get_all_assigned_options_to_string_helper "$KW_CONFIG_TEMPLATE")
   output_build="$(get_all_assigned_options_to_string_helper "$KW_BUILD_CONFIG_SAMPLE")"
   output_deploy="$(get_all_assigned_options_to_string_helper "$KW_DEPLOY_CONFIG_SAMPLE")"
+  output_vm="$(get_all_assigned_options_to_string_helper "$KW_VM_CONFIG_SAMPLE")"
 
-  output+=" $output_build $output_deploy"
+  output+=" $output_build $output_deploy $output_vm"
   for option in $output; do
     possible_options["$option"]=1
   done
 
   cp "$KW_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "$KW_BUILD_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
+  cp "$KW_VM_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "${SAMPLES_DIR}/deploy_all_options.config" "${TMPDIR_KW_FOLDER}/deploy.config"
 
   load_all_config
@@ -270,12 +261,12 @@ function test_show_variables_main_correctness()
   declare -gA configurations=(
     [ssh_ip]=1
     [ssh_port]=2
-    [mount_point]=3
+    [mount_point]='/home/lala'
     [menu_config]=4
-    [virtualizer]=5
+    [virtualizer]='libvirt'
     [qemu_hw_options]=6
     [qemu_net_options]=7
-    [qemu_path_image]=8
+    [qemu_path_image]='/home/xpto/p/virty.qcow2'
     [alert]=9
     [sound_alert_command]=10
     [visual_alert_command]=11
@@ -289,7 +280,6 @@ function test_show_variables_main_correctness()
     [disable_statistics_data_track]=14
     [gui_on]=15
     [gui_off]=16
-
   )
 
   output="$(show_variables_main | grep -E '^\s{3,}')"

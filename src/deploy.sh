@@ -398,7 +398,7 @@ function deploy_setup()
   fi
 
   if [[ "$target" == "$VM_TARGET" ]]; then
-    cmd="guestfish --rw -a ${configurations[qemu_path_image]} run : \
+    cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run : \
       mount /dev/sda1 / : mkdir-p $kw_path"
     cmd_manager "$flag" "$cmd"
   fi
@@ -553,7 +553,7 @@ function run_list_installed_kernels()
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$flag" "$single_line" "$all" "${configurations[mount_point]}"
+      list_installed_kernels "$flag" "$single_line" "$all" "${vm_config[mount_point]}"
 
       vm_umount
       ;;
@@ -606,7 +606,7 @@ function collect_target_info_for_deploy()
     1) # VM_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      data=$(collect_deploy_info "$flag" "$target" "${configurations[mount_point]}/")
+      data=$(collect_deploy_info "$flag" "$target" "${vm_config[mount_point]}/")
       ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
@@ -745,7 +745,7 @@ function modules_install()
 
   case "$target" in
     1) # VM_TARGET
-      modules_install_to "${configurations[mount_point]}" "$flag"
+      modules_install_to "${vm_config[mount_point]}" "$flag"
       ;;
     2) # LOCAL_TARGET
       modules_install_to '/lib/modules' "$flag" 'local'
@@ -961,7 +961,7 @@ function pack_kernel_files_and_send()
 
   case "$target" in
     1) # VM_TARGET
-      cmd="cp -r ${cache_to_deploy_path}/boot/* ${configurations[mount_point]}/boot/"
+      cmd="cp -r ${cache_to_deploy_path}/boot/* ${vm_config[mount_point]}/boot/"
       cmd_manager "$flag" "$cmd"
       ;;
     2) # LOCAL_TARGET
@@ -1042,7 +1042,7 @@ function run_kernel_install()
 
   case "$target" in
     1) # VM_TARGET
-      distro=$(detect_distro "${configurations[mount_point]}/")
+      distro=$(detect_distro "${vm_config[mount_point]}/")
 
       if [[ "$distro" =~ 'none' ]]; then
         complain 'Unfortunately, there is no support for the target distro'
@@ -1053,7 +1053,6 @@ function run_kernel_install()
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Make sure we use the right variable values
-
       install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
       ;;
@@ -1261,6 +1260,7 @@ function deploy_help()
     '  deploy (--list-all | -a) - list all available kernels'
 }
 
+load_vm_config
 load_build_config
 load_deploy_config
 load_kworkflow_config

@@ -73,7 +73,7 @@ function get_ram()
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
   case "$target" in
     1) # VM_TARGET
-      ram="$(printf '%s\n' "${configurations[qemu_hw_options]}" | sed -r 's/.*-m ?([0-9]+).*/\1/')"
+      ram="$(printf '%s\n' "${vm_config[qemu_hw_options]}" | sed -r 's/.*-m ?([0-9]+).*/\1/')"
       ram="$(numfmt --from-unit=M --to-unit=K "$ram")"
       ;;
     2) # LOCAL_TARGET
@@ -169,7 +169,7 @@ function get_disk()
   cmd="df -h / | tail -n 1 | tr -s ' '"
   case "$target" in
     1) # VM_TARGET
-      cmd="df -h ${configurations[mount_point]} | tail -n 1 | tr -s ' '"
+      cmd="df -h ${vm_config[mount_point]} | tail -n 1 | tr -s ' '"
       info=$(cmd_manager "$flag" "$cmd")
       ;;
     2) # LOCAL_TARGET
@@ -211,7 +211,7 @@ function get_os()
 
   case "$target" in
     1) # VM_TARGET
-      os=$(detect_distro "${configurations[mount_point]}")
+      os=$(detect_distro "${vm_config[mount_point]}")
       ;;
     2) # LOCAL_TARGET
       os=$(detect_distro '/')
@@ -248,7 +248,7 @@ function get_desktop_environment()
 
   case "$target" in
     1) # VM_TARGET
-      desktop_env=$(find "${configurations[mount_point]}/usr/share/xsessions" -type f -printf '%f ' | sed -r 's/\.desktop//g')
+      desktop_env=$(find "${vm_config[mount_point]}/usr/share/xsessions" -type f -printf '%f ' | sed -r 's/\.desktop//g')
       ;;
     2) # LOCAL_TARGET
       desktop_env=$(cmd_manager "$flag" "$cmd")
@@ -446,7 +446,7 @@ function get_img_info()
   local img_size
   local img_type
 
-  img_info=$(file "${configurations[qemu_path_image]}")
+  img_info=$(file "${vm_config[qemu_path_image]}")
   img_size=$(printf '%s\n' "$img_info" | sed -r 's/.*: .+, ([0-9]+) bytes/\1/')
   img_type=$(printf '%s\n' "$img_info" | sed -r 's/.*: (.+),.+/\1/')
 
@@ -624,3 +624,4 @@ function device_info_help()
 
 load_kworkflow_config
 load_deploy_config
+load_vm_config
