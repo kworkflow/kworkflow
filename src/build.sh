@@ -314,3 +314,4 @@ function build_help()
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well
 load_build_config
+load_notification_config

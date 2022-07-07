@@ -14,10 +14,10 @@ declare -gA config_file_list=(
               deploy_default_compression dtb_copy_pattern default_deploy_target
               reboot_after_deploy strip_modules_debug_option
               default_deploy_target reboot_after_deploy'
-  ['kworkflow']='ssh_user ssh_ip ssh_port ssh_configfile hostname alert
-                 sound_alert_command visual_alert_command
-                 disable_statistics_data_track gui_on gui_off
-                 checkpatch_opts get_maintainer_opts'
+  ['notification']='alert sound_alert_command visual_alert_command'
+  ['kworkflow']='ssh_user ssh_ip ssh_port ssh_configfile hostname
+                 disable_statistics_data_track gui_on gui_off send_opts
+                 blocked_emails checkpatch_opts get_maintainer_opts'
 )
 
 function config_main()

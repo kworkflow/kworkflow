@@ -1264,3 +1264,4 @@ load_vm_config
 load_build_config
 load_deploy_config
 load_kworkflow_config
+load_notification_config
