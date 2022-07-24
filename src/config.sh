@@ -56,6 +56,10 @@ function config_main()
   option=$(printf '%s' "$option_and_value" | cut -d ' ' -f 1)
   value=$(printf '%s' "$option_and_value" | cut -d ' ' -f 2)
 
+  if [[ "${options_values['SCOPE']}" == 'global' ]]; then
+    base_path="${KW_ETC_DIR}"
+  fi
+
   # Check if config files are valid
   if ! is_config_file_valid "$target_config_file"; then
     complain "Invalid config option: ${target_config_file}"
@@ -67,17 +71,27 @@ function config_main()
     return 22 # EINVAL
   fi
 
+  # Prepare base path
+  target_config_file+='.config'
+  base_path=$(join_path "$base_path" "$target_config_file")
+
+  # Check if target file exist
+  if ! check_if_target_config_exist "$target_config_file" "$base_path"; then
+    warning "It looks like that '$target_config_file' does not exists locally."
+    warning "Do you want to set this configuration globally?"
+    if [[ $(ask_yN 'Do you want to continue?') =~ '0' ]]; then
+      warning 'Consider to run: kw init --template'
+      exit 125 # ECANCELED
+    fi
+    base_path="${KW_ETC_DIR}"
+    base_path=$(join_path "$base_path" "$target_config_file")
+  fi
+
   if [[ -z "$value" ]]; then
     complain 'You did not specify a value to be set'
     return 22 # EINVAL
   fi
 
-  if [[ "${options_values['SCOPE']}" == 'global' ]]; then
-    base_path="${KW_ETC_DIR}"
-  fi
-
-  target_config_file+='.config'
-  base_path=$(join_path "$base_path" "$target_config_file")
   set_config_value "$option" "$value" "$base_path"
 }
 
@@ -140,6 +154,17 @@ function is_a_valid_config_option()
     complain "The ${target_config_file} config, does not support the ${option} option"
     return 95 # ENOTSUP
   fi
+}
+
+function check_if_target_config_exist()
+{
+  local target_config_file="$1"
+  local base_path="$2"
+  local path
+
+  path=${base_path:-"${PWD}/${KW_DIR}/${target_config_file}"}
+  [[ ! -f "$path" ]] && return 2 # ENOENT
+  return 0
 }
 
 # This function sets variables in the config file to a specified value.

@@ -111,6 +111,15 @@ function test_set_config_with_a_path_as_value()
   assert_equals_helper 'Change llvm' "($LINENO)" "$output" 'qemu_path_image=/DATA/QEMU_VMS/virty.qcow2'
 }
 
+function test_check_if_target_config_exist()
+{
+  check_if_target_config_exist 'vm' 'vm.config'
+  assertEquals "($LINENO)" "$?" 0
+
+  check_if_target_config_exist 'vm' 'la.config'
+  assertEquals "($LINENO)" "$?" 2
+}
+
 function test_parse_config_options()
 {
   unset options_values
