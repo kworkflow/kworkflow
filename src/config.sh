@@ -23,7 +23,6 @@ declare -gA config_file_list=(
 function config_main()
 {
   local parameters
-  local dot_separator
   local target_config_file
   local option_and_value
   local config_options
@@ -44,9 +43,8 @@ function config_main()
 
   # Validate and decompose options
   parameters="${options_values['PARAMETERS']}"
-
-  dot_separator=$(str_count_char_repetition "$parameters" '.')
-  if [[ "$dot_separator" != 1 ]]; then
+  validate_option_parameter "$parameters"
+  if [[ "$?" != 0 ]]; then
     complain "Invalid options: ${parameters}"
     complain "Try: target_config.option value"
     return 22 # EINVAL
@@ -81,6 +79,19 @@ function config_main()
   target_config_file+='.config'
   base_path=$(join_path "$base_path" "$target_config_file")
   set_config_value "$option" "$value" "$base_path"
+}
+
+function validate_option_parameter()
+{
+  local parameters="$*"
+  local raw_target
+  local dot_separator
+
+  # Validate and decompose options
+  raw_target=$(printf '%s' "$parameters" | cut -d ' ' -f1)
+  dot_separator=$(str_count_char_repetition "$raw_target" '.')
+  [[ "$dot_separator" != 1 ]] && return 22 # EINVAL
+  return 0
 }
 
 # The associative array config_file_list uses the target config file as a key
@@ -146,8 +157,12 @@ function set_config_value()
 
   path=${path:-"${PWD}/${KW_DIR}/${name}"}
 
-  sed -i -r "s/($option=).*/\1$value/" "$path"
-  sed -i -r "s/#\s*$option/$option/" "$path"
+  # The 's' option is usually followed by /, however, this convention will not
+  # work well if we deal with paths. Here we had to break the pattern a little
+  # bit and use < instead of / after the s option to ensure that we accept
+  # paths in the config option.$
+  sed -i -r "s<($option=).*<\1$value<" "$path"
+  sed -i -r "s<#\s*$option<$option<" "$path"
 }
 
 function parse_config_options()

@@ -13,6 +13,7 @@ function setUp()
   # Copy sample files
   cp "${KW_BUILD_CONFIG_SAMPLE}" "${KW_CONFIG_BASE_PATH}"
   cp "${KW_CONFIG_SAMPLE_X86}" "${KW_CONFIG_BASE_PATH}"
+  cp "${KW_VM_CONFIG_SAMPLE}" "${KW_CONFIG_BASE_PATH}"
 
   # Let's run all test in a well-contained folder
   cd "${KW_CONFIG_BASE_PATH}" || {
@@ -87,6 +88,27 @@ function test_set_config_value_changing_default_value()
   set_config_value 'menu_config' 'menuconfig' "${KW_CONFIG_BASE_PATH}/build.config"
   output=$(grep 'menu_config' "${KW_CONFIG_BASE_PATH}/build.config")
   assert_equals_helper 'Change llvm' "($LINENO)" "$output" 'menu_config=menuconfig'
+}
+
+function test_set_config_value_with_dot_in_the_value()
+{
+  validate_option_parameter 'this.is valid'
+  assertEquals "($LINENO)" "$?" 0
+
+  validate_option_parameter 'this.is valid.also.valid'
+  assertEquals "($LINENO)" "$?" 0
+
+  validate_option_parameter 'this is.not.valid'
+  assertEquals "($LINENO)" "$?" 22
+}
+
+function test_set_config_with_a_path_as_value()
+{
+  local output
+
+  set_config_value 'qemu_path_image' '/DATA/QEMU_VMS/virty.qcow2' "${KW_CONFIG_BASE_PATH}/vm.config"
+  output=$(grep 'qemu_path_image' "${KW_CONFIG_BASE_PATH}/vm.config")
+  assert_equals_helper 'Change llvm' "($LINENO)" "$output" 'qemu_path_image=/DATA/QEMU_VMS/virty.qcow2'
 }
 
 function test_parse_config_options()
