@@ -692,4 +692,5 @@ function config_manager_help()
 }
 
 load_build_config
+load_deploy_config
 load_kworkflow_config
