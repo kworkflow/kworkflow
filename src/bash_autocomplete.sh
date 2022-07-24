@@ -63,6 +63,7 @@ function _kw_autocomplete()
   kw_options['ssh']='--command --script'
   kw_options['s']="${kw_options['ssh']}"
 
+  kw_options['vm']='--mount --umount --up'
   kw_options['config']='--local --global'
 
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
