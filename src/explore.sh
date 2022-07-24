@@ -17,17 +17,40 @@ function explore()
   case "$ret" in
     1)        # LOG
       shift 1 # Remove 'log' string
+
+      if [[ "$#" -gt 2 && "$3" != "TEST_MODE" ]]; then
+        complain 'Too many parameters'
+        exit 22 # EINVAL
+      fi
+
       explore_git_log "$@"
       ;;
     2)        # Use GNU GREP
       shift 1 # Remove 'grep' string
+
+      if [[ "$#" -gt 2 && "$3" != "TEST_MODE" ]]; then
+        complain 'Too many parameters'
+        exit 22 # EINVAL
+      fi
+
       explore_files_gnu_grep "$@"
       ;;
     3) # Search in directories controlled or not by git
       shift 1
+
+      if [[ "$#" -gt 2 && "$3" != "TEST_MODE" ]]; then
+        complain 'Too many parameters'
+        exit 22 # EINVAL
+      fi
+
       explore_all_files_git "$@"
       ;;
     4) # Search in files under git control
+      if [[ "$#" -gt 2 && "$3" != "TEST_MODE" ]]; then
+        complain 'Too many parameters'
+        exit 22 # EINVAL
+      fi
+
       explore_files_under_git "$@"
       ;;
     *)
