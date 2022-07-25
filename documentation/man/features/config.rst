@@ -6,8 +6,8 @@ kw-config
 
 SYNOPSIS
 ========
-| *kw config* [(-g | \--global)] <config.option value>
-| *kw config* [(-l | \--local)] <config.option value>
+| *kw* (*g* | *config*) [(-g | \--global)] <config.option value>
+| *kw* (*g* | *config*) [(-l | \--local)] <config.option value>
 
 
 DESCRIPTION
