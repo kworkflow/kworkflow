@@ -273,11 +273,11 @@ If you want to check the maintainers::
 In case you want that kw saves your current .config file, you can use::
 
     cd <kernel-path>
-    kw g --save my_current_config
+    kw k --save my_current_config
 
 You can see the config's file maintained by kw with::
 
-  kw g --list
+  kw k --list
 
 You can turn on your VM with::
 
