@@ -46,7 +46,7 @@ List config files under kw
 
 To show all the config files saved using kw, you just need to use::
 
-  kw kernel-config-manager --list # kw g -l
+  kw kernel-config-manager --list # kw k -l
 
 The above command displays the configs labels and the descriptions associated
 to them.
