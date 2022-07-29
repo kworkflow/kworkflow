@@ -21,7 +21,13 @@ function is_ssh_connection_configured()
   local remote=${2:-${configurations[ssh_ip]}}
   local port=${3:-${configurations[ssh_port]}}
   local user=${4:-${configurations[ssh_user]}}
+  local remote_file=${5:-${remote_parameters[REMOTE_FILE]}}
+  local remote_file_host=${5:-${remote_parameters[REMOTE_FILE_HOST]}}
   local ssh_cmd="ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p $port $user@$remote exit"
+
+  if [[ -n "${remote_file}" ]]; then
+    ssh_cmd="ssh -q -o BatchMode=yes -o ConnectTimeout=5 -F ${remote_file} ${remote_file_host} exit"
+  fi
 
   cmd_manager "$flag" "$ssh_cmd"
 }
@@ -187,8 +193,22 @@ function populate_remote_info()
   local temp_ip
   local port=22
   local user='root'
+  local default_target
+  local remote_file='remote.config'
 
-  if [[ -z "$ip" ]]; then
+  if [[ -f "${PWD}/.kw/${remote_file}" ]]; then #|| -f ${KW_ETC_DIR}/${remote_file} ]]; then
+    grep -xq "^#kw-default=.*" "${PWD}/.kw/${remote_file}"
+    if [[ "$?" == 0 ]]; then
+      # E.g., #kw-default=something
+      default_target=$(head -1 "${PWD}/.kw/${remote_file}" | cut -d '=' -f 2)
+    else
+      # E.g., Host something
+      default_target=$(head -1 "${PWD}/.kw/${remote_file}" | cut -d ' ' -f 2)
+    fi
+    remote_parameters['REMOTE_FILE']="${PWD}/.kw/${remote_file}"
+    remote_parameters['REMOTE_FILE_HOST']="$default_target"
+    return 0
+  elif [[ -z "$ip" ]]; then
     remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
     remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
     remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
