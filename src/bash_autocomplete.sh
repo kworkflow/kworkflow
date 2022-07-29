@@ -65,7 +65,7 @@ function _kw_autocomplete()
 
   kw_options['vm']='--mount --umount --up'
   kw_options['config']='--local --global'
-  kw_options['remote']='add remove rename --verbose'
+  kw_options['remote']='add remove rename --set-default --verbose'
 
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
 

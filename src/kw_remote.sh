@@ -22,6 +22,11 @@ function remote_main()
     return "$?"
   fi
 
+  if [[ -n "${options_values['DEFAULT_REMOTE']}" ]]; then
+    set_default_remote
+    return "$?"
+  fi
+
   if [[ -n "${options_values['REMOVE']}" ]]; then
     remove_remote
     return "$?"
@@ -37,6 +42,7 @@ function add_new_remote()
 {
   local name
   local remote
+  local first_time=''
   local host_ssh_config
   local user_ssh_config
   local port_ssh_config
@@ -65,10 +71,17 @@ function add_new_remote()
       exit 22 # EINVAL
     fi
     touch "$local_remote_config_file"
+    first_time='yes'
   fi
 
   remote="${remote_parameters['REMOTE_USER']}@${remote_parameters['REMOTE_IP']}"
   remote+=":${remote_parameters['REMOTE_PORT']}"
+
+  # Check if user request to set this new entry a default
+  if [[ -z "$first_time" && -n ${options_values['DEFAULT_REMOTE']} ]]; then
+    options_values['DEFAULT_REMOTE']="$name"
+    set_default_remote
+  fi
 
   # Check if remote name already exists
   grep -xq "^Host ${name}$" "$local_remote_config_file"
@@ -81,11 +94,34 @@ function add_new_remote()
 
   # New entry
   {
+    [[ -n "$first_time" ]] && printf '#kw-default=%s\n' "$name"
     printf 'Host %s\n' "$name"
     printf '  Hostname %s\n' "${remote_parameters['REMOTE_IP']}"
     printf '  Port %s\n' "${remote_parameters['REMOTE_PORT']}"
     printf '  User %s\n' "${remote_parameters['REMOTE_USER']}"
   } >> "$local_remote_config_file"
+}
+
+function set_default_remote()
+{
+  local default_remote="${options_values['DEFAULT_REMOTE']}"
+
+  grep -xq "^#kw-default=.*" "$local_remote_config_file"
+  # We don't have the default header yet, let's add it
+  if [[ "$?" != 0 ]]; then
+    sed -i "1s/^/#kw-default=${default_remote}\n/" "$local_remote_config_file"
+    return "$?"
+  fi
+
+  grep -xq "^Host ${default_remote}$" "$local_remote_config_file"
+  # We don't have the default header yet, let's add it
+  if [[ "$?" != 0 ]]; then
+    complain "We could not find '${default_remote}'. Is this a valid remote?"
+    return 22 # EINVAL
+  fi
+
+  # We already have the default remote
+  sed -i -r "s/^#kw-default=.*/#kw-default=${default_remote}/" "$local_remote_config_file"
 }
 
 function remove_remote()
@@ -105,6 +141,13 @@ function remove_remote()
   # Check if remote name exists
   grep -xq "^Host ${target_remote}$" "$local_remote_config_file"
   if [[ "$?" == 0 ]]; then
+    grep -xq "^#kw-default=${target_remote}" "$local_remote_config_file"
+    # Check if the target remote is the default
+    if [[ "$?" == 0 ]]; then
+      warning "'${target_remote}' was the default remote, please, set a new default"
+      sed -i "/^#kw-default=${target_remote}/d" "$local_remote_config_file"
+    fi
+
     sed -i -r "/^Host ${target_remote}$/{n;/Hostname.*/d}" "$local_remote_config_file"
     sed -i -r "/^Host ${target_remote}$/{n;/Port.*/d}" "$local_remote_config_file"
     sed -i -r "/^Host ${target_remote}$/{n;/User.*/d}" "$local_remote_config_file"
@@ -152,6 +195,14 @@ function rename_remote()
   grep -xq "^Host ${old_name}$" "$local_remote_config_file"
   if [[ "$?" == 0 ]]; then
     sed -i -r "s/^Host $old_name/Host $new_name/" "$local_remote_config_file"
+
+    # Check if the target remote was marked as a default
+    grep -xq "^#kw-default=${old_name}$" "$local_remote_config_file"
+    if [[ "$?" == 0 ]]; then
+      options_values['DEFAULT_REMOTE']="$new_name"
+      set_default_remote
+    fi
+
     return
   else
     complain "It looks like that ${old_name} does not exists"
@@ -161,8 +212,9 @@ function rename_remote()
 
 function parse_remote_options()
 {
-  local long_options='add,remove,rename,verbose'
-  local short_options='v'
+  local long_options='add,remove,rename,verbose,set-default::'
+  local short_options='v,s'
+  local default_option
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -178,6 +230,7 @@ function parse_remote_options()
   options_values['RENAME']=''
   options_values['VERBOSE']=''
   options_values['PARAMETERS']=''
+  options_values['DEFAULT_REMOTE']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -203,6 +256,13 @@ function parse_remote_options()
         options_values['RENAME']=1
         shift
         ;;
+      --set-default | -s)
+        default_option="$(str_strip "$2")"
+        # set-default can be used in combination with add
+        [[ -z "$default_option" ]] && default_option=1
+        options_values['DEFAULT_REMOTE']="$default_option"
+        shift 2
+        ;;
       --verbose | -v)
         echo "VERBOSE"
         shift
@@ -217,6 +277,14 @@ function parse_remote_options()
     esac
   done
 
+  if [[ -n "${options_values['ADD']}" && -n "${options_values['DEFAULT_REMOTE']}" ]]; then
+    complain 'Please, do not try to set a different default value from the one you are adding now.'
+    complain 'With add option, we only accept --set-default'
+    return 22 # EINVAL
+  elif [[ "${options_values['DEFAULT_REMOTE']}" == 1 ]]; then
+    options_values['ERROR']='Expected a string values after --set-default='
+    return 22
+  fi
 }
 
 function remote_help()
@@ -228,8 +296,9 @@ function remote_help()
   fi
   printf '%s\n' 'kw remote:' \
     '  remote - handle remote options' \
-    '  remote add <name> <USER@IP:PORT> - Add new remote' \
+    '  remote add <name> <USER@IP:PORT> [--set-default] - Add new remote' \
     '  remote remove <name> - Remove remote' \
     '  remote rename <old> <new> - Rename remote' \
+    '  remote --set-default=<remonte-name> - Set default remote' \
     '  remote (--verbose | -v) - be verbose'
 }
