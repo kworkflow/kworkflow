@@ -315,6 +315,32 @@ function test_grouping_year_data()
   assert_equals_helper "We expect 366 (leap year) keys" "$LINENO" "$output" 366
 }
 
+function test_calculate_total_work_hours()
+{
+  local output
+  local expected
+
+  output=$(calculate_total_work_hours 1)
+  expected='00:00:01'
+  assert_equals_helper 'We expected 1 second' "$LINENO" "$output" "$expected"
+
+  output=$(calculate_total_work_hours 60)
+  expected='00:01:00'
+  assert_equals_helper 'We expected 1 minute' "$LINENO" "$output" "$expected"
+
+  output=$(calculate_total_work_hours 3600)
+  expected='01:00:00'
+  assert_equals_helper 'We expected 1 hour' "$LINENO" "$output" "$expected"
+
+  output=$(calculate_total_work_hours 89999)
+  expected='24:59:59'
+  assert_equals_helper 'We expected full clock' "$LINENO" "$output" "$expected"
+
+  output=$(calculate_total_work_hours 360000)
+  expected='100:00:00'
+  assert_equals_helper 'We expected 100 hours' "$LINENO" "$output" "$expected"
+}
+
 function test_show_data()
 {
   local count=0
@@ -331,6 +357,11 @@ function test_show_data()
   assertTrue "$LINENO: We expected to find at least one Summary entry" '[[ "$output" =~ 'Summary:' ]]'
   assertTrue "$LINENO: We expected to find tag_2" '[[ "$output" =~ 'tag_2' ]]'
   assertTrue "$LINENO: We expected to find 06:00:40-" '[[ "$output" =~ '06:00:40-' ]]'
+
+  grouping_day_data '2020/04/05'
+  output=$(show_data)
+
+  assertTrue "$LINENO: We expected to find per tag output over 24h" "[[ \"$output\" =~ 'time: 72:00:00' ]]"
 }
 
 function test_save_data_to()
