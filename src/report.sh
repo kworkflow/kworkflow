@@ -279,7 +279,7 @@ function grouping_year_data()
   done
 }
 
-function show_total_work_hours()
+function calculate_total_work_hours()
 {
   local work_hours_sec="$1"
   local hours
@@ -290,7 +290,7 @@ function show_total_work_hours()
   minutes=$((work_hours_sec % 3600 / 60))
   seconds=$((work_hours_sec % 60))
 
-  printf ' * Total hours of focus: %02d:%02d:%02d\n' "$hours" "$minutes" "$seconds"
+  printf '%02d:%02d:%02d' "$hours" "$minutes" "$seconds"
 }
 
 # Show report data after processing.
@@ -302,6 +302,7 @@ function show_data
   local tag_time
   local tag_repetition=0
   local total_focus_time=0
+  local total_focus_hours
 
   printf '%s\n' "# Report: $date"
 
@@ -313,7 +314,8 @@ function show_data
     total_repetition=$((total_repetition + tag_repetition))
   done
 
-  show_total_work_hours "$total_focus_time"
+  total_focus_hours=$(calculate_total_work_hours "$total_focus_time")
+  printf '%s\n' " * Total hours of focus: ${total_focus_hours}"
   printf '%s\n\n' " * Total focus session(s): $total_repetition"
 
   for tag in "${!tags_details[@]}"; do
@@ -321,7 +323,7 @@ function show_data
     total_time=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f1)
     total_repetition=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f2)
 
-    total_time=$(sec_to_format "$total_time")
+    total_time=$(calculate_total_work_hours "$total_time")
     printf '%s\n' " - Total focus time: $total_time" \
       " - Total repetitions: $total_repetition" \
       '' \
