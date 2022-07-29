@@ -21,6 +21,9 @@ function kw_ssh()
   local flag
   local user
   local remote
+  local remote_file
+  local remote_file_host
+  local ssh_compose='ssh'
 
   parser_ssh_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -34,6 +37,8 @@ function kw_ssh()
   script_path=${options_values['SCRIPT']}
   cmd=${options_values['CMD']}
   flag=${options_values['TEST_MODE']}
+  remote_file="${remote_parameters['REMOTE_FILE']}"
+  remote_file_host="${remote_parameters['REMOTE_FILE_HOST']}"
 
   is_ssh_connection_configured "$flag"
   if [[ "$?" != 0 ]]; then
@@ -57,7 +62,16 @@ function kw_ssh()
     port="-p $port"
   fi
 
-  cmd_manager "$flag" "ssh $port $user@$remote $ssh_cmd"
+  # With file
+  if [[ -f "$remote_file" ]]; then
+    ssh_compose+=" -F ${remote_file} ${remote_file_host}"
+  else
+    ssh_compose+=" $port $user@$remote"
+  fi
+
+  ssh_compose+=" $ssh_cmd"
+
+  cmd_manager "$flag" "$ssh_compose"
 }
 
 function parser_ssh_options()
