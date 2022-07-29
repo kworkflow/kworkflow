@@ -77,6 +77,7 @@ function test_add_new_remote_multiple_different_instances()
   local final_result_array
 
   declare -a expected_result=(
+    '#kw-default=origin'
     'Host origin'
     '  Hostname test-debian'
     '  Port 3333'
@@ -112,6 +113,7 @@ function test_add_new_remote_multiple_entry_with_duplication()
   local final_result_array
 
   declare -a expected_result=(
+    '#kw-default=origin'
     'Host origin'
     '  Hostname test-debian'
     '  Port 3333'
@@ -325,6 +327,81 @@ function test_rename_remote_change_a_valid_remote()
 
   options_values['PARAMETERS']='arch-test floss'
   output=$(rename_remote)
+  mapfile -t final_result_array < "${BASE_PATH_KW}/remote.config"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+
+function test_set_default_remote_if_not_set_yet()
+{
+  local output
+
+  cp "${SAMPLES_DIR}/remote_samples/remote.config" "${BASE_PATH_KW}/remote.config"
+
+  declare -a expected_result=(
+    '#kw-default=fedora-test'
+    'Host origin'
+    '  Hostname deb-tm'
+    '  Port 333'
+    '  User root'
+    'Host steamos'
+    '  Hostname steamdeck'
+    '  Port 8888'
+    '  User jozzi'
+    'Host fedora-test'
+    '  Hostname fedora-tm'
+    '  Port 22'
+    '  User abc'
+    'Host arch-test'
+    '  Hostname arch-tm'
+    '  Port 22'
+    '  User abc'
+  )
+
+  options_values['DEFAULT_REMOTE']='fedora-test'
+  output=$(set_default_remote)
+  mapfile -t final_result_array < "${BASE_PATH_KW}/remote.config"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+
+function test_set_default_remote_try_to_set_an_invalid_remote()
+{
+  local output
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_3.config" "${BASE_PATH_KW}/remote.config"
+
+  options_values['DEFAULT_REMOTE']='palmares'
+  output=$(set_default_remote)
+  assertEquals "($LINENO)" "$?" 22
+}
+
+function test_set_default_remote_we_already_have_the_default_remote()
+{
+  local output
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_3.config" "${BASE_PATH_KW}/remote.config"
+
+  declare -a expected_result=(
+    '#kw-default=fedora-test'
+    'Host origin'
+    '  Hostname deb-tm'
+    '  Port 333'
+    '  User root'
+    'Host steamos'
+    '  Hostname steamdeck'
+    '  Port 8888'
+    '  User jozzi'
+    'Host fedora-test'
+    '  Hostname fedora-tm'
+    '  Port 22'
+    '  User abc'
+    'Host arch-test'
+    '  Hostname arch-tm'
+    '  Port 22'
+    '  User abc'
+  )
+
+  options_values['DEFAULT_REMOTE']='fedora-test'
+  output=$(set_default_remote)
   mapfile -t final_result_array < "${BASE_PATH_KW}/remote.config"
   compare_array_values expected_result final_result_array "$LINENO"
 }

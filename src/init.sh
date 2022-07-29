@@ -23,8 +23,10 @@ function init_kw()
   local vm_name='vm.config'
   local mail_name='mail.config'
   local notification_name='notification.config'
+  local remote_name='remote.config'
   local config_file_template
   local deploy_config_file_template
+  local remote_file_template
   local ret
 
   if [[ "$1" =~ -h|--help ]]; then
@@ -64,6 +66,7 @@ function init_kw()
   vm_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/vm_template.config"
   mail_config_file_template="${KW_ETC_DIR}/mail.config"
   notification_config_file_template="${KW_ETC_DIR}/notification_template.config"
+  remote_file_template="${KW_ETC_DIR}/remote.config"
 
   if [[ -f "$config_file_template" && -f "$build_config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
@@ -73,6 +76,7 @@ function init_kw()
     cp "$deploy_config_file_template" "${PWD}/${KW_DIR}/${deploy_name}"
     cp "$mail_config_file_template" "${PWD}/${KW_DIR}/${mail_name}"
     cp "$notification_config_file_template" "${PWD}/${KW_DIR}/${notification_name}"
+    cp "$remote_file_template" "${PWD}/${KW_DIR}/${remote_name}"
 
     sed -i -e "s/USERKW/$USER/g" -e '/^#?.*/d' "$PWD/$KW_DIR/${vm_name}"
     sed -i -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' "$PWD/$KW_DIR/${notification_name}"
