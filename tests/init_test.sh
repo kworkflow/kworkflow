@@ -144,12 +144,9 @@ function test_try_to_set_wrong_arch()
   local output
   local expected_content
 
-  expected_content=('Something went wrong with the remote option'
-    'Invalid remote: :8888')
   output=$(init_kw --remote ':8888')
 
   assertEquals "($LINENO)" 22 "$?"
-  compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 }
 
 function test_set_default_target()

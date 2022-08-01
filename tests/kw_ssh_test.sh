@@ -11,6 +11,7 @@ include './tests/utils.sh'
 function oneTimeSetUp()
 {
   export TEST_PATH="$SHUNIT_TMPDIR/test_path"
+  export original_dir="$PWD"
 }
 
 function setUp()
@@ -19,17 +20,27 @@ function setUp()
   export NO_SUCH_FILE='No such file'
   export SSH_OK='ssh -p 3333 juca@127.0.0.1'
 
-  mkdir "$TEST_PATH"
-
+  mkdir -p "$TEST_PATH"
+  mkdir -p "${SHUNIT_TMPDIR}/.kw"
+  cp "${KW_REMOTE_SAMPLES_DIR}/remote.config" "${SHUNIT_TMPDIR}/.kw"
   cp -f 'tests/samples/dmesg' "$TEST_PATH"
 
   parse_configuration "$KW_CONFIG_SAMPLE"
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
   populate_remote_info ''
 }
 
 function tearDown()
 {
-  rm -rf "$TEST_PATH"
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to back to the kw folder"
+    return
+  }
 }
 
 function test_parser_ssh_options()
@@ -61,11 +72,16 @@ function test_parser_ssh_options()
 
 function test_kw_ssh_no_parameter()
 {
-  local ret
+  local output
 
-  ret=$(kw_ssh test_mode)
+  declare -a expected_cmd=(
+    "ssh -q -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin"
+  )
 
-  assertTrue "We expected a substring \"$SSH_OK\", but we got \"$ret\"" '[[ $ret =~ "$SSH_OK" ]]'
+  # Remote
+  output=$(kw_ssh test_mode)
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_kw_ssh_command()
@@ -73,22 +89,21 @@ function test_kw_ssh_command()
   local output
 
   declare -a expected_cmd=(
-    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
-    'ssh -p 3333 juca@127.0.0.1 pwd'
+    "ssh -q -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin pwd"
   )
 
   output=$(kw_ssh test_mode -c 'pwd')
-
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   output=$(kw_ssh test_mode --command "ls /etc/" 2>&1)
-  expected_cmd[1]='ssh -p 3333 juca@127.0.0.1 ls /etc/'
+  expected_cmd[1]="ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin ls /etc/"
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_kw_ssh_script()
 {
-  local ret
+  local output
   local msg
 
   ret=$(kw_ssh test_mode -s "/not/a/valid/path/xpto" 2>&1)
@@ -96,10 +111,13 @@ function test_kw_ssh_script()
   assertTrue "($LINENO): We expected a substring '$msg', but we got '$ret'" \
     '[[ $ret =~ "$msg" ]]'
 
-  ret=$(kw_ssh test_mode -s "$TEST_PATH/dmesg" 2>&1)
-  msg="$SSH_OK \"bash -s\" -- < $TEST_PATH/dmesg"
-  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
-    '[[ $ret =~ "$msg" ]]'
+  declare -a expected_cmd=(
+    "ssh -q -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin \"bash -s\" -- < $TEST_PATH/dmesg"
+  )
+
+  output=$(kw_ssh test_mode -s "${TEST_PATH}/dmesg" 2>&1)
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 invoke_shunit

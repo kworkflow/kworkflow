@@ -6,6 +6,7 @@ include './tests/utils.sh'
 function oneTimeSetUp()
 {
   shopt -s expand_aliases
+  remote_parameters['REMOTE_USER']='john'
 }
 
 declare -gA configurations

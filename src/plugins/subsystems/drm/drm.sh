@@ -42,7 +42,7 @@ function drm_manager()
   remote="${remote_parameters['REMOTE']}"
 
   if [[ "$test_mode" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
+    printf '%s\n' "$target $gui_on $gui_off"
     return 0
   fi
 
@@ -378,10 +378,6 @@ function drm_parser_options()
   fi
 
   populate_remote_info ''
-  if [[ "$?" == 22 ]]; then
-    drm_options_values['ERROR']="$remote"
-    return 22 # EINVAL
-  fi
 
   drm_options_values['REMOTE']="$remote"
 

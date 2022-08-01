@@ -503,6 +503,10 @@ function test_get_config_from_proc()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # 3) Remote
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
+
   unset expected_cmd
   declare -a expected_cmd=(
     'ssh -p 3333 juca@127.0.0.1 sudo "[ -f proc/config.gz ]"'

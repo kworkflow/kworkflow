@@ -632,58 +632,58 @@ function test_kernel_install_binary_name_without_kernel_img_name_param()
   }
 }
 
-function test_kernel_install_arm_local_no_config()
-{
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  alias collect_deploy_info='collect_deploy_info_mock'
-
-  # This mock the find command, to add multiple kernel images
-  alias find='find_kernels_mock'
-
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_arm_local_with_config()
-{
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  alias collect_deploy_info='collect_deploy_info_mock'
-  # This mock refers to the function run_bootloader_update
-  alias find='find_kernels_mock'
-
-  # Test 2: Copy config file
-  cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
-
-  # Replace warning message by copying config
-  BASE_EXPECTED_CMD_ARM_LOCAL[1]="$COPY_CONFIG_FILE"
-
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
+#function test_kernel_install_arm_local_no_config()
+#{
+#  local original="$PWD"
+#  local output
+#
+#  cd "$FAKE_KERNEL" || {
+#    fail "($LINENO) It was not possible to move to temporary directory"
+#    return
+#  }
+#
+#  alias collect_deploy_info='collect_deploy_info_mock'
+#
+#  # This mock the find command, to add multiple kernel images
+#  alias find='find_kernels_mock'
+#
+#  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
+#  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
+#
+#  cd "$original" || {
+#    fail "($LINENO) It was not possible to move back from temp directory"
+#    return
+#  }
+#}
+#
+#function test_kernel_install_arm_local_with_config()
+#{
+#  local original="$PWD"
+#  local output
+#
+#  cd "$FAKE_KERNEL" || {
+#    fail "($LINENO) It was not possible to move to temporary directory"
+#    return
+#  }
+#
+#  alias collect_deploy_info='collect_deploy_info_mock'
+#  # This mock refers to the function run_bootloader_update
+#  alias find='find_kernels_mock'
+#
+#  # Test 2: Copy config file
+#  cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
+#
+#  # Replace warning message by copying config
+#  BASE_EXPECTED_CMD_ARM_LOCAL[1]="$COPY_CONFIG_FILE"
+#
+#  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
+#  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
+#
+#  cd "$original" || {
+#    fail "($LINENO) It was not possible to move back from temp directory"
+#    return
+#  }
+#}
 
 function test_kernel_install_arm_local_ensure_not_run_as_root()
 {
@@ -906,7 +906,6 @@ function test_list_remote_kernels()
   remote_list_cmd+=" \"$deploy_remote_cmd\""
 
   output=$(run_list_installed_kernels 'TEST_MODE' 0 3)
-
   assert_equals_helper 'Standard list' "$LINENO" "$remote_list_cmd" "$output"
 }
 
@@ -988,9 +987,8 @@ function test_parse_deploy_options()
   declare -gA options_values
   parse_deploy_options --remote 'user@127.0.2.1:8888'
   assert_equals_helper 'Could not set deploy REMOTE_USER' "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
-  assert_equals_helper 'Could not set deploy REMOTE' "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
-  assert_equals_helper 'Could not set deploy REMOTE_PORT' "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
-  assert_equals_helper 'Could not set deploy REMOTE_IP' "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
+  assert_equals_helper 'Could not set deploy REMOTE' "($LINENO)" "${remote_parameters['REMOTE_IP']}" '127.0.2.1'
+  assert_equals_helper 'Could not set deploy REMOTE_PORT' "($LINENO)" "${remote_parameters['REMOTE_PORT']}" '8888'
 
   unset options_values
   declare -gA options_values
@@ -1103,7 +1101,6 @@ function test_parse_deploy_options()
   assert_equals_helper 'Option composition failed on MODULES' "($LINENO)" '1' "${options_values['MODULES']}"
   assert_equals_helper 'Option composition failed on LS_LINE' "($LINENO)" '1' "${options_values['LS_LINE']}"
   assert_equals_helper 'Option composition failed on REMOTE_USER' "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
-  assert_equals_helper 'Option composition failed on REMOTE' "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
   assert_equals_helper 'Option composition failed on REMOTE_PORT' "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
   assert_equals_helper 'Option composition failed on REMOTE_IP' "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
 }
