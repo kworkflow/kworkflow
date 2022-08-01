@@ -92,19 +92,19 @@ function test_drm_manager()
   parse_configuration "$SHUNIT_TMPDIR/deploy.config" deploy_config
 
   output=$(drm_manager test_mode --remote --gui-on)
-  expected_result='3 1 0 127.0.0.1 3333'
+  expected_result='3 1 0'
   assertEquals "($LINENO) Remote and --gui-on:" "$expected_result" "$output"
 
   output=$(drm_manager test_mode --remote --gui-off)
-  expected_result='3 0 1 127.0.0.1 3333'
+  expected_result='3 0 1'
   assertEquals "($LINENO) Remote and --gui-off:" "$expected_result" "$output"
 
   output=$(drm_manager test_mode --gui-on)
-  expected_result='3 1 0 127.0.0.1 3333'
+  expected_result='3 1 0'
   assertEquals "($LINENO) just --gui-on:" "$expected_result" "$output"
 
   output=$(drm_manager test_mode --gui-off)
-  expected_result='3 0 1 127.0.0.1 3333'
+  expected_result='3 0 1'
   assertEquals "($LINENO) just --gui-off:" "$expected_result" "$output"
 
   # Invalid options
@@ -119,6 +119,11 @@ function test_gui_control()
   local bind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 1 > $i; done; sleep 0.5'
   local unbind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 0 > $i; done; sleep 0.5'
   local output
+
+  # Remote
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='8888'
+  remote_parameters['REMOTE_USER']='juca'
 
   tearDown # We want to test the default cases first
   # REMOTE = 3
@@ -147,6 +152,9 @@ function test_gui_control()
 
   # Test with config file
   parse_configuration "$KW_CONFIG_SAMPLE"
+
+  # Remote
+  remote_parameters['REMOTE_PORT']='3333'
 
   gui_off_cmd='turn off'
   ssh_part="ssh -p 3333 juca@127.0.0.1"

@@ -34,11 +34,12 @@ function kw_ssh()
   user="${remote_parameters['REMOTE_USER']}"
   remote="${remote_parameters['REMOTE_IP']}"
   port="${remote_parameters['REMOTE_PORT']}"
+  remote_file="${remote_parameters['REMOTE_FILE']}"
+  remote_file_host="${remote_parameters['REMOTE_FILE_HOST']}"
+
   script_path=${options_values['SCRIPT']}
   cmd=${options_values['CMD']}
   flag=${options_values['TEST_MODE']}
-  remote_file="${remote_parameters['REMOTE_FILE']}"
-  remote_file_host="${remote_parameters['REMOTE_FILE_HOST']}"
 
   is_ssh_connection_configured "$flag"
   if [[ "$?" != 0 ]]; then
@@ -92,12 +93,6 @@ function parser_ssh_options()
   options_values['SCRIPT']=''
   options_values['COMMAND']=''
   options_values['TEST_MODE']=''
-
-  # Set default values
-  if [[ -n ${deploy_config[default_deploy_target]} ]]; then
-    transition_variables=${deploy_config[default_deploy_target]}
-    options_values['TARGET']=${deploy_target_opt[$transition_variables]}
-  fi
 
   populate_remote_info ''
   if [[ "$?" == 22 ]]; then

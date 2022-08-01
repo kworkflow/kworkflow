@@ -934,10 +934,6 @@ function parser_debug_options()
   fi
 
   populate_remote_info ''
-  if [[ "$?" == 22 ]]; then
-    options_values['ERROR']='Something is wrong in the remote option'
-    return 22 # EINVAL
-  fi
 
   if [[ -n ${configurations[debug_event]} ]]; then
     transition_variables=${configurations[debug_event]}

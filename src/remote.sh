@@ -18,15 +18,17 @@ declare -gA remote_parameters
 function is_ssh_connection_configured()
 {
   local flag=${1:-'SILENT'}
-  local remote=${2:-${configurations[ssh_ip]}}
-  local port=${3:-${configurations[ssh_port]}}
-  local user=${4:-${configurations[ssh_user]}}
+  local remote=${2:-${remote_parameters['REMOTE_IP']}}
+  local port=${3:-${remote_parameters['REMOTE_PORT']}}
+  local user=${4:-${remote_parameters['REMOTE_USER']}}
   local remote_file=${5:-${remote_parameters[REMOTE_FILE]}}
   local remote_file_host=${5:-${remote_parameters[REMOTE_FILE_HOST]}}
   local ssh_cmd="ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p $port $user@$remote exit"
 
-  if [[ -n "${remote_file}" ]]; then
-    ssh_cmd="ssh -q -o BatchMode=yes -o ConnectTimeout=5 -F ${remote_file} ${remote_file_host} exit"
+  if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
+    if [[ -n "${remote_file}" ]]; then
+      ssh_cmd="ssh -q -o BatchMode=yes -o ConnectTimeout=5 -F ${remote_file} ${remote_file_host} exit"
+    fi
   fi
 
   cmd_manager "$flag" "$ssh_cmd"
@@ -62,12 +64,12 @@ function cmd_remotely()
 {
   local command="$1"
   local flag=${2:-'HIGHLIGHT_CMD'}
-  local remote=${3:-${configurations[ssh_ip]}}
-  local port=${4:-${configurations[ssh_port]}}
-  local user=${5:-${configurations[ssh_user]}}
+  local remote=${3:-${remote_parameters['REMOTE_IP']}}
+  local port=${4:-${remote_parameters['REMOTE_PORT']}}
+  local user=${5:-${remote_parameters['REMOTE_USER']}}
   local bash_code="$6"
   local save_output_path="$7"
-  local composed_cmd=''
+  local composed_cmd="ssh -p ${port} ${user}@${remote}"
   local redirect_mode=''
 
   if [[ -z "$command" ]]; then
@@ -75,9 +77,11 @@ function cmd_remotely()
     exit 22
   fi
 
-  composed_cmd="ssh -p $port $user@$remote"
-  if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
-    composed_cmd="ssh -F ${configurations['ssh_configfile']} ${configurations['hostname']}"
+  # If all parameters are empty, we must try the config file
+  if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
+    if [[ -n ${remote_parameters['REMOTE_FILE']} ]]; then
+      composed_cmd="ssh -F ${remote_parameters['REMOTE_FILE']} ${remote_parameters['REMOTE_FILE_HOST']}"
+    fi
   fi
 
   if [[ -n "$save_output_path" ]]; then
@@ -106,8 +110,8 @@ function cmd_remotely()
 function cp2remote()
 {
   local flag=${1:-'HIGHLIGHT_CMD'}
-  local src=${2:-"$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"}
-  local dst=${3:-"$REMOTE_KW_DEPLOY"}
+  local src=${2:-"${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}/*"}
+  local dst=${3:-"${REMOTE_KW_DEPLOY}"}
   local rsync_params="$4"
   local remote=${5:-${remote_parameters['REMOTE_IP']}}
   local port=${6:-${remote_parameters['REMOTE_PORT']}}
@@ -115,10 +119,12 @@ function cp2remote()
   local quiet="$8"
   local progress_flag='--info=progress2'
 
-  if [[ -v configurations['ssh_configfile'] && -v configurations['hostname'] ]]; then
-    rsync_target="'ssh -F ${configurations['ssh_configfile']}' $src ${configurations['hostname']}:$dst"
+  if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
+    if [[ -n ${remote_parameters['REMOTE_FILE']} ]]; then
+      rsync_target="'ssh -F ${remote_parameters['REMOTE_FILE']}' ${src} ${remote_parameters['REMOTE_FILE_HOST']}:$dst"
+    fi
   else
-    rsync_target="'ssh -p $port' $src $user@$remote:$dst"
+    rsync_target="'ssh -p ${port}' ${src} ${user}@${remote}:${dst}"
   fi
 
   [[ -n "$quiet" ]] && progress_flag=''
@@ -184,9 +190,9 @@ function which_distro()
 # @parameters: Command line parameter to be parsed
 #
 # Returns:
-# This function populates the variables REMOTE_IP and REMOTE_PORT of the
-# remote_parameters array based on the config file or command line. If it
-# cannot retrieve those data, it returns 22.
+# This function populates the variables REMOTE_IP, REMOTE_PORT, REMOTE_USER,
+# REMOTE_FILE, and REMOTE_FILE_HOST of the remote_parameters array based on the
+# config file or command line. If it cannot retrieve those data, it returns 22.
 function populate_remote_info()
 {
   local ip="$1"
@@ -195,24 +201,18 @@ function populate_remote_info()
   local user='root'
   local default_target
   local remote_file='remote.config'
+  local local_config_file="${PWD}/.kw/remote.config"
+  local etc_config_file="${KW_ETC_DIR}/remote.config"
+  local target_config_file="$local_config_file"
 
-  if [[ -f "${PWD}/.kw/${remote_file}" ]]; then #|| -f ${KW_ETC_DIR}/${remote_file} ]]; then
-    grep -xq "^#kw-default=.*" "${PWD}/.kw/${remote_file}"
-    if [[ "$?" == 0 ]]; then
-      # E.g., #kw-default=something
-      default_target=$(head -1 "${PWD}/.kw/${remote_file}" | cut -d '=' -f 2)
-    else
-      # E.g., Host something
-      default_target=$(head -1 "${PWD}/.kw/${remote_file}" | cut -d ' ' -f 2)
-    fi
-    remote_parameters['REMOTE_FILE']="${PWD}/.kw/${remote_file}"
-    remote_parameters['REMOTE_FILE_HOST']="$default_target"
-    return 0
-  elif [[ -z "$ip" ]]; then
-    remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
-    remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
-    remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
-  else
+  # Reset REMOTE variables
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_IP']=''
+
+  if [[ -n "$ip" ]]; then
     # Handling port
     remote_parameters['REMOTE_PORT']="$port"
     port=$(get_based_on_delimiter "$ip" ':' 2)
@@ -229,15 +229,49 @@ function populate_remote_info()
     temp_ip=$(get_based_on_delimiter "$ip" ':' 1)
     temp_ip=$(get_based_on_delimiter "$temp_ip" '@' 2)
     remote_parameters['REMOTE_IP']="$temp_ip"
+
+    ip="${remote_parameters['REMOTE_IP']}:${remote_parameters['REMOTE_PORT']}"
+    if [[ -z "${remote_parameters['REMOTE_IP']}" || "$ip" =~ ^: ]]; then
+      complain 'Something went wrong with the remote parser'
+      return 22 # EINVAL
+    fi
   fi
 
-  ip="${remote_parameters['REMOTE_IP']}:${remote_parameters['REMOTE_PORT']}"
-  remote_parameters['REMOTE']="$ip"
-
-  if [[ -z "$ip" || "$ip" =~ ^: ]]; then
-    complain 'Something went wrong with the remote option'
-    return 22 # EINVAL
+  # Handling config file
+  if [[ ! -f "${local_config_file}" ]]; then
+    if [[ -f "${etc_config_file}" ]]; then
+      target_config_file="$etc_config_file"
+    else
+      target_config_file=''
+    fi
   fi
+
+  # Get default remote
+  if [[ -n "${target_config_file}" && -z "${remote_parameters['REMOTE_IP']}" ]]; then
+    grep -xq "^#kw-default=.*" "${target_config_file}"
+    # Handle default target
+    if [[ "$?" == 0 ]]; then
+      # E.g., #kw-default=something
+      default_target=$(head -1 "${target_config_file}" | cut -d '=' -f 2)
+    else
+      # E.g., Host something
+      default_target=$(head -1 "${target_config_file}" | cut -d ' ' -f 2)
+    fi
+  # e.g., --remote origin
+  elif [[ -n "${target_config_file}" && -n "${remote_parameters['REMOTE_IP']}" ]]; then
+    grep -xq "^Host ${remote_parameters['REMOTE_IP']}" "${target_config_file}"
+    if [[ "$?" == 0 ]]; then
+      default_target="${remote_parameters['REMOTE_IP']}"
+    else
+      # If we could not find REMOTE_IP in the remote.config, we might have thses scenarios:
+      # --remote AAA.BBB.CCC.DDD or --remote REMOTE_NAME
+      # In those cases, we want to keep REMOTE_FILE and REMOTE_FILE_HOST empty
+      return 0
+    fi
+  fi
+
+  remote_parameters['REMOTE_FILE']="${target_config_file}"
+  remote_parameters['REMOTE_FILE_HOST']="$default_target"
 
   return 0
 }
