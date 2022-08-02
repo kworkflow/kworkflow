@@ -178,7 +178,7 @@ function find_kernel_root()
 function get_kernel_release()
 {
   local flag="$1"
-  local cmd='make kernelrelease'
+  local cmd='make kernelrelease 2> /dev/null'
 
   [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
 
@@ -195,7 +195,7 @@ function get_kernel_release()
 function get_kernel_version()
 {
   local flag="$1"
-  local cmd='make kernelversion'
+  local cmd='make kernelversion 2> /dev/null'
 
   flag=${flag:-'SILENT'}
 
