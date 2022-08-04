@@ -39,6 +39,24 @@ function tearDown()
     return
   }
 
+  unset configurations
+  declare -gA configurations
+
+  unset build_config
+  declare -gA build_config
+
+  unset deploy_config
+  declare -gA deploy_config
+
+  unset vm_config
+  declare -gA vm_config
+
+  unset mail_config
+  declare -gA mail_config
+
+  unset notification_config
+  declare -gA notification_config
+
   if [[ -d "$SHUNIT_TMPDIR" ]]; then
     rm -rf "$SHUNIT_TMPDIR"
   fi
