@@ -231,6 +231,7 @@ function show_mail_variables()
 
   local -Ar mail=(
     [send_opts]='Options to be used when sending a patch'
+    [mail_groups]='Predefined groups of contacts'
     [blocked_emails]='Blocked e-mail addresses'
   )
 

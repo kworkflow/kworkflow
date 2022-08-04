@@ -300,6 +300,7 @@ function test_show_variables_main_correctness()
     [deploy_default_compression]='lzop'
     [kw_files_remote_path]='/opt/kw'
     [send_opts]='--annotate --cover-letter --no-chain-reply-to --thread'
+    [mail_groups]='main,work'
     [blocked_emails]='test@email.com'
     [disable_statistics_data_track]=14
     [gui_on]=15
