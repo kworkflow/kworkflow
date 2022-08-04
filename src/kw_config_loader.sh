@@ -6,6 +6,7 @@ CONFIG_FILENAME='kworkflow.config'
 BUILD_CONFIG_FILENAME='build.config'
 DEPLOY_CONFIG_FILENAME='deploy.config'
 VM_CONFIG_FILENAME='vm.config'
+MAIL_CONFIG_FILENAME='mail.config'
 KW_DIR='.kw'
 
 # Basic targets
@@ -219,7 +220,7 @@ function show_mail_variables()
   local test_mode=0
   local has_local_mail_config='No'
 
-  [[ -f "${PWD}/${KW_DIR}/${VM_CONFIG_FILENAME}" ]] && has_local_mail_config='Yes'
+  [[ -f "${PWD}/${KW_DIR}/${MAIL_CONFIG_FILENAME}" ]] && has_local_mail_config='Yes'
 
   say 'kw Mail configuration variables:'
   printf '%s\n' "  Local Mail config file: $has_local_mail_config"
@@ -233,7 +234,7 @@ function show_mail_variables()
     [blocked_emails]='Blocked e-mail addresses'
   )
 
-  printf '%s\n' "  Kernel vm options:"
+  printf '%s\n' "  kw mail options:"
   local -n descriptions="mail"
   print_array mail_config mail
 }
