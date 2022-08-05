@@ -60,7 +60,7 @@ function _kw_autocomplete()
   kw_options['report']='--day --pomodoro --all --month --output --week --year --statistics'
   kw_options['r']="${kw_options['report']}"
 
-  kw_options['ssh']='--command --script'
+  kw_options['ssh']='--command --script --remote --verbose'
   kw_options['s']="${kw_options['ssh']}"
 
   kw_options['vm']='--mount --umount --up'

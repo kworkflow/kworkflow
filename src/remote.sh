@@ -273,5 +273,11 @@ function populate_remote_info()
   remote_parameters['REMOTE_FILE']="${target_config_file}"
   remote_parameters['REMOTE_FILE_HOST']="$default_target"
 
+  # At this point, we are sure that we will use a config file, so... clean up
+  # other variables to avoid weird issues
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_IP']=''
+
   return 0
 }
