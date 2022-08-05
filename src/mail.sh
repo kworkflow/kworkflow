@@ -83,6 +83,7 @@ function mail_send()
   local flag="$1"
   local opts="${mail_config[send_opts]}"
   local to_recipients="${options_values['TO']}"
+  local to_group="${options_values['TO_GROUP']}"
   local cc_recipients="${options_values['CC']}"
   local dryrun="${options_values['SIMULATE']}"
   local commit_range="${options_values['COMMIT_RANGE']}"
@@ -100,6 +101,11 @@ function mail_send()
 
   if [[ -n "$to_recipients" ]]; then
     validate_email_list "$to_recipients" || exit_msg 'Please review your `--to` list.'
+    cmd+=" --to=\"$to_recipients\""
+  fi
+
+  if [[ -n "$to_group" ]]; then
+    to_recipients="$(get_group_addresses "$to_group")"
     cmd+=" --to=\"$to_recipients\""
   fi
 
@@ -128,6 +134,44 @@ function mail_send()
   [[ -n "$extra_opts" ]] && cmd+=" $extra_opts"
 
   cmd_manager "$flag" "$cmd"
+}
+
+# This function gathers the email addresses that are present in the group
+# files, it first looks for the global files and then the local files.
+#
+# @group_name: Name of the group of emails
+#
+# Return:
+# list of emails separated by commas
+function get_group_addresses()
+{
+  local group_name="$1"
+  local addresses=''
+
+  addresses+="$(load_addresses "${KW_ETC_DIR}/mail_groups/${group_name}")"
+  addresses+="$(load_addresses "${PWD}/.kw/mail_groups/${group_name}")"
+
+  printf '%s' "$addresses"
+}
+
+# This function loads email addresses from a @file and returns them as a
+# comma-separated list, the returned string contains a comma at the end
+# because this function can be called successively, appending it's output each
+# call
+#
+# @file: Path to file containing the email addresses
+#
+# Return:
+# comma-separated string of email addresses disable
+function load_addresses()
+{
+  local file="$1"
+  local -a addresses
+
+  [[ -f "$file" ]] || return 22 # EINVAL
+
+  readarray -t addresses < "$file"
+  printf '%s,' "$(concatenate_with_commas "${addresses[@]}")"
 }
 
 # Validates the recipient list given by the user to the options `--to` and
@@ -915,7 +959,7 @@ function parse_mail_options()
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
   long_options+='template::,interactive,no-interactive,list,private,rfc,'
 
-  long_options+='email:,name:,'
+  long_options+='to-group:,email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
 
   # This is a pre parser to handle commit count arguments
@@ -934,6 +978,7 @@ function parse_mail_options()
   # Default values
   options_values['SEND']=''
   options_values['TO']=''
+  options_values['TO_GROUP']=''
   options_values['CC']=''
   options_values['SIMULATE']=''
   options_values['SETUP']=0
@@ -962,6 +1007,10 @@ function parse_mail_options()
         ;;
       --to)
         options_values['TO']="$2"
+        shift 2
+        ;;
+      --to-group)
+        options_values['TO_GROUP']="$2"
         shift 2
         ;;
       --cc)
