@@ -8,6 +8,7 @@ SYNOPSIS
 ========
 | *kw* (*s* | *ssh*) [(-s | \--script) <script-path>]
 | *kw* (*s* | *ssh*) [(-c | \--command) <string-command>]
+| *kw* (*s* | *ssh*) [(-r | \--remote) <USER@IP:PORT | CONFIG_HOST_NAME>]
 
 DESCRIPTION
 ===========
@@ -24,6 +25,9 @@ OPTIONS
 
 -s <script-path>, \--script <script-path>:
   Receives the *<script-path>* of a local script to be run remotely.
+
+-r <USER@IP:PORT | CONFIG_HOST_NAME>, \--remote <USER@IP:PORT | CONFIG_HOST_NAME>:
+  Uses parameter to ssh into the target machine
 
 EXAMPLES
 ========
