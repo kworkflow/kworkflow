@@ -249,9 +249,9 @@ function kw()
     # Subsystems support
     drm)
       (
-        include "$KW_PLUGINS_DIR/subsystems/drm/drm.sh"
+        include "${KW_PLUGINS_DIR}/subsystems/drm/drm.sh"
 
-        drm_manager "$@"
+        drm_main "$@"
       )
       ;;
     *)

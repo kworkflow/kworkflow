@@ -235,6 +235,11 @@ function populate_remote_info()
       complain 'Something went wrong with the remote parser'
       return 22 # EINVAL
     fi
+
+    # In this case, we parsed from CLI
+    remote_parameters['REMOTE_FILE']=''
+    remote_parameters['REMOTE_FILE_HOST']=''
+    return 0
   fi
 
   # Handling config file
