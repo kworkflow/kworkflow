@@ -235,11 +235,6 @@ function populate_remote_info()
       complain 'Something went wrong with the remote parser'
       return 22 # EINVAL
     fi
-
-    # In this case, we parsed from CLI
-    remote_parameters['REMOTE_FILE']=''
-    remote_parameters['REMOTE_FILE_HOST']=''
-    return 0
   fi
 
   # Handling config file
@@ -248,6 +243,27 @@ function populate_remote_info()
       target_config_file="$etc_config_file"
     else
       target_config_file=''
+    fi
+  fi
+
+  # In this case, we parsed from CLI and the remote name is not part of the
+  # config file
+  if [[ -n "${remote_parameters['REMOTE_IP']}" && -z "$target_config_file" ]]; then
+    remote_parameters['REMOTE_FILE']=''
+    remote_parameters['REMOTE_FILE_HOST']=''
+    return 0
+  fi
+
+  # --remote origin
+  if [[ -n "${target_config_file}" ]]; then
+    grep -xq "^Host ${remote_parameters['REMOTE_IP']}" "${target_config_file}"
+    if [[ "$?" == 0 ]]; then
+      remote_parameters['REMOTE_FILE']="${target_config_file}"
+      remote_parameters['REMOTE_FILE_HOST']="${remote_parameters['REMOTE_IP']}"
+      remote_parameters['REMOTE_PORT']=''
+      remote_parameters['REMOTE_USER']=''
+      remote_parameters['REMOTE_IP']=''
+      return 0
     fi
   fi
 
