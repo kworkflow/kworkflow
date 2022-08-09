@@ -760,7 +760,7 @@ function test_event_debug()
   expected_cmd+=" && screen -S kw_2021_10_22-07_34_07 -X quit"
   declare -a expected_cmd_seq=(
     "$default_ssh sudo \" $expected_cmd\" | tee kw_debug/event"
-    'scp -P 3333 juca@127.0.0.1:~/kw_2021_10_22-07_34_07 kw_debug/event'
+    "rsync --info=progress2 -e 'ssh -p 3333' juca@127.0.0.1:${HOME}/kw_2021_10_22-07_34_07 kw_debug/event -LrlptD --rsync-path='sudo rsync'"
   )
 
   output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' 'kw_debug' '' "$igt_cmd_sample")
