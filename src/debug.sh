@@ -382,8 +382,7 @@ function event_debug()
 
       # If we used --cmd, we need to retrieve the log
       if [[ -n "$user_cmd" ]]; then
-        command="scp -P $port $user@$remote:~/$screen_nick $save_following_log"
-        cmd_manager "$flag" "$command"
+        remote2host "$flag" "${HOME}/${screen_nick}" "$save_following_log"
       fi
       ;;
   esac
@@ -508,21 +507,17 @@ function ftrace_debug()
       fi
       ;;
     3 | 1) # REMOTE && VM
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-      local user="${remote_parameters['REMOTE_USER']}"
-
       if [[ "$target" == 1 ]]; then
         say 'Target is a VM'
         # TODO: We should check if the VM is up and running
       fi
 
-      cmd_remotely "$cmd_ftrace" "$flag" "$remote" "$port" "$user" '' "$save_following_log"
+      cmd_remotely "$cmd_ftrace" "$flag" '' '' '' '' "$save_following_log"
       ret="$?"
 
       # If we used --cmd, we need to retrieve the log
       if [[ -n "$user_cmd" ]]; then
-        cmd_ftrace="scp -P $port $user@$remote:~/$screen_nick $save_following_log"
+        remote2host "$flag" "${HOME}/${screen_nick}" "$save_following_log"
         cmd_manager "$flag" "$cmd_ftrace"
       fi
       ;;

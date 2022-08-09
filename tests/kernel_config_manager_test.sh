@@ -511,7 +511,7 @@ function test_get_config_from_proc()
   declare -a expected_cmd=(
     'ssh -p 3333 juca@127.0.0.1 sudo "[ -f proc/config.gz ]"'
     'ssh -p 3333 juca@127.0.0.1 sudo "zcat /proc/config.gz > /tmp/.config"'
-    'rsync --info=progress2 -e "ssh -p 3333" juca@127.0.0.1:/tmp/.config '"$PWD"
+    "rsync --info=progress2 -e 'ssh -p 3333' juca@127.0.0.1:/tmp/.config ${PWD} -LrlptD --rsync-path='sudo rsync'"
   )
 
   output=$(get_config_from_proc 'TEST_MODE' '.config' 3)

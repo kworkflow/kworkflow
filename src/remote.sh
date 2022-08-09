@@ -149,11 +149,23 @@ function remote2host()
   local flag=${1:-"HIGHLIGHT_CMD"}
   local src="$2"
   local dst="$3"
-  local ip=${4:-${configurations[ssh_ip]}}
-  local port=${5:-${configurations[ssh_port]}}
-  local user=${6:-${configurations[ssh_user]}}
+  local remote=${4:-${remote_parameters['REMOTE_IP']}}
+  local port=${5:-${remote_parameters['REMOTE_PORT']}}
+  local user=${6:-${remote_parameters['REMOTE_USER']}}
+  local quiet="$7"
+  local progress_flag='--info=progress2'
 
-  cmd_manager "$flag" "rsync --info=progress2 -e \"ssh -p $port\" $user@$ip:$src $dst"
+  if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
+    if [[ -n ${remote_parameters['REMOTE_FILE']} ]]; then
+      rsync_target="'ssh -F ${remote_parameters['REMOTE_FILE']}' ${remote_parameters['REMOTE_FILE_HOST']}:${src} ${dsc}"
+    fi
+  else
+    rsync_target="'ssh -p ${port}' ${user}@${remote}:${src} ${dst}"
+  fi
+
+  [[ -n "$quiet" ]] && progress_flag=''
+
+  cmd_manager "$flag" "rsync $progress_flag -e $rsync_target -LrlptD --rsync-path='sudo rsync' $rsync_params"
 }
 
 # Access the target device and query the distro name.
