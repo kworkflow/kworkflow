@@ -258,20 +258,15 @@ function dmesg_debug()
   case "$target" in
     2) # LOCAL
       [[ -n "$save_following_log" ]] && redirect_mode='KW_REDIRECT_MODE'
-
       cmd_manager "$flag" "$cmd" "$redirect_mode" "$save_following_log"
       ;;
     3 | 1) # REMOTE && VM
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-      local user="${remote_parameters['REMOTE_USER']}"
-
       if [[ "$target" == 1 ]]; then
         say 'Target is a VM'
         # TODO: We should check if the VM is up and running
       fi
 
-      cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user" '' "$save_following_log"
+      cmd_remotely "$cmd" "$flag" '' '' '' '' "$save_following_log"
       ;;
   esac
 }
@@ -905,7 +900,7 @@ function parser_debug_options()
   local transition_variables
 
   long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list::,follow,reset,help'
-  short_options='e:,t:,g,f,c:,k,d,l::,h'
+  short_options='r:,e:,t:,g,f,c:,k,d,l::,h'
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
 
@@ -926,14 +921,18 @@ function parser_debug_options()
   options_values['FOLLOW']=''
 
   # Set default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    transition_variables=${configurations[default_deploy_target]}
+  if [[ -n ${deploy_config[default_deploy_target]} ]]; then
+    transition_variables=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$transition_variables]}
   else
     options_values['TARGET']="$LOCAL_TARGET"
   fi
 
   populate_remote_info ''
+  if [[ "$?" == 22 ]]; then
+    options_values['ERROR']='Something is wrong in the remote option'
+    return 22 # EINVAL
+  fi
 
   if [[ -n ${configurations[debug_event]} ]]; then
     transition_variables=${configurations[debug_event]}
@@ -943,14 +942,14 @@ function parser_debug_options()
   eval "set -- $options"
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
-      --remote)
-        options_values['TARGET']="$REMOTE_TARGET"
+      --remote | -r)
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
           options_values['ERROR']="$option"
           return 22
         fi
-        shift
+        options_values['TARGET']="$REMOTE_TARGET"
+        shift 2
         ;;
       --local)
         options_values['TARGET']="$LOCAL_TARGET"
@@ -1038,4 +1037,5 @@ function debug_help()
     '  You can combine some of the above options'
 }
 
+load_deploy_config
 load_kworkflow_config
