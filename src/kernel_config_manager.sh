@@ -180,9 +180,6 @@ function get_config_from_proc()
   local flag="$1"
   local output="$2"
   local target="$3"
-  local user="${remote_parameters['REMOTE_USER']}"
-  local ip="${remote_parameters['REMOTE_IP']}"
-  local port="${remote_parameters['REMOTE_PORT']}"
   local ret
   local -r CMD_LOAD_CONFIG_MODULE="modprobe -q configs && [ -s $PROC_CONFIG_PATH ]"
   local CMD_GET_CONFIG="zcat /proc/config.gz > $output"
@@ -206,13 +203,13 @@ function get_config_from_proc()
       return 0
       ;;
     3) # REMOTE
-      cmd_remotely "[ -f $PROC_CONFIG_PATH ]" "$flag" "$ip" "$port" "$user"
+      cmd_remotely "[ -f $PROC_CONFIG_PATH ]" "$flag"
       if [[ "$?" != 0 ]]; then
-        cmd_remotely "$CMD_LOAD_CONFIG_MODULE" "$flag" "$ip" "$port" "$user"
+        cmd_remotely "$CMD_LOAD_CONFIG_MODULE" "$flag"
         [[ "$?" != 0 ]] && return 95 # Operation not supported
       fi
 
-      cmd_remotely "$CMD_GET_CONFIG" "$flag" "$ip" "$port" "$user"
+      cmd_remotely "$CMD_GET_CONFIG" "$flag"
       [[ "$?" != 0 ]] && return 95 # Operation not supported
       remote2host "$flag" "/tmp/$output" "$PWD"
       return 0
@@ -408,7 +405,7 @@ function fetch_config()
         mods=$(cmd_manager "$flag" 'lsmod')
         ;;
       3) # REMOTE
-        mods=$(cmd_remotely 'lsmod' "$flag" "$ip" "$port" "$user")
+        mods=$(cmd_remotely 'lsmod' "$flag")
         ;;
     esac
 
@@ -586,8 +583,6 @@ function parse_kernel_config_manager_options()
   options_values['REMOVE']=''
   options_values['TARGET']="$LOCAL_TARGET"
 
-  eval "set -- $options"
-
   # Set basic default values
   if [[ -n ${deploy_config[default_deploy_target]} ]]; then
     local config_file_deploy_target=${deploy_config[default_deploy_target]}
@@ -602,6 +597,7 @@ function parse_kernel_config_manager_options()
     return 22 # EINVAL
   fi
 
+  eval "set -- $options"
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --force | -f)
@@ -646,13 +642,13 @@ function parse_kernel_config_manager_options()
         shift
         ;;
       --remote)
-        options_values['TARGET']="$REMOTE_TARGET"
-        shift
-        populate_remote_info "$1"
+        populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
+          options_values['ERROR']="$options"
           return 22 # EINVAL
         fi
-        shift
+        options_values['TARGET']="$REMOTE_TARGET"
+        shift 2
         ;;
       --)
         shift
