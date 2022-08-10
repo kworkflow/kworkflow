@@ -57,7 +57,7 @@ function kernel_build()
   if [[ $? -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
     build_help
-    return 22 # EINVAL
+    exit 22 # EINVAL
   fi
 
   cross_compile="${options_values['CROSS_COMPILE']}"
@@ -95,7 +95,7 @@ function kernel_build()
   if [[ -n "$menu_config" ]]; then
     command="make -j ${llvm}ARCH=${platform_ops} ${menu_config}"
     cmd_manager "$flag" "$command"
-    return
+    exit
   fi
 
   if ! is_kernel_root "$PWD"; then
