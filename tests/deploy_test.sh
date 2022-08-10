@@ -225,6 +225,7 @@ function test_setup_remote_ssh_with_passwordless()
     'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
   )
 
+  remote_parameters['REMOTE_USER']='juca'
   output=$(setup_remote_ssh_with_passwordless 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }

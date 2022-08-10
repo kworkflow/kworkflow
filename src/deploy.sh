@@ -220,9 +220,7 @@ function deploy_main()
 function setup_remote_ssh_with_passwordless()
 {
   local flag="$1"
-  local remote="${remote_parameters['REMOTE_IP']}"
-  local port="${remote_parameters['REMOTE_PORT']}"
-  local copy_key_cmd="ssh-copy-id $user@$remote"
+  local copy_key_cmd
   local users="root ${remote_parameters['REMOTE_USER']}"
   local root_user_setup=0
 
@@ -235,13 +233,19 @@ function setup_remote_ssh_with_passwordless()
     [[ "$user" == 'root' && "$root_user_setup" == 1 ]] && continue
     [[ "$user" == 'root' ]] && ((root_user_setup++))
 
+    # Use config file or ip info
+    if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
+      copy_key_cmd="ssh-copy-id -F ${remote_parameters['REMOTE_FILE']} ${remote_parameters['REMOTE_FILE_HOST']}"
+    else
+      copy_key_cmd="ssh-copy-id ${user}@${remote_parameters['REMOTE_IP']}"
+    fi
+
     # Try to copy-ssh-id
-    copy_key_cmd="ssh-copy-id $user@$remote"
     cmd_manager "$flag" "$copy_key_cmd"
     [[ "$?" != 0 ]] && return 103 # ECONNABORTED
 
     # Check if we can connect without password
-    is_ssh_connection_configured "$flag" "$remote" "$port" "$user"
+    is_ssh_connection_configured "$flag" '' '' "$user"
     if [[ "$?" != 0 ]]; then
       return 101 # ENETUNREACH
     fi
@@ -280,13 +284,10 @@ function prepare_distro_for_deploy()
       distro_deploy_setup "$flag"
       ;;
     3) # REMOTE_TARGET
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-      local user="${remote_parameters['REMOTE_USER']}"
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --deploy-setup $flag"
 
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 }
@@ -318,10 +319,7 @@ function update_status_log()
       cmd_manager "$flag" "$status_cmd"
       ;;
     3) # REMOTE_TARGET
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-
-      cmd_remotely "$status_cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$status_cmd" "$flag"
       ;;
   esac
 }
@@ -352,10 +350,7 @@ function check_setup_status()
       ret="$?"
       ;;
     3) # REMOTE_TARGET
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ret="$?"
       ;;
   esac
@@ -502,13 +497,19 @@ function prepare_remote_dir()
       '--archive' "$remote" "$port" "$user" 'quiet'
   else
     say '* Sending kw to the remote'
-    cmd_remotely "mkdir -p $REMOTE_KW_DEPLOY" "$flag" "$remote" "$port" "$user"
-    cmd="scp -q $files_to_send $user@$remote:$REMOTE_KW_DEPLOY"
+    cmd_remotely "mkdir -p $REMOTE_KW_DEPLOY" "$flag"
+
+    if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
+      cmd="scp -q -F ${remote_parameters['REMOTE_FILE']} $files_to_send ${remote_parameters['REMOTE_FILE_HOST']}:$REMOTE_KW_DEPLOY"
+    else
+      cmd="scp -q $files_to_send ${remote_parameters['REMOTE_USER']}@${remote_parameters['REMOTE_IP']}:$REMOTE_KW_DEPLOY"
+    fi
+
     cmd_manager "$flag" "$cmd"
   fi
 
   # Create temporary folder
-  cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag" "$remote" "$port" "$user"
+  cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag"
 
   # TODO: In some point, we need to move the below code to ArchLinux specific
   # file
@@ -565,11 +566,7 @@ function run_list_installed_kernels()
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --list-kernels $flag $single_line $all"
 
-      remote="${remote_parameters['REMOTE_IP']}"
-      port="${remote_parameters['REMOTE_PORT']}"
-      user="${remote_parameters['REMOTE_USER']}"
-
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 
@@ -615,13 +612,10 @@ function collect_target_info_for_deploy()
       ;;
     3) # REMOTE_TARGET
       # Query bootload type
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-      local user="${remote_parameters['REMOTE_USER']}"
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --collect-info $flag $target"
 
-      data=$(cmd_remotely "$cmd" "$flag" "$remote" "$port")
+      data=$(cmd_remotely "$cmd" "$flag")
       ;;
   esac
 
@@ -696,7 +690,7 @@ function run_kernel_uninstall()
       # line break with `\`; this may allow us to break a huge line like this.
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --uninstall-kernels '$reboot' 'remote' '$kernels_target_list' '$flag' '$force'"
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 }
@@ -740,6 +734,7 @@ function modules_install()
   local distro
   local cmd
   local compression_type="${deploy_config[deploy_default_compression]}"
+  local tarball_for_deploy_path
 
   flag=${flag:-'SILENT'}
 
@@ -751,10 +746,6 @@ function modules_install()
       modules_install_to '/lib/modules' "$flag" 'local'
       ;;
     3) # REMOTE_TARGET
-      remote="${remote_parameters['REMOTE_IP']}"
-      port="${remote_parameters['REMOTE_PORT']}"
-      user="${remote_parameters['REMOTE_USER']}"
-
       # 2. Send files modules
       modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
 
@@ -763,14 +754,14 @@ function modules_install()
         "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" \
         "$compression_type" "$release" "$flag"
 
-      local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
+      tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
       say "* Sending kernel modules ($release) to the remote"
       cp2remote "$flag" "$tarball_for_deploy_path" "$KW_DEPLOY_TMP_FILE"
 
       # 3. Deploy: Execute script
-      local cmd="$REMOTE_INTERACE_CMD_PREFIX"
+      cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --modules $release.tar"
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 }
@@ -969,10 +960,6 @@ function pack_kernel_files_and_send()
       cmd_manager "$flag" "$cmd"
       ;;
     3) # REMOTE_TARGET
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-      local user="${remote_parameters['REMOTE_USER']}"
-
       generate_tarball "${cache_to_deploy_path}" \
         "$tar_file_path" "$compression_type" 'boot' "$flag"
 
@@ -1011,6 +998,7 @@ function run_kernel_install()
   local port
   local config_local_version
   local cmd
+  local cmd_parameters
 
   # We have to guarantee some default values values
   kernel_name=${kernel_img_name:-'nothing'}
@@ -1078,15 +1066,11 @@ function run_kernel_install()
       return "$?"
       ;;
     3) # REMOTE_TARGET
-      remote="${remote_parameters['REMOTE_IP']}"
-      port="${remote_parameters['REMOTE_PORT']}"
-      user="${remote_parameters['REMOTE_USER']}"
-
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro '/' "$distro_info")
 
       # Deploy
-      local cmd_parameters="$name $distro $kernel_binary_file_name $reboot $arch_target 'remote' $flag"
+      cmd_parameters="$name $distro $kernel_binary_file_name $reboot $arch_target 'remote' $flag"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 
@@ -1159,12 +1143,12 @@ function parse_deploy_options()
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --remote)
-        options_values['TARGET']="$REMOTE_TARGET"
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
           options_values['ERROR']="Invalid remote: $2"
           return 22 # EINVAL
         fi
+        options_values['TARGET']="$REMOTE_TARGET"
         shift 2
         ;;
       --local)
