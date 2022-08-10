@@ -89,7 +89,7 @@ function deploy_main()
   parse_deploy_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
-    return 22 # EINVAL
+    exit 22 # EINVAL
   fi
 
   flag="${options_values['TEST_MODE']}"
@@ -111,7 +111,7 @@ function deploy_main()
 
     runtime=$((end - start))
     statistics_manager 'list' "$runtime"
-    return "$?"
+    exit "$?"
   fi
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'

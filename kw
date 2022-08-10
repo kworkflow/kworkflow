@@ -105,7 +105,7 @@ function kw()
 
         kernel_build && deploy_main 1 "$@"
         local ret="$?"
-        alert_completion 'kw db' "$1"
+        alert_completion 'kw bd' "$1"
         return "$ret"
       )
       ;;
