@@ -14,7 +14,9 @@ declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['disk_size']=''                       # Disk size in KB
   ['root_path']=''                       # Root directory path
   ['fs_mount']=''                        # Path where root is mounted
-  ['os']=''                              # Operating system name
+  ['os_name']=''                         # Distro's name
+  ['os_version']=''                      # Distro's versios
+  ['os_id_like']=''                      # Distro which this distro is based on
   ['motherboard_name']=''                # Motherboard name
   ['motherboard_vendor']=''              # Motherboard vendor
   ['chassis']=''                         # Chassis type
@@ -201,27 +203,53 @@ function get_disk()
 function get_os()
 {
   local target="$1"
-  local ip="$2"
-  local port="$3"
-  local os
+  local flag="$2"
+  local ip
+  local port
+  local raw_os_release
+  local root_path
+  local os_release_path='/etc/os-release'
+  local cmd
+  local os_name
+  local os_version
+  local os_id_like
 
   target=${target:-"${device_options['target']}"}
   ip=${ip:-"${device_options['ip']}"}
   port=${port:-"${device_options['port']}"}
+  flag=${flag:-'SILENT'}
 
   case "$target" in
     1) # VM_TARGET
-      os=$(detect_distro "${vm_config[mount_point]}")
+      root_path="${vm_config[mount_point]}"
+      cmd="cat $(join_path "$root_path" "$os_release_path")"
+      raw_os_release=$(cmd_manager "$flag" "$cmd")
       ;;
     2) # LOCAL_TARGET
-      os=$(detect_distro '/')
+      root_path='/'
+      cmd="cat $(join_path "$root_path" "$os_release_path")"
+      raw_os_release=$(cmd_manager "$flag" "$cmd")
       ;;
     3) # REMOTE_TARGET
-      os=$(which_distro "$ip" "$port")
+      root_path='/'
+      cmd="cat $(join_path "$root_path" "$os_release_path")"
+      raw_os_release=$(cmd_remotely "$cmd" "$flag" "$remote" "$port" '')
       ;;
   esac
+  raw_os_release=$(printf '%s\n' "$raw_os_release" | sed -n -e '/^NAME=/p' -e '/^VERSION=/p' -e '/^ID_LIKE=/p')
+  # the last sed serves to remove the double quotes if present
+  os_name=$(printf '%s\n' "$raw_os_release" | sed -n -E "s/^NAME=//p" | tail -n1 | sed -E "s|^(['\"])(.*)\1$|\2|g")
+  os_version=$(printf '%s\n' "$raw_os_release" | sed -n -E "s/^VERSION=//p" | tail -n1 | sed -E "s|^(['\"])(.*)\1$|\2|g")
+  os_id_like=$(printf '%s\n' "$raw_os_release" | sed -n -E "s/^ID_LIKE=//p" | tail -n1 | sed -E "s|^(['\"])(.*)\1$|\2|g")
 
-  device_info_data['os']="$os"
+  if [[ "$flag" == 'TEST_MODE' ]]; then
+    printf '%s\n' "$cmd"
+    return 0
+  fi
+
+  device_info_data['os_name']="$os_name"
+  device_info_data['os_version']="$os_version"
+  device_info_data['os_id_like']="$os_id_like"
 }
 
 # This function populates the desktop environment variables from the
@@ -484,7 +512,7 @@ function learn_device()
   get_ram "$target" "$flag"
   get_cpu "$target" "$flag"
   get_disk "$target" "$flag"
-  get_os "$target" "$ip" "$port"
+  get_os "$target" "$flag"
   get_desktop_environment "$target" "$ip" "$port"
   get_gpu "$target" "$flag"
   get_motherboard "$target" "$flag"
@@ -548,7 +576,13 @@ function show_data()
   printf '  Mounted on: %s\n' "${device_info_data['fs_mount']}"
 
   say 'Operating System:'
-  printf '  Distribution: %s\n' "${device_info_data['os']}"
+  printf '  Distribution: %s\n' "${device_info_data['os_name']}"
+  if [[ -n "${device_info_data['os_version']}" ]]; then
+    printf '  Distribution version: %s\n' "${device_info_data['os_version']}"
+  fi
+  if [[ -n "${device_info_data['os_id_like']}" ]]; then
+    printf '  Distribution base: %s\n' "${device_info_data['os_id_like']}"
+  fi
   printf '  Desktop environments: %s\n' "${device_info_data['desktop_environment']}"
 
   if [[ "$target" != "$VM_TARGET" ]]; then
