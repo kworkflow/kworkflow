@@ -114,7 +114,9 @@ function test_display_data()
     'Size: 250G'
     'Mounted on: /'
     'Operating System:'
-    'Distribution: debian'
+    'Distribution: Ubuntu'
+    'Distribution version: 22.04.1 LTS (Jammy Jellyfish)'
+    'Distribution base: debian'
     'Desktop environments: gnome'
     'Motherboard:'
     'Vendor: Vendor'
@@ -129,7 +131,9 @@ function test_display_data()
   device_info_data['disk_size']='250G'
   device_info_data['root_path']='dev/something'
   device_info_data['fs_mount']='/'
-  device_info_data['os']='debian'
+  device_info_data['os_name']='Ubuntu'
+  device_info_data['os_id_like']='debian'
+  device_info_data['os_version']='22.04.1 LTS (Jammy Jellyfish)'
   device_info_data['desktop_environment']='gnome'
   device_info_data['motherboard_vendor']='Vendor'
   device_info_data['motherboard_name']='ABC123'
@@ -149,21 +153,29 @@ function which_distro_mock()
 
 function test_get_os()
 {
-  local cmd
+  local output
+  local expected_cmd
 
-  # Check local deploy
-  alias detect_distro='detect_distro_mock'
-  get_os "$LOCAL_TARGET"
-  assert_equals_helper 'Failed to gather local target OS data' "($LINENO)" 'lala' "${device_info_data['os']}"
+  # Check vm deploy calls the expected commands
+  vm_config[mount_point]='/somewhere/to/mount'
+  expected_cmd='cat /somewhere/to/mount/etc/os-release'
+  output=$(get_os "$VM_TARGET" 'TEST_MODE')
+  output=$(printf '%s\n' "$output" | head -n1)
+  assert_equals_helper 'Unexpected cmd while trying to gather vm target os-release data' "$LINENO" "$expected_cmd" "$output"
 
-  # VM
-  get_os "$VM_TARGET"
-  assert_equals_helper 'Failed to gather VM target OS data' "($LINENO)" 'lala' "${device_info_data['os']}"
+  # Check local deploy calls the expected commands
+  expected_cmd='cat /etc/os-release'
+  output=$(get_os "$LOCAL_TARGET" 'TEST_MODE')
+  output=$(printf '%s\n' "$output" | head -n1)
+  assert_equals_helper 'Unexpected cmd while trying to gather local target os-release data' "$LINENO" "$expected_cmd" "$output"
 
-  # Remote
-  alias which_distro='which_distro_mock'
-  get_os "$REMOTE_TARGET"
-  assert_equals_helper 'Failed to gather remote target OS data' "($LINENO)" 'xpto' "${device_info_data['os']}"
+  # Check remote deploy calls the expected commands
+  expected_cmd='cat /etc/os-release'
+  output=$(get_os "$REMOTE_TARGET" 'TEST_MODE')
+  output=$(printf '%s\n' "$output" | head -n1)
+  assert_equals_helper 'Unexpected cmd while trying to gather local target os-release data' "$LINENO" "$expected_cmd" "$output"
+
+  #todo: Check if the vars from os-release are correctely parsed
 }
 
 function ps_mock()
