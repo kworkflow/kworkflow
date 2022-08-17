@@ -282,6 +282,10 @@ function test_mail_parser()
   assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
   assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['COMMIT_RANGE']}" '-1 HEAD^'
 
+  parse_mail_options -- --subject-prefix="PATCH i-g-t" HEAD^
+  expected="'--subject-prefix=PATCH i-g-t' HEAD^"
+  assert_equals_helper 'Set passthrough options with space' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+
   parse_mail_options -375
   expected='-375'
   assert_equals_helper 'Set commit count option' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
