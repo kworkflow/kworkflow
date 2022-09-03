@@ -128,7 +128,12 @@ function is_kernel_root()
   # tree root and not expected to change. Their presence (or abscense)
   # is used to tell if a directory is a linux tree root or not. (They
   # are the same ones used by get_maintainer.pl)
-  if [[ -f "${DIR}/COPYING" && -f "${DIR}/CREDITS" && -f "${DIR}/Kbuild" && -e "${DIR}/MAINTAINERS" && -f "${DIR}/Makefile" && -f "${DIR}/README" && -d "${DIR}/Documentation" && -d "${DIR}/arch" && -d "${DIR}/include" && -d "${DIR}/drivers" && -d "${DIR}/fs" && -d "${DIR}/init" && -d "${DIR}/ipc" && -d "${DIR}/kernel" && -d "${DIR}/lib" && -d "${DIR}/scripts" ]]; then
+  if [[ -f "${DIR}/COPYING" && -f "${DIR}/CREDITS" && -f "${DIR}/Kbuild" &&
+    -e "${DIR}/MAINTAINERS" && -f "${DIR}/Makefile" && -f "${DIR}/README" &&
+    -d "${DIR}/Documentation" && -d "${DIR}/arch" && -d "${DIR}/include" &&
+    -d "${DIR}/drivers" && -d "${DIR}/fs" && -d "${DIR}/init" &&
+    -d "${DIR}/ipc" && -d "${DIR}/kernel" && -d "${DIR}/lib" &&
+    -d "${DIR}/scripts" ]]; then
     return 0
   fi
   return 1
