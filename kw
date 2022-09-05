@@ -242,6 +242,13 @@ function kw()
         mail_main "$@"
       )
       ;;
+    env)
+      (
+        include "${KW_LIB_DIR}/kw_env.sh"
+
+        env_main "$@"
+      )
+      ;;
     clear-cache)
       include "$KW_LIB_DIR/deploy.sh"
 

@@ -15,7 +15,7 @@ function _kw_autocomplete()
 
   kw_options['kw']='backup bd build clear-cache codestyle kernel-config-manager debug deploy
                     device diff drm explore help init maintainers mail man mount
-                    pomodoro report ssh umount up vars version config remote'
+                    pomodoro report ssh umount up vars version config remote env'
 
   kw_options['backup']='--restore --force --help'
 
@@ -70,6 +70,8 @@ function _kw_autocomplete()
 
   kw_options['drm']='--remote --local --gui-on --gui-off --load-module
                      --unload-module --conn-available --modes --help'
+
+  kw_options['env']='--create --list'
 
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
 

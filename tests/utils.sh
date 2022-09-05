@@ -16,6 +16,7 @@ KW_DEPLOY_CONFIG_SAMPLE="$SAMPLES_DIR/deploy.config"
 KW_VM_CONFIG_SAMPLE="$SAMPLES_DIR/vm.config"
 KW_MAIL_CONFIG_SAMPLE="$SAMPLES_DIR/mail.config"
 KW_NOTIFICATION_CONFIG_SAMPLE="$SAMPLES_DIR/notification.config"
+KW_REMOTE_CONFIG_SAMPLE="${KW_REMOTE_SAMPLES_DIR}/remote.config"
 
 KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
 KW_BUILD_CONFIG_SAMPLE_X86="$SAMPLES_DIR/build_x86.config"
@@ -204,6 +205,24 @@ function mk_fake_git()
   printf 'Third change\n' >> "$path/first_file"
   git add --all
   git commit --allow-empty -q -m 'Third commit'
+}
+
+function mk_fake_kw_folder()
+{
+  local target_folder="$1"
+  local kw_config_folder="${target_folder}/.kw"
+
+  [[ -z "$target_folder" ]] && return 22
+
+  mkdir -p "$kw_config_folder"
+  # Copy sample files
+  cp "$KW_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_BUILD_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_DEPLOY_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_VM_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_MAIL_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_NOTIFICATION_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_REMOTE_CONFIG_SAMPLE" "$kw_config_folder"
 }
 
 # This function expects an array of string with the command sequence and a
