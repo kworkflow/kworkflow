@@ -7,6 +7,7 @@ kw-env
 SYNOPSIS
 ========
 | *kw* (*env*) [(-c | \--create) <NAME>]
+| *kw* (*env*) [(-u | \--use) <NAME>]
 | *kw* (*env*) [(-l | \--list)]
 
 
@@ -41,6 +42,9 @@ OPTIONS
   create a new env it instantiates the current kw configurations to the new
   env.
 
+-u, \--use <ENV_NAME>:
+  Change from one env to another previously created.
+
 -l, \--list:
   It shows all envs created via `\--create` option.
 
@@ -50,6 +54,11 @@ If you want to create a new env, you can use::
 
   cd <kernel-path>
   kw env --create MY_NEW_ENV
+  kw env --create 32-BIT-COMPILATION
+
+If you want to create a new env, you can use::
+
+  kw env --use 32-BIT-COMPILATION
 
 If you want to list the available envs::
 

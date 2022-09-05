@@ -29,6 +29,7 @@ tearDown()
   }
 
   [[ -d "$TEST_PATH" ]] && rm -rf "$TEST_PATH"
+  return 0
 }
 
 function test_create_new_env_create_multiple_envs_from_current_configs()
@@ -128,6 +129,57 @@ function test_show_available_envs_when_there_is_no_env()
   compare_command_sequence 'Should not list anything' "$LINENO" 'expected' "$output"
 }
 
+function test_use_target_env()
+{
+  local output
+  local real_path
+  local expected_path
+
+  # Create envs
+  options_values['CREATE']='tapioca'
+  create_new_env
+
+  options_values['CREATE']='farofa'
+  create_new_env
+
+  # Switch env
+  options_values['USE']='farofa'
+  use_target_env
+
+  real_path=$(readlink "${PWD}/.kw/build.config")
+  expected_path="${PWD}/.kw/farofa/build.config"
+
+  assertEquals "($LINENO) It looks like that the env did not switch" "$real_path" "$expected_path"
+
+  # Switch env
+  options_values['USE']='tapioca'
+  use_target_env
+
+  real_path=$(readlink "${PWD}/.kw/build.config")
+  expected_path="${PWD}/.kw/tapioca/build.config"
+
+  assertEquals "($LINENO) It looks like that the env did not switch" "$real_path" "$expected_path"
+}
+
+function test_use_target_env_invalid_env()
+{
+  local output
+  local real_path
+  local expected_path
+
+  # Create envs
+  options_values['CREATE']='tapioca'
+  create_new_env
+
+  options_values['CREATE']='farofa'
+  create_new_env
+
+  # Switch env
+  options_values['USE']='lala'
+  output=$(use_target_env)
+  assertEquals "($LINENO) Env does not exists" "$?" 22
+}
+
 function test_parse_env_options()
 {
   local output
@@ -139,6 +191,10 @@ function test_parse_env_options()
   assert_equals_helper 'List envs' \
     "($LINENO)" 1 "${options_values['LIST']}"
 
+  # Check help
+  output=$(parse_env_options -h)
+  assertEquals "($LINENO)" "$?" 0
+
   # Check create
   parse_env_options --create abc
   assert_equals_helper 'Create envs' \
@@ -149,6 +205,18 @@ function test_parse_env_options()
 
   output=$(parse_env_options --create 'Weird_n@m#')
   assertEquals "($LINENO) Invalid name" "$?" 22
+
+  # Check use option
+  parse_env_options --use abc
+  assert_equals_helper 'Use abc env' \
+    "($LINENO)" 'abc' "${options_values['USE']}"
+
+  # Check use option
+  parse_env_options --an-invalid-option
+  assertEquals "($LINENO) Invalid option" "$?" 22
+
+  parse_env_options --use
+  assertEquals "($LINENO) Invalid option" "$?" 22
 }
 
 invoke_shunit
