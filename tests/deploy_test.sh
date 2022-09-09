@@ -802,6 +802,29 @@ function test_kernel_install_to_vm_invalid_distro()
   }
 }
 
+function test_deploy_setup_to_vm()
+{
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  output=$(deploy_setup 1 'TEST_MODE')
+  expected=(
+    "guestfish --rw -a /home/xpto/p/virty.qcow2 run :       mount /dev/sda1 / : mkdir-p /opt/kw"
+    "test -f /opt/kw/status"
+  )
+  compare_command_sequence '' "$LINENO" 'expected' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 function test_kernel_modules()
 {
   local count=0
