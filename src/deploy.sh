@@ -394,7 +394,7 @@ function deploy_setup()
 
   if [[ "$target" == "$VM_TARGET" ]]; then
     cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run : \
-      mount /dev/sda1 / : mkdir-p $kw_path"
+      mount /dev/sda1 / : mkdir-p $REMOTE_KW_DEPLOY"
     cmd_manager "$flag" "$cmd"
   fi
 
