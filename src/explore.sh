@@ -5,59 +5,53 @@
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
+# Hash containing user options
+declare -gA options_values
+
 # The main entry point for the explore feature, if you want to add another
 # search mechanism, you probably wish to start by this function
-function explore()
+function explore_main()
 {
   local ret
 
-  explore_parser "$@"
-  ret="$?"
+  if [[ "$1" =~ -h|--help ]]; then
+    explore_help "$1"
+    exit 0
+  fi
 
-  case "$ret" in
-    1)        # LOG
-      shift 1 # Remove 'log' string
+  parse_explore_options "$@"
+  if [[ "$?" -gt 0 ]]; then
+    complain "${options_values['ERROR']}"
+    return 22 # EINVAL
+  fi
 
-      if [[ "$#" -gt 2 && "$3" != "TEST_MODE" ]]; then
-        complain 'Too many parameters'
-        exit 22 # EINVAL
-      fi
+  flag="${options_values['TEST_MODE']}"
+  search="${options_values['SEARCH']}"
+  path="${options_values['PATH']}"
 
-      explore_git_log "$@"
-      ;;
-    2)        # Use GNU GREP
-      shift 1 # Remove 'grep' string
+  if [[ "${options_values['TYPE']}" -eq 1 ]]; then
+    # LOG
+    explore_git_log "$search" "$path" "$flag"
+    return
+  fi
 
-      if [[ "$#" -gt 2 && "$3" != "TEST_MODE" ]]; then
-        complain 'Too many parameters'
-        exit 22 # EINVAL
-      fi
+  if [[ "${options_values['TYPE']}" -eq 2 ]]; then
+    # Use GNU GREP
+    explore_files_gnu_grep "$search" "$path" "$flag"
+    return
+  fi
 
-      explore_files_gnu_grep "$@"
-      ;;
-    3) # Search in directories controlled or not by git
-      shift 1
+  if [[ "${options_values['TYPE']}" -eq 3 ]]; then
+    # Search in directories controlled or not by git
+    explore_all_files_git "$search" "$path" "$flag"
+    return
+  fi
 
-      if [[ "$#" -gt 2 && "$3" != "TEST_MODE" ]]; then
-        complain 'Too many parameters'
-        exit 22 # EINVAL
-      fi
-
-      explore_all_files_git "$@"
-      ;;
-    4) # Search in files under git control
-      if [[ "$#" -gt 2 && "$3" != "TEST_MODE" ]]; then
-        complain 'Too many parameters'
-        exit 22 # EINVAL
-      fi
-
-      explore_files_under_git "$@"
-      ;;
-    *)
-      complain 'Invalid parameter'
-      exit 22 # EINVAL
-      ;;
-  esac
+  if [[ -z "${options_values['TYPE']}" ]]; then
+    # Search in files under git control
+    explore_files_under_git "$search" "$path" "$flag"
+    return
+  fi
 }
 
 # Tiny parameter parser, we try to keep this function isolate for making easy
@@ -65,43 +59,83 @@ function explore()
 #
 # Returns:
 # This function returns the following values:
-#   1 if --log is passed
-#   2 if --grep is passed
-#   3 if --all is passed
-#   4 for something different from --log or --grep
+#   0 if options are parsed successfully
 #   22 for invalid operation
-function explore_parser()
+# This function also set options_values
+function parse_explore_options()
 {
-  local option="$1"
+  local long_options='log,grep,all'
+  local short_options='l,g,a'
+  local options
 
   if [[ "$#" -eq 0 ]]; then
-    complain 'Expected string or parameter. See man for detail.'
-    exit 22 # EINVAL
+    options_values['ERROR']="Expected string or parameter. See man for detail."
+    return 22 # EINVAL
   fi
 
-  if [[ "$1" =~ -h|--help ]]; then
-    explore_help "$1"
-    exit 0
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw explore' \
+      "$short_options" "$long_options" "$@")"
+    return 22 # EINVAL
   fi
 
-  if [[ -z "$2" ]]; then
-    return 4
-  fi
+  options_values['TEST_MODE']='SILENT'
+  options_values['SEARCH']=''
+  options_values['PATH']=''
+  options_values['TYPE']=''
 
-  case "$option" in
-    --log | -l)
-      return 1
-      ;;
-    --grep | -g)
-      return 2
-      ;;
-    --all | -a)
-      return 3
-      ;;
-    *)
-      return 4
-      ;;
-  esac
+  eval "set -- $options"
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --log | -l)
+        if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 1 ]]; then
+          options_values['ERROR']="Invalid arguments: Multiple search type!"
+          return 22 # EINVAL
+        fi
+
+        options_values['TYPE']=1
+        shift
+        ;;
+      --grep | -g)
+        if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 2 ]]; then
+          options_values['ERROR']="Invalid arguments: Multiple search type!"
+          return 22 # EINVAL
+        fi
+
+        options_values['TYPE']=2
+        shift
+        ;;
+      --all | -a)
+        if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 3 ]]; then
+          options_values['ERROR']="Invalid arguments: Multiple search type!"
+          return 22 # EINVAL
+        fi
+
+        options_values['TYPE']=3
+        shift
+        ;;
+      --) # End of options, beginning of arguments
+        shift
+        ;;
+      TEST_MODE)
+        options_values['TEST_MODE']='TEST_MODE'
+        shift
+        ;;
+      *)
+        if [[ -z "${options_values['SEARCH']}" ]]; then
+          options_values['SEARCH']="$1"
+        elif [[ -z "${options_values['PATH']}" ]]; then
+          options_values['PATH']="$1"
+        else
+          options_values['ERROR']="Too many parameters"
+          return 22 # EINVAL
+        fi
+        shift
+        ;;
+    esac
+  done
 }
 
 function explore_help()
