@@ -67,18 +67,15 @@ Remote Machine Deploy
 ---------------------
 
 Before trying to deploy your new kernel, let's first update
-`kworkflow.config` by making sure that you set the following options
-correctly::
+`kworkflow.config` and `remote.config` by making sure that you set the following
+options correctly::
 
-  kw config kworkflow.ssh_remote <IP or NAME>
-  kw config kworkflow.ssh_port <PORT>
-
-Replace the `ssh_remote` with the IP or the destination name and the ssh port
-(the default port is 22, and you probably don't need to update this parameter).
+  kw remote add my-x86-test-system root@<IP or NAME>:<PORT>
 
 .. note::
-   If you don't know anything about `kworkflow.config`, take a look at
-   :ref:`kw configuration<setup-tutorial>`.
+   If you don't know anything about `kworkflow.config` or `remote.config`, take
+   a look at :ref:`kw configuration<setup-tutorial>` and
+   :ref:`kw-remote<remote-doc>`.
 
 Now, make sure that you can use kw to login into your target machine::
 
