@@ -7,7 +7,7 @@ kw-backup
 SYNOPSIS
 ========
 | *kw* *backup* [<path>]
-| *kw* *backup* (-r | \--restore) <path> [(-f | --force)]
+| *kw* *backup* (-r | \--restore) <path> [(-f | \--force)]
 
 DESCRIPTION
 ===========

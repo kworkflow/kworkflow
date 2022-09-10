@@ -129,7 +129,7 @@ Local Machine Deploy
 
 In this scenario, a target kernel might be the one in your host machine. For
 example, suppose that you want to install the latest stable kernel from
-Torvalds' tree in your laptop; in this case, kw deploy `--local` is what you are
+Torvalds' tree in your laptop; in this case, kw deploy `\--local` is what you are
 looking for.
 
 Ok, in this case, let's start by entering in your kernel code::

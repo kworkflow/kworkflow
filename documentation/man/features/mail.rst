@@ -6,7 +6,7 @@ kw-mail
 
 SYNOPSIS
 ========
-| *kw mail* (-s | \--send) [\--simulate] [\--private] [--rfc] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
+| *kw mail* (-s | \--send) [\--simulate] [\--private] [\--rfc] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
 | *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
 | *kw mail* (-i | \--interactive) [\--local | \--global]
 | *kw mail* (-l | \--list)

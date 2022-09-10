@@ -67,15 +67,15 @@ The debug option provides a standard set of features that can be used with
 repeatedly, this section introduces the following shared behavior: ``--follow``,
 ``--history``, and ``--cmd``.
 
-Follow log (`--follow | -f`)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Follow log (`\--follow | -f`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If you want to follow the log in real-time, you probably want to use the
 ``--follow | -f`` option, which will keep polling the data and provide you with
 a live feed of it.
 
-Save (`--history | -k`)
-~~~~~~~~~~~~~~~~~~~~~~~
+Save (`\--history | -k`)
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 This option will create a folder named ``kw_debug`` in the folder that you run
 this command and a sub-folder that follows this pattern::
@@ -86,8 +86,8 @@ If you use this feature, kw will automatically save your debug log in the
 folder as described above. This is useful if you want to compare debug when
 changing some configuration.
 
-Command (`--cmd | -c`)
-~~~~~~~~~~~~~~~~~~~~~~
+Command (`\--cmd | -c`)
+~~~~~~~~~~~~~~~~~~~~~~~
 
 This option expects a parameter which is a command to be executed in the target
 machine. The idea is something like this:
