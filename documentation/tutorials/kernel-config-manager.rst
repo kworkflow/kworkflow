@@ -27,13 +27,13 @@ Save your config file
 ---------------------
 
 If you are in a kernel tree with an important `.config` file, you can save it
-under kw by using the `--save` option, which requires giving a name for your
+under kw by using the `\--save` option, which requires giving a name for your
 config. For example, let's suppose that you are working in the Raspberry Pi
 tree and you have a good config file; you can save it by using::
 
   kw kernel-config-manager --save "RASP4"
 
-The name you used in the `--save` option will be used later to retrieve the
+The name you used in the `\--save` option will be used later to retrieve the
 config file. You probably noticed that just using the name does not describe
 your config file well, and for this reason, `kernel-config-manager` also provides a
 description option to better describe your config file. For example, you could

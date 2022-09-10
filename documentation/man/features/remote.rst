@@ -6,7 +6,7 @@ kw-remote
 
 SYNOPSIS
 ========
-| *kw remote* [-v | --verbose ]
+| *kw remote* [-v | \--verbose ]
 | *kw remote add* <name> <user@remote:port>
 | *kw remote remove* <name>
 | *kw remote rename* <old-name> <new-name>
@@ -31,7 +31,7 @@ rename <old-name> <new-name>:
   Rename the remote named <old> to <new>. If you try a name already in use, kw
   will fail with a message.
 
-\-v, --verbose:
+\-v, \--verbose:
   Be a little more verbose and show remote url after name.
 
 EXAMPLES
