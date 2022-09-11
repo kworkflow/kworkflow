@@ -8,7 +8,8 @@ SYNOPSIS
 ========
 *kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local | \--vm]
                       [\--setup]
-                      [-r | \--reboot] [-m | \--modules] [-s | \--ls-line]
+                      [-r | \--reboot] [\--no-reboot]
+                      [-m | \--modules] [-s | \--ls-line]
                       [-l | \--list] [-a | \--list-all]
                       [(-u | \--uninstall) <kernel-name>[,...]] [-f \--force]
                       [\--alert=(s | v | (sv | vs) | n)]
@@ -64,6 +65,9 @@ OPTIONS
 
 -r, \--reboot:
   Reboot machine after deploy.
+
+\--no-reboot:
+  Do not reboot machine after deploy.
 
 \--setup:
   This command runs a basic setup in the target machine, including installing
