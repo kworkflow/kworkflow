@@ -1044,6 +1044,16 @@ function test_parse_deploy_options()
 
   unset options_values
   declare -gA options_values
+  parse_deploy_options --no-reboot
+  assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '0' "${options_values['REBOOT']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --reboot --no-reboot
+  assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '0' "${options_values['REBOOT']}"
+
+  unset options_values
+  declare -gA options_values
   parse_deploy_options -r
   assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '1' "${options_values['REBOOT']}"
 

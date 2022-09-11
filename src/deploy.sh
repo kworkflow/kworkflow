@@ -1006,13 +1006,6 @@ function run_kernel_install()
   name=${name:-'kw'}
   flag=${flag:-'SILENT'}
 
-  if [[ "$reboot" == 0 ]]; then
-    reboot_default="${deploy_config[reboot_after_deploy]}"
-    if [[ "$reboot_default" =~ 'yes' ]]; then
-      reboot=1
-    fi
-  fi
-
   # Try to find the latest generated kernel image
   kernel_binary_file_name=$(find "arch/$arch_target/boot/" -name '*Image' \
     -printf '%T+ %p\n' 2> /dev/null | sort -r | head -1)
@@ -1092,7 +1085,7 @@ function parse_deploy_options()
   local enable_collect_param=0
   local remote
   local options
-  local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
+  local long_options='remote:,local,vm,reboot,no-reboot,modules,list,ls-line,uninstall:'
   long_options+=',list-all,force,setup,verbose'
   local short_options='r,m,l,s,u:,a,f,v'
 
@@ -1110,6 +1103,7 @@ function parse_deploy_options()
   options_values['MODULES']=0
   options_values['LS_LINE']=0
   options_values['LS']=0
+  # 0: not specified in cmd options   1: --reboot   2: --no-reboot
   options_values['REBOOT']=0
   options_values['MENU_CONFIG']='nconfig'
   options_values['LS_ALL']=''
@@ -1128,14 +1122,14 @@ function parse_deploy_options()
     options_values['TARGET']="$VM_TARGET"
   fi
 
+  if [[ ${deploy_config[reboot_after_deploy]} == 'yes' ]]; then
+    options_values['REBOOT']=1
+  fi
+
   populate_remote_info ''
   if [[ "$?" == 22 ]]; then
     options_values['ERROR']="Invalid remote: $remote"
     return 22 # EINVAL
-  fi
-
-  if [[ ${deploy_config[reboot_after_deploy]} == 'yes' ]]; then
-    options_values['REBOOT']=1
   fi
 
   eval "set -- $options"
@@ -1161,6 +1155,10 @@ function parse_deploy_options()
         ;;
       --reboot | -r)
         options_values['REBOOT']=1
+        shift
+        ;;
+      --no-reboot)
+        options_values['REBOOT']=0
         shift
         ;;
       --modules | -m)
@@ -1235,8 +1233,9 @@ function deploy_help()
     '  deploy - installs kernel and modules:' \
     '  deploy (--remote <remote>:<port> | --local | --vm) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
-    '  deploy (--verbose | -v) - Show a detailed output' \
-    '  deploy (--setup) - Set up target machine for deploy' \
+    '  deploy (--no-reboot) - do not reboot machine after deploy' \
+    '  deploy (--verbose | -v) - show a detailed output' \
+    '  deploy (--setup) - set up target machine for deploy' \
     '  deploy (--modules | -m) - install only modules' \
     '  deploy (--uninstall | -u) [(--force | -f)] <kernel-name>,... - uninstall given kernels' \
     '  deploy (--list | -l) - list kernels' \
