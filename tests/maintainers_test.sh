@@ -1,9 +1,9 @@
 #!/bin/bash
 
-include './src/get_maintainer_wrapper.sh'
+include './src/maintainers.sh'
 include './tests/utils.sh'
 
-# TODO: make execute_get_maintainer's tests cover more corner cases?
+# TODO: make maintainers_main's tests cover more corner cases?
 
 # The following variables hold the the lines print_files_authors should
 # print when given the file samples/print_file_author_test_dir directory
@@ -16,7 +16,7 @@ CORRECT_FILE_MSG="=========================================================
 MODULE AUTHORS:
 code1.c: John Doe <johndoe@community.com>, Caesar Doe <caesar@community.com>, Michael Doe <michael@community.com>"
 
-# The following variables hold the the lines execute_get_maintainer
+# The following variables hold the the lines maintainers_main
 # should print when given the path tests/.tmp and tests/.tmp/fs,
 # respectively.
 CORRECT_TMP_MSG="=========================================================
@@ -26,7 +26,7 @@ CORRECT_TMP_FS_MSG="=========================================================
 HERE:
 John Doe <john@email.com>,Jane Doe <jane@email.com>,fs@list.org,kernel@list.org"
 
-# The following variables hold the lines execute_get_maintainer should
+# The following variables hold the lines maintainers_main should
 # print when given the option -u or --update-patch and the file
 # tests/.tmp/update_patch_test and tests.tmp/update_patch_test2,
 # respectively
@@ -87,32 +87,32 @@ function test_print_files_authors_from_dir()
   multilineAssertEquals "$ret" "$CORRECT_DIR_MSG"
 }
 
-function test_execute_get_maintainer()
+function test_maintainers_main()
 {
   local ret
   local -r original_dir="$PWD"
 
-  ret="$(execute_get_maintainer tests/.tmp)"
+  ret="$(maintainers_main tests/.tmp)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-  ret="$(execute_get_maintainer .)"
+  ret="$(maintainers_main .)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
-  ret="$(execute_get_maintainer fs)"
+  ret="$(maintainers_main fs)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
 
   cd fs || {
     fail "($LINENO) It was not possible to move to fs directory"
     return
   }
-  ret="$(execute_get_maintainer ..)"
+  ret="$(maintainers_main ..)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
-  ret="$(execute_get_maintainer .)"
+  ret="$(maintainers_main .)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -120,7 +120,7 @@ function test_execute_get_maintainer()
   }
 }
 
-function test_execute_get_maintainer_patch()
+function test_maintainers_main_patch()
 {
   local original_dir="$PWD"
   cd "$FAKE_KERNEL" || {
@@ -128,28 +128,28 @@ function test_execute_get_maintainer_patch()
     return
   }
 
-  ret="$(execute_get_maintainer update_patch_test.patch)"
+  ret="$(maintainers_main update_patch_test.patch)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
 
   # test -u
   cp -f update_patch_test.patch{,.bak}
-  ret="$(execute_get_maintainer -u update_patch_test.patch)"
+  ret="$(maintainers_main -u update_patch_test.patch)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_MSG"
   assertFileEquals update_patch_test{,_model}.patch
   cp -f update_patch_test.patch{.bak,}
 
   # test --update-patch
-  ret="$(execute_get_maintainer --update-patch update_patch_test.patch)"
+  ret="$(maintainers_main --update-patch update_patch_test.patch)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_MSG"
   assertFileEquals update_patch_test{,_model}.patch
 
   # test for already existing maintainers
-  ret="$(execute_get_maintainer -u update_patch_test.patch)"
+  ret="$(maintainers_main -u update_patch_test.patch)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_ALREADY_IN_MSG"
   assertFileEquals update_patch_test{,_model}.patch
 
   # test for already existing "To:" field without maintainers
-  ret="$(execute_get_maintainer -u update_patch_test2.patch)"
+  ret="$(maintainers_main -u update_patch_test2.patch)"
   multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH2_MSG"
   assertFileEquals update_patch_test{,_model}2.patch
 

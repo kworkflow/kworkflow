@@ -138,9 +138,9 @@ function kw()
       ;;
     maintainers | m)
       (
-        include "$KW_LIB_DIR/get_maintainer_wrapper.sh"
+        include "${KW_LIB_DIR}/maintainers.sh"
 
-        execute_get_maintainer "$@"
+        maintainers_main "$@"
       )
       ;;
     kernel-config-manager | k)
