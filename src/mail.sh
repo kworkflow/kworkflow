@@ -914,6 +914,7 @@ function parse_mail_options()
   local short_options='s,t,f,v:,i,l,n,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
   long_options+='template::,interactive,no-interactive,list,private,rfc,'
+  local pass_option_to_send_email
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -1056,7 +1057,15 @@ function parse_mail_options()
           commit_count="${BASH_REMATCH[0]}"
           options_values['COMMIT_RANGE']+="$commit_count "
         fi
-        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$* ${options_values['PATCH_VERSION']}")"
+        # TODO: find a better way to handle spaces inside pass_option_to_send_email
+        for i in "$@"; do
+          if [[ "${i}" =~ " " ]]; then
+            pass_option_to_send_email+=" ${i@Q}"
+          else
+            pass_option_to_send_email+=" ${i}"
+          fi
+        done
+        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$pass_option_to_send_email ${options_values['PATCH_VERSION']}")"
         options_values['COMMIT_RANGE']+="$(find_commit_references "${options_values['PASS_OPTION_TO_SEND_EMAIL']}")"
         rev_ret="$?"
         shift "$#"
