@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/get_maintainer_wrapper.sh'
+include './src/maintainers.sh'
 include './src/kwlib.sh'
 include './tests/utils.sh'
 
