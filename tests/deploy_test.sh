@@ -220,9 +220,9 @@ function test_setup_remote_ssh_with_passwordless()
     '-> Trying to set up passwordless access'
     '' # Extra line due to \n in the say message
     'ssh-copy-id root@127.0.0.1'
-    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 root@127.0.0.1 exit'
+    'ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p 3333 root@127.0.0.1 exit'
     'ssh-copy-id juca@127.0.0.1'
-    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
+    'ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
   )
 
   remote_parameters['REMOTE_USER']='juca'
