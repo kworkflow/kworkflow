@@ -6,7 +6,8 @@ kw-explore
 
 SYNOPSIS
 ========
-*kw* (*e* | *explore*) [(-l | \--log) | (-g | \--grep) | (-a | \--all)] <expr>
+*kw* (*e* | *explore*) [(-l | \--log) | (-g | \--grep) | (-a | \--all)]
+                       [(-c | \--only-source) | (-H | \--only-header)] <expr>
                        [-p] [<dir> | <file>]
 
 DESCRIPTION
@@ -37,3 +38,9 @@ OPTIONS
   ignores files inside .git, except if it is called inside .git directory. In
   other words, if you use this option you will notice that ``git grep`` is
   used first, and then GNU grep.
+
+-c | \--only-source:
+  With this option, it is possible to show only the results from the source.
+
+-H | \--only-header:
+  With this option, it is possible to show only the results from the header.
