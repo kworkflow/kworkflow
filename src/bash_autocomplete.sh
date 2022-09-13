@@ -42,7 +42,7 @@ function _kw_autocomplete()
   kw_options['diff']='--no-interactive'
   kw_options['df']="${kw_options['diff']}"
 
-  kw_options['explore']='--log --grep --all'
+  kw_options['explore']='--log --grep --all --only-source --only-header'
   kw_options['e']="${kw_options['explore']}"
 
   kw_options['init']='--arch --force --remote --target --template'

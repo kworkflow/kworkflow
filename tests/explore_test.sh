@@ -9,6 +9,7 @@ declare -a samples_names=(
   'codestyle_correct.c'
   'codestyle_error.c'
   'codestyle_warning.c'
+  'codestyle_check.h'
 )
 
 function setUp()
@@ -22,7 +23,7 @@ function setUp()
   # Setup git repository for test
   mk_fake_git
 
-  for commit in {0..3}; do
+  for commit in {0..4}; do
     local file_name="${samples_names[$commit]}"
     cp "$current_path/tests/samples/$file_name" ./
     git add "$file_name" &> /dev/null
@@ -58,7 +59,7 @@ function test_explore_files_under_git_repo()
   }
 
   MSG_OUT='camelCase(void)'
-  output=$(explore_main 'camelCase' '' | cut -d ' ' -f2)
+  output=$(explore_main 'camelCase' '' | head -n 1 | cut -d ' ' -f2)
   assertEquals "($LINENO)" "$MSG_OUT" "$output"
 
   MSG_OUT='camel_case'
@@ -78,6 +79,17 @@ function test_explore_files_under_git_repo()
   MSG_OUT='GNU grep'
   output=$(explore_main 'GNU grep' | cut -d: -f1)
   assertEquals "($LINENO)" 'grep_check.c' "$output"
+
+  # Test only-source and only-header
+  MSG_OUT='3'
+  output=$(explore_main 'camelCase' | wc -l)
+  assertEquals "($LINENO)" "$MSG_OUT" "$output"
+  MSG_OUT='2'
+  output=$(explore_main -c 'camelCase' | wc -l)
+  assertEquals "($LINENO)" "$MSG_OUT" "$output"
+  MSG_OUT='1'
+  output=$(explore_main -H 'camelCase' | wc -l)
+  assertEquals "($LINENO)" "$MSG_OUT" "$output"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -204,6 +216,20 @@ function test_parse_explore_options()
   ret="$?"
   assertEquals "($LINENO)" '0' "$ret"
   assertEquals "($LINENO)" '' "${options_values['TYPE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options -c 'something'
+  ret="$?"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" 'SOURCE' "${options_values['SCOPE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options -H 'something'
+  ret="$?"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" 'HEADER' "${options_values['SCOPE']}"
 
   # Others
   parse_explore_options --logljkl
