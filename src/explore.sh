@@ -25,9 +25,15 @@ function explore_main()
     return 22 # EINVAL
   fi
 
-  flag="${options_values['TEST_MODE']}"
+  flag="${options_values['TEST_MODE']:-'SILENT'}"
   search="${options_values['SEARCH']}"
-  path="${options_values['PATH']}"
+  path="${options_values['PATH']:-'.'}"
+
+  if [[ "${options_values['SCOPE']}" == "HEADER" ]]; then
+    path="${path}/*.h"
+  elif [[ "${options_values['SCOPE']}" == "SOURCE" ]]; then
+    path="${path}/*.c"
+  fi
 
   if [[ "${options_values['TYPE']}" -eq 1 ]]; then
     # LOG
@@ -64,8 +70,8 @@ function explore_main()
 # This function also set options_values
 function parse_explore_options()
 {
-  local long_options='log,grep,all'
-  local short_options='l,g,a'
+  local long_options='log,grep,all,only-header,only-source,exactly'
+  local short_options='l,g,a,H,c'
   local options
 
   if [[ "$#" -eq 0 ]]; then
@@ -84,6 +90,8 @@ function parse_explore_options()
   options_values['SEARCH']=''
   options_values['PATH']=''
   options_values['TYPE']=''
+  options_values['SCOPE']=''
+  options_values['EXACTLY']=''
 
   eval "set -- $options"
 
@@ -114,6 +122,32 @@ function parse_explore_options()
         fi
 
         options_values['TYPE']=3
+        shift
+        ;;
+      --only-header | -H)
+        if [[ -n "${options_values['SCOPE']}" ]]; then
+          if [[ "${options_values['SCOPE']}" != "HEADER" ]]; then
+            options_values['ERROR']="Invalid arguments: Multiple search scope!"
+            return 22 # EINVAL
+          fi
+        fi
+
+        options_values['SCOPE']="HEADER"
+        shift
+        ;;
+      --only-source | -c)
+        if [[ -n "${options_values['SCOPE']}" ]]; then
+          if [[ "${options_values['SCOPE']}" != "SOURCE" ]]; then
+            options_values['ERROR']="Invalid arguments: Multiple search scope!"
+            return 22 # EINVAL
+          fi
+        fi
+
+        options_values['SCOPE']="SOURCE"
+        shift
+        ;;
+      --exactly)
+        options_values['EXACTLY']=1
         shift
         ;;
       --) # End of options, beginning of arguments
@@ -149,7 +183,9 @@ function explore_help()
     '  explore,e <string> [<path>] - Search for <string> based in <path> (./ by default)' \
     '  explore,e --log,-l <string> - Search for <string> on git log' \
     '  explore,e --grep,-g <string> - Search for <string> using the GNU grep tool' \
-    '  explore,e --all,-a <string> - Search for all <string> match under or not of git management.'
+    '  explore,e --all,-a <string> - Search for all <string> match under or not of git management' \
+    '  explore,e --only-source,-c <string> - Search for all <string> in source files' \
+    '  explore,e --only-header,-H <string> - Search for all <string> in header files'
 }
 
 # This function is responsible for handling the search in the log history.
@@ -163,9 +199,6 @@ function explore_git_log()
   local search_string="$1"
   local path="$2"
   local flag="$3"
-
-  flag=${flag:-'SILENT'}
-  path=${path:-''}
 
   cmd_manager "$flag" "git log --grep='$search_string' $path"
 }
@@ -181,12 +214,6 @@ function explore_files_under_git()
   local regex="$1"
   local path="$2"
   local flag="$3"
-
-  # Silent by default
-  flag=${flag:-'SILENT'}
-
-  # If user only set regex value
-  path=${path:-'.'}
 
   cmd_manager "$flag" "git grep -e '$regex' -nI $path"
 }
@@ -205,12 +232,6 @@ function explore_all_files_git()
   local path="$2"
   local flag="$3"
 
-  # Silent by default
-  flag=${flag:-'SILENT'}
-
-  # If user only set regex value
-  path=${path:-'.'}
-
   cmd_manager "$flag" "git grep --no-index -e '$regex' -nI $path"
 }
 
@@ -226,12 +247,6 @@ function explore_files_gnu_grep()
   local regex="$1"
   local path="$2"
   local flag="$3"
-
-  # Silent by default
-  flag=${flag:-'SILENT'}
-
-  # If user only set regex value
-  path=${path:-'.'}
 
   cmd_manager "$flag" "grep --color -nrI $path -e '$regex'"
 }
