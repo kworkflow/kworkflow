@@ -82,7 +82,11 @@ function check_dependencies()
     fi
 
     # Install system packages
-    eval "sudo $cmd"
+    if [ "$EUID" -eq 0 ]; then
+      eval "$cmd"
+    else
+      eval "sudo $cmd"
+    fi
   fi
 
   while IFS='' read -r package; do
