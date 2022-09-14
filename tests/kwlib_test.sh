@@ -49,6 +49,7 @@ function setupFakeKernelRepo()
   mkdir -p "lib"
   mkdir -p "scripts"
   mkdir -p ".git"
+
   cd "$ORIGINAL_DIR" || {
     fail "($LINENO) It was not possible to move back to original directory"
     return
@@ -778,6 +779,83 @@ function test_get_git_config_regex()
     ret="$?"
     fail "($LINENO): Unable to move back from temp directory"
     return "$ret"
+  }
+}
+
+function test_get_kernel_release()
+{
+  local output
+
+  function get_current_env_name()
+  {
+    printf ''
+    return 2
+  }
+
+  output=$(get_kernel_release 'TEST_MODE')
+  assertEquals "($LINENO)" 'make kernelrelease 2> /dev/null' "$output"
+}
+
+function test_get_kernel_release_with_env()
+{
+  local output
+  local expected="make kernelrelease O=${KW_CACHE_DIR}/fake_env --silent 2> /dev/null"
+
+  function get_current_env_name()
+  {
+    printf 'fake_env'
+  }
+
+  output=$(get_kernel_release 'TEST_MODE')
+  assertEquals "($LINENO)" "$expected" "$output"
+}
+
+function test_get_kernel_version()
+{
+  local output
+
+  function get_current_env_name()
+  {
+    printf ''
+    return 2
+  }
+
+  output=$(get_kernel_version 'TEST_MODE')
+  assertEquals "($LINENO)" 'make kernelversion 2> /dev/null' "$output"
+}
+
+function test_get_kernel_version_with_env()
+{
+  local output
+  local expected="make kernelversion O=${KW_CACHE_DIR}/fake_env --silent 2> /dev/null"
+
+  function get_current_env_name()
+  {
+    printf 'fake_env'
+  }
+
+  output=$(get_kernel_version 'TEST_MODE')
+  assertEquals "($LINENO)" "$expected" "$output"
+}
+
+function test_get_current_env_name()
+{
+  local output
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mk_fake_kw_env
+
+  output=$(get_current_env_name)
+  assertEquals "($LINENO)" 0 "$?"
+  assertEquals "($LINENO)" 'fake_env' "$output"
+
+  cd "$ORIGINAL_DIR" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
   }
 }
 

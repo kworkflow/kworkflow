@@ -183,8 +183,16 @@ function find_kernel_root()
 function get_kernel_release()
 {
   local flag="$1"
+  local env_name
   # TODO: Maybe we need to remove this error redirection
-  local cmd='make kernelrelease 2> /dev/null'
+  local cmd='make kernelrelease'
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    cmd+=" O=${KW_CACHE_DIR}/${env_name} --silent"
+  fi
+
+  cmd+=" 2> /dev/null"
 
   [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
 
@@ -203,6 +211,12 @@ function get_kernel_version()
   local flag="$1"
   # TODO: Maybe we need to remove this error redirection
   local cmd='make kernelversion 2> /dev/null'
+  local env_name
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    cmd="make kernelversion O=${KW_CACHE_DIR}/${env_name} --silent 2> /dev/null"
+  fi
 
   flag=${flag:-'SILENT'}
 
@@ -643,4 +657,24 @@ function get_git_config_regex()
   done
 
   printf '%s\n' "${output[@]}"
+}
+
+# This function checks if the user is running kw under a env.
+#
+# Return:
+# Return the current env name and 0 if users are inside a env. Otherwise,
+# return an empty string and 1.
+function get_current_env_name()
+{
+  local current_env="${PWD}/.kw/env.current"
+  local output
+  local ret=1
+
+  if [[ -f "${current_env}" ]]; then
+    output=$(< "$current_env")
+    printf '%s' "$output"
+    ret=0
+  fi
+
+  return "$ret"
 }

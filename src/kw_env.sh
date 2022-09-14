@@ -86,7 +86,10 @@ function create_new_env()
   local local_kw_build_config="${local_kw_configs}/build.config"
   local local_kw_deploy_config="${local_kw_configs}/deploy.config"
   local env_name=${options_values['CREATE']}
+  local cache_build_path="$KW_CACHE_DIR"
+  local current_env_name
   local output
+  local ret
 
   if [[ ! -d "$local_kw_configs" || ! -f "$local_kw_build_config" || ! -f "$local_kw_deploy_config" ]]; then
     complain 'It looks like that you did not setup kw in this repository.'
@@ -109,6 +112,17 @@ function create_new_env()
   for config in "${config_file_list[@]}"; do
     cp "${local_kw_configs}/${config}.config" "${local_kw_configs}/${env_name}"
   done
+
+  # Handle build and config folder
+  mkdir -p "${cache_build_path}/${env_name}"
+  current_env_name=$(get_current_env_name)
+  ret="$?"
+
+  if [[ -f "${PWD}/.config" ]]; then
+    mv "${PWD}/.config" "${cache_build_path}/${env_name}"
+  elif [[ "$ret" == 0 ]]; then
+    cp "${cache_build_path}/${current_env_name}/.config" "${cache_build_path}/${env_name}"
+  fi
 }
 
 # This function searches for any folder inside the .kw directory and considers

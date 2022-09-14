@@ -824,4 +824,57 @@ function test_kernel_build_cpu_scaling_llvm_warning_sava_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
+function test_kernel_build_inside_an_env()
+{
+  local output
+  local expected_result
+  local env_output="${KW_CACHE_DIR}/fake_env"
+  build_config=()
+
+  mk_fake_kw_env
+
+  parse_configuration "$SAMPLES_DIR/build_no_llvm.config" build_config
+
+  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2)
+
+  declare -a expected_cmd=(
+    "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig O=${env_output}"
+    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 2>&1 | tee ./log O=${env_output}"
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
+function test_kernel_build_html_doc_inside_env()
+{
+  local expected_result
+  local output
+  local env_output="${KW_CACHE_DIR}/fake_env"
+  build_config=()
+
+  mk_fake_kw_env
+
+  parse_configuration "$SAMPLES_DIR/build_no_log.config" build_config
+
+  output=$(kernel_build 'TEST_MODE' --doc)
+  expected_result="make -j${PARALLEL_CORES} htmldocs O=${env_output}"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_kernel_build_menu_inside_env()
+{
+  local expected_result
+  local output
+  local env_output="${KW_CACHE_DIR}/fake_env"
+  build_config=()
+
+  mk_fake_kw_env
+
+  parse_configuration "$SAMPLES_DIR/build_no_log.config" build_config
+
+  output=$(kernel_build 'TEST_MODE' --menu)
+  expected_result="make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig O=${env_output}"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
 invoke_shunit

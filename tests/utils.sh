@@ -225,6 +225,14 @@ function mk_fake_kw_folder()
   cp "$KW_REMOTE_CONFIG_SAMPLE" "$kw_config_folder"
 }
 
+function mk_fake_kw_env()
+{
+  local env_kw="${PWD}/.kw/fake_env"
+
+  mkdir -p "$env_kw"
+  printf '%s' 'fake_env' > "${PWD}/.kw/env.current"
+}
+
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #

@@ -8,12 +8,13 @@ declare -gA options_values
 # will be compiled.
 function build_info()
 {
-  local flag
+  local flag="$1"
   local kernel_name
   local kernel_version
   local compiled_modules
+  local env_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  local config_path='.config'
 
-  flag="$1"
   kernel_name=$(get_kernel_release "$flag")
   kernel_version=$(get_kernel_version "$flag")
 
@@ -21,8 +22,10 @@ function build_info()
   printf '%s\n' "  Name: $kernel_name" \
     "  Version: $kernel_version"
 
-  if [[ -f '.config' ]]; then
-    compiled_modules=$(grep -c '=m' .config)
+  [[ -f "${env_path}/.config" ]] && config_path="${env_path}/.config"
+
+  if [[ -f "$config_path" ]]; then
+    compiled_modules=$(grep -c '=m' "$config_path")
     printf '%s\n' "  Total modules to be compiled: $compiled_modules"
   fi
 }
@@ -52,12 +55,20 @@ function kernel_build()
   local warning
   local output_path
   local llvm
+  local env_name
+  local output_kbuild_flag=''
 
   parse_build_options "$@"
-  if [[ $? -gt 0 ]]; then
+  if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
     build_help
     exit 22 # EINVAL
+  fi
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${env_name}"
+    output_kbuild_flag=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
   fi
 
   cross_compile="${options_values['CROSS_COMPILE']}"
@@ -93,7 +104,7 @@ function kernel_build()
   fi
 
   if [[ -n "$menu_config" ]]; then
-    command="make -j ${llvm}ARCH=${platform_ops} ${menu_config}"
+    command="make -j ${llvm}ARCH=${platform_ops} ${menu_config}${output_kbuild_flag}"
     cmd_manager "$flag" "$command"
     exit
   fi
@@ -117,15 +128,15 @@ function kernel_build()
   fi
 
   if [[ -n "$doc_type" ]]; then
-    command="make ${optimizations} ${doc_type}${output_path}"
+    command="make ${optimizations} ${doc_type}${output_path}${output_kbuild_flag}"
     cmd_manager "$flag" "$command"
     return
   fi
 
-  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_path}"
+  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_path}${output_kbuild_flag}"
 
   # Let's avoid menu question by default
-  cmd_manager "$flag" "make -j ${llvm}ARCH=${platform_ops} --silent olddefconfig "
+  cmd_manager "$flag" "make -j ${llvm}ARCH=${platform_ops} --silent olddefconfig${output_kbuild_flag}"
 
   start=$(date +%s)
   cmd_manager "$flag" "$command"
@@ -204,6 +215,7 @@ function parse_build_options()
 
   # Default values
   arch_fallback="${build_config[arch]:-x86_64}"
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
   options_values['ARCH']="${build_config[arch]:-$arch_fallback}"
   options_values['MENU_CONFIG']=''
   options_values['CROSS_COMPILE']="${build_config[cross_compile]}"
