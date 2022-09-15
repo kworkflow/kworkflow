@@ -77,6 +77,8 @@ function deploy_main()
   local setup
   local flag
   local modules_install_status
+  local env_name
+  local output_kbuild_path=''
 
   # Drop build_and_deploy flag
   shift
@@ -90,6 +92,12 @@ function deploy_main()
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
     exit 22 # EINVAL
+  fi
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${env_name}"
+    output_kbuild_path=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']} --silent"
   fi
 
   flag="${options_values['TEST_MODE']}"
@@ -188,8 +196,7 @@ function deploy_main()
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
-    name=$(make kernelrelease)
-
+    name=$(eval "make kernelrelease${output_kbuild_path}")
     run_kernel_install "$reboot" "$name" "$flag" "$target" '' "$build_and_deploy"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
@@ -782,12 +789,19 @@ function modules_install_to()
   local pv_cmd
   local cmd=''
   local strip_modules_debug='INSTALL_MOD_STRIP=1 '
+  local output_kbuild_flag
+  local env_base_path="${PWD}/"
 
   flag=${flag:-'SILENT'}
 
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    output_kbuild_flag=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+    env_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
+
   if [[ ${deploy_config[strip_modules_debug_option]} == 'no' ]]; then
     strip_modules_debug=''
-    grep --quiet --fixed-strings --line-regexp 'CONFIG_DEBUG_INFO=y' "${PWD}/.config"
+    grep --quiet --fixed-strings --line-regexp 'CONFIG_DEBUG_INFO=y' "${env_base_path}/.config"
     if [[ "$?" == 0 ]]; then
       load_module_text "${KW_ETC_DIR}/strings/deploy.txt"
       warning "${module_text_dictionary[large_initramfs_warning]}"
@@ -795,13 +809,13 @@ function modules_install_to()
   fi
 
   if [[ "$local_deploy" == 'local' ]]; then
-    cmd="sudo true && sudo -E make ${strip_modules_debug}modules_install"
+    cmd="sudo true && sudo -E make ${strip_modules_debug}modules_install${output_kbuild_flag}"
   else
-    cmd="make ${strip_modules_debug}INSTALL_MOD_PATH=$install_to modules_install"
+    cmd="make ${strip_modules_debug}INSTALL_MOD_PATH=$install_to modules_install${output_kbuild_flag}"
   fi
 
-  if [[ "$flag" != 'VERBOSE' && -f './modules.order' ]]; then
-    total_lines=$(wc -l < './modules.order')
+  if [[ "$flag" != 'VERBOSE' && -f "${env_base_path}/modules.order" ]]; then
+    total_lines=$(wc -l < "${env_base_path}/modules.order")
     cmd+=" | grep INSTALL | pv -p --line-mode --size $total_lines > /dev/null"
   fi
 
@@ -881,14 +895,17 @@ function pack_kernel_files_and_send()
   local dts_base_path
   local tar_file_path
   local kernel_name_arch
+  local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
 
-  config_path='.config'
+  [[ -n "$kbuild_output_prefix" ]] && kbuild_output_prefix="${kbuild_output_prefix}/"
+
+  config_path="${kbuild_output_prefix}.config"
   compression_type="${deploy_config[deploy_default_compression]}"
   cache_to_deploy_path="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
   cache_boot_files_path="${cache_to_deploy_path}/boot"
   tar_file_path="${cache_to_deploy_path}/${name}_boot.tar"
 
-  base_boot_path="arch/$arch/boot"
+  base_boot_path="${kbuild_output_prefix}arch/${arch}/boot"
   dts_base_path="${base_boot_path}/dts"
 
   [[ -z "$config_kernel_img_name" ]] && config_kernel_img_name='kernel'
@@ -985,6 +1002,9 @@ function run_kernel_install()
   local config_local_version
   local cmd
   local cmd_parameters
+  local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+
+  [[ -n "$kbuild_prefix" ]] && kbuild_prefix="${kbuild_prefix}/"
 
   # We have to guarantee some default values values
   kernel_name=${kernel_img_name:-'nothing'}
@@ -993,7 +1013,7 @@ function run_kernel_install()
   flag=${flag:-'SILENT'}
 
   # Try to find the latest generated kernel image
-  kernel_binary_file_name=$(find "arch/$arch_target/boot/" -name '*Image' \
+  kernel_binary_file_name=$(find "${kbuild_prefix}arch/$arch_target/boot/" -name '*Image' \
     -printf '%T+ %p\n' 2> /dev/null | sort -r | head -1)
   kernel_binary_file_name=$(basename "$kernel_binary_file_name")
   if [[ -z "$kernel_binary_file_name" ]]; then
@@ -1083,6 +1103,7 @@ function parse_deploy_options()
     return 22 # EINVAL
   fi
 
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
   options_values['TEST_MODE']='SILENT'
   options_values['UNINSTALL']=''
   options_values['UNINSTALL_FORCE']=''

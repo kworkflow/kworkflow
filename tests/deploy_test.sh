@@ -41,6 +41,9 @@ function setUp()
   remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
   remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
 
+  # Clean env
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
+
   # Mock functions
   shopt -s expand_aliases
   alias which_distro='which_distro_mock'
@@ -356,6 +359,70 @@ function test_modules_install_to_no_strip_and_config_debug_info_enabled()
 
   output=$(modules_install_to "$test_path" 'TEST_MODE')
   assert_substring_match "Wrong output: $output" "($LINENO)" 'strip_modules_debug_option' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_modules_install_to_with_env()
+{
+  local output
+  local original="$PWD"
+  local make_cmd="make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=${test_path} modules_install"
+
+  make_cmd+=" O=${KW_CACHE_DIR}/fake_env"
+
+  declare -a expected_cmd=(
+    '* Preparing modules'
+    "$make_cmd"
+  )
+
+  cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/fake_env"
+  mk_fake_kw_env
+
+  output=$(modules_install_to "$test_path" 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_modules_install_to_with_env_local()
+{
+  local output
+  local original="$PWD"
+  local make_cmd="sudo true && sudo -E make INSTALL_MOD_STRIP=1 modules_install"
+
+  make_cmd+=" O=${KW_CACHE_DIR}/fake_env"
+
+  declare -a expected_cmd=(
+    '* Preparing modules'
+    "$make_cmd"
+  )
+
+  cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/fake_env"
+  mk_fake_kw_env
+
+  output=$(modules_install_to "$test_path" 'TEST_MODE' 'local')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
