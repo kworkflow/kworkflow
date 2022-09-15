@@ -26,17 +26,20 @@ function setUp()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
   touch .config
   printf '%s\n' "$CONTENT" > .config
+
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
 
-  export KW_CACHE_DIR="$SHUNIT_TMPDIR/cache"
-  mkdir "$SHUNIT_TMPDIR/configs"
+  export KW_CACHE_DIR="${SHUNIT_TMPDIR}/cache"
+  mkdir -p "${SHUNIT_TMPDIR}/configs"
+
   KW_DATA_DIR="$SHUNIT_TMPDIR"
-  configs_path="$KW_DATA_DIR/configs"
+  export configs_path="${KW_DATA_DIR}/configs"
 
   parse_configuration "$KW_CONFIG_SAMPLE"
   parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
@@ -424,6 +427,7 @@ function test_remove_config()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
   ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
   ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
   ret=$(find configs/configs -mindepth 1 -type f | wc -l)
@@ -719,6 +723,40 @@ function test_fetch_config()
   remote_parameters['REMOTE_PORT']='1234'
   output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$REMOTE_TARGET")
 
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_with_env()
+{
+  local current_path="$PWD"
+  local ret=0
+  local output
+
+  declare -a expected_output=(
+    "$msg"
+    "$replace_msg"
+  )
+
+  # There's no configs yet, initialize it
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Create a fake env folder
+  mkdir -p 'fake_env'
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${PWD}/fake_env"
+
+  # Create a fake config file
+  mkdir -p "${configs_path}/configs"
+  touch "${configs_path}/configs/FAKE_CONFIG"
+
+  output=$(printf '%s\n' 'y' | get_config 'FAKE_CONFIG')
+
+  assertTrue "($LINENO): config file was not added to the env" "[[ -f ./fake_env/.config ]]"
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return

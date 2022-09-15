@@ -19,6 +19,9 @@ file. It provides the save, load, remove, and list operations of such files. By
 default, if the user does not provide any parameter, the kernel-config-manager will list all
 configs under **kw**'s management.
 
+.. note::
+  This feature has interoperability with the kw env feature.
+
 OPTIONS
 =======
 \--save <name> [-d <description>] [-f | \--force]:

@@ -26,6 +26,7 @@ function kernel_config_manager_main()
   local remote
   local ip
   local port
+  local env_name
 
   if [[ -z "$*" ]]; then
     list_configs
@@ -38,10 +39,14 @@ function kernel_config_manager_main()
   fi
 
   parse_kernel_config_manager_options "$@"
-
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
     exit 22 # EINVAL
+  fi
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${env_name}"
   fi
 
   name_config="${options_values['SAVE']}"
@@ -90,8 +95,12 @@ function save_config_file()
   local -r force="$1"
   local -r name="$2"
   local -r description="$3"
-  local -r original_path="$PWD"
+  local original_path="$PWD"
   local -r dot_configs_dir="$KW_DATA_DIR/configs"
+
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    original_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
 
   if [[ ! -f "$original_path/.config" ]]; then
     complain 'There is no .config file in the current directory'
@@ -338,8 +347,14 @@ function fetch_config()
   local cmd
   local arch
   local ret
+  local config_base_path="$PWD"
 
   output=${output:-'.config'}
+
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+    output_kbuild_flag=" --silent O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
 
   if [[ "$target" == "$REMOTE_TARGET" ]]; then
     # Check connection before try to work with remote
@@ -355,18 +370,18 @@ function fetch_config()
   # files temporarily.
   mkdir -p "$KW_CACHE_DIR/config"
 
-  if [[ -f "$PWD/$output" ]]; then
+  if [[ -f "${config_base_path}/${output}" ]]; then
     if [[ -z "$force" && $(ask_yN "Do you want to overwrite $output in your current directory?") =~ "0" ]]; then
       warning 'Operation aborted'
       return 125 #ECANCELED
     fi
 
-    cp "$PWD/$output" "$KW_CACHE_DIR/config"
+    cp "${config_base_path}/${output}" "$KW_CACHE_DIR/config"
   fi
 
   # If --output is provided, we need to backup the current config file
-  if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
-    cp "$PWD/.config" "$KW_CACHE_DIR/config"
+  if [[ -f "${config_base_path}/.config" && "$output" != '.config' ]]; then
+    cp "${config_base_path}/.config" "${KW_CACHE_DIR}/config"
   fi
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
@@ -387,7 +402,7 @@ function fetch_config()
 
   # Let's ensure that we keep all of the options from the old .config and set
   # new options to their default values.
-  cmd='make olddefconfig'
+  cmd="make olddefconfig${output_kbuild_flag}"
   cmd_manager "$flag" "$cmd"
 
   if [[ -n "$optimize" ]]; then
@@ -411,7 +426,7 @@ function fetch_config()
 
     printf "%s" "$mods" > "$KW_CACHE_DIR/lsmod"
 
-    cmd="make localmodconfig LSMOD=$KW_CACHE_DIR/lsmod"
+    cmd="make localmodconfig LSMOD=${KW_CACHE_DIR}/lsmod${output_kbuild_flag}"
 
     # 'make localmodconfig' uses .config from the current directory. So, we need
     # to rename the configuration file named <output> to .config. We also need to
@@ -420,15 +435,15 @@ function fetch_config()
     # If there is a .config, we move it to KW_CACHE_DIR, rename <output> to
     # .config, run 'make localmodconfig', then move things back to place.
     if [[ "$output" != '.config' ]]; then
-      if [[ -f "$PWD/.config" ]]; then
-        cmd_manager "$flag" "mv $PWD/$output $PWD/.config"
+      if [[ -f "${config_base_path}/.config" ]]; then
+        cmd_manager "$flag" "mv ${config_base_path}/$output ${config_base_path}/.config"
         cmd_manager "$flag" "$cmd"
-        cmd_manager "$flag" "mv $PWD/.config $PWD/$output"
-        cmd_manager "$flag" "mv $KW_CACHE_DIR/config/.config $PWD/.config"
+        cmd_manager "$flag" "mv ${config_base_path}/.config ${config_base_path}/${output}"
+        cmd_manager "$flag" "mv ${KW_CACHE_DIR}/config/.config ${config_base_path}/.config"
       else
-        cmd_manager "$flag" "mv $PWD/$output $PWD/.config"
+        cmd_manager "$flag" "mv ${config_base_path}/${output} ${config_base_path}/.config"
         cmd_manager "$flag" "$cmd"
-        cmd_manager "$flag" "mv $PWD/.config $PWD/$output"
+        cmd_manager "$flag" "mv ${config_base_path}/.config ${config_base_path}/${output}"
       fi
     else
       cmd_manager "$flag" "$cmd"
@@ -510,18 +525,23 @@ function get_config()
 {
   local target="$1"
   local force="$2"
-  local -r dot_configs_dir="$KW_DATA_DIR/configs/configs"
+  local -r dot_configs_dir="${KW_DATA_DIR}/configs/configs"
   local -r msg='This operation will override the current .config file'
+  local config_base_path="$PWD"
 
   force=${force:-0}
 
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
+
   # If we does not have a local config, there's no reason to warn the user
-  [[ ! -f "$PWD/.config" ]] && force=1
+  [[ ! -f "${config_base_path}/.config" ]] && force=1
 
-  basic_config_validations "$target" "$force" "Get" "$msg"
+  basic_config_validations "$target" "$force" 'Get' "$msg"
 
-  cp "$dot_configs_dir/$target" .config
-  say "Current config file updated based on $target"
+  cp "${dot_configs_dir}/${target}" "${config_base_path}/.config"
+  say "Current config file updated based on ${target}"
 }
 
 # Remove a config file under kw management
@@ -574,6 +594,7 @@ function parse_kernel_config_manager_options()
     return 22 # EINVAL
   fi
 
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
   options_values['SAVE']=''
   options_values['FORCE']=''
   options_values['OPTIMIZE']=''
