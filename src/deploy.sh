@@ -188,7 +188,7 @@ function deploy_main()
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
-    name=$(make kernelrelease)
+    name=$(get_kernel_release "$flag")
 
     run_kernel_install "$reboot" "$name" "$flag" "$target" '' "$build_and_deploy"
     end=$(date +%s)

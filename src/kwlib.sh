@@ -168,6 +168,25 @@ function find_kernel_root()
   printf '%s\n' "$kernel_root"
 }
 
+# Get value for specific config option
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @name Name of option in config
+#
+# Note: Make sure that you called is_kernel_root before trying to execute this
+# function.
+function get_kernel_config()
+{
+  local flag="$1"
+  local name="$2"
+  local cmd="./scripts/config --state $name"
+
+  [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
+
+  cmd_manager "$flag" "$cmd"
+}
+
 # Get the kernel release based on the command kernelrelease.
 #
 # @flag How to display a command, the default value is
@@ -178,8 +197,14 @@ function find_kernel_root()
 function get_kernel_release()
 {
   local flag="$1"
-  # TODO: Maybe we need to remove this error redirection
-  local cmd='make kernelrelease 2> /dev/null'
+  local cmd='make kernelrelease'
+
+  local patch_makefile
+  if [[ "$(get_kernel_version "$flag")" =~ ^5.13|^5.14|^5.15|^5.16|^5.17 ]]; then
+    if [[ "$(get_kernel_config "$flag" CONFIG_X86_X32)" == "y" ]]; then
+      cmd="$cmd 2> /dev/null"
+    fi
+  fi
 
   [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
 
@@ -196,8 +221,7 @@ function get_kernel_release()
 function get_kernel_version()
 {
   local flag="$1"
-  # TODO: Maybe we need to remove this error redirection
-  local cmd='make kernelversion 2> /dev/null'
+  local cmd='make kernelversion'
 
   flag=${flag:-'SILENT'}
 
