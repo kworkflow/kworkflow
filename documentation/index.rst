@@ -52,6 +52,7 @@ Check out our tutorials to see how you can use kw.
    tutorials/kernel-config-manager
    tutorials/deploy-kernel
    tutorials/rpi-deploy-kernel
+   tutorials/kw-env
    tutorials/codestyle
    tutorials/find-maintainers
    tutorials/kernel-debug
