@@ -133,6 +133,11 @@ function kernel_build()
     return
   fi
 
+  if [[ -n "${options_values['NAME']}" ]]; then
+    set_kernel_config_str "$flag" "CONFIG_LOCALVERSION" "${options_values['NAME']}"
+    say "CONFIG_LOCALVERSION in .config updated"
+  fi
+
   command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_path}${output_kbuild_flag}"
 
   # Let's avoid menu question by default
@@ -200,7 +205,8 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::'
+  long_options+=',save-log-to:,llvm,name:'
   local short_options='h,i,n,d,c:,w::,s:'
   local doc_type
   local file_name_size
@@ -226,6 +232,7 @@ function parse_build_options()
   options_values['WARNINGS']="${build_config[warning_level]}"
   options_values['LOG_PATH']="${build_config[log_path]:-${configurations[log_path]}}"
   options_values['USE_LLVM_TOOLCHAIN']="${build_config[use_llvm]:-${configurations[use_llvm]}}"
+  options_values['NAME']=''
 
   # Check llvm option
   if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
@@ -293,6 +300,14 @@ function parse_build_options()
         options_values['LOG_PATH']="$2"
         shift 2
         ;;
+      --name)
+        if [[ "$2" =~ ^-- ]]; then
+          options_values['ERROR']='Require a valid string'
+          return 22 # EINVAL
+        fi
+        options_values['NAME']="$2"
+        shift 2
+        ;;
       --)
         shift
         ;;
@@ -321,7 +336,8 @@ function build_help()
     '  build (--ccache) - Enable use of ccache' \
     '  build (-w | --warnings) [warning_levels] - Enable warnings' \
     '  build (-s | --save-log-to) <path> - Save compilation log to path' \
-    '  build (--llvm) - Enable use of the LLVM toolchain'
+    '  build (--llvm) - Enable use of the LLVM toolchain' \
+    '  build (--name) <kernel_name> - Use the name to compile the kernel'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well

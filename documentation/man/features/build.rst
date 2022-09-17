@@ -14,6 +14,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-w | \--warnings)] [warning-levels] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-s | \--save-log-to)] <path> [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [\--llvm] [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [\--name] <kernel_name> [\--alert=(s | v | (sv | vs) | n)]
 
 DESCRIPTION
 ===========
@@ -69,6 +70,10 @@ OPTIONS
   This option can be set to enable the usage of the LLVM toolchain during
   compilation/linking tasks. You can enable it by default via `use_llvm` option
   in the `build.config` file.
+
+\--name <kernel_name>:
+  This option can naming the kernel by setting CONFIG_LOCALVERSION in .config
+  during the building process. 
 
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.

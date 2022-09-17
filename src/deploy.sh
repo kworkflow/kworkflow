@@ -195,9 +195,10 @@ function deploy_main()
 
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
-    # Update name: release + alias
-    name=$(eval "make kernelrelease${output_kbuild_path}")
-    run_kernel_install "$reboot" "$name" "$flag" "$target" '' "$build_and_deploy"
+    # Update kernel name: release + alias
+    kernel_name=$(eval "make kernelrelease${output_kbuild_path}")
+
+    run_kernel_install "$reboot" "$kernel_name" "$flag" "$target" '' "$build_and_deploy"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
     statistics_manager 'deploy' "$runtime"
@@ -756,18 +757,18 @@ function modules_install()
       # 2. Send files modules
       modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
 
-      release=$(get_kernel_release "$flag")
+      kernel_name=$(get_kernel_release "$flag")
       generate_tarball "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/lib/modules/" \
-        "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" \
-        "$compression_type" "$release" "$flag"
+        "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/${kernel_name}.tar" \
+        "$compression_type" "${kernel_name}" "$flag"
 
-      tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
-      say "* Sending kernel modules ($release) to the remote"
+      tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/${kernel_name}.tar"
+      say "* Sending kernel modules (${kernel_name}) to the remote"
       cp2remote "$flag" "$tarball_for_deploy_path" "$KW_DEPLOY_TMP_FILE"
 
       # 3. Deploy: Execute script
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --modules $release.tar"
+      cmd+=" --modules ${kernel_name}.tar"
       cmd_remotely "$cmd" "$flag"
       ;;
   esac
@@ -874,7 +875,7 @@ function compose_copy_source_parameter_for_dtb()
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
 # @kernel_img_name Kernel image file name, e.g., bzImage or Image.
-# @name Kernel name used during the deploy
+# @kernel_name Kernel name used during the deploy
 # @arch Target device architecture
 function pack_kernel_files_and_send()
 {
@@ -903,7 +904,7 @@ function pack_kernel_files_and_send()
   compression_type="${deploy_config[deploy_default_compression]}"
   cache_to_deploy_path="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
   cache_boot_files_path="${cache_to_deploy_path}/boot"
-  tar_file_path="${cache_to_deploy_path}/${name}_boot.tar"
+  tar_file_path="${cache_to_deploy_path}/${kernel_name}_boot.tar"
 
   base_boot_path="${kbuild_output_prefix}arch/${arch}/boot"
   dts_base_path="${base_boot_path}/dts"
@@ -977,7 +978,7 @@ function pack_kernel_files_and_send()
 #
 # @reboot If this value is equal 1, it means reboot machine after kernel
 #         installation.
-# @name Kernel name to be deployed.
+# @kernel_name Kernel name to be deployed.
 #
 # Note:
 # * Take a look at the available kernel plugins at: src/plugins/kernel_install
@@ -986,14 +987,12 @@ function pack_kernel_files_and_send()
 function run_kernel_install()
 {
   local reboot="$1"
-  local name="$2"
+  local kernel_name="$2"
   local flag="$3"
   local target="$4"
   local user="${5:-${remote_parameters['REMOTE_USER']}}"
   local build_and_deploy="$6"
   local distro='none'
-  local kernel_name="${build_config[kernel_name]:-${configurations[kernel_name]}}"
-  local mkinitcpio_name="${configurations[mkinitcpio_name]}"
   local arch_target="${build_config[arch]:-${configurations[arch]}}"
   local kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
   local kernel_binary_file_name
@@ -1007,9 +1006,7 @@ function run_kernel_install()
   [[ -n "$kbuild_prefix" ]] && kbuild_prefix="${kbuild_prefix}/"
 
   # We have to guarantee some default values values
-  kernel_name=${kernel_img_name:-'nothing'}
-  mkinitcpio_name=${mkinitcpio_name:-'nothing'}
-  name=${name:-'kw'}
+  kernel_name=${kernel_name:-'kw'}
   flag=${flag:-'SILENT'}
 
   # Try to find the latest generated kernel image
@@ -1025,7 +1022,7 @@ function run_kernel_install()
 
   say '* Sending kernel boot files'
   pack_kernel_files_and_send "$flag" "$target" "$kernel_binary_file_name" \
-    "$name" "$arch_target" "$build_and_deploy"
+    "$kernel_name" "$arch_target" "$build_and_deploy"
 
   case "$target" in
     1) # VM_TARGET
@@ -1040,7 +1037,7 @@ function run_kernel_install()
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Make sure we use the right variable values
-      install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'vm' "$flag"
+      install_kernel "$kernel_name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
       ;;
     2) # LOCAL_TARGET
@@ -1061,7 +1058,7 @@ function run_kernel_install()
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Ensure that we are using the right variable
 
-      install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'local' "$flag"
+      install_kernel "$kernel_name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
       ;;
     3) # REMOTE_TARGET
@@ -1069,7 +1066,7 @@ function run_kernel_install()
       distro=$(detect_distro '/' "$distro_info")
 
       # Deploy
-      cmd_parameters="$name $distro $kernel_binary_file_name $reboot $arch_target 'remote' $flag"
+      cmd_parameters="$kernel_name $distro $kernel_binary_file_name $reboot $arch_target 'remote' $flag"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 

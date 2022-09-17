@@ -173,6 +173,28 @@ function find_kernel_root()
   printf '%s\n' "$kernel_root"
 }
 
+# Set value for specific config option
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @name Name of option in config
+# @value Value of option in config
+#
+# Note: Make sure that you called is_kernel_root before trying to execute this
+# function.
+function set_kernel_config_str()
+{
+  local flag="$1"
+  local name="$2"
+  local value="$3"
+  local cmd="./scripts/config --set-str $name $value"
+
+  [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
+
+  echo "$cmd"
+  cmd_manager "$flag" "$cmd"
+}
+
 # Get the kernel release based on the command kernelrelease.
 #
 # @flag How to display a command, the default value is
