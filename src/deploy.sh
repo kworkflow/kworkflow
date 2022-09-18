@@ -766,13 +766,6 @@ function modules_install()
   esac
 }
 
-function is_sign_module_enabled()
-{
-  grep --quiet --fixed-strings --line-regexp 'CONFIG_MODULE_SIG=y' "${PWD}/.config"
-  [[ "$?" != 0 ]] && return 1
-  return 0
-}
-
 # This function is responsible for handling the command to
 # `make install_modules`, and it expects a target path for saving the modules
 # files.
@@ -789,13 +782,8 @@ function modules_install_to()
   local pv_cmd
   local cmd=''
   local strip_modules_debug='INSTALL_MOD_STRIP=1 '
-  local sign_extra_line=1
 
   flag=${flag:-'SILENT'}
-
-  if is_sign_module_enabled; then
-    sign_extra_line=2
-  fi
 
   if [[ ${deploy_config[strip_modules_debug_option]} == 'no' ]]; then
     strip_modules_debug=''
@@ -814,9 +802,7 @@ function modules_install_to()
 
   if [[ "$flag" != 'VERBOSE' && -f './modules.order' ]]; then
     total_lines=$(wc -l < './modules.order')
-    # Multiply by two because we have the driver name and the signing line
-    total_lines=$((total_lines * "$sign_extra_line"))
-    cmd+=" | pv -p --line-mode --size $total_lines > /dev/null"
+    cmd+=" | grep INSTALL | pv -p --line-mode --size $total_lines > /dev/null"
   fi
 
   say '* Preparing modules'
