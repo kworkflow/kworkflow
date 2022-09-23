@@ -244,7 +244,7 @@ function test_prepare_distro_for_deploy()
   declare -a expected_cmd=(
     '-> Basic distro set up'
     '' # Extra space for the \n in the message
-    "$ssh_prefix \"$cmd\""
+    "$ssh_prefix \"$cmd 3\""
   )
 
   # Remote
@@ -260,7 +260,11 @@ function test_prepare_distro_for_deploy()
   expected_cmd=(
     '-> Basic distro set up'
     '' # Extra space for the \n
-    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober'
+    'sudo -E mv /etc/skel/.screenrc /tmp'
+    'sudo -E systemctl restart pacman-init.service'
+    'sudo -E pacman-key --populate'
+    'yes | sudo -E pacman -Syu'
+    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober rng-tools'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"

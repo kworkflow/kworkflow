@@ -21,6 +21,12 @@ declare -ag required_packages=(
 # Fedora package manager command
 declare -g package_manager_cmd='dnf install -y'
 
+# Setup hook
+function distro_pre_setup()
+{
+  : # NOTHING
+}
+
 function generate_fedora_temporary_root_file_system()
 {
   local flag="$1"

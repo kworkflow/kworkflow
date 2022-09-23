@@ -165,11 +165,15 @@ function collect_deploy_info()
 function distro_deploy_setup()
 {
   local flag="$1"
+  local target="$2"
   local package_list
   local install_package_cmd
 
   # Make sure that / is writable
   make_root_partition_writable "$flag"
+
+  # Hook that allow some distro to do some specific pre-setup
+  distro_pre_setup "$flag" "$target"
 
   # Install required packages
   printf -v package_list '%s ' "${required_packages[@]}"

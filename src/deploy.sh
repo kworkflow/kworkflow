@@ -288,11 +288,11 @@ function prepare_distro_for_deploy()
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
 
-      distro_deploy_setup "$flag"
+      distro_deploy_setup "$flag" "${target}"
       ;;
     3) # REMOTE_TARGET
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --deploy-setup $flag"
+      cmd+=" --deploy-setup ${flag} ${target}"
 
       cmd_remotely "$cmd" "$flag"
       ;;

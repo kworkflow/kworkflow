@@ -22,6 +22,12 @@ declare -ag required_packages=(
 # Debian package manager command
 declare -g package_manager_cmd='apt-get install -y'
 
+# Setup hook
+function distro_pre_setup()
+{
+  : # NOTHING
+}
+
 function generate_debian_temporary_root_file_system()
 {
   local flag="$1"

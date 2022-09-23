@@ -16,10 +16,45 @@ declare -ga required_packages=(
   'zstd'
   'xz'
   'os-prober'
+  'rng-tools'
 )
 
 # ArchLinux package manager
 declare -g package_manager_cmd='yes | pacman -Syu'
+
+# Some distros might require some basic setup before a package installation or
+# configure some service before. For some distros based on ArchLinux, we might
+# want to clean some folders and also initialize the pacman keyring.
+#
+# @flag: How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+function distro_pre_setup()
+{
+  local flag="$1"
+  local target="$2"
+  local cmd_prefix=''
+
+  # LOCAL_TARGET
+  if [[ "$target" == 2 ]]; then
+    cmd_prefix='sudo -E '
+  fi
+
+  cmd="${cmd_prefix}mv /etc/skel/.screenrc /tmp"
+  cmd_manager "$flag" "$cmd"
+
+  # Restart pacman init, just in case...
+  cmd="${cmd_prefix}systemctl restart pacman-init.service"
+  cmd_manager "$flag" "$cmd"
+
+  # Initialize keyring
+  cmd="${cmd_prefix}pacman-key --populate"
+  cmd_manager "$flag" "$cmd"
+
+  # TODO: Let's make the update something configurable
+  cmd="yes | ${cmd_prefix}pacman -Syu"
+  cmd_manager "$flag" "$cmd"
+}
 
 # Make initcpio and update grub on VM using Guestfish
 function generate_arch_temporary_root_file_system()
