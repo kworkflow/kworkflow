@@ -11,6 +11,7 @@ declare -gar GRUB=(
   'boot/grub2/grub.conf'
   'boot/grub2/grub.cfg'
   'boot/efi/EFI/ubuntu/'
+  'boot/efi/EFI/steamos'
   'NST/menu.lst'
   'boot/grub/menu.lst'
   'ubuntu/disks/boot/grub/menu.lst'
