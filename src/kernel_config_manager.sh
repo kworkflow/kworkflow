@@ -131,6 +131,7 @@ function save_config_file()
   if [[ "$ret" == 1 ]]; then
     warning "Warning: $name: there's nothing new in this file"
   elif [[ "$ret" -gt 0 ]]; then
+    git reset --hard # Aborts save operation
     complain "Could not save user config files"
   else
     success "Saved $name"
