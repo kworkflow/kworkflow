@@ -379,7 +379,7 @@ function update_bootloader()
     cmd_manager "$flag" "$cmd"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
-      complain 'Error when trying to generate the temporary root file system'
+      printf 'Error when trying to generate the temporary root file system\n'
       [[ "$target" == 'vm' ]] && vm_umount
       exit "$ret"
     fi
@@ -521,7 +521,7 @@ function install_kernel()
       # Copy config file
       cmd_manager "$flag" "cp $verbose_cp .config $path_prefix/boot/config-$name"
     else
-      complain 'Did you check if your VM is mounted?'
+      printf 'Did you check if your VM is mounted?\n'
       return 125 # ECANCELED
     fi
   fi
@@ -543,7 +543,7 @@ function install_kernel()
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then
-    complain 'kw was not able to update the target bootloader'
+    printf 'kw was not able to update the target bootloader\n'
     [[ "$target" == 'vm' ]] && vm_umount
     exit "$ret"
   fi
