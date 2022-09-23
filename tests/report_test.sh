@@ -367,6 +367,7 @@ function test_show_data()
 function test_save_data_to()
 {
   local output
+  local expected
 
   grouping_day_data '2020/04/04'
   save_data_to "$SHUNIT_TMPDIR/test"
@@ -375,10 +376,34 @@ function test_save_data_to()
   output=$(cat "$SHUNIT_TMPDIR/test")
   [[ ! "$output" =~ 'Summary:' ]] && fail "$LINENO: We expected to find at least one Summary entry"
 
-  # Try to use an invalid path
+  # Try to use an invalid path.
   output=$(save_data_to '/this/is/An/InvaLid/Path')
   ret="$?"
   assert_equals_helper "We expect an invalid path error" "$LINENO" "$ret" 1
+
+  # Try to use a valid directory path.
+  output=$(save_data_to './')
+  ret="$?"
+  assert_equals_helper "We expect a valid path" "$LINENO" "$ret" 0
+
+  # Verifying that the correct message is displayed.
+  expected='The report output was saved in:'
+  message=${output::-16}
+  assert_equals_helper "We expect a valid message" "$LINENO" "$message" "$expected"
+
+  # Verifying that the correct filename is displayed.
+  filename=${output:(-13)}
+  [[ ! -f "./$filename" ]] && fail "$LINENO: We expect to find a test file"
+
+  # Try to use an invalid root directory path.
+  output=$(save_data_to '/root/')
+  ret="$?"
+  assert_equals_helper "We expect a root path invalid" "$LINENO" "$ret" 1
+
+  # Try to use an invalid folder path error.
+  output=$(save_data_to '/tmp/folder_not_created/')
+  ret="$?"
+  assert_equals_helper "We expect an invalid path error where the folder was not created." "$LINENO" "$ret" 1
 }
 
 invoke_shunit

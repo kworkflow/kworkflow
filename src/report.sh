@@ -350,9 +350,21 @@ function save_data_to()
     exit "$ret"
   fi
 
-  truncate -s 0 "$path"
-  [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "$path"
-  [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "$path"
+  if [[ -d "$path" ]]; then
+    output='report_output'
+
+    [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "${path}/${output}"
+    [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "${path}/${output}"
+
+    success -n "The report output was saved in: "
+    success "${path}/${output}" | tr -s '/'
+  else
+    [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "$path"
+    [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "$path"
+
+    success -n "The report output was saved in: "
+    success "${path}" | tr -s '/'
+  fi
 }
 
 function parse_report_options()
