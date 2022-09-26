@@ -22,3 +22,5 @@ git-email
 pv
 rsync
 ccache
+patch
+sqlite
