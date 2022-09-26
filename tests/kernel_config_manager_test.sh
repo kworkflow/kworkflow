@@ -81,6 +81,8 @@ function test_save_config_file_check_save_failures()
 {
   local current_path="$PWD"
   local ret=0
+  local git_name=$(git config user.name)
+  local git_email=$(git config user.email)
 
   # Test without config file -> should fail
   cd "$SHUNIT_TMPDIR" || {
@@ -96,6 +98,17 @@ function test_save_config_file_check_save_failures()
   ret=$(save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1")
   assert_equals_helper "Should return ENOENT, because '.config' != '.configuration'" "$LINENO" "$?" "2"
   rm .configuration
+
+  # Test git commit fail scenario
+  touch .config
+  git config --global user.name ""
+  git config --global user.email ""
+  ret=$(save_config_file "$NO_FORCE $NAME_1" "$DESCRITION_1")
+  assert_equals_helper 'git commit should fail without username and/or email set' "$LINENO" "$ret" 'Could not save user config files'
+  assertTrue "$LINENO: Failing git commit should not persist .config file" '[[ ! -f $configs_path/configs/$NAME_1 ]]'
+  assertTrue "$LINENO: Failing git commit should not persist .config metadata" '[[ ! -f $configs_path/metadata/$NAME_1 ]]'
+  git config --global user.name "$git_name"
+  git config --global user.email "$git_email"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
