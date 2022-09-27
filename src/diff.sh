@@ -18,7 +18,7 @@ function diff_manager()
       return 0
     fi
 
-    if [[ ! -f "$file" ]]; then
+    if [[ ! -e "$file" ]]; then
       complain "Invalid path: $file"
       diff_help
       return 2 # ENOENT
@@ -48,6 +48,11 @@ function diff_manager()
   if [[ "$test_mode" == 'TEST_MODE' ]]; then
     printf '%s\n' "$target_1 $target_2 $interactive"
     return 0
+  fi
+
+  if [[ -d "$target_1" && -d "$target_2" ]]; then
+    diff_folders "$target_1" "$target_2"
+    return "$?"
   fi
 
   diff_side_by_side "$target_1" "$target_2" "$interactive"
@@ -88,6 +93,35 @@ function diff_parser_options()
     esac
   done
 
+}
+
+# Show the diff result between folders in two columns equally divided.
+#
+# @folder_1 Path to the first folder
+# @folder_2 Path to the second folder
+# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# In case of success, return 0, otherwise, return 22.
+function diff_folders()
+{
+  local folder_1="$1"
+  local folder_2="$2"
+  local flag="$3"
+  local diff_cmd
+  local columns
+
+  diff_cmd='diff --color=always --recursive --brief'
+  flag=${flag:-'SILENT'}
+
+  diff_cmd="${diff_cmd} ${folder_1} ${folder_2} | grep ${folder_1}"
+
+  if [[ ! -d "$folder_1" || ! -d "$folder_2" ]]; then
+    complain "Make sure that ${folder_1} and ${folder_2} are valid folders"
+    return 22 # EINVAL
+  fi
+
+  cmd_manager "$flag" "$diff_cmd"
 }
 
 # Show the diff result in two columns equally divided.
