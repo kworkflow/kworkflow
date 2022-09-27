@@ -39,6 +39,37 @@ function test_diff_side_by_side()
 
 }
 
+function test_diff_folders()
+{
+  local folder_1="${SAMPLES_DIR}/db_files"
+  local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
+
+  # TODO: We need to investigate this LANG part. Ideally, we don't want it here
+  output=$(LANG=en_US.UTF-8 diff_folders "$folder_1" "$folder_2")
+  assertEquals "$output" "Only in ${folder_1}: init.sql"$'\n'"Only in ${folder_1}: insert.sql"
+}
+
+function test_diff_folders_no_difference()
+{
+  local folder_1="${SAMPLES_DIR}/db_files"
+  local folder_2="${SAMPLES_DIR}/db_files"
+
+  output=$(diff_folders "$folder_1" "$folder_2")
+  assertEquals "$output" ""
+}
+
+function test_diff_folders_invalid_path()
+{
+  local folder_1="${SAMPLES_DIR}/db_files"
+  local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
+
+  output=$(diff_folders 'an_invalid_file' "$folder_2")
+  assertEquals "($LINENO) Expected 22" 22 "$?"
+
+  output=$(diff_folders 'an_invalid_file' 'another_invalid_file')
+  assertEquals "($LINENO) Expected 22" 22 "$?"
+}
+
 function test_diff_manager()
 {
   local file_1="$SAMPLES_DIR/MAINTAINERS"
