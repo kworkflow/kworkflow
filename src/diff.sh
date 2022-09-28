@@ -137,5 +137,3 @@ function diff_help()
     '  diff <file1> <file2>                  - interactive diff' \
     '  diff --no-interactive <file1> <file2> - static diff'
 }
-
-load_kworkflow_config
