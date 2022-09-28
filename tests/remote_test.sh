@@ -34,7 +34,7 @@ function oneTimeSetUp()
 
   cp -f 'tests/samples/kworkflow.config' "$TEST_PATH/.kw/"
   cp -f 'tests/samples/dmesg' "$TEST_PATH"
-  cp -f "${KW_REMOTE_SAMPLES_DIR}/remote.config" "${TEST_PATH}/.kw"
+  cp -f "${KW_REMOTE_SAMPLES_DIR}/remote.config" "${TEST_PATH}/.kw/"
 
   export KW_CACHE_DIR="$FAKE_KW"
   export KW_PLUGINS_DIR="$FAKE_KW"
@@ -125,6 +125,62 @@ function test_populate_remote_info()
     fail "($LINENO) It was not possible return to original directory"
     return
   }
+}
+
+function test_ssh_connection_failure_message()
+{
+  local expected_remote='deb-tm'
+  local expected_user='root'
+  local expected_port='333'
+  local returned_remote
+  local returned_user
+  local returned_port
+  local ret
+  local no_config_file_failure_message='Could not find remote config file.'$'\n'
+  no_config_file_failure_message+='Suggestion: check if there is a remote.config or try using'$'\n'
+  no_config_file_failure_message+='  kw ssh --remote | -r <User@IP:Port>'
+
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Case 1: IP, user and port passed as command line arguments (kw ssh -r)
+  remote_parameters['REMOTE_IP']='deb-tm'
+  remote_parameters['REMOTE_USER']='root'
+  remote_parameters['REMOTE_PORT']='333'
+
+  ret=$(ssh_connection_failure_message)
+  returned_remote=$(echo "$ret" | grep "IP" | sed 's/ IP: //')
+  returned_user=$(echo "$ret" | grep "User" | sed 's/ User: //')
+  returned_port=$(echo "$ret" | grep "Port" | sed 's/ Port: //')
+
+  assertEquals "($LINENO):" "$expected_remote" "$returned_remote"
+  assertEquals "($LINENO):" "$expected_user" "$returned_user"
+  assertEquals "($LINENO):" "$expected_port" "$returned_port"
+
+  # Case 2: Using a remote config file
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']='origin'
+
+  ret=$(ssh_connection_failure_message)
+  returned_remote=$(echo "$ret" | grep "IP" | sed 's/ IP: //')
+  returned_user=$(echo "$ret" | grep "User" | sed 's/ User: //')
+  returned_port=$(echo "$ret" | grep "Port" | sed 's/ Port: //')
+
+  assertEquals "($LINENO):" "$expected_remote" "$returned_remote"
+  assertEquals "($LINENO):" "$expected_user" "$returned_user"
+  assertEquals "($LINENO):" "$expected_port" "$returned_port"
+
+  # Case 3: No remote config file found
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+
+  ret=$(ssh_connection_failure_message)
+  assertEquals "($LINENO):" "$no_config_file_failure_message" "$ret"
 }
 
 function test_cmd_remote()
