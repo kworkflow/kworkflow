@@ -21,8 +21,8 @@ function is_ssh_connection_configured()
   local remote=${2:-${remote_parameters['REMOTE_IP']}}
   local port=${3:-${remote_parameters['REMOTE_PORT']}}
   local user=${4:-${remote_parameters['REMOTE_USER']}}
-  local remote_file=${5:-${remote_parameters[REMOTE_FILE]}}
-  local remote_file_host=${5:-${remote_parameters[REMOTE_FILE_HOST]}}
+  local remote_file=${5:-${remote_parameters['REMOTE_FILE']}}
+  local remote_file_host=${5:-${remote_parameters['REMOTE_FILE_HOST']}}
   local ssh_cmd="ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p $port $user@$remote exit"
 
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
@@ -34,12 +34,37 @@ function is_ssh_connection_configured()
   cmd_manager "$flag" "$ssh_cmd"
 }
 
-function ssh_connection_failure_message
+function ssh_connection_failure_message()
 {
+  local remote=${remote_parameters['REMOTE_IP']}
+  local port=${remote_parameters['REMOTE_PORT']}
+  local user=${remote_parameters['REMOTE_USER']}
+  local remote_file=${remote_parameters['REMOTE_FILE']}
+  local remote_file_host=${remote_parameters['REMOTE_FILE_HOST']}
+  local host_line_number
+
+  # If a config file is being used, we need to retrieve the IP, port
+  # and user from the config file.
+  if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
+    if [[ -n "${remote_file}" && -n "${remote_file_host}" ]]; then
+      host_line_number=$(grep -n "Host ${remote_file_host}" "${remote_file}" | cut -d: -f1)
+      remote=$(sed -n "$((host_line_number + 1))p" "${remote_file}" | cut -d\  -f4)
+      port=$(sed -n "$((host_line_number + 2))p" "${remote_file}" | cut -d\  -f4)
+      user=$(sed -n "$((host_line_number + 3))p" "${remote_file}" | cut -d\  -f4)
+    # If there is no config file available, we throw a different
+    # error message to the user.
+    else
+      complain 'Could not find remote config file.'
+      complain 'Suggestion: check if there is a remote.config or try using'
+      complain '  kw ssh --remote | -r <User@IP:Port>'
+      return
+    fi
+  fi
+
   complain 'We could not reach the remote machine by using:'
-  complain " IP: ${remote_parameters['REMOTE_IP']}"
-  complain " User: ${remote_parameters['REMOTE_USER']}"
-  complain " Port: ${remote_parameters['REMOTE_PORT']}"
+  complain " IP: $remote"
+  complain " User: $user"
+  complain " Port: $port"
   complain 'Please ensure that the above info is correct.'
   complain 'Suggestion: Check if your remote machine permits root login via ssh'
   complain 'or check if your public key is in the remote machine.'
