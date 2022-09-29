@@ -127,6 +127,47 @@ function test_populate_remote_info()
   }
 }
 
+function test_is_ssh_connection_configured()
+{
+  local remote='test_remote'
+  local user='test_user'
+  local port='22'
+  local flag='TEST_MODE'
+
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Case 1: IP, user and port passed as command line arguments (kw ssh -r)
+  remote_parameters['REMOTE_IP']="$remote"
+  remote_parameters['REMOTE_USER']="$user"
+  remote_parameters['REMOTE_PORT']="$port"
+
+  is_ssh_connection_configured "$flag" > /dev/null
+
+  assertEquals "($LINENO):" '0' "$?"
+
+  # Case 2: Using a remote config file
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']='origin'
+
+  is_ssh_connection_configured "$flag" > /dev/null
+
+  assertEquals "($LINENO):" '0' "$?"
+
+  # Case 3: No remote config file found
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+
+  is_ssh_connection_configured "$flag"
+
+  assertEquals "($LINENO):" '2' "$?"
+}
+
 function test_ssh_connection_failure_message()
 {
   local expected_remote='deb-tm'
