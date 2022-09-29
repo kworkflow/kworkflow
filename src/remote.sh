@@ -28,6 +28,8 @@ function is_ssh_connection_configured()
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
     if [[ -n "${remote_file}" ]]; then
       ssh_cmd="ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${remote_file} ${remote_file_host} exit"
+    else
+      return 2 # ENOENT
     fi
   fi
 
