@@ -18,11 +18,16 @@ function define_grub_cmd_update()
   local grub_cmd='grub-mkconfig'
   local grub2_cmd='grub2-mkconfig'
 
+  if command_exists 'update-grub'; then
+    DEFAULT_GRUB_CMD_UPDATE='update-grub'
+    return 0
+  fi
+
   if ! command_exists "$grub_cmd"; then
     if ! command_exists "$grub2_cmd"; then
       return 2 # ENOENT
     fi
-    DEFAULT_GRUB_CMD_UPDATE='grub2-mkconfig -o /boot/grub2/grub.cfg'
+    DEFAULT_GRUB_CMD_UPDATE="grub2-mkconfig -o /boot/grub2/grub.cfg"
   fi
 
   return 0
