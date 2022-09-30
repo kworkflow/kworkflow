@@ -316,7 +316,7 @@ function parse_configuration()
       value="$(cut -d '=' -f 2- <<< "${line%#*}")"
       value="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' <<< "$value")"
 
-      eval "${config_array}"'["$varname"]="$value"'
+      [[ -n "$value" ]] && eval "${config_array}"'["$varname"]="$value"'
     fi
   done < "$config_path"
 }
