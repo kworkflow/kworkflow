@@ -51,7 +51,7 @@ function check_dependencies()
 
   if [[ "$distro" =~ 'arch' ]]; then
     while IFS='' read -r package; do
-      installed=$(pacman -Qs "$package" > /dev/null)
+      installed=$(pacman -Ql "$package" &> /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/arch.dependencies"
     cmd="pacman -S $package_list"
