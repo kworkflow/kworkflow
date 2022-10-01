@@ -34,12 +34,35 @@ function is_ssh_connection_configured()
   cmd_manager "$flag" "$ssh_cmd"
 }
 
-function ssh_connection_failure_message
+function ssh_connection_failure_message()
 {
+  local remote=${remote_parameters['REMOTE_IP']}
+  local port=${remote_parameters['REMOTE_PORT']}
+  local user=${remote_parameters['REMOTE_USER']}
+  local remote_file=${remote_parameters['REMOTE_FILE']}
+  local remote_file_host=${remote_parameters['REMOTE_FILE_HOST']}
+  local host_line_number
+
+  # If a config file is being used, we need to set the IP, port
+  # and user from the config file.
+  if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
+    if [[ -n "${remote_parameters['REMOTE_FILE']}" ]]; then
+      host_line_number=$(grep -n "Host ${remote_file_host}" "${remote_file}" | cut -d: -f1)
+      remote=$(sed -n "$((host_line_number + 1))p" "${remote_file}" | cut -d\  -f4)
+      port=$(sed -n "$((host_line_number + 2))p" "${remote_file}" | cut -d\  -f4)
+      user=$(sed -n "$((host_line_number + 3))p" "${remote_file}" | cut -d\  -f4)
+    else
+      complain 'Could not find remote config file.'
+      complain 'Suggestion: check if there is a remote.config or try using'
+      complain '  kw ssh (-r | --remote) <user@ip:port>'
+      return
+    fi
+  fi
+
   complain 'We could not reach the remote machine by using:'
-  complain " IP: ${remote_parameters['REMOTE_IP']}"
-  complain " User: ${remote_parameters['REMOTE_USER']}"
-  complain " Port: ${remote_parameters['REMOTE_PORT']}"
+  complain " IP: $remote"
+  complain " User: $user"
+  complain " Port: $port"
   complain 'Please ensure that the above info is correct.'
   complain 'Suggestion: Check if your remote machine permits root login via ssh'
   complain 'or check if your public key is in the remote machine.'
