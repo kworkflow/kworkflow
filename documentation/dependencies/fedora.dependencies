@@ -1,5 +1,5 @@
 qemu
-libguestfs-tools
+virt-win-reg
 git
 tar
 python3-docutils
