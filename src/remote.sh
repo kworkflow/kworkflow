@@ -54,7 +54,7 @@ function ssh_connection_failure_message()
     else
       complain 'Could not find remote config file.'
       complain 'Suggestion: check if there is a remote.config or try using'
-      complain '  kw ssh (-r | --remote) <user@ip:port>'
+      complain '  kw ssh (-r | --remote) <user>@<ip>:<port>'
       return
     fi
   fi

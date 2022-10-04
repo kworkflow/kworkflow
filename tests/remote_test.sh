@@ -138,7 +138,7 @@ function test_ssh_connection_failure_message()
   local ret
   local no_config_file_failure_message='Could not find remote config file.'$'\n'
   no_config_file_failure_message+='Suggestion: check if there is a remote.config or try using'$'\n'
-  no_config_file_failure_message+='  kw ssh (-r | --remote) <user@ip:port>'
+  no_config_file_failure_message+='  kw ssh (-r | --remote) <user>@<ip>:<port>'
 
   cd "$TEST_PATH" || {
     fail "($LINENO) It was not possible to move to temporary directory"
