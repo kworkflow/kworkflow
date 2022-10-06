@@ -26,3 +26,4 @@ pv
 rsync
 ccache
 libguestfs
+python-setuptools
