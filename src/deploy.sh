@@ -147,6 +147,12 @@ function deploy_main()
 
   prepare_host_deploy_dir
 
+  # Create package option
+  if [[ -n "${options_values['CREATE_PACKAGE']}" ]]; then
+    get_kw_kernel_package "$flag"
+    return "$?"
+  fi
+
   # Setup option
   # Let's ensure that the target machine is ready for the deploy
   deploy_setup "$target" "$flag"
@@ -840,9 +846,15 @@ function compose_copy_source_parameter_for_dtb()
   local copy_pattern
   local char_count
   local dts_base_path
+  local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
 
   copy_pattern="${deploy_config[dtb_copy_pattern]}"
-  dts_base_path="arch/$arch_target/boot/dts"
+  dts_base_path="arch/${arch_target}/boot/dts"
+
+  # Check env
+  if [[ -n "$kbuild_output_prefix" ]]; then
+    dts_base_path="${kbuild_output_prefix}/${dts_base_path}"
+  fi
 
   # Pattern 1: No pattern. Let's copy all dtb files, e.g., copy_pattern='*.dtb'
   if [[ -z "$copy_pattern" ]]; then
@@ -869,6 +881,302 @@ function compose_copy_source_parameter_for_dtb()
   return
 }
 
+# This function work as an entry point to generate kw package, and move it to
+# the current folder.
+function get_kw_kernel_package()
+{
+  local return_tar_path
+
+  build_kw_kernel_package return_tar_path "$flag"
+  if [[ ! -f "$return_tar_path" ]]; then
+    complain "kw was not able to generate kw package: ${return_tar_path}"
+    return 22 # EINVAL
+  fi
+
+  mv "$return_tar_path" "$PWD"
+}
+
+# After compiling a Linux kernel, it generates a binary file required to copy
+# in the deploy phase. This function identifies the generated binary and
+# returns its name.
+#
+# Return:
+# Return the kernel binary name
+function get_kernel_binary_name()
+{
+  local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  local arch_target="${build_config[arch]:-${configurations[arch]}}"
+  local kernel_binary_file_name
+
+  [[ -n "$kbuild_prefix" ]] && kbuild_prefix="${kbuild_prefix}/"
+
+  # Try to find the latest generated kernel image
+  kernel_binary_file_name=$(find "${kbuild_prefix}arch/${arch_target}/boot/" -name '*Image' \
+    -printf '%T+ %p\n' 2> /dev/null | sort -r | head -1)
+  kernel_binary_file_name=$(basename "$kernel_binary_file_name")
+
+  [[ -z "$kernel_binary_file_name" ]] && return 125 # ECANCELED
+
+  printf '%s' "$kernel_binary_file_name"
+}
+
+# When deploying a new kernel, we usually want to include the config file
+# associated with the specific kernel. This function is responsible for finding
+# and changing anything necessary to send the .config file to the target
+# machine.
+#
+# @kernel_name: Kernel name set by the user.
+# @cache_base_kw_pkg_store_path: Cache folder path.
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return
+# In case of success return 0, otherwise return an error code.
+function get_config_file_for_deploy()
+{
+  local kernel_name="$1"
+  local cache_base_kw_pkg_store_path="$2"
+  local flag="$3"
+  local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  local config_local_version
+  local config_path='.config'
+
+  flag=${flag:-'SILENT'}
+
+  if [[ -z "$kernel_name" ]]; then
+    return 22 # EINVAL
+  fi
+
+  # Check env
+  if [[ -n "$kbuild_output_prefix" ]]; then
+    config_path="${kbuild_output_prefix}/.config"
+  fi
+
+  if [[ -f "$config_path" ]]; then
+    config_local_version=$(sed -nr '/CONFIG_LOCALVERSION=/s/CONFIG_LOCALVERSION="(.*)"/\1/p' "$config_path")
+
+    if [[ "$kernel_name" =~ $config_local_version.*$ ]]; then
+      cmd="cp ${config_path} ${cache_base_kw_pkg_store_path}/config-${kernel_name}"
+      cmd_manager "$flag" "$cmd"
+    fi
+
+    return
+  fi
+
+  warning 'Undefined .config file for the target kernel.'
+}
+
+# Get the kernel image with the default name for the target architecture to be
+# used in the deploy package. For example, x86 usually uses vmlinuz and ARM
+# uses Image.
+#
+# @arch: Target architecture
+# @kernel_name: Kernel name used for the binary image
+# @kernel_binary_file_name: The actual binary name
+# @base_kernel_image_path: Base bath to the kernel binary in the kernel tree
+# @base_kw_deploy_store_path: Path to store the binary file to be deployed
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# In case of error return an errno code
+function get_kernel_image_for_deploy()
+{
+  local arch="$1"
+  local kernel_name="$2"
+  local kernel_binary_file_name="$3"
+  local base_kernel_image_path="$4"
+  local base_kw_deploy_store_path="$5"
+  local flag="$6"
+  local kernel_name_arch
+  local config_kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
+  local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+
+  flag=${flag:-'SILENT'}
+
+  # Check env
+  if [[ -n "$kbuild_output_prefix" ]]; then
+    base_kernel_image_path="${kbuild_output_prefix}/${base_kernel_image_path}"
+  fi
+
+  # Check if kernel image exits
+  if [[ ! -f ${base_kernel_image_path}/${kernel_binary_file_name} ]]; then
+    return 2 # ENOENT
+  fi
+
+  case "$arch" in
+    'arm' | 'arm64')
+      kernel_name_arch="${config_kernel_img_name}-${kernel_name}"
+      ;;
+    *)
+      # X86 system usually uses vmlinuz
+      kernel_name_arch="vmlinuz-${kernel_name}"
+      ;;
+  esac
+
+  cmd="cp ${base_kernel_image_path}/${kernel_binary_file_name}"
+  cmd+=" ${base_kw_deploy_store_path}/${kernel_name_arch}"
+  cmd_manager "$flag" "$cmd"
+}
+
+# This function handles dtb files for a specific device and overlay.
+#
+# @arch: Target architecture
+# @base_boot_path: Base bath to the kernel binary in the kernel tree
+# @base_kw_deploy_store_path: Path to store the binary file to be deployed
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function get_dts_and_dtb_files_for_deploy()
+{
+  local arch="$1"
+  local base_boot_path="$2"
+  local base_kw_deploy_store_path="$3"
+  local flag="$4"
+  local dts_base_path
+  local copy_pattern
+  local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+
+  flag=${flag:-'SILENT'}
+
+  dts_base_path="${base_boot_path}/dts"
+
+  # Check env
+  if [[ -n "$kbuild_output_prefix" ]]; then
+    dts_base_path="${kbuild_output_prefix}/${dts_base_path}"
+  fi
+
+  if [[ -d "$dts_base_path" ]]; then
+    # Simple pattern, e.g., copy_pattern='broadcom/*'
+    copy_pattern=$(compose_copy_source_parameter_for_dtb "$arch")
+    cmd_manager "$flag" "cp ${copy_pattern} ${base_kw_deploy_store_path}/"
+
+    if [[ -d "${dts_base_path}/overlays" ]]; then
+      cmd_manager "$flag" "mkdir -p ${base_kw_deploy_store_path}/overlays"
+      cmd_manager "$flag" "cp ${dts_base_path}/overlays/*.dtbo ${base_kw_deploy_store_path}/overlays"
+    fi
+  fi
+}
+
+# Create metadata file with basic info that could be use during deploy
+#
+# @arch: Target architecture
+# @kernel_name: Kernel name used for the binary image
+# @kernel_binary_file_name: The actual binary name
+# @base_kw_deploy_store_path: Path to store the binary file to be deployed
+function create_pkg_metadata_file_for_deploy()
+{
+  local arch="$1"
+  local kernel_name="$2"
+  local kernel_binary_file_name="$3"
+  local base_kw_deploy_store_path="$4"
+  local cache_pkg_metadata_file_path
+
+  cache_pkg_metadata_file_path="${base_kw_deploy_store_path}/kw.pkg.info"
+
+  printf 'kernel_name=%s\n' "$kernel_name" > "${cache_pkg_metadata_file_path}"
+  printf 'kernel_binary_image_file=%s\n' "$kernel_binary_file_name" >> "${cache_pkg_metadata_file_path}"
+  printf 'architecture=%s\n' "$arch" >> "${cache_pkg_metadata_file_path}"
+}
+
+# This function is responsible for putting all the required boot files in a
+# single place (~/.cache/kw/to_deploy) to be deployed to the /boot folder
+# later. This function checks if there are dtb/dtbo files; if so, it moves
+# those files.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @kernel_img_name Kernel image file name, e.g., bzImage or Image.
+# @name Kernel name used during the deploy
+# @arch Target device architecture
+function build_kw_kernel_package()
+{
+  local -n _return_tar_path="$1"
+  local flag="$2"
+  local arch="${build_config[arch]:-${configurations[arch]}}"
+  local config_kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
+  local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  local cache_base_kw_pkg_store_path
+  local kernel_tree_boot_folder_path
+  local cache_kw_pkg_tar_file_path
+  local cache_kw_pkg_modules_path
+  local kernel_binary_file_name
+  local config_local_version
+  local cache_to_deploy_path
+  local output_kbuild_path
+  local compression_type
+  local kernel_name
+
+  flag=${flag:-'SILENT'}
+
+  if [[ -n "$kbuild_output_prefix" ]]; then
+    kbuild_output_prefix="${kbuild_output_prefix}/"
+    output_kbuild_path=" O=${kbuild_output_prefix} --silent"
+  fi
+
+  # Preparing metadata
+  kernel_binary_file_name=$(get_kernel_binary_name "$flag")
+  if [[ "$?" != 0 ]]; then
+    complain "We could not find a valid kernel image at arch/${arch}/boot"
+    complain 'Please, check if your compilation successfully completed or'
+    complain 'check your kworkflow.config'
+    exit 125 # ECANCELED
+  fi
+  kernel_name=$(eval "make kernelrelease${output_kbuild_path}")
+
+  compression_type="${deploy_config[deploy_default_compression]}"
+  cache_to_deploy_path="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
+  kernel_tree_boot_folder_path="arch/${arch}/boot"
+
+  # Build package paths
+  cache_base_kw_pkg_store_path="${cache_to_deploy_path}/kw_pkg"
+  cache_kw_pkg_modules_path="${cache_base_kw_pkg_store_path}/modules"
+  cache_kw_pkg_tar_file_path="${cache_to_deploy_path}/${kernel_name}.kw.tar"
+
+  # Ensure that we will not add anything else in the package
+  if [[ -n "${KW_CACHE_DIR}" && -n "${LOCAL_TO_DEPLOY_DIR}" &&
+    -x "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}" ]]; then
+    rm -rf "${cache_to_deploy_path:?}/*"
+  fi
+
+  # Centralizing kernel files in a single place
+  mkdir -p "$cache_base_kw_pkg_store_path"
+  mkdir -p "$cache_kw_pkg_modules_path"
+
+  # 1. Prepare modules
+  modules_install_to "${cache_kw_pkg_modules_path}" "$flag"
+
+  # 2. Copying .config file, we don't want to mislead developers by deploying
+  # the wrong config file.
+  get_config_file_for_deploy "$kernel_name" "${cache_base_kw_pkg_store_path}"
+  if [[ "$?" == 22 ]]; then
+    complain 'Kernel name not specified for get_config_file_for_deploy'
+    return 22 # EINVAL
+  fi
+
+  # 3. Copy kernel image
+  get_kernel_image_for_deploy "$arch" "$kernel_name" "$kernel_binary_file_name" "$kernel_tree_boot_folder_path" "$cache_base_kw_pkg_store_path"
+  if [[ "$?" == 2 ]]; then
+    complain "Kernel image was not found at: ${kernel_tree_boot_folder_path}"
+    return 2 # ENOENT
+  fi
+
+  # 4. If we have dtb files, let's copy it
+  get_dts_and_dtb_files_for_deploy "$arch" "$kernel_tree_boot_folder_path" "$cache_base_kw_pkg_store_path"
+
+  # 5. Build metadata file
+  create_pkg_metadata_file_for_deploy "$arch" "$kernel_name" "$kernel_binary_file_name" \
+    "$cache_base_kw_pkg_store_path"
+
+  # 6. Generate tarball
+  generate_tarball "${cache_to_deploy_path}" "$cache_kw_pkg_tar_file_path" \
+    "$compression_type" 'kw_pkg' "$flag"
+
+  _return_tar_path="$cache_kw_pkg_tar_file_path"
+}
+
+# TODO: DROP ME in favor of build_kw_kernel_package
 # This function is responsible for putting all the required boot files in a
 # single place (~/.cache/kw/to_deploy) to be deployed to the /boot folder
 # later. This function checks if there are dtb/dtbo files; if so, it moves
@@ -1096,8 +1404,8 @@ function parse_deploy_options()
   local remote
   local options
   local long_options='remote:,local,vm,reboot,no-reboot,modules,list,ls-line,uninstall:'
-  long_options+=',list-all,force,setup,verbose'
-  local short_options='r,m,l,s,u:,a,f,v'
+  long_options+=',list-all,force,setup,verbose,create-package'
+  local short_options='r,m,l,s,u:,a,f,v,p'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -1120,6 +1428,7 @@ function parse_deploy_options()
   options_values['LS_ALL']=''
   options_values['SETUP']=''
   options_values['VERBOSE']=''
+  options_values['CREATE_PACKAGE']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -1208,6 +1517,10 @@ function parse_deploy_options()
         options_values['UNINSTALL_FORCE']=1
         shift
         ;;
+      --create-package | -p)
+        options_values['CREATE_PACKAGE']=1
+        shift
+        ;;
       --) # End of options, beginning of arguments
         shift
         ;;
@@ -1251,7 +1564,8 @@ function deploy_help()
     '  deploy (--uninstall | -u) [(--force | -f)] <kernel-name>,... - uninstall given kernels' \
     '  deploy (--list | -l) - list kernels' \
     '  deploy (--ls-line | -s) - list kernels separeted by commas' \
-    '  deploy (--list-all | -a) - list all available kernels'
+    '  deploy (--list-all | -a) - list all available kernels' \
+    '  deploy (--create-package | -p) - Create kw package'
 }
 
 load_vm_config

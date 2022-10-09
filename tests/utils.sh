@@ -22,6 +22,9 @@ KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
 KW_BUILD_CONFIG_SAMPLE_X86="$SAMPLES_DIR/build_x86.config"
 KW_VM_CONFIG_SAMPLE_X86="$SAMPLES_DIR/vm_x86.config"
 
+# Config file
+STD_CONFIG_FILE="${SAMPLES_DIR}/.config"
+
 # External files
 CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
 
@@ -113,6 +116,9 @@ function mk_fake_kernel_root()
   mkdir -p "$path/arch/arm64/boot/"
   touch "$path/arch/x86_64/boot/bzImage"
   touch "$path/arch/arm64/boot/Image"
+
+  printf 'This is a bzImage fake\n' > "${path}/arch/x86_64/boot/bzImage"
+  printf 'This is a Image fake\n' > "$path/arch/arm64/boot/Image"
 }
 
 function mk_fake_remote()

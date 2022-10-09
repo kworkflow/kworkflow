@@ -1324,4 +1324,310 @@ function test_collect_target_info_for_deploy()
   assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'chrome'
 }
 
+function test_get_kernel_binary_name_outside_env()
+{
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  build_config['arch']='arm64'
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'Expected Image for ARM' "($LINENO)" "$output" 'Image'
+
+  build_config['arch']='x86_64'
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'Expected bzImage for x86' "($LINENO)" "$output" 'bzImage'
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_kernel_binary_name_inside_env()
+{
+  local output
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
+
+  build_config['arch']='arm64'
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'Expected Image for ARM' "($LINENO)" "$output" 'Image'
+
+  build_config['arch']='x86_64'
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'Expected bzImage for x86' "($LINENO)" "$output" 'bzImage'
+}
+
+function test_get_kernel_binary_name_invalid_operation()
+{
+  local output
+
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'It should not find a kernel image' "($LINENO)" 125 "$?"
+}
+
+function test_get_config_file_for_deploy_local_config()
+{
+  local original="$PWD"
+  local fake_cache_path
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Mini-setup
+  fake_cache_path="${PWD}/TEST"
+  mkdir "$fake_cache_path"
+
+  cp "$STD_CONFIG_FILE" ./
+  get_config_file_for_deploy 'test' "$fake_cache_path"
+
+  assertFileEquals "$STD_CONFIG_FILE" "${fake_cache_path}/config-test"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_file_for_deploy_no_kernel_name()
+{
+  local original="$PWD"
+  local fake_cache_path
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Mini-setup
+  fake_cache_path="${PWD}/TEST"
+  mkdir "$fake_cache_path"
+
+  cp "$STD_CONFIG_FILE" ./
+  get_config_file_for_deploy '' "$fake_cache_path"
+  assert_equals_helper 'There is no kernel name' "($LINENO)" 22 "$?"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_file_for_deploy_inside_env()
+{
+  local original="$PWD"
+  local fake_cache_path
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
+
+  # Mini-setup
+  fake_cache_path="${FAKE_KERNEL}/TEST"
+  mkdir "$fake_cache_path"
+
+  cp "$STD_CONFIG_FILE" "$FAKE_KERNEL"
+  get_config_file_for_deploy 'test' "$fake_cache_path"
+  assertFileEquals "$STD_CONFIG_FILE" "${fake_cache_path}/config-test"
+}
+
+function test_get_config_file_for_deploy_warning_message()
+{
+  local output
+  local original="$PWD"
+  local fake_cache_path
+  local expected_str='Undefined .config file for the target kernel.'
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${FAKE_KERNEL}/invalid/"
+
+  # Mini-setup
+  fake_cache_path="${FAKE_KERNEL}/TEST"
+  mkdir "$fake_cache_path"
+
+  cp "$STD_CONFIG_FILE" "$FAKE_KERNEL"
+  output=$(get_config_file_for_deploy 'test' "$fake_cache_path")
+  assert_equals_helper 'Expected a warning' "($LINENO)" "$expected_str" "$output"
+}
+
+function test_get_kernel_image_for_deploy_no_env_x86()
+{
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Mini-setup
+  fake_cache_path="${FAKE_KERNEL}/TEST"
+  mkdir "$fake_cache_path"
+
+  get_kernel_image_for_deploy 'x86_64' 'test' 'bzImage' 'arch/x86_64/boot' "$fake_cache_path"
+  assertFileEquals 'arch/x86_64/boot/bzImage' "${fake_cache_path}/vmlinuz-test"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_kernel_image_for_deploy_no_env_arm()
+{
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Mini-setup
+  fake_cache_path="${FAKE_KERNEL}/TEST"
+  mkdir "$fake_cache_path"
+
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache_path"
+  assertFileEquals 'arch/arm64/boot/Image' "${fake_cache_path}/Image-test"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_kernel_image_for_deploy_inside_env()
+{
+  local original="$PWD"
+  local fake_cache
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
+
+  # Mini-setup
+  fake_cache="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}/TEST"
+  mkdir -p "$fake_cache"
+
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache"
+  assertFileEquals "${FAKE_KERNEL}/arch/arm64/boot/Image" "${fake_cache}/Image-test"
+}
+
+function test_get_kernel_image_for_deploy_kernel_image_does_not_exist()
+{
+  local original="$PWD"
+  local fake_cache
+
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache"
+  assert_equals_helper 'There is no kernel image' "($LINENO)" 2 "$?"
+}
+
+# TODO: Move this function to mk_fake_kernel_root
+function create_fake_dts_folder()
+{
+  local base_path
+
+  mkdir -p "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays"
+  mkdir -p "${FAKE_KERNEL}/arch/arm64/boot/dts/broadcom"
+
+  touch "${FAKE_KERNEL}/arch/arm64/boot/dts/broadcom/bcm2710-rpi-2-b.dts"
+  touch "${FAKE_KERNEL}/arch/arm64/boot/dts/broadcom/bcm2710-rpi-2-b.dtb"
+  touch "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays/something.dts"
+  touch "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays/something.dtbo"
+}
+
+function test_get_dts_and_dtb_files_for_deploy_copy_overlay_and_dtbo()
+{
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # dtb setup
+  create_fake_dts_folder
+  mkdir "${FAKE_KERNEL}/TEST"
+
+  get_dts_and_dtb_files_for_deploy 'arm64' 'arch/arm64/boot' "${FAKE_KERNEL}/TEST"
+  assertTrue "($LINENO): Copy overlay folder" '[[ -d ${FAKE_KERNEL}/TEST/overlays ]]'
+  assertTrue "($LINENO): Expted dtb files" '[[ -f ${FAKE_KERNEL}/TEST/bcm2710-rpi-2-b.dtb ]]'
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_dts_and_dtb_files_for_deploy_copy_only_dtbo()
+{
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # dtb setup
+  create_fake_dts_folder
+  rm -rf "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays"
+
+  mkdir "${FAKE_KERNEL}/TEST"
+
+  get_dts_and_dtb_files_for_deploy 'arm64' 'arch/arm64/boot' "${FAKE_KERNEL}/TEST"
+
+  assertTrue "($LINENO): It should not have overlays" '[[ ! -d ${FAKE_KERNEL}/TEST/overlays ]]'
+  assertTrue "($LINENO): Expted dtb files" '[[ -f ${FAKE_KERNEL}/TEST/bcm2710-rpi-2-b.dtb ]]'
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_dts_and_dtb_files_for_deploy_inside_env()
+{
+  local fake_cache
+
+  # Mini-setup
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
+  fake_cache="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}/TEST"
+  mkdir -p "$fake_cache"
+
+  # dtb setup
+  create_fake_dts_folder
+
+  get_dts_and_dtb_files_for_deploy 'arm64' 'arch/arm64/boot' "${FAKE_KERNEL}/TEST"
+  assertTrue "($LINENO): Copy overlay folder" '[[ -d ${FAKE_KERNEL}/TEST/overlays ]]'
+  assertTrue "($LINENO): Expted dtb files" '[[ -f ${FAKE_KERNEL}/TEST/bcm2710-rpi-2-b.dtb ]]'
+}
+
+function test_create_pkg_metadata_file_for_deploy()
+{
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mkdir 'TEST'
+
+  create_pkg_metadata_file_for_deploy 'x86_64' 'test' 'vmlinuz' './TEST'
+  output=$(grep 'kernel_name' './TEST/kw.pkg.info')
+  assertEquals "($LINENO)" 'kernel_name=test' "$output"
+
+  output=$(grep 'kernel_binary_image_file' './TEST/kw.pkg.info')
+  assertEquals "($LINENO)" 'kernel_binary_image_file=vmlinuz' "$output"
+
+  output=$(grep 'architecture' './TEST/kw.pkg.info')
+  assertEquals "($LINENO)" 'architecture=x86_64' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 invoke_shunit

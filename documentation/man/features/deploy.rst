@@ -13,6 +13,7 @@ SYNOPSIS
                       [-l | \--list] [-a | \--list-all]
                       [(-u | \--uninstall) <kernel-name>[,...]] [-f \--force]
                       [\--alert=(s | v | (sv | vs) | n)]
+                      [-p | \--create-package]
 
 DESCRIPTION
 ===========
@@ -95,6 +96,12 @@ OPTIONS
   kw can lead to system failures, and it is not recommended; only use it
   if you are sure about what you are doing.
 
+-p, \--create-package:
+  It is possible to create a kw package that can be shared with other users and
+  deployed with kw. This option instructs kw to just generate the package
+  without deploying it; notice that the package will be available in the
+  current folder.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -135,3 +142,8 @@ order to prepare your target machine to receive your new kernel via `kw d`::
 
 Alternatively, you can just run `kw d` directly; the standard behavior will
 automatically run the setup operation in your first deploy.
+
+Suppose that you want to share a specific kernel with someone else for
+validation; you can generate a kw package with::
+
+  kw deploy --create-package
