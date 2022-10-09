@@ -94,6 +94,11 @@ function deploy_main()
     exit 22 # EINVAL
   fi
 
+  if ! is_kernel_root "$PWD"; then
+    complain 'Execute this command in a kernel tree.'
+    exit 125 # ECANCELED
+  fi
+
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
     options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${env_name}"
@@ -111,6 +116,13 @@ function deploy_main()
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
   setup="${options_values['SETUP']}"
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
+  signal_manager 'cleanup' || warning 'Was not able to set signal handler'
+
+  update_deploy_variables
+
+  # List option
   if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
     say 'Available kernels:'
     start=$(date +%s)
@@ -122,10 +134,20 @@ function deploy_main()
     exit "$?"
   fi
 
-  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+  # Uninstall option
+  if [[ -n "$uninstall" ]]; then
+    start=$(date +%s)
+    run_kernel_uninstall "$target" "$reboot" "$uninstall" "$flag" "$uninstall_force"
+    end=$(date +%s)
 
-  update_deploy_variables
+    runtime=$((end - start))
+    statistics_manager 'uninstall' "$runtime"
+    return "$?"
+  fi
 
+  prepare_host_deploy_dir
+
+  # Setup option
   # Let's ensure that the target machine is ready for the deploy
   deploy_setup "$target" "$flag"
   ret="$?"
@@ -142,8 +164,6 @@ function deploy_main()
       ;;
   esac
 
-  prepare_host_deploy_dir
-
   # If user request --setup, we don't need to do anything else
   if [[ -n "$setup" ]]; then
     [[ "$ret" == 0 ]] && success 'It looks like you are ready to use kw deploy.'
@@ -151,23 +171,6 @@ function deploy_main()
   fi
 
   collect_target_info_for_deploy "$target" "$flag"
-
-  if [[ -n "$uninstall" ]]; then
-    start=$(date +%s)
-    run_kernel_uninstall "$target" "$reboot" "$uninstall" "$flag" "$uninstall_force"
-    end=$(date +%s)
-
-    runtime=$((end - start))
-    statistics_manager 'uninstall' "$runtime"
-    return "$?"
-  fi
-
-  if ! is_kernel_root "$PWD"; then
-    complain 'Execute this command in a kernel tree.'
-    exit 125 # ECANCELED
-  fi
-
-  signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
   if [[ "$target" == "$VM_TARGET" ]]; then
     vm_mount
@@ -193,6 +196,7 @@ function deploy_main()
     exit "$modules_install_status"
   fi
 
+  # Full deploy
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
