@@ -1,6 +1,9 @@
 declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
 declare -g AB_ROOTFS_PARTITION='/dev/disk/by-partsets/self/rootfs'
 
+# kw package metadata
+declare -gA kw_package_metadata
+
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
 # share the specific distro in the kw main code. However, when we deploy for a
@@ -537,9 +540,12 @@ function install_kernel()
   fi
 
   if [[ "$target" == 'remote' ]]; then
-    cmd="$sudo_cmd tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}_boot.tar"
-    cmd+=" --directory=/ --no-same-owner"
+    cmd="$sudo_cmd tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}.kw.tar"
+    cmd+=" --directory=/tmp --no-same-owner"
     cmd_manager "$flag" "$cmd"
+
+    # Update modules
+    cmd_manager "$flag" 'cp -r /tmp/kw_pkg/modules/lib/modules/ /lib/modules'
   fi
 
   # Each distro has their own way to update their bootloader

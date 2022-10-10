@@ -509,7 +509,8 @@ function test_install_kernel_remote()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}_boot.tar --directory=/ --no-same-owner"
+    "tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}.kw.tar --directory=/tmp --no-same-owner"
+    'cp -r /tmp/kw_pkg/modules/lib/modules/ /lib/modules'
     "generate_debian_temporary_root_file_system $flag $name $target GRUB"
     'run_bootloader_update_mock'
     "grep -Fxq $name $INSTALLED_KERNELS_PATH"
@@ -577,6 +578,11 @@ function test_install_kernel_vm()
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+}
+
+function distro_pre_setup()
+{
+  :
 }
 
 function test_distro_deploy_setup()

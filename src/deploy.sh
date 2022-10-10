@@ -79,6 +79,7 @@ function deploy_main()
   local modules_install_status
   local env_name
   local output_kbuild_path=''
+  local return_tar_path
 
   # Drop build_and_deploy flag
   shift
@@ -191,16 +192,6 @@ function deploy_main()
   # we can break the boot. For security reason, every time we want to deploy a
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
-  start=$(date +%s)
-  modules_install "$flag" "$target"
-  modules_install_status="$?"
-  end=$(date +%s)
-  runtime=$((end - start))
-
-  if [[ "$modules_install_status" != 0 ]]; then
-    complain 'Something went wrong during the installation of the modules.'
-    exit "$modules_install_status"
-  fi
 
   # Full deploy
   if [[ "$modules" == 0 ]]; then
@@ -208,10 +199,21 @@ function deploy_main()
     # Update name: release + alias
     name=$(eval "make kernelrelease${output_kbuild_path}")
     run_kernel_install "$reboot" "$name" "$flag" "$target" '' "$build_and_deploy"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      end=$(date +%s)
+      runtime=$((runtime + (end - start)))
+      statistics_manager 'deploy_failure' "$runtime"
+      exit "$ret"
+    fi
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
     statistics_manager 'deploy' "$runtime"
-  else
+  else # Only module deploy
+    start=$(date +%s)
+    modules_install "$flag" "$target"
+    end=$(date +%s)
+    runtime=$((end - start))
     statistics_manager 'Modules_deploy' "$runtime"
   fi
 
@@ -755,6 +757,7 @@ function modules_install()
 
   flag=${flag:-'SILENT'}
 
+  # TODO: MUDOU TUDO AQUI já que o pacote é gerado antes
   case "$target" in
     1) # VM_TARGET
       modules_install_to "${vm_config[mount_point]}" "$flag"
@@ -1308,36 +1311,48 @@ function run_kernel_install()
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
   local arch_target="${build_config[arch]:-${configurations[arch]}}"
   local kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
+  local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
   local kernel_binary_file_name
+  local config_local_version
+  local retrun_tar_path
+  local cmd_parameters
   local remote
   local port
-  local config_local_version
   local cmd
-  local cmd_parameters
-  local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
 
   [[ -n "$kbuild_prefix" ]] && kbuild_prefix="${kbuild_prefix}/"
 
   # We have to guarantee some default values values
-  kernel_name=${kernel_img_name:-'nothing'}
   mkinitcpio_name=${mkinitcpio_name:-'nothing'}
+  kernel_name=${kernel_img_name:-'nothing'}
   name=${name:-'kw'}
   flag=${flag:-'SILENT'}
 
-  # Try to find the latest generated kernel image
-  kernel_binary_file_name=$(find "${kbuild_prefix}arch/$arch_target/boot/" -name '*Image' \
-    -printf '%T+ %p\n' 2> /dev/null | sort -r | head -1)
-  kernel_binary_file_name=$(basename "$kernel_binary_file_name")
-  if [[ -z "$kernel_binary_file_name" ]]; then
-    complain "We could not find a valid kernel image at arch/$arch_target/boot"
-    complain 'Please, check if your compilation successfully completed or'
-    complain 'check your kworkflow.config'
-    exit 125 # ECANCELED
+  say '* Preparing kw kernel package for installation'
+
+  build_kw_kernel_package return_tar_path "$flag"
+  modules_install_status="$?"
+  if [[ ! -f "$return_tar_path" ]]; then
+    complain "kw was not able to generate kw package: ${return_tar_path}"
+    return 22 # EINVAL
   fi
 
-  say '* Sending kernel boot files'
-  pack_kernel_files_and_send "$flag" "$target" "$kernel_binary_file_name" \
-    "$name" "$arch_target" "$build_and_deploy"
+  case "$modules_install_status" in
+    2)
+      complain "Kernel image was not found at: ${kernel_tree_boot_folder_path}"
+      return 2 # ENOENT
+      ;;
+    22)
+      complain 'Kernel name not specified for get_config_file_for_deploy'
+      return 22 # EINVAL
+      ;;
+    125)
+      complain "We could not find a valid kernel image at arch/${build_config[arch]}/boot"
+      complain 'Please, check if your compilation successfully completed or'
+      complain 'check your kworkflow.config'
+      return 125 # ECANCELED
+      ;;
+  esac
 
   case "$target" in
     1) # VM_TARGET
@@ -1346,7 +1361,7 @@ function run_kernel_install()
       if [[ "$distro" =~ 'none' ]]; then
         complain 'Unfortunately, there is no support for the target distro'
         vm_umount
-        exit 95 # ENOTSUP
+        return 95 # ENOTSUP
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
@@ -1360,17 +1375,17 @@ function run_kernel_install()
 
       if [[ "$distro" =~ 'none' ]]; then
         complain 'Unfortunately, there is no support for the target distro'
-        exit 95 # ENOTSUP
+        return 95 # ENOTSUP
       fi
 
       # Local Deploy
       if [[ $(id -u) == 0 ]]; then
         complain 'kw deploy --local should not be run as root'
-        exit 1 # EPERM
+        return 1 # EPERM
       fi
 
-      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/${distro}.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       update_deploy_variables # Ensure that we are using the right variable
 
       install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'local' "$flag"
@@ -1379,9 +1394,18 @@ function run_kernel_install()
     3) # REMOTE_TARGET
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro '/' "$distro_info")
+      release=$(basename "$return_tar_path")
+
+      say "* Sending kernel package (${release}) to the remote"
+      cp2remote "$flag" "$return_tar_path" "$KW_DEPLOY_TMP_FILE"
+
+      # 3. Deploy: Execute script
+      cmd="$REMOTE_INTERACE_CMD_PREFIX"
+      cmd+=" --modules $release.tar"
+      cmd_remotely "$cmd" "$flag"
 
       # Deploy
-      cmd_parameters="$name $distro $kernel_binary_file_name $reboot $arch_target 'remote' $flag"
+      cmd_parameters="${name} ${distro} ${kernel_binary_file_name} ${reboot} ${arch_target} 'remote' ${flag}"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 
