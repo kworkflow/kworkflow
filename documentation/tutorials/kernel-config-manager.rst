@@ -72,14 +72,13 @@ Conclusion
 The kernel-config-manager option makes it easier for you to keep track of different config
 files. Another advantage of using this feature comes from the fact that the
 backup option also saves these files, enabling you to easily move your config
-files. Finally, under the hood, these config files are maintained under a git
-repository managed by kw; if you really want to see it, you can check the
-folder::
+files. Finally, under the hood, these config files are maintained by a folder structure
+managed by kw. If you want to see these files, they are stored inside this folder::
 
-  $XDG_DATA_HOME/kw
+  $XDG_DATA_HOME/kw/configs
 
 Or::
 
-  $HOME/.local/share/kw
+  $HOME/.local/share/kw/configs
 
 Depending on your configurations.
