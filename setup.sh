@@ -25,6 +25,7 @@ declare -r sounddir="$sharedir/sound"
 declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
 declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
+declare -r dot_configs_dir="${datadir}/configs"
 
 ##
 ## Source code references
@@ -163,6 +164,28 @@ function cmd_output_manager()
 
   eval "$cmd"
   return "$?"
+}
+
+# TODO: Remove me one day
+# KW used git to track saved configs from kernel-config-manager.
+# It changed so this function removes the unused .git folder from
+# the dot_configs_dir
+function remove_legacy_git_from_kernel_config_manager()
+{
+  local -r original_path="$PWD"
+
+  [[ ! -d "${dot_configs_dir}"/.git ]] && return
+
+  if pushd "$dot_configs_dir" &> /dev/null; then
+    rm -rf .git/
+    popd &> /dev/null || {
+      complain "Could not return to original path from dot_configs_dir=$dot_configs_dir"
+      exit 1
+    }
+  else
+    complain 'Could not cd to dot_configs_dir'
+    return
+  fi
 }
 
 function usage()
@@ -400,6 +423,8 @@ function install_home()
   # Synchronize source files
   say 'Installing ...'
   synchronize_files
+  # Remove old git repo to manage .config files
+  remove_legacy_git_from_kernel_config_manager
   # Update version based on the current branch
   update_version
 }

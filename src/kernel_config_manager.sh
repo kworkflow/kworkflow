@@ -110,7 +110,6 @@ function save_config_file()
   if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
     mkdir -p "$dot_configs_dir"
     cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
-    git init --quiet
     mkdir -p "$metadata_dir" "$configs_dir"
   fi
 
@@ -131,15 +130,14 @@ function save_config_file()
     printf '%s\n' "$description" > "$metadata_dir/$name"
   fi
 
+  if cmp -s "${original_path}/.config" "${dot_configs_dir}/${configs_dir}/${name}"; then
+    warning "Warning: $name: there's nothing new in this file"
+  fi
+
   cp "$original_path/.config" "$dot_configs_dir/$configs_dir/$name"
-  git add "$configs_dir/$name" "$metadata_dir/$name"
-  current_date=$(date)
-  git commit -m "New config file added: $USER - $current_date" > /dev/null 2>&1
   ret="$?"
 
-  if [[ "$ret" == 1 ]]; then
-    warning "Warning: $name: there's nothing new in this file"
-  elif [[ "$ret" -gt 0 ]]; then
+  if [[ "$ret" -gt 0 ]]; then
     fail "Could not save user config files"
   else
     success "Saved $name"
@@ -558,19 +556,26 @@ function remove_config()
   local original_path="$PWD"
   local -r dot_configs_dir="$KW_DATA_DIR/configs"
   local -r msg="This operation will remove $target from kw management"
+  local ret
+  local configs
 
   basic_config_validations "$target" "$force" 'Remove' "$msg"
 
   cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
-  git rm "$configs_dir/$target" "$dot_configs_dir/$metadata_dir/$target" > /dev/null 2>&1
-  git commit -m "Removed $target config: $USER - $(date)" > /dev/null 2>&1
+
+  rm "${configs_dir}/${target}" "${dot_configs_dir}/${metadata_dir}/${target}"
+  ret="$?"
+  if [[ "$ret" -ne 0 ]]; then
+    exit_msg 'Could not remove config file'
+  fi
   cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
 
   say "The $target config file was removed from kw management"
 
   # Without config file, there's no reason to keep config directory
-  if [ ! "$(ls "$dot_configs_dir")" ]; then
-    rm -rf "/tmp/$configs_dir"
+  configs=$(ls "${dot_configs_dir}/${configs_dir}")
+  if [[ -z "$configs" ]]; then
+    rm -rf "/tmp/${configs_dir}"
     mv "$dot_configs_dir" /tmp
   fi
 }

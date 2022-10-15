@@ -123,7 +123,6 @@ function test_save_config_file_check_directories_creation()
 
   # Check if all the expected files were created
   assertTrue "$LINENO: The configs dir was not created" '[[ -d $configs_path ]]'
-  assertTrue "$LINENO: The repository configs does not have .git" '[[ -d $configs_path/.git ]]'
   assertTrue "$LINENO: The metadata dir is not available" '[[ -d $configs_path/metadata ]]'
   assertTrue "$LINENO: The configs dir is not available" '[[ -d $configs_path/configs ]]'
 }
@@ -206,35 +205,6 @@ function test_save_config_file_check_description()
   tmp=$(cat "$configs_path/metadata/$NAME_2")
   msg="The description content for $NAME_2 does not match"
   assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_2 ]]'
-}
-
-function test_save_config_file_check_git_save_schema()
-{
-  local current_path="$PWD"
-  local ret=0
-
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
-  ret=$(save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2")
-
-  assert_equals_helper '' "$LINENO" "$ret" "Saved $NAME_2"
-
-  cd "configs" || {
-    fail "($LINENO) It was not possible to move to configs directory"
-    return
-  }
-  ret=$(git rev-list --all --count)
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from configs directory"
-    return
-  }
-
-  assertTrue "$LINENO: We expected 2 commits, but we got $ret" '[[ $ret = "2" ]]'
 }
 
 function test_save_config_file_check_force()
