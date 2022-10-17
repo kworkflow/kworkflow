@@ -63,8 +63,8 @@ function check_dependencies()
     cmd="apt install -y $package_list"
   elif [[ "$distro" =~ 'fedora' ]]; then
     while IFS='' read -r package; do
-      installed=$(dnf list installed "$package" 2> /dev/null | grep -c "$package")
-      [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
+      installed=$(rpm -q "$package" &> /dev/null)
+      [[ "$?" -ne 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/fedora.dependencies"
     cmd="dnf install -y $package_list"
   else
