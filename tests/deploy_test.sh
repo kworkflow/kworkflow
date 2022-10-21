@@ -546,10 +546,10 @@ function test_kernel_modules()
   compress_cmd="tar --auto-compress --directory='$local_remote_path/lib/modules/' --create --file='$to_deploy_path/$version.tar' $version"
 
   # Rsync modules
-  rsync_tarball="$CONFIG_RSYNC $to_deploy_path/$version.tar $CONFIG_REMOTE:$remote_path $STD_RSYNC_FLAG"
+  rsync_tarball="${CONFIG_RSYNC} ${to_deploy_path}/${version}.kw.tar ${CONFIG_REMOTE}:${remote_path} ${STD_RSYNC_FLAG}"
 
   # Install module inside remote
-  deploy_remote_cmd+=" --modules $version.tar"
+  deploy_remote_cmd+=" --modules ${version}.kw.tar"
 
   exec_module_install="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_remote_cmd\""
 
@@ -561,11 +561,8 @@ function test_kernel_modules()
   }
 
   declare -a expected_cmd=(
-    "$PREPARING_MODULES_MSG"
-    "$make_install_cmd" # make install
-    "$compress_cmd"     # Prepare tarball
-    "* Sending kernel modules ($version) to the remote"
-    "$rsync_tarball"       # Sending tarball
+    "$rsync_tarball" # Sending tarball
+    '* Sending kernel package (5.4.0-rc7-test) to the remote'
     "$exec_module_install" # Installing module in the target
   )
 
@@ -574,11 +571,11 @@ function test_kernel_modules()
 
   deploy_config['deploy_default_compression']=''
 
-  output=$(modules_install 'TEST_MODE' 3)
+  output=$(modules_install 3 "${to_deploy_path}/${version}.kw.tar" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 2: Deploy modules to local
-  output=$(modules_install 'TEST_MODE' 1)
+  output=$(modules_install 1 'fake/path' 'TEST_MODE')
   declare -a expected_cmd=(
     "$PREPARING_MODULES_MSG"
     'make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=/home/lala modules_install'
@@ -586,7 +583,7 @@ function test_kernel_modules()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 3: Deploy modules locally vm
-  output=$(modules_install 'TEST_MODE' 2)
+  output=$(modules_install 2 'fake/path' 'TEST_MODE')
   declare -a expected_cmd=(
     "$PREPARING_MODULES_MSG"
     'sudo true && sudo -E make INSTALL_MOD_STRIP=1 modules_install'
@@ -609,9 +606,7 @@ function test_list_remote_kernels()
   # Rsync script command
   local remote_list_cmd="$CONFIG_SSH $CONFIG_REMOTE sudo"
   local output
-  local deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
-
-  # Composing command
+  local deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX" # Composing command
   deploy_remote_cmd+=" --list-kernels TEST_MODE 0 "
   remote_list_cmd+=" \"$deploy_remote_cmd\""
 
@@ -1072,6 +1067,7 @@ function test_get_config_file_for_deploy_warning_message()
 function test_get_kernel_image_for_deploy_no_env_x86()
 {
   local original="$PWD"
+  local final_kernel_binary_image_name
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -1082,8 +1078,9 @@ function test_get_kernel_image_for_deploy_no_env_x86()
   fake_cache_path="${FAKE_KERNEL}/TEST"
   mkdir "$fake_cache_path"
 
-  get_kernel_image_for_deploy 'x86_64' 'test' 'bzImage' 'arch/x86_64/boot' "$fake_cache_path"
+  get_kernel_image_for_deploy 'x86_64' 'test' 'bzImage' 'arch/x86_64/boot' "$fake_cache_path" final_kernel_binary_image_name
   assertFileEquals 'arch/x86_64/boot/bzImage' "${fake_cache_path}/vmlinuz-test"
+  assert_equals_helper 'vmlinuz for x86' "(${LINENO})" 'vmlinuz-test' "$final_kernel_binary_image_name"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -1094,6 +1091,7 @@ function test_get_kernel_image_for_deploy_no_env_x86()
 function test_get_kernel_image_for_deploy_no_env_arm()
 {
   local original="$PWD"
+  local final_kernel_binary_image_name
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -1104,8 +1102,9 @@ function test_get_kernel_image_for_deploy_no_env_arm()
   fake_cache_path="${FAKE_KERNEL}/TEST"
   mkdir "$fake_cache_path"
 
-  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache_path"
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache_path" final_kernel_binary_image_name
   assertFileEquals 'arch/arm64/boot/Image' "${fake_cache_path}/Image-test"
+  assert_equals_helper 'Image for ARM' "(${LINENO})" 'Image-test' "$final_kernel_binary_image_name"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -1117,6 +1116,7 @@ function test_get_kernel_image_for_deploy_inside_env()
 {
   local original="$PWD"
   local fake_cache
+  local final_kernel_binary_image_name
 
   options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
 
@@ -1124,7 +1124,9 @@ function test_get_kernel_image_for_deploy_inside_env()
   fake_cache="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}/TEST"
   mkdir -p "$fake_cache"
 
-  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache"
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache" final_kernel_binary_image_name
+  assert_equals_helper 'Image for ARM' "(${LINENO})" 'Image-test' "$final_kernel_binary_image_name"
+
   assertFileEquals "${FAKE_KERNEL}/arch/arm64/boot/Image" "${fake_cache}/Image-test"
 }
 
@@ -1132,8 +1134,9 @@ function test_get_kernel_image_for_deploy_kernel_image_does_not_exist()
 {
   local original="$PWD"
   local fake_cache
+  local final_kernel_binary_image_name
 
-  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache"
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache" final_kernel_binary_image_name
   assert_equals_helper 'There is no kernel image' "($LINENO)" 2 "$?"
 }
 

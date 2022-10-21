@@ -135,6 +135,53 @@ function mk_fake_remote()
   touch "$FAKE_KW/$kernel_install_path"/{debian.sh,deploy.sh}
 }
 
+# Create a fake kw package.
+#
+# @FAKE_KW: Target path to create the kw package
+# @output: Save kw package file to output
+# @kernel_name: Kernel name. If not set, it is 'test'
+# @kernel_binary_name: Kernel binary name. If not set, it is 'vmlinuz-test'
+# @architecture: Target achitecture. If not set, it is 'x86_64'
+function mk_fake_tar_file_to_deploy()
+{
+  local FAKE_KW="$1"
+  local output="$2"
+  local kernel_name="$3"
+  local kernel_binary_name="$4"
+  local architecture="$5"
+
+  kernel_name=${kernel_name:-'test'}
+  kernel_binary_name=${kernel_binary_name:-'vmlinuz-test'}
+  architecture=${architecture:-'x86_64'}
+
+  # Create kw_pkg dir
+  mkdir -p "${FAKE_KW}/kw_pkg/"
+
+  # Create fake files
+  touch "${FAKE_KW}/kw_pkg/${kernel_binary_name}"
+  touch "${FAKE_KW}/kw_pkg/${kernel_name}.config"
+  touch "${FAKE_KW}/kw_pkg/kw.pkg.info"
+
+  # Create modules
+  mkdir -p "${FAKE_KW}/kw_pkg/modules/lib/modules/"
+  touch "${FAKE_KW}/kw_pkg/modules/lib/modules/something_1"
+  touch "${FAKE_KW}/kw_pkg/modules/lib/modules/something_2"
+
+  # Compress everything
+  cmd="tar --gzip --directory='$FAKE_KW' --create --file=${kernel_name}.kw.tar kw_pkg"
+  eval "$cmd"
+
+  # Move to output if requested
+  if [[ -d "$output" ]]; then
+    mv "${FAKE_KW}/${kernel_name}.kw.tar" "$output"
+  elif [[ -n "$output" && ! -d "$output" ]]; then
+    printf 'Invalid parameter: %s\n' "$output"
+  fi
+
+  # Clean temporary files
+  rm -rf "${FAKE_KW}/kw_pkg/"
+}
+
 function mk_fake_remote_system()
 {
   local prefix="$1"

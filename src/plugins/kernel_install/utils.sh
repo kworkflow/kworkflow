@@ -1,5 +1,6 @@
 declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
 declare -g AB_ROOTFS_PARTITION='/dev/disk/by-partsets/self/rootfs'
+declare -g LIB_MODULES_PATH='/lib/modules'
 
 # kw package metadata
 declare -gA kw_package_metadata
@@ -293,30 +294,70 @@ function reboot_machine()
   fi
 }
 
-function install_modules()
+# Uncompress kw package
+#
+# @kw_pkg_tar_name Expected full kw package name
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# In case of failure, return an errno code.
+function uncompress_kw_package()
 {
-  local module_name="$1"
+  local kw_pkg_tar_name="$1"
   local flag="$2"
-  local modules_path
-  local ret
-  local tar_cmd
+  local kw_pkg_tar_path="${KW_DEPLOY_TMP_FILE}/${kw_pkg_tar_name}"
+  local kw_pkg_modules_path="${KW_DEPLOY_TMP_FILE}/kw_pkg/modules/lib/modules"
+  local cmd
 
   flag=${flag:-'SILENT'}
 
-  modules_path="$KW_DEPLOY_TMP_FILE/$module_name"
-
-  if [[ ! -f "$modules_path" ]]; then
+  if [[ ! -f "$kw_pkg_tar_path" ]]; then
     return 2 # ENOENT
   fi
 
-  tar_cmd="tar --directory='/lib/modules' --extract --file='$modules_path'"
+  # Clean target folder
+  if [[ -d ${KW_DEPLOY_TMP_FILE}/kw_pkg ]]; then
+    rm -rf "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  fi
 
-  cmd_manager "$flag" "$tar_cmd"
-  ret="$?"
+  cmd="tar --touch --auto-compress --extract --file='${kw_pkg_tar_path}' --directory='${KW_DEPLOY_TMP_FILE}' --no-same-owner"
+  cmd_manager "$flag" "$cmd"
 
-  if [[ "$ret" != 0 ]]; then
+  if [[ "$?" != 0 ]]; then
     printf '%s\n' 'Warning: Could not extract module archive.'
   fi
+}
+
+# Synchronize new modules files in the target machine
+#
+# @kw_pkg_tar_name Expected full kw package name
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# In case of failure, return an errno code.
+function install_modules()
+{
+  local kw_pkg_tar_name="$1"
+  local flag="$2"
+  local uncompressed_kw_pkg="${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  local kw_pkg_modules_path="${KW_DEPLOY_TMP_FILE}/kw_pkg/modules/lib/modules"
+  local cmd
+
+  flag=${flag:-'SILENT'}
+
+  # 1. If kw package was not extracted yet, do it now
+  if [[ ! -d "$uncompressed_kw_pkg" ]]; then
+    uncompress_kw_package "$kw_pkg_tar_name" "$flag"
+    if [[ "$?" != 0 ]]; then
+      return 2 # ENOENT
+    fi
+  fi
+
+  # 2. Move new modules to the right place
+  cmd="rsync --archive ${kw_pkg_modules_path}/* ${LIB_MODULES_PATH}"
+  cmd_manager "$flag" "$cmd"
 }
 
 # Update bootloader API
@@ -533,19 +574,24 @@ function install_kernel()
     fi
   fi
 
+  # Uncompress kw package
+  uncompress_kw_package "${name}.kw.tar" "$flag"
+  if [[ "$?" != 0 ]]; then
+    return 2 # ENOENT
+  fi
+
+  install_modules "${name}.kw.tar" "$flag"
+
   # Copy kernel image
-  if [[ -f "$path_prefix/boot/vmlinuz-$name" ]]; then
+  if [[ -f "${path_prefix}/boot/vmlinuz-${name}" ]]; then
     cmd="$sudo_cmd cp $path_prefix/boot/vmlinuz-$name $path_prefix/boot/vmlinuz-$name.old"
     cmd_manager "$flag" "$cmd"
   fi
 
   if [[ "$target" == 'remote' ]]; then
-    cmd="$sudo_cmd tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}.kw.tar"
-    cmd+=" --directory=/tmp --no-same-owner"
+    # Update kernel image in the /boot
+    cmd="cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
     cmd_manager "$flag" "$cmd"
-
-    # Update modules
-    cmd_manager "$flag" 'cp -r /tmp/kw_pkg/modules/lib/modules/ /lib/modules'
   fi
 
   # Each distro has their own way to update their bootloader

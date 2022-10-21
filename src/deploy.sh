@@ -80,6 +80,7 @@ function deploy_main()
   local env_name
   local output_kbuild_path=''
   local return_tar_path
+  local kernel_binary_image_name
 
   # Drop build_and_deploy flag
   shift
@@ -148,43 +149,40 @@ function deploy_main()
 
   prepare_host_deploy_dir
 
-  # Create package option
-  if [[ -n "${options_values['CREATE_PACKAGE']}" ]]; then
-    get_kw_kernel_package "$flag"
-    return "$?"
-  fi
-
-  # Setup option
-  # Let's ensure that the target machine is ready for the deploy
-  deploy_setup "$target" "$flag"
-  ret="$?"
-  case "$ret" in
-    103) # ECONNABORTED
-      complain 'Something failed while kw tried to setup passwordless for root'
-      exit 103
-      ;;
-    101) # ENETUNREACH
-      complain 'It looks like kw successfully set up the ssh via root, but ' \
-        'we could not ssh to it for some unknown reason.'
-      ssh_connection_failure_message
-      exit 101
-      ;;
-  esac
-
-  # If user request --setup, we don't need to do anything else
-  if [[ -n "$setup" ]]; then
-    [[ "$ret" == 0 ]] && success 'It looks like you are ready to use kw deploy.'
-    return "$?"
-  fi
-
-  collect_target_info_for_deploy "$target" "$flag"
-
-  if [[ "$target" == "$VM_TARGET" ]]; then
-    vm_mount
+  # We don't want to run the setup if the user request the package creation
+  if [[ -z "${options_values['CREATE_PACKAGE']}" ]]; then
+    # Setup option
+    # Let's ensure that the target machine is ready for the deploy
+    deploy_setup "$target" "$flag"
     ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      complain 'Please shutdown or umount your VM to continue.'
-      exit "$ret"
+    case "$ret" in
+      103) # ECONNABORTED
+        complain 'Something failed while kw tried to setup passwordless for root'
+        exit 103
+        ;;
+      101) # ENETUNREACH
+        complain 'It looks like kw successfully set up the ssh via root, but ' \
+          'we could not ssh to it for some unknown reason.'
+        ssh_connection_failure_message
+        exit 101
+        ;;
+    esac
+
+    # If user request --setup, we don't need to do anything else
+    if [[ -n "$setup" ]]; then
+      [[ "$ret" == 0 ]] && success 'It looks like you are ready to use kw deploy.'
+      return "$?"
+    fi
+
+    collect_target_info_for_deploy "$target" "$flag"
+
+    if [[ "$target" == "$VM_TARGET" ]]; then
+      vm_mount
+      ret="$?"
+      if [[ "$ret" != 0 ]]; then
+        complain 'Please shutdown or umount your VM to continue.'
+        exit "$ret"
+      fi
     fi
   fi
 
@@ -193,12 +191,43 @@ function deploy_main()
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
 
+  # Note that kw needs the kernel_binary_image_name for the remote deploy
+  build_kw_kernel_package return_tar_path kernel_binary_image_name "$flag"
+  modules_install_status="$?"
+  if [[ ! -f "$return_tar_path" ]]; then
+    complain "kw was not able to generate kw package: ${return_tar_path}"
+    return 22 # EINVAL
+  fi
+
+  case "$modules_install_status" in
+    2)
+      complain "Kernel image was not found at: ${kernel_tree_boot_folder_path}"
+      exit 2 # ENOENT
+      ;;
+    22)
+      complain 'Kernel name not specified for get_config_file_for_deploy'
+      exit 22 # EINVAL
+      ;;
+    125)
+      complain "We could not find a valid kernel image at arch/${build_config[arch]}/boot"
+      complain 'Please, check if your compilation successfully completed or'
+      complain 'check your kworkflow.config'
+      exit 125 # ECANCELED
+      ;;
+  esac
+
+  # Get kw package option
+  if [[ -n "${options_values['CREATE_PACKAGE']}" ]]; then
+    mv "$return_tar_path" "$PWD"
+    return "$?"
+  fi
+
   # Full deploy
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
     name=$(eval "make kernelrelease${output_kbuild_path}")
-    run_kernel_install "$reboot" "$name" "$flag" "$target" '' "$build_and_deploy"
+    run_kernel_install "$name" "$return_tar_path" "$kernel_binary_image_name" "$flag"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
       end=$(date +%s)
@@ -211,7 +240,7 @@ function deploy_main()
     statistics_manager 'deploy' "$runtime"
   else # Only module deploy
     start=$(date +%s)
-    modules_install "$flag" "$target"
+    modules_install "$target" "$return_tar_path" "$flag"
     end=$(date +%s)
     runtime=$((end - start))
     statistics_manager 'Modules_deploy' "$runtime"
@@ -746,18 +775,14 @@ function cleanup()
 # were invoked before.
 function modules_install()
 {
-  local flag="$1"
-  local target="$2"
-  local remote
+  local target="$1"
+  local return_tar_path="$2"
+  local flag="$3"
   local port
-  local distro
   local cmd
-  local compression_type="${deploy_config[deploy_default_compression]}"
-  local tarball_for_deploy_path
 
   flag=${flag:-'SILENT'}
 
-  # TODO: MUDOU TUDO AQUI já que o pacote é gerado antes
   case "$target" in
     1) # VM_TARGET
       modules_install_to "${vm_config[mount_point]}" "$flag"
@@ -766,21 +791,13 @@ function modules_install()
       modules_install_to '/lib/modules' "$flag" 'local'
       ;;
     3) # REMOTE_TARGET
-      # 2. Send files modules
-      modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
-
+      cp2remote "$flag" "$return_tar_path" "$KW_DEPLOY_TMP_FILE"
       release=$(get_kernel_release "$flag")
-      generate_tarball "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/lib/modules/" \
-        "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" \
-        "$compression_type" "$release" "$flag"
 
-      tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
-      say "* Sending kernel modules ($release) to the remote"
-      cp2remote "$flag" "$tarball_for_deploy_path" "$KW_DEPLOY_TMP_FILE"
+      say "* Sending kernel package (${release}) to the remote"
 
-      # 3. Deploy: Execute script
-      cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --modules $release.tar"
+      # Execute script
+      cmd="$REMOTE_INTERACE_CMD_PREFIX --modules ${release}.kw.tar"
       cmd_remotely "$cmd" "$flag"
       ;;
   esac
@@ -884,21 +901,6 @@ function compose_copy_source_parameter_for_dtb()
   return
 }
 
-# This function work as an entry point to generate kw package, and move it to
-# the current folder.
-function get_kw_kernel_package()
-{
-  local return_tar_path
-
-  build_kw_kernel_package return_tar_path "$flag"
-  if [[ ! -f "$return_tar_path" ]]; then
-    complain "kw was not able to generate kw package: ${return_tar_path}"
-    return 22 # EINVAL
-  fi
-
-  mv "$return_tar_path" "$PWD"
-}
-
 # After compiling a Linux kernel, it generates a binary file required to copy
 # in the deploy phase. This function identifies the generated binary and
 # returns its name.
@@ -990,7 +992,8 @@ function get_kernel_image_for_deploy()
   local kernel_binary_file_name="$3"
   local base_kernel_image_path="$4"
   local base_kw_deploy_store_path="$5"
-  local flag="$6"
+  local -n _final_kernel_binary_image_name="$6"
+  local flag="$7"
   local kernel_name_arch
   local config_kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
   local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
@@ -1009,16 +1012,16 @@ function get_kernel_image_for_deploy()
 
   case "$arch" in
     'arm' | 'arm64')
-      kernel_name_arch="${config_kernel_img_name}-${kernel_name}"
+      _final_kernel_binary_image_name="${config_kernel_img_name}-${kernel_name}"
       ;;
     *)
       # X86 system usually uses vmlinuz
-      kernel_name_arch="vmlinuz-${kernel_name}"
+      _final_kernel_binary_image_name="vmlinuz-${kernel_name}"
       ;;
   esac
 
   cmd="cp ${base_kernel_image_path}/${kernel_binary_file_name}"
-  cmd+=" ${base_kw_deploy_store_path}/${kernel_name_arch}"
+  cmd+=" ${base_kw_deploy_store_path}/${_final_kernel_binary_image_name}"
   cmd_manager "$flag" "$cmd"
 }
 
@@ -1096,7 +1099,9 @@ function create_pkg_metadata_file_for_deploy()
 function build_kw_kernel_package()
 {
   local -n _return_tar_path="$1"
-  local flag="$2"
+  local -n _kernel_binary_image_name="$2"
+  local flag="$3"
+  local final_kernel_binary_image_name
   local arch="${build_config[arch]:-${configurations[arch]}}"
   local config_kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
   local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
@@ -1126,8 +1131,8 @@ function build_kw_kernel_package()
     complain 'check your kworkflow.config'
     exit 125 # ECANCELED
   fi
-  kernel_name=$(eval "make kernelrelease${output_kbuild_path}")
 
+  kernel_name=$(eval "make kernelrelease${output_kbuild_path}")
   compression_type="${deploy_config[deploy_default_compression]}"
   cache_to_deploy_path="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
   kernel_tree_boot_folder_path="arch/${arch}/boot"
@@ -1159,12 +1164,12 @@ function build_kw_kernel_package()
   fi
 
   # 3. Copy kernel image
-  get_kernel_image_for_deploy "$arch" "$kernel_name" "$kernel_binary_file_name" "$kernel_tree_boot_folder_path" "$cache_base_kw_pkg_store_path"
+  get_kernel_image_for_deploy "$arch" "$kernel_name" "$kernel_binary_file_name" "$kernel_tree_boot_folder_path" "$cache_base_kw_pkg_store_path" final_kernel_binary_image_name
   if [[ "$?" == 2 ]]; then
     complain "Kernel image was not found at: ${kernel_tree_boot_folder_path}"
     return 2 # ENOENT
   fi
-
+  _kernel_binary_image_name="$final_kernel_binary_image_name"
   # 4. If we have dtb files, let's copy it
   get_dts_and_dtb_files_for_deploy "$arch" "$kernel_tree_boot_folder_path" "$cache_base_kw_pkg_store_path"
 
@@ -1300,21 +1305,17 @@ function pack_kernel_files_and_send()
 # were invoked before.
 function run_kernel_install()
 {
-  local reboot="$1"
-  local name="$2"
-  local flag="$3"
-  local target="$4"
-  local user="${5:-${remote_parameters['REMOTE_USER']}}"
-  local build_and_deploy="$6"
+  local name="$1"
+  local return_tar_path="$2"
+  local kernel_binary_image_name="$3"
+  local flag="$4"
   local distro='none'
-  local kernel_name="${build_config[kernel_name]:-${configurations[kernel_name]}}"
-  local mkinitcpio_name="${configurations[mkinitcpio_name]}"
   local arch_target="${build_config[arch]:-${configurations[arch]}}"
-  local kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
   local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  local reboot="${options_values['REBOOT']}"
+  local target="${options_values['TARGET']}"
+  local user="${remote_parameters['REMOTE_USER']}"
   local kernel_binary_file_name
-  local config_local_version
-  local retrun_tar_path
   local cmd_parameters
   local remote
   local port
@@ -1323,36 +1324,8 @@ function run_kernel_install()
   [[ -n "$kbuild_prefix" ]] && kbuild_prefix="${kbuild_prefix}/"
 
   # We have to guarantee some default values values
-  mkinitcpio_name=${mkinitcpio_name:-'nothing'}
-  kernel_name=${kernel_img_name:-'nothing'}
   name=${name:-'kw'}
   flag=${flag:-'SILENT'}
-
-  say '* Preparing kw kernel package for installation'
-
-  build_kw_kernel_package return_tar_path "$flag"
-  modules_install_status="$?"
-  if [[ ! -f "$return_tar_path" ]]; then
-    complain "kw was not able to generate kw package: ${return_tar_path}"
-    return 22 # EINVAL
-  fi
-
-  case "$modules_install_status" in
-    2)
-      complain "Kernel image was not found at: ${kernel_tree_boot_folder_path}"
-      return 2 # ENOENT
-      ;;
-    22)
-      complain 'Kernel name not specified for get_config_file_for_deploy'
-      return 22 # EINVAL
-      ;;
-    125)
-      complain "We could not find a valid kernel image at arch/${build_config[arch]}/boot"
-      complain 'Please, check if your compilation successfully completed or'
-      complain 'check your kworkflow.config'
-      return 125 # ECANCELED
-      ;;
-  esac
 
   case "$target" in
     1) # VM_TARGET
@@ -1367,7 +1340,7 @@ function run_kernel_install()
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Make sure we use the right variable values
-      install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'vm' "$flag"
+      install_kernel "$name" "$distro" "$kernel_binary_image_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
       ;;
     2) # LOCAL_TARGET
@@ -1388,7 +1361,7 @@ function run_kernel_install()
       include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       update_deploy_variables # Ensure that we are using the right variable
 
-      install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'local' "$flag"
+      install_kernel "$name" "$distro" "$kernel_binary_image_name" "$reboot" "$arch_target" 'local' "$flag"
       return "$?"
       ;;
     3) # REMOTE_TARGET
@@ -1399,13 +1372,8 @@ function run_kernel_install()
       say "* Sending kernel package (${release}) to the remote"
       cp2remote "$flag" "$return_tar_path" "$KW_DEPLOY_TMP_FILE"
 
-      # 3. Deploy: Execute script
-      cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --modules $release.tar"
-      cmd_remotely "$cmd" "$flag"
-
       # Deploy
-      cmd_parameters="${name} ${distro} ${kernel_binary_file_name} ${reboot} ${arch_target} 'remote' ${flag}"
+      cmd_parameters="${name} ${distro} ${kernel_binary_image_name} ${reboot} ${arch_target} 'remote' ${flag}"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 

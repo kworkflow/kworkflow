@@ -471,6 +471,7 @@ function test_install_modules()
   local module_target='5.9.0-rc5-NEW-VRR-TRACK+.tar'
   local cmd
   local output
+  local lib_modules_path_bkp="$LIB_MODULES_PATH"
 
   output=$(install_modules "$module_target" 'TEST_MODE')
   assert_equals_helper 'We did not find required files' "$LINENO" "$?" 2
@@ -480,21 +481,26 @@ function test_install_modules()
     return
   }
 
-  touch "$module_target"
+  # Test preparation
+  mk_fake_tar_file_to_deploy "$PWD"
+  LIB_MODULES_PATH="${KW_DEPLOY_TMP_FILE}${LIB_MODULES_PATH}"
+  mkdir -p "$LIB_MODULES_PATH"
 
-  output=$(install_modules "$module_target" 'TEST_MODE')
-  cmd="tar --directory='/lib/modules' --extract --file='$KW_DEPLOY_TMP_FILE/$module_target'"
-  assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
+  install_modules 'test.kw.tar'
+  assertTrue "($LINENO): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_1" ]]'
+  assertTrue "($LINENO): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_2" ]]'
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
+  LIB_MODULES_PATH="$lib_modules_path_bkp"
 }
 
 function test_install_kernel_remote()
 {
-  local name='5.9.0-rc5-TEST'
+  local name='test'
   local kernel_image_name='bzImage'
   local reboot='1'
   local architecture='x86_64'
@@ -507,23 +513,43 @@ function test_install_kernel_remote()
   ret="$?"
   assert_equals_helper 'Test invalid name' "$LINENO" '22' "$ret"
 
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
   # Check standard remote kernel installation
+  # Notice that the expected sequence has a command duplication because
+  # install_modules will try to uncompress the target file, but since we are
+  # only testing the command sequence, we never uncompress the kw package. This
+  # is why there is a duplication.
   declare -a cmd_sequence=(
-    "tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}.kw.tar --directory=/tmp --no-same-owner"
-    'cp -r /tmp/kw_pkg/modules/lib/modules/ /lib/modules'
-    "generate_debian_temporary_root_file_system $flag $name $target GRUB"
+    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
+    'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
     'run_bootloader_update_mock'
-    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
     'reboot'
   )
 
+  # Test preparation
+  mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
+
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 }
 
 function test_install_kernel_local()
 {
-  local name='5.9.0-rc5-TEST'
+  local name='test'
   local kernel_image_name='bzImage'
   local reboot='1'
   local architecture='x86_64'
@@ -533,16 +559,36 @@ function test_install_kernel_local()
   local path_prefix=''
   local output
 
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Test preparation
+  mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
+
   # Check standard remote kernel installation
+  # Notice that the expected sequence has a command duplication because
+  # install_modules will try to uncompress the target file, but since we are
+  # only testing the command sequence, we never uncompress the kw package. This
+  # is why there is a duplication.
   declare -a cmd_sequence=(
-    "generate_debian_temporary_root_file_system $flag $name $target GRUB"
+    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'run_bootloader_update_mock'
-    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
-    "$sudo_cmd reboot"
+    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+    'sudo -E reboot'
   )
 
   output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 }
 
 function test_install_kernel_vm()
@@ -685,6 +731,31 @@ function test_make_root_partition_writable()
     'btrfs property set / ro false'
   )
   compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
+}
+
+function test_uncompress_kw_package()
+{
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Test preparation
+  mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
+
+  uncompress_kw_package 'test.kw.tar'
+  assertTrue "($LINENO): Expected kw_pkg" '[[ -d "${KW_DEPLOY_TMP_FILE}/kw_pkg" ]]'
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+}
+
+function test_uncompress_kw_package_check_invalid_path()
+{
+  uncompress_kw_package '/somethig/xpto/abc/kw.pkg.tar'
+  assert_equals_helper 'Invalid path' "($LINENO)" 2 "$?"
 }
 
 invoke_shunit
