@@ -279,6 +279,41 @@ function assert_substring_match()
   fi
 }
 
+# This function asserts an exact line match (case sensitive).
+#
+# @lineno $LINENO variable
+# @expected_line Expected line
+# @result_to_compare Raw output to be compared
+function assert_line_match()
+{
+  local lineno="$1"
+  local expected_line="$2"
+  local result_to_compare="$3"
+
+  if ! grep -qFx "$expected_line" <<< "$result_to_compare"; then
+    fail "line ${lineno}: expected exact match of line '${expected_line}'"
+    return
+  fi
+}
+
+# This function asserts that an exact line is a no match (case sensitive).
+# Its the inverse of assert_line_match() function.
+#
+# @lineno $LINENO variable
+# @not_expected_line Not expected line
+# @result_to_compare Raw output to be compared
+function assert_no_line_match()
+{
+  local lineno="$1"
+  local not_expected_line="$2"
+  local result_to_compare="$3"
+
+  if grep -qFx "$not_expected_line" <<< "$result_to_compare"; then
+    fail "line ${lineno}: expected NO exact match of line '${not_expected_line}'"
+    return
+  fi
+}
+
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #
