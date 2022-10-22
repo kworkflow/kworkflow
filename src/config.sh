@@ -27,6 +27,7 @@ function config_main()
   local option_and_value
   local config_options
   local base_path="${PWD}/.kw"
+  local is_show_configurations=false
   local option
   local value
 
@@ -41,8 +42,15 @@ function config_main()
     return 22 # EINVAL
   fi
 
-  # Validate and decompose options
   parameters="${options_values['PARAMETERS']}"
+  is_show_configurations="${options_values['IS_SHOW_CONFIGURATIONS']}"
+
+  if [[ -n "${is_show_configurations}" ]]; then
+    show_configurations "$parameters"
+    return "$?"
+  fi
+
+  # Validate and decompose options
   validate_option_parameter "$parameters"
   if [[ "$?" != 0 ]]; then
     complain "Invalid options: ${parameters}"
@@ -192,8 +200,8 @@ function set_config_value()
 
 function parse_config_options()
 {
-  local long_options='help,global,local'
-  local short_options='h,g,l'
+  local long_options='help,global,local,show'
+  local short_options='h,g,l,s'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -206,6 +214,12 @@ function parse_config_options()
   # Default values
   options_values['SCOPE']='local'
   options_values['PARAMETERS']=''
+  options_values['IS_SHOW_CONFIGURATIONS']=''
+
+  # 'kw config' should list all configurations
+  if [[ "$#" == 0 ]]; then
+    options_values['IS_SHOW_CONFIGURATIONS']=1
+  fi
 
   eval "set -- $options"
 
@@ -223,6 +237,10 @@ function parse_config_options()
         options_values['SCOPE']='local'
         shift
         ;;
+      --show | -s)
+        options_values['IS_SHOW_CONFIGURATIONS']=1
+        shift
+        ;;
       --)
         shift
         ;;
@@ -232,6 +250,64 @@ function parse_config_options()
         ;;
     esac
   done
+}
+
+# This function lists all the configurations if no argument is passed or lists
+# the configurations of one or more specific config files passed as an argument.
+#
+# @target_config_files: specific configs to be listed
+#
+# Return:
+# In case of success return 0, otherwise, return 22.
+function show_configurations()
+{
+  local -a target_config_files="$1"
+  local -a configs
+  local -a options
+  local options_buffer
+  local value
+
+  include "${KW_LIB_DIR}/kw_config_loader.sh"
+
+  # Check which configs we need to show
+  if [[ -n "${target_config_files}" ]]; then
+    read -ra configs <<< "${target_config_files}"
+  else
+    read -ra configs <<< "${!config_file_list[@]}"
+  fi
+
+  # For each config file
+  for config in "${configs[@]}"; do
+    # Check if it is a valid config
+    if ! is_config_file_valid "$config"; then
+      complain "Invalid config target: ${config}"
+      return 22 # EINVAL
+    fi
+
+    # Load corresponding config file
+    eval "load_${config}_config"
+
+    # This part is heavily depedent of the names defined in kw_config_loader
+    if [[ "$config" == 'kworkflow' ]]; then
+      declare -n config_array='configurations'
+    else
+      declare -n config_array="${config}_config"
+    fi
+
+    # For each possible option in a config file
+    options_buffer=$(printf '%s' "${config_file_list[$config]}" | sed --null-data 's/\n/ /g')
+    read -ra options <<< "${options_buffer}"
+    for option in "${options[@]}"; do
+      value="${config_array[$option]}"
+      if [[ -z "$value" ]]; then
+        warning "${config}.${option}=N/A"
+      else
+        printf '%s\n' "${config}.${option}=${value}"
+      fi
+    done
+  done
+
+  return 0
 }
 
 function config_help()
@@ -244,5 +320,6 @@ function config_help()
   printf '%s\n' 'kw config <config.option value>:' \
     '  config - Show config values' \
     '  config (-g | --global) <config.option value> - Change global config' \
-    '  config (-l | --local) <config.option value> - Change local config'
+    '  config (-l | --local) <config.option value> - Change local config' \
+    '  config (-s | --show) [config]... - Show all or specific current configurations'
 }
