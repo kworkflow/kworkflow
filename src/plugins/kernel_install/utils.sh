@@ -70,6 +70,46 @@ function detect_filesystem_type()
   printf '%s' "$file_system"
 }
 
+# This function read the configuration file and make the parser of the data on
+# it. For more information about the configuration file, take a look at
+# "etc/kworkflow.config" in the kworkflow directory.
+#
+# @parameter: This function expects a path to the configuration file.
+#
+# Return:
+# Return an errno code in case of failure.
+function parse_kw_package_metadata()
+{
+  local config_path="$1"
+  local config_array='kw_package_metadata'
+  local value
+
+  if [[ -z "$config_path" ]]; then
+    config_path="${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+    if [[ ! -f "$config_path" ]]; then
+      return 22 # EINVAL
+    fi
+  fi
+
+  if [ ! -f "$config_path" ]; then
+    return 22 # EINVAL
+  fi
+
+  # shellcheck disable=SC2162
+  while read line; do
+    # Line started with # or that are blank should be ignored
+    [[ "$line" =~ ^# || "$line" =~ ^$ ]] && continue
+
+    if grep -qF = <<< "$line"; then
+      varname="$(cut -d '=' -f 1 <<< "$line" | tr -d '[:space:]')"
+      value="$(cut -d '=' -f 2- <<< "${line%#*}")"
+      value="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' <<< "$value")"
+
+      eval "${config_array}"'["$varname"]="$value"'
+    fi
+  done < "$config_path"
+}
+
 # Check if the partition that will receive the new kernel is writable. This is
 # especially important for OSes that block the write to the / path, such as
 # SteamOS and ChromeOS.
@@ -318,7 +358,7 @@ function uncompress_kw_package()
 
   # Clean target folder
   if [[ -d ${KW_DEPLOY_TMP_FILE}/kw_pkg ]]; then
-    rm -rf "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    cmd_manager "$flag" "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
   fi
 
   cmd="tar --touch --auto-compress --extract --file='${kw_pkg_tar_path}' --directory='${KW_DEPLOY_TMP_FILE}' --no-same-owner"
@@ -535,13 +575,10 @@ function kernel_uninstall()
 # Install kernel
 function install_kernel()
 {
-  local name="$1"
-  local distro="$2"
-  local kernel_image_name="$3"
-  local reboot="$4"
-  local architecture="$5"
-  local target="$6"
-  local flag="$7"
+  local distro="$1"
+  local reboot="$2"
+  local target="$3"
+  local flag="$4"
   local sudo_cmd=''
   local cmd=''
   local path_prefix=''
@@ -555,6 +592,19 @@ function install_kernel()
   if [[ "$target" == 'local' ]]; then
     sudo_cmd='sudo -E'
   fi
+
+  # Uncompress kw package
+  uncompress_kw_package "${name}.kw.tar" "$flag"
+  if [[ "$?" != 0 ]]; then
+    return 2 # ENOENT
+  fi
+
+  # Parser config metadata
+  parse_kw_package_metadata ''
+
+  name=${kw_package_metadata['kernel_name']}
+  arch=${kw_package_metadata['architecture']}
+  kernel_image_name=${kw_package_metadata['kernel_binary_image_file']}
 
   if [[ -z "$name" ]]; then
     printf '%s\n' 'Invalid name'
@@ -572,12 +622,6 @@ function install_kernel()
       printf 'Did you check if your VM is mounted?\n'
       return 125 # ECANCELED
     fi
-  fi
-
-  # Uncompress kw package
-  uncompress_kw_package "${name}.kw.tar" "$flag"
-  if [[ "$?" != 0 ]]; then
-    return 2 # ENOENT
   fi
 
   install_modules "${name}.kw.tar" "$flag"

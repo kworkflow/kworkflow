@@ -1174,7 +1174,7 @@ function build_kw_kernel_package()
   get_dts_and_dtb_files_for_deploy "$arch" "$kernel_tree_boot_folder_path" "$cache_base_kw_pkg_store_path"
 
   # 5. Build metadata file
-  create_pkg_metadata_file_for_deploy "$arch" "$kernel_name" "$kernel_binary_file_name" \
+  create_pkg_metadata_file_for_deploy "$arch" "$kernel_name" "$final_kernel_binary_image_name" \
     "$cache_base_kw_pkg_store_path"
 
   # 6. Generate tarball
@@ -1233,7 +1233,7 @@ function run_kernel_install()
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Make sure we use the right variable values
-      install_kernel "$name" "$distro" "$kernel_binary_image_name" "$reboot" "$arch_target" 'vm' "$flag"
+      install_kernel "$distro" "$reboot" 'vm' "$flag"
       return "$?"
       ;;
     2) # LOCAL_TARGET
@@ -1254,7 +1254,7 @@ function run_kernel_install()
       include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       update_deploy_variables # Ensure that we are using the right variable
 
-      install_kernel "$name" "$distro" "$kernel_binary_image_name" "$reboot" "$arch_target" 'local' "$flag"
+      install_kernel "$distro" "$reboot" 'local' "$flag"
       return "$?"
       ;;
     3) # REMOTE_TARGET
@@ -1266,7 +1266,7 @@ function run_kernel_install()
       cp2remote "$flag" "$return_tar_path" "$KW_DEPLOY_TMP_FILE"
 
       # Deploy
-      cmd_parameters="${name} ${distro} ${kernel_binary_image_name} ${reboot} ${arch_target} 'remote' ${flag}"
+      cmd_parameters="${distro} ${reboot} 'remote' ${flag}"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 

@@ -509,9 +509,9 @@ function test_install_kernel_remote()
   local path_prefix=''
   local output
 
-  output=$(install_kernel '' 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
   ret="$?"
-  assert_equals_helper 'Test invalid name' "$LINENO" '22' "$ret"
+  assert_equals_helper 'Test invalid name' "$LINENO" 2 "$ret"
 
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -519,12 +519,8 @@ function test_install_kernel_remote()
   }
 
   # Check standard remote kernel installation
-  # Notice that the expected sequence has a command duplication because
-  # install_modules will try to uncompress the target file, but since we are
-  # only testing the command sequence, we never uncompress the kw package. This
-  # is why there is a duplication.
   declare -a cmd_sequence=(
-    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
     "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
@@ -536,9 +532,13 @@ function test_install_kernel_remote()
 
   # Test preparation
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
+  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_name=%s\n' "$name" > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_binary_image_file=%s\n' "$kernel_image_name" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'architecture=%s\n' "$architecture" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
 
-  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-
+  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
@@ -566,14 +566,15 @@ function test_install_kernel_local()
 
   # Test preparation
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
+  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_name=%s\n' "$name" > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_binary_image_file=%s\n' "$kernel_image_name" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'architecture=%s\n' "$architecture" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
 
   # Check standard remote kernel installation
-  # Notice that the expected sequence has a command duplication because
-  # install_modules will try to uncompress the target file, but since we are
-  # only testing the command sequence, we never uncompress the kw package. This
-  # is why there is a duplication.
   declare -a cmd_sequence=(
-    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
     "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
@@ -582,48 +583,13 @@ function test_install_kernel_local()
     'sudo -E reboot'
   )
 
-  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
-}
-
-function test_install_kernel_vm()
-{
-  local name='5.9.0-rc5-TEST'
-  local kernel_image_name='bzImage'
-  local reboot='1'
-  local architecture='x86_64'
-  local target='vm'
-  local path_prefix="$SHUNIT_TMPDIR"
-  local output
-
-  touch "$SHUNIT_TMPDIR/boot/vmlinuz-$name"
-  touch "$SHUNIT_TMPDIR/.config"
-  touch "$SHUNIT_TMPDIR/virty.qcow2"
-  rm -rf "${SHUNIT_TMPDIR:?}"/boot
-  vm_config[mount_point]="$SHUNIT_TMPDIR"
-  vm_config[qemu_path_image]="${SHUNIT_TMPDIR}/virty.qcow2"
-
-  # Check standard remote kernel installation
-  declare -a cmd_sequence=(
-    "cp  .config $path_prefix/boot/config-$name"
-    'vm_mount'
-    "generate_debian_temporary_root_file_system TEST_MODE $name $target GRUB $path_prefix"
-    'run_bootloader_update_mock'
-    'vm_umount'
-    'vm_mount'
-    "touch $SHUNIT_TMPDIR/$INSTALLED_KERNELS_PATH"
-    "grep -Fxq $name $SHUNIT_TMPDIR/$INSTALLED_KERNELS_PATH"
-    'vm_umount'
-    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
-  )
-
-  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 function distro_pre_setup()
@@ -756,6 +722,37 @@ function test_uncompress_kw_package_check_invalid_path()
 {
   uncompress_kw_package '/somethig/xpto/abc/kw.pkg.tar'
   assert_equals_helper 'Invalid path' "($LINENO)" 2 "$?"
+}
+
+function test_parse_kw_package_metadata()
+{
+  # Prepare fake kw.pkg.info
+  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_name=test\n' > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_binary_image_file=vmlinuz-test\n' >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'architecture=x86_64\n' >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+
+  parse_kw_package_metadata ''
+  name=${kw_package_metadata['kernel_name']}
+  arch=${kw_package_metadata['architecture']}
+  kernel_image_name=${kw_package_metadata['kernel_binary_image_file']}
+
+  assert_equals_helper 'Wrong kernel name' "($LINENO)" 'test' "${kw_package_metadata['kernel_name']}"
+  assert_equals_helper 'Wrong architecture' "($LINENO)" 'x86_64' "${kw_package_metadata['architecture']}"
+  assert_equals_helper 'Wrong binary image name' "($LINENO)" 'vmlinuz-test' "${kw_package_metadata['kernel_binary_image_file']}"
+}
+
+function test_parse_kw_package_metadata_invalid_path()
+{
+  parse_kw_package_metadata '/an/invalid/folder'
+  assert_equals_helper 'Expected an error with invalid path' "($LINENO)" 22 "$?"
+}
+
+function test_parse_kw_package_metadata_no_pkg_info()
+{
+  parse_kw_package_metadata ''
+  assert_equals_helper 'Expected an error due to the lack of info file' "($LINENO)" 22 "$?"
 }
 
 invoke_shunit
