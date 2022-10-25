@@ -20,7 +20,6 @@ function setUp()
 function tearDown()
 {
   rm -rf "$SHUNIT_TMPDIR"
-  mkdir -p "$SHUNIT_TMPDIR"
 }
 
 function test_vm_mount()
