@@ -10,10 +10,10 @@ function setUp()
   cp -f "$KW_VM_CONFIG_SAMPLE" "$SHUNIT_TMPDIR/.kw/"
 
   tests="$PWD/tests"
-  etc="${prefix}etc"
+  etc="${PREFIX}etc"
 
-  export prefix="$SHUNIT_TMPDIR/"
-  mkdir -p "${prefix}boot"
+  export PREFIX="$SHUNIT_TMPDIR/"
+  mkdir -p "${PREFIX}boot"
   mkdir -p "$etc"
 }
 
@@ -54,17 +54,17 @@ function test_vm_mount()
   }
 
   # Mock vmlinuz
-  touch "${prefix}boot/vmlinuz-$(uname)"
+  touch "${PREFIX}boot/vmlinuz-$(uname)"
 
   # Removing read permission from our mock vmlinuz
-  chmod a-r "${prefix}boot/vmlinuz-$(uname)"
+  chmod a-r "${PREFIX}boot/vmlinuz-$(uname)"
 
   # Suppose it's a debian system
-  cp -f "$tests/samples/os/debian/etc/os-release" "$prefix/etc"
+  cp -f "$tests/samples/os/debian/etc/os-release" "$PREFIX/etc"
 
   expected_cmd=(
     'To mount the VM, the kernel image needs to be readable'
-    "sudo dpkg-statoverride --update --add root root 0644 ${prefix}boot/vmlinuz-$(uname -r)"
+    "sudo dpkg-statoverride --update --add root root 0644 ${PREFIX}boot/vmlinuz-$(uname -r)"
     "$say_msg"
     "$guestmount_cmd"
   )
@@ -74,14 +74,14 @@ function test_vm_mount()
 
   # Suppose it's not debian
   rm -rf "${etc:?}/"*
-  cp -f "$tests/samples/os/arch/etc/os-release" "$prefix/etc"
+  cp -f "$tests/samples/os/arch/etc/os-release" "$PREFIX/etc"
 
-  expected_cmd[1]="sudo chmod +r ${prefix}boot/vmlinuz-$(uname -r)"
+  expected_cmd[1]="sudo chmod +r ${PREFIX}boot/vmlinuz-$(uname -r)"
   output=$(printf '%s\n' 'y' | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Adding back read permission
-  chmod +r "${prefix}boot/vmlinuz-$(uname)"
+  chmod +r "${PREFIX}boot/vmlinuz-$(uname)"
 
   expected_cmd=(
     "$say_msg"
