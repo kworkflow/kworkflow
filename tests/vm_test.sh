@@ -6,13 +6,13 @@ include './src/vm.sh'
 
 function setUp()
 {
+  export PREFIX="$SHUNIT_TMPDIR/"
   mkdir -p "$SHUNIT_TMPDIR/.kw/"
   cp -f "$KW_VM_CONFIG_SAMPLE" "$SHUNIT_TMPDIR/.kw/"
 
   tests="$PWD/tests"
   etc="${PREFIX}etc"
 
-  export PREFIX="$SHUNIT_TMPDIR/"
   mkdir -p "${PREFIX}boot"
   mkdir -p "$etc"
 }
