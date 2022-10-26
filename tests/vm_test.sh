@@ -44,9 +44,6 @@ function test_vm_mount()
     printf '5.1'
   }
 
-  tearDown
-  setUp
-
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
