@@ -142,7 +142,7 @@ function update_path()
     [[ "$path" -ef "$binpath" ]] && return
   done
 
-  safe_append "PATH=$HOME/.local/bin:\$PATH # kw" "$HOME/$shellrc"
+  safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "${HOME}/${shellrc}"
 }
 
 function update_current_bash()
@@ -335,11 +335,9 @@ function synchronize_files()
 
   if command_exists 'zsh'; then
     # Add tabcompletion to zshrc
-    if [[ -f "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
-      local zshcomp=$'# Enable bash completion for zsh\n'
-      zshcomp+='autoload bashcompinit && bashcompinit'
-
-      safe_append "$zshcomp" "$HOME/.zshrc"
+    if [[ -f "${HOME}/.zshrc" || -L "${HOME}/.zshrc" ]]; then
+      safe_append '# Enable bash completion for zsh' "${HOME}/.zshrc"
+      safe_append 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
       append_bashcompletion '.zshrc'
       update_path '.zshrc'
     else
@@ -357,9 +355,9 @@ function synchronize_files()
 function append_bashcompletion()
 {
   local shellrc="$1"
-  local msg="# $app_name"$'\n'"source $libdir/$BASH_AUTOCOMPLETE.sh"
 
-  safe_append "$msg" "$HOME/$shellrc"
+  safe_append "# ${app_name}" "${HOME}/${shellrc}"
+  safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/${shellrc}"
 }
 
 function safe_append()
