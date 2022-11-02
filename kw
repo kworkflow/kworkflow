@@ -127,6 +127,13 @@ function kw()
         execute_checkpatch "$@"
       )
       ;;
+    self-update | u)
+      (
+        include "${KW_LIB_DIR}/self_update.sh"
+
+        self_update_main "$@"
+      )
+      ;;
     maintainers | m)
       (
         include "${KW_LIB_DIR}/maintainers.sh"

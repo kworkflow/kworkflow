@@ -33,6 +33,7 @@ function kworkflow_help()
     '  man - Show manual pages' \
     '  pomodoro,p - kw pomodoro support' \
     '  report,r - Show kw pomodoro reports and kw usage statistics' \
+    '  self-update,u - kw self-update mechanism' \
     '  ssh,s - SSH support' \
     '  vars - Show variables' \
     '  version,--version,-v - Show kw version'
