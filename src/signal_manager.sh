@@ -27,7 +27,6 @@ function default_interrupt_handler()
 # If command is empty, use the default handler
 # If the signal is empty, use the default signals
 
-# shellcheck disable=2120
 function signal_manager()
 {
   local command="$1"
@@ -67,5 +66,5 @@ function signal_manager_reset()
     trap - "$sig"
   done <<< "$traps"
 
-  signal_manager
+  signal_manager ''
 }

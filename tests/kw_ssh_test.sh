@@ -11,6 +11,7 @@ include './tests/utils.sh'
 function oneTimeSetUp()
 {
   export TEST_PATH="$SHUNIT_TMPDIR/test_path"
+  export original_dir="$PWD"
 }
 
 function setUp()
@@ -19,20 +20,36 @@ function setUp()
   export NO_SUCH_FILE='No such file'
   export SSH_OK='ssh -p 3333 juca@127.0.0.1'
 
-  mkdir "$TEST_PATH"
-
+  mkdir -p "$TEST_PATH"
+  mkdir -p "${SHUNIT_TMPDIR}/.kw"
+  cp "${KW_REMOTE_SAMPLES_DIR}/remote.config" "${SHUNIT_TMPDIR}/.kw"
   cp -f 'tests/samples/dmesg' "$TEST_PATH"
 
-  parse_configuration "$KW_CONFIG_SAMPLE"
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+  options_values['CMD']=''
+  options_values['SCRIPT']=''
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
   populate_remote_info ''
 }
 
 function tearDown()
 {
-  rm -rf "$TEST_PATH"
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to back to the kw folder"
+    return
+  }
 }
 
-function test_parser_ssh_options()
+function test_parser_ssh_options_erros()
 {
   local ret
   local substring_output
@@ -41,10 +58,6 @@ function test_parser_ssh_options()
   parser_ssh_options --lala
   ret="$?"
   assertTrue "($LINENO): We expected a 22 for --lala parameter" '[[ $ret -eq 22 ]]'
-
-  parser_ssh_options -m
-  ret="$?"
-  assertTrue "($LINENO): We expected a 22 for -m parameter" '[[ $ret -eq 22 ]]'
 
   parser_ssh_options -c
   substring_output="ssh: option requires an argument -- 'c'"
@@ -59,47 +72,175 @@ function test_parser_ssh_options()
     '[[ $substring_output =~ $error ]]'
 }
 
-function test_kw_ssh_no_parameter()
+function test_parser_ssh_options()
 {
-  local ret
+  parser_ssh_options --script 'something/xpto/la'
+  assertEquals "($LINENO)" 'something/xpto/la' "${options_values['SCRIPT']}"
 
-  ret=$(kw_ssh test_mode)
+  parser_ssh_options --command 'ls -lah'
+  assertEquals "($LINENO)" 'ls -lah' "${options_values['CMD']}"
 
-  assertTrue "We expected a substring \"$SSH_OK\", but we got \"$ret\"" '[[ $ret =~ "$SSH_OK" ]]'
+  parser_ssh_options --verbose
+  assertEquals "($LINENO)" '' "${options_values['VERBOSE']}"
+
+  parser_ssh_options --remote 'jozzi@something:3232'
+  assertEquals "($LINENO)" 'something' "${remote_parameters['REMOTE_IP']}"
 }
 
-function test_kw_ssh_command()
+function test_kw_ssh_main_no_parameter()
 {
   local output
 
   declare -a expected_cmd=(
-    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
-    'ssh -p 3333 juca@127.0.0.1 pwd'
+    "ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin"
   )
 
-  output=$(kw_ssh test_mode -c 'pwd')
-
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-
-  output=$(kw_ssh test_mode --command "ls /etc/" 2>&1)
-  expected_cmd[1]='ssh -p 3333 juca@127.0.0.1 ls /etc/'
+  # Remote
+  output=$(kw_ssh_main test_mode)
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_kw_ssh_script()
+function test_kw_ssh_main_command()
 {
-  local ret
+  local output
+
+  declare -a expected_cmd=(
+    "ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin pwd"
+  )
+
+  output=$(kw_ssh_main test_mode -c 'pwd')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  output=$(kw_ssh_main test_mode --command "ls /etc/" 2>&1)
+  expected_cmd[1]="ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin ls /etc/"
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
+function test_kw_ssh_main_script()
+{
+  local output
   local msg
 
-  ret=$(kw_ssh test_mode -s "/not/a/valid/path/xpto" 2>&1)
+  ret=$(kw_ssh_main test_mode -s "/not/a/valid/path/xpto" 2>&1)
   msg="$NO_SUCH_FILE: /not/a/valid/path/xpto"
   assertTrue "($LINENO): We expected a substring '$msg', but we got '$ret'" \
     '[[ $ret =~ "$msg" ]]'
 
-  ret=$(kw_ssh test_mode -s "$TEST_PATH/dmesg" 2>&1)
-  msg="$SSH_OK \"bash -s\" -- < $TEST_PATH/dmesg"
-  assertTrue "($LINENO): We expected a substring \"$msg\", but we got \"$ret\"" \
-    '[[ $ret =~ "$msg" ]]'
+  declare -a expected_cmd=(
+    "ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin \"bash -s\" -- < $TEST_PATH/dmesg"
+  )
+
+  output=$(kw_ssh_main test_mode -s "${TEST_PATH}/dmesg" 2>&1)
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
+function test_handle_ssh_with_config_file()
+{
+  local output
+  local expected_result
+
+  touch 'ssh_config'
+
+  remote_parameters['REMOTE_FILE']="${PWD}/ssh_config"
+  remote_parameters['REMOTE_FILE_HOST']='target'
+  options_values['VERBOSE']='TEST_MODE'
+
+  output=$(handle_ssh)
+  expected_result="ssh -F ${PWD}/ssh_config target"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_handle_ssh_with_config_file_verbose()
+{
+  local output
+  local expected_result
+
+  touch 'ssh_config'
+
+  remote_parameters['REMOTE_FILE']="${PWD}/ssh_config"
+  remote_parameters['REMOTE_FILE_HOST']='target'
+  options_values['VERBOSE']=''
+
+  output=$(handle_ssh)
+  expected_result="ssh -v -F ${PWD}/ssh_config target"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_handle_ssh_with_port_user_remote()
+{
+  local output
+  local expected_result
+
+  touch 'ssh_config'
+
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+  remote_parameters['REMOTE_USER']='tadeu'
+  remote_parameters['REMOTE_IP']='192.168.3.1'
+  remote_parameters['REMOTE_PORT']='3244'
+  options_values['VERBOSE']='TEST_MODE'
+
+  output=$(handle_ssh)
+  expected_result="ssh -p 3244 tadeu@192.168.3.1"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+
+  options_values['VERBOSE']=''
+  output=$(handle_ssh)
+  expected_result="ssh -v -p 3244 tadeu@192.168.3.1"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_run_command_in_the_remote()
+{
+  local output
+  local expected_result
+
+  touch 'ssh_config'
+  remote_parameters['REMOTE_FILE']="${PWD}/ssh_config"
+  remote_parameters['REMOTE_FILE_HOST']='target'
+  options_values['CMD']='do something'
+  options_values['VERBOSE']='TEST_MODE'
+
+  output=$(run_command_in_the_remote)
+  expected_result="ssh -F ${PWD}/ssh_config target do something"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_run_script_in_the_remote()
+{
+  local output
+  local expected_result
+
+  touch 'ssh_config'
+  touch 'some_script'
+
+  remote_parameters['REMOTE_FILE']="${PWD}/ssh_config"
+  remote_parameters['REMOTE_FILE_HOST']='target'
+  options_values['SCRIPT']="${PWD}/some_script"
+  options_values['VERBOSE']='TEST_MODE'
+
+  output=$(run_script_in_the_remote)
+  expected_result="ssh -F ${PWD}/ssh_config target \"bash -s\" -- < ${options_values['SCRIPT']}"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_ssh_remote()
+{
+  local output
+  local expected_result
+
+  touch 'ssh_config'
+
+  remote_parameters['REMOTE_FILE']="${PWD}/ssh_config"
+  remote_parameters['REMOTE_FILE_HOST']='target'
+  options_values['VERBOSE']='TEST_MODE'
+
+  output=$(ssh_remote)
+  expected_result="ssh -F ${PWD}/ssh_config target"
+  assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
 invoke_shunit

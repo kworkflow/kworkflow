@@ -1,6 +1,8 @@
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
+declare -gA options_values
+
 # Prints the authors of a given file or files inside a given dir.
 #
 # @FILE_OR_DIR The argument is a file or directory path
@@ -53,7 +55,7 @@ function print_files_authors()
 #   with that patch
 # - Options --update-patch/-u is given and a field "To:" is already
 #   present in the patch
-function execute_get_maintainer()
+function maintainers_main()
 {
   local raw_options="$*"
   local FILE_OR_DIR
@@ -73,37 +75,15 @@ function execute_get_maintainer()
     exit 0
   fi
 
-  IFS=' ' read -r -a options <<< "$raw_options"
-  for option in "${options[@]}"; do
-    if [[ "$option" =~ ^(--.*|-.*) ]]; then
-      case "$option" in
-        -au | -ua)
-          print_authors=true
-          update_patch=true
-          continue
-          ;;
-        --authors | -a)
-          print_authors=true
-          continue
-          ;;
-        --update-patch | -u)
-          update_patch=true
-          continue
-          ;;
-        *)
-          warning "Unrecognized option: $option"
-          continue
-          ;;
-      esac
-    else
-      FILE_OR_DIR=${FILE_OR_DIR:-$option}
-    fi
-  done
-
-  # If no file is given, assume '.'
-  if [[ -z $FILE_OR_DIR ]]; then
-    FILE_OR_DIR='.'
+  parse_maintainers_options "$@"
+  if [[ "$?" -gt 0 ]]; then
+    complain "${options_values['ERROR']}"
+    return 22 # EINVAL
   fi
+
+  FILE_OR_DIR=${options_values['FILE_OR_DIR']}
+  print_authors=${options_values['PRINT_AUTHORS']}
+  update_patch=${options_values['UPDATE_PATCH']}
 
   # Check if is a valid path
   if [[ ! -d $FILE_OR_DIR && ! -f $FILE_OR_DIR ]]; then
@@ -172,6 +152,52 @@ function execute_get_maintainer()
   fi
 }
 
+function parse_maintainers_options()
+{
+  local long_options='authors,update-patch'
+  local short_options='a,u'
+
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw maintainers' \
+      "$short_options" "$long_options" "$@")"
+    return 22 # EINVAL
+  fi
+
+  # Default values
+  options_values['FILE_OR_DIR']='.'
+  options_values['PRINT_AUTHORS']=false
+  options_values['UPDATE_PATCH']=false
+
+  eval "set -- $options"
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --authors | -a)
+        options_values['PRINT_AUTHORS']=true
+        shift
+        ;;
+      --update-patch | -u)
+        options_values['UPDATE_PATCH']=true
+        shift
+        ;;
+      --) # End of options, beginning of arguments
+        if [[ -n "$2" ]]; then
+          options_values['FILE_OR_DIR']=$2
+          shift
+        fi
+        shift
+        ;;
+      *)
+        options_values['ERROR']="Unrecognized argument: $1"
+        return 22 # EINVAL
+        shift
+        ;;
+    esac
+  done
+}
+
 function maintainers_help()
 {
   if [[ "$1" == --help ]]; then
@@ -184,3 +210,5 @@ function maintainers_help()
     '  maintainers (-a | --authors) - Also shows module authors' \
     '  maintainers (-u | --update-patch) - Add maintainers to patch file header'
 }
+
+load_kworkflow_config

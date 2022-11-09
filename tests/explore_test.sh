@@ -9,6 +9,7 @@ declare -a samples_names=(
   'codestyle_correct.c'
   'codestyle_error.c'
   'codestyle_warning.c'
+  'codestyle_check.h'
 )
 
 function setUp()
@@ -22,7 +23,7 @@ function setUp()
   # Setup git repository for test
   mk_fake_git
 
-  for commit in {0..3}; do
+  for commit in {0..4}; do
     local file_name="${samples_names[$commit]}"
     cp "$current_path/tests/samples/$file_name" ./
     git add "$file_name" &> /dev/null
@@ -49,7 +50,7 @@ function test_explore_files_under_git_repo()
   local -r current_path="$PWD"
 
   MSG_OUT='Expected string or parameter. See man for detail.'
-  output=$(explore)
+  output=$(explore_main)
   assertEquals "($LINENO) - Expected an error message." "$MSG_OUT" "$output"
 
   cd "$SHUNIT_TMPDIR" || {
@@ -58,26 +59,37 @@ function test_explore_files_under_git_repo()
   }
 
   MSG_OUT='camelCase(void)'
-  output=$(explore 'camelCase' '' | cut -d ' ' -f2)
+  output=$(explore_main 'camelCase' '' | head -n 1 | cut -d ' ' -f2)
   assertEquals "($LINENO)" "$MSG_OUT" "$output"
 
   MSG_OUT='camel_case'
-  output=$(explore 'camel_case' codestyle_error.c | grep "$MSG_OUT" -o | head -n 1)
+  output=$(explore_main 'camel_case' codestyle_error.c | grep "$MSG_OUT" -o | head -n 1)
   assertEquals "($LINENO)" "$MSG_OUT" "$output"
 
-  output=$(explore 'GNU grep' '.' 'TEST_MODE')
+  output=$(explore_main 'GNU grep' '.' 'TEST_MODE')
   expected_result="git grep -e 'GNU grep' -nI ."
   assertEquals "($LINENO)" "$expected_result" "$output"
 
   # Test if search only in files under git control
   cp "$current_path/tests/samples/grep_check.c" ./
   MSG_OUT='GNU grep'
-  output=$(explore 'GNU grep' | cut -d: -f1)
+  output=$(explore_main 'GNU grep' | cut -d: -f1)
   assertEquals "($LINENO)" '' "$output"
   git add 'grep_check.c' &> /dev/null
   MSG_OUT='GNU grep'
-  output=$(explore 'GNU grep' | cut -d: -f1)
+  output=$(explore_main 'GNU grep' | cut -d: -f1)
   assertEquals "($LINENO)" 'grep_check.c' "$output"
+
+  # Test only-source and only-header
+  MSG_OUT='3'
+  output=$(explore_main 'camelCase' | wc -l)
+  assertEquals "($LINENO)" "$MSG_OUT" "$output"
+  MSG_OUT='2'
+  output=$(explore_main -c 'camelCase' | wc -l)
+  assertEquals "($LINENO)" "$MSG_OUT" "$output"
+  MSG_OUT='1'
+  output=$(explore_main -H 'camelCase' | wc -l)
+  assertEquals "($LINENO)" "$MSG_OUT" "$output"
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -98,7 +110,7 @@ function test_explore_git_log()
 
   commit_msg='Commit number 2'
   file_name='file_2.txt'
-  output=$(explore --log "$commit_msg" | grep "$commit_msg" | awk '{print $1, $2, $3}')
+  output=$(explore_main --log "$commit_msg" | grep "$commit_msg" | awk '{print $1, $2, $3}')
   assertEquals "($LINENO)" "$commit_msg" "$output"
 
   cd "$current_path" || {
@@ -117,10 +129,10 @@ function test_explore_grep()
     return
   }
 
-  output=$(explore --grep 'GNU grep' | cut -d/ -f2)
+  output=$(explore_main --grep 'GNU grep' | cut -d/ -f2)
   assertEquals "($LINENO)" '.git' "$output"
 
-  output=$(explore --grep 'GNU grep' '.' 'TEST_MODE')
+  output=$(explore_main --grep 'GNU grep' '.' 'TEST_MODE')
   expected_result="grep --color -nrI . -e 'GNU grep'"
   assertEquals "($LINENO)" "$expected_result" "$output"
 
@@ -140,18 +152,18 @@ function test_explore_git()
     return
   }
 
-  output=$(explore --all 'GNU grep' '.' 'TEST_MODE')
+  output=$(explore_main --all 'GNU grep' '.' 'TEST_MODE')
   expected_result="git grep --no-index -e 'GNU grep' -nI ."
   assertEquals "($LINENO)" "$expected_result" "$output"
 
   # Test if the search ignores files in .git
-  output=$(explore --all 'GNU grep' | cut -d/ -f2)
+  output=$(explore_main --all 'GNU grep' | cut -d/ -f2)
   assertEquals "($LINENO)" '' "$output"
 
   # Test if search files not under git control
   cp "$current_path/tests/samples/grep_check.c" ./
   MSG_OUT='GNU grep'
-  output=$(explore --all 'GNU grep' | cut -d: -f1)
+  output=$(explore_main --all 'GNU grep' | cut -d: -f1)
   assertEquals "($LINENO)" 'grep_check.c' "$output"
 
   cd "$current_path" || {
@@ -160,45 +172,109 @@ function test_explore_git()
   }
 }
 
-function test_explore_parser()
+function test_parse_explore_options()
 {
   # Expected behaviour
-  output=$(explore_parser --log 'something')
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --log 'something'
   ret="$?"
-  assertEquals "($LINENO)" '1' "$ret"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" '1' "${options_values['TYPE']}"
 
-  output=$(explore_parser --grep 'something')
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --grep 'something'
   ret="$?"
-  assertEquals "($LINENO)" '2' "$ret"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" '2' "${options_values['TYPE']}"
 
-  output=$(explore_parser -g 'something')
+  unset options_values
+  declare -gA options_values
+  parse_explore_options -g 'something'
   ret="$?"
-  assertEquals "($LINENO)" '2' "$ret"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" '2' "${options_values['TYPE']}"
 
-  output=$(explore_parser --all 'something')
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --all 'something'
   ret="$?"
-  assertEquals "($LINENO)" '3' "$ret"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" '3' "${options_values['TYPE']}"
 
-  output=$(explore_parser -a 'something')
+  unset options_values
+  declare -gA options_values
+  parse_explore_options -a 'something'
   ret="$?"
-  assertEquals "($LINENO)" '3' "$ret"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" '3' "${options_values['TYPE']}"
 
-  output=$(explore_parser 'something')
+  unset options_values
+  declare -gA options_values
+  parse_explore_options 'something'
   ret="$?"
-  assertEquals "($LINENO)" '4' "$ret"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" '' "${options_values['TYPE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options -c 'something'
+  ret="$?"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" 'SOURCE' "${options_values['SCOPE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options -H 'something'
+  ret="$?"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" 'HEADER' "${options_values['SCOPE']}"
 
   # Others
-  output=$(explore_parser --logljkl)
+  parse_explore_options --logljkl
   ret="$?"
-  assertEquals "($LINENO)" '4' "$ret"
+  assertEquals "($LINENO)" '22' "$ret" # messy arg, should return 22
 
-  output=$(explore_parser --grepljkl)
+  parse_explore_options --grepljkl
   ret="$?"
-  assertEquals "($LINENO)" '4' "$ret"
+  assertEquals "($LINENO)" '22' "$ret" # messy arg, should return 22
 
-  output=$(explore_parser)
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --log --grep
   ret="$?"
   assertEquals "($LINENO)" '22' "$ret"
+  assertEquals "($LINENO)" 'Invalid arguments: Multiple search type!' "${options_values['ERROR']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --grep --all
+  ret="$?"
+  assertEquals "($LINENO)" '22' "$ret"
+  assertEquals "($LINENO)" 'Invalid arguments: Multiple search type!' "${options_values['ERROR']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --all --log
+  ret="$?"
+  assertEquals "($LINENO)" '22' "$ret"
+  assertEquals "($LINENO)" 'Invalid arguments: Multiple search type!' "${options_values['ERROR']}"
+
+  parse_explore_options main
+  ret="$?"
+  assertEquals "($LINENO)" '0' "$ret"
+
+  parse_explore_options main ./src
+  ret="$?"
+  assertEquals "($LINENO)" '0' "$ret"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options main ./src abaabaaba
+  ret="$?"
+  assertEquals "($LINENO)" '22' "$ret"
+  assertEquals "($LINENO)" 'Too many parameters' "${options_values['ERROR']}"
 }
 
 invoke_shunit

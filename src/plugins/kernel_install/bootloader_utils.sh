@@ -11,6 +11,7 @@ declare -gar GRUB=(
   'boot/grub2/grub.conf'
   'boot/grub2/grub.cfg'
   'boot/efi/EFI/ubuntu/'
+  'boot/efi/EFI/steamos'
   'NST/menu.lst'
   'boot/grub/menu.lst'
   'ubuntu/disks/boot/grub/menu.lst'
@@ -296,6 +297,7 @@ function identify_mbr_per_partition()
 function identify_bootloader_from_files()
 {
   local path_prefix="$1"
+  local target="$2"
   local bootloader=''
 
   path_prefix=${path_prefix:-'/'}
@@ -305,7 +307,12 @@ function identify_bootloader_from_files()
 
     for file in "${bootloader_files[@]}"; do
       file="$path_prefix/$file"
-      [[ -e "$file" ]] && bootloader="$bootloader_target"
+
+      if [[ "$target" == 2 || "$target" == 'local' ]]; then
+        sudo [ -e "$file" ] && bootloader="$bootloader_target"
+      else
+        [[ -e "$file" ]] && bootloader="$bootloader_target"
+      fi
     done
 
     [[ -n "$bootloader" ]] && break

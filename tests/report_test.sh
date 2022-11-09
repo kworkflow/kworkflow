@@ -160,15 +160,16 @@ function test_grouping_day_data()
 {
   local count=0
   local line
+  local expected
 
   # Here we use $'...' to evaluate the newline at the end of the strings
   declare -a expected_content=(
-    $' * [06:00:40-06:20:40][20m]: Tag 1 description\n'
-    $' * [08:30:50-08:45:50][15m]: Tag 2 description\n'
-    $' * [09:00:00-10:00:00][1h]: Tag 3 description\n'
-    $' * [11:00:00-11:00:44][44s]: Tag 4 description\n'
-    $' * [14:00:00-14:30:00][30m]: Tag 5 description\n'
-    $' * [15:00:00-15:10:00][10m]\n'
+    $' - 2021/04/04\n   * [06:00:40-06:20:40][20m]: Tag 1 description\n'
+    $' - 2021/04/04\n   * [08:30:50-08:45:50][15m]: Tag 2 description\n'
+    $' - 2021/04/04\n   * [09:00:00-10:00:00][1h]: Tag 3 description\n'
+    $' - 2021/04/04\n   * [11:00:00-11:00:44][44s]: Tag 4 description\n'
+    $' - 2021/04/04\n   * [14:00:00-14:30:00][30m]: Tag 5 description\n'
+    $' - 2021/04/04\n   * [15:00:00-15:10:00][10m]\n'
   )
 
   declare -a expected_tags=(
@@ -183,15 +184,19 @@ function test_grouping_day_data()
   grouping_day_data '2021/04/04'
   for tag in "${expected_tags[@]}"; do
     line="${expected_content[$count]}"
-    assert_equals_helper "Loop $count failed" "$LINENO" "$line" "${tags_details[$tag]}"
+    assert_equals_helper "Loop $count failed" "$LINENO" "${tags_details[$tag]}" "$line"
     ((count++))
   done
+
+  expected=$' - 2021/04/05\n   * [06:00:40-06:20:40][20m]: Description, with comma\n'
+  grouping_day_data '2021/04/05'
+  assert_equals_helper 'Did not parse commas correctly' "$LINENO" "${tags_details['comma_tag']}" "$expected"
 
   # Try to process file with bad data
   count=0
   declare -a expected_content=(
-    $' * [06:00:40-06:20:40][20m]: Tag 1 description\n'
-    $' * [09:00:00-10:00:00][1h]: Tag 3 description\n'
+    $' - bad_data/2021/04/04\n   * [06:00:40-06:20:40][20m]: Tag 1 description\n'
+    $' - bad_data/2021/04/04\n   * [09:00:00-10:00:00][1h]: Tag 3 description\n'
   )
 
   declare -a expected_tags=(
@@ -204,7 +209,7 @@ function test_grouping_day_data()
   grouping_day_data 'bad_data/2021/04/04'
   for tag in "${expected_tags[@]}"; do
     line="${expected_content[$count]}"
-    assert_equals_helper "Loop $count failed" "$LINENO" "$line" "${tags_details[$tag]}"
+    assert_equals_helper "Loop $count failed" "$LINENO" "${tags_details[$tag]}" "$line"
     ((count++))
   done
 }
@@ -310,6 +315,32 @@ function test_grouping_year_data()
   assert_equals_helper "We expect 366 (leap year) keys" "$LINENO" "$output" 366
 }
 
+function test_calculate_total_work_hours()
+{
+  local output
+  local expected
+
+  output=$(calculate_total_work_hours 1)
+  expected='00:00:01'
+  assert_equals_helper 'We expected 1 second' "$LINENO" "$output" "$expected"
+
+  output=$(calculate_total_work_hours 60)
+  expected='00:01:00'
+  assert_equals_helper 'We expected 1 minute' "$LINENO" "$output" "$expected"
+
+  output=$(calculate_total_work_hours 3600)
+  expected='01:00:00'
+  assert_equals_helper 'We expected 1 hour' "$LINENO" "$output" "$expected"
+
+  output=$(calculate_total_work_hours 89999)
+  expected='24:59:59'
+  assert_equals_helper 'We expected full clock' "$LINENO" "$output" "$expected"
+
+  output=$(calculate_total_work_hours 360000)
+  expected='100:00:00'
+  assert_equals_helper 'We expected 100 hours' "$LINENO" "$output" "$expected"
+}
+
 function test_show_data()
 {
   local count=0
@@ -326,6 +357,11 @@ function test_show_data()
   assertTrue "$LINENO: We expected to find at least one Summary entry" '[[ "$output" =~ 'Summary:' ]]'
   assertTrue "$LINENO: We expected to find tag_2" '[[ "$output" =~ 'tag_2' ]]'
   assertTrue "$LINENO: We expected to find 06:00:40-" '[[ "$output" =~ '06:00:40-' ]]'
+
+  grouping_day_data '2020/04/05'
+  output=$(show_data)
+
+  assertTrue "$LINENO: We expected to find per tag output over 24h" "[[ \"$output\" =~ 'time: 72:00:00' ]]"
 }
 
 function test_save_data_to()

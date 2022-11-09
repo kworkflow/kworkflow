@@ -16,7 +16,8 @@
 # password.
 #
 
-include "$KW_LIB_DIR/vm.sh" # It includes kw_config_loader.sh and kwlib.sh
+include "$KW_LIB_DIR/kw_config_loader.sh"
+include "$KW_LIB_DIR/vm.sh"
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
@@ -76,6 +77,8 @@ function deploy_main()
   local setup
   local flag
   local modules_install_status
+  local env_name
+  local output_kbuild_path=''
 
   # Drop build_and_deploy flag
   shift
@@ -88,7 +91,13 @@ function deploy_main()
   parse_deploy_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
-    return 22 # EINVAL
+    exit 22 # EINVAL
+  fi
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${env_name}"
+    output_kbuild_path=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']} --silent"
   fi
 
   flag="${options_values['TEST_MODE']}"
@@ -101,6 +110,17 @@ function deploy_main()
   uninstall="${options_values['UNINSTALL']}"
   uninstall_force="${options_values['UNINSTALL_FORCE']}"
   setup="${options_values['SETUP']}"
+
+  if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
+    say 'Available kernels:'
+    start=$(date +%s)
+    run_list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
+    end=$(date +%s)
+
+    runtime=$((end - start))
+    statistics_manager 'list' "$runtime"
+    exit "$?"
+  fi
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
@@ -131,17 +151,6 @@ function deploy_main()
   fi
 
   collect_target_info_for_deploy "$target" "$flag"
-
-  if [[ "$list" == 1 || "$single_line" == 1 || "$list_all" == 1 ]]; then
-    say 'Available kernels:'
-    start=$(date +%s)
-    run_list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
-    end=$(date +%s)
-
-    runtime=$((end - start))
-    statistics_manager 'list' "$runtime"
-    return "$?"
-  fi
 
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
@@ -187,8 +196,7 @@ function deploy_main()
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
-    name=$(make kernelrelease)
-
+    name=$(eval "make kernelrelease${output_kbuild_path}")
     run_kernel_install "$reboot" "$name" "$flag" "$target" '' "$build_and_deploy"
     end=$(date +%s)
     runtime=$((runtime + (end - start)))
@@ -219,9 +227,7 @@ function deploy_main()
 function setup_remote_ssh_with_passwordless()
 {
   local flag="$1"
-  local remote="${remote_parameters['REMOTE_IP']}"
-  local port="${remote_parameters['REMOTE_PORT']}"
-  local copy_key_cmd="ssh-copy-id $user@$remote"
+  local copy_key_cmd
   local users="root ${remote_parameters['REMOTE_USER']}"
   local root_user_setup=0
 
@@ -234,13 +240,19 @@ function setup_remote_ssh_with_passwordless()
     [[ "$user" == 'root' && "$root_user_setup" == 1 ]] && continue
     [[ "$user" == 'root' ]] && ((root_user_setup++))
 
+    # Use config file or ip info
+    if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
+      copy_key_cmd="ssh-copy-id -F ${remote_parameters['REMOTE_FILE']} ${remote_parameters['REMOTE_FILE_HOST']}"
+    else
+      copy_key_cmd="ssh-copy-id ${user}@${remote_parameters['REMOTE_IP']}"
+    fi
+
     # Try to copy-ssh-id
-    copy_key_cmd="ssh-copy-id $user@$remote"
     cmd_manager "$flag" "$copy_key_cmd"
     [[ "$?" != 0 ]] && return 103 # ECONNABORTED
 
     # Check if we can connect without password
-    is_ssh_connection_configured "$flag" "$remote" "$port" "$user"
+    is_ssh_connection_configured "$flag" '' '' "$user"
     if [[ "$?" != 0 ]]; then
       return 101 # ENETUNREACH
     fi
@@ -276,16 +288,13 @@ function prepare_distro_for_deploy()
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
 
-      distro_deploy_setup "$flag"
+      distro_deploy_setup "$flag" "${target}"
       ;;
     3) # REMOTE_TARGET
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-      local user="${remote_parameters['REMOTE_USER']}"
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --deploy-setup $flag"
+      cmd+=" --deploy-setup ${flag} ${target}"
 
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 }
@@ -317,10 +326,7 @@ function update_status_log()
       cmd_manager "$flag" "$status_cmd"
       ;;
     3) # REMOTE_TARGET
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-
-      cmd_remotely "$status_cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$status_cmd" "$flag"
       ;;
   esac
 }
@@ -351,10 +357,7 @@ function check_setup_status()
       ret="$?"
       ;;
     3) # REMOTE_TARGET
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ret="$?"
       ;;
   esac
@@ -397,8 +400,8 @@ function deploy_setup()
   fi
 
   if [[ "$target" == "$VM_TARGET" ]]; then
-    cmd="guestfish --rw -a ${configurations[qemu_path_image]} run : \
-      mount /dev/sda1 / : mkdir-p $kw_path"
+    cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run : \
+      mount /dev/sda1 / : mkdir-p $REMOTE_KW_DEPLOY"
     cmd_manager "$flag" "$cmd"
   fi
 
@@ -426,8 +429,8 @@ function deploy_setup()
 # function is intended to centralize these required updates.
 function update_deploy_variables()
 {
-  local kw_remote_path="${configurations[kw_files_remote_path]}"
-  local kw_tmp_files="${configurations[deploy_temporary_files_path]}"
+  local kw_remote_path="${deploy_config[kw_files_remote_path]}"
+  local kw_tmp_files="${deploy_config[deploy_temporary_files_path]}"
 
   REMOTE_KW_DEPLOY="${kw_remote_path:-$REMOTE_KW_DEPLOY}"
   KW_DEPLOY_TMP_FILE="${kw_tmp_files:-$KW_DEPLOY_TMP_FILE}"
@@ -501,13 +504,19 @@ function prepare_remote_dir()
       '--archive' "$remote" "$port" "$user" 'quiet'
   else
     say '* Sending kw to the remote'
-    cmd_remotely "mkdir -p $REMOTE_KW_DEPLOY" "$flag" "$remote" "$port" "$user"
-    cmd="scp -q $files_to_send $user@$remote:$REMOTE_KW_DEPLOY"
+    cmd_remotely "mkdir -p $REMOTE_KW_DEPLOY" "$flag"
+
+    if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
+      cmd="scp -q -F ${remote_parameters['REMOTE_FILE']} $files_to_send ${remote_parameters['REMOTE_FILE_HOST']}:$REMOTE_KW_DEPLOY"
+    else
+      cmd="scp -q $files_to_send ${remote_parameters['REMOTE_USER']}@${remote_parameters['REMOTE_IP']}:$REMOTE_KW_DEPLOY"
+    fi
+
     cmd_manager "$flag" "$cmd"
   fi
 
   # Create temporary folder
-  cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag" "$remote" "$port" "$user"
+  cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag"
 
   # TODO: In some point, we need to move the below code to ArchLinux specific
   # file
@@ -552,23 +561,19 @@ function run_list_installed_kernels()
       fi
 
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line" "$all" "${configurations[mount_point]}"
+      list_installed_kernels "$flag" "$single_line" "$all" "${vm_config[mount_point]}"
 
       vm_umount
       ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$single_line" "$all"
+      list_installed_kernels "$flag" "$single_line" "$all"
       ;;
     3) # REMOTE_TARGET
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --list-kernels $flag $single_line $all"
 
-      remote="${remote_parameters['REMOTE_IP']}"
-      port="${remote_parameters['REMOTE_PORT']}"
-      user="${remote_parameters['REMOTE_USER']}"
-
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 
@@ -605,7 +610,7 @@ function collect_target_info_for_deploy()
     1) # VM_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      data=$(collect_deploy_info "$flag" "$target" "${configurations[mount_point]}/")
+      data=$(collect_deploy_info "$flag" "$target" "${vm_config[mount_point]}/")
       ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
@@ -614,13 +619,10 @@ function collect_target_info_for_deploy()
       ;;
     3) # REMOTE_TARGET
       # Query bootload type
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-      local user="${remote_parameters['REMOTE_USER']}"
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --collect-info $flag $target"
 
-      data=$(cmd_remotely "$cmd" "$flag" "$remote" "$port")
+      data=$(cmd_remotely "$cmd" "$flag")
       ;;
   esac
 
@@ -695,7 +697,7 @@ function run_kernel_uninstall()
       # line break with `\`; this may allow us to break a huge line like this.
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --uninstall-kernels '$reboot' 'remote' '$kernels_target_list' '$flag' '$force'"
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 }
@@ -738,22 +740,19 @@ function modules_install()
   local port
   local distro
   local cmd
-  local compression_type="${configurations[deploy_default_compression]}"
+  local compression_type="${deploy_config[deploy_default_compression]}"
+  local tarball_for_deploy_path
 
   flag=${flag:-'SILENT'}
 
   case "$target" in
     1) # VM_TARGET
-      modules_install_to "${configurations[mount_point]}" "$flag"
+      modules_install_to "${vm_config[mount_point]}" "$flag"
       ;;
     2) # LOCAL_TARGET
       modules_install_to '/lib/modules' "$flag" 'local'
       ;;
     3) # REMOTE_TARGET
-      remote="${remote_parameters['REMOTE_IP']}"
-      port="${remote_parameters['REMOTE_PORT']}"
-      user="${remote_parameters['REMOTE_USER']}"
-
       # 2. Send files modules
       modules_install_to "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR/" "$flag"
 
@@ -762,23 +761,16 @@ function modules_install()
         "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar" \
         "$compression_type" "$release" "$flag"
 
-      local tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
+      tarball_for_deploy_path="$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/$release.tar"
       say "* Sending kernel modules ($release) to the remote"
       cp2remote "$flag" "$tarball_for_deploy_path" "$KW_DEPLOY_TMP_FILE"
 
       # 3. Deploy: Execute script
-      local cmd="$REMOTE_INTERACE_CMD_PREFIX"
+      cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --modules $release.tar"
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
-}
-
-function is_sign_module_enabled()
-{
-  grep --quiet --fixed-strings --line-regexp 'CONFIG_MODULE_SIG=y' "${PWD}/.config"
-  [[ "$?" != 0 ]] && return 1
-  return 0
 }
 
 # This function is responsible for handling the command to
@@ -797,17 +789,19 @@ function modules_install_to()
   local pv_cmd
   local cmd=''
   local strip_modules_debug='INSTALL_MOD_STRIP=1 '
-  local sign_extra_line=1
+  local output_kbuild_flag
+  local env_base_path="${PWD}/"
 
   flag=${flag:-'SILENT'}
 
-  if is_sign_module_enabled; then
-    sign_extra_line=2
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    output_kbuild_flag=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+    env_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
   fi
 
-  if [[ ${configurations[strip_modules_debug_option]} == 'no' ]]; then
+  if [[ ${deploy_config[strip_modules_debug_option]} == 'no' ]]; then
     strip_modules_debug=''
-    grep --quiet --fixed-strings --line-regexp 'CONFIG_DEBUG_INFO=y' "${PWD}/.config"
+    grep --quiet --fixed-strings --line-regexp 'CONFIG_DEBUG_INFO=y' "${env_base_path}/.config"
     if [[ "$?" == 0 ]]; then
       load_module_text "${KW_ETC_DIR}/strings/deploy.txt"
       warning "${module_text_dictionary[large_initramfs_warning]}"
@@ -815,16 +809,14 @@ function modules_install_to()
   fi
 
   if [[ "$local_deploy" == 'local' ]]; then
-    cmd="sudo true && sudo -E make ${strip_modules_debug}modules_install"
+    cmd="sudo true && sudo -E make ${strip_modules_debug}modules_install${output_kbuild_flag}"
   else
-    cmd="make ${strip_modules_debug}INSTALL_MOD_PATH=$install_to modules_install"
+    cmd="make ${strip_modules_debug}INSTALL_MOD_PATH=$install_to modules_install${output_kbuild_flag}"
   fi
 
-  if [[ "$flag" != 'VERBOSE' && -f './modules.order' ]]; then
-    total_lines=$(wc -l < './modules.order')
-    # Multiply by two because we have the driver name and the signing line
-    total_lines=$((total_lines * "$sign_extra_line"))
-    cmd+=" | pv -p --line-mode --size $total_lines > /dev/null"
+  if [[ "$flag" != 'VERBOSE' && -f "${env_base_path}/modules.order" ]]; then
+    total_lines=$(wc -l < "${env_base_path}/modules.order")
+    cmd+=" | grep INSTALL | pv -p --line-mode --size $total_lines > /dev/null"
   fi
 
   say '* Preparing modules'
@@ -845,7 +837,7 @@ function compose_copy_source_parameter_for_dtb()
   local char_count
   local dts_base_path
 
-  copy_pattern="${configurations[dtb_copy_pattern]}"
+  copy_pattern="${deploy_config[dtb_copy_pattern]}"
   dts_base_path="arch/$arch_target/boot/dts"
 
   # Pattern 1: No pattern. Let's copy all dtb files, e.g., copy_pattern='*.dtb'
@@ -890,9 +882,10 @@ function pack_kernel_files_and_send()
   local target="$2"
   local kernel_binary_file_name="$3"
   local kernel_name="$4"
-  local arch=${5-${configurations[arch]}}
+  arch_fallback="${build_config[arch]:-${configurations[arch]}}"
+  local arch=${5:-$arch_fallback}
   local build_and_deploy="$6"
-  local config_kernel_img_name=${configurations[kernel_img_name]}
+  local config_kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
   local base_boot_path
   local config_path
   local config_local_version
@@ -902,14 +895,17 @@ function pack_kernel_files_and_send()
   local dts_base_path
   local tar_file_path
   local kernel_name_arch
+  local kbuild_output_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
 
-  config_path='.config'
-  compression_type="${configurations[deploy_default_compression]}"
+  [[ -n "$kbuild_output_prefix" ]] && kbuild_output_prefix="${kbuild_output_prefix}/"
+
+  config_path="${kbuild_output_prefix}.config"
+  compression_type="${deploy_config[deploy_default_compression]}"
   cache_to_deploy_path="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
   cache_boot_files_path="${cache_to_deploy_path}/boot"
   tar_file_path="${cache_to_deploy_path}/${name}_boot.tar"
 
-  base_boot_path="arch/$arch/boot"
+  base_boot_path="${kbuild_output_prefix}arch/${arch}/boot"
   dts_base_path="${base_boot_path}/dts"
 
   [[ -z "$config_kernel_img_name" ]] && config_kernel_img_name='kernel'
@@ -959,7 +955,7 @@ function pack_kernel_files_and_send()
 
   case "$target" in
     1) # VM_TARGET
-      cmd="cp -r ${cache_to_deploy_path}/boot/* ${configurations[mount_point]}/boot/"
+      cmd="cp -r ${cache_to_deploy_path}/boot/* ${vm_config[mount_point]}/boot/"
       cmd_manager "$flag" "$cmd"
       ;;
     2) # LOCAL_TARGET
@@ -967,10 +963,6 @@ function pack_kernel_files_and_send()
       cmd_manager "$flag" "$cmd"
       ;;
     3) # REMOTE_TARGET
-      local remote="${remote_parameters['REMOTE_IP']}"
-      local port="${remote_parameters['REMOTE_PORT']}"
-      local user="${remote_parameters['REMOTE_USER']}"
-
       generate_tarball "${cache_to_deploy_path}" \
         "$tar_file_path" "$compression_type" 'boot' "$flag"
 
@@ -1000,14 +992,19 @@ function run_kernel_install()
   local user="${5:-${remote_parameters['REMOTE_USER']}}"
   local build_and_deploy="$6"
   local distro='none'
-  local kernel_name="${configurations[kernel_img_name]}"
+  local kernel_name="${build_config[kernel_name]:-${configurations[kernel_name]}}"
   local mkinitcpio_name="${configurations[mkinitcpio_name]}"
-  local arch_target="${configurations[arch]}"
+  local arch_target="${build_config[arch]:-${configurations[arch]}}"
+  local kernel_img_name="${build_config[kernel_img_name]:-${configurations[kernel_img_name]}}"
   local kernel_binary_file_name
   local remote
   local port
   local config_local_version
   local cmd
+  local cmd_parameters
+  local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+
+  [[ -n "$kbuild_prefix" ]] && kbuild_prefix="${kbuild_prefix}/"
 
   # We have to guarantee some default values values
   kernel_name=${kernel_img_name:-'nothing'}
@@ -1015,15 +1012,8 @@ function run_kernel_install()
   name=${name:-'kw'}
   flag=${flag:-'SILENT'}
 
-  if [[ "$reboot" == 0 ]]; then
-    reboot_default="${configurations[reboot_after_deploy]}"
-    if [[ "$reboot_default" =~ 'yes' ]]; then
-      reboot=1
-    fi
-  fi
-
   # Try to find the latest generated kernel image
-  kernel_binary_file_name=$(find "arch/$arch_target/boot/" -name '*Image' \
+  kernel_binary_file_name=$(find "${kbuild_prefix}arch/$arch_target/boot/" -name '*Image' \
     -printf '%T+ %p\n' 2> /dev/null | sort -r | head -1)
   kernel_binary_file_name=$(basename "$kernel_binary_file_name")
   if [[ -z "$kernel_binary_file_name" ]]; then
@@ -1039,7 +1029,7 @@ function run_kernel_install()
 
   case "$target" in
     1) # VM_TARGET
-      distro=$(detect_distro "${configurations[mount_point]}/")
+      distro=$(detect_distro "${vm_config[mount_point]}/")
 
       if [[ "$distro" =~ 'none' ]]; then
         complain 'Unfortunately, there is no support for the target distro'
@@ -1050,7 +1040,6 @@ function run_kernel_install()
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       update_deploy_variables # Make sure we use the right variable values
-
       install_kernel "$name" "$distro" "$kernel_binary_file_name" "$reboot" "$arch_target" 'vm' "$flag"
       return "$?"
       ;;
@@ -1076,15 +1065,11 @@ function run_kernel_install()
       return "$?"
       ;;
     3) # REMOTE_TARGET
-      remote="${remote_parameters['REMOTE_IP']}"
-      port="${remote_parameters['REMOTE_PORT']}"
-      user="${remote_parameters['REMOTE_USER']}"
-
       distro_info=$(which_distro "$remote" "$port" "$user")
       distro=$(detect_distro '/' "$distro_info")
 
       # Deploy
-      local cmd_parameters="$name $distro $kernel_binary_file_name $reboot $arch_target 'remote' $flag"
+      cmd_parameters="$name $distro $kernel_binary_file_name $reboot $arch_target 'remote' $flag"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 
@@ -1106,7 +1091,7 @@ function parse_deploy_options()
   local enable_collect_param=0
   local remote
   local options
-  local long_options='remote:,local,vm,reboot,modules,list,ls-line,uninstall:'
+  local long_options='remote:,local,vm,reboot,no-reboot,modules,list,ls-line,uninstall:'
   long_options+=',list-all,force,setup,verbose'
   local short_options='r,m,l,s,u:,a,f,v'
 
@@ -1118,12 +1103,14 @@ function parse_deploy_options()
     return 22 # EINVAL
   fi
 
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
   options_values['TEST_MODE']='SILENT'
   options_values['UNINSTALL']=''
   options_values['UNINSTALL_FORCE']=''
   options_values['MODULES']=0
   options_values['LS_LINE']=0
   options_values['LS']=0
+  # 0: not specified in cmd options   1: --reboot   2: --no-reboot
   options_values['REBOOT']=0
   options_values['MENU_CONFIG']='nconfig'
   options_values['LS_ALL']=''
@@ -1135,11 +1122,15 @@ function parse_deploy_options()
   remote_parameters['REMOTE_USER']=''
 
   # Set basic default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    local config_file_deploy_target=${configurations[default_deploy_target]}
+  if [[ -n ${deploy_config[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
   else
     options_values['TARGET']="$VM_TARGET"
+  fi
+
+  if [[ ${deploy_config[reboot_after_deploy]} == 'yes' ]]; then
+    options_values['REBOOT']=1
   fi
 
   populate_remote_info ''
@@ -1148,21 +1139,17 @@ function parse_deploy_options()
     return 22 # EINVAL
   fi
 
-  if [[ ${configurations[reboot_after_deploy]} == 'yes' ]]; then
-    options_values['REBOOT']=1
-  fi
-
   eval "set -- $options"
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --remote)
-        options_values['TARGET']="$REMOTE_TARGET"
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
           options_values['ERROR']="Invalid remote: $2"
           return 22 # EINVAL
         fi
+        options_values['TARGET']="$REMOTE_TARGET"
         shift 2
         ;;
       --local)
@@ -1175,6 +1162,10 @@ function parse_deploy_options()
         ;;
       --reboot | -r)
         options_values['REBOOT']=1
+        shift
+        ;;
+      --no-reboot)
+        options_values['REBOOT']=0
         shift
         ;;
       --modules | -m)
@@ -1249,11 +1240,18 @@ function deploy_help()
     '  deploy - installs kernel and modules:' \
     '  deploy (--remote <remote>:<port> | --local | --vm) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
-    '  deploy (--verbose | -v) - Show a detailed output' \
-    '  deploy (--setup) - Set up target machine for deploy' \
+    '  deploy (--no-reboot) - do not reboot machine after deploy' \
+    '  deploy (--verbose | -v) - show a detailed output' \
+    '  deploy (--setup) - set up target machine for deploy' \
     '  deploy (--modules | -m) - install only modules' \
     '  deploy (--uninstall | -u) [(--force | -f)] <kernel-name>,... - uninstall given kernels' \
     '  deploy (--list | -l) - list kernels' \
     '  deploy (--ls-line | -s) - list kernels separeted by commas' \
     '  deploy (--list-all | -a) - list all available kernels'
 }
+
+load_vm_config
+load_build_config
+load_deploy_config
+load_kworkflow_config
+load_notification_config

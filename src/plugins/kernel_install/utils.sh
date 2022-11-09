@@ -1,4 +1,5 @@
 declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+declare -g AB_ROOTFS_PARTITION='/dev/disk/by-partsets/self/rootfs'
 
 # ATTENTION:
 # This function follows the cmd_manager signature (src/kwlib.sh) because we
@@ -38,6 +39,95 @@ function cmd_manager()
   eval "$@"
 }
 
+function command_exists()
+{
+  local command="$1"
+  local package=${command%% *}
+
+  if [[ ! -x "$(command -v "$package")" ]]; then
+    return 22 # EINVAL
+  fi
+  return 0
+}
+
+# Identify partition type
+#
+# @target_path By default, it is / but developers can set any path.
+#
+# Return:
+# Return filesystem type
+function detect_filesystem_type()
+{
+  local target_path=${1:-'/'}
+  local file_system
+
+  file_system=$(findmnt --first-only --noheadings --output FSTYPE "$target_path")
+
+  printf '%s' "$file_system"
+}
+
+# Check if the partition that will receive the new kernel is writable. This is
+# especially important for OSes that block the write to the / path, such as
+# SteamOS and ChromeOS.
+#
+# Return
+# An error code in case of failure or 0 in case of success.
+function is_filesystem_writable()
+{
+  local file_system_type="$1"
+  local flag="$2"
+  local cmd=''
+  local file_system_type
+
+  case "$file_system_type" in
+    ext4)
+      # Is this A/b partition?
+      if [[ -f "$AB_ROOTFS_PARTITION" ]]; then
+        cmd="tune2fs -l '$AB_ROOTFS_PARTITION' | grep -q '^Filesystem features: .*read-only.*$'"
+      fi
+      ;;
+    btrfs)
+      cmd='btrfs property get / ro | grep "ro=false" --silent'
+      ;;
+    *)
+      return 95 # EOPNOTSUPP
+      ;;
+  esac
+
+  # We don't need to do anything else here
+  [[ -z "$cmd" ]] && return 0
+
+  cmd_manager "$flag" "$cmd"
+  return "$?"
+}
+
+# If the target partition is not in the writable mode, this function enables it
+# to write.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+function make_root_partition_writable()
+{
+  local flag="$1"
+  local file_system_type
+
+  file_system_type=$(detect_filesystem_type '')
+  is_filesystem_writable "$file_system_type"
+
+  if [[ "$?" != 0 ]]; then
+    case "$file_system_type" in
+      ext4)
+        cmd_manager "$flag" "tune2fs -O ^read-only ${AB_ROOTFS_PARTITION}"
+        cmd_manager "$flag" 'mount -o remount,rw /'
+        ;;
+      btrfs)
+        cmd_manager "$flag" 'mount -o remount,rw /'
+        cmd_manager "$flag" 'btrfs property set / ro false'
+        ;;
+    esac
+  fi
+}
+
 function collect_deploy_info()
 {
   local flag="$1"
@@ -54,12 +144,12 @@ function collect_deploy_info()
     . "$REMOTE_KW_DEPLOY/bootloader_utils.sh" --source-only
   fi
 
-  bootloader=$(identify_bootloader_from_files "$prefix")
+  bootloader=$(identify_bootloader_from_files "$prefix" "$target")
   bootloader="[bootloader]=$bootloader"
 
   # Get distro
-  distro=$(cat /etc/*-release | grep -w ID | cut -d = -f 2)
-  distro="[distro]=$distro"
+  distro=$(cat /etc/*-release | grep -w 'ID\(_LIKE\)\?' | cut -d = -f 2 | xargs echo)
+  distro="[distro]='$distro'"
 
   # Build associative array data
   printf '%s' "$bootloader $distro"
@@ -75,9 +165,17 @@ function collect_deploy_info()
 function distro_deploy_setup()
 {
   local flag="$1"
+  local target="$2"
   local package_list
   local install_package_cmd
 
+  # Make sure that / is writable
+  make_root_partition_writable "$flag"
+
+  # Hook that allow some distro to do some specific pre-setup
+  distro_pre_setup "$flag" "$target"
+
+  # Install required packages
   printf -v package_list '%s ' "${required_packages[@]}"
 
   install_package_cmd="$package_manager_cmd $package_list"
@@ -240,6 +338,7 @@ function update_bootloader()
   local kernel_image_name="$4"
   local distro="$5"
   local prefix="$6"
+  local root_file_system="$7"
   local deploy_data_string
   local bootloader_path_prefix
   local ret
@@ -279,12 +378,12 @@ function update_bootloader()
   if [[ "$generate_initram" == 1 ]]; then
     # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
     cmd="generate_${distro}_temporary_root_file_system"
-    cmd+=" $flag $name $target ${deploy_data['bootloader']} $path_prefix"
+    cmd+=" $flag $name $target ${deploy_data['bootloader']} $path_prefix $root_file_system"
 
     cmd_manager "$flag" "$cmd"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
-      complain 'Error when trying to generate the temporary root file system'
+      printf 'Error when trying to generate the temporary root file system\n'
       [[ "$target" == 'vm' ]] && vm_umount
       exit "$ret"
     fi
@@ -420,13 +519,13 @@ function install_kernel()
 
   if [[ "$target" == 'vm' ]]; then
     # Check if vm is mounted and get its path
-    if [[ $(findmnt "${configurations[mount_point]}") ]]; then
-      path_prefix="${configurations[mount_point]}"
+    if [[ $(findmnt "${vm_config[mount_point]}") ]]; then
+      path_prefix="${vm_config[mount_point]}"
       INSTALLED_KERNELS_PATH="$path_prefix/$INSTALLED_KERNELS_PATH"
       # Copy config file
       cmd_manager "$flag" "cp $verbose_cp .config $path_prefix/boot/config-$name"
     else
-      complain 'Did you check if your VM is mounted?'
+      printf 'Did you check if your VM is mounted?\n'
       return 125 # ECANCELED
     fi
   fi
@@ -448,7 +547,7 @@ function install_kernel()
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then
-    complain 'kw was not able to update the target bootloader'
+    printf 'kw was not able to update the target bootloader\n'
     [[ "$target" == 'vm' ]] && vm_umount
     exit "$ret"
   fi
@@ -479,6 +578,6 @@ function install_kernel()
 
   # If VM is mounted, umount before update boot loader
   if [[ "$target" == 'vm' ]]; then
-    [[ $(findmnt "${configurations[mount_point]}") ]] && vm_umount
+    [[ $(findmnt "${vm_config[mount_point]}") ]] && vm_umount
   fi
 }

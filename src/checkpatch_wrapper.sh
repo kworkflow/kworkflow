@@ -13,11 +13,10 @@ function execute_checkpatch()
   local FILE_OR_DIR_CHECK="$1"
   local flag="$2"
 
-  if [[ "$FILE_OR_DIR_CHECK" =~ -h|--help ]]; then
+  if [[ "$FILE_OR_DIR_CHECK" =~ ^-h|^--help ]]; then
     codestyle_help "$1"
     return 0
   fi
-
   # TODO: Note that codespell file is not specified yet because of the poluted
   # output. It could be nice if we can add another option just for this sort
   # of check.
@@ -94,3 +93,5 @@ function codestyle_help()
   printf '%s\n' 'kw codestyle:' \
     '  codestyle [<dir>|<file>|<patch>] - Use checkpatch on target'
 }
+
+load_kworkflow_config

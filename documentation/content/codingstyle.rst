@@ -256,8 +256,8 @@ Help functions
 Each subcommand may have its help function that details its usage. This
 function should be located as close as possible to the feature they document;
 ideally, we want it in the same file. For example, you should find details on
-using the ``build`` option in the ``build.sh``, and for ``configm`` in the file
-`config_manager.sh`.
+using the ``build`` option in the ``build.sh``, and for
+``kernel-config-manager`` in the file `kernel_config_manager.sh`.
 
 Handling Signals
 ----------------

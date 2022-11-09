@@ -40,7 +40,7 @@ need to add these files in a specific location for a functional boot. For
 example, in the case of RPI 4 32 bits, it should be under the ``/boot`` folder,
 and for RPI 4 64 bits, it is ``/boot/broadcom``. However, these locations may
 vary, so we need to tell kw how to handle these files, but don't worry, this is
-a trivial task. Open your ``.kw/kworflow.config`` and search for::
+a trivial task. Open your ``.kw/deploy.config`` and search for::
 
   dtb_copy_pattern=
 
@@ -76,6 +76,11 @@ Or if you want to deploy your kernel to an RPI 4 64 bits, you can use::
 
 Build and deploy
 ----------------
+
+.. note::
+   The RPI needs to keep the modules after they are installed, so to have a
+   proper deploy on the RPI is ideal to set ``strip_modules_debug_option=no``
+   on ``.kw/deploy.config``.
 
 At this point, we suppose that you already compiled your kernel and added a
 very cool suffix name to your image. Additionally, we presume that your target

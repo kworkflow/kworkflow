@@ -6,10 +6,21 @@ SAMPLES_DIR="$TEST_DIR/samples"
 EXTERNAL_DIR="$TEST_DIR/external"
 TMP_TEST_DIR="$TEST_DIR/.tmp"
 
+KW_REMOTE_SAMPLES_DIR="${SAMPLES_DIR}/remote_samples"
+
 # Common samples
 MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
 KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
+KW_BUILD_CONFIG_SAMPLE="$SAMPLES_DIR/build.config"
+KW_DEPLOY_CONFIG_SAMPLE="$SAMPLES_DIR/deploy.config"
+KW_VM_CONFIG_SAMPLE="$SAMPLES_DIR/vm.config"
+KW_MAIL_CONFIG_SAMPLE="$SAMPLES_DIR/mail.config"
+KW_NOTIFICATION_CONFIG_SAMPLE="$SAMPLES_DIR/notification.config"
+KW_REMOTE_CONFIG_SAMPLE="${KW_REMOTE_SAMPLES_DIR}/remote.config"
+
 KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
+KW_BUILD_CONFIG_SAMPLE_X86="$SAMPLES_DIR/build_x86.config"
+KW_VM_CONFIG_SAMPLE_X86="$SAMPLES_DIR/vm_x86.config"
 
 # External files
 CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
@@ -23,6 +34,7 @@ function init_env()
 {
   unset -v KW_LIB_DIR KWORKFLOW
   KW_LIB_DIR="./src"
+  KWORKFLOW=".kw"
   export KW_LIB_DIR KWORKFLOW
   export -f include
 }
@@ -195,6 +207,32 @@ function mk_fake_git()
   git commit --allow-empty -q -m 'Third commit'
 }
 
+function mk_fake_kw_folder()
+{
+  local target_folder="$1"
+  local kw_config_folder="${target_folder}/.kw"
+
+  [[ -z "$target_folder" ]] && return 22
+
+  mkdir -p "$kw_config_folder"
+  # Copy sample files
+  cp "$KW_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_BUILD_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_DEPLOY_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_VM_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_MAIL_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_NOTIFICATION_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_REMOTE_CONFIG_SAMPLE" "$kw_config_folder"
+}
+
+function mk_fake_kw_env()
+{
+  local env_kw="${PWD}/.kw/fake_env"
+
+  mkdir -p "$env_kw"
+  printf '%s' 'fake_env' > "${PWD}/.kw/env.current"
+}
+
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #
@@ -288,6 +326,17 @@ function compare_array_values()
       "$equal" \
       '-----'
   fi
+}
+
+function get_config_option_to_string()
+{
+  local config_path="$1"
+  local output
+
+  output=$(< "$config_path")
+  output=$(printf '%s\n' "$output" | grep -oE '^(#?\w+=?)' | sed -E 's/[#=]//g')
+
+  printf '%s' "$output"
 }
 
 function invoke_shunit()

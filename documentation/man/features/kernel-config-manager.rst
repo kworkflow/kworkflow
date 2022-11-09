@@ -1,23 +1,26 @@
-==========
-kw-configm
-==========
+========================
+kw-kernel-config-manager
+========================
 
-.. _configm-doc:
+.. _kernel-config-manager-doc:
 
 SYNOPSIS
 ========
-| *kw* (*g* | *configm*) [(-s | \--save) <name> [(-d | \--description) <description>] [-f | \--force]]
-| *kw* (*g* | *configm*) [-l | \--list]
-| *kw* (*g* | *configm*) [\--fetch [(-o | \--output) <filename>] [-f | \--force] [\--optimize] [\--remote [<remote>:<port>]]]:
-| *kw* (*g* | *configm*) [\--get <name> [-f | \--force]]
-| *kw* (*g* | *configm*) [(-r | \--remove) <name> [-f | \--force]]
+| *kw* (*k* | *kernel-config-manager*) [(-s | \--save) <name> [(-d | \--description) <description>] [-f | \--force]]
+| *kw* (*k* | *kernel-config-manager*) [-l | \--list]
+| *kw* (*k* | *kernel-config-manager*) [\--fetch [(-o | \--output) <filename>] [-f | \--force] [\--optimize] [\--remote [<remote>:<port>]]]:
+| *kw* (*k* | *kernel-config-manager*) [\--get <name> [-f | \--force]]
+| *kw* (*k* | *kernel-config-manager*) [(-r | \--remove) <name> [-f | \--force]]
 
 DESCRIPTION
 ===========
-The **configm** command manages different versions of the project's **.config**
+The **kernel-config-manager** command manages different versions of the project's **.config**
 file. It provides the save, load, remove, and list operations of such files. By
-default, if the user does not provide any parameter, the configm will list all
+default, if the user does not provide any parameter, the kernel-config-manager will list all
 configs under **kw**'s management.
+
+.. note::
+  This feature has interoperability with the kw env feature.
 
 OPTIONS
 =======
@@ -59,13 +62,13 @@ properly configured.
 In case you want **kw** to save your current **.config** file, you can use::
 
   cd <kernel-path>
-  kw g --save my_current_config
+  kw k --save my_current_config
 
 You can see the config's file maintained by **kw** with::
 
-  kw g --list
+  kw k --list
 
 If you want to fetch a config from a remote machine (available at
 ``localhost:2222``) as root, you can run::
 
-  kw configm --fetch --remote root@localhost:2222
+  kw kernel-config-manager --fetch --remote root@localhost:2222

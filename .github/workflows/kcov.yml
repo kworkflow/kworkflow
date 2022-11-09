@@ -1,0 +1,44 @@
+name: Kcov test
+on:
+  [push, pull_request]
+jobs:
+  kcov-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 3
+
+      - name: Update the system
+        run: |
+          sudo apt update -y
+
+      - name: Install dependencies
+        run: |
+          sudo apt install -y kcov shunit2 bc sqlite3 bsdmainutils
+
+      - name: Prepare for tests
+        run: |
+          ./run_tests.sh prepare
+          mkdir kcov_out/
+          git config --global user.email "kw@kworkflow.net"
+          git config --global user.name "Kworkflow"
+
+      - name: Prepare for coverage test
+        run: |
+          ./run_tests.sh prepare
+
+      - name: Kcov test
+        run: |
+          kcov --include-path=src,kw \
+          --exclude-pattern=src/bash_autocomplete.sh,src/help.sh \
+          kcov_out/ ./run_tests.sh
+
+      - name: Upload coverage do codecov
+        run: |
+          bash <(curl -s https://codecov.io/bash) -s kcov_out/

@@ -97,7 +97,7 @@ the previous sections.
   | :ref:`kw-init<init-doc>`
   | :ref:`kw-device<device-doc>`
   | :ref:`kw-ssh<ssh-doc>`
-  | :ref:`kw-configm<configm-doc>`
+  | :ref:`kw-kernel-config-manager<kernel-config-manager-doc>`
   | :ref:`kw-vars<vars-doc>`
   | :ref:`kw-diff<diff-doc>`
   | :ref:`kw-report<report-doc>`
@@ -273,11 +273,11 @@ If you want to check the maintainers::
 In case you want that kw saves your current .config file, you can use::
 
     cd <kernel-path>
-    kw g --save my_current_config
+    kw k --save my_current_config
 
 You can see the config's file maintained by kw with::
 
-  kw g --list
+  kw k --list
 
 You can turn on your VM with::
 

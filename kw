@@ -105,7 +105,7 @@ function kw()
 
         kernel_build && deploy_main 1 "$@"
         local ret="$?"
-        alert_completion 'kw db' "$1"
+        alert_completion 'kw bd' "$1"
         return "$ret"
       )
       ;;
@@ -116,17 +116,17 @@ function kw()
       ;;
     ssh | s)
       (
-        include "$KW_LIB_DIR/kw_config_loader.sh"
-        include "$KW_LIB_DIR/kw_ssh.sh"
+        include "${KW_LIB_DIR}/kw_config_loader.sh"
+        include "${KW_LIB_DIR}/kw_ssh.sh"
 
-        kw_ssh "$@"
+        kw_ssh_main "$@"
       )
       ;;
     vars)
       (
         include "$KW_LIB_DIR/kw_config_loader.sh"
 
-        show_variables "$@"
+        show_variables_main "$@"
       )
       ;;
     codestyle | c)
@@ -138,16 +138,30 @@ function kw()
       ;;
     maintainers | m)
       (
-        include "$KW_LIB_DIR/get_maintainer_wrapper.sh"
+        include "${KW_LIB_DIR}/maintainers.sh"
 
-        execute_get_maintainer "$@"
+        maintainers_main "$@"
       )
       ;;
-    configm | g)
+    kernel-config-manager | k)
       (
-        include "$KW_LIB_DIR/config_manager.sh"
+        include "$KW_LIB_DIR/kernel_config_manager.sh"
 
-        execute_config_manager "$@"
+        kernel_config_manager_main "$@"
+      )
+      ;;
+    config | g)
+      (
+        include "$KW_LIB_DIR/config.sh"
+
+        config_main "$@"
+      )
+      ;;
+    remote)
+      (
+        include "$KW_LIB_DIR/kw_remote.sh"
+
+        remote_main "$@"
       )
       ;;
     help | --help)
@@ -168,7 +182,8 @@ function kw()
       (
         include "$KW_LIB_DIR/explore.sh"
 
-        explore "$@"
+        explore_main "$@"
+        return "$?"
       )
       ;;
     man)
@@ -227,6 +242,13 @@ function kw()
         mail_main "$@"
       )
       ;;
+    env)
+      (
+        include "${KW_LIB_DIR}/kw_env.sh"
+
+        env_main "$@"
+      )
+      ;;
     clear-cache)
       include "$KW_LIB_DIR/deploy.sh"
 
@@ -235,9 +257,9 @@ function kw()
     # Subsystems support
     drm)
       (
-        include "$KW_PLUGINS_DIR/subsystems/drm/drm.sh"
+        include "${KW_PLUGINS_DIR}/subsystems/drm/drm.sh"
 
-        drm_manager "$@"
+        drm_main "$@"
       )
       ;;
     *)

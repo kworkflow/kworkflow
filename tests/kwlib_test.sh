@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/get_maintainer_wrapper.sh'
+include './src/maintainers.sh'
 include './src/kwlib.sh'
 include './tests/utils.sh'
 
@@ -13,17 +13,7 @@ function oneTimeSetUp()
   FAKE_STATISTICS_DAY_PATH="$FAKE_STATISTICS_MONTH_PATH/03"
   ORIGINAL_DIR="$PWD"
 
-  setupFakeOSInfo
   setupFakeKernelRepo
-}
-
-function setupFakeOSInfo()
-{
-  mkdir -p "$SHUNIT_TMPDIR"/detect_distro/{arch,manjaro,debian,ubuntu}/etc
-  cp -f tests/samples/os/arch/* "$SHUNIT_TMPDIR/detect_distro/arch/etc"
-  cp -f tests/samples/os/debian/* "$SHUNIT_TMPDIR/detect_distro/debian/etc"
-  cp -f tests/samples/os/manjaro/* "$SHUNIT_TMPDIR/detect_distro/manjaro/etc"
-  cp -f tests/samples/os/ubuntu/* "$SHUNIT_TMPDIR/detect_distro/ubuntu/etc"
 }
 
 function setupPatch()
@@ -59,6 +49,7 @@ function setupFakeKernelRepo()
   mkdir -p "lib"
   mkdir -p "scripts"
   mkdir -p ".git"
+
   cd "$ORIGINAL_DIR" || {
     fail "($LINENO) It was not possible to move back to original directory"
     return
@@ -188,29 +179,140 @@ function test_cmd_manager_check_test_mode_option()
   assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
 }
 
-function test_detect_distro()
+function test_detect_distro_root_path_only()
 {
-  local root_path="$SHUNIT_TMPDIR/detect_distro/arch"
-  local ret
+  local root_path
+  local output
 
-  ret=$(detect_distro "$root_path")
-  assertEquals "We got $ret." "$ret" "arch"
+  root_path="${SAMPLES_DIR}/os/arch"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
 
-  root_path="$SHUNIT_TMPDIR/detect_distro/debian"
-  ret=$(detect_distro "$root_path")
-  assertEquals "We got $ret." "$ret" "debian"
+  root_path="${SAMPLES_DIR}/os/manjaro"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
 
-  root_path="$SHUNIT_TMPDIR/detect_distro/manjaro"
-  ret=$(detect_distro "$root_path")
-  assertEquals "We got $ret." "$ret" "arch"
+  root_path="${SAMPLES_DIR}/os/ubuntu"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
 
-  root_path="$SHUNIT_TMPDIR/detect_distro/ubuntu"
-  ret=$(detect_distro "$root_path")
-  assertEquals "We got $ret." "$ret" "debian"
+  root_path="${SAMPLES_DIR}/os/debian"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
 
-  root_path="$SHUNIT_TMPDIR/detect_distro/debian/etc/lala"
-  ret=$(detect_distro "$root_path")
-  assertEquals "We got $ret." "$ret" "none"
+  root_path="${SAMPLES_DIR}/os/raspbian"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
+
+  root_path="${SAMPLES_DIR}/os/fedora"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'fedora'
+
+  root_path="${SAMPLES_DIR}/os/arch-linux-arm"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  root_path="${SAMPLES_DIR}/os/endeavouros"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  root_path="${SAMPLES_DIR}/os/steamos"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  root_path="${SAMPLES_DIR}/os/popos"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
+
+  root_path="${SAMPLES_DIR}/os/none"
+  output=$(detect_distro "$root_path")
+  assert_equals_helper '' "$LINENO" "$output" 'none'
+}
+
+function test_detect_distro_str_check()
+{
+  local root_path
+  local output
+
+  output=$(detect_distro '/' 'arch')
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  output=$(detect_distro '' 'debian')
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
+
+  output=$(detect_distro '' 'fedora')
+  assert_equals_helper '' "$LINENO" "$output" 'fedora'
+
+  output=$(detect_distro '' 'ubuntu')
+  assert_equals_helper '' "$LINENO" "$output" 'none'
+
+  output=$(detect_distro '' 'ubuntu debian')
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
+
+  output=$(detect_distro '' 'manjaro steamos lala arch')
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+}
+
+function test_detect_distro_from_raw_data()
+{
+  local root_path_string
+  local os_release_data
+  local output
+
+  root_path="${SAMPLES_DIR}/os/arch/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  root_path="${SAMPLES_DIR}/os/manjaro/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  root_path="${SAMPLES_DIR}/os/ubuntu/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
+
+  root_path="${SAMPLES_DIR}/os/debian/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
+
+  root_path="${SAMPLES_DIR}/os/raspbian/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
+
+  root_path="${SAMPLES_DIR}/os/fedora/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'fedora'
+
+  root_path="${SAMPLES_DIR}/os/arch-linux-arm/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  root_path="${SAMPLES_DIR}/os/endeavouros/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  root_path="${SAMPLES_DIR}/os/steamos/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'arch'
+
+  root_path="${SAMPLES_DIR}/os/popos/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'debian'
+
+  root_path="${SAMPLES_DIR}/os/none/etc/os-release"
+  os_release_data=$(< "$root_path")
+  output=$(detect_distro '' '' "$os_release_data")
+  assert_equals_helper '' "$LINENO" "$output" 'none'
 }
 
 function test_join_path()
@@ -559,13 +661,11 @@ function test_get_all_git_config()
   }
 
   output=$(get_all_git_config test-config '' 'TEST_MODE' | sort -d)
-  # expected='git config --get-all --show-scope -- test-config'
-  expected=$'global\t'"git config --get-all --global test-config"$'\n'
-  expected+=$'local\t'"git config --get-all --local test-config"
+  expected=$'global\t'"git config --get-all --global test-config"
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   output=$(get_all_git_config test-config 'local' 'TEST_MODE')
-  expected=$'local\tgit config --get-all --local test-config'
+  expected=$'global\tgit config --get-all --global test-config'
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   # only possible test at a global scope, as we have limited control over
@@ -575,6 +675,19 @@ function test_get_all_git_config()
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   mk_fake_git
+
+  output=$(get_all_git_config test-config '' 'TEST_MODE' | sort -d)
+  expected=$'global\t'"git config --get-all --global test-config"$'\n'
+  expected+=$'local\t'"git config --get-all --local test-config"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_all_git_config test-config 'local' 'TEST_MODE')
+  expected=$'local\tgit config --get-all --local test-config'
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_all_git_config test-config 'global' 'TEST_MODE')
+  expected=$'global\tgit config --get-all --global test-config'
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   output=$(get_all_git_config user.name)
   expected='Xpto Lala'
@@ -614,12 +727,11 @@ function test_get_git_config_regex()
   }
 
   output=$(get_git_config_regex test-config '' 'TEST_MODE' | sort -d)
-  expected=$'global\t'"git config --get-regexp --global 'test-config'"$'\n'
-  expected+=$'local\t'"git config --get-regexp --local 'test-config'"
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   output=$(get_git_config_regex test-config 'local' 'TEST_MODE')
-  expected=$'local\t'"git config --get-regexp --local 'test-config'"
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   # only possible test with at global scope, as we have limited control over
@@ -629,6 +741,19 @@ function test_get_git_config_regex()
   assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   mk_fake_git
+
+  output=$(get_git_config_regex test-config '' 'TEST_MODE' | sort -d)
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"$'\n'
+  expected+=$'local\t'"git config --get-regexp --local 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_git_config_regex test-config 'local' 'TEST_MODE')
+  expected=$'local\t'"git config --get-regexp --local 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
+
+  output=$(get_git_config_regex test-config 'global' 'TEST_MODE')
+  expected=$'global\t'"git config --get-regexp --global 'test-config'"
+  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
 
   output=$(get_git_config_regex name)
   expected='Xpto Lala'
@@ -654,6 +779,83 @@ function test_get_git_config_regex()
     ret="$?"
     fail "($LINENO): Unable to move back from temp directory"
     return "$ret"
+  }
+}
+
+function test_get_kernel_release()
+{
+  local output
+
+  function get_current_env_name()
+  {
+    printf ''
+    return 2
+  }
+
+  output=$(get_kernel_release 'TEST_MODE')
+  assertEquals "($LINENO)" 'make kernelrelease 2> /dev/null' "$output"
+}
+
+function test_get_kernel_release_with_env()
+{
+  local output
+  local expected="make kernelrelease O=${KW_CACHE_DIR}/fake_env --silent 2> /dev/null"
+
+  function get_current_env_name()
+  {
+    printf 'fake_env'
+  }
+
+  output=$(get_kernel_release 'TEST_MODE')
+  assertEquals "($LINENO)" "$expected" "$output"
+}
+
+function test_get_kernel_version()
+{
+  local output
+
+  function get_current_env_name()
+  {
+    printf ''
+    return 2
+  }
+
+  output=$(get_kernel_version 'TEST_MODE')
+  assertEquals "($LINENO)" 'make kernelversion 2> /dev/null' "$output"
+}
+
+function test_get_kernel_version_with_env()
+{
+  local output
+  local expected="make kernelversion O=${KW_CACHE_DIR}/fake_env --silent 2> /dev/null"
+
+  function get_current_env_name()
+  {
+    printf 'fake_env'
+  }
+
+  output=$(get_kernel_version 'TEST_MODE')
+  assertEquals "($LINENO)" "$expected" "$output"
+}
+
+function test_get_current_env_name()
+{
+  local output
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mk_fake_kw_env
+
+  output=$(get_current_env_name)
+  assertEquals "($LINENO)" 0 "$?"
+  assertEquals "($LINENO)" 'fake_env' "$output"
+
+  cd "$ORIGINAL_DIR" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
   }
 }
 

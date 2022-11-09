@@ -15,10 +15,46 @@ declare -ga required_packages=(
   'lzop'
   'zstd'
   'xz'
+  'os-prober'
+  'rng-tools'
 )
 
 # ArchLinux package manager
 declare -g package_manager_cmd='yes | pacman -Syu'
+
+# Some distros might require some basic setup before a package installation or
+# configure some service before. For some distros based on ArchLinux, we might
+# want to clean some folders and also initialize the pacman keyring.
+#
+# @flag: How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+function distro_pre_setup()
+{
+  local flag="$1"
+  local target="$2"
+  local cmd_prefix=''
+
+  # LOCAL_TARGET
+  if [[ "$target" == 2 ]]; then
+    cmd_prefix='sudo -E '
+  fi
+
+  cmd="${cmd_prefix}mv /etc/skel/.screenrc /tmp"
+  cmd_manager "$flag" "$cmd"
+
+  # Restart pacman init, just in case...
+  cmd="${cmd_prefix}systemctl restart pacman-init.service"
+  cmd_manager "$flag" "$cmd"
+
+  # Initialize keyring
+  cmd="${cmd_prefix}pacman-key --populate"
+  cmd_manager "$flag" "$cmd"
+
+  # TODO: Let's make the update something configurable
+  cmd="yes | ${cmd_prefix}pacman -Syu"
+  cmd_manager "$flag" "$cmd"
+}
 
 # Make initcpio and update grub on VM using Guestfish
 function generate_arch_temporary_root_file_system()
@@ -28,18 +64,41 @@ function generate_arch_temporary_root_file_system()
   local target="$3"
   local bootloader_type="$4"
   local path_prefix="$5"
+  local prefered_root_file_system="$6"
   local cmd=''
   local sudo_cmd
   local template_path
   local mkinitcpio_destination_path
-  local LOCAL_KW_ETC="$KW_ETC_DIR/template_mkinitcpio.preset"
+  local LOCAL_KW_ETC="${KW_ETC_DIR}/template_mkinitcpio.preset"
+  # mkinitcpio still the default on ArchLinux
+  local root_file_system_tool='mkinitcpio'
+
+  # If the user specify which rootfs they want to use, let's use it then...
+  if [[ -n "$prefered_root_file_system" ]]; then
+    if command_exists "$prefered_root_file_system"; then
+      root_file_system_tool="$prefered_root_file_system"
+    else
+      printf 'It looks like that "%s" does not exists\n' "$prefered_root_file_system"
+      prefered_root_file_system=''
+    fi
+  fi
+
+  if [[ -z "$prefered_root_file_system" ]]; then
+    if ! command_exists 'mkinitcpio'; then
+      if ! command_exists 'dracut'; then
+        return 22 # EINVAL
+      else
+        root_file_system_tool='dracut'
+      fi
+    fi
+  fi
 
   # We do not support initramfs outside grub scope
   [[ "$bootloader_type" != 'GRUB' ]] && return
 
-  # Step 1: Generate specific preset file
-  mkinitcpio_destination_path="$path_prefix/etc/mkinitcpio.d/$name.preset"
-  template_path="$KW_ETC_DIR/template_mkinitcpio.preset"
+  # Generate specific preset file
+  mkinitcpio_destination_path="${path_prefix}/etc/mkinitcpio.d/${name}.preset"
+  template_path="${KW_ETC_DIR}/template_mkinitcpio.preset"
 
   case "$target" in
     'local') # LOCAL_TARGET
@@ -47,26 +106,33 @@ function generate_arch_temporary_root_file_system()
       cmd="$sudo_cmd "
       ;;
     'remote') # REMOTE_TARGET
-      template_path="$REMOTE_KW_DEPLOY/template_mkinitcpio.preset"
+      template_path="${REMOTE_KW_DEPLOY}/template_mkinitcpio.preset"
       ;;
   esac
 
-  # We will eval a command that uses sudo and redirection which can cause
-  # errors. To avoid problems, let's use bash -c
-  cmd+="bash -c \""
-  cmd+="sed 's/NAME/$name/g' '$template_path' > $mkinitcpio_destination_path\""
-
-  cmd_manager "$flag" "$cmd"
-
-  # TODO: We need to handle VM
   if [[ "$target" != 'vm' ]]; then
     # Step 2: Make sure that we are generating a consistent modules.dep and map
     cmd="$sudo_cmd depmod --all $name"
     cmd_manager "$flag" "$cmd"
 
     # Step 3: Generate the initcpio file
-    cmd="$sudo_cmd mkinitcpio --preset $name"
-    cmd_manager "$flag" "$cmd"
+    case "$root_file_system_tool" in
+      'mkinitcpio')
+        # We will eval a command that uses sudo and redirection which can cause
+        # errors. To avoid problems, let's use bash -c
+        cmd="$sudo_cmd bash -c \""
+        cmd+="sed 's/NAME/${name}/g' '$template_path' > $mkinitcpio_destination_path\""
+        cmd_manager "$flag" "$cmd"
+
+        cmd="$sudo_cmd mkinitcpio --preset $name"
+        cmd_manager "$flag" "$cmd"
+        ;;
+      'dracut')
+        cmd='dracut --force --persistent-policy by-partuuid '
+        cmd+="--hostonly /boot/initramfs-${name}.img ${name}"
+        cmd_manager "$flag" "$cmd"
+        ;;
+    esac
   else
     generate_rootfs_with_libguestfs "$flag" "$name"
   fi
@@ -83,17 +149,17 @@ function generate_rootfs_with_libguestfs()
 
   flag=${flag:-'SILENT'}
 
-  if [[ ! -f "${configurations[qemu_path_image]}" ]]; then
-    complain "There is no VM in ${configurations[qemu_path_image]}"
+  if [[ ! -f "${vm_config[qemu_path_image]}" ]]; then
+    complain "There is no VM in ${vm_config[qemu_path_image]}"
     return 125 # ECANCELED
   fi
 
   # For executing libguestfs commands we need to umount the vm
-  if [[ $(findmnt "${configurations[mount_point]}") ]]; then
+  if [[ $(findmnt "${vm_config[mount_point]}") ]]; then
     vm_umount
   fi
 
-  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
+  cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run \
       $mount_root : command '$cmd_init'"
 
   warning " -> Generating rootfs $name on VM. This can take a few minutes."

@@ -7,7 +7,7 @@ include './src/vm.sh'
 function setUp()
 {
   mkdir -p "$SHUNIT_TMPDIR/.kw/"
-  cp -f tests/samples/kworkflow.config "$SHUNIT_TMPDIR/.kw/"
+  cp -f "$KW_VM_CONFIG_SAMPLE" "$SHUNIT_TMPDIR/.kw/"
 
   tests="$PWD/tests"
   etc="${prefix}etc"
@@ -25,8 +25,8 @@ function tearDown()
 
 function test_vm_mount()
 {
-  local mount_point="$SHUNIT_TMPDIR/lala"
-  local qemu_path="/any/path"
+  local mount_point="${SHUNIT_TMPDIR}/lala"
+  local qemu_path='/any/path'
   local -r current_path="$PWD"
   local ret
   local expected_ret
@@ -60,7 +60,7 @@ function test_vm_mount()
   chmod a-r "${prefix}boot/vmlinuz-$(uname)"
 
   # Suppose it's a debian system
-  cp -f "$tests/samples/os/debian/"* "$prefix/etc"
+  cp -f "$tests/samples/os/debian/etc/os-release" "$prefix/etc"
 
   expected_cmd=(
     'To mount the VM, the kernel image needs to be readable'
@@ -74,7 +74,7 @@ function test_vm_mount()
 
   # Suppose it's not debian
   rm -rf "${etc:?}/"*
-  cp -f "$tests/samples/os/arch/"* "$prefix/etc"
+  cp -f "$tests/samples/os/arch/etc/os-release" "$prefix/etc"
 
   expected_cmd[1]="sudo chmod +r ${prefix}boot/vmlinuz-$(uname -r)"
   output=$(printf '%s\n' 'y' | vm_mount 'TEST_MODE' "$qemu_path" "$mount_point")
@@ -108,8 +108,8 @@ function test_vm_mount()
 
   load_configuration "$KW_CONFIG_SAMPLE"
 
-  say_msg="Mount ${configurations[qemu_path_image]} in $mount_point"
-  guestmount_cmd="guestmount -a ${configurations[qemu_path_image]} -i $mount_point 2>&1"
+  say_msg="Mount ${vm_config[qemu_path_image]} in $mount_point"
+  guestmount_cmd="guestmount -a ${vm_config[qemu_path_image]} -i $mount_point 2>&1"
   expected_cmd[0]="$say_msg"
   expected_cmd[1]="$guestmount_cmd"
 
@@ -145,6 +145,8 @@ function test_vm_umount()
     return
   }
 
+  load_vm_config
+
   output=$(vm_umount 'TEST_MODE')
   ret="$?"
   expected_ret="125"
@@ -166,14 +168,14 @@ function test_vm_umount()
 function test_vm_up()
 {
   local output=''
+  local current_path="$PWD"
   local virtualizer='qemu-system-x86_64'
   local qemu_hw_options='-enable-kvm -daemonize -smp 2 -m 1024'
   local qemu_net_options='-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW'
   local qemu_path='/home/USERKW/p/virty.qcow2'
-
-  parse_configuration "$SAMPLES_DIR/kworkflow_template.config"
-
   local cmd_vm_up="$virtualizer $qemu_hw_options $qemu_net_options $qemu_path"
+
+  cp "$SAMPLES_DIR/vm_x86.config" "${SHUNIT_TMPDIR}/.kw/vm.config"
 
   declare -a expected_cmd=(
     'Starting Qemu with:'
@@ -181,8 +183,20 @@ function test_vm_up()
     "$cmd_vm_up"
   )
 
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  load_vm_config
   output=$(vm_up 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+
 }
 
 function test_vm_parse_options()

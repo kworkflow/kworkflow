@@ -441,3 +441,5 @@ function pomodoro_help()
     '  pomodoro (-d|--description) <string> - Add a description to a timebox with a tag' \
     '  pomodoro (-l|--list) - Show elapsed time'
 }
+
+load_notification_config

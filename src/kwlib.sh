@@ -128,7 +128,12 @@ function is_kernel_root()
   # tree root and not expected to change. Their presence (or abscense)
   # is used to tell if a directory is a linux tree root or not. (They
   # are the same ones used by get_maintainer.pl)
-  if [[ -f "${DIR}/COPYING" && -f "${DIR}/CREDITS" && -f "${DIR}/Kbuild" && -e "${DIR}/MAINTAINERS" && -f "${DIR}/Makefile" && -f "${DIR}/README" && -d "${DIR}/Documentation" && -d "${DIR}/arch" && -d "${DIR}/include" && -d "${DIR}/drivers" && -d "${DIR}/fs" && -d "${DIR}/init" && -d "${DIR}/ipc" && -d "${DIR}/kernel" && -d "${DIR}/lib" && -d "${DIR}/scripts" ]]; then
+  if [[ -f "${DIR}/COPYING" && -f "${DIR}/CREDITS" && -f "${DIR}/Kbuild" &&
+    -e "${DIR}/MAINTAINERS" && -f "${DIR}/Makefile" && -f "${DIR}/README" &&
+    -d "${DIR}/Documentation" && -d "${DIR}/arch" && -d "${DIR}/include" &&
+    -d "${DIR}/drivers" && -d "${DIR}/fs" && -d "${DIR}/init" &&
+    -d "${DIR}/ipc" && -d "${DIR}/kernel" && -d "${DIR}/lib" &&
+    -d "${DIR}/scripts" ]]; then
     return 0
   fi
   return 1
@@ -178,7 +183,16 @@ function find_kernel_root()
 function get_kernel_release()
 {
   local flag="$1"
+  local env_name
+  # TODO: Maybe we need to remove this error redirection
   local cmd='make kernelrelease'
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    cmd+=" O=${KW_CACHE_DIR}/${env_name} --silent"
+  fi
+
+  cmd+=" 2> /dev/null"
 
   [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
 
@@ -195,7 +209,14 @@ function get_kernel_release()
 function get_kernel_version()
 {
   local flag="$1"
-  local cmd='make kernelversion'
+  # TODO: Maybe we need to remove this error redirection
+  local cmd='make kernelversion 2> /dev/null'
+  local env_name
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    cmd="make kernelversion O=${KW_CACHE_DIR}/${env_name} --silent 2> /dev/null"
+  fi
 
   flag=${flag:-'SILENT'}
 
@@ -265,11 +286,13 @@ function join_path()
 # This function checks if the target distro is supported by kw. This function
 # is handy for plugins that have some dependency with distros.
 #
-# Note: We handle OS family instead of a specific distro_id, for example,
-# Ubuntu and Mint are Debian based distro_id.
+# Accordingly, with os-release documentation, when we find ID_LIKE, we are in a
+# derivative distro. If we don't have it, the distro is the original one and
+# will only have ID.
 #
-# @root_path Expects the root path wherein we can find the /etc
-# @str_check String with a distro name
+# @root_path: Expects the root path wherein we can find the /etc
+# @str_check: String with a distro name
+# @raw_os_release: os-release file in a string
 #
 # Returns:
 # It returns the family name in lowercase, otherwise return none.
@@ -277,32 +300,36 @@ function detect_distro()
 {
   local root_path="$1"
   local str_check="$2"
-  local distro_id='none'
+  local raw_os_release="$3"
+  local distro_ids='none'
   local etc_path
-  declare -a debian_family=('debian' 'ubuntu' 'raspbian')
-  declare -a arch_family=('arch' 'manjaro')
-  declare -a fedora_family=('fedora')
+  local os_release_process
+  declare -a os_family=('debian' 'arch' 'fedora')
 
-  etc_path=$(join_path "$root_path" /etc)
+  etc_path=$(join_path "$root_path" '/etc')
+
+  if [[ -d "$etc_path" && -z "$str_check" && -z "$raw_os_release" ]]; then
+    os_release_process=$(< "${etc_path}/os-release")
+  elif [[ -n "$raw_os_release" ]]; then
+    os_release_process="$raw_os_release"
+  fi
+
+  if [[ -n "$os_release_process" ]]; then
+    distro_ids=$(printf '%s' "$os_release_process" | grep -w 'ID\(_LIKE\)\?' | tr -d '"' | cut -d = -f 2)
+  fi
 
   if [[ -n "$str_check" ]]; then
-    distro_id="$str_check"
-  elif [[ -d $etc_path ]]; then
-    distro_id=$(cat "$etc_path"/*-release | grep -w ID | cut -d = -f 2)
+    distro_ids="$str_check"
   fi
 
-  # Debian family
-  if [[ "${debian_family[*]}" =~ ${distro_id} ]]; then
-    printf '%s\n' 'debian'
-  # ArchLinux family
-  elif [[ "${arch_family[*]}" =~ ${distro_id} ]]; then
-    printf '%s\n' 'arch'
-  # Fedora family
-  elif [[ "${fedora_family[*]}" =~ ${distro_id} ]]; then
-    printf '%s\n' 'fedora'
-  else
-    printf '%s\n' 'none'
-  fi
+  for distro_id in $distro_ids; do
+    if [[ ${os_family[*]} =~ ${distro_id} ]]; then
+      printf '%s\n' "$distro_id"
+      return
+    fi
+  done
+
+  printf '%s\n' 'none'
 }
 
 # This function maps a label with a value that is used to store statistics data
@@ -583,6 +610,11 @@ function get_all_git_config()
 
   flag=${flag:-'SILENT'}
 
+  # shellcheck disable=2119
+  if ! is_inside_work_tree; then
+    scope='global'
+  fi
+
   for scp in {'global','local'}; do
     if [[ -z "$scope" || "$scope" == "$scp" ]]; then
       output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp $config" | sed -E "s/^/$scp\t/g")"
@@ -613,6 +645,11 @@ function get_git_config_regex()
 
   flag=${flag:-'SILENT'}
 
+  # shellcheck disable=2119
+  if ! is_inside_work_tree; then
+    scope='global'
+  fi
+
   for scp in {'global','local'}; do
     if [[ -z "$scope" || "$scope" == "$scp" ]]; then
       output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp '$regexp'" | sed -E "s/^/$scp\t/g")"
@@ -620,4 +657,24 @@ function get_git_config_regex()
   done
 
   printf '%s\n' "${output[@]}"
+}
+
+# This function checks if the user is running kw under a env.
+#
+# Return:
+# Return the current env name and 0 if users are inside a env. Otherwise,
+# return an empty string and 1.
+function get_current_env_name()
+{
+  local current_env="${PWD}/.kw/env.current"
+  local output
+  local ret=1
+
+  if [[ -f "${current_env}" ]]; then
+    output=$(< "$current_env")
+    printf '%s' "$output"
+    ret=0
+  fi
+
+  return "$ret"
 }

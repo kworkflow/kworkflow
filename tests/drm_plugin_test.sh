@@ -7,17 +7,40 @@ include './tests/utils.sh'
 function setUp()
 {
   # Create a temporary directory for holding different config file
-  mkdir -p "$SHUNIT_TMPDIR"
+  export FAKE_DRM_SYSFS="${SHUNIT_TMPDIR}/sys/class/drm"
+  export original_dir="$PWD"
+  export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
 
-  cp "$SAMPLES_DIR/kworkflow_drm_plugin.config" "$SHUNIT_TMPDIR/kworkflow.config"
+  mkdir -p "$FAKE_DRM_SYSFS"
 
-  FAKE_DRM_SYSFS="$SHUNIT_TMPDIR/sys/class/drm"
+  cp "${SAMPLES_DIR}/kworkflow_drm_plugin.config" "${SHUNIT_TMPDIR}/kworkflow.config"
+  cp "${SAMPLES_DIR}/deploy_remote.config" "${SHUNIT_TMPDIR}/deploy.config"
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move into fake kernel directory"
+    return
+  }
 
   # Prepare fake sysfs
   mk_fake_sys_class_drm
 
   # Parser default config file for the average case
   parse_configuration "$KW_CONFIG_SAMPLE"
+}
+
+function tearDown()
+{
+  configurations=()
+  configurations[ssh_user]=juca
+
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move into $original_dir"
+    return
+  }
+
+  if [[ -d "$SHUNIT_TMPDIR" ]]; then
+    rm -rf "$SHUNIT_TMPDIR"
+  fi
 }
 
 function mk_fake_sys_class_drm()
@@ -39,13 +62,13 @@ function mk_fake_sys_class_drm()
     "ttm")
 
   for dir in "${fake_dirs[@]}"; do
-    mkdir -p "$FAKE_DRM_SYSFS/$dir"
+    mkdir -p "${FAKE_DRM_SYSFS}/${dir}"
   done
 
-  touch "$FAKE_DRM_SYSFS/version"
-  touch "$FAKE_DRM_SYSFS/card0-DP-3/modes"
+  touch "${FAKE_DRM_SYSFS}/version"
+  touch "${FAKE_DRM_SYSFS}/card0-DP-3/modes"
 
-  cat << END >> "$FAKE_DRM_SYSFS/card0-DP-3/modes"
+  cat << END >> "${FAKE_DRM_SYSFS}/card0-DP-3/modes"
 1920x2160
 2560x1440
 1920x1080
@@ -65,52 +88,71 @@ function mk_fake_sys_class_drm()
 720x400
 END
 
-  cat << END >> "$FAKE_DRM_SYSFS/card1-HDMI-A-2/modes"
+  cat << END >> "${FAKE_DRM_SYSFS}/card1-HDMI-A-2/modes"
 2560x1440
 1920x1080
 1280x1024
 640x480
 720x400
 END
-
 }
 
-function tearDown()
+function test_drm_parser_options()
 {
-  configurations=()
-  configurations[ssh_user]=juca
+  parse_drm_options --remote 'jozzi@something:3232'
+  assertEquals "($LINENO)" 'something' "${remote_parameters['REMOTE_IP']}"
+  assertEquals "($LINENO)" '3232' "${remote_parameters['REMOTE_PORT']}"
+  assertEquals "($LINENO)" 'jozzi' "${remote_parameters['REMOTE_USER']}"
+  assertEquals "($LINENO)" 3 "${options_values['TARGET']}"
 
-  rm -rf "$SHUNIT_TMPDIR"
+  parse_drm_options --local
+  assertEquals "($LINENO)" 2 "${options_values['TARGET']}"
+
+  assertEquals "($LINENO)" '' "${options_values['GUI_ON']}"
+  assertEquals "($LINENO)" '' "${options_values['GUI_OFF']}"
+  assertEquals "($LINENO)" '' "${options_values['CONN_AVAILABLE']}"
+  assertEquals "($LINENO)" '' "${options_values['MODES_AVAILABLE']}"
+
+  parse_drm_options --gui-on
+  assertEquals "($LINENO)" 1 "${options_values['GUI_ON']}"
+
+  parse_drm_options --gui-off
+  assertEquals "($LINENO)" 1 "${options_values['GUI_OFF']}"
+
+  parse_drm_options --conn-available
+  assertEquals "($LINENO)" 1 "${options_values['CONN_AVAILABLE']}"
+
+  parse_drm_options --modes
+  assertEquals "($LINENO)" 1 "${options_values['MODES_AVAILABLE']}"
+
+  parse_drm_options --load-module 'amdgpu'
+  assertEquals "($LINENO)" 'amdgpu' "${options_values['LOAD_MODULE']}"
+
+  # Validate module load
+  parse_drm_options --load-module 'amdgpu:dc=0'
+  assertEquals "($LINENO)" 'amdgpu:dc=0' "${options_values['LOAD_MODULE']}"
+
+  parse_drm_options --load-module 'amdgpu:dc=0,cik_support=1'
+  assertEquals "($LINENO)" 'amdgpu:dc=0,cik_support=1' "${options_values['LOAD_MODULE']}"
+
+  parse_drm_options --load-module 'amdgpu:dc=0,cik_support=1,vkms'
+  assertEquals "($LINENO)" 'amdgpu:dc=0,cik_support=1,vkms' "${options_values['LOAD_MODULE']}"
+
+  parse_drm_options --load-module 'amdgpu:dc=0,cik_support=1,vkms:enable_writeback=1'
+  assertEquals "($LINENO)" 'amdgpu:dc=0,cik_support=1,vkms:enable_writeback=1' "${options_values['LOAD_MODULE']}"
+
+  parse_drm_options --load-module 'amdgpu:dc=0,cik_support=1,vkms:enable_writeback=1,enable_overlay=0'
+  assertEquals "($LINENO)" 'amdgpu:dc=0,cik_support=1,vkms:enable_writeback=1,enable_overlay=0' "${options_values['LOAD_MODULE']}"
+
+  # Validate unload module
+  parse_drm_options --unload-module 'amdgpu'
+  assertEquals "($LINENO)" 'amdgpu' "${options_values['UNLOAD_MODULE']}"
+
+  parse_drm_options --unload-module='amdgpu,drm'
+  assertEquals "($LINENO)" 'amdgpu,drm' "${options_values['UNLOAD_MODULE']}"
 }
 
-function test_drm_manager()
-{
-  local output
-
-  parse_configuration "$SHUNIT_TMPDIR/kworkflow.config"
-
-  output=$(drm_manager test_mode --remote --gui-on)
-  expected_result='3 1 0 127.0.0.1 3333'
-  assertEquals "($LINENO) Remote and --gui-on:" "$expected_result" "$output"
-
-  output=$(drm_manager test_mode --remote --gui-off)
-  expected_result='3 0 1 127.0.0.1 3333'
-  assertEquals "($LINENO) Remote and --gui-off:" "$expected_result" "$output"
-
-  output=$(drm_manager test_mode --gui-on)
-  expected_result='3 1 0 127.0.0.1 3333'
-  assertEquals "($LINENO) just --gui-on:" "$expected_result" "$output"
-
-  output=$(drm_manager test_mode --gui-off)
-  expected_result='3 0 1 127.0.0.1 3333'
-  assertEquals "($LINENO) just --gui-off:" "$expected_result" "$output"
-
-  # Invalid options
-  output=$(drm_manager test_mode --vm --gui-on)
-  assertEquals "($LINENO) Should not accept --vm:" "$?" 22
-}
-
-function test_gui_control()
+function test_gui_control_remote()
 {
   local gui_on_cmd='systemctl isolate graphical.target'
   local gui_off_cmd='systemctl isolate multi-user.target'
@@ -118,11 +160,16 @@ function test_gui_control()
   local unbind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 0 > $i; done; sleep 0.5'
   local output
 
+  # Remote
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='8888'
+  remote_parameters['REMOTE_USER']='juca'
+
   tearDown # We want to test the default cases first
   # REMOTE = 3
   ssh_part="ssh -p 8888 juca@127.0.0.1"
-  full_turn_on_gui_cmd="$ssh_part sudo \"$gui_on_cmd\""
-  full_bind_cmd="$ssh_part 'sudo bash -c '\''$bind_cmd'\'"
+  full_turn_on_gui_cmd="${ssh_part} sudo \"${gui_on_cmd}\""
+  full_bind_cmd="${ssh_part} 'sudo bash -c '\''${bind_cmd}'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_on_gui_cmd"
@@ -132,8 +179,8 @@ function test_gui_control()
   output=$(gui_control 'ON' '3' '127.0.0.1:8888' 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
-  full_turn_off_gui_cmd="$ssh_part sudo \"$gui_off_cmd\""
-  full_unbind_cmd="$ssh_part 'sudo bash -c '\''$unbind_cmd'\'"
+  full_turn_off_gui_cmd="${ssh_part} sudo \"${gui_off_cmd}\""
+  full_unbind_cmd="$ssh_part 'sudo bash -c '\''${unbind_cmd}'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_off_gui_cmd"
@@ -146,10 +193,13 @@ function test_gui_control()
   # Test with config file
   parse_configuration "$KW_CONFIG_SAMPLE"
 
+  # Remote
+  remote_parameters['REMOTE_PORT']='3333'
+
   gui_off_cmd='turn off'
   ssh_part="ssh -p 3333 juca@127.0.0.1"
-  full_turn_off_gui_cmd="$ssh_part sudo \"$gui_off_cmd\""
-  full_unbind_cmd="$ssh_part 'sudo bash -c '\''$unbind_cmd'\'"
+  full_turn_off_gui_cmd="${ssh_part} sudo \"${gui_off_cmd}\""
+  full_unbind_cmd="${ssh_part} 'sudo bash -c '\''${unbind_cmd}'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_off_gui_cmd"
@@ -160,8 +210,8 @@ function test_gui_control()
   compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
   gui_on_cmd='turn on'
-  full_turn_on_gui_cmd="$ssh_part sudo \"$gui_on_cmd\""
-  full_bind_cmd="$ssh_part 'sudo bash -c '\''$bind_cmd'\'"
+  full_turn_on_gui_cmd="${ssh_part} sudo \"${gui_on_cmd}\""
+  full_bind_cmd="${ssh_part} 'sudo bash -c '\''${bind_cmd}'\'"
 
   declare -a expected_cmd_seq=(
     "$full_turn_on_gui_cmd"
@@ -172,11 +222,84 @@ function test_gui_control()
   compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 }
 
+function test_gui_control_local()
+{
+  local gui_on_cmd='systemctl isolate graphical.target'
+  local gui_off_cmd='systemctl isolate multi-user.target'
+  local bind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 1 > $i; done; sleep 0.5'
+  local unbind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 0 > $i; done; sleep 0.5'
+  local output
+
+  configurations[gui_on]="$gui_on_cmd"
+  configurations[gui_off]="$gui_off_cmd"
+
+  declare -a expected_cmd_seq=(
+    "sudo ${gui_on_cmd}"
+    "sudo ${bind_cmd}"
+  )
+
+  output=$(gui_control 'ON' '2' '' 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
+
+  declare -a expected_cmd_seq=(
+    "sudo ${gui_off_cmd}"
+    "sudo ${unbind_cmd}"
+  )
+
+  output=$(gui_control 'OFF' '2' '' 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
+}
+
+function test_get_available_connectors_local()
+{
+  local output
+
+  declare -a expected_output=(
+    '[local] Card1 supports:'
+    'DP'
+    'DP'
+    'DP'
+    'HDMI'
+    '[local] Card0 supports:'
+    'DP'
+    'DP'
+    'DP'
+    'DVI'
+    'HDMI'
+  )
+
+  # Local
+  output=$(get_available_connectors '2' '' 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
+}
+
+function test_get_available_connectors_remote()
+{
+  local output
+
+  # Remote
+  output=$(
+    function cmd_remotely()
+    {
+      printf '/sys/class/drm/card0-%s-1\n' 'DP'
+      printf '/sys/class/drm/card0-%s-1\n' 'eDP'
+    }
+    get_available_connectors '3' '' 'TEST_MODE'
+  )
+
+  declare -a expected_output=(
+    '[remote] Card0 supports:'
+    'DP'
+    'eDP'
+  )
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
+}
+
 function test_get_supported_mode_per_connector()
 {
   declare -a expected_output=(
     "Modes per card"
-    "$SHUNIT_TMPDIR/card0-DP-3:"
+    "${SHUNIT_TMPDIR}/card0-DP-3:"
     "1920x2160"
     "2560x1440"
     "1920x1080"
@@ -195,7 +318,7 @@ function test_get_supported_mode_per_connector()
     "640x480"
     "720x400"
     ""
-    "$SHUNIT_TMPDIR/card1-HDMI-A-2:"
+    "${SHUNIT_TMPDIR}/card1-HDMI-A-2:"
     "2560x1440"
     "1920x1080"
     "1280x1024"

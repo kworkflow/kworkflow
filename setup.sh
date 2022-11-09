@@ -31,7 +31,7 @@ declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
 ##
 declare -r SRCDIR='src'
 declare -r MAN='documentation/man/'
-declare -r CONFIG_DIR='etc'
+declare -r CONFIG_DIR='etc/'
 declare -r KW_CACHE_DIR="$cachedir"
 
 declare -r SOUNDS='sounds'
@@ -51,7 +51,7 @@ function check_dependencies()
 
   if [[ "$distro" =~ 'arch' ]]; then
     while IFS='' read -r package; do
-      installed=$(pacman -Qs "$package" > /dev/null)
+      installed=$(pacman -Ql "$package" &> /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/arch.dependencies"
     cmd="pacman -S $package_list"
@@ -63,8 +63,8 @@ function check_dependencies()
     cmd="apt install -y $package_list"
   elif [[ "$distro" =~ 'fedora' ]]; then
     while IFS='' read -r package; do
-      installed=$(dnf list installed "$package" 2> /dev/null | grep -c "$package")
-      [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
+      installed=$(rpm -q "$package" &> /dev/null)
+      [[ "$?" -ne 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/fedora.dependencies"
     cmd="dnf install -y $package_list"
   else
@@ -82,7 +82,11 @@ function check_dependencies()
     fi
 
     # Install system packages
-    eval "sudo $cmd"
+    if [[ "$EUID" -eq 0 ]]; then
+      eval "$cmd"
+    else
+      eval "sudo $cmd"
+    fi
   fi
 
   while IFS='' read -r package; do
@@ -262,26 +266,6 @@ function clean_legacy()
   remove_kw_from_PATH_variable
 }
 
-function setup_config_file()
-{
-  local config_files_path="$etcdir"
-  local config_file_template="$config_files_path/kworkflow_template.config"
-  local global_config_name='kworkflow.config'
-
-  if [[ -f "$config_file_template" ]]; then
-    cp "$config_file_template" "$config_files_path/$global_config_name"
-    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sounddir,g" \
-      -e "/^#?.*/d" "$config_files_path/$global_config_name"
-    ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      return "$ret"
-    fi
-  else
-    warning "setup could not find $config_file_template"
-    return 2
-  fi
-}
-
 function ASSERT_IF_NOT_EQ_ZERO()
 {
   local msg="$1"
@@ -332,14 +316,12 @@ function synchronize_files()
   cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
 
+  setup_global_config_file
+
   # User data
   mkdir -p "$datadir"
   mkdir -p "$datadir/statistics"
   mkdir -p "$datadir/configs"
-
-  # Copy and setup global config file
-  setup_config_file
-  ASSERT_IF_NOT_EQ_ZERO 'Config file failed' "$?"
 
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc
@@ -420,6 +402,31 @@ function install_home()
   synchronize_files
   # Update version based on the current branch
   update_version
+}
+
+function setup_global_config_file()
+{
+  local config_files_path="$etcdir"
+  local config_vm_file_template="$config_files_path/vm_template.config"
+  local config_file_template="$config_files_path/notification_template.config"
+  local global_config_name='notification.config'
+
+  if [[ -f "$config_file_template" || -f "$config_vm_file_template" ]]; then
+    mv "$config_vm_file_template" "$config_files_path/vm.config"
+    sed -i -e "s/USERKW/$USER/g" -e "/^#?.*/d" "$config_files_path/vm.config"
+
+    # Default config
+    cp "$config_file_template" "$config_files_path/notification.config"
+    sed -i -e "s,SOUNDPATH,$sounddir,g" \
+      -e "/^#?.*/d" "$config_files_path/notification.config"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      return "$ret"
+    fi
+  else
+    warning "setup could not find $config_file_template"
+    return 2
+  fi
 }
 
 # Options

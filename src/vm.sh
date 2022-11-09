@@ -55,8 +55,8 @@ function vm_mount()
   local distro
 
   flag=${flag:-'SILENT'}
-  qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
-  mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
+  qemu_img_path="${qemu_img_path:-${vm_config[qemu_path_image]}}"
+  mount_point_path="${mount_point_path:-${vm_config[mount_point]}}"
 
   if [[ ! -r "${prefix}boot/vmlinuz-$(uname -r)" ]]; then
     say 'To mount the VM, the kernel image needs to be readable'
@@ -99,8 +99,8 @@ function vm_umount()
   local ret
 
   flag=${flag:-'SILENT'}
-  qemu_img_path="${qemu_img_path:-${configurations[qemu_path_image]}}"
-  mount_point_path="${mount_point_path:-${configurations[mount_point]}}"
+  qemu_img_path="${qemu_img_path:-${vm_config[qemu_path_image]}}"
+  mount_point_path="${mount_point_path:-${vm_config[mount_point]}}"
 
   if [[ $(findmnt "$mount_point_path") ]]; then
     say "Unmount $mount_point_path"
@@ -124,14 +124,14 @@ function vm_up()
   local flag=${1:-'SILENT'}
 
   say 'Starting Qemu with:'
-  printf '%s' "${configurations[virtualizer]} " \
-    "${configurations[qemu_hw_options]} " \
-    "${configurations[qemu_net_options]} " \
-    "${configurations[qemu_path_image]}" $'\n'
+  printf '%s' "${vm_config[virtualizer]} " \
+    "${vm_config[qemu_hw_options]} " \
+    "${vm_config[qemu_net_options]} " \
+    "${vm_config[qemu_path_image]}" $'\n'
 
-  cmd="${configurations[virtualizer]} ${configurations[qemu_hw_options]}"
-  cmd+=" ${configurations[qemu_net_options]}"
-  cmd+=" ${configurations[qemu_path_image]}"
+  cmd="${vm_config[virtualizer]} ${vm_config[qemu_hw_options]}"
+  cmd+=" ${vm_config[qemu_net_options]}"
+  cmd+=" ${vm_config[qemu_path_image]}"
 
   cmd_manager "$flag" "$cmd"
 }
@@ -199,3 +199,5 @@ function vm_help()
     ' vm (-n|--umount) - Unmount VM' \
     ' vm (-u|--up) - Starts VM'
 }
+
+load_vm_config
