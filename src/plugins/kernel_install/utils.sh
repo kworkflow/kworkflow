@@ -341,16 +341,22 @@ function reboot_machine()
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 #
 # Return:
-# In case of failure, return an errno code.
+# In case of failure, return an errno code:
+# - ENOENT (2): kw package was not find
+# - EADV (68): Failed to uncompress
 function uncompress_kw_package()
 {
-  local kw_pkg_tar_name="$1"
-  local flag="$2"
-  local kw_pkg_tar_path="${KW_DEPLOY_TMP_FILE}/${kw_pkg_tar_name}"
+  local flag="$1"
+  local kw_pkg_tar_path="${KW_DEPLOY_TMP_FILE}"
   local kw_pkg_modules_path="${KW_DEPLOY_TMP_FILE}/kw_pkg/modules/lib/modules"
+  local kw_package_file_name
   local cmd
 
   flag=${flag:-'SILENT'}
+
+  kw_package_file_name=$(find "${KW_DEPLOY_TMP_FILE}" -name '*.kw.tar')
+  kw_package_file_name=$(basename "$kw_package_file_name")
+  kw_pkg_tar_path+="/${kw_package_file_name}"
 
   if [[ ! -f "$kw_pkg_tar_path" ]]; then
     return 2 # ENOENT
@@ -366,6 +372,7 @@ function uncompress_kw_package()
 
   if [[ "$?" != 0 ]]; then
     printf '%s\n' 'Warning: Could not extract module archive.'
+    return 68 # EADV
   fi
 }
 
@@ -380,12 +387,18 @@ function uncompress_kw_package()
 function install_modules()
 {
   local kw_pkg_tar_name="$1"
-  local flag="$2"
+  local target="$2"
+  local flag="$3"
   local uncompressed_kw_pkg="${KW_DEPLOY_TMP_FILE}/kw_pkg"
   local kw_pkg_modules_path="${KW_DEPLOY_TMP_FILE}/kw_pkg/modules/lib/modules"
+  local sudo_cmd
   local cmd
 
   flag=${flag:-'SILENT'}
+
+  if [[ "$target" == 'local' ]]; then
+    sudo_cmd='sudo -E '
+  fi
 
   # 1. If kw package was not extracted yet, do it now
   if [[ ! -d "$uncompressed_kw_pkg" ]]; then
@@ -396,7 +409,7 @@ function install_modules()
   fi
 
   # 2. Move new modules to the right place
-  cmd="rsync --archive ${kw_pkg_modules_path}/* ${LIB_MODULES_PATH}"
+  cmd="${sudo_cmd}rsync --archive ${kw_pkg_modules_path}/* ${LIB_MODULES_PATH}"
   cmd_manager "$flag" "$cmd"
 }
 
@@ -583,6 +596,7 @@ function install_kernel()
   local cmd=''
   local path_prefix=''
   local verbose_cp
+  local ret
 
   flag=${flag:-'SILENT'}
   target=${target:-'remote'}
@@ -594,9 +608,10 @@ function install_kernel()
   fi
 
   # Uncompress kw package
-  uncompress_kw_package "${name}.kw.tar" "$flag"
-  if [[ "$?" != 0 ]]; then
-    return 2 # ENOENT
+  uncompress_kw_package "$flag"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return "$ret"
   fi
 
   # Parser config metadata
@@ -624,7 +639,7 @@ function install_kernel()
     fi
   fi
 
-  install_modules "${name}.kw.tar" "$flag"
+  install_modules "${name}.kw.tar" "$target" "$flag"
 
   # Copy kernel image
   if [[ -f "${path_prefix}/boot/vmlinuz-${name}" ]]; then

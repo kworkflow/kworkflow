@@ -1184,6 +1184,29 @@ function build_kw_kernel_package()
   _return_tar_path="$cache_kw_pkg_tar_file_path"
 }
 
+function human_install_kernel_message()
+{
+  local ret="$1"
+  local flag="$2"
+
+  case "$ret" in
+    2) # ENOENT
+      complain 'Failed to uncompress kw package in the target system'
+      ;;
+    22) # EINVAL
+      complain 'Invalid kernel name in the kw package'
+      ;;
+    68) # EADV
+      complain 'Unable to correctly uncompress kw package in the target system'
+      ;;
+    125) # ECANCELED
+      complain 'VM is unmount'
+      ;;
+  esac
+
+  return "$ret"
+}
+
 # This function behaves like a kernel installation manager. It handles some
 # parameters, and it also prepares to deploy the new kernel in the target
 # machine.
@@ -1245,7 +1268,7 @@ function run_kernel_install()
       fi
 
       # Local Deploy
-      if [[ $(id -u) == 0 ]]; then
+      if [[ $(id --user) == 0 ]]; then
         complain 'kw deploy --local should not be run as root'
         return 1 # EPERM
       fi
@@ -1271,6 +1294,7 @@ function run_kernel_install()
       cmd+=" --kernel-update $cmd_parameters"
 
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      human_install_kernel_message "$?"
       ;;
   esac
 }
