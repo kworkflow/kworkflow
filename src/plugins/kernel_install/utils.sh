@@ -351,6 +351,7 @@ function uncompress_kw_package()
   local kw_pkg_modules_path="${KW_DEPLOY_TMP_FILE}/kw_pkg/modules/lib/modules"
   local kw_package_file_name
   local cmd
+  local ret
 
   flag=${flag:-'SILENT'}
 
@@ -369,9 +370,9 @@ function uncompress_kw_package()
 
   cmd="tar --touch --auto-compress --extract --file='${kw_pkg_tar_path}' --directory='${KW_DEPLOY_TMP_FILE}' --no-same-owner"
   cmd_manager "$flag" "$cmd"
-
-  if [[ "$?" != 0 ]]; then
-    printf '%s\n' 'Warning: Could not extract module archive.'
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    printf 'Warning (%d): Could not extract module archive.\n' "$ret"
     return 68 # EADV
   fi
 }
@@ -386,13 +387,13 @@ function uncompress_kw_package()
 # In case of failure, return an errno code.
 function install_modules()
 {
-  local kw_pkg_tar_name="$1"
-  local target="$2"
-  local flag="$3"
+  local target="$1"
+  local flag="$2"
   local uncompressed_kw_pkg="${KW_DEPLOY_TMP_FILE}/kw_pkg"
   local kw_pkg_modules_path="${KW_DEPLOY_TMP_FILE}/kw_pkg/modules/lib/modules"
   local sudo_cmd
   local cmd
+  local ret
 
   flag=${flag:-'SILENT'}
 
@@ -402,9 +403,10 @@ function install_modules()
 
   # 1. If kw package was not extracted yet, do it now
   if [[ ! -d "$uncompressed_kw_pkg" ]]; then
-    uncompress_kw_package "$kw_pkg_tar_name" "$flag"
-    if [[ "$?" != 0 ]]; then
-      return 2 # ENOENT
+    uncompress_kw_package "$flag"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      return "$ret" # ENOENT
     fi
   fi
 
@@ -604,7 +606,7 @@ function install_kernel()
   [[ "$flag" == 'VERBOSE' ]] && verbose_cp='-v'
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E'
+    sudo_cmd='sudo -E '
   fi
 
   # Uncompress kw package
@@ -639,7 +641,7 @@ function install_kernel()
     fi
   fi
 
-  install_modules "${name}.kw.tar" "$target" "$flag"
+  install_modules "$target" "$flag"
 
   # Copy kernel image
   if [[ -f "${path_prefix}/boot/vmlinuz-${name}" ]]; then
@@ -647,11 +649,9 @@ function install_kernel()
     cmd_manager "$flag" "$cmd"
   fi
 
-  if [[ "$target" == 'remote' ]]; then
-    # Update kernel image in the /boot
-    cmd="cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
-    cmd_manager "$flag" "$cmd"
-  fi
+  # Update kernel image in the /boot
+  cmd="${sudo_cmd}cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
+  cmd_manager "$flag" "$cmd"
 
   # Each distro has their own way to update their bootloader
   update_bootloader "$flag" "$name" "$target" "$kernel_image_name" "$distro" "$path_prefix"

@@ -486,7 +486,8 @@ function test_install_modules()
   LIB_MODULES_PATH="${KW_DEPLOY_TMP_FILE}${LIB_MODULES_PATH}"
   mkdir -p "$LIB_MODULES_PATH"
 
-  install_modules 'test.kw.tar'
+  install_modules 'remote'
+
   assertTrue "($LINENO): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_1" ]]'
   assertTrue "($LINENO): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_2" ]]'
 
@@ -576,7 +577,8 @@ function test_install_kernel_local()
   declare -a cmd_sequence=(
     "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
-    "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "sudo -E rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'run_bootloader_update_mock'
     "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
@@ -709,7 +711,7 @@ function test_uncompress_kw_package()
   # Test preparation
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
 
-  uncompress_kw_package 'test.kw.tar'
+  uncompress_kw_package
   assertTrue "($LINENO): Expected kw_pkg" '[[ -d "${KW_DEPLOY_TMP_FILE}/kw_pkg" ]]'
 
   cd "$TEST_ROOT_PATH" || {

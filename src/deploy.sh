@@ -446,6 +446,8 @@ function deploy_setup()
     cmd_manager "$flag" "$cmd"
   fi
 
+  [[ "$target" == "$LOCAL_TARGET" ]] && prepare_local_dir "$flag"
+
   check_setup_status "$target" "$flag"
   if [[ "$?" == 0 ]]; then
     [[ "$target" == "$REMOTE_TARGET" ]] && prepare_remote_dir # Update files
@@ -563,6 +565,35 @@ function prepare_remote_dir()
   # file
   if [[ "$distro" == 'arch' ]]; then
     cp2remote "$flag" "$KW_ETC_DIR/template_mkinitcpio.preset" "$REMOTE_KW_DEPLOY"
+  fi
+}
+
+function prepare_local_dir()
+{
+  local flag="$1"
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  update_deploy_variables
+
+  # Check if target variables are correct
+  if [[ -z "${KW_DEPLOY_TMP_FILE}" ]]; then
+    return 22 # EINVAL
+  fi
+
+  # Clean deploy folder
+  cmd_manager "$flag" "rm --preserve-root=all --recursive --force ${KW_DEPLOY_TMP_FILE}"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return 1 # EPERM
+  fi
+
+  # Recreate deploy folder
+  cmd_manager "$flag" "mkdir --parents ${KW_DEPLOY_TMP_FILE}"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return 22 # EINVAL
   fi
 }
 
@@ -1277,7 +1308,11 @@ function run_kernel_install()
       include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       update_deploy_variables # Ensure that we are using the right variable
 
+      say '* Moving kernel package for local deploy'
+      cmd_manager "$flag" "mv ${return_tar_path} ${KW_DEPLOY_TMP_FILE}"
+
       install_kernel "$distro" "$reboot" 'local' "$flag"
+      human_install_kernel_message "$?"
       return "$?"
       ;;
     3) # REMOTE_TARGET
@@ -1295,6 +1330,7 @@ function run_kernel_install()
 
       cmd_remotely "$cmd" "$flag" "$remote" "$port"
       human_install_kernel_message "$?"
+      return "$?"
       ;;
   esac
 }
