@@ -34,7 +34,7 @@ function _kw_autocomplete()
 
   kw_options['deploy']='--force --list --list-all --local --ls-line --modules
                         --reboot --no-reboot --remote --uninstall --vm --setup
-                        --create-package --verbose'
+                        --create-package --from-package --verbose'
   kw_options['d']="${kw_options['deploy']}"
 
   kw_options['device']='--local --remote --vm'

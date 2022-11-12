@@ -81,6 +81,7 @@ function deploy_main()
   local output_kbuild_path=''
   local return_tar_path
   local kernel_binary_image_name
+  local cache_to_deploy_path
 
   # Drop build_and_deploy flag
   shift
@@ -96,9 +97,11 @@ function deploy_main()
     exit 22 # EINVAL
   fi
 
-  if ! is_kernel_root "$PWD"; then
-    complain 'Execute this command in a kernel tree.'
-    exit 125 # ECANCELED
+  if [[ -z "${options_values['FROM_PACKAGE']}" ]]; then
+    if ! is_kernel_root "$PWD"; then
+      complain 'Execute this command in a kernel tree.'
+      exit 125 # ECANCELED
+    fi
   fi
 
   env_name=$(get_current_env_name)
@@ -191,30 +194,42 @@ function deploy_main()
   # new kernel version we also update all modules; maybe one day we can change
   # it, but for now this looks the safe option.
 
-  # Note that kw needs the kernel_binary_image_name for the remote deploy
-  build_kw_kernel_package return_tar_path kernel_binary_image_name "$flag"
-  modules_install_status="$?"
-  if [[ ! -f "$return_tar_path" ]]; then
-    complain "kw was not able to generate kw package: ${return_tar_path}"
-    return 22 # EINVAL
-  fi
+  if [[ -z "${options_values['FROM_PACKAGE']}" ]]; then
+    # Note that kw needs the kernel_binary_image_name for the remote deploy
+    build_kw_kernel_package return_tar_path kernel_binary_image_name "$flag"
+    modules_install_status="$?"
+    if [[ ! -f "$return_tar_path" ]]; then
+      complain "kw was not able to generate kw package: ${return_tar_path}"
+      return 22 # EINVAL
+    fi
 
-  case "$modules_install_status" in
-    2)
-      complain "Kernel image was not found at: ${kernel_tree_boot_folder_path}"
-      exit 2 # ENOENT
-      ;;
-    22)
-      complain 'Kernel name not specified for get_config_file_for_deploy'
+    case "$modules_install_status" in
+      2)
+        complain "Kernel image was not found at: ${kernel_tree_boot_folder_path}"
+        exit 2 # ENOENT
+        ;;
+      22)
+        complain 'Kernel name not specified for get_config_file_for_deploy'
+        exit 22 # EINVAL
+        ;;
+      125)
+        complain "We could not find a valid kernel image at arch/${build_config[arch]}/boot"
+        complain 'Please, check if your compilation successfully completed or'
+        complain 'check your kworkflow.config'
+        exit 125 # ECANCELED
+        ;;
+    esac
+  else
+    if [[ ! -f "${options_values['FROM_PACKAGE']}" ]]; then
+      complain "The parameter '${options_values['FROM_PACKAGE']}' is not a path"
       exit 22 # EINVAL
-      ;;
-    125)
-      complain "We could not find a valid kernel image at arch/${build_config[arch]}/boot"
-      complain 'Please, check if your compilation successfully completed or'
-      complain 'check your kworkflow.config'
-      exit 125 # ECANCELED
-      ;;
-  esac
+    fi
+
+    cache_to_deploy_path="${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
+
+    cp "${options_values['FROM_PACKAGE']}" "${cache_to_deploy_path}"
+    return_tar_path="${cache_to_deploy_path}/${options_values['FROM_PACKAGE']}"
+  fi
 
   # Get kw package option
   if [[ -n "${options_values['CREATE_PACKAGE']}" ]]; then
@@ -226,8 +241,7 @@ function deploy_main()
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
-    name=$(eval "make kernelrelease${output_kbuild_path}")
-    run_kernel_install "$name" "$return_tar_path" "$kernel_binary_image_name" "$flag"
+    run_kernel_install "$return_tar_path" "$kernel_binary_image_name" "$flag"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
       end=$(date +%s)
@@ -568,6 +582,15 @@ function prepare_remote_dir()
   fi
 }
 
+# Create the temporary folder for local deploy.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# In case of success return 0, otherwise it may return:
+# - EINVAL (22): If the temporary variable is not set or if kw cannot create the temporary folder.
+# - EPERM (1): If it fails to clean the temporary folder.
 function prepare_local_dir()
 {
   local flag="$1"
@@ -1252,10 +1275,9 @@ function human_install_kernel_message()
 # were invoked before.
 function run_kernel_install()
 {
-  local name="$1"
-  local return_tar_path="$2"
-  local kernel_binary_image_name="$3"
-  local flag="$4"
+  local return_tar_path="$1"
+  local kernel_binary_image_name="$2"
+  local flag="$3"
   local distro='none'
   local arch_target="${build_config[arch]:-${configurations[arch]}}"
   local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
@@ -1271,7 +1293,6 @@ function run_kernel_install()
   [[ -n "$kbuild_prefix" ]] && kbuild_prefix="${kbuild_prefix}/"
 
   # We have to guarantee some default values values
-  name=${name:-'kw'}
   flag=${flag:-'SILENT'}
 
   case "$target" in
@@ -1349,8 +1370,8 @@ function parse_deploy_options()
   local remote
   local options
   local long_options='remote:,local,vm,reboot,no-reboot,modules,list,ls-line,uninstall:'
-  long_options+=',list-all,force,setup,verbose,create-package'
-  local short_options='r,m,l,s,u:,a,f,v,p'
+  long_options+=',list-all,force,setup,verbose,create-package,from-package:'
+  local short_options='r,m,l,s,u:,a,f,v,p,F:'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -1374,6 +1395,7 @@ function parse_deploy_options()
   options_values['SETUP']=''
   options_values['VERBOSE']=''
   options_values['CREATE_PACKAGE']=''
+  options_values['FROM_PACKAGE']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -1466,6 +1488,10 @@ function parse_deploy_options()
         options_values['CREATE_PACKAGE']=1
         shift
         ;;
+      --from-package | -F)
+        options_values['FROM_PACKAGE']+="$2"
+        shift 2
+        ;;
       --) # End of options, beginning of arguments
         shift
         ;;
@@ -1510,7 +1536,8 @@ function deploy_help()
     '  deploy (--list | -l) - list kernels' \
     '  deploy (--ls-line | -s) - list kernels separeted by commas' \
     '  deploy (--list-all | -a) - list all available kernels' \
-    '  deploy (--create-package | -p) - Create kw package'
+    '  deploy (--create-package | -p) - Create kw package' \
+    '  deploy (--from-package | -F) - Deploy from kw package'
 }
 
 load_vm_config

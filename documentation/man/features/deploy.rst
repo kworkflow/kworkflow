@@ -14,6 +14,7 @@ SYNOPSIS
                       [(-u | \--uninstall) <kernel-name>[,...]] [-f \--force]
                       [\--alert=(s | v | (sv | vs) | n)]
                       [-p | \--create-package]
+                      [(-F | \--from-package) <kw-package-path>]
 
 DESCRIPTION
 ===========
@@ -102,6 +103,9 @@ OPTIONS
   without deploying it; notice that the package will be available in the
   current folder.
 
+-F, \--from-package:
+  You can use this option to deploy a custom kernel from kw package.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -147,3 +151,9 @@ Suppose that you want to share a specific kernel with someone else for
 validation; you can generate a kw package with::
 
   kw deploy --create-package
+
+The above command will create a \*.kw.tar package file that can be shared with
+any other kw user. If you want to install a custom kernel from this package,
+you can use::
+
+  kw deploy --from-package 5.19.0-THIS-IS-AN-EXAMPLE+.kw.tar
