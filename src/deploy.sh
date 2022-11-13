@@ -774,6 +774,7 @@ function run_kernel_uninstall()
       # We need to update grub, for this reason we to load specific scripts.
       include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/bootloader_utils.sh"
       # Let's ensure that we are using the right variables
       update_deploy_variables
 

@@ -284,7 +284,7 @@ function test_kernel_force_uninstall_unmanaged()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
-function test_remove_managed_kernel()
+function test_remove_managed_kernel_local()
 {
   local target='xpto'
   local prefix="./test"
@@ -332,7 +332,7 @@ function test_remove_managed_kernel()
   for file in ${boot_files[@]}; do
     cmd_sequence["$index"]="Removing: $file"
     ((index++))
-    cmd_sequence["$index"]="rm $file"
+    cmd_sequence["$index"]="sudo -E rm $file"
     ((index++))
   done
 
@@ -348,11 +348,11 @@ function test_remove_managed_kernel()
 
 function test_do_uninstall_invalid_path_cmd_sequence()
 {
-  local target='xpto'
+  local kernel_name='xpto'
   local prefix="${TARGET_PATH}"
-  local modules_lib_path="$prefix/lib/modules/$target"
-  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
-  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
+  local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
+  local initramfs_tools_var_path="${prefix}/var/lib/initramfs-tools/${kernel_name}"
+  local mkinitcpio_d_path="${prefix}/etc/mkinitcpio.d/${kernel_name}.preset"
   local output
 
   declare -a cmd_sequence=(
@@ -361,17 +361,17 @@ function test_do_uninstall_invalid_path_cmd_sequence()
     "Can't find $modules_lib_path"
   )
 
-  output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
+  output=$(do_uninstall 'remote' "$kernel_name" "$prefix" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 function test_do_uninstall_valid_path_cmd_sequence()
 {
-  local target='xpto'
+  local kernel_name='xpto'
   local prefix="${TARGET_PATH}"
-  local modules_lib_path="$prefix/lib/modules/$target"
-  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
-  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
+  local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
+  local initramfs_tools_var_path="${prefix}/var/lib/initramfs-tools/${kernel_name}"
+  local mkinitcpio_d_path="${prefix}/etc/mkinitcpio.d/${kernel_name}.preset"
   local output
   local boot_files
   local index=0
@@ -383,10 +383,10 @@ function test_do_uninstall_valid_path_cmd_sequence()
   }
 
   mkdir -p "$prefix"
-  mk_fake_remote_system "$prefix" "$target"
+  mk_fake_remote_system "$prefix" "$kernel_name"
 
   # Composing command
-  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${target}*" | sort)
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name}*" | sort)
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$index"]="Removing: $file"
@@ -409,7 +409,7 @@ function test_do_uninstall_valid_path_cmd_sequence()
     ((index++))
   done
 
-  output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
+  output=$(do_uninstall 'remote' "$kernel_name" "$prefix" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
@@ -420,22 +420,22 @@ function test_do_uninstall_valid_path_cmd_sequence()
 
 function test_do_uninstall_partial_cmd_sequence()
 {
-  local target='xpto'
+  local kernel_name='xpto'
   local prefix="$TARGET_PATH"
-  local modules_lib_path="$prefix/lib/modules/$target"
-  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
-  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
+  local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
+  local initramfs_tools_var_path="${prefix}/var/lib/initramfs-tools/${kernel_name}"
+  local mkinitcpio_d_path="${prefix}/etc/mkinitcpio.d/${kernel_name}.preset"
   local output
   local index=0
   local boot_files
 
   mkdir -p "$prefix"
-  mk_fake_remote_system "$prefix" "$target"
+  mk_fake_remote_system "$prefix" "$kernel_name"
 
   rm -rf "$modules_lib_path"
 
   # Composing command
-  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${target}*" | sort)
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name}*" | sort)
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$index"]="Removing: $file"
@@ -457,7 +457,7 @@ function test_do_uninstall_partial_cmd_sequence()
     ((index++))
   done
 
-  output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
+  output=$(do_uninstall 'remote' "$kernel_name" "$prefix" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {

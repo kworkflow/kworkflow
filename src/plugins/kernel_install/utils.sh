@@ -499,44 +499,50 @@ function update_bootloader()
 function do_uninstall()
 {
   local target="$1"
-  local prefix="$2"
-  local flag="$3"
-  local modules_lib_path="${prefix}/lib/modules/${target}"
+  local kernel_name="$2"
+  local prefix="$3"
+  local flag="$4"
+  local sudo_cmd=''
+  local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
   local -a files_to_be_removed=(
-    "${prefix}/etc/mkinitcpio.d/${target}.preset"
-    "${prefix}/var/lib/initramfs-tools/${target}"
+    "${prefix}/etc/mkinitcpio.d/${kernel_name}.preset"
+    "${prefix}/var/lib/initramfs-tools/${kernel_name}"
   )
 
-  if [[ -z "$target" ]]; then
+  if [[ "$target" == 'local' ]]; then
+    sudo_cmd='sudo -E '
+  fi
+
+  if [[ -z "$kernel_name" ]]; then
     printf '%s\n' 'No parameter, nothing to do'
     exit 22 # EINVAL
   fi
 
-  to_remove_from_boot=$(find "${prefix}/boot/" -name "*$target*" | sort)
+  to_remove_from_boot=$(find "${prefix}/boot/" -name "*$kernel_name*" | sort)
   # shellcheck disable=SC2068
   for element in ${to_remove_from_boot[@]}; do
     if [[ -f "$element" ]]; then
-      printf ' %s\n' "Removing: $element"
-      cmd_manager "$flag" "rm $element"
+      printf ' %s\n' "Removing: ${element}"
+      cmd_manager "$flag" "${sudo_cmd}rm ${element}"
     else
-      printf ' %s\n' "Can't find $element"
+      printf ' %s\n' "Can't find ${element}"
     fi
   done
 
   for del_file in "${files_to_be_removed[@]}"; do
     if [[ -f "$del_file" ]]; then
-      printf ' %s\n' "Removing: $del_file"
-      cmd_manager "$flag" "rm $del_file"
+      printf ' %s\n' "Removing: ${del_file}"
+      cmd_manager "$flag" "${sudo_cmd}rm ${del_file}"
     else
-      printf ' %s\n' "Can't find $del_file"
+      printf ' %s\n' "Can't find ${del_file}"
     fi
   done
 
   if [[ -d "$modules_lib_path" && "$modules_lib_path" != '/lib/modules' ]]; then
     printf ' %s\n' "Removing: $modules_lib_path"
-    cmd_manager "$flag" "rm -rf $modules_lib_path"
+    cmd_manager "$flag" "${sudo_cmd}rm -rf ${modules_lib_path}"
   else
-    printf ' %s\n' "Can't find $modules_lib_path"
+    printf ' %s\n' "Can't find ${modules_lib_path}"
   fi
 }
 
@@ -570,7 +576,7 @@ function kernel_uninstall()
     fi
 
     printf '%s\n' "Removing: $kernel"
-    do_uninstall "$kernel" "$prefix" "$flag"
+    do_uninstall "$target" "$kernel" "$prefix" "$flag"
 
     # Clean from the log
     cmd_manager "$flag" "sudo sed -i '/$kernel/d' '$INSTALLED_KERNELS_PATH'"
