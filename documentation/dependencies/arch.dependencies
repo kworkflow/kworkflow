@@ -27,3 +27,4 @@ rsync
 ccache
 libguestfs
 python-setuptools
+jq

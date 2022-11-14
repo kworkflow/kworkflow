@@ -93,8 +93,8 @@ function generate_arch_temporary_root_file_system()
     fi
   fi
 
-  # We do not support initramfs outside grub scope
-  [[ "$bootloader_type" != 'GRUB' ]] && return
+  # We do not support initramfs outside grub and systemd-boot scope
+  [[ "$bootloader_type" != 'GRUB' && "$bootloader_type" != 'SYSTEMD_BOOT' ]] && return
 
   # Generate specific preset file
   mkinitcpio_destination_path="${path_prefix}/etc/mkinitcpio.d/${name}.preset"

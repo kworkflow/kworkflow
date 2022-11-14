@@ -465,6 +465,9 @@ function update_bootloader()
     RPI_BOOTLOADER)
       bootloader_path_prefix+='rpi_bootloader.sh'
       ;;
+    SYSTEMD_BOOT)
+      bootloader_path_prefix+='systemd_bootloader.sh'
+      ;;
     *)
       return 95 # ENOTSUP
       ;;
