@@ -12,12 +12,14 @@ function remote_main()
     exit 0
   fi
 
-  if [[ "$1" =~ -l|--list  ]] && [[ -f "$local_remote_config_file" ]]; then
-    cat "$local_remote_config_file"
-    exit 0
-  else 
-    echo "There is no remotes yet"
-    exit 0
+  if [[ "$1" =~ -l|--list  ]]; then
+    if [[ -f "$local_remote_config_file" ]]; then
+      cat "$local_remote_config_file"
+      exit 0
+    else 
+      echo "There is no remotes yet"
+      exit 0
+    fi
   fi
 
   parse_remote_options "$@"
