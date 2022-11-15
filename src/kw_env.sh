@@ -12,7 +12,6 @@ declare -ga config_file_list=(
   'mail'
   'notification'
   'remote'
-  'vm'
 )
 
 declare -gr ENV_CURRENT_FILE='env.current'

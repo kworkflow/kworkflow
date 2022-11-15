@@ -13,12 +13,10 @@ function setUp()
 
   KW_CONFIG_TEMPLATE="$PWD/etc/init_templates/x86-64/kworkflow_template.config"
   KW_BUILD_CONFIG_TEMPLATE="$PWD/etc/init_templates/x86-64/build_template.config"
-  KW_VM_CONFIG_TEMPLATE="$PWD/etc/init_templates/x86-64/vm_template.config"
 
   # Copy required files for test
   cp "$KW_CONFIG_TEMPLATE" "$TMPDIR_KW_FOLDER/kworkflow.config"
   cp "$KW_BUILD_CONFIG_TEMPLATE" "$TMPDIR_KW_FOLDER/build.config"
-  cp "$KW_VM_CONFIG_TEMPLATE" "$TMPDIR_KW_FOLDER/vm.config"
   cp "${SAMPLES_DIR}/kworkflow_space_comments.config" "$SHUNIT_TMPDIR"
 
   configurations=()
@@ -47,9 +45,6 @@ function tearDown()
 
   unset deploy_config
   declare -gA deploy_config
-
-  unset vm_config
-  declare -gA vm_config
 
   unset mail_config
   declare -gA mail_config
@@ -228,7 +223,6 @@ function test_show_variables_main_completeness()
   local -A shown_options
   local -A possible_options
   local output
-  local output_vm
   local output_mail
   local output_build
   local output_deploy
@@ -241,18 +235,16 @@ function test_show_variables_main_completeness()
   output=$(get_all_assigned_options_to_string_helper "$KW_CONFIG_TEMPLATE")
   output_build="$(get_all_assigned_options_to_string_helper "$KW_BUILD_CONFIG_SAMPLE")"
   output_deploy="$(get_all_assigned_options_to_string_helper "$KW_DEPLOY_CONFIG_SAMPLE")"
-  output_vm="$(get_all_assigned_options_to_string_helper "$KW_VM_CONFIG_SAMPLE")"
   output_mail="$(get_all_assigned_options_to_string_helper "$KW_MAIL_CONFIG_SAMPLE")"
   output_notification="$(get_all_assigned_options_to_string_helper "$KW_NOTIFICATION_CONFIG_SAMPLE")"
 
-  output+=" $output_build $output_deploy $output_vm $output_mail $output_notification"
+  output+=" $output_build $output_deploy $output_mail $output_notification"
   for option in $output; do
     possible_options["$option"]=1
   done
 
   cp "$KW_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "$KW_BUILD_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
-  cp "$KW_VM_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "$KW_MAIL_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "$KW_NOTIFICATION_CONFIG_SAMPLE" "$TMPDIR_KW_FOLDER"
   cp "${SAMPLES_DIR}/deploy_all_options.config" "${TMPDIR_KW_FOLDER}/deploy.config"
@@ -292,7 +284,7 @@ function test_show_variables_main_correctness()
     [alert]='n'
     [sound_alert_command]='paplay SOUNDPATH/bell.wav'
     [visual_alert_command]='notify-send lala'
-    [default_deploy_target]=vm
+    [default_deploy_target]='remote'
     [reboot_after_deploy]='no'
     [deploy_temporary_files_path]='/tmp/kw'
     [dtb_copy_pattern]='broadcom/*.dtb'

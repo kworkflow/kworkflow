@@ -5,8 +5,6 @@ declare -gA options_values
 
 # List of config files with possible values
 declare -gA config_file_list=(
-  ['vm']='virtualizer mount_point qemu_hw_options qemu_net_options
-          qemu_path_image'
   ['build']='arch kernel_img_name cross_compile menu_config doc_type
              cpu_scaling_factor enable_ccache warning_level use_llvm'
   ['mail']='send_opts blocked_emails'
