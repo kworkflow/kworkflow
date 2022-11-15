@@ -20,7 +20,6 @@ function init_kw()
   local name='kworkflow.config'
   local build_name='build.config'
   local deploy_name='deploy.config'
-  local vm_name='vm.config'
   local mail_name='mail.config'
   local notification_name='notification.config'
   local remote_name='remote.config'
@@ -63,7 +62,6 @@ function init_kw()
   config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/kworkflow_template.config"
   build_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/build_template.config"
   deploy_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/deploy.config"
-  vm_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/vm_template.config"
   mail_config_file_template="${KW_ETC_DIR}/mail.config"
   notification_config_file_template="${KW_ETC_DIR}/notification_template.config"
   remote_file_template="${KW_ETC_DIR}/remote.config"
@@ -71,14 +69,12 @@ function init_kw()
   if [[ -f "$config_file_template" && -f "$build_config_file_template" ]]; then
     mkdir -p "$PWD/$KW_DIR"
     cp "$config_file_template" "$PWD/$KW_DIR/$name"
-    cp "$vm_config_file_template" "${PWD}/${KW_DIR}/${vm_name}"
     cp "$build_config_file_template" "${PWD}/${KW_DIR}/${build_name}"
     cp "$deploy_config_file_template" "${PWD}/${KW_DIR}/${deploy_name}"
     cp "$mail_config_file_template" "${PWD}/${KW_DIR}/${mail_name}"
     cp "$notification_config_file_template" "${PWD}/${KW_DIR}/${notification_name}"
     cp "$remote_file_template" "${PWD}/${KW_DIR}/${remote_name}"
 
-    sed -i -e "s/USERKW/$USER/g" -e '/^#?.*/d' "$PWD/$KW_DIR/${vm_name}"
     sed -i -e "s,SOUNDPATH,$KW_SOUND_DIR,g" -e '/^#?.*/d' "$PWD/$KW_DIR/${notification_name}"
 
     if [[ -n "${options_values['ARCH']}" ]]; then
@@ -106,12 +102,12 @@ function init_kw()
 
     if [[ -n "${options_values['TARGET']}" ]]; then
       case "${options_values['TARGET']}" in
-        vm | local | remote)
+        local | remote)
           set_config_value 'default_deploy_target' "${options_values['TARGET']}" \
             "${PWD}/${KW_DIR}/${deploy_name}"
           ;;
         *)
-          complain 'Target can only be vm, local or remote.'
+          complain 'Target can only be local or remote.'
           ;;
       esac
     fi
