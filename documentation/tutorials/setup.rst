@@ -94,8 +94,7 @@ When configuring kw, you might want to start looking at theses options:
    calling ``ssh``
 
  * ``default_deploy_target`` defines if the deploy of a kernel build is to be
-   done locally (``local``), to a VM (``vm``) or to a remote machine
-   (``remote``);
+    done locally (``local``) or to a remote machine (``remote``);
 
  * ``alert`` defines if kw should notify you visually (``v``), with sound
    (``s``), both (``vs``) or no notification at all (``n``). Default is ``n``.
@@ -140,4 +139,4 @@ machine following `this tutorial
 Another alternative is to use an external machine, with which you can
 communicate through ssh. By the way, these three possible ways to deploy a
 kernel (local, VM and remote) correspond to the options ``kw deploy``
-accepts: ``--local``, ``--remote`` and ``--vm``.
+accepts: ``--local`` and ``--remote``.

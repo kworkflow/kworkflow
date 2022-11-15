@@ -181,34 +181,4 @@ function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs_
   assert_equals_helper "Expected error message" "($LINENO)" "$expected_output" "$output"
 }
 
-function test_generate_arch_temporary_root_file_system_vm_and_mkinitcpio()
-{
-  local name='xpto'
-  local path_prefix=''
-  local cmd=
-  local sudo_cmd=''
-  local qemu_mock_img="${SHUNIT_TMPDIR}/mock_image"
-
-  # VM
-  touch "$qemu_mock_img"
-  vm_config[qemu_path_image]="$qemu_mock_img"
-  declare -a cmd_sequence=(
-    "-> Generating rootfs $name on VM. This can take a few minutes."
-    'sleep 0.5s'
-    "guestfish --rw -a $qemu_mock_img run       : mount /dev/sda1 / : command 'dracut --regenerate-all -f'"
-    'Done.'
-  )
-
-  output="$(
-    function command_exists()
-    {
-      [[ "$1" == 'mkinitcpio' ]] && return 1
-      return 0
-    }
-    generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'vm' 'GRUB' 'something'
-  )"
-
-  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
-}
-
 invoke_shunit

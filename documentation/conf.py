@@ -176,7 +176,6 @@ man_pages = [
     ('man/features/report', 'report', 'user data report support', [author], 1),
     ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
     ('man/features/vars', 'vars', 'view kw config values', [author], 1),
-    ('man/features/vm', 'vm', 'commands to work with QEMU VMs', [author], 1),
 ]
 
 

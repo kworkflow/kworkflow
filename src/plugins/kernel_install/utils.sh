@@ -180,7 +180,7 @@ function collect_deploy_info()
   local distro
   local bootloader
 
-  # Let's include the bootloader_utils in the remote, and local/vm should
+  # Let's include the bootloader_utils in the remote, and local should
   # include themselves
   # XXX: We must remove the numeric value of target because this is not the
   # default here. i.e., if [["$target" == 'remote' ]]; ...
@@ -425,7 +425,7 @@ function install_modules()
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 # @name Kernel name used during the deploy
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @kernel_image_name Kernel binary file name
 # @distro Target distro (e.g., arch or debian)
 # @prefix Set a base prefix for searching for kernels.
@@ -445,10 +445,6 @@ function update_bootloader()
 
   [[ -n "$distro" ]] && generate_initram=1
   [[ -z "$prefix" ]] && prefix='/'
-
-  if [[ "$target" == 'vm' ]]; then
-    vm_mount
-  fi
 
   if [[ "$target" != 'remote' || "$flag" == 'TEST_MODE' ]]; then
     bootloader_path_prefix="$KW_PLUGINS_DIR/kernel_install/"
@@ -483,7 +479,6 @@ function update_bootloader()
     ret="$?"
     if [[ "$ret" != 0 ]]; then
       printf 'Error when trying to generate the temporary root file system\n'
-      [[ "$target" == 'vm' ]] && vm_umount
       exit "$ret"
     fi
   fi
@@ -491,7 +486,6 @@ function update_bootloader()
   # Update bootloader
   run_bootloader_update "$flag" "$target" "$name" "$kernel_image_name"
   ret="$?"
-  [[ "$target" == 'vm' ]] && vm_umount
 
   return "$ret"
 }
@@ -634,19 +628,6 @@ function install_kernel()
     return 22
   fi
 
-  if [[ "$target" == 'vm' ]]; then
-    # Check if vm is mounted and get its path
-    if [[ $(findmnt "${vm_config[mount_point]}") ]]; then
-      path_prefix="${vm_config[mount_point]}"
-      INSTALLED_KERNELS_PATH="$path_prefix/$INSTALLED_KERNELS_PATH"
-      # Copy config file
-      cmd_manager "$flag" "cp $verbose_cp .config $path_prefix/boot/config-$name"
-    else
-      printf 'Did you check if your VM is mounted?\n'
-      return 125 # ECANCELED
-    fi
-  fi
-
   install_modules "$target" "$flag"
 
   # Copy kernel image
@@ -665,12 +646,8 @@ function install_kernel()
 
   if [[ "$ret" != 0 ]]; then
     printf 'kw was not able to update the target bootloader\n'
-    [[ "$target" == 'vm' ]] && vm_umount
     exit "$ret"
   fi
-
-  # In case vm is umounted for other commands
-  [[ "$target" == 'vm' ]] && vm_mount
 
   # Registering a new kernel
   if [[ ! -f "$INSTALLED_KERNELS_PATH" ]]; then
@@ -688,13 +665,8 @@ function install_kernel()
   fi
 
   # Reboot
-  if [[ "$target" != 'vm' && "$reboot" == '1' ]]; then
+  if [[ "$reboot" == '1' ]]; then
     cmd="$sudo_cmd reboot"
     reboot_machine "$reboot" "$target" "$flag"
-  fi
-
-  # If VM is mounted, umount before update boot loader
-  if [[ "$target" == 'vm' ]]; then
-    [[ $(findmnt "${vm_config[mount_point]}") ]] && vm_umount
   fi
 }

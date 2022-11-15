@@ -144,20 +144,6 @@ Now, you can use::
 If you only deploy your kernel to a local machine, you can change the option
 `default_deploy_target` to `local` in your `.kw/kworflow.config` file.
 
-QEMU VM Deploy
---------------
-
-Thanks to `guestfish <https://libguestfs.org/guestfish.1.html>`_, kw provides
-close integration with the QEMU VM file. If you want to deploy your new kernel
-to a QEMU VM, you first need to ensure two things:
-
-1. Your VM is turned off.
-2. Your config file has the correct path to the QEMU image.
-
-If those conditions are true, you just need to run::
-
-  kw deploy --vm
-
 Improving your Workflow
 -----------------------
 

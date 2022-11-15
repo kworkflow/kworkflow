@@ -17,7 +17,6 @@
 #
 
 include "$KW_LIB_DIR/kw_config_loader.sh"
-include "$KW_LIB_DIR/vm.sh"
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
@@ -178,15 +177,6 @@ function deploy_main()
     fi
 
     collect_target_info_for_deploy "$target" "$flag"
-
-    if [[ "$target" == "$VM_TARGET" ]]; then
-      vm_mount
-      ret="$?"
-      if [[ "$ret" != 0 ]]; then
-        complain 'Please shutdown or umount your VM to continue.'
-        exit "$ret"
-      fi
-    fi
   fi
 
   # NOTE: If we deploy a new kernel image that does not match with the modules,
@@ -260,11 +250,6 @@ function deploy_main()
     statistics_manager 'Modules_deploy' "$runtime"
   fi
 
-  if [[ "$target" == "$VM_TARGET" ]]; then
-    # Umount VM if it remains mounted
-    vm_umount
-  fi
-
   #shellcheck disable=SC2119
   cleanup
 }
@@ -318,7 +303,7 @@ function setup_remote_ssh_with_passwordless()
 # plugin folder, we have a code per distro supported by kw. This function is
 # the entry point to call the specific code for the target distro.
 #
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 function prepare_distro_for_deploy()
@@ -333,10 +318,6 @@ function prepare_distro_for_deploy()
   say '-> Basic distro set up'$'\n'
 
   case "$target" in
-    1) # VM_TARGET
-      printf 'TODO: VM: prepare_distro_for_deploy requires implementation\n'
-      printf 'You might want to consider the remote option for your VM\n'
-      ;;
     2) # LOCAL_TARGET
       distro=$(detect_distro '/')
       # Distro must be loaded first to ensure the right variables
@@ -358,7 +339,7 @@ function prepare_distro_for_deploy()
 # creates a log status file at the end of the setup. This function generates
 # the status file with the target code, date, and time information.
 #
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 function update_status_log()
@@ -374,10 +355,7 @@ function update_status_log()
   status_cmd="printf '%s;%s\n' '$target' '$log_date' >> $REMOTE_KW_DEPLOY/status"
 
   case "$target" in
-    1)
-      echo "TODO: update_status_log"
-      ;;
-    2) # VM and LOCAL_TARGET
+    2) # LOCAL_TARGET
       cmd_manager "$flag" "$status_cmd"
       ;;
     3) # REMOTE_TARGET
@@ -391,7 +369,7 @@ function update_status_log()
 # return another value that expresses the necessity of setting up the target
 # machine.
 #
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 #
@@ -407,7 +385,7 @@ function check_setup_status()
   flag=${flag:-'SILENT'}
 
   case "$target" in
-    1 | 2) # VM and LOCAL target
+    2) # LOCAL target
       cmd_manager "$flag" "$cmd"
       ret="$?"
       ;;
@@ -427,7 +405,7 @@ function check_setup_status()
 # folder setup, distro-specific code, and update setup log. Notice that this
 # function checks if the target machine needs to be set up or not.
 #
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 #
@@ -454,12 +432,6 @@ function deploy_setup()
     fi
   fi
 
-  if [[ "$target" == "$VM_TARGET" ]]; then
-    cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run : \
-      mount /dev/sda1 / : mkdir-p $REMOTE_KW_DEPLOY"
-    cmd_manager "$flag" "$cmd"
-  fi
-
   [[ "$target" == "$LOCAL_TARGET" ]] && prepare_local_dir "$flag"
 
   check_setup_status "$target" "$flag"
@@ -481,9 +453,9 @@ function deploy_setup()
   update_status_log "$target" "$flag"
 }
 
-# We can include plugin scripts when dealing with local or VM deploy, which
-# will override some path variables. Since this will be a common task, this
-# function is intended to centralize these required updates.
+# We can include plugin scripts when dealing with local, which will override
+# some path variables. Since this will be a common task, this function is
+# intended to centralize these required updates.
 function update_deploy_variables()
 {
   local kw_remote_path="${deploy_config[kw_files_remote_path]}"
@@ -630,7 +602,7 @@ function prepare_local_dir()
 # @single_line If this option is set to 1 this function will display all
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @all If this option is set to one, this will list all kernels
 #   availble. If not, will list only kernels that were installed by kw.
 function run_list_installed_kernels()
@@ -647,19 +619,6 @@ function run_list_installed_kernels()
   flag=${flag:-'SILENT'}
 
   case "$target" in
-    1) # VM_TARGET
-      vm_mount
-
-      if [ "$?" != 0 ]; then
-        complain 'Did you check if your VM is running?'
-        return 125 # ECANCELED
-      fi
-
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      list_installed_kernels "$flag" "$single_line" "$all" "${vm_config[mount_point]}"
-
-      vm_umount
-      ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
       list_installed_kernels "$flag" "$single_line" "$all"
@@ -679,7 +638,7 @@ function run_list_installed_kernels()
 # correct deploy. The most important info is the target distro and the
 # bootloader type.
 #
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 #
@@ -702,11 +661,6 @@ function collect_target_info_for_deploy()
   fi
 
   case "$target" in
-    1) # VM_TARGET
-      include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      data=$(collect_deploy_info "$flag" "$target" "${vm_config[mount_point]}/")
-      ;;
     2) # LOCAL_TARGET
       include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
       include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
@@ -735,7 +689,7 @@ function collect_target_info_for_deploy()
 
 # This function handles the kernel uninstall process for different targets.
 #
-# @target Target machine Target machine Target machine Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @reboot If this value is equal 1, it means reboot machine after kernel
 #         installation.
 # @kernels_target_list String containing kernels name separated by comma
@@ -759,9 +713,6 @@ function run_kernel_uninstall()
   flag=${flag:-''}
 
   case "$target" in
-    1) # VM_TARGET
-      printf '%s\n' 'UNINSTALL VM'
-      ;;
     2) # LOCAL_TARGET
       distro=$(detect_distro '/')
 
@@ -823,7 +774,10 @@ function cleanup()
 # in the first case, the host machine is the target, and otherwise the virtual
 # machine.
 #
-# @target Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @return_tar_path
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
 #
 # Note:
 # This function supposes that prepare_host_deploy_dir and prepare_remote_dir
@@ -839,9 +793,6 @@ function modules_install()
   flag=${flag:-'SILENT'}
 
   case "$target" in
-    1) # VM_TARGET
-      modules_install_to "${vm_config[mount_point]}" "$flag"
-      ;;
     2) # LOCAL_TARGET
       modules_install_to '/lib/modules' "$flag" 'local'
       ;;
@@ -1147,7 +1098,7 @@ function create_pkg_metadata_file_for_deploy()
 #
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @kernel_img_name Kernel image file name, e.g., bzImage or Image.
 # @name Kernel name used during the deploy
 # @arch Target device architecture
@@ -1297,21 +1248,6 @@ function run_kernel_install()
   flag=${flag:-'SILENT'}
 
   case "$target" in
-    1) # VM_TARGET
-      distro=$(detect_distro "${vm_config[mount_point]}/")
-
-      if [[ "$distro" =~ 'none' ]]; then
-        complain 'Unfortunately, there is no support for the target distro'
-        vm_umount
-        return 95 # ENOTSUP
-      fi
-
-      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-      update_deploy_variables # Make sure we use the right variable values
-      install_kernel "$distro" "$reboot" 'vm' "$flag"
-      return "$?"
-      ;;
     2) # LOCAL_TARGET
       distro=$(detect_distro '/')
 
@@ -1370,7 +1306,7 @@ function parse_deploy_options()
   local enable_collect_param=0
   local remote
   local options
-  local long_options='remote:,local,vm,reboot,no-reboot,modules,list,ls-line,uninstall:'
+  local long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall:'
   long_options+=',list-all,force,setup,verbose,create-package,from-package:'
   local short_options='r,m,l,s,u:,a,f,v,p,F:'
 
@@ -1407,7 +1343,7 @@ function parse_deploy_options()
     local config_file_deploy_target=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
   else
-    options_values['TARGET']="$VM_TARGET"
+    options_values['TARGET']="$REMOTE_TARGET"
   fi
 
   if [[ ${deploy_config[reboot_after_deploy]} == 'yes' ]]; then
@@ -1435,10 +1371,6 @@ function parse_deploy_options()
         ;;
       --local)
         options_values['TARGET']="$LOCAL_TARGET"
-        shift
-        ;;
-      --vm)
-        options_values['TARGET']="$VM_TARGET"
         shift
         ;;
       --reboot | -r)
@@ -1527,7 +1459,7 @@ function deploy_help()
   fi
   printf '%s\n' 'kw deploy:' \
     '  deploy - installs kernel and modules:' \
-    '  deploy (--remote <remote>:<port> | --local | --vm) - choose target' \
+    '  deploy (--remote <remote>:<port> | --local) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
     '  deploy (--no-reboot) - do not reboot machine after deploy' \
     '  deploy (--verbose | -v) - show a detailed output' \
@@ -1541,7 +1473,6 @@ function deploy_help()
     '  deploy (--from-package | -F) - Deploy from kw package'
 }
 
-load_vm_config
 load_build_config
 load_deploy_config
 load_kworkflow_config

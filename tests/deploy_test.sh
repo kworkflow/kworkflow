@@ -315,7 +315,7 @@ function test_check_setup_status()
 
   # 2. Success case
   touch "$REMOTE_KW_DEPLOY/status"
-  check_setup_status 1
+  check_setup_status 2
   assert_equals_helper 'Wrong return value' "($LINENO)" 0 "$?"
 }
 
@@ -488,29 +488,6 @@ function test_compose_copy_source_parameter_for_dtb_any_other_pattern()
   assert_equals_helper 'Expected folder name' "$LINENO" "$expected_result" "$output"
 }
 
-function test_deploy_setup_to_vm()
-{
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  output=$(deploy_setup 1 'TEST_MODE')
-  expected=(
-    "guestfish --rw -a /home/xpto/p/virty.qcow2 run :       mount /dev/sda1 / : mkdir-p /opt/kw"
-    "test -f /opt/kw/status"
-  )
-  compare_command_sequence '' "$LINENO" 'expected' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
 function test_kernel_modules()
 {
   local count=0
@@ -553,7 +530,7 @@ function test_kernel_modules()
 
   exec_module_install="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_remote_cmd\""
 
-  # Test 1: Check modules deploy for a remote
+  # Check modules deploy for a remote
   cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -574,15 +551,7 @@ function test_kernel_modules()
   output=$(modules_install 3 "${to_deploy_path}/${version}.kw.tar" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
-  # Test 2: Deploy modules to local
-  output=$(modules_install 1 'fake/path' 'TEST_MODE')
-  declare -a expected_cmd=(
-    "$PREPARING_MODULES_MSG"
-    'make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=/home/lala modules_install'
-  )
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-
-  # Test 3: Deploy modules locally vm
+  # Deploy modules locally
   output=$(modules_install 2 'fake/path' 'TEST_MODE')
   declare -a expected_cmd=(
     "$PREPARING_MODULES_MSG"
@@ -712,11 +681,6 @@ function test_parse_deploy_options()
   declare -gA options_values
   parse_deploy_options --local
   assert_equals_helper 'Could not set deploy TARGET' "($LINENO)" '2' "${options_values['TARGET']}"
-
-  unset options_values
-  declare -gA options_values
-  parse_deploy_options --vm
-  assert_equals_helper 'Could not set deploy TARGET' "($LINENO)" '1' "${options_values['TARGET']}"
 
   unset options_values
   declare -gA options_values
@@ -905,18 +869,6 @@ function test_collect_target_info_for_deploy()
   # Avoid alias overwrite
   include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
   include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
-
-  # Corner-cases
-  alias detect_distro='which_distro_none_mock'
-  output=$(collect_target_info_for_deploy 1 'TEST_MODE')
-  assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
-
-  # VM
-  alias collect_deploy_info='collect_deploy_info_mock'
-  alias detect_distro='detect_distro_arch_mock'
-  collect_target_info_for_deploy 1 'TEST_MODE'
-  assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'GRUB'
-  assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'arch'
 
   # LOCAL
   alias collect_deploy_info='collect_deploy_info_other_mock'

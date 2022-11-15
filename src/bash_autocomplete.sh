@@ -64,7 +64,6 @@ function _kw_autocomplete()
   kw_options['ssh']='--command --script --remote --verbose'
   kw_options['s']="${kw_options['ssh']}"
 
-  kw_options['vm']='--mount --umount --up'
   kw_options['config']='--local --global'
   kw_options['remote']='add remove rename --set-default --verbose'
 
