@@ -64,9 +64,6 @@ function test_standard_init_check_variable_replacements()
   local kworkflow_content
 
   output=$(init_kw)
-  kworkflow_content=$(grep "$USER" -o "$PATH_TO_KW_VM_CONFIG" | head -n 1)
-  assertEquals "($LINENO): USERKW wasn't updated to $USER" "$USER" "$kworkflow_content"
-
   kworkflow_content=$(grep "$KW_SOUND_DIR" -o "$PATH_TO_KW_NOTIFICATON_CONFIG" | head -n 1)
   assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SOUND_DIR" "$KW_SOUND_DIR" "$kworkflow_content"
 }
@@ -166,7 +163,7 @@ function test_set_an_invalid_target()
 
   output=$(init_kw --target dartboard | tail -n +1 | head -n 1)
   kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_CONFIG")
-  assertEquals "($LINENO)" 'Target can only be vm, local or remote.' "$output"
+  assertEquals "($LINENO)" 'Target can only be local or remote.' "$output"
 }
 
 function test_force_wrong_etc_path()
