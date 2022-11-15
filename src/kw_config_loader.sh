@@ -5,7 +5,6 @@ include "$KW_LIB_DIR/kwlib.sh"
 CONFIG_FILENAME='kworkflow.config'
 BUILD_CONFIG_FILENAME='build.config'
 DEPLOY_CONFIG_FILENAME='deploy.config'
-VM_CONFIG_FILENAME='vm.config'
 MAIL_CONFIG_FILENAME='mail.config'
 KW_DIR='.kw'
 
@@ -26,9 +25,6 @@ declare -gA build_config
 # Deploy configuration
 declare -gA deploy_config
 
-# VM configuration
-declare -gA vm_config
-
 # Mail configuration
 declare -gA mail_config
 
@@ -36,7 +32,7 @@ declare -gA mail_config
 declare -gA notification_config
 
 # Default target option from kworkflow.config
-declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
+declare -gA deploy_target_opt=(['local']=2 ['remote']=3)
 
 # This function is used to show the current set up used by kworkflow.
 function show_variables_main()
@@ -81,7 +77,6 @@ function show_variables_main()
     [deploy]='Kernel deploy options'
     [mail]='Send-email options'
     [ssh]='SSH options'
-    [vm]='VM options'
     [notification]='Notification options'
     [misc]='Miscellaneous options'
   )
@@ -90,7 +85,6 @@ function show_variables_main()
     'deploy'
     'mail'
     'ssh'
-    'vm'
     'notification'
     'misc'
     'build'
@@ -116,10 +110,6 @@ function show_variables_main()
         ;;
       'notification')
         show_notification_variables "$@"
-        continue
-        ;;
-      'vm')
-        show_vm_variables "$@"
         continue
         ;;
     esac
@@ -239,33 +229,6 @@ function show_mail_variables()
   print_array mail_config mail
 }
 
-function show_vm_variables()
-{
-  local test_mode=0
-  local has_local_vm_config='No'
-
-  [[ -f "${PWD}/${KW_DIR}/${VM_CONFIG_FILENAME}" ]] && has_local_vm_config='Yes'
-
-  say 'kw VM configuration variables:'
-  printf '%s\n' "  Local VM config file: $has_local_vm_config"
-
-  if [[ "$1" == 'TEST_MODE' ]]; then
-    test_mode=1
-  fi
-
-  local -Ar vm=(
-    [virtualizer]='Virtualisation tool'
-    [qemu_hw_options]='QEMU hardware setup'
-    [qemu_net_options]='QEMU Net options'
-    [qemu_path_image]='Path for QEMU image'
-    [mount_point]='VM mount point'
-  )
-
-  printf '%s\n' "  Kernel vm options:"
-  local -n descriptions="vm"
-  print_array vm_config vm
-}
-
 function show_notification_variables()
 {
   local test_mode=0
@@ -347,9 +310,6 @@ function load_configuration()
     'notification')
       target_array='notification_config'
       ;;
-    'vm')
-      target_array='vm_config'
-      ;;
   esac
 
   target_config_file="${target_config}.config"
@@ -396,11 +356,6 @@ load_deploy_config()
   load_configuration 'deploy'
 }
 
-load_vm_config()
-{
-  load_configuration 'vm'
-}
-
 load_mail_config()
 {
   load_configuration 'mail'
@@ -423,7 +378,6 @@ load_all_config()
   load_deploy_config
   load_build_config
   load_mail_config
-  load_vm_config
 }
 
 function vars_help()

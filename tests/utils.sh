@@ -13,14 +13,12 @@ MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
 KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
 KW_BUILD_CONFIG_SAMPLE="$SAMPLES_DIR/build.config"
 KW_DEPLOY_CONFIG_SAMPLE="$SAMPLES_DIR/deploy.config"
-KW_VM_CONFIG_SAMPLE="$SAMPLES_DIR/vm.config"
 KW_MAIL_CONFIG_SAMPLE="$SAMPLES_DIR/mail.config"
 KW_NOTIFICATION_CONFIG_SAMPLE="$SAMPLES_DIR/notification.config"
 KW_REMOTE_CONFIG_SAMPLE="${KW_REMOTE_SAMPLES_DIR}/remote.config"
 
 KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
 KW_BUILD_CONFIG_SAMPLE_X86="$SAMPLES_DIR/build_x86.config"
-KW_VM_CONFIG_SAMPLE_X86="$SAMPLES_DIR/vm_x86.config"
 
 # Config file
 STD_CONFIG_FILE="${SAMPLES_DIR}/.config"
@@ -272,7 +270,6 @@ function mk_fake_kw_folder()
   cp "$KW_CONFIG_SAMPLE" "$kw_config_folder"
   cp "$KW_BUILD_CONFIG_SAMPLE" "$kw_config_folder"
   cp "$KW_DEPLOY_CONFIG_SAMPLE" "$kw_config_folder"
-  cp "$KW_VM_CONFIG_SAMPLE" "$kw_config_folder"
   cp "$KW_MAIL_CONFIG_SAMPLE" "$kw_config_folder"
   cp "$KW_NOTIFICATION_CONFIG_SAMPLE" "$kw_config_folder"
   cp "$KW_REMOTE_CONFIG_SAMPLE" "$kw_config_folder"
