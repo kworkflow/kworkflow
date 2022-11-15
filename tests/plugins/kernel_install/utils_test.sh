@@ -27,19 +27,15 @@ function oneTimeSetUp()
   # Mock functions
   shopt -s expand_aliases
   alias identify_bootloader_from_files='identify_bootloader_from_files_mock'
-  alias run_bootloader_for_vm='run_bootloader_for_vm_mock'
   alias run_bootloader_update='run_bootloader_update_mock'
   alias generate_debian_temporary_root_file_system='generate_debian_temporary_root_file_system_mock'
   alias findmnt='findmnt_mock'
-  alias vm_umount='vm_umount'
-  alias vm_mount='vm_mount_mock'
   alias total_of_installed_kernels='total_of_installed_kernels_mock'
 
   . ./src/plugins/kernel_install/utils.sh --source-only
 
   REMOTE_KW_DEPLOY="$PWD/tests/samples"
   INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
-  declare -gA vm_config
 }
 
 function oneTimeTearDown()
@@ -85,11 +81,6 @@ function identify_bootloader_from_files_mock()
   printf 'GRUB'
 }
 
-function run_bootloader_for_vm_mock()
-{
-  printf 'run_bootloader_for_vm_mock\n'
-}
-
 function run_bootloader_update_mock()
 {
   printf 'run_bootloader_update_mock\n'
@@ -117,16 +108,6 @@ function findmnt_only_filesystem_mock()
 {
   # findmnt --first-only --noheadings --output FSTYPE "$target_path"
   printf 'btrfs'
-}
-
-function vm_umount()
-{
-  printf '%s\n' 'vm_umount'
-}
-
-function vm_mount_mock()
-{
-  printf '%s\n' 'vm_mount'
 }
 
 function test_cmd_manager()
