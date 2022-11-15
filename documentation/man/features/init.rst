@@ -35,7 +35,7 @@ OPTIONS
 
 \--target <target>:
   Set the variable `default_deploy_target` from **kworkflow.config** to
-  *<target>*, which can be any of vm, local or remote.
+  *<target>*, which can be local or remote.
 
 EXAMPLES
 ========

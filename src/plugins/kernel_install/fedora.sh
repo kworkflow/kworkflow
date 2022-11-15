@@ -52,51 +52,9 @@ function generate_fedora_temporary_root_file_system()
     cmd_prefix="sudo -E"
   fi
 
-  if [[ "$target" != 'vm' ]]; then
-    cmd_manager "$flag" "$cmd_prefix grub2-editenv - unset menu_auto_hide"
-    cmd_manager "$flag" "$cmd_prefix sed -i -e '$grub_regex' /etc/default/grub"
+  cmd_manager "$flag" "$cmd_prefix grub2-editenv - unset menu_auto_hide"
+  cmd_manager "$flag" "$cmd_prefix sed -i -e '$grub_regex' /etc/default/grub"
 
-    # Update initramfs
-    cmd_manager "$flag" "$cmd_prefix $cmd"
-  else
-    generate_rootfs_with_libguestfs "$flag" "$name"
-  fi
-}
-
-function generate_rootfs_with_libguestfs()
-{
-  local flag="$1"
-  local name="$2"
-  local mount_root=': mount /dev/sda1 /'
-  local cmd_init="dracut --force --kver $name"
-
-  flag=${flag:-'SILENT'}
-
-  if [[ ! -f "${vm_config[qemu_path_image]}" ]]; then
-    complain "There is no VM in ${vm_config[qemu_path_image]}"
-    return 125 # ECANCELED
-  fi
-
-  # For executing libguestfs commands we need to umount the vm
-  if [[ $(findmnt "${vm_config[mount_point]}") ]]; then
-    vm_umount
-  fi
-
-  cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run \
-      $mount_root : command '$cmd_init'"
-
-  warning " -> Generating rootfs $name on VM. This can take a few minutes."
-
-  cmd_manager "$flag" 'sleep 0.5s'
-  {
-    cmd_manager "$flag" "$cmd"
-  } 1> /dev/null # No visible stdout but still shows errors
-
-  # TODO: The below line is here for test purpose. We need a better way to
-  # do that.
-  [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
-
-  say 'Done.'
-
-  return 0
+  # Update initramfs
+  cmd_manager "$flag" "$cmd_prefix $cmd"
 }

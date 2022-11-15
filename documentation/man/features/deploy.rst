@@ -6,7 +6,7 @@ kw-deploy
 
 SYNOPSIS
 ========
-*kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local | \--vm]
+*kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local]
                       [\--setup]
                       [-r | \--reboot] [\--no-reboot]
                       [-m | \--modules] [-s | \--ls-line]
@@ -61,9 +61,6 @@ OPTIONS
   Deploy the Kernel image and modules in the host machine, you will
   need root access. ``kw deploy --local`` should not be executed with sudo
   or root.
-
-\--vm:
-  Deploy the Kernel image and modules to QEMU vm.
 
 -r, \--reboot:
   Reboot machine after deploy.
@@ -124,13 +121,10 @@ For these examples, we suppose the fields in your **kworkflow.config** file are
 already configured.
 
 First, if you are working in a specific kernel module, and if you want to
-install your recent changes in your VM you can use::
+install your recent changes in your local machine you can use::
 
   cd <kernel-path>
-  kw d --vm --modules
-
-.. note::
-  Turn off your VM before use the **install** command.
+  kw d --local --modules
 
 For building and installing a new module version based on the current kernel
 version, you can use::

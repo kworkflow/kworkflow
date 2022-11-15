@@ -31,16 +31,6 @@ COMMANDS
 **kw** offers several subcommands catering to different audiences and targeting
 different functionality groups. Most subcommands have sane defaults.
 
-COMMANDS FOR USING QEMU
------------------------
-Projects that use a QEMU VM in the development cycle to host the development
-environment usually require that developers use some specific commands to
-manage this VM. In this section, you can find all commands available in **kw**
-to manage many daily tasks related to QEMU VM operation. Notice that some
-rules are specific for the Linux Kernel project.
-
-  :ref:`kw-vm<vm-doc>`
-
 COMMANDS FOR DEPLOY NEW KERNEL IMAGE AND MODULE
 -----------------------------------------------
 When we develop for Linux Kernel, we continuously want to install/update the
@@ -48,9 +38,8 @@ current version of the Kernel image or modules, and this tasks may require
 several steps to be accomplished. For this reason, **kw** provides an option
 named **deploy** that handles attempts to handle all the complexity related to
 the new Kernel installation. It is essential to highlight that we try to
-support three different types of deploy: *local*, *vm*, and *remote*. When you
-want to update your host machine, you can use the *local* option; if you're
-going to deploy your new kernel in the VM, you can use *vm* option. Finally, we
+support three different types of deploy: *local* and *remote*. When you
+want to update your host machine, you can use the *local* option.  Finally, we
 provide the *remote* option, which is much more flexible since it uses network;
 notice that this approach is the most generic one because you can use it for
 *vm* and *local*.
@@ -169,31 +158,6 @@ menu_config=<menu-option>
 -------------------------
 Default kernel menu used by **kw**, the default is ``nconfig``.
 
-virtualizer=<virtualizer>
--------------------------
-Defines the virtualization tool that should be used by **kw**. Currently, we
-only support QEMU and, as a result, the default is ``qemu-system-x86_64``
-
-mount_point=<path>
-------------------
-Defines the kw mount point, which will be used by libguestfs during the
-mount/umount operation of a VM. By default, **kw** uses ``/home/$USER/p/mount``.
-
-qemu_hw_options=<options>
--------------------------
-Sets QEMU options. By default, **kw** uses
-``-enable-kvm -daemonize -smp 2 -m 1024``
-
-qemu_net_options=<options>
---------------------------
-Defines the network configuration. By default, **kw** uses
-``-nic user,hostfwd=tcp::2222-:22,smb=/home/USERKW``
-
-qemu_path_image=<path>
-----------------------
-Specify the VM image path. By default, **kw** uses
-``/home/USERKW/p/virty.qcow2``
-
 alert=[vs | s | v | n]
 ----------------------
 Default alert options, you have:
@@ -222,8 +186,8 @@ Command to run for visual completion alert. By default, **kw** uses
 
 default_deploy_target
 ---------------------
-By default, **kw** deploys in the VM; however, you can change this behavior
-with this variable. The available options are: *vm*, *local*, and *remote*.
+By default, **kw** deploys in the *remote*; however, you can change this
+behavior with this variable. The available options are: *local* and *remote*.
 
 reboot_remote_by_default
 ------------------------
@@ -245,13 +209,10 @@ For these examples, we suppose the fields in your **kworkflow.config** file is
 already configured.
 
 First, if you are working in a specific kernel module, and if you want to
-install your recent changes in your VM you can use::
+install your recent changes in your local machine you can use::
 
   cd <kernel-path>
-  kw d --vm --modules
-
-.. note::
-  Turn off your VM before use the *install* command.
+  kw d --local --modules
 
 For building and installing a new module version based on the current kernel
 version, you can use::

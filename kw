@@ -69,15 +69,6 @@ function kw()
         return "$?"
       )
       ;;
-    vm)
-      (
-        include "$KW_LIB_DIR/vm.sh"
-
-        vm_main "$@"
-        local ret="$?"
-        return "$ret"
-      )
-      ;;
     build | b)
       (
         include "$KW_LIB_DIR/build.sh"

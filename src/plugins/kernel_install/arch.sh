@@ -28,7 +28,7 @@ declare -g package_manager_cmd='yes | pacman -Syu'
 #
 # @flag: How to display a command, the default value is
 #   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
-# @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 function distro_pre_setup()
 {
   local flag="$1"
@@ -56,7 +56,6 @@ function distro_pre_setup()
   cmd_manager "$flag" "$cmd"
 }
 
-# Make initcpio and update grub on VM using Guestfish
 function generate_arch_temporary_root_file_system()
 {
   local flag="$1"
@@ -110,70 +109,26 @@ function generate_arch_temporary_root_file_system()
       ;;
   esac
 
-  if [[ "$target" != 'vm' ]]; then
-    # Step 2: Make sure that we are generating a consistent modules.dep and map
-    cmd="$sudo_cmd depmod --all $name"
-    cmd_manager "$flag" "$cmd"
+  # Step 2: Make sure that we are generating a consistent modules.dep and map
+  cmd="$sudo_cmd depmod --all $name"
+  cmd_manager "$flag" "$cmd"
 
-    # Step 3: Generate the initcpio file
-    case "$root_file_system_tool" in
-      'mkinitcpio')
-        # We will eval a command that uses sudo and redirection which can cause
-        # errors. To avoid problems, let's use bash -c
-        cmd="$sudo_cmd bash -c \""
-        cmd+="sed 's/NAME/${name}/g' '$template_path' > $mkinitcpio_destination_path\""
-        cmd_manager "$flag" "$cmd"
+  # Step 3: Generate the initcpio file
+  case "$root_file_system_tool" in
+    'mkinitcpio')
+      # We will eval a command that uses sudo and redirection which can cause
+      # errors. To avoid problems, let's use bash -c
+      cmd="$sudo_cmd bash -c \""
+      cmd+="sed 's/NAME/${name}/g' '$template_path' > $mkinitcpio_destination_path\""
+      cmd_manager "$flag" "$cmd"
 
-        cmd="$sudo_cmd mkinitcpio --preset $name"
-        cmd_manager "$flag" "$cmd"
-        ;;
-      'dracut')
-        cmd='dracut --force --persistent-policy by-partuuid '
-        cmd+="--hostonly /boot/initramfs-${name}.img ${name}"
-        cmd_manager "$flag" "$cmd"
-        ;;
-    esac
-  else
-    generate_rootfs_with_libguestfs "$flag" "$name"
-  fi
-}
-
-function generate_rootfs_with_libguestfs()
-{
-  local flag="$1"
-  local name="$2"
-  # We assume Debian as a default option
-  local mount_root=': mount /dev/sda1 /'
-  local cmd_init='dracut --regenerate-all -f'
-  local ret=0
-
-  flag=${flag:-'SILENT'}
-
-  if [[ ! -f "${vm_config[qemu_path_image]}" ]]; then
-    complain "There is no VM in ${vm_config[qemu_path_image]}"
-    return 125 # ECANCELED
-  fi
-
-  # For executing libguestfs commands we need to umount the vm
-  if [[ $(findmnt "${vm_config[mount_point]}") ]]; then
-    vm_umount
-  fi
-
-  cmd="guestfish --rw -a ${vm_config[qemu_path_image]} run \
-      $mount_root : command '$cmd_init'"
-
-  warning " -> Generating rootfs $name on VM. This can take a few minutes."
-  cmd_manager "$flag" "sleep 0.5s"
-  {
-    cmd_manager "$flag" "$cmd"
-    ret="$?"
-  } 1> /dev/null # No visible stdout but still shows errors
-
-  # TODO: The below line is here for test purpose. We need a better way to
-  # do that.
-  [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
-
-  say 'Done.'
-
-  return "$ret"
+      cmd="$sudo_cmd mkinitcpio --preset $name"
+      cmd_manager "$flag" "$cmd"
+      ;;
+    'dracut')
+      cmd='dracut --force --persistent-policy by-partuuid '
+      cmd+="--hostonly /boot/initramfs-${name}.img ${name}"
+      cmd_manager "$flag" "$cmd"
+      ;;
+  esac
 }

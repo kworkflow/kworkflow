@@ -35,8 +35,7 @@ function kworkflow_help()
     '  report,r - Show kw pomodoro reports and kw usage statistics' \
     '  ssh,s - SSH support' \
     '  vars - Show variables' \
-    '  version,--version,-v - Show kw version' \
-    '  vm - Set of commands to work with QEMU VMs'
+    '  version,--version,-v - Show kw version'
 }
 
 # Display the man documentation that is built on install
