@@ -52,7 +52,6 @@ function setUp()
   alias sudo='sudo_mock'
   alias date='date_mock'
   alias generate_tarball='generate_tarball_mock'
-  alias vm_umount='vm_umount_mock'
 
   # Standard configuration makes the below standard commands
   CONFIG_REMOTE='juca@127.0.0.1'
@@ -104,15 +103,6 @@ function setUp()
     "$COPY_KERNEL_IMAGE"
     "$GENERATE_BOOT_TAR_FILE"
     "$SEND_BOOT_FILES_HOST2REMOTE"
-  )
-
-  # Base sequence for VM deploy
-  declare -ga BASE_EXPECTED_CMD_ARM_VM=(
-    "$SENDING_KERNEL_MSG"
-    "$UNDEFINED_CONFIG"
-    "$COPY_KERNEL_IMAGE"
-    "cp -r $LOCAL_TO_DEPLOY_PATH/boot/* ${vm_config[mount_point]}/boot/"
-    'Did you check if your VM is mounted?'
   )
 
   # Base sequence for X86

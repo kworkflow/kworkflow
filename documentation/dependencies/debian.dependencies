@@ -1,4 +1,3 @@
-qemu
 git
 tar
 python3-docutils
@@ -26,4 +25,3 @@ sqlite3
 pv
 rsync
 ccache
-libguestfs-tools
