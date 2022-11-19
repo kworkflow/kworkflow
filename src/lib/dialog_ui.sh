@@ -117,7 +117,7 @@ function create_simple_checklist()
   list_height=${list_height:-'0'}
   cancel_label=${cancel_label:-'Exit'}
 
-  cmd="dialog --backtitle '${back_title}' --title '${menu_title}' --clear"
+  cmd="dialog --backtitle '${back_title}' --title '${menu_title}' --clear --colors"
 
   # Change cancel label
   if [[ -n "$cancel_label" ]]; then
@@ -155,4 +155,12 @@ function handle_exit()
       exit 0
       ;;
   esac
+}
+
+function prettify_string()
+{
+  local fixed_text="$1"
+  local variable_to_concatenate="$2"
+
+  printf '\Zb\Z6%s\Zn%s\\n' "$fixed_text" "$variable_to_concatenate"
 }

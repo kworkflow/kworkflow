@@ -21,6 +21,25 @@ declare -ga bookmarked_patches=(
 # To make it easier to change between different screens, we implement a
 # mechanism that uses this associative array to indicate the current screen to
 # be shown.
+declare -gr SEPARATOR_CHAR='Æ'
+
+# This is a global array that we use to store the list of new patches from a
+# target mailing list. After we parse the data from lore, we will have a list
+# that follows this pattern:
+#
+#  Author, email, version, total patches, patch title, link
+#
+# Note: To separate those elements, we use the variable SEPARATOR_CHAR, which
+# can be a ',' but by default, we use 'Æ'. We used ',' in the example for make
+# it easy to undertand.
+# TODO: Array populated with dummy data
+declare -ga patch_list_with_metadata=(
+  'Joe DoeÆjoedoe@lala.comÆV1Æ1Ædrm/amd/pm: Enable bad memory page/channel recording support for smu v13_0_0Æhttp://something.la'
+  'Juca PiramaÆjucapirama@xpto.comÆV1Æ255ÆDC Patches November 19, 2022Æhttp://anotherthing.la'
+  'Machado de AssisÆmachado@literatura.comÆV2Æ1Ædrm/amdgpu: add drv_vram_usage_va for virt data exchangeÆhttp://machado.good.books.la'
+  'Racionais McÆvidaloka@abc.comÆV2Æ1Ædrm/amdgpu: fix pci device refcount leakÆhttp://racionais.mc.vida.loka'
+)
+
 declare -gA screen_sequence=(
   ['SHOW_SCREEN']='register'
   ['SHOW_SCREEN_PARAMETER']=''
@@ -59,8 +78,8 @@ upstream_patches_ui_main()
         show_bookmarked_patches
         ret="$?"
         ;;
-      'show_patch_details')
-        show_patche_details
+      'show_series_details')
+        show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}" patch_list_with_metadata
         ret="$?"
         ;;
     esac
@@ -118,6 +137,36 @@ function registered_mailing_list()
     'Exit' '' '' '' 'no_index'
 }
 
+# Screen resposible for show a specific patch details
+#
+# @patch_index: Patch index
+# @_target_patch_metadata: List with patches metadata
+function show_series_details()
+{
+  local patch_index="$1"
+  local -n _target_patch_metadata="$2"
+  local -a action_list
+  local patch_metadata
+  local target_patch
+  local message_box
+
+  action_list=('Bookmark patch' 'Download patch' 'Apply patch')
+
+  target_patch=${_target_patch_metadata["$patch_index"]}
+  IFS="${SEPARATOR_CHAR}" read -r -a columns <<< "$target_patch"
+
+  patch_metadata=$(prettify_string 'Series:' "${columns[4]}")
+  patch_metadata+=$(prettify_string 'Author:' "${columns[0]}")
+  patch_metadata+=$(prettify_string 'Version:' "${columns[2]}")
+  patch_metadata+=$(prettify_string 'Patches:' "${columns[3]}")
+
+  message_box="$patch_metadata"
+
+  create_simple_checklist 'Patch(es) info and actions' "$KW_UPSTREAM_TITLE" \
+    "$message_box" 'action_list' \
+    'Exit' '' '' ''
+}
+
 # This is a generic function used to show a list of patches. If the user select
 # one specific patch, this function will set the next screen to be
 # show_patch_details with the patch index saved in the SHOW_SCREEN_PARAMETER
@@ -144,7 +193,7 @@ function list_patches()
   selected_patch="$menu_return_string"
 
   if [[ -n "$selected_patch" ]]; then
-    screen_sequence['SHOW_SCREEN']='show_patch_details'
+    screen_sequence['SHOW_SCREEN']='show_series_details'
     screen_sequence['SHOW_SCREEN_PARAMETER']="$selected_patch"
   fi
 }
