@@ -4,6 +4,8 @@
 
 include "${KW_LIB_DIR}/kwlib.sh"
 
+declare -gr KW_UPSTREAM_TITLE='kw upstream patches manager'
+
 # Some UI returns the user-selected option, and this global variable is used
 # for that.
 declare -g menu_return_string
@@ -11,7 +13,6 @@ declare -g menu_return_string
 # This function is responsible for creating dialog menus.
 #
 # @menu_title: This is the menu title used on the top left of the dialog screen.
-# @back_tittle: This is the menu title that will be directly visible to the user.
 # @menu_message_box: The instruction text used for this menu.
 # @_menu_list_string_array: An array reference containing all the strings to be used in the menu.
 # @cancel_label: Cancel label. If not set, the default is 'Exit']
@@ -27,14 +28,13 @@ declare -g menu_return_string
 function create_menu_options()
 {
   local menu_title="$1"
-  local back_title="$2"
-  local menu_message_box="$3"
-  local -n _menu_list_string_array="$4"
-  local cancel_label="$5"
-  local height="$6"
-  local width="$7"
-  local max_elements_displayed_in_the_menu="$8"
-  local no_index="$9"
+  local menu_message_box="$2"
+  local -n _menu_list_string_array="$3"
+  local cancel_label="$4"
+  local height="$5"
+  local width="$6"
+  local max_elements_displayed_in_the_menu="$7"
+  local no_index="$8"
   local index=1
   local cmd
   local ret
@@ -44,14 +44,14 @@ function create_menu_options()
   fi
 
   flag=${flag:-'SILENT'}
-  back_title=${back_title:-'kw'}
   height=${height:-'0'}
   width=${width:-'0'}
   cancel_label=${cancel_label:-'Exit'}
   max_elements_displayed_in_the_menu=${max_elements_displayed_in_the_menu:-'0'}
+  back_title=${back_title:-$KW_UPSTREAM_TITLE}
 
   # Start to compose menu
-  cmd="dialog --backtitle '${back_title}' --title '${menu_title}' --clear"
+  cmd="dialog --backtitle \$'${back_title}' --title '${menu_title}' --clear"
 
   # Change cancel label
   if [[ -n "$cancel_label" ]]; then
@@ -83,7 +83,6 @@ function create_menu_options()
 # Create simple checklist without index
 #
 # @menu_title: This is the menu title used on the top left of the dialog screen.
-# @back_tittle: This is the menu title that will be directly visible to the user.
 # @menu_message_box: The instruction text used for this menu.
 # @_menu_list_string_array: An array reference containing all the strings to be used in the menu.
 # @cancel_label: Cancel label. If not set, the default is 'Exit']
@@ -99,25 +98,24 @@ function create_menu_options()
 function create_simple_checklist()
 {
   local menu_title="$1"
-  local back_title="$2"
-  local menu_message_box="$3"
-  local -n _menu_list_string_array="$4"
-  local cancel_label="$5"
-  local height="$6"
-  local width="$7"
-  local list_height="$8"
-  local flag="$9"
+  local menu_message_box="$2"
+  local -n _menu_list_string_array="$3"
+  local cancel_label="$4"
+  local height="$5"
+  local width="$6"
+  local list_height="$7"
+  local flag="$8"
   local cmd
   local ret
 
   flag=${flag:-'SILENT'}
-  back_title=${back_title:-'kw'}
   height=${height:-'0'}
   width=${width:-'0'}
   list_height=${list_height:-'0'}
   cancel_label=${cancel_label:-'Exit'}
+  back_title=${back_title:-$KW_UPSTREAM_TITLE}
 
-  cmd="dialog --backtitle '${back_title}' --title '${menu_title}' --clear --colors"
+  cmd="dialog --backtitle \$'${back_title}' --title '${menu_title}' --clear --colors"
 
   # Change cancel label
   if [[ -n "$cancel_label" ]]; then

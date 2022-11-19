@@ -7,7 +7,6 @@
 include "${KW_LIB_DIR}/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/dialog_ui.sh"
 
-declare -gr KW_UPSTREAM_TITLE='kw upstream patches manager'
 declare -ga registered_lists
 
 # TODO: Bookmarked patches must come from local database
@@ -102,9 +101,7 @@ function dashboard_entry_menu()
   message_box="It looks like that you don't have any lore list registered; please"
   message_box+=' select one or more of the below list:'
 
-  create_menu_options 'Dashboard' "$KW_UPSTREAM_TITLE" \
-    "$message_box" 'menu_list_string_array' \
-    'Exit' '' '' ''
+  create_menu_options 'Dashboard' "$message_box" 'menu_list_string_array'
 
   case "$menu_return_string" in
     1) # Registered mailing list
@@ -132,9 +129,7 @@ function registered_mailing_list()
   # TODO: Get list from liblore
   message_box="Below you can see all the mailing lists that you are registered:"
 
-  create_menu_options 'Mailing lists' "$KW_UPSTREAM_TITLE" \
-    "$message_box" 'registered_lists' \
-    'Exit' '' '' '' 'no_index'
+  create_menu_options 'Mailing lists' "$message_box" 'registered_lists'
 }
 
 # Screen resposible for show a specific patch details
@@ -162,9 +157,7 @@ function show_series_details()
 
   message_box="$patch_metadata"
 
-  create_simple_checklist 'Patch(es) info and actions' "$KW_UPSTREAM_TITLE" \
-    "$message_box" 'action_list' \
-    'Exit' '' '' ''
+  create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list'
 }
 
 # This is a generic function used to show a list of patches. If the user select
@@ -186,9 +179,7 @@ function list_patches()
 
   message_box='List of bookmarked patches'
 
-  create_menu_options 'Bookmarked patches' "$KW_UPSTREAM_TITLE" \
-    "$message_box" '_target_array_list' \
-    'Exit' '' '' ''
+  create_menu_options 'Bookmarked patches' "$message_box" '_target_array_list'
 
   selected_patch="$menu_return_string"
 
@@ -211,9 +202,7 @@ function register_mailing_list()
   message_box="It looks like that you don't have any lore list registered; please"
   message_box+=" select one or more of the below list:"
 
-  create_simple_checklist 'Lore list' "$KW_UPSTREAM_TITLE" \
-    "$message_box" 'menu_list_string_array' \
-    'Exit' '' '' ''
+  create_simple_checklist 'Lore list' "$message_box" 'menu_list_string_array'
 
   new_list=$(printf '%s' "$menu_return_string" | tr -s '[:blank:]' ',')
 
