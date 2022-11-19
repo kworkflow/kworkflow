@@ -250,6 +250,13 @@ function kw()
         env_main "$@"
       )
       ;;
+    upstream-patches-ui)
+      (
+        include "${KW_LIB_DIR}/upstream_patches_ui.sh"
+
+        upstream_patches_ui_main "$@"
+      )
+      ;;
     clear-cache)
       include "$KW_LIB_DIR/deploy.sh"
 

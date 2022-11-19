@@ -25,3 +25,4 @@ sqlite3
 pv
 rsync
 ccache
+dialog
