@@ -12,10 +12,12 @@ declare -g menu_return_string
 
 declare -g DEFAULT_WIDTH
 declare -g DEFAULT_HEIGHT
+declare -g DIALOG_LAYOUT
 
 # Basic setup UI
 function ui_setup()
 {
+  local default_layout="$1"
   local columns
 
   [[ "$TERM" == '' || "$TERM" == 'dumb' ]] && TPUTTERM=' -T xterm-256color'
@@ -24,6 +26,13 @@ function ui_setup()
 
   DEFAULT_WIDTH="$columns"
   DEFAULT_HEIGHT="$lines"
+
+  # Set sefault layout
+  if [[ -n "$default_layout" ]]; then
+    if [[ -f "${KW_ETC_DIR}/dialog_ui/${default_layout}" ]]; then
+      DIALOG_LAYOUT="${KW_ETC_DIR}/dialog_ui/${default_layout}"
+    fi
+  fi
 }
 
 # This function is responsible for creating dialog menus.
@@ -67,7 +76,7 @@ function create_menu_options()
   back_title=${back_title:-$KW_UPSTREAM_TITLE}
 
   # Start to compose menu
-  cmd="dialog --backtitle \$'${back_title}' --title '${menu_title}' --clear"
+  cmd="DIALOGRC=${DIALOG_LAYOUT} dialog --backtitle \$'${back_title}' --title '${menu_title}' --clear"
 
   # Change cancel label
   if [[ -n "$cancel_label" ]]; then
@@ -131,7 +140,7 @@ function create_simple_checklist()
   cancel_label=${cancel_label:-'Exit'}
   back_title=${back_title:-$KW_UPSTREAM_TITLE}
 
-  cmd="dialog --backtitle \$'${back_title}' --title '${menu_title}' --clear --colors"
+  cmd="DIALOGRC=${DIALOG_LAYOUT} dialog --backtitle \$'${back_title}' --title '${menu_title}' --clear --colors"
 
   # Change cancel label
   if [[ -n "$cancel_label" ]]; then

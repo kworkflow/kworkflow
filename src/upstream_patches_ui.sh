@@ -51,7 +51,7 @@ upstream_patches_ui_main()
   local all_registered_list="${lore_config['lists']}"
   local ret
 
-  ui_setup
+  ui_setup "${lore_config['dialog_layout']}"
 
   IFS=',' read -r -a registered_lists <<< "$all_registered_list"
   if [[ "${#registered_lists[@]}" != 0 ]]; then
