@@ -10,6 +10,22 @@ declare -gr KW_UPSTREAM_TITLE='kw upstream patches manager'
 # for that.
 declare -g menu_return_string
 
+declare -g DEFAULT_WIDTH
+declare -g DEFAULT_HEIGHT
+
+# Basic setup UI
+function ui_setup()
+{
+  local columns
+
+  [[ "$TERM" == '' || "$TERM" == 'dumb' ]] && TPUTTERM=' -T xterm-256color'
+  columns=$(eval tput"${TPUTTERM}" cols)
+  lines=$(eval tput"${TPUTTERM}" lines)
+
+  DEFAULT_WIDTH="$columns"
+  DEFAULT_HEIGHT="$lines"
+}
+
 # This function is responsible for creating dialog menus.
 #
 # @menu_title: This is the menu title used on the top left of the dialog screen.
@@ -44,8 +60,8 @@ function create_menu_options()
   fi
 
   flag=${flag:-'SILENT'}
-  height=${height:-'0'}
-  width=${width:-'0'}
+  height="$DEFAULT_HEIGHT"
+  width="$DEFAULT_WIDTH"
   cancel_label=${cancel_label:-'Exit'}
   max_elements_displayed_in_the_menu=${max_elements_displayed_in_the_menu:-'0'}
   back_title=${back_title:-$KW_UPSTREAM_TITLE}
@@ -109,8 +125,8 @@ function create_simple_checklist()
   local ret
 
   flag=${flag:-'SILENT'}
-  height=${height:-'0'}
-  width=${width:-'0'}
+  height="$DEFAULT_HEIGHT"
+  width="$DEFAULT_WIDTH"
   list_height=${list_height:-'0'}
   cancel_label=${cancel_label:-'Exit'}
   back_title=${back_title:-$KW_UPSTREAM_TITLE}

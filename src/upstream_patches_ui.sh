@@ -51,6 +51,8 @@ upstream_patches_ui_main()
   local all_registered_list="${lore_config['lists']}"
   local ret
 
+  ui_setup
+
   IFS=',' read -r -a registered_lists <<< "$all_registered_list"
   if [[ "${#registered_lists[@]}" != 0 ]]; then
     screen_sequence['SHOW_SCREEN']='dashboard'
