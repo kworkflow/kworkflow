@@ -138,7 +138,7 @@ function save_config_file()
   ret="$?"
 
   if [[ "$ret" -gt 0 ]]; then
-    fail "Could not save user config files"
+    complain "Could not save user config files"
   else
     success "Saved $name"
   fi
