@@ -513,6 +513,19 @@ function test_install_kernel_remote()
     'reboot'
   )
 
+  # Check remote kernel installation with dtb
+  declare -a cmd_sequence2=(
+    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/*.dtb /boot/"
+    'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
+    'run_bootloader_update_mock'
+    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+    'reboot'
+  )
+
   # Test preparation
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE" "$name"
   mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
@@ -525,6 +538,13 @@ function test_install_kernel_remote()
 
   output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  # Now add a .dtb file and remove vmlinuz
+  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/test.dtb"
+  rm "${PWD}/boot/vmlinuz-${name}"
+
+  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'cmd_sequence2' "$output"
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move to temporary directory"
