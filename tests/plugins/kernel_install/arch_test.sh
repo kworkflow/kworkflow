@@ -91,7 +91,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_dracut()
   # Remote
   declare -a cmd_sequence=(
     "depmod --all $name"
-    "dracut --force --persistent-policy by-partuuid --hostonly /boot/initramfs-${name}.img ${name}"
+    "DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid --hostonly /boot/initramfs-${name}.img ${name}"
   )
 
   # We want to force dracut
@@ -117,7 +117,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_not_supported(
   # Remote
   declare -a cmd_sequence=(
     "depmod --all $name"
-    "dracut --force --persistent-policy by-partuuid --hostonly /boot/initramfs-${name}.img ${name}"
+    "DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid --hostonly /boot/initramfs-${name}.img ${name}"
   )
 
   # We want to force an unsupported tool
@@ -144,7 +144,7 @@ function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs(
   # Remote
   declare -a cmd_sequence=(
     "depmod --all $name"
-    "dracut --force --persistent-policy by-partuuid --hostonly /boot/initramfs-${name}.img ${name}"
+    "DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid --hostonly /boot/initramfs-${name}.img ${name}"
   )
 
   # We want to force an the prefered option
