@@ -126,7 +126,7 @@ function generate_arch_temporary_root_file_system()
       cmd_manager "$flag" "$cmd"
       ;;
     'dracut')
-      cmd='dracut --force --persistent-policy by-partuuid '
+      cmd='DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid '
       cmd+="--hostonly /boot/initramfs-${name}.img ${name}"
       cmd_manager "$flag" "$cmd"
       ;;
