@@ -238,6 +238,19 @@ function test_kernel_build_menu_cross_compilation_flags()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
+function test_kernel_build_clean()
+{
+  local expected_result
+  local output
+
+  build_config=()
+  parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
+
+  output=$(kernel_build 'TEST_MODE' --clean 2> /dev/null)
+  expected_result='make clean'
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
 function test_kernel_build_html_doc()
 {
   local expected_result
@@ -366,6 +379,9 @@ function test_parse_build_options_check_options_values()
 
   assert_equals_helper 'Default LOG_PATH did not match expectation' \
     "($LINENO)" '' "${options_values['LOG_PATH']}"
+
+  assert_equals_helper 'Default CLEAN did not match expectation' \
+    "($LINENO)" '' "${options_values['CLEAN']}"
 }
 
 function test_parse_build_options()
@@ -464,6 +480,12 @@ function test_parse_build_options()
   parse_build_options --llvm
   assert_equals_helper 'Could not set build option USE_LLVM_TOOLCHAIN' \
     "($LINENO)" 1 "${options_values['USE_LLVM_TOOLCHAIN']}"
+
+  # CLEAN
+  options_values=()
+  parse_build_options --clean
+  assert_equals_helper 'Could not set build option CLEAN' \
+    "($LINENO)" 1 "${options_values['CLEAN']}"
 
   # Unsopported option
   output="$(parse_build_options --mispelled 2>&1)"
@@ -874,6 +896,22 @@ function test_kernel_build_menu_inside_env()
 
   output=$(kernel_build 'TEST_MODE' --menu)
   expected_result="make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig O=${env_output}"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_kernel_build_clean_inside_env()
+{
+  local expected_result
+  local output
+  local env_output="${KW_CACHE_DIR}/fake_env"
+  build_config=()
+
+  mk_fake_kw_env
+
+  parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
+
+  output=$(kernel_build 'TEST_MODE' --clean 2> /dev/null)
+  expected_result="make clean O=${env_output}"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
