@@ -56,9 +56,11 @@ function kernel_build()
   local output_path
   local llvm
   local env_name
+  local clean
   local output_kbuild_flag=''
 
   parse_build_options "$@"
+
   if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
     build_help
@@ -79,6 +81,7 @@ function kernel_build()
   warnings=${options_values['WARNINGS']}
   output_path=${options_values['LOG_PATH']}
   llvm=${options_values['USE_LLVM_TOOLCHAIN']}
+  clean=${options_values['CLEAN']}
 
   if [[ -n "${options_values['INFO']}" ]]; then
     build_info ''
@@ -95,6 +98,11 @@ function kernel_build()
 
   if [[ -n "$llvm" ]]; then
     llvm='LLVM=1 '
+  fi
+
+  if [[ -n "$clean" ]]; then
+    build_clean "$flag"
+    return "$?"
   fi
 
   platform_ops=${options_values['ARCH']}
@@ -154,6 +162,24 @@ function kernel_build()
   return "$ret"
 }
 
+# This function runs the 'make clean' command under the hood, with
+# the advantage of checking if the user is using an env or not.
+# In other words, it integrates env with the clean option.
+#
+# @flag: Expecting a flag, by default, cmd_manager does not
+# expects flags and always show the command. For more details
+# see the function `cmd_manager` in `src/kwlib.sh`.
+#
+# @output_kbuild_flag: Will point to the current env path that
+# the user is using.
+function build_clean()
+{
+  local flag="$1"
+
+  command="make clean${output_kbuild_flag}"
+  cmd_manager "$flag" "$command"
+}
+
 # This function loads the kw build configuration files into memory, populating
 # the $build_config hashtable. The files are parsed in a specific order,
 # allowing higher level setting definitions to overwrite lower level ones.
@@ -200,8 +226,8 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm'
-  local short_options='h,i,n,d,S:,w::,s:'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean'
+  local short_options='h,i,n,d,S:,w::,s:,c'
   local doc_type
   local file_name_size
 
@@ -226,6 +252,7 @@ function parse_build_options()
   options_values['WARNINGS']="${build_config[warning_level]}"
   options_values['LOG_PATH']="${build_config[log_path]:-${configurations[log_path]}}"
   options_values['USE_LLVM_TOOLCHAIN']="${build_config[use_llvm]:-${configurations[use_llvm]}}"
+  options_values['CLEAN']=''
 
   # Check llvm option
   if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
@@ -266,6 +293,10 @@ function parse_build_options()
         ;;
       --llvm)
         options_values['USE_LLVM_TOOLCHAIN']=1
+        shift
+        ;;
+      --clean | -c)
+        options_values['CLEAN']=1
         shift
         ;;
       --doc | -d)
@@ -321,7 +352,8 @@ function build_help()
     '  build (--ccache) - Enable use of ccache' \
     '  build (-w | --warnings) [warning_levels] - Enable warnings' \
     '  build (-s | --save-log-to) <path> - Save compilation log to path' \
-    '  build (--llvm) - Enable use of the LLVM toolchain'
+    '  build (--llvm) - Enable use of the LLVM toolchain' \
+    '  build (-c | --clean) - Clean option integrated into env'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well
