@@ -11,6 +11,16 @@ function remote_main()
     exit 0
   fi
 
+  if [[ "$1" =~ -l|--list ]]; then
+    if [[ -f "local_remote_config_file" ]]; then
+      cat "$local_remote_config_file"
+      exit 0
+    else
+      echo "There are no remotes"
+      exit 0
+    fi
+  fi
+
   parse_remote_options "$@"
   if [[ "$?" != 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
@@ -42,7 +52,7 @@ function add_new_remote()
 {
   local name
   local remote
-  local first_time=''
+  local first_time=$''
   local host_ssh_config
   local user_ssh_config
   local port_ssh_config
@@ -93,13 +103,25 @@ function add_new_remote()
   fi
 
   # New entry
-  {
-    [[ -n "$first_time" ]] && printf '#kw-default=%s\n' "$name"
-    printf 'Host %s\n' "$name"
-    printf '  Hostname %s\n' "${remote_parameters['REMOTE_IP']}"
-    printf '  Port %s\n' "${remote_parameters['REMOTE_PORT']}"
-    printf '  User %s\n' "${remote_parameters['REMOTE_USER']}"
-  } >> "$local_remote_config_file"
+  
+  if [[ -n "$first_time" ]]; then
+    echo 'Config Created'
+    {
+      printf '#kw-default=%s\n' "$name"
+      printf 'Host %s\n' "$name"
+      printf '  Hostname %s\n' "${remote_parameters['REMOTE_IP']}"
+      printf '  Port %s\n' "${remote_parameters['REMOTE_PORT']}"
+      printf '  User %s\n' "${remote_parameters['REMOTE_USER']}"
+    } > "$local_remote_config_file"
+  else
+    echo 'Saved'
+    {
+        printf 'Host %s\n' "$name"
+        printf '  Hostname %s\n' "${remote_parameters['REMOTE_IP']}"
+        printf '  Port %s\n' "${remote_parameters['REMOTE_PORT']}"
+        printf '  User %s\n' "${remote_parameters['REMOTE_USER']}"
+      } >> "$local_remote_config_file"
+  fi
 }
 
 function set_default_remote()
@@ -212,7 +234,7 @@ function rename_remote()
 
 function parse_remote_options()
 {
-  local long_options='add,remove,rename,verbose,set-default::'
+  local long_options='add,remove,rename,verbose,set-default:'
   local short_options='v,s'
   local default_option
 
@@ -221,6 +243,11 @@ function parse_remote_options()
   if [[ "$?" != 0 ]]; then
     options_values['ERROR']="$(kw_parse_get_errors 'kw remote' "$short_options" \
       "$long_options" "$@")"
+    return 22 # EINVAL
+  fi
+
+  if [[ "$?" == 22 ]]; then
+    options_values['ERROR']='Something is wrong in the remote option'
     return 22 # EINVAL
   fi
 
@@ -267,7 +294,7 @@ function parse_remote_options()
         echo "VERBOSE"
         shift
         ;;
-      --)
+      --) # End of options, beginning of arguments
         shift
         ;;
       *)
@@ -283,6 +310,9 @@ function parse_remote_options()
     return 22 # EINVAL
   elif [[ "${options_values['DEFAULT_REMOTE']}" == 1 ]]; then
     options_values['ERROR']='Expected a string values after --set-default='
+    return 22
+  elif [[ -z  "${options_values['ADD']}" && -z "${options_values['REMOVE']}" && -z "${options_values['RENAME']}" ]]; then
+    options_values['ERROR']='Please Add, Remove or Rename a remote.'
     return 22
   fi
 }
@@ -300,5 +330,7 @@ function remote_help()
     '  remote remove <name> - Remove remote' \
     '  remote rename <old> <new> - Rename remote' \
     '  remote --set-default=<remonte-name> - Set default remote' \
-    '  remote (--verbose | -v) - be verbose'
+    '  remote (--verbose | -v) - be verbose' \
+    '  remote (--list | -l) - List all the remotes' 
 }
+ 
