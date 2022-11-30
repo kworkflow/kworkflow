@@ -103,7 +103,7 @@ function add_new_remote()
   fi
 
   # New entry
-  
+
   if [[ -n "$first_time" ]]; then
     echo 'Config Created'
     {
@@ -116,11 +116,11 @@ function add_new_remote()
   else
     echo 'Saved'
     {
-        printf 'Host %s\n' "$name"
-        printf '  Hostname %s\n' "${remote_parameters['REMOTE_IP']}"
-        printf '  Port %s\n' "${remote_parameters['REMOTE_PORT']}"
-        printf '  User %s\n' "${remote_parameters['REMOTE_USER']}"
-      } >> "$local_remote_config_file"
+      printf 'Host %s\n' "$name"
+      printf '  Hostname %s\n' "${remote_parameters['REMOTE_IP']}"
+      printf '  Port %s\n' "${remote_parameters['REMOTE_PORT']}"
+      printf '  User %s\n' "${remote_parameters['REMOTE_USER']}"
+    } >> "$local_remote_config_file"
   fi
 }
 
@@ -311,7 +311,7 @@ function parse_remote_options()
   elif [[ "${options_values['DEFAULT_REMOTE']}" == 1 ]]; then
     options_values['ERROR']='Expected a string values after --set-default='
     return 22
-  elif [[ -z  "${options_values['ADD']}" && -z "${options_values['REMOVE']}" && -z "${options_values['RENAME']}" ]]; then
+  elif [[ -z "${options_values['ADD']}" && -z "${options_values['REMOVE']}" && -z "${options_values['RENAME']}" ]]; then
     options_values['ERROR']='Please Add, Remove or Rename a remote.'
     return 22
   fi
@@ -331,6 +331,5 @@ function remote_help()
     '  remote rename <old> <new> - Rename remote' \
     '  remote --set-default=<remonte-name> - Set default remote' \
     '  remote (--verbose | -v) - be verbose' \
-    '  remote (--list | -l) - List all the remotes' 
+    '  remote (--list | -l) - List all the remotes'
 }
- 
