@@ -423,6 +423,10 @@ function test_parse_remote_options()
   parse_remote_options rename origin xpto
   assert_equals_helper 'Request rename' "($LINENO)" "${options_values['RENAME']}" 1
   assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin xpto '
+
+  # List
+  parse_remote_options list
+  assert_equals_helper 'Request rename' "($LINENO)" "${options_values['LIST']}" 1
 }
 
 invoke_shunit

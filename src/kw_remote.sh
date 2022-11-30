@@ -36,6 +36,11 @@ function remote_main()
     rename_remote
     return "$?"
   fi
+
+  if [[ -n "${options_values['LIST']}" ]]; then
+    list_remotes
+    return "$?"
+  fi
 }
 
 function add_new_remote()
@@ -210,6 +215,18 @@ function rename_remote()
   fi
 }
 
+function list_remotes()
+{
+  # check if the remote config file exists
+  if [ -f "$local_remote_config_file" ]; then
+    cat $local_remote_config_file
+    exit 0
+  else
+    echo "There are no remotes"
+    return 22 # EINVAL
+  fi
+}
+
 function parse_remote_options()
 {
   local long_options='add,remove,rename,verbose,set-default::'
@@ -256,6 +273,10 @@ function parse_remote_options()
         options_values['RENAME']=1
         shift
         ;;
+      list)
+        options_values['LIST']=1
+        shift
+        ;;
       --set-default | -s)
         default_option="$(str_strip "$2")"
         # set-default can be used in combination with add
@@ -299,6 +320,7 @@ function remote_help()
     '  remote add <name> <USER@IP:PORT> [--set-default] - Add new remote' \
     '  remote remove <name> - Remove remote' \
     '  remote rename <old> <new> - Rename remote' \
+    '  remote list - List all the remotes' \
     '  remote --set-default=<remonte-name> - Set default remote' \
     '  remote (--verbose | -v) - be verbose'
 }
