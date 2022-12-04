@@ -217,9 +217,9 @@ function parse_env_options()
         ;;
       --destroy | -d)
         warning "entrou em destroy"
-        options_values['DESTROY']="$2"
+        options_values['DESTROY']="$1"
         say "PASSOU DESTROY B4 SHIFT"
-        shift 
+        shift
         ;;
       --)
         shift
