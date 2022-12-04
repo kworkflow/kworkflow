@@ -41,13 +41,15 @@ function env_main()
   fi
 
   if [[ -n "${options_values['DESTROY']}" ]]; then
-    warning "teste dentro destroy"
+    destroy_test
     return "$?"
   fi
 }
 
 function destroy_test(){
-  echo "teste funcionando"
+  #chegando aqui
+  local local_kw_configs="${PWD}/.kw/teste2"
+  rm -rf $local_kw_configs
 }
 # When we switch between different kw envs we just change the symbolic links
 # for pointing to the target env.
@@ -216,9 +218,7 @@ function parse_env_options()
         shift 2
         ;;
       --destroy | -d)
-        warning "entrou em destroy"
         options_values['DESTROY']="$1"
-        say "PASSOU DESTROY B4 SHIFT"
         shift
         ;;
       --)
@@ -243,4 +243,5 @@ function env_help()
     '  env [-l | --list] - List all environments available' \
     '  env [-u | --use] <NAME> - Use some specific env' \
     '  env (-c | --create) - Create a new environment'
+    '  env (-d | --destroy) - Delete an environment'
 }
