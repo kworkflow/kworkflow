@@ -46,7 +46,8 @@ function env_main()
   fi
 }
 
-function destroy_test(){
+function destroy_test()
+{
   local local_kw_configs="${PWD}/.kw"
   local output
   local env_name=${options_values['DESTROY']}
@@ -57,7 +58,7 @@ function destroy_test(){
   fi
 
   rm -rf "${local_kw_configs}/${env_name}"
-  
+
 }
 
 # When we switch between different kw envs we just change the symbolic links
@@ -252,5 +253,5 @@ function env_help()
     '  env [-l | --list] - List all environments available' \
     '  env [-u | --use] <NAME> - Use some specific env' \
     '  env (-c | --create) - Create a new environment'
-    '  env (-d | --destroy) - Delete a specific environment'
+  '  env (-d | --destroy) - Delete a specific environment'
 }
