@@ -39,8 +39,16 @@ function env_main()
     list_env_available_envs
     return "$?"
   fi
+
+  if [[ -n "${options_values['DESTROY']}" ]]; then
+    warning "teste dentro destroy"
+    return "$?"
+  fi
 }
 
+function destroy_test(){
+  echo "teste funcionando"
+}
 # When we switch between different kw envs we just change the symbolic links
 # for pointing to the target env.
 #
@@ -160,8 +168,8 @@ function list_env_available_envs()
 
 function parse_env_options()
 {
-  local long_options='help,list,create:,use:'
-  local short_options='h,l,c:,u:'
+  local long_options='help,list,create:,use:,destroy'
+  local short_options='h,l,c:,u:,d'
   local count
 
   kw_parse "$short_options" "$long_options" "$@" > /dev/null
@@ -176,6 +184,7 @@ function parse_env_options()
   options_values['LIST']=''
   options_values['CREATE']=''
   options_values['USE']=''
+  options_values['DESTROY']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -205,6 +214,12 @@ function parse_env_options()
       --use | -u)
         options_values['USE']="$2"
         shift 2
+        ;;
+      --destroy | -d)
+        warning "entrou em destroy"
+        options_values['DESTROY']="$2"
+        say "PASSOU DESTROY B4 SHIFT"
+        shift 
         ;;
       --)
         shift
