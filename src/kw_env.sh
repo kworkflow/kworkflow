@@ -47,25 +47,13 @@ function env_main()
 }
 
 function destroy_test(){
-  #local local_kw_configs="${PWD}/.kw/teste2"
-  #rm -rf $local_kw_configs
-  #TODO: parametro, concatenacao, pergunta
-
   local local_kw_configs="${PWD}/.kw"
   local output
   local env_name=${options_values['DESTROY']}
 
-  if [[ ! -d "$local_kw_configs" ]]; then
-    complain 'It looks like that you did not setup kw in this repository.'
-    complain 'For the first setup, take a look at: kw init --help'
+  if [[ ! -d "${local_kw_configs}/${env_name}" ]]; then
+    complain "We can't find the folder. Please, check the name and try again."
     exit 22 # EINVAL
-  fi
-
-  output=$(find "$local_kw_configs" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort -d)
-  if [[ -z "$output" ]]; then
-    say 'Kw did not find any environment. You can create a new one with the --create option.'
-    say 'See kw env --help'
-    return 0
   fi
 
   rm -rf "${local_kw_configs}/${env_name}"
@@ -264,5 +252,5 @@ function env_help()
     '  env [-l | --list] - List all environments available' \
     '  env [-u | --use] <NAME> - Use some specific env' \
     '  env (-c | --create) - Create a new environment'
-    '  env (-d | --destroy) - Delete an environment'
+    '  env (-d | --destroy) - Delete a specific environment'
 }
