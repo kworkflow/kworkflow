@@ -47,10 +47,31 @@ function env_main()
 }
 
 function destroy_test(){
-  #chegando aqui
-  local local_kw_configs="${PWD}/.kw/teste2"
-  rm -rf $local_kw_configs
+  #local local_kw_configs="${PWD}/.kw/teste2"
+  #rm -rf $local_kw_configs
+  #TODO: parametro, concatenacao, pergunta
+
+  local local_kw_configs="${PWD}/.kw"
+  local output
+  local env_name=${options_values['DESTROY']}
+
+  if [[ ! -d "$local_kw_configs" ]]; then
+    complain 'It looks like that you did not setup kw in this repository.'
+    complain 'For the first setup, take a look at: kw init --help'
+    exit 22 # EINVAL
+  fi
+
+  output=$(find "$local_kw_configs" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort -d)
+  if [[ -z "$output" ]]; then
+    say 'Kw did not find any environment. You can create a new one with the --create option.'
+    say 'See kw env --help'
+    return 0
+  fi
+
+  rm -rf "${local_kw_configs}/${env_name}"
+  
 }
+
 # When we switch between different kw envs we just change the symbolic links
 # for pointing to the target env.
 #
@@ -170,8 +191,8 @@ function list_env_available_envs()
 
 function parse_env_options()
 {
-  local long_options='help,list,create:,use:,destroy'
-  local short_options='h,l,c:,u:,d'
+  local long_options='help,list,create:,use:,destroy:'
+  local short_options='h,l,c:,u:,d:'
   local count
 
   kw_parse "$short_options" "$long_options" "$@" > /dev/null
@@ -218,8 +239,8 @@ function parse_env_options()
         shift 2
         ;;
       --destroy | -d)
-        options_values['DESTROY']="$1"
-        shift
+        options_values['DESTROY']="$2"
+        shift 2
         ;;
       --)
         shift
