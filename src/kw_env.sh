@@ -41,24 +41,9 @@ function env_main()
   fi
 
   if [[ -n "${options_values['DESTROY']}" ]]; then
-    destroy_test
+    destroy_env
     return "$?"
   fi
-}
-
-function destroy_test()
-{
-  local local_kw_configs="${PWD}/.kw"
-  local output
-  local env_name=${options_values['DESTROY']}
-
-  if [[ ! -d "${local_kw_configs}/${env_name}" ]]; then
-    complain "We can't find the folder. Please, check the name and try again."
-    exit 22 # EINVAL
-  fi
-
-  rm -rf "${local_kw_configs}/${env_name}"
-
 }
 
 # When we switch between different kw envs we just change the symbolic links
@@ -178,6 +163,25 @@ function list_env_available_envs()
   printf '%s\n' "$output"
 }
 
+# This function destroys any env folder inside the .kw directory that it receives as parameter
+#
+# Return:
+# Return 22 if .kw folder does not exists
+function destroy_env()
+{
+  local local_kw_configs="${PWD}/.kw"
+  local output
+  local env_name=${options_values['DESTROY']}
+
+  if [[ ! -d "${local_kw_configs}/${env_name}" ]]; then
+    complain "We can't find the folder. Please, check the name and try again."
+    exit 22 # EINVAL
+  fi
+
+  rm -rf "${local_kw_configs}/${env_name}"
+
+}
+
 function parse_env_options()
 {
   local long_options='help,list,create:,use:,destroy:'
@@ -252,6 +256,6 @@ function env_help()
   printf '%s\n' 'kw env:' \
     '  env [-l | --list] - List all environments available' \
     '  env [-u | --use] <NAME> - Use some specific env' \
-    '  env (-c | --create) - Create a new environment'
-  '  env (-d | --destroy) - Delete a specific environment'
+    '  env (-c | --create) - Create a new environment' \
+    '  env (-d | --destroy) - Delete a specific environment'
 }

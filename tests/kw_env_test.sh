@@ -219,4 +219,29 @@ function test_parse_env_options()
   assertEquals "($LINENO) Invalid option" "$?" 22
 }
 
+function test_destroy()
+{
+  local output
+  local real_path
+  local expected_path
+
+  # Create envs
+  options_values['CREATE']='tapioca'
+  create_new_env
+
+  options_values['CREATE']='farofa'
+  create_new_env
+
+  # Destroy envs
+  options_values['DESTROY']='tapioca'
+  destroy_env
+
+  options_values['DESTROY']='farofa'
+  destroy_env
+
+  if [[ -d "${local_kw_configs}/tapioca" || -d "${local_kw_configs}/farofa" ]]; then
+    complain "folder finded, fail"
+  fi
+}
+
 invoke_shunit
