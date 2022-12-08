@@ -371,7 +371,7 @@ function test_modules_install_to_with_env()
   local original="$PWD"
   local make_cmd="make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=${test_path} modules_install"
 
-  make_cmd+=" O=${KW_CACHE_DIR}/fake_env"
+  make_cmd+=" O=${KW_CACHE_DIR}/envs/fake_env"
 
   declare -a expected_cmd=(
     '* Preparing modules'
@@ -385,7 +385,7 @@ function test_modules_install_to_with_env()
     return
   }
 
-  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/fake_env"
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/envs/fake_env"
   mk_fake_kw_env
 
   output=$(modules_install_to "$test_path" 'TEST_MODE')
@@ -403,7 +403,7 @@ function test_modules_install_to_with_env_local()
   local original="$PWD"
   local make_cmd="sudo true && sudo -E make INSTALL_MOD_STRIP=1 modules_install"
 
-  make_cmd+=" O=${KW_CACHE_DIR}/fake_env"
+  make_cmd+=" O=${KW_CACHE_DIR}/envs/fake_env"
 
   declare -a expected_cmd=(
     '* Preparing modules'
@@ -417,7 +417,7 @@ function test_modules_install_to_with_env_local()
     return
   }
 
-  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/fake_env"
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/envs/fake_env"
   mk_fake_kw_env
 
   output=$(modules_install_to "$test_path" 'TEST_MODE' 'local')

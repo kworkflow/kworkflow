@@ -1,6 +1,8 @@
 # NOTE: src/kw_config_loader.sh must be included before this file
 include "$KW_LIB_DIR/kw_string.sh"
 
+ENV_DIR='envs'
+
 # Array with compression programs accepted by tar
 declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
   'xz' 'auto-compress')
@@ -189,7 +191,7 @@ function get_kernel_release()
 
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
-    cmd+=" O=${KW_CACHE_DIR}/${env_name} --silent"
+    cmd+=" O=${KW_CACHE_DIR}/${ENV_DIR}/${env_name} --silent"
   fi
 
   cmd+=" 2> /dev/null"
@@ -215,7 +217,7 @@ function get_kernel_version()
 
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
-    cmd="make kernelversion O=${KW_CACHE_DIR}/${env_name} --silent 2> /dev/null"
+    cmd="make kernelversion O=${KW_CACHE_DIR}/${ENV_DIR}/${env_name} --silent 2> /dev/null"
   fi
 
   flag=${flag:-'SILENT'}

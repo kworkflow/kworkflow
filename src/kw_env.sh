@@ -63,7 +63,7 @@ function use_target_env()
   local local_kw_configs="${PWD}/.kw"
   local tmp_trash
 
-  if [[ ! -d "${local_kw_configs}/${target_env}" ]]; then
+  if [[ ! -d "${local_kw_configs}/${ENV_DIR}/${target_env}" ]]; then
     return 22 # EINVAL
   fi
 
@@ -80,7 +80,7 @@ function use_target_env()
     fi
 
     # Create symbolic link
-    ln --symbolic --force "${local_kw_configs}/${target_env}/${config}.config" "${local_kw_configs}/${config}.config"
+    ln --symbolic --force "${local_kw_configs}/${ENV_DIR}/${target_env}/${config}.config" "${local_kw_configs}/${config}.config"
   done
 
   touch "${local_kw_configs}/${ENV_CURRENT_FILE}"
@@ -112,9 +112,9 @@ function exit_env()
       fi
 
       # Check if the config file exists before trying to copy it.
-      [[ ! -f "${local_kw_configs}/${current_env}/${config}.config" ]] && continue
+      [[ ! -f "${local_kw_configs}/${ENV_DIR}/${current_env}/${config}.config" ]] && continue
 
-      cp "${local_kw_configs}/${current_env}/${config}.config" "${local_kw_configs}"
+      cp "${local_kw_configs}/${ENV_DIR}/${current_env}/${config}.config" "${local_kw_configs}"
     done
     rm "${local_kw_configs}/${ENV_CURRENT_FILE}"
     success 'You left the environment feature.'
@@ -145,8 +145,11 @@ function create_new_env()
     exit 22 # EINVAL
   fi
 
+  # Create envs folder
+  mkdir -p "${local_kw_configs}/${ENV_DIR}"
+
   # Check if the env name was not created
-  output=$(find "$local_kw_configs" -type d -name "$env_name")
+  output=$(find "${local_kw_configs}/${ENV_DIR}" -type d -name "$env_name")
   if [[ -n "$output" ]]; then
     warning "It looks that you already have '$env_name' environment"
     warning 'Please, choose a new environment name.'
@@ -154,22 +157,40 @@ function create_new_env()
   fi
 
   # Create env folder
-  mkdir -p "${local_kw_configs}/${env_name}"
+  mkdir -p "${local_kw_configs}/${ENV_DIR}/${env_name}"
 
   # Copy local configs
   for config in "${config_file_list[@]}"; do
-    cp "${local_kw_configs}/${config}.config" "${local_kw_configs}/${env_name}"
+    if [[ ! -e "${local_kw_configs}/${config}.config" ]]; then
+      say "${config}.config does not exist. Creating a default one."
+      cp "${KW_ETC_DIR}/${config}.config" "${local_kw_configs}/${ENV_DIR}/${env_name}"
+    else
+      cp "${local_kw_configs}/${config}.config" "${local_kw_configs}/${ENV_DIR}/${env_name}"
+    fi
   done
 
   # Handle build and config folder
-  mkdir -p "${cache_build_path}/${env_name}"
+  mkdir -p "${cache_build_path}/${ENV_DIR}/${env_name}"
+
   current_env_name=$(get_current_env_name)
   ret="$?"
+  # If we already have an env, we should copy the config file from it.
+  if [[ "$ret" == 0 ]]; then
+    cp "${cache_build_path}/${ENV_DIR}/${current_env_name}/.config" "${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    return
+  elif [[ -f "${PWD}/.config" ]]; then
+    cp "${PWD}/.config" "${cache_build_path}/${ENV_DIR}/${env_name}"
+    return
+  fi
 
-  if [[ -f "${PWD}/.config" ]]; then
-    mv "${PWD}/.config" "${cache_build_path}/${env_name}"
-  elif [[ "$ret" == 0 ]]; then
-    cp "${cache_build_path}/${current_env_name}/.config" "${cache_build_path}/${env_name}"
+  warning "You don't have a config file, git it from default paths"
+  if [[ -e /proc/config.gz ]]; then
+    zcat /proc/config.gz > "${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+  elif [[ -e "/boot/config-$(uname -r)" ]]; then
+    cp "/boot/config-$(uname -r)" "${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+  else
+    warning 'kw was not able to find any valid config file for the new env'
+    return 22 # EINVAL
   fi
 }
 
@@ -187,7 +208,7 @@ function destroy_env()
     return 22 # EINVAL
   fi
 
-  if [[ ! -d "${local_kw_configs}/${env_name}" ]]; then
+  if [[ ! -d "${local_kw_configs}/${ENV_DIR}/${env_name}" ]]; then
     complain "The environment '${env_name}' does not exist."
     return 22 # EINVAL
   fi
@@ -202,7 +223,7 @@ function destroy_env()
     exit_env
   fi
 
-  rm -rf "${local_kw_configs:?}/${env_name}" && rm -rf "${cache_build_path:?}/${env_name}"
+  rm -rf "${local_kw_configs:?}/${ENV_DIR}/${env_name}" && rm -rf "${cache_build_path:?}/${ENV_DIR}/${env_name}"
   success "The \"${env_name}\" environment has been destroyed."
 }
 
@@ -216,6 +237,7 @@ function list_env_available_envs()
   local local_kw_configs="${PWD}/.kw"
   local current_env
   local output
+  local ret
 
   if [[ ! -d "$local_kw_configs" ]]; then
     complain 'It looks like that you did not setup kw in this repository.'
@@ -223,8 +245,9 @@ function list_env_available_envs()
     exit 22 # EINVAL
   fi
 
-  output=$(find "$local_kw_configs" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' | sort -d)
-  if [[ -z "$output" ]]; then
+  output=$(ls "${local_kw_configs}/${ENV_DIR}" 2> /dev/null)
+  ret=$?
+  if [[ ret -ne 0 || -z $output ]]; then
     say 'Kw did not find any environment. You can create a new one with the --create option.'
     say 'See kw env --help'
     return 0

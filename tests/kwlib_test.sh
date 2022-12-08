@@ -799,7 +799,7 @@ function test_get_kernel_release()
 function test_get_kernel_release_with_env()
 {
   local output
-  local expected="make kernelrelease O=${KW_CACHE_DIR}/fake_env --silent 2> /dev/null"
+  local expected="make kernelrelease O=${KW_CACHE_DIR}/envs/fake_env --silent 2> /dev/null"
 
   function get_current_env_name()
   {
@@ -827,7 +827,7 @@ function test_get_kernel_version()
 function test_get_kernel_version_with_env()
 {
   local output
-  local expected="make kernelversion O=${KW_CACHE_DIR}/fake_env --silent 2> /dev/null"
+  local expected="make kernelversion O=${KW_CACHE_DIR}/envs/fake_env --silent 2> /dev/null"
 
   function get_current_env_name()
   {
