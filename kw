@@ -27,6 +27,9 @@ KW_CACHE_DIR="${XDG_CACHE_HOME:-"$HOME/.cache"}/$KWORKFLOW"
 # State files
 KW_STATE_DIR="${XDG_STATE_HOME:-"$HOME/.local/state"}/$KWORKFLOW"
 
+# ENV dir name
+ENV_DIR='envs'
+
 ##BEGIN-DEV-MODE##
 KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
 KW_BASE_DIR="$(dirname "${KW_BIN}")"

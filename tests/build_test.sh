@@ -850,7 +850,7 @@ function test_kernel_build_inside_an_env()
 {
   local output
   local expected_result
-  local env_output="${KW_CACHE_DIR}/fake_env"
+  local env_output="${KW_CACHE_DIR}/envs/fake_env"
   build_config=()
 
   mk_fake_kw_env
@@ -871,7 +871,7 @@ function test_kernel_build_html_doc_inside_env()
 {
   local expected_result
   local output
-  local env_output="${KW_CACHE_DIR}/fake_env"
+  local env_output="${KW_CACHE_DIR}/envs/fake_env"
   build_config=()
 
   mk_fake_kw_env
@@ -887,7 +887,7 @@ function test_kernel_build_menu_inside_env()
 {
   local expected_result
   local output
-  local env_output="${KW_CACHE_DIR}/fake_env"
+  local env_output="${KW_CACHE_DIR}/envs/fake_env"
   build_config=()
 
   mk_fake_kw_env
@@ -903,7 +903,7 @@ function test_kernel_build_clean_inside_env()
 {
   local expected_result
   local output
-  local env_output="${KW_CACHE_DIR}/fake_env"
+  local env_output="${KW_CACHE_DIR}/envs/fake_env"
   build_config=()
 
   mk_fake_kw_env

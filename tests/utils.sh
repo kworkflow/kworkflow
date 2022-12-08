@@ -280,7 +280,7 @@ function mk_fake_kw_folder()
 
 function mk_fake_kw_env()
 {
-  local env_kw="${PWD}/.kw/fake_env"
+  local env_kw="${PWD}/.kw/envs/fake_env"
 
   mkdir -p "$env_kw"
   printf '%s' 'fake_env' > "${PWD}/.kw/env.current"

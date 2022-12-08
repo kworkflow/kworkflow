@@ -16,6 +16,8 @@
 # password.
 #
 
+declare ENV_DIR='envs'
+
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
@@ -105,7 +107,7 @@ function deploy_main()
 
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
-    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${env_name}"
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${env_name}"
     output_kbuild_path=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']} --silent"
   fi
 

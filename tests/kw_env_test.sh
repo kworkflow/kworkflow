@@ -46,16 +46,16 @@ function test_create_new_env_create_multiple_envs_from_current_configs()
 
   # Other checks
   # 1. Do we have the env folder?
-  new_env_name=$(find '.kw/' -type d -name 'xpto')
-  assertEquals "($LINENO) We did not find the new folder name" "$new_env_name" '.kw/xpto'
+  new_env_name=$(find ".kw/${ENV_DIR}" -type d -name 'xpto')
+  assertEquals "($LINENO) We did not find the new folder name" "$new_env_name" ".kw/${ENV_DIR}/xpto"
 
-  new_env_name=$(find '.kw/' -type d -name 'abc')
-  assertEquals "($LINENO) We did not find the new folder name" "$new_env_name" '.kw/abc'
+  new_env_name=$(find ".kw/${ENV_DIR}" -type d -name 'abc')
+  assertEquals "($LINENO) We did not find the new folder name" "$new_env_name" ".kw/${ENV_DIR}/abc"
 
   # 2. Check for config files
   for config in "${config_file_list[@]}"; do
-    assertTrue "${LINENO}: ${config} config not find " '[[ -f .kw/xpto/${config}.config ]]'
-    assertTrue "${LINENO}: ${config} config not find " '[[ -f .kw/abc/${config}.config ]]'
+    assertTrue "${LINENO}: ${config} config not find " '[[ -f .kw/${ENV_DIR}/xpto/${config}.config ]]'
+    assertTrue "${LINENO}: ${config} config not find " '[[ -f .kw/${ENV_DIR}/abc/${config}.config ]]'
   done
 }
 
@@ -69,6 +69,18 @@ function test_create_new_env_outside_of_a_repo_without_init()
   options_values['CREATE']='farofa'
   output=$(create_new_env)
   assertEquals "($LINENO) We should hit a fail condition" "$?" 22
+}
+
+function test_create_new_env_missing_config()
+{
+  mv .kw/remote.config ./
+  export KW_ETC_DIR="$TEST_PATH"
+
+  options_values['CREATE']='xlr8'
+  create_new_env > /dev/null
+  assertTrue "${LINENO}: missing config not created" '[[ -e .kw/${ENV_DIR}/xlr8/remote.config ]]'
+
+  rm ./remote.config
 }
 
 function test_create_new_env_check_if_target_env_name_already_exists()
@@ -147,7 +159,7 @@ function test_use_target_env()
   use_target_env
 
   real_path=$(readlink "${PWD}/.kw/build.config")
-  expected_path="${PWD}/.kw/farofa/build.config"
+  expected_path="${PWD}/.kw/${ENV_DIR}/farofa/build.config"
 
   assertEquals "($LINENO) It looks like that the env did not switch" "$real_path" "$expected_path"
 
@@ -156,7 +168,7 @@ function test_use_target_env()
   use_target_env
 
   real_path=$(readlink "${PWD}/.kw/build.config")
-  expected_path="${PWD}/.kw/tapioca/build.config"
+  expected_path="${PWD}/.kw/${ENV_DIR}/tapioca/build.config"
 
   assertEquals "($LINENO) It looks like that the env did not switch" "$real_path" "$expected_path"
 }
@@ -266,16 +278,16 @@ function test_destroy_env_checking_the_existence_of_a_directory()
   output="$(printf '%s\n' 'y' | destroy_env)"
 
   # MACHINE_A
-  assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/MACHINE_A) since the env was destroyed." '[[ -d "${PWD}/.kw/MACHINE_A" ]]'
-  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/MACHINE_A) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/MACHINE_A" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/envs/MACHINE_A) since the env was destroyed." '[[ -d "${PWD}/.kw/envs/MACHINE_A" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_A) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_A" ]]'
 
   # MACHINE_B
-  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/MACHINE_B)" '[[ -d "${PWD}/.kw/MACHINE_B" ]]'
-  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/MACHINE_B" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/envs/MACHINE_B)" '[[ -d "${PWD}/.kw/envs/MACHINE_B" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/envs/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_B" ]]'
 
   # MACHINE_C
-  assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/MACHINE_C) since the env was destroyed." '[[ -d "${PWD}/.kw/MACHINE_C" ]]'
-  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/MACHINE_C" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/envs/MACHINE_C) since the env was destroyed." '[[ -d "${PWD}/.kw/envs/MACHINE_C" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_C" ]]'
 }
 
 invoke_shunit
