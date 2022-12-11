@@ -10,7 +10,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-n | \--menu)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-d | \--doc)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [\--ccache] [\--alert=(s | v | (sv | vs) | n)]
-| *kw* (*b* | *build*) [(-c | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [(-S | \--cpu-scaling)] <percentage> [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-w | \--warnings)] [warning-levels] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-s | \--save-log-to)] <path> [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [\--llvm] [\--alert=(s | v | (sv | vs) | n)]
@@ -46,7 +46,7 @@ OPTIONS
   it will build htmldocs. Users can change the default documentation output by
   changing the parameter *doc_type* in the **kworkflow.config** file.
 
--c, \--cpu-scaling:
+-S, \--cpu-scaling:
   The cpu-scaling option lets the user set whichever CPU usage they want from
   their CPU, basically setting the ``-j`` flag accordingly.
 

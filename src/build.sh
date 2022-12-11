@@ -201,7 +201,7 @@ function load_build_config()
 function parse_build_options()
 {
   local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm'
-  local short_options='h,i,n,d,c:,w::,s:'
+  local short_options='h,i,n,d,S:,w::,s:'
   local doc_type
   local file_name_size
 
@@ -249,7 +249,7 @@ function parse_build_options()
         options_values['MENU_CONFIG']="${build_config[menu_config]:-$menu_fallback}"
         shift
         ;;
-      --cpu-scaling | -c)
+      --cpu-scaling | -S)
         if [[ ! "$2" =~ [0-9]+ ]]; then
           options_values['ERROR']="$2"
           return 22 # EINVAL
@@ -317,7 +317,7 @@ function build_help()
     '  build (-n | --menu) - Open kernel menu config' \
     '  build (-i | --info) - Display build information' \
     '  build (-d | --doc) - Build kernel documentation' \
-    '  build (-c | --cpu-scaling) <percentage> - Scale CPU usage by factor' \
+    '  build (-S | --cpu-scaling) <percentage> - Scale CPU usage by factor' \
     '  build (--ccache) - Enable use of ccache' \
     '  build (-w | --warnings) [warning_levels] - Enable warnings' \
     '  build (-s | --save-log-to) <path> - Save compilation log to path' \
