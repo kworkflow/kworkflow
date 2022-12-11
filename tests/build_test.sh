@@ -438,7 +438,7 @@ function test_parse_build_options()
     "($LINENO)" 150 "${options_values['CPU_SCALING_FACTOR']}"
 
   options_values=()
-  parse_build_options -c 150 > /dev/null
+  parse_build_options -S 150 > /dev/null
   assert_equals_helper 'Could not set build option CPU_SCALING_FACTOR' \
     "($LINENO)" 150 "${options_values['CPU_SCALING_FACTOR']}"
 
