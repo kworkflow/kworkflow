@@ -505,6 +505,7 @@ function test_install_kernel_remote()
     "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
     "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "cp ${PWD}/boot/vmlinuz-${name} ${PWD}/boot/vmlinuz-${name}.old"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
     'run_bootloader_update_mock'
@@ -513,12 +514,14 @@ function test_install_kernel_remote()
   )
 
   # Test preparation
-  mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
+  mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE" "$name"
   mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
   touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   printf 'kernel_name=%s\n' "$name" > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   printf 'kernel_binary_image_file=%s\n' "$kernel_image_name" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   printf 'architecture=%s\n' "$architecture" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'previous_kernel_backup=yes\n' >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  touch "${PWD}/boot/vmlinuz-${name}"
 
   output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"

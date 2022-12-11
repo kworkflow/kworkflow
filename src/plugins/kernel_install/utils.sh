@@ -596,7 +596,7 @@ function install_kernel()
   local flag="$4"
   local sudo_cmd=''
   local cmd=''
-  local path_prefix=''
+  local path_test=''
   local verbose_cp
   local ret
 
@@ -604,6 +604,7 @@ function install_kernel()
   target=${target:-'remote'}
 
   [[ "$flag" == 'VERBOSE' ]] && verbose_cp='-v'
+  [[ "$flag" == 'TEST_MODE' ]] && path_test="$PWD"
 
   if [[ "$target" == 'local' ]]; then
     sudo_cmd='sudo -E '
@@ -631,8 +632,8 @@ function install_kernel()
   install_modules "$target" "$flag"
 
   # Copy kernel image
-  if [[ -f "${path_prefix}/boot/vmlinuz-${name}" ]]; then
-    cmd="$sudo_cmd cp $path_prefix/boot/vmlinuz-$name $path_prefix/boot/vmlinuz-$name.old"
+  if [[ -f "${path_test}/boot/vmlinuz-${name}" && "${kw_package_metadata['previous_kernel_backup']}" == 'yes' ]]; then
+    cmd="${sudo_cmd} cp ${path_test}/boot/vmlinuz-${name} ${path_test}/boot/vmlinuz-${name}.old"
     cmd_manager "$flag" "$cmd"
   fi
 
@@ -641,7 +642,7 @@ function install_kernel()
   cmd_manager "$flag" "$cmd"
 
   # Each distro has their own way to update their bootloader
-  update_bootloader "$flag" "$name" "$target" "$kernel_image_name" "$distro" "$path_prefix"
+  update_bootloader "$flag" "$name" "$target" "$kernel_image_name" "$distro" "$path_test"
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then
