@@ -6,6 +6,7 @@
 
 include "${KW_LIB_DIR}/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/dialog_ui.sh"
+include "${KW_LIB_DIR}/kwio.sh"
 
 declare -ga registered_lists
 
@@ -96,6 +97,7 @@ function dashboard_entry_menu()
 {
   local message_box
   local -a menu_list_string_array
+  local ret
 
   # TODO: Get list from liblore
   menu_list_string_array=('Registered mailing list' 'Bookmarked patches')
@@ -104,6 +106,11 @@ function dashboard_entry_menu()
   message_box+=' select one or more of the below list:'
 
   create_menu_options 'Dashboard' "$message_box" 'menu_list_string_array'
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain 'Something went wrong when kw tried to display the Dashboad screen.'
+    return "$ret"
+  fi
 
   case "$menu_return_string" in
     1) # Registered mailing list
@@ -129,7 +136,7 @@ function registered_mailing_list()
   local message_box
 
   # TODO: Get list from liblore
-  message_box="Below you can see all the mailing lists that you are registered:"
+  message_box='Below you can see all the mailing lists that you are registered:'
 
   create_menu_options 'Mailing lists' "$message_box" 'registered_lists'
 }
