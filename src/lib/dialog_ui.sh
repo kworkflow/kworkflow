@@ -60,6 +60,7 @@ function create_menu_options()
   local width="$6"
   local max_elements_displayed_in_the_menu="$7"
   local no_index="$8"
+  local flag="$9"
   local index=1
   local cmd
   local ret
@@ -69,19 +70,21 @@ function create_menu_options()
   fi
 
   flag=${flag:-'SILENT'}
-  height="$DEFAULT_HEIGHT"
-  width="$DEFAULT_WIDTH"
+  height=${height:-$DEFAULT_HEIGHT}
+  width=${width:-$DEFAULT_WIDTH}
   cancel_label=${cancel_label:-'Exit'}
   max_elements_displayed_in_the_menu=${max_elements_displayed_in_the_menu:-'0'}
   back_title=${back_title:-$KW_UPSTREAM_TITLE}
 
   # Start to compose menu
-  cmd="DIALOGRC=${DIALOG_LAYOUT} dialog --backtitle \$'${back_title}' --title '${menu_title}' --clear"
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT} "
+  fi
+
+  cmd+="dialog --backtitle \$'${back_title}' --title \$'${menu_title}' --clear --colors"
 
   # Change cancel label
-  if [[ -n "$cancel_label" ]]; then
-    cmd+=" --cancel-label '${cancel_label}'"
-  fi
+  cmd+=" --cancel-label \$'${cancel_label}'"
 
   cmd+=" --menu $\"${menu_message_box}\""
 
@@ -97,6 +100,8 @@ function create_menu_options()
     cmd+=" '${index}' $\"${item}\""
     ((index++))
   done
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
   exec 3>&1
   menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
@@ -134,18 +139,21 @@ function create_simple_checklist()
   local ret
 
   flag=${flag:-'SILENT'}
-  height="$DEFAULT_HEIGHT"
-  width="$DEFAULT_WIDTH"
+  height=${height:-$DEFAULT_HEIGHT}
+  width=${width:-$DEFAULT_WIDTH}
   list_height=${list_height:-'0'}
   cancel_label=${cancel_label:-'Exit'}
   back_title=${back_title:-$KW_UPSTREAM_TITLE}
 
-  cmd="DIALOGRC=${DIALOG_LAYOUT} dialog --backtitle \$'${back_title}' --title '${menu_title}' --clear --colors"
+  # Start to compose menu
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT} "
+  fi
+
+  cmd+="dialog --backtitle \$'${back_title}' --title \$'${menu_title}' --clear --colors"
 
   # Change cancel label
-  if [[ -n "$cancel_label" ]]; then
-    cmd+=" --cancel-label '${cancel_label}'"
-  fi
+  cmd+=" --cancel-label \$'${cancel_label}'"
 
   # Start to compose menu
   cmd+=" --checklist $\"${menu_message_box}\""
@@ -154,8 +162,10 @@ function create_simple_checklist()
   cmd+=" '${height}' '${width}' '${list_height}'"
 
   for item in "${_menu_list_string_array[@]}"; do
-    cmd+=" '${item}' '' 'off' "
+    cmd+=" '${item}' '' 'off'"
   done
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
   exec 3>&1
   menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
@@ -184,6 +194,10 @@ function prettify_string()
 {
   local fixed_text="$1"
   local variable_to_concatenate="$2"
+
+  if [[ -z "$fixed_text" || -z "$variable_to_concatenate" ]]; then
+    return 22
+  fi
 
   printf '\Zb\Z6%s\Zn%s\\n' "$fixed_text" "$variable_to_concatenate"
 }
