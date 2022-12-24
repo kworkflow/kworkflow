@@ -6,6 +6,7 @@
 
 include "${KW_LIB_DIR}/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/dialog_ui.sh"
+include "${KW_LIB_DIR}/lib/lore.sh"
 include "${KW_LIB_DIR}/kwio.sh"
 
 declare -ga registered_lists
@@ -64,7 +65,7 @@ upstream_patches_ui_main()
     case "${screen_sequence['SHOW_SCREEN']}" in
       'register')
         # First time here? Let's register some public mailing list
-        register_mailing_list
+        register_mailing_list 'SILENT'
         ret="$?"
         ;;
       'dashboard')
@@ -201,12 +202,21 @@ function list_patches()
 # Screen used to register to a new mailing list
 function register_mailing_list()
 {
+  local flag="$1"
   local message_box
   local new_list
   local -a menu_list_string_array
+  local lore_config_path="${PWD}/.kw/lore.config"
 
-  # TODO: Get list from liblore
-  menu_list_string_array=('lkml' 'amd-gfx' 'netdev' 'u-boot')
+  if [[ ! -f "${lore_config_path}" ]]; then
+    lore_config_path="${KW_ETC_DIR}/lore.config"
+  fi
+
+  retrieve_available_mailing_lists "$flag"
+
+  for mailing_list in "${!available_lore_mailing_lists[@]}"; do
+    menu_list_string_array+=("$mailing_list")
+  done
 
   message_box="It looks like that you don't have any lore list registered; please"
   message_box+=" select one or more of the below list:"
@@ -218,7 +228,8 @@ function register_mailing_list()
   if [[ -n "$new_list" ]]; then
     screen_sequence['SHOW_SCREEN']='dashboard'
     lore_config['lists']="${new_list}"
-    # TODO: Update config file
+    IFS=',' read -r -a registered_lists <<< "$new_list"
+    sed -i -r "s<(lists=).*<\1${new_list}<" "$lore_config_path"
   fi
 }
 
