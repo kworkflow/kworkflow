@@ -65,7 +65,7 @@ function _kw_autocomplete()
   kw_options['s']="${kw_options['ssh']}"
 
   kw_options['config']='--local --global'
-  kw_options['remote']='add remove rename --set-default --verbose'
+  kw_options['remote']='add remove rename --set-default --verbose --list'
 
   kw_options['drm']='--remote --local --gui-on --gui-off --load-module
                      --unload-module --conn-available --modes --help'

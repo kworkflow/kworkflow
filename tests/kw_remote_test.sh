@@ -425,4 +425,38 @@ function test_parse_remote_options()
   assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin xpto '
 }
 
+function test_list_remotes()
+{
+  local output
+
+  declare -a expected_result=(
+    'Default Remote: arch-test'
+    'steamos'
+    '- Hostname steamdeck'
+    '- Port 8888'
+    '- User jozzi'
+    'arch-test'
+    '- Hostname arch-tm'
+    '- Port 22'
+    '- User abc'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_simple.config" "${BASE_PATH_KW}/remote.config"
+
+  output=$(list_remotes)
+  compare_command_sequence '' "$LINENO" 'expected_result' "$output"
+}
+
+function test_list_remotes_invalid()
+{
+  output=$(list_remotes)
+
+  assertEquals "($LINENO)" "$?" 22
+
+  rm -rf .kw
+
+  output=$(list_remotes)
+  assertEquals "($LINENO)" "$?" 22
+}
+
 invoke_shunit

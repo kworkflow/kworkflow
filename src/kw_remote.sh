@@ -17,6 +17,11 @@ function remote_main()
     return 22 # EINVAL
   fi
 
+  if [[ -n "${options_values['LIST']}" ]]; then
+    list_remotes
+    return "$?"
+  fi
+
   if [[ -n "${options_values['ADD']}" ]]; then
     add_new_remote
     return "$?"
@@ -36,6 +41,44 @@ function remote_main()
     rename_remote
     return "$?"
   fi
+}
+
+function list_remotes()
+{
+  local remote_config
+  local str_process
+
+  # Check if .kw folder exits
+  if [[ ! -d "${PWD}/.kw" ]]; then
+    complain 'You do not have .kw folder, try kw init first'
+    return 22 # EINVAL
+  fi
+
+  # If we don't have a remote.config file yet, let the user know
+  if [[ ! -f "${local_remote_config_file}" ]]; then
+    complain 'Did you run kw init? It looks like that you do not have remote.config'
+    return 22 # EINVAL
+  fi
+
+  remote_config=$(< "${local_remote_config_file}")
+
+  while read -r line; do
+    grep --quiet "^#kw-default=" <<< "$line"
+    if [[ "$?" == 0 ]]; then
+      str_process=$(cut -d '=' -f2 <<< "$line")
+      say "Default Remote: ${str_process}"
+      continue
+    fi
+
+    grep --quiet '^Host ' <<< "$line"
+    if [[ "$?" == 0 ]]; then
+      str_process=$(cut -d ' ' -f2 <<< "$line")
+      success "$str_process"
+      continue
+    fi
+
+    printf '%s%s\n' '- ' "$line"
+  done <<< "$remote_config"
 }
 
 function add_new_remote()
@@ -212,7 +255,7 @@ function rename_remote()
 
 function parse_remote_options()
 {
-  local long_options='add,remove,rename,verbose,set-default::'
+  local long_options='add,remove,rename,verbose,list,set-default::'
   local short_options='v,s'
   local default_option
 
@@ -231,6 +274,7 @@ function parse_remote_options()
   options_values['VERBOSE']=''
   options_values['PARAMETERS']=''
   options_values['DEFAULT_REMOTE']=''
+  options_values['LIST']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -254,6 +298,10 @@ function parse_remote_options()
         ;;
       rename)
         options_values['RENAME']=1
+        shift
+        ;;
+      --list)
+        options_values['LIST']=1
         shift
         ;;
       --set-default | -s)
@@ -300,5 +348,6 @@ function remote_help()
     '  remote remove <name> - Remove remote' \
     '  remote rename <old> <new> - Rename remote' \
     '  remote --set-default=<remonte-name> - Set default remote' \
+    '  remote --list - List remotes' \
     '  remote (--verbose | -v) - be verbose'
 }
