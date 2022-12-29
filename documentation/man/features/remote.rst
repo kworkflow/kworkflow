@@ -10,6 +10,7 @@ SYNOPSIS
 | *kw remote add* <name> <user@remote:port>
 | *kw remote remove* <name>
 | *kw remote rename* <old-name> <new-name>
+| *kw remote --list*
 
 DESCRIPTION
 ===========
@@ -30,6 +31,9 @@ remove <name>:
 rename <old-name> <new-name>:
   Rename the remote named <old> to <new>. If you try a name already in use, kw
   will fail with a message.
+
+\--list:
+  Lest all available remotes.
 
 \-v, \--verbose:
   Be a little more verbose and show remote url after name.
@@ -56,4 +60,4 @@ If you want to rename::
 
 You can also list all your available remotes via::
 
- kw remote -v
+ kw remote --list
