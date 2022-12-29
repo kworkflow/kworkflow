@@ -8,6 +8,7 @@ SYNOPSIS
 ========
 | *kw* (*env*) [(-c | \--create) <NAME>]
 | *kw* (*env*) [(-u | \--use) <NAME>]
+| *kw* (*env*) [(-d | \--destroy <NAME>)]
 | *kw* (*env*) [(-l | \--list)]
 | *kw* (*env*) [(-e | \--exit-env)]
 
@@ -45,6 +46,10 @@ OPTIONS
 -u, \--use <ENV_NAME>:
   Change from one env to another previously created.
 
+-d, \--destroy <ENV_NAME>:
+  The destroy parameter expects a string with the name of the env you want
+  to destroy.
+
 -l, \--list:
   It shows all envs created via `\--create` option.
 
@@ -64,6 +69,11 @@ If you want to create a new env, you can use::
 If you want to create a new env, you can use::
 
   kw env --use 32-BIT-COMPILATION
+
+If you want to destroy an environment::
+
+  kw env --destroy MY_NEW_ENV
+  kw env --destroy 32-BIT-COMPILATION
 
 If you want to list the available envs::
 

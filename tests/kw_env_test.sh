@@ -238,4 +238,44 @@ function test_exit_env_checking_files()
   assertFalse "$LINENO: We didn't expect a symbolic link in (${PWD}/.kw/build.config)" '[[ -L "${PWD}/.kw/build.config" ]]'
 }
 
+function test_destroy_env_checking_the_existence_of_a_directory()
+{
+  local output
+  local real_path
+  local expected_path
+
+  # Create envs
+  options_values['CREATE']='MACHINE_A'
+  create_new_env
+
+  options_values['CREATE']='MACHINE_B'
+  create_new_env
+
+  options_values['CREATE']='MACHINE_C'
+  create_new_env
+
+  options_values['USE']='MACHINE_A'
+  use_target_env
+
+  # Destroying the MACHINE_A env
+  options_values['DESTROY']='MACHINE_A'
+  output="$(printf '%s\n' 'y' | destroy_env)"
+
+  # Destroying the MACHINE_C env
+  options_values['DESTROY']='MACHINE_C'
+  output="$(printf '%s\n' 'y' | destroy_env)"
+
+  # MACHINE_A
+  assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/MACHINE_A) since the env was destroyed." '[[ -d "${PWD}/.kw/MACHINE_A" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/MACHINE_A) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/MACHINE_A" ]]'
+
+  # MACHINE_B
+  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/MACHINE_B)" '[[ -d "${PWD}/.kw/MACHINE_B" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/MACHINE_B" ]]'
+
+  # MACHINE_C
+  assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/MACHINE_C) since the env was destroyed." '[[ -d "${PWD}/.kw/MACHINE_C" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/MACHINE_C" ]]'
+}
+
 invoke_shunit
