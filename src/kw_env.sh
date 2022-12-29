@@ -36,6 +36,11 @@ function env_main()
     return "$?"
   fi
 
+  if [[ -n "${options_values['DESTROY']}" ]]; then
+    destroy_env
+    return "$?"
+  fi
+
   if [[ -n "${options_values['LIST']}" ]]; then
     list_env_available_envs
     return "$?"
@@ -155,6 +160,39 @@ function create_new_env()
   fi
 }
 
+# This Function gives the user the feature to destroy an environment.
+function destroy_env()
+{
+  local local_kw_configs="${PWD}/.kw"
+  local cache_build_path="$KW_CACHE_DIR"
+  local current_env
+  local env_name=${options_values['DESTROY']}
+
+  if [[ ! -d "$local_kw_configs" ]]; then
+    complain 'It looks like that you did not setup kw in this repository.'
+    complain 'For the first setup, take a look at: kw init --help'
+    return 22 # EINVAL
+  fi
+
+  if [[ ! -d "${local_kw_configs}/${env_name}" ]]; then
+    complain "The environment '${env_name}' does not exist."
+    return 22 # EINVAL
+  fi
+
+  if [[ $(ask_yN 'Are you sure you want to delete this environment?') =~ 0 ]]; then
+    return 22 # EINVAL
+  fi
+  # Here it is checked if the current env is equal to the env we want to
+  # destroy, if so, we call the exit_env function to exit the environment mode.
+  current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
+  if [[ "$current_env" == "$env_name" ]]; then
+    exit_env
+  fi
+
+  rm -rf "${local_kw_configs:?}/${env_name}" && rm -rf "${cache_build_path:?}/${env_name}"
+  success 'The "$env_name" environment has been destroyed.'
+}
+
 # This function searches for any folder inside the .kw directory and considers
 # it an env.
 #
@@ -191,8 +229,8 @@ function list_env_available_envs()
 
 function parse_env_options()
 {
-  local long_options='help,list,create:,use:,exit-env'
-  local short_options='h,l,c:,u:,e'
+  local long_options='help,list,create:,use:,exit-env,destroy:'
+  local short_options='h,l,c:,u:,e,d:'
   local count
 
   kw_parse "$short_options" "$long_options" "$@" > /dev/null
@@ -208,6 +246,7 @@ function parse_env_options()
   options_values['CREATE']=''
   options_values['USE']=''
   options_values['EXIT_ENV']=''
+  options_values['DESTROY']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -242,6 +281,10 @@ function parse_env_options()
         options_values['EXIT_ENV']=1
         shift
         ;;
+      --destroy | -d)
+        options_values['DESTROY']="$2"
+        shift 2
+        ;;
       --)
         shift
         ;;
@@ -264,5 +307,6 @@ function env_help()
     '  env [-l | --list] - List all environments available' \
     '  env [-u | --use] <NAME> - Use some specific env' \
     '  env (-c | --create) - Create a new environment' \
-    '  env (-e | --exit-env) - Exit environment mode'
+    '  env (-e | --exit-env) - Exit environment mode' \
+    '  env (-d | --destroy) - Destroy an environment'
 }
