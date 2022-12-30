@@ -323,4 +323,25 @@ function test_str_has_special_characters()
   assert_equals_helper 'We expected a special char here' "$LINENO" "$?" 0
 }
 
+function test_str_get_value_under_double_quotes()
+{
+  local output
+  local expected='value under quotes'
+
+  output=$(str_get_value_under_double_quotes 'This is a "value under quotes", right?')
+  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$output" "$expected"
+
+  expected='Nothing around quotes'
+  output=$(str_get_value_under_double_quotes '"Nothing around quotes"')
+  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$output" "$expected"
+
+  expected='Two'
+  output=$(str_get_value_under_double_quotes '"Two" and "Nothing around quotes" and "xpto"')
+  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$output" "$expected"
+
+  output=$(str_get_value_under_double_quotes '')
+  assert_equals_helper 'Empty string' "$LINENO" "$?" 22
+
+}
+
 invoke_shunit

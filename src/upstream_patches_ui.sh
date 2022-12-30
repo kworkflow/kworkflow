@@ -10,6 +10,7 @@ include "${KW_LIB_DIR}/lib/lore.sh"
 include "${KW_LIB_DIR}/kwio.sh"
 
 declare -ga registered_lists
+declare -ga patches_from_mailing_list
 
 # TODO: Bookmarked patches must come from local database
 declare -ga bookmarked_patches=(
@@ -19,12 +20,6 @@ declare -ga bookmarked_patches=(
   '2022-07-01 | #7   | drm/amdgpu: fix pci device refcount leak'
 )
 
-# To make it easier to change between different screens, we implement a
-# mechanism that uses this associative array to indicate the current screen to
-# be shown.
-declare -gr SEPARATOR_CHAR='Æ'
-
-# This is a global array that we use to store the list of new patches from a
 # target mailing list. After we parse the data from lore, we will have a list
 # that follows this pattern:
 #
@@ -75,6 +70,10 @@ upstream_patches_ui_main()
         ;;
       'registered_mailing_list')
         registered_mailing_list
+        ret="$?"
+        ;;
+      'show_new_patches_in_the_mailing_list')
+        show_new_patches_in_the_mailing_list "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
         ret="$?"
         ;;
       'bookmarked_patches')
@@ -135,11 +134,28 @@ function show_bookmarked_patches()
 function registered_mailing_list()
 {
   local message_box
+  local selected_list
 
-  # TODO: Get list from liblore
   message_box='Below you can see all the mailing lists that you are registered:'
 
   create_menu_options 'Mailing lists' "$message_box" 'registered_lists'
+  selected_list=$((menu_return_string - 1)) # Normalize array index
+  if [[ -n "$selected_list" ]]; then
+    screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
+    screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_lists[$selected_list]}"
+  fi
+}
+
+function show_new_patches_in_the_mailing_list()
+{
+  local list_name="$1"
+  local -a new_patches
+
+  # Query patches from mailing list, this info will be saved at
+  # ${list_of_mailinglist_patches[@]}
+  get_patches_from_mailing_list "$list_name" patches_from_mailing_list
+
+  list_patches "Patches from ${list_name}" patches_from_mailing_list
 }
 
 # Screen resposible for show a specific patch details

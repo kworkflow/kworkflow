@@ -208,3 +208,21 @@ function str_has_special_characters()
   [[ "$str" == *['!'@#\$%^\&*\(\)+]* ]] && return 0
   return 1
 }
+
+# Get value under double-quotes. This function only returns the first match if
+# the target string has more than one quoted string. If the string does not
+# have any quotes, this function will return the original string.
+#
+# @string String to be processed
+#
+# Return:
+# Return data between quotes, or 22 if the string is empty.
+function str_get_value_under_double_quotes()
+{
+  local string="$1"
+
+  [[ -z "$string" ]] && return 22 # EINVAL
+
+  printf '%s' "$string" | sed 's/^[^"]*"\([^"]*\)".*/\1/'
+  return "$?"
+}
