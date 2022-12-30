@@ -39,6 +39,11 @@ function env_main()
     list_env_available_envs
     return "$?"
   fi
+
+  if [[ -n "${options_values['EXIT_ENV']}" ]]; then
+    exit_env
+    return "$?"
+  fi
 }
 
 # When we switch between different kw envs we just change the symbolic links
@@ -70,6 +75,31 @@ function use_target_env()
 
   touch "${local_kw_configs}/${ENV_CURRENT_FILE}"
   printf '%s\n' "$target_env" > "${local_kw_configs}/${ENV_CURRENT_FILE}"
+}
+
+# This function allows users to "exit" a specific env if they no longer
+# want to use it.
+function exit_env()
+{
+  local current_env
+  local local_kw_configs="${PWD}/.kw"
+
+  current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
+
+  warning 'You are about to leave the env setup, and ENV_NAME config files will be used as a default.'
+  if [[ $(ask_yN 'Do you really want to proceed?') =~ '1' ]]; then
+    for config in "${config_file_list[@]}"; do
+      # All symbolic links will be removed, and the current env configuration files
+      # will be copied to the .kw folder. We will only need the original files of the
+      # current env, the symlinks will be removed as they only point to these original files.
+      if [[ -L "${local_kw_configs}/${config}.config" ]]; then
+        rm "${local_kw_configs}/${config}.config"
+      fi
+      cp "${local_kw_configs}/${current_env}/${config}.config" "${local_kw_configs}"
+    done
+    rm "${local_kw_configs}/${ENV_CURRENT_FILE}"
+    success 'You left the environment feature.'
+  fi
 }
 
 # When we are working with kw environments, we provide the option for creating
@@ -160,8 +190,8 @@ function list_env_available_envs()
 
 function parse_env_options()
 {
-  local long_options='help,list,create:,use:'
-  local short_options='h,l,c:,u:'
+  local long_options='help,list,create:,use:,exit-env'
+  local short_options='h,l,c:,u:,e'
   local count
 
   kw_parse "$short_options" "$long_options" "$@" > /dev/null
@@ -176,6 +206,7 @@ function parse_env_options()
   options_values['LIST']=''
   options_values['CREATE']=''
   options_values['USE']=''
+  options_values['EXIT_ENV']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -206,6 +237,10 @@ function parse_env_options()
         options_values['USE']="$2"
         shift 2
         ;;
+      --exit-env | -e)
+        options_values['EXIT_ENV']=1
+        shift
+        ;;
       --)
         shift
         ;;
@@ -227,5 +262,6 @@ function env_help()
   printf '%s\n' 'kw env:' \
     '  env [-l | --list] - List all environments available' \
     '  env [-u | --use] <NAME> - Use some specific env' \
-    '  env (-c | --create) - Create a new environment'
+    '  env (-c | --create) - Create a new environment' \
+    '  env (-e | --exit-env) - Exit environment mode'
 }

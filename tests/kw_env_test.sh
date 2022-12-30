@@ -219,4 +219,23 @@ function test_parse_env_options()
   assertEquals "($LINENO) Invalid option" "$?" 22
 }
 
+function test_exit_env_checking_files()
+{
+  local output
+
+  # Creating an env
+  options_values['CREATE']='MACHINE_A'
+  create_new_env
+
+  # Switch env
+  options_values['USE']='MACHINE_A'
+  use_target_env
+
+  # Exiting the env
+  options_values['EXIT_ENV']=1
+  output="$(printf '%s\n' 'y' | exit_env)"
+
+  assertFalse "$LINENO: We didn't expect a symbolic link in (${PWD}/.kw/build.config)" '[[ -L "${PWD}/.kw/build.config" ]]'
+}
+
 invoke_shunit
