@@ -70,7 +70,7 @@ function _kw_autocomplete()
   kw_options['drm']='--remote --local --gui-on --gui-off --load-module
                      --unload-module --conn-available --modes --help'
 
-  kw_options['env']='--create --list --use'
+  kw_options['env']='--create --list --use --exit-env'
 
   kw_options['self-update']='--unstable --help'
   kw_options['u']="${kw_options['self-update']}"
