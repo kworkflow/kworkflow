@@ -55,12 +55,13 @@ function create_menu_options()
   local menu_title="$1"
   local menu_message_box="$2"
   local -n _menu_list_string_array="$3"
-  local cancel_label="$4"
-  local height="$5"
-  local width="$6"
-  local max_elements_displayed_in_the_menu="$7"
-  local no_index="$8"
-  local flag="$9"
+  local back_button_label="$4"
+  local cancel_label="$5"
+  local height="$6"
+  local width="$7"
+  local max_elements_displayed_in_the_menu="$8"
+  local no_index="$9"
+  local flag="${10}"
   local index=1
   local cmd
   local ret
@@ -86,6 +87,12 @@ function create_menu_options()
   # Change cancel label
   cmd+=" --cancel-label \$'${cancel_label}'"
 
+  # Add extra button?
+  if [[ -n "$back_button_label" ]]; then
+    cmd+=" --extra-button --extra-label 'Return'"
+  fi
+
+  # Menu option
   cmd+=" --menu $\"${menu_message_box}\""
 
   # Set height, width, and max display itens

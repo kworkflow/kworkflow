@@ -135,15 +135,26 @@ function registered_mailing_list()
 {
   local message_box
   local selected_list
+  local ret
 
   message_box='Below you can see all the mailing lists that you are registered:'
 
-  create_menu_options 'Mailing lists' "$message_box" 'registered_lists'
+  create_menu_options 'Mailing lists' "$message_box" 'registered_lists' 1
+  ret="$?"
+
   selected_list=$((menu_return_string - 1)) # Normalize array index
-  if [[ -n "$selected_list" ]]; then
-    screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
-    screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_lists[$selected_list]}"
-  fi
+  case "$ret" in
+    0) # OK
+      screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
+      screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_lists[$selected_list]}"
+      ;;
+    1) # Exit
+      handle_exit "$ret"
+      ;;
+    3) # Return
+      screen_sequence['SHOW_SCREEN']='dashboard'
+      ;;
+  esac
 }
 
 function show_new_patches_in_the_mailing_list()
@@ -198,21 +209,27 @@ function list_patches()
   local message_box="$1"
   local -n _target_array_list="$2"
   local selected_patch
-
-  # TODO: Get list from local store
-  # Format patche like this:
-  # printf 'V%-2s |#%-3s| %-100s' "$patch_version" "$total_patches" "$patch_title"
+  local ret
 
   message_box='List of bookmarked patches'
 
-  create_menu_options 'Bookmarked patches' "$message_box" '_target_array_list'
+  create_menu_options 'Bookmarked patches' "$message_box" '_target_array_list' 1
+  ret="$?"
 
   selected_patch="$menu_return_string"
 
-  if [[ -n "$selected_patch" ]]; then
-    screen_sequence['SHOW_SCREEN']='show_series_details'
-    screen_sequence['SHOW_SCREEN_PARAMETER']="$selected_patch"
-  fi
+  case "$ret" in
+    0) # OK
+      screen_sequence['SHOW_SCREEN']='show_series_details'
+      screen_sequence['SHOW_SCREEN_PARAMETER']="$selected_patch"
+      ;;
+    1) # Exit
+      handle_exit "$ret"
+      ;;
+    3) # Return
+      screen_sequence['SHOW_SCREEN']='dashboard'
+      ;;
+  esac
 }
 
 # Screen used to register to a new mailing list

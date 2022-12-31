@@ -66,7 +66,7 @@ function test_create_menu_options_rely_on_some_default_options()
   expected_cmd+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
   expected_cmd+=" '1' $\"Element 1\" '2' $\"Element 2\""
 
-  output=$(create_menu_options "$menu_title" "$menu_message_box" menu_list_string_array '' '' '' '' '' 'TEST_MODE')
+  output=$(create_menu_options "$menu_title" "$menu_message_box" menu_list_string_array '' '' '' '' '' '' 'TEST_MODE')
   assert_equals_helper 'Expected simple dialog menu' "$LINENO" "${output}" "${expected_cmd}"
 }
 
@@ -78,11 +78,12 @@ function test_create_menu_options_use_all_options()
   local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
   local output
 
-  expected_cmd+=" --title \$'${menu_title}' --clear --colors --cancel-label $'Xpto' --menu $\"${menu_message_box}\""
+  expected_cmd+=" --title \$'${menu_title}' --clear --colors --cancel-label $'Xpto'"
+  expected_cmd+=" --extra-button --extra-label 'Return' --menu $\"${menu_message_box}\""
   expected_cmd+=" '300' '300' '1'"
   expected_cmd+=" $\"Element 1\" '' $\"Element 2\" ''"
 
-  output=$(create_menu_options "$menu_title" "$menu_message_box" menu_list_string_array 'Xpto' '300' '300' '1' '1' 'TEST_MODE')
+  output=$(create_menu_options "$menu_title" "$menu_message_box" menu_list_string_array 1 'Xpto' '300' '300' '1' '1' 'TEST_MODE')
   assert_equals_helper 'Expected custom dialog menu' "$LINENO" "${output}" "${expected_cmd}"
 }
 
