@@ -53,6 +53,13 @@ declare -ga bookmarked_patches=(
   '2022-07-01 | #7   | drm/amdgpu: fix pci device refcount leak'
 )
 
+declare -ga patch_list_with_metadata=(
+  'Joe DoeÆjoedoe@lala.comÆV1Æ1Ædrm/amd/pm: Enable bad memory page/channel recording support for smu v13_0_0Æhttp://something.la'
+  'Juca PiramaÆjucapirama@xpto.comÆV1Æ255ÆDC Patches November 19, 2022Æhttp://anotherthing.la'
+  'Machado de AssisÆmachado@literatura.comÆV2Æ1Ædrm/amdgpu: add drv_vram_usage_va for virt data exchangeÆhttp://machado.good.books.la'
+  'Racionais McÆvidaloka@abc.comÆV2Æ1Ædrm/amdgpu: fix pci device refcount leakÆhttp://racionais.mc.vida.loka'
+)
+
 function test_show_series_details()
 {
   local output
@@ -83,12 +90,12 @@ function test_list_patches()
   # shellcheck disable=SC2317
   function create_menu_options()
   {
-    menu_return_string='something'
+    menu_return_string='3'
   }
 
   list_patches 'Message test' 'bookmarked_patches'
   assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'show_series_details'
-  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN_PARAMETER']}" 'something'
+  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN_PARAMETER']}" 2
 }
 
 invoke_shunit

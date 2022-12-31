@@ -371,6 +371,7 @@ function get_patches_from_mailing_list()
   reset_list_of_mailinglist_patches
 
   processing_new_patches "$target_mailing_list"
+
   # Format data for printing
   for element in "${list_of_mailinglist_patches[@]}"; do
     IFS="${SEPARATOR_CHAR}" read -r -a columns <<< "$element"

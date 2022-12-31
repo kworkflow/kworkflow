@@ -99,7 +99,7 @@ function test_create_simple_checklist_rely_on_some_default_options()
   expected_cmd+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
   expected_cmd+=" 'Checklist 1' '' 'off' 'Checklist 2' '' 'off'"
 
-  output=$(create_simple_checklist "$menu_title" "$menu_message_box" menu_list_string_array '' '' '' '' 'TEST_MODE')
+  output=$(create_simple_checklist "$menu_title" "$menu_message_box" menu_list_string_array '' '' '' '' '' 'TEST_MODE')
   assert_equals_helper 'Expected simple checklist' "$LINENO" "${output}" "${expected_cmd}"
 }
 
@@ -111,11 +111,13 @@ function test_create_simple_checklist_use_all_options()
   local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
   local output
 
-  expected_cmd+=" --title \$'${menu_title}' --clear --colors --cancel-label $'Nop' --checklist $\"${menu_message_box}\""
+  expected_cmd+=" --title \$'${menu_title}' --clear --colors --cancel-label $'Nop'"
+  expected_cmd+=" --extra-button --extra-label 'Return'"
+  expected_cmd+=" --checklist $\"${menu_message_box}\""
   expected_cmd+=" '442' '244' '3'"
   expected_cmd+=" 'Checklist 1' '' 'off' 'Checklist 2' '' 'off'"
 
-  output=$(create_simple_checklist "$menu_title" "$menu_message_box" menu_list_string_array 'Nop' '442' '244' '3' 'TEST_MODE')
+  output=$(create_simple_checklist "$menu_title" "$menu_message_box" menu_list_string_array 1 'Nop' '442' '244' '3' 'TEST_MODE')
   assert_equals_helper 'Expected simple checklist' "$LINENO" "${output}" "${expected_cmd}"
 }
 

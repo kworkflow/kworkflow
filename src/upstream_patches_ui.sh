@@ -20,22 +20,6 @@ declare -ga bookmarked_patches=(
   '2022-07-01 | #7   | drm/amdgpu: fix pci device refcount leak'
 )
 
-# target mailing list. After we parse the data from lore, we will have a list
-# that follows this pattern:
-#
-#  Author, email, version, total patches, patch title, link
-#
-# Note: To separate those elements, we use the variable SEPARATOR_CHAR, which
-# can be a ',' but by default, we use 'Æ'. We used ',' in the example for make
-# it easy to undertand.
-# TODO: Array populated with dummy data
-declare -ga patch_list_with_metadata=(
-  'Joe DoeÆjoedoe@lala.comÆV1Æ1Ædrm/amd/pm: Enable bad memory page/channel recording support for smu v13_0_0Æhttp://something.la'
-  'Juca PiramaÆjucapirama@xpto.comÆV1Æ255ÆDC Patches November 19, 2022Æhttp://anotherthing.la'
-  'Machado de AssisÆmachado@literatura.comÆV2Æ1Ædrm/amdgpu: add drv_vram_usage_va for virt data exchangeÆhttp://machado.good.books.la'
-  'Racionais McÆvidaloka@abc.comÆV2Æ1Ædrm/amdgpu: fix pci device refcount leakÆhttp://racionais.mc.vida.loka'
-)
-
 declare -gA screen_sequence=(
   ['SHOW_SCREEN']='register'
   ['SHOW_SCREEN_PARAMETER']=''
@@ -81,7 +65,7 @@ upstream_patches_ui_main()
         ret="$?"
         ;;
       'show_series_details')
-        show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}" patch_list_with_metadata
+        show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}" list_of_mailinglist_patches
         ret="$?"
         ;;
     esac
@@ -164,9 +148,11 @@ function show_new_patches_in_the_mailing_list()
 
   # Query patches from mailing list, this info will be saved at
   # ${list_of_mailinglist_patches[@]}
-  get_patches_from_mailing_list "$list_name" patches_from_mailing_list
+  if [[ "${screen_sequence['SHOW_SCREEN_PARAMETER']}" != 'return' ]]; then
+    get_patches_from_mailing_list "$list_name" patches_from_mailing_list
+  fi
 
-  list_patches "Patches from ${list_name}" patches_from_mailing_list
+  list_patches "Patches from ${screen_sequence['SHOW_SCREEN_PARAMETER']}" patches_from_mailing_list
 }
 
 # Screen resposible for show a specific patch details
@@ -181,6 +167,7 @@ function show_series_details()
   local patch_metadata
   local target_patch
   local message_box
+  local columns
 
   action_list=('Bookmark patch' 'Download patch' 'Apply patch')
 
@@ -194,7 +181,20 @@ function show_series_details()
 
   message_box="$patch_metadata"
 
-  create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list'
+  create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list' 1
+  ret="$?"
+
+  case "$ret" in
+    #0) # OK
+    #  ;;
+    1) # Exit
+      handle_exit "$ret"
+      ;;
+    3) # Return
+      screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
+      screen_sequence['SHOW_SCREEN_PARAMETER']='return'
+      ;;
+  esac
 }
 
 # This is a generic function used to show a list of patches. If the user select
@@ -211,12 +211,10 @@ function list_patches()
   local selected_patch
   local ret
 
-  message_box='List of bookmarked patches'
-
   create_menu_options 'Bookmarked patches' "$message_box" '_target_array_list' 1
   ret="$?"
 
-  selected_patch="$menu_return_string"
+  selected_patch=$((menu_return_string - 1))
 
   case "$ret" in
     0) # OK
@@ -240,6 +238,7 @@ function register_mailing_list()
   local new_list
   local -a menu_list_string_array
   local lore_config_path="${PWD}/.kw/lore.config"
+  local ret
 
   if [[ ! -f "${lore_config_path}" ]]; then
     lore_config_path="${KW_ETC_DIR}/lore.config"
@@ -255,15 +254,23 @@ function register_mailing_list()
   message_box+=" select one or more of the below list:"
 
   create_simple_checklist 'Lore list' "$message_box" 'menu_list_string_array'
+  ret="$?"
 
   new_list=$(printf '%s' "$menu_return_string" | tr -s '[:blank:]' ',')
 
-  if [[ -n "$new_list" ]]; then
-    screen_sequence['SHOW_SCREEN']='dashboard'
-    lore_config['lists']="${new_list}"
-    IFS=',' read -r -a registered_lists <<< "$new_list"
-    sed -i -r "s<(lists=).*<\1${new_list}<" "$lore_config_path"
-  fi
+  case "$ret" in
+    0) # OK
+      if [[ -n "$new_list" ]]; then
+        screen_sequence['SHOW_SCREEN']='dashboard'
+        lore_config['lists']="${new_list}"
+        IFS=',' read -r -a registered_lists <<< "$new_list"
+        sed -i -r "s<(lists=).*<\1${new_list}<" "$lore_config_path"
+      fi
+      ;;
+    1) # Exit
+      handle_exit "$ret"
+      ;;
+  esac
 }
 
 load_lore_config

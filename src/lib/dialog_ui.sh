@@ -137,11 +137,12 @@ function create_simple_checklist()
   local menu_title="$1"
   local menu_message_box="$2"
   local -n _menu_list_string_array="$3"
-  local cancel_label="$4"
-  local height="$5"
-  local width="$6"
-  local list_height="$7"
-  local flag="$8"
+  local back_button_label="$4"
+  local cancel_label="$5"
+  local height="$6"
+  local width="$7"
+  local list_height="$8"
+  local flag="$9"
   local cmd
   local ret
 
@@ -161,6 +162,11 @@ function create_simple_checklist()
 
   # Change cancel label
   cmd+=" --cancel-label \$'${cancel_label}'"
+
+  # Add extra button?
+  if [[ -n "$back_button_label" ]]; then
+    cmd+=" --extra-button --extra-label 'Return'"
+  fi
 
   # Start to compose menu
   cmd+=" --checklist $\"${menu_message_box}\""
