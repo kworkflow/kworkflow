@@ -246,9 +246,9 @@ function register_mailing_list()
 
   retrieve_available_mailing_lists "$flag"
 
-  for mailing_list in "${!available_lore_mailing_lists[@]}"; do
-    menu_list_string_array+=("$mailing_list")
-  done
+  # shellcheck disable=SC2207
+  IFS=$'\n' menu_list_string_array=($(sort <<< "${!available_lore_mailing_lists[*]}"))
+  unset IFS
 
   message_box="It looks like that you don't have any lore list registered; please"
   message_box+=" select one or more of the below list:"
