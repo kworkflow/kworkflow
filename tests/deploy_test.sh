@@ -33,6 +33,7 @@ function setUp()
   parse_configuration "$KW_CONFIG_SAMPLE"
   parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
   parse_configuration "$KW_DEPLOY_CONFIG_SAMPLE" deploy_config
+  parse_configuration "$KW_VM_CONFIG_SAMPLE" vm_config
 
   # Usually, we call populate_remote_info to fill out remote info. However, to
   # keep the test more reliable, we manually set this values here
@@ -643,7 +644,7 @@ function test_parse_deploy_options()
   assert_equals_helper 'Default LS_LINE did not match expectation' "($LINENO)" '0' "${options_values['LS_LINE']}"
   assert_equals_helper 'Default LS_ALL did not match expectation' "($LINENO)" '' "${options_values['LS_ALL']}"
   assert_equals_helper 'Default MENU_CONFIG did not match expectation' "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
-  assert_equals_helper 'Default TARGET did not match expectation' "($LINENO)" 3 "${options_values['TARGET']}"
+  assert_equals_helper 'Default TARGET did not match expectation' "($LINENO)" '1' "${options_values['TARGET']}"
 
   # test individual options
   unset options_values

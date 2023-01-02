@@ -12,6 +12,7 @@ function setUp()
 
   # Copy sample files
   cp "${KW_CONFIG_SAMPLE_X86}" "${KW_CONFIG_BASE_PATH}"
+  cp "${KW_VM_CONFIG_SAMPLE}" "${KW_CONFIG_BASE_PATH}"
   cp "${KW_BUILD_CONFIG_SAMPLE}" "${KW_CONFIG_BASE_PATH}"
   cp "${KW_MAIL_CONFIG_SAMPLE}" "${KW_CONFIG_BASE_PATH}"
   cp "${KW_DEPLOY_CONFIG_SAMPLE}" "${KW_CONFIG_BASE_PATH}"
@@ -105,12 +106,21 @@ function test_set_config_value_with_dot_in_the_value()
   assertEquals "($LINENO)" "$?" 22
 }
 
+function test_set_config_with_a_path_as_value()
+{
+  local output
+
+  set_config_value 'qemu_path_image' '/DATA/QEMU_VMS/virty.qcow2' "${KW_CONFIG_BASE_PATH}/vm.config"
+  output=$(grep 'qemu_path_image' "${KW_CONFIG_BASE_PATH}/vm.config")
+  assert_equals_helper 'Change llvm' "($LINENO)" "$output" 'qemu_path_image=/DATA/QEMU_VMS/virty.qcow2'
+}
+
 function test_check_if_target_config_exist()
 {
-  check_if_target_config_exist 'deploy' 'deploy.config'
+  check_if_target_config_exist 'vm' 'vm.config'
   assertEquals "($LINENO)" "$?" 0
 
-  check_if_target_config_exist 'deploy' 'la.config'
+  check_if_target_config_exist 'vm' 'la.config'
   assertEquals "($LINENO)" "$?" 2
 }
 
@@ -154,6 +164,10 @@ function test_show_configurations_without_parameters()
 
   output=$(show_configurations)
 
+  assert_line_match "$LINENO" 'vm.virtualizer=libvirt' "$output"
+  assert_line_match "$LINENO" 'vm.mount_point=/home/lala' "$output"
+  assert_line_match "$LINENO" 'vm.qemu_path_image=/home/xpto/p/virty.qcow2' "$output"
+
   assert_line_match "$LINENO" 'build.arch=arm64' "$output"
   assert_line_match "$LINENO" 'build.kernel_img_name=Image' "$output"
   assert_line_match "$LINENO" 'build.cross_compile=aarch64-linux-gnu-' "$output"
@@ -167,7 +181,7 @@ function test_show_configurations_without_parameters()
   assert_line_match "$LINENO" 'mail.send_opts=--annotate --cover-letter --no-chain-reply-to --thread' "$output"
   assert_line_match "$LINENO" 'mail.blocked_emails=test@email.com' "$output"
 
-  assert_line_match "$LINENO" 'deploy.default_deploy_target=remote' "$output"
+  assert_line_match "$LINENO" 'deploy.default_deploy_target=vm' "$output"
   assert_line_match "$LINENO" 'deploy.reboot_after_deploy=no' "$output"
   assert_line_match "$LINENO" 'deploy.kw_files_remote_path=/opt/kw' "$output"
   assert_line_match "$LINENO" 'deploy.deploy_temporary_files_path=/tmp/kw' "$output"
@@ -204,7 +218,11 @@ function test_show_configurations_with_parameters()
     return
   }
 
-  output=$(show_configurations 'notification')
+  output=$(show_configurations 'vm notification')
+
+  assert_line_match "$LINENO" 'vm.virtualizer=libvirt' "$output"
+  assert_line_match "$LINENO" 'vm.mount_point=/home/lala' "$output"
+  assert_line_match "$LINENO" 'vm.qemu_path_image=/home/xpto/p/virty.qcow2' "$output"
 
   assert_line_match "$LINENO" 'notification.alert=n' "$output"
   assert_line_match "$LINENO" 'notification.sound_alert_command=paplay SOUNDPATH/bell.wav' "$output"
