@@ -386,3 +386,75 @@ function get_patches_from_mailing_list()
     ((index++))
   done
 }
+
+function title_to_path()
+{
+  local title="$1"
+  local file_name
+
+  # Replace space in favor of _
+  file_name="${title// /_}"
+
+  # Replace .
+  file_name="${file_name//./_}"
+
+  # Replace special character
+  file_name="${file_name//[&*+%!:,]/}"
+
+  # Replace /
+  file_name="${file_name//[\/\\]/-}"
+
+  printf '%s' "$file_name"
+}
+
+function convert_title_to_patch_name()
+{
+  local title="$1"
+  local index="$2"
+  local file_name
+
+  file_name=$(title_to_path "$title")
+
+  if [[ -n "$index" ]]; then
+    printf '%04d-%s\n' "$index" "${file_name}.mbox"
+    return
+  fi
+
+  printf '%s\n' "${file_name}.mbox"
+}
+
+function url_update_patch_number()
+{
+  local url="$1"
+  local new_number="$2"
+
+  url="${url/-[0-9]*-/-$link_ref-}"
+
+  printf '%s' "$url"
+}
+
+function download_series()
+{
+  local total_patches="$1"
+  local first_message_id="$2"
+  local save_to="$3"
+  local title="$4"
+  local total=0
+  local link_ref=0
+  local url
+  local patch_file_name
+
+  mkdir -p "$save_to"
+
+  url=$(replace_http_by_https "$first_message_id")
+
+  until ! is_the_link_valid "$url"; do
+    ((total++))
+    ((link_ref++))
+
+    url=$(url_update_patch_number "$url" "$link_ref")
+    patch_file_name=$(convert_title_to_patch_name "$title" "$link_ref")
+    download "${url}raw" "$patch_file_name" "${save_to}" &
+  done
+  wait
+}

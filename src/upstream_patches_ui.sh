@@ -168,8 +168,12 @@ function show_series_details()
   local target_patch
   local message_box
   local columns
+  local patch_url
+  local patch_title
+  local total_patches
 
-  action_list=('Bookmark patch' 'Download patch' 'Apply patch')
+  # TODO: Add apply patch
+  action_list=('Bookmark' 'Download')
 
   target_patch=${_target_patch_metadata["$patch_index"]}
   IFS="${SEPARATOR_CHAR}" read -r -a columns <<< "$target_patch"
@@ -179,14 +183,29 @@ function show_series_details()
   patch_metadata+=$(prettify_string 'Version:' "${columns[2]}")
   patch_metadata+=$(prettify_string 'Patches:' "${columns[3]}")
 
+  total_patches="${columns[3]}"
+  patch_title="${columns[4]}"
+  patch_url="${columns[5]}"
+
   message_box="$patch_metadata"
 
   create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list' 1
   ret="$?"
 
   case "$ret" in
-    #0) # OK
-    #  ;;
+    0) # OK
+      IFS=' ' read -ra selected_options <<< "$menu_return_string"
+      for option in "${selected_options[@]}"; do
+        case "$option" in
+          'Bookmark')
+            printf 'TODO' # TODO
+            ;;
+          'Download')
+            download_series "$total_patches" "$patch_url" "${lore_config['download_to']}" "$patch_title"
+            ;;
+        esac
+      done
+      ;;
     1) # Exit
       handle_exit "$ret"
       ;;
