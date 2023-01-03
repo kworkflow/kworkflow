@@ -181,7 +181,7 @@ function test_show_configurations_without_parameters()
   assert_line_match "$LINENO" 'mail.send_opts=--annotate --cover-letter --no-chain-reply-to --thread' "$output"
   assert_line_match "$LINENO" 'mail.blocked_emails=test@email.com' "$output"
 
-  assert_line_match "$LINENO" 'deploy.default_deploy_target=vm' "$output"
+  assert_line_match "$LINENO" 'deploy.default_deploy_target=remote' "$output"
   assert_line_match "$LINENO" 'deploy.reboot_after_deploy=no' "$output"
   assert_line_match "$LINENO" 'deploy.kw_files_remote_path=/opt/kw' "$output"
   assert_line_match "$LINENO" 'deploy.deploy_temporary_files_path=/tmp/kw' "$output"

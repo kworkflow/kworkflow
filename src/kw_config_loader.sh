@@ -36,7 +36,7 @@ declare -gA mail_config
 declare -gA notification_config
 
 # Default target option from kworkflow.config
-declare -gA deploy_target_opt=(['vm']=1 ['local']=2 ['remote']=3)
+declare -gA deploy_target_opt=(['local']=2 ['remote']=3)
 
 # This function is used to show the current set up used by kworkflow.
 function show_variables_main()

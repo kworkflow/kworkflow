@@ -644,7 +644,7 @@ function test_parse_deploy_options()
   assert_equals_helper 'Default LS_LINE did not match expectation' "($LINENO)" '0' "${options_values['LS_LINE']}"
   assert_equals_helper 'Default LS_ALL did not match expectation' "($LINENO)" '' "${options_values['LS_ALL']}"
   assert_equals_helper 'Default MENU_CONFIG did not match expectation' "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
-  assert_equals_helper 'Default TARGET did not match expectation' "($LINENO)" '1' "${options_values['TARGET']}"
+  assert_equals_helper 'Default TARGET did not match expectation' "($LINENO)" 3 "${options_values['TARGET']}"
 
   # test individual options
   unset options_values
