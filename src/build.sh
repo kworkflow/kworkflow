@@ -82,6 +82,7 @@ function kernel_build()
   output_path=${options_values['LOG_PATH']}
   llvm=${options_values['USE_LLVM_TOOLCHAIN']}
   clean=${options_values['CLEAN']}
+  full_cleanup=${options_values['FULL_CLEANUP']}
 
   if [[ -n "${options_values['INFO']}" ]]; then
     build_info ''
@@ -102,6 +103,11 @@ function kernel_build()
 
   if [[ -n "$clean" ]]; then
     build_clean "$flag"
+    return "$?"
+  fi
+
+  if [[ -n "$full_cleanup" ]]; then
+    full_cleanup "$flag" "$output_kbuild_flag"
     return "$?"
   fi
 
@@ -181,6 +187,19 @@ function build_clean()
   cmd_manager "$flag" "$cmd"
 }
 
+# This function runs the 'make distclean' command under the hood, with
+# the advantage of checking if the user is using an env or not.
+# In other words, it integrates env with the full-cleanup option.
+function full_cleanup()
+{
+  local flag="$1"
+  local env_path="$2"
+  local cmd
+
+  cmd="make distclean${env_path}"
+  cmd_manager "$flag" "$cmd"
+}
+
 # This function loads the kw build configuration files into memory, populating
 # the $build_config hashtable. The files are parsed in a specific order,
 # allowing higher level setting definitions to overwrite lower level ones.
@@ -227,8 +246,8 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean'
-  local short_options='h,i,n,d,S:,w::,s:,c'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup'
+  local short_options='h,i,n,d,S:,w::,s:,c,f'
   local doc_type
   local file_name_size
 
@@ -254,6 +273,7 @@ function parse_build_options()
   options_values['LOG_PATH']="${build_config[log_path]:-${configurations[log_path]}}"
   options_values['USE_LLVM_TOOLCHAIN']="${build_config[use_llvm]:-${configurations[use_llvm]}}"
   options_values['CLEAN']=''
+  options_values['FULL_CLEANUP']=''
 
   # Check llvm option
   if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
@@ -298,6 +318,10 @@ function parse_build_options()
         ;;
       --clean | -c)
         options_values['CLEAN']=1
+        shift
+        ;;
+      --full-cleanup | -f)
+        options_values['FULL_CLEANUP']=1
         shift
         ;;
       --doc | -d)
@@ -354,7 +378,8 @@ function build_help()
     '  build (-w | --warnings) [warning_levels] - Enable warnings' \
     '  build (-s | --save-log-to) <path> - Save compilation log to path' \
     '  build (--llvm) - Enable use of the LLVM toolchain' \
-    '  build (-c | --clean) - Clean option integrated into env'
+    '  build (-c | --clean) - Clean option integrated into env' \
+    '  build (-f | --full-cleanup) - Reset the kernel tree to its default option integrated into env'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well
