@@ -260,6 +260,15 @@ function kw()
         drm_main "$@"
       )
       ;;
+    # VM
+    vm)
+      (
+        include "${KW_LIB_DIR}/vm.sh"
+
+        vm_main "$@"
+      )
+      ;;
+
     *)
       (
         include "$KW_LIB_DIR/help.sh"

@@ -75,6 +75,8 @@ function _kw_autocomplete()
   kw_options['self-update']='--unstable --help'
   kw_options['u']="${kw_options['self-update']}"
 
+  kw_options['vm']='--mount --umount --up --help'
+
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
 
   # TODO:
