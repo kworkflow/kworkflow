@@ -637,6 +637,10 @@ function install_kernel()
     cmd_manager "$flag" "$cmd"
   fi
 
+  # Copy kernel config
+  cmd="${sudo_cmd}cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/config-${name} /boot/"
+  cmd_manager "$flag" "$cmd"
+
   # Update kernel image in the /boot
   cmd="${sudo_cmd}cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
   cmd_manager "$flag" "$cmd"
