@@ -506,6 +506,7 @@ function test_install_kernel_remote()
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
     "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
     "cp ${PWD}/boot/vmlinuz-${name} ${PWD}/boot/vmlinuz-${name}.old"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/config-test /boot/"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
     'run_bootloader_update_mock'
@@ -518,6 +519,7 @@ function test_install_kernel_remote()
     "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
     "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/config-test /boot/"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/*.dtb /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
@@ -582,6 +584,7 @@ function test_install_kernel_local()
     "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
     "sudo -E rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/config-test /boot/"
     "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'run_bootloader_update_mock'
