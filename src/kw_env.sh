@@ -94,6 +94,11 @@ function exit_env()
   local current_env
   local local_kw_configs="${PWD}/.kw"
 
+  if [[ ! -f "${local_kw_configs}/${ENV_CURRENT_FILE}" ]]; then
+    say 'You are not using any env at the moment'
+    return
+  fi
+
   current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
 
   warning "You are about to leave the env setup, and ${current_env} config files will be used as a default."
