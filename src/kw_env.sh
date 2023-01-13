@@ -72,6 +72,10 @@ function use_target_env()
     # of them must be under the new env folder. Let's remove any left over
     if [[ ! -L "${local_kw_configs}/${config}.config" ]]; then
       tmp_trash=$(mktemp -d)
+
+      # Check if the config file exists before trying to remove it.
+      [[ ! -f "${local_kw_configs}/${config}.config" ]] && continue
+
       mv "${local_kw_configs}/${config}.config" "$tmp_trash"
     fi
 
@@ -101,6 +105,10 @@ function exit_env()
       if [[ -L "${local_kw_configs}/${config}.config" ]]; then
         rm "${local_kw_configs}/${config}.config"
       fi
+
+      # Check if the config file exists before trying to copy it.
+      [[ ! -f "${local_kw_configs}/${current_env}/${config}.config" ]] && continue
+
       cp "${local_kw_configs}/${current_env}/${config}.config" "${local_kw_configs}"
     done
     rm "${local_kw_configs}/${ENV_CURRENT_FILE}"
