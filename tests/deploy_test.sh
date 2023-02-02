@@ -259,7 +259,7 @@ function test_prepare_distro_for_deploy()
     'sudo -E systemctl restart pacman-init.service'
     'sudo -E pacman-key --populate'
     'yes | sudo -E pacman -Syu'
-    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober rng-tools'
+    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober rng-tools jq'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
@@ -798,7 +798,7 @@ function prepare_remote_list_of_files()
 {
   local distro="$1"
 
-  printf '{remote_deploy.sh,utils.sh,%s.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh}' "$distro"
+  printf '{remote_deploy.sh,utils.sh,%s.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh,systemd_bootloader.sh}' "$distro"
 }
 
 function test_prepare_remote_dir()
@@ -829,6 +829,7 @@ function test_prepare_remote_dir()
     "$arch_sync_files_cmd"
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
     "$CONFIG_RSYNC $KW_ETC_DIR/template_mkinitcpio.preset $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG"
+    "${CONFIG_RSYNC} ${KW_ETC_DIR}/template_loader.conf ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY} ${STD_RSYNC_FLAG}"
   )
 
   alias detect_distro='detect_distro_arch_mock'

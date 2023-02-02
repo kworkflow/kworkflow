@@ -29,9 +29,15 @@ declare -gar RPI_BOOTLOADER=(
   'boot/LICENCE.broadcom'
 )
 
+declare -gar SYSTEMD_BOOT=(
+  '/boot/loader/loader.conf'
+  '/boot/EFI/systemd/systemd-bootx64.efi'
+)
+
 # List of supported bootloaders
 declare -gar SUPPORTED_BOOTLOADER=(
   'GRUB'
+  'SYSTEMD_BOOT'
   'SYSLINUX'
   'RPI_BOOTLOADER'
 )

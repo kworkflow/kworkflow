@@ -525,7 +525,7 @@ function prepare_remote_dir()
   fi
 
   target_deploy_path=$(join_path "$target_deploy_path" "$distro.sh")
-  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh}"
+  files_to_send="${KW_PLUGINS_DIR}/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh,systemd_bootloader.sh}"
 
   # Send required scripts for running the deploy inside the target machine
   # Note: --archive will force the creation of /root/kw_deploy in case it does
@@ -552,7 +552,8 @@ function prepare_remote_dir()
   # TODO: In some point, we need to move the below code to ArchLinux specific
   # file
   if [[ "$distro" == 'arch' ]]; then
-    cp2remote "$flag" "$KW_ETC_DIR/template_mkinitcpio.preset" "$REMOTE_KW_DEPLOY"
+    cp2remote "$flag" "${KW_ETC_DIR}/template_mkinitcpio.preset" "$REMOTE_KW_DEPLOY"
+    cp2remote "$flag" "${KW_ETC_DIR}/template_loader.conf" "$REMOTE_KW_DEPLOY"
   fi
 }
 

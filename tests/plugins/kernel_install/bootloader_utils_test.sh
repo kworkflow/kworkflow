@@ -55,6 +55,14 @@ function setUp()
     file="${bootloader_file}/${file}"
     mkdir -p "${file%/*}" && touch "$file"
   done
+
+  # Create fake systemd-boot path
+  bootloader_file="${SHUNIT_TMPDIR}/SYSTEMD_BOOT_FILES"
+  mkdir -p "$bootloader_file"
+  for file in "${SYSTEMD_BOOT[@]}"; do
+    file="${bootloader_file}/${file}"
+    mkdir -p "${file%/*}" && touch "$file"
+  done
 }
 
 function create_binary_file()
@@ -80,6 +88,9 @@ function test_identify_bootloader_from_files()
 
   output=$(identify_bootloader_from_files "${SHUNIT_TMPDIR}/RPI_FILES")
   assertEquals "($LINENO): Expected Raspberry Pi" 'RPI_BOOTLOADER' "$output"
+
+  output=$(identify_bootloader_from_files "$SHUNIT_TMPDIR/SYSTEMD_BOOT_FILES")
+  assertEquals "($LINENO): Expected Systemd Boot" 'SYSTEMD_BOOT' "$output"
 }
 
 invoke_shunit
