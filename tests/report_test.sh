@@ -370,7 +370,7 @@ function test_save_data_to()
   local expected
 
   grouping_day_data '2020/04/04'
-  save_data_to "$SHUNIT_TMPDIR/test"
+  save_data_to "$SHUNIT_TMPDIR/test" > /dev/null 2>&1
   [[ ! -f "$SHUNIT_TMPDIR/test" ]] && fail "$LINENO: We expect to find a test file"
 
   output=$(cat "$SHUNIT_TMPDIR/test")
@@ -381,19 +381,18 @@ function test_save_data_to()
   ret="$?"
   assert_equals_helper "We expect an invalid path error" "$LINENO" "$ret" 1
 
-  # Try to use a valid directory path.
-  output=$(save_data_to './')
+  # Try to use a valid path to directory.
+  output=$(save_data_to "${SHUNIT_TMPDIR}")
   ret="$?"
   assert_equals_helper "We expect a valid path" "$LINENO" "$ret" 0
 
   # Verifying that the correct message is displayed.
-  expected='The report output was saved in:'
-  message=${output::-16}
+  expected="The report output was saved in: ${SHUNIT_TMPDIR}/report_output"
+  message="$output"
   assert_equals_helper "We expect a valid message" "$LINENO" "$message" "$expected"
 
   # Verifying that the correct filename is displayed.
-  filename=${output:(-13)}
-  [[ ! -f "./$filename" ]] && fail "$LINENO: We expect to find a test file"
+  [[ ! -f "${SHUNIT_TMPDIR}/report_output" ]] && fail "$LINENO: We expect to find a test file"
 
   # Try to use an invalid root directory path.
   output=$(save_data_to '/root/')
