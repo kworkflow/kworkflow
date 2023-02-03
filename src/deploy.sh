@@ -1086,10 +1086,12 @@ function create_pkg_metadata_file_for_deploy()
 
   cache_pkg_metadata_file_path="${base_kw_deploy_store_path}/kw.pkg.info"
 
-  printf 'kernel_name=%s\n' "$kernel_name" > "${cache_pkg_metadata_file_path}"
-  printf 'kernel_binary_image_file=%s\n' "$kernel_binary_file_name" >> "${cache_pkg_metadata_file_path}"
-  printf 'architecture=%s\n' "$arch" >> "${cache_pkg_metadata_file_path}"
-  printf 'previous_kernel_backup=%s\n' "${deploy_config[previous_kernel_backup]}" >> "${cache_pkg_metadata_file_path}"
+  {
+    printf 'kernel_name=%s\n' "$kernel_name"
+    printf 'kernel_binary_image_file=%s\n' "$kernel_binary_file_name"
+    printf 'architecture=%s\n' "$arch"
+    printf 'previous_kernel_backup=%s\n' "${deploy_config[previous_kernel_backup]}"
+  } > "${cache_pkg_metadata_file_path}"
 }
 
 # This function is responsible for putting all the required boot files in a
