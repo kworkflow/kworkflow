@@ -119,6 +119,11 @@ function setUp()
     "$GENERATE_BOOT_TAR_FILE"
     "$SEND_BOOT_FILES_HOST2REMOTE"
   )
+
+  # Create non kernel tree directory to test commands that can be run
+  # outside kernel tree (--list, --list-all, --ls-line, --uninstall)
+  NON_KERNEL_TREE="${SHUNIT_TMPDIR}/non_kernel_tree"
+  mkdir -p "${NON_KERNEL_TREE}"
 }
 
 function get_deploy_cmd_helper()
@@ -1184,6 +1189,38 @@ function test_create_pkg_metadata_file_for_deploy()
 
   output=$(grep 'architecture' './TEST/kw.pkg.info')
   assertEquals "($LINENO)" 'architecture=x86_64' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_run_commands_outside_kernel_tree()
+{
+  local output
+  local original="$PWD"
+
+  cd "${NON_KERNEL_TREE}" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --list
+  assertTrue "($LINENO) - Should list outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --list-all
+  assertTrue "($LINENO) - Should list all outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --ls-line
+  assertTrue "($LINENO) - Should line list outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --uninstall 'some_kernel'
+  assertTrue "($LINENO) - Should uninstall outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
