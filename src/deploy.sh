@@ -96,7 +96,7 @@ function deploy_main()
     exit 22 # EINVAL
   fi
 
-  if [[ -z "${options_values['FROM_PACKAGE']}" ]]; then
+  if [[ -z "${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']}" ]]; then
     if ! is_kernel_root "$PWD"; then
       complain 'Execute this command in a kernel tree.'
       exit 125 # ECANCELED
@@ -1336,6 +1336,7 @@ function parse_deploy_options()
   options_values['VERBOSE']=''
   options_values['CREATE_PACKAGE']=''
   options_values['FROM_PACKAGE']=''
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -1390,14 +1391,17 @@ function parse_deploy_options()
         ;;
       --list | -l)
         options_values['LS']=1
+        options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift
         ;;
       --list-all | -a)
         options_values['LS_ALL']=1
+        options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift
         ;;
       --ls-line | -s)
         options_values['LS_LINE']=1
+        options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift
         ;;
       --setup)
@@ -1410,6 +1414,7 @@ function parse_deploy_options()
           return 22 # EINVAL
         fi
         options_values['UNINSTALL']+="$2"
+        options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift 2
         ;;
       --verbose | -v)
@@ -1426,6 +1431,7 @@ function parse_deploy_options()
         ;;
       --from-package | -F)
         options_values['FROM_PACKAGE']+="$2"
+        options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift 2
         ;;
       --) # End of options, beginning of arguments
