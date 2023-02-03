@@ -869,6 +869,7 @@ function test_collect_target_info_for_deploy()
   # REMOTE
   function cmd_remotely()
   {
+    # shellcheck disable=SC2317
     printf '[bootloader]=syslinux [distro]=chrome'
   }
   collect_target_info_for_deploy 3 'TEST_MODE'
