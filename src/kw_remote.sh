@@ -332,6 +332,12 @@ function parse_remote_options()
   elif [[ "${options_values['DEFAULT_REMOTE']}" == 1 ]]; then
     options_values['ERROR']='Expected a string values after --set-default='
     return 22
+  elif [[ -z "${options_values['ADD']}" && -z "${options_values['REMOVE']}" &&
+    -z "${options_values['RENAME']}" && -z "${options_values['LIST']}" &&
+    -z "${options_values['DEFAULT_REMOTE']}" ]]; then
+    options_values['ERROR']='"kw remote" should be proceeded by valid option'$'\n'
+    options_values['ERROR']+='Usage: kw remote (add | remove | rename | --list | --set-default) <params>[...]'
+    return 22 # EINVAL
   fi
 }
 
