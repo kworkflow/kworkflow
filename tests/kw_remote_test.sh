@@ -459,4 +459,15 @@ function test_list_remotes_invalid()
   assertEquals "($LINENO)" "$?" 22
 }
 
+function test_kw_remote_without_valid_option()
+{
+  # kw remote (no option nor parameter)
+  parse_remote_options
+  assertEquals "($LINENO)" "$?" 22
+
+  # kw remote <params>[...] (no options)
+  parse_remote_options
+  assertEquals "($LINENO)" "$?" 22
+}
+
 invoke_shunit
