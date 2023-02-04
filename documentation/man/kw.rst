@@ -33,13 +33,13 @@ different functionality groups. Most subcommands have sane defaults.
 
 COMMANDS FOR DEPLOY NEW KERNEL IMAGE AND MODULE
 -----------------------------------------------
-When we develop for Linux Kernel, we continuously want to install/update the
-current version of the Kernel image or modules, and this tasks may require
-several steps to be accomplished. For this reason, **kw** provides an option
-named **deploy** that handles attempts to handle all the complexity related to
+When we develop for Linux Kernel, we continuously want to install or update the
+current version of the Kernel image or modules, and these tasks may require
+several steps to be accomplished. For this reason, **kw** provides a command
+named **deploy** that attempts to handle all the complexity related to
 the new Kernel installation. It is essential to highlight that we try to
-support three different types of deploy: *local* and *remote*. When you
-want to update your host machine, you can use the *local* option.  Finally, we
+support two different types of deploy: *local* and *remote*. When you
+want to update your host machine, you can use the *local* option.  Also, we
 provide the *remote* option, which is much more flexible since it uses network;
 notice that this approach is the most generic one because you can use it for
 *vm* and *local*.
