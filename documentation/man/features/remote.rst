@@ -6,16 +6,16 @@ kw-remote
 
 SYNOPSIS
 ========
-| *kw remote* [-v | \--verbose ]
-| *kw remote add* <name> <user@remote:port>
-| *kw remote remove* <name>
-| *kw remote rename* <old-name> <new-name>
-| *kw remote --list*
+| *kw remote* [-v | \--verbose]
+| *kw remote* add <name> <user>@<remote>[:<port>]
+| *kw remote* remove <name>
+| *kw remote* rename <old-name> <new-name>
+| *kw remote* \--list
 | *kw remote* (-s | \--set-default)=<name>
 
 DESCRIPTION
 ===========
-Manage the set of test machines ("remotes") you want that kw to have easy
+Manage the set of test machines ("remotes") you want kw to have easy
 access.  This feature directly interacts with kw configuration for remote
 available at `.kw/remote.config`.
 
@@ -23,18 +23,19 @@ OPTIONS
 =======
 add <name> <remote-address>:
   Adds a remote named <name> for the test machine at <remote-address>. Notice
-  that <remote_address> must follow this pattern `user@remote:port` where
-  remote can be an IP or a name server.
+  that <remote_address> must follow the pattern `<user>@<remote>[:<port>]` where
+  `remote` can be an IP or a name server and `:<port>` is optional (default port
+  is 22).
 
 remove <name>:
   Remove the remote named <name>.
 
 rename <old-name> <new-name>:
-  Rename the remote named <old> to <new>. If you try a name already in use, kw
-  will fail with a message.
+  Rename the remote named <old-name> to <new-name>. If you try a name already
+  in use, kw will fail with a message.
 
 \--list:
-  Lest all available remotes.
+  List all available remotes.
 
 \-s=<name>, \--set-default=<name>:
   Set default remote to remote named <name>.
