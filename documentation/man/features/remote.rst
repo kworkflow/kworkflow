@@ -11,6 +11,7 @@ SYNOPSIS
 | *kw remote remove* <name>
 | *kw remote rename* <old-name> <new-name>
 | *kw remote --list*
+| *kw remote* (-s | \--set-default)=<name>
 
 DESCRIPTION
 ===========
@@ -34,6 +35,9 @@ rename <old-name> <new-name>:
 
 \--list:
   Lest all available remotes.
+
+\-s=<name>, \--set-default=<name>:
+  Set default remote to remote named <name>.
 
 \-v, \--verbose:
   Be a little more verbose and show remote url after name.
@@ -61,3 +65,7 @@ If you want to rename::
 You can also list all your available remotes via::
 
  kw remote --list
+
+If you want to set the default remote::
+
+  kw remote --set-default=new-default-remote
