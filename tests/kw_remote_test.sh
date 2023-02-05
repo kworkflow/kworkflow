@@ -459,4 +459,23 @@ function test_list_remotes_invalid()
   assertEquals "($LINENO)" "$?" 22
 }
 
+function test_remove_remote_that_is_prefix_of_other_remote()
+{
+  local output
+
+  declare -a expected_result=(
+    'kworkflow'
+    '- Hostname kworkflow-tm'
+    '- Port 4321'
+    '- User kworkflow'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_prefix.config" "${BASE_PATH_KW}/remote.config"
+
+  options_values['PARAMETERS']='kw'
+  remove_remote
+  output=$(list_remotes)
+  compare_command_sequence 'Should only remove the prefix remote' "$LINENO" 'expected_result' "$output"
+}
+
 invoke_shunit
