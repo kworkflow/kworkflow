@@ -194,7 +194,7 @@ function remove_remote()
     sed -i -r "/^Host ${target_remote}$/{n;/Hostname.*/d}" "$local_remote_config_file"
     sed -i -r "/^Host ${target_remote}$/{n;/Port.*/d}" "$local_remote_config_file"
     sed -i -r "/^Host ${target_remote}$/{n;/User.*/d}" "$local_remote_config_file"
-    sed -i -r "/^Host ${target_remote}/d" "$local_remote_config_file"
+    sed -i -r "/^Host ${target_remote}$/d" "$local_remote_config_file"
     sed -i -r '/^$/d' "$local_remote_config_file"
   else
     complain "We could not find ${target_remote}"
