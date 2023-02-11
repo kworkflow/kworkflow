@@ -349,7 +349,7 @@ function synchronize_files()
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc
     if [[ -f "$HOME/.bashrc" || -L "$HOME/.bashrc" ]]; then
-      append_bashcompletion '.bashrc'
+      append_bashcompletion
       update_path
     else
       warning 'Unable to find a .bashrc file.'
@@ -359,9 +359,8 @@ function synchronize_files()
   if command_exists 'zsh'; then
     # Add tabcompletion to zshrc
     if [[ -f "${HOME}/.zshrc" || -L "${HOME}/.zshrc" ]]; then
-      safe_append '# Enable bash completion for zsh' "${HOME}/.zshrc"
-      safe_append 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
-      append_bashcompletion '.zshrc'
+      remove_legacy_zshcompletion
+      append_zshcompletion
       update_path '.zshrc'
     else
       warning 'Unable to find a .zshrc file.'
@@ -377,16 +376,38 @@ function synchronize_files()
 
 function append_bashcompletion()
 {
-  local shellrc="$1"
+  safe_append "# ${app_name}" "${HOME}/.bashrc"
+  safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.bashrc"
+}
 
-  safe_append "# ${app_name}" "${HOME}/${shellrc}"
-  safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/${shellrc}"
+function remove_legacy_zshcompletion()
+{
+  safe_remove '# Enable bash completion for zsh' "${HOME}/.zshrc"
+  safe_remove 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
+  safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.zshrc"
+}
+
+function append_zshcompletion()
+{
+  safe_append "# ${app_name}" "${HOME}/.zshrc"
+  safe_append "export fpath=(${libdir} \$fpath)" "${HOME}/.zshrc"
+  safe_append 'autoload compinit && compinit -i' "${HOME}/.zshrc"
 }
 
 function safe_append()
 {
   if [[ $(grep -c -x "$1" "$2") == 0 ]]; then
     printf '%s\n' "$1" >> "$2"
+  fi
+}
+
+function safe_remove()
+{
+  local preprocessed_pattern
+  if [[ $(grep -c -x "$1" "$2") == 1 ]]; then
+    # Escape any foward slash as to not conflict with sed
+    preprocessed_pattern=$(printf '%s' "$1" | sed 's_/_\\/_g')
+    sed -i "/^${preprocessed_pattern}\$/d" "$2"
   fi
 }
 
