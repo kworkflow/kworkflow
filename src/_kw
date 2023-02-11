@@ -1,0 +1,41 @@
+#compdef kw
+
+# This file holds all the native ZSH completion functions for kw and its
+# sub-commands.
+#
+# ZSH completion functions are stored in files named _<command-to-complete> by
+# convention, hence the name of this file being '_kw'.
+#
+# When the ZSH completion system is loaded, it looks for the first line of files
+# listed in the 'fpath' variable to determine which command the file completes.
+# So the first line '#compdef kw' is necessary to tell ZSH to use the completion
+# functions in this file to complete kw commands.
+
+# Main dispatcher
+_kw()
+{
+  local -a commands
+
+  commands=()
+
+  if [[ "$CURRENT" -gt 2 ]]; then
+    # Remember the command name
+    local command="${words[2]}"
+    # Set the context for the command
+    curcontext="${curcontext%:*:*}:kw-${command}"
+    # Narrow the range of words we are looking at to exclude 'kw'
+    ((CURRENT--))
+    shift words
+    # Run the completion for the command if it exists
+    if [[ $(type "_kw_${command}") =~ 'not found' ]]; then
+      _nothing
+    else
+      eval "_kw_${command}"
+    fi
+  else
+    # Show top level kw commands
+    _describe -t kw-commands 'kw command' commands
+  fi
+}
+
+_kw "$@"
