@@ -17,6 +17,7 @@ _kw()
   local -a commands
 
   commands=(
+    'backup:Save or restore kw data'
     'build:Build kernel'
   )
 
@@ -38,6 +39,21 @@ _kw()
     # Show top level kw commands
     _describe -t kw-commands 'kw command' commands
   fi
+}
+
+_kw_backup()
+{
+  local args='(-r --restore)1: :_files'
+  local force=''
+  if ((words[(I)-r|--restore])); then
+    args=''
+    force='--force[replace all current kw data from backup without prompting user]'
+  fi
+
+  _arguments : \
+    '(-r --restore)'{-r,--restore}'[restore kw data from specified path]: :_files' \
+    $force \
+    $args
 }
 
 _kw_build()
