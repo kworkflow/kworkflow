@@ -114,7 +114,6 @@ function check_dependencies()
     else
       cmd="pip install $pip_package_list"
     fi
-    echo $cmd
     eval "$cmd"
   fi
 }
