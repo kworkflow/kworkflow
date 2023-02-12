@@ -56,6 +56,12 @@ function check_dependencies()
       [[ "$?" != 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/arch.dependencies"
     cmd="pacman -S $package_list"
+  elif [[ "$distro" =~ 'gentoo' ]]; then
+    while IFS='' read -r package; do
+      installed=$(qlist -I "$package" &> /dev/null)
+      [[ "$?" != 0 ]] && package_list="$package $package_list"
+    done < "$DOCUMENTATION/dependencies/gentoo.dependencies"
+    cmd="emerge $package_list"
   elif [[ "$distro" =~ 'debian' ]]; then
     while IFS='' read -r package; do
       installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
@@ -102,8 +108,13 @@ function check_dependencies()
       fi
     fi
 
-    # Install pip packages
-    cmd="pip install $pip_package_list"
+    # Install pip packages l
+    if [[ "$distro" =~ 'gentoo' ]]; then
+      cmd="pip install --target=/home/$USER/.local/bin $pip_package_list"
+    else
+      cmd="pip install $pip_package_list"
+    fi
+    echo $cmd
     eval "$cmd"
   fi
 }
