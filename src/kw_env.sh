@@ -203,7 +203,7 @@ function destroy_env()
   fi
 
   rm -rf "${local_kw_configs:?}/${env_name}" && rm -rf "${cache_build_path:?}/${env_name}"
-  success 'The "$env_name" environment has been destroyed.'
+  success "The \"${env_name}\" environment has been destroyed."
 }
 
 # This function searches for any folder inside the .kw directory and considers
