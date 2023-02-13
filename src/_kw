@@ -18,6 +18,7 @@ _kw()
 
   commands=(
     'backup:Save or restore kw data'
+    'bd:Build and install modules'
     'build:Build kernel'
   )
 
@@ -54,6 +55,11 @@ _kw_backup()
     '(-r --restore)'{-r,--restore}'[restore kw data from specified path]: :_files' \
     $force \
     $args
+}
+
+_kw_bd()
+{
+  _nothing
 }
 
 _kw_build()
