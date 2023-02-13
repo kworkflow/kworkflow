@@ -13,7 +13,6 @@ declare -ag required_packages=(
 )
 
 # Gentoo package manager command
-cmd="" 
 declare -g package_manager_cmd='echo ">=sys-boot/grub-2.06-r5 mount" | sudo tee -a /etc/portage/package.use/grub > /dev/null && sudo emerge --noreplace'
 
 
