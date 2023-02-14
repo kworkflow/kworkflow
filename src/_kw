@@ -24,6 +24,7 @@ _kw()
     'codestyle:Apply checkpatch on directory or file'
     'config:Set kw config options'
     'debug:Linux kernel debug utilities'
+    'deploy:Deploy a new kernel image to a target machine'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -152,6 +153,37 @@ _kw_debug()
     $history \
     $follow \
     $cmd
+}
+
+_kw_deploy()
+{
+  local force=''
+  if ((words[(I)-u|--uninstall])); then
+    force='--force[remove kernels even if they were not installed by kw]'
+  fi
+
+  if ((words[(I)-l|--list|-s|--ls-line])); then
+    _arguments : \
+      '(-v --verbose)'{-v,--verbose}'[show detailed output]' \
+      '(--remote)--local[deploy Kernel image and/or modules to host machine]' \
+      '(--local)--remote[deploy the Kernel image and/or modules to a machine in the network]: : ' \
+      '(-a --list-all)'{-a,--list-all}'[list all available kernels]'
+  else
+    _arguments : \
+      '(-v --verbose)'{-v,--verbose}'[show detailed output]' \
+      '(--remote)--local[deploy Kernel image and/or modules to host machine]' \
+      '(--local)--remote[deploy the Kernel image and/or modules to a machine in the network]: : ' \
+      '(-r --reboot --no-reboot --setup -p --create-package)'{-r,--reboot}'[reboot machine after deploy]' \
+      '(-r --reboot --setup -p --create-package)--no-reboot[do not reboot machine after deploy]' \
+      '(-m --modules -u --uninstall -p --create-package --modules)'{-m,--modules}'[only install/update modules]' \
+      '(-u --uninstall -l --list -s --ls-line --setup -p --create-package -F --from-package -m --modules)'{-u,--uninstall}'[uninstall given kernels]: : ' \
+      $force \
+      '(-l --list -u --uninstall --setup -p --create-package -F --from-package -r --reboot --no-reboot -m --modules)'{-l,--list}'[list kernels]' \
+      '(-s --ls-line -u --uninstall --setup -p --create-package -F --from-package -r --reboot --no-reboot -m --modules)'{-s,--ls-line}'[list kernels separeted by commas]' \
+      '(-l --list -s --ls-line -u --uninstall -p --create-package -F --from-package -r --reboot --no-reboot -m --modules)--setup[set up target machine for deploy]' \
+      '(-p --create-package -l --list -s --ls-line -u --uninstall --setup -F --from-package -r --reboot --no-reboot -m --modules)'{-p,--create-package}'[create kw package]' \
+      '(-F --from-package -l --list -s --ls-line -u --uninstall --setup -p --create-package)'{-F,--from-package}'[deploy from kw package]: : '
+  fi
 }
 
 _kw "$@"
