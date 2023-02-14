@@ -25,6 +25,7 @@ _kw()
     'config:Set kw config options'
     'debug:Linux kernel debug utilities'
     'deploy:Deploy a new kernel image to a target machine'
+    'device:Show basic hardware information'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -184,6 +185,14 @@ _kw_deploy()
       '(-p --create-package -l --list -s --ls-line -u --uninstall --setup -F --from-package -r --reboot --no-reboot -m --modules)'{-p,--create-package}'[create kw package]' \
       '(-F --from-package -l --list -s --ls-line -u --uninstall --setup -p --create-package)'{-F,--from-package}'[deploy from kw package]: : '
   fi
+}
+
+_kw_device()
+{
+  _arguments : \
+    '(--remote --vm)--local[show hardware information from host machine]' \
+    '(--local --vm)--remote[show hardware information from a remote machine]: :' \
+    '(--remote --vm)--vm[show hardware information from a virtual machine]'
 }
 
 _kw "$@"
