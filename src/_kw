@@ -30,6 +30,8 @@ _kw()
     'drm:Set of commands to work with DRM drivers '
     'env:Handle kw envs'
     'explore:Explore string patterns'
+    'h:Displays this help message'
+    'help:Show kw man page'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -241,6 +243,16 @@ _kw_explore()
     '(-H --only-header -c --only-source)'{-H,--only-header}'[show only results from the header]' \
     '1: : ' \
     '2: :_files'
+}
+
+_kw_h()
+{
+  _nothing
+}
+
+_kw_help()
+{
+  _nothing
 }
 
 _kw "$@"
