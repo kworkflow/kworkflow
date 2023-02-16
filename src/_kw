@@ -26,6 +26,7 @@ _kw()
     'debug:Linux kernel debug utilities'
     'deploy:Deploy a new kernel image to a target machine'
     'device:Show basic hardware information'
+    'diff:Diff files'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -193,6 +194,14 @@ _kw_device()
     '(--remote --vm)--local[show hardware information from host machine]' \
     '(--local --vm)--remote[show hardware information from a remote machine]: :' \
     '(--remote --vm)--vm[show hardware information from a virtual machine]'
+}
+
+_kw_diff()
+{
+  _arguments : \
+    '--no-interactive[displays all diff in two columns at once]' \
+    '1: :_files' \
+    '2: :_files'
 }
 
 _kw "$@"
