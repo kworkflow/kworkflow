@@ -40,6 +40,7 @@ _kw()
     'remote:Manage the set of test machines ("remotes")'
     'report:Show kw pomodoro reports and kw usage statistics'
     'self-update:kw self-update mechanism'
+    'ssh:SSH support'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -387,6 +388,14 @@ _kw_self-update()
 {
   _arguments : \
     '(-u --unstable)'{-u,--unstable}'[update kw based on the unstable branch]'
+}
+
+_kw_ssh()
+{
+  _arguments : \
+    '(-r --remote)'{-r,--remote}'[explicitly tell which target machine to ssh into]: : ' \
+    '(-s --script -c --command)'{-s,--script}'[execute a bash command in the target machine]: : ' \
+    '(-c --command -s --script)'{-c,--command}'[execute a bash script in the target machine]: : '
 }
 
 _kw "$@"
