@@ -37,6 +37,7 @@ _kw()
     'maintainers:Get maintainers and mailing list'
     'man:Show manual pages'
     'pomodoro:kw pomodoro support'
+    'remote:Manage the set of test machines ("remotes")'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -347,6 +348,24 @@ _kw_pomodoro()
     '(-t --set-timer -l --list)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
     '(-l --list -t --set-timer)'{-l,--list}'[shows information associated with each Pomodoro timebox created by the user]' \
     $set_timer_options
+}
+
+_kw_remote()
+{
+  local -a remote_commands=(
+    'add:add a named remote to kw management'
+    'remove:remove an existing remote from kw management'
+    'rename:rename an existing remote'
+  )
+
+  _arguments : \
+    '(-v --verbose)'{-v,--verbose}'[be a little more verbose and show remote url after name]' \
+    '(-s --set-default)--list[list all available remotes]' \
+    '(-s --set-default --list)'{-s-,--set-default=-}'[set default remote to an existing one]: : ' \
+
+  if [[ "$CURRENT" -lt 3 ]]; then
+    _describe -t remote-commands 'remote command' remote_commands
+  fi
 }
 
 _kw "$@"
