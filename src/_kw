@@ -85,6 +85,7 @@ _kw_bd()
   _nothing
 }
 
+_kw_b() { _kw_build }
 _kw_build()
 {
   _arguments : \
@@ -104,12 +105,14 @@ _kw_clear-cache()
   _nothing
 }
 
+_kw_c() { _kw_codestyle }
 _kw_codestyle()
 {
   _arguments : \
     '(*): :_files'
 }
 
+_kw_g() { _kw_config }
 _kw_config()
 {
   _list_configs()
@@ -173,6 +176,7 @@ _kw_debug()
     $cmd
 }
 
+_kw_d() { _kw_deploy }
 _kw_deploy()
 {
   local force=''
@@ -212,6 +216,7 @@ _kw_device()
     '(--remote --vm)--vm[show hardware information from a virtual machine]'
 }
 
+_kw_df() { _kw_diff }
 _kw_diff()
 {
   _arguments : \
@@ -244,6 +249,7 @@ _kw_env()
     '(-e --exit-env -c --create -u --use -d --destroy -l --list)'{-e,--exit-env}'[exit the current env]'
 }
 
+_kw_e() { _kw_explore }
 _kw_explore()
 {
   _arguments : \
@@ -323,6 +329,7 @@ _kw_mail()
     $args
 }
 
+_kw_m() { _kw_maintainers }
 _kw_maintainers()
 {
   _arguments : \
@@ -338,6 +345,7 @@ _kw_man()
     'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' 'vars'
 }
 
+_kw_p() { _kw_pomodoro }
 _kw_pomodoro()
 {
   local -a set_timer_options=()
@@ -373,6 +381,7 @@ _kw_remote()
   fi
 }
 
+_kw_r() { _kw_report }
 _kw_report()
 {
   _arguments : \
@@ -386,12 +395,14 @@ _kw_report()
     '(-o --output)'{-o,--output}'[save the output of the report to a given file]: : '
 }
 
+_kw_u() { _kw_self-update }
 _kw_self-update()
 {
   _arguments : \
     '(-u --unstable)'{-u,--unstable}'[update kw based on the unstable branch]'
 }
 
+_kw_s() { _kw_ssh }
 _kw_ssh()
 {
   _arguments : \
