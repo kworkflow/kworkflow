@@ -35,6 +35,7 @@ _kw()
     'init:Initialize kworkflow config file'
     'mail:Send patches via email'
     'maintainers:Get maintainers and mailing list'
+    'man:Show manual pages'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -321,6 +322,13 @@ _kw_maintainers()
     '(-a --authors)'{-a,--authors}'[prints the authors of the top-level target files (non-recursively)]' \
     '(-u --update-patch)'{-u,--update-patch}'[include a To: field in the header of the patch file]' \
     '1: :_files'
+}
+
+_kw_man()
+{
+  _values 'kw commands' \
+    'backup' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
+    'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' 'vars'
 }
 
 _kw "$@"
