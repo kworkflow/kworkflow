@@ -42,6 +42,7 @@ _kw()
     'self-update:kw self-update mechanism'
     'ssh:SSH support'
     'vars:Show variables'
+    'version:Show kw version'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -400,6 +401,11 @@ _kw_ssh()
 }
 
 _kw_vars()
+{
+  _nothing
+}
+
+_kw_version()
 {
   _nothing
 }
