@@ -29,6 +29,7 @@ _kw()
     'diff:Diff files'
     'drm:Set of commands to work with DRM drivers '
     'env:Handle kw envs'
+    'explore:Explore string patterns'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -228,6 +229,18 @@ _kw_env()
     '(-d --destroy -c --create -u --use -l --list -e --exit-env)'{-d,--destroy}'[delete an existing env]: : ' \
     '(-l --list -c --create -u --use -d --destroy -e --exit-env)'{-l,--list}'[list all created envs]' \
     '(-e --exit-env -c --create -u --use -d --destroy -l --list)'{-e,--exit-env}'[exit the current env]'
+}
+
+_kw_explore()
+{
+  _arguments : \
+    '(-l --log -g --grep -a --all)'{-l,--log}'[search based on git log]' \
+    '(-g --grep -l --log -a --all)'{-g,--grep}'[search for string matches using GNU grep. Also searches in .git]' \
+    '(-a --all -l --log -g --grep)'{-a,--all}'[search for all matches in files under or not git management]' \
+    '(-c --only-source -H --only-header)'{-c,--only-source}'[show only results from the source]' \
+    '(-H --only-header -c --only-source)'{-H,--only-header}'[show only results from the header]' \
+    '1: : ' \
+    '2: :_files'
 }
 
 _kw "$@"
