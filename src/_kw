@@ -32,6 +32,7 @@ _kw()
     'explore:Explore string patterns'
     'h:Displays this help message'
     'help:Show kw man page'
+    'init:Initialize kworkflow config file'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -253,6 +254,15 @@ _kw_h()
 _kw_help()
 {
   _nothing
+}
+
+_kw_init()
+{
+  _arguments : \
+    '(-a --arch)'{-a,--arch}'[set the variable arch of kw]: : ' \
+    '(-r --remote)'{-r,--remote}'[set the remote user, ip and port]: : ' \
+    '(-t --target)'{-t,--target}'[set the default_deploy_target config of kw between local or remote]: :(local remote)' \
+    '--template=-[pass no arguments to list all available templates or pick one by passing its name]: : '
 }
 
 _kw "$@"
