@@ -34,6 +34,7 @@ _kw()
     'help:Show kw man page'
     'init:Initialize kworkflow config file'
     'mail:Send patches via email'
+    'maintainers:Get maintainers and mailing list'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -312,6 +313,14 @@ _kw_mail()
     $force \
     $no_interactive \
     $args
+}
+
+_kw_maintainers()
+{
+  _arguments : \
+    '(-a --authors)'{-a,--authors}'[prints the authors of the top-level target files (non-recursively)]' \
+    '(-u --update-patch)'{-u,--update-patch}'[include a To: field in the header of the patch file]' \
+    '1: :_files'
 }
 
 _kw "$@"
