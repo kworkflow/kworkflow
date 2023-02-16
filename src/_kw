@@ -38,6 +38,7 @@ _kw()
     'man:Show manual pages'
     'pomodoro:kw pomodoro support'
     'remote:Manage the set of test machines ("remotes")'
+    'report:Show kw pomodoro reports and kw usage statistics'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -366,6 +367,19 @@ _kw_remote()
   if [[ "$CURRENT" -lt 3 ]]; then
     _describe -t remote-commands 'remote command' remote_commands
   fi
+}
+
+_kw_report()
+{
+  _arguments : \
+    '(--month --week --day)--year=-[exhibits a yearly summary]:: : ' \
+    '(--year --week --day)--month=-[exhibits a monthly summary]:: : ' \
+    '(--year --month --day)--week=-[exhibits a weekly summary]:: : ' \
+    '(--year --month --week)--day=-[exhibits a dayly summary]:: : ' \
+    '(-p --pomodoro -a --all -s --statistics)'{-p,--pomodoro}'[display pomodoro information]' \
+    '(-s --statistics -a --all -p --pomodoro)'{-s,--statistics}'[display statistics information]' \
+    '(-a --all -p --pomodoro -s --statistics)'{-a,--all}'[display all information]' \
+    '(-o --output)'{-o,--output}'[save the output of the report to a given file]: : '
 }
 
 _kw "$@"
