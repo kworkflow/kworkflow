@@ -33,6 +33,7 @@ _kw()
     'h:Displays this help message'
     'help:Show kw man page'
     'init:Initialize kworkflow config file'
+    'mail:Send patches via email'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -263,6 +264,54 @@ _kw_init()
     '(-r --remote)'{-r,--remote}'[set the remote user, ip and port]: : ' \
     '(-t --target)'{-t,--target}'[set the default_deploy_target config of kw between local or remote]: :(local remote)' \
     '--template=-[pass no arguments to list all available templates or pick one by passing its name]: : '
+}
+
+_kw_mail()
+{
+  local -a send_options=()
+  local global=''
+  local local=''
+  local force=''
+  local no_interactive=''
+  local args=''
+
+  if ((words[(I)-s|--send])); then
+    send_options=(
+      '--to=-[specify the recipients that will receive the patch via e-mail]: : '
+      '--cc=-[specify the recipients that will receive a copy of the patch via e-mail]: : '
+      '--simulate[do everything without actually sending the e-mail]'
+      '--private[supress auto generation of recipients]'
+      '--rfc[add a request for comment prefix to the e-mail subject]'
+      '-v-[specify a version number for your patch]: : '
+    )
+  fi
+
+  if ((words[(I)-i|--interactive|-l|--list|--verify])); then
+    global='--global[set the scope as global]'
+    local='--local[set the scope as local]'
+  fi
+
+  if ((words[(I)-t|--setup|--template])); then
+    global='--global[set the scope as global]'
+    local='--local[set the scope as local]'
+    force='--force[forces the configurations to be added]'
+    no_interactive='--no-interactive[inhibits interactive properties]'
+    args='*: :: '
+  fi
+
+  _arguments : \
+    '(-s --send -t --setup -i --interactive -l --list --verify --template)'{-s,--send}'[send a patch by email using git send-email]' \
+    '(-t --setup -s --send -i --interactive -l --list --verify --template)'{-t,--setup}'[initialize and configure mail functionality]' \
+    '(-i --interactive -s --send -t --setup -l --list --verify --template)'{-i,--interactive}'[interactively prompt the user for the values of the options]' \
+    '(-l --list -s --send -t --setup -i --interactive --verify --template)'{-l,--list}'[lists the settings that mail uses]' \
+    '(--verify -s --send -t --setup -i --interactive -l --list --template)--verify[verify that all the settings needed are set and valid]' \
+    '(--template -s --send -t --setup -i --interactive -l --list --verify)--template=[load the default configuration values based on a given template]' \
+    $send_options \
+    $global \
+    $local \
+    $force \
+    $no_interactive \
+    $args
 }
 
 _kw "$@"
