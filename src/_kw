@@ -27,6 +27,7 @@ _kw()
     'deploy:Deploy a new kernel image to a target machine'
     'device:Show basic hardware information'
     'diff:Diff files'
+    'drm:Set of commands to work with DRM drivers '
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -202,6 +203,20 @@ _kw_diff()
     '--no-interactive[displays all diff in two columns at once]' \
     '1: :_files' \
     '2: :_files'
+}
+
+_kw_drm()
+{
+  _arguments : \
+    '(-v --verbose)'{-v,--verbose}'[verbose output]' \
+    '(--unload-module)--load-module=-[specify one or more modules to be loaded with or without parameters]: : ' \
+    '(--load-module)--unload-module=-[specify one or more modules to be unloaded]: : ' \
+    '(--remote)--local[specify host as the target machine]' \
+    '(--local)--remote[specify a remote as the target machine]: :' \
+    '(--gui-off)--gui-on[turn-on the target GUI]' \
+    '(--gui-on)--gui-off[turn-off the target GUI]' \
+    '--conn-available[show all connectors available in the target machine]' \
+    '--modes[show all available modes per card]'
 }
 
 _kw "$@"
