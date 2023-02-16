@@ -7,17 +7,17 @@ kw-remote
 SYNOPSIS
 ========
 | *kw remote* [-v | \--verbose]
-| *kw remote* add <name> <user>@<remote>[:<port>]
-| *kw remote* remove <name>
-| *kw remote* rename <old-name> <new-name>
-| *kw remote* \--list
-| *kw remote* (-s | \--set-default)=<name>
+| *kw remote* [--global] add <name> <user>@<remote>[:<port>]
+| *kw remote* [--global] remove <name>
+| *kw remote* [--global] rename <old-name> <new-name>
+| *kw remote* [--global] \--list
+| *kw remote* [--global] (-s | \--set-default)=<name>
 
 DESCRIPTION
 ===========
 Manage the set of test machines ("remotes") you want kw to have easy
 access.  This feature directly interacts with kw configuration for remote
-available at `.kw/remote.config`.
+available locally at `.kw/remote.config` or globally at `~/.config/kw/remote.config`.
 
 OPTIONS
 =======
@@ -36,6 +36,9 @@ rename <old-name> <new-name>:
 
 \--list:
   List all available remotes.
+
+\--global:
+  Force use global config file instead of the local one.
 
 \-s=<name>, \--set-default=<name>:
   Set default remote to remote named <name>.

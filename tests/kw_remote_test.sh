@@ -9,13 +9,19 @@ function setUp()
 
   export BASE_PATH_KW="${SHUNIT_TMPDIR}/.kw"
   export local_remote_config_file="${BASE_PATH_KW}/remote.config"
+  export KW_ETC_DIR="${SHUNIT_TMPDIR}/.config/kw"
+  export global_remote_config_file="${KW_ETC_DIR}/remote.config"
 
-  # Create basic env
+  # Create basic local env
   mkdir -p "$BASE_PATH_KW"
-  touch "${BASE_PATH_KW}/remote"
+  touch "${BASE_PATH_KW}/remote.config"
+
+  # Create basic global env
+  mkdir -p "$KW_ETC_DIR"
+  touch "${KW_ETC_DIR}/remote.config"
 
   cd "${SHUNIT_TMPDIR}" || {
-    fail "($LINENO): setIp(): It was not possible to move into ${SHUNIT_TMPDIR}"
+    fail "($LINENO): setUp(): It was not possible to move into ${SHUNIT_TMPDIR}"
     return
   }
 }
@@ -52,6 +58,7 @@ function test_add_new_remote_no_kw_folder()
   local output
 
   rm -rf ".kw"
+  rm -rf ".config/kw"
 
   options_values['PARAMETERS']='origin u'
   output=$(add_new_remote)
@@ -59,25 +66,36 @@ function test_add_new_remote_no_kw_folder()
   assertEquals "($LINENO)" "$?" 22
 }
 
-function test_add_new_remote_new_remote_to_empty_file()
+function test_add_new_remote_with_no_config_file()
 {
   local output
-  local new_config_file
   local expected_result
+
+  rm "$local_remote_config_file"
+
+  declare -a expected_result=(
+    '#kw-default=origin'
+    'Host origin'
+    '  Hostname test-debian'
+    '  Port 3333'
+    '  User root'
+  )
 
   options_values['PARAMETERS']='origin root@test-debian:3333'
   output=$(add_new_remote)
-  new_config_file=$(< "${BASE_PATH_KW}/remote.config")
+
+  mapfile -t final_result_array < "${BASE_PATH_KW}/remote.config"
+
+  compare_array_values expected_result final_result_array "$LINENO"
+
 }
 
 function test_add_new_remote_multiple_different_instances()
 {
   local output
-  local new_config_file
   local final_result_array
 
   declare -a expected_result=(
-    '#kw-default=origin'
     'Host origin'
     '  Hostname test-debian'
     '  Port 3333'
@@ -109,11 +127,9 @@ function test_add_new_remote_multiple_different_instances()
 function test_add_new_remote_multiple_entry_with_duplication()
 {
   local output
-  local new_config_file
   local final_result_array
 
   declare -a expected_result=(
-    '#kw-default=origin'
     'Host origin'
     '  Hostname test-debian'
     '  Port 3333'
@@ -449,12 +465,12 @@ function test_list_remotes()
 
 function test_list_remotes_invalid()
 {
+  rm "${local_remote_config_file}"
   output=$(list_remotes)
-
   assertEquals "($LINENO)" "$?" 22
 
-  rm -rf .kw
-
+  rm -rf "${BASE_PATH_KW}"
+  rm "${global_remote_config_file}"
   output=$(list_remotes)
   assertEquals "($LINENO)" "$?" 22
 }
@@ -487,6 +503,219 @@ function test_remove_remote_that_is_prefix_of_other_remote()
   remove_remote
   output=$(list_remotes)
   compare_command_sequence 'Should only remove the prefix remote' "$LINENO" 'expected_result' "$output"
+}
+
+function test_add_new_global_remote()
+{
+  local final_result_array
+  local output
+
+  declare -a expected_result=(
+    '#kw-default=global'
+    'Host galactical'
+    '  Hostname milky-way'
+    '  Port 1234'
+    '  User hubble'
+    'Host global'
+    '  Hostname planet-earth'
+    '  Port 5678'
+    '  User newton'
+    'Host universal'
+    '  Hostname universe'
+    '  Port 9999'
+    '  User einstein'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_global.config" "${global_remote_config_file}"
+
+  rm -rf "$BASE_PATH_KW"
+
+  options_values['PARAMETERS']='universal einstein@universe:9999'
+  output=$(add_new_remote)
+  mapfile -t final_result_array < "${global_remote_config_file}"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+
+function test_remove_global_remote()
+{
+  local final_result_array
+  local output
+
+  declare -a expected_result=(
+    'Host galactical'
+    '  Hostname milky-way'
+    '  Port 1234'
+    '  User hubble'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_global.config" "${global_remote_config_file}"
+
+  rm -rf "$BASE_PATH_KW"
+
+  options_values['PARAMETERS']='global'
+  output=$(remove_remote)
+  mapfile -t final_result_array < "${global_remote_config_file}"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+
+function test_rename_global_remote()
+{
+  local final_result_array
+  local output
+
+  declare -a expected_result=(
+    '#kw-default=existential'
+    'Host galactical'
+    '  Hostname milky-way'
+    '  Port 1234'
+    '  User hubble'
+    'Host existential'
+    '  Hostname planet-earth'
+    '  Port 5678'
+    '  User newton'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_global.config" "${global_remote_config_file}"
+
+  rm -rf "$BASE_PATH_KW"
+
+  options_values['PARAMETERS']='global existential'
+  output=$(rename_remote)
+  mapfile -t final_result_array < "${global_remote_config_file}"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+
+function test_set_default_global_remote()
+{
+  local final_result_array
+  local output
+
+  declare -a expected_result=(
+    '#kw-default=galactical'
+    'Host galactical'
+    '  Hostname milky-way'
+    '  Port 1234'
+    '  User hubble'
+    'Host global'
+    '  Hostname planet-earth'
+    '  Port 5678'
+    '  User newton'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_global.config" "${global_remote_config_file}"
+
+  rm -rf "$BASE_PATH_KW"
+
+  options_values['DEFAULT_REMOTE']='galactical'
+  output=$(set_default_remote)
+  mapfile -t final_result_array < "${global_remote_config_file}"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+
+function test_list_global_remotes()
+{
+  local output
+
+  declare -a expected_result=(
+    'Default Remote: global'
+    'galactical'
+    '- Hostname milky-way'
+    '- Port 1234'
+    '- User hubble'
+    'global'
+    '- Hostname planet-earth'
+    '- Port 5678'
+    '- User newton'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_global.config" "${global_remote_config_file}"
+
+  rm -rf "$BASE_PATH_KW"
+
+  output=$(list_remotes)
+  compare_command_sequence 'Should list the global remote.config if there is no local one' "$LINENO" 'expected_result' "$output"
+}
+function test_global_option_rename_remote()
+{
+  local final_result_array
+  local output
+
+  declare -a expected_result=(
+    '#kw-default=existential'
+    'Host galactical'
+    '  Hostname milky-way'
+    '  Port 1234'
+    '  User hubble'
+    'Host existential'
+    '  Hostname planet-earth'
+    '  Port 5678'
+    '  User newton'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_global.config" "${global_remote_config_file}"
+
+  options_values['PARAMETERS']='global existential'
+  options_values['GLOBAL']='1'
+  output=$(rename_remote)
+  mapfile -t final_result_array < "${global_remote_config_file}"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+function test_global_options_set_default_remote()
+{
+  local final_result_array
+  local output
+
+  declare -a expected_result=(
+    '#kw-default=galactical'
+    'Host galactical'
+    '  Hostname milky-way'
+    '  Port 1234'
+    '  User hubble'
+    'Host global'
+    '  Hostname planet-earth'
+    '  Port 5678'
+    '  User newton'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_global.config" "${global_remote_config_file}"
+
+  options_values['DEFAULT_REMOTE']='galactical'
+  options_values['GLOBAL']='1'
+  output=$(set_default_remote)
+  mapfile -t final_result_array < "${global_remote_config_file}"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+function test_global_option_list_remotes()
+{
+  local final_result_array
+  local output
+
+  declare -a expected_result=(
+    '#kw-default=galactical'
+    'Host galactical'
+    '  Hostname milky-way'
+    '  Port 1234'
+    '  User hubble'
+    'Host global'
+    '  Hostname planet-earth'
+    '  Port 5678'
+    '  User newton'
+  )
+
+  cp "${SAMPLES_DIR}/remote_samples/remote_global.config" "${global_remote_config_file}"
+
+  options_values['DEFAULT_REMOTE']='galactical'
+  options_values['GLOBAL']='1'
+  output=$(set_default_remote)
+  mapfile -t final_result_array < "${global_remote_config_file}"
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+function test_global_option_list_remote_invalid()
+{
+  rm "${global_remote_config_file}"
+  options_values['GLOBAL']='1'
+  output=$(list_remotes)
+  assertEquals "($LINENO)" "$?" 22
 }
 
 invoke_shunit
