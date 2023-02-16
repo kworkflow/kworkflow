@@ -28,6 +28,7 @@ _kw()
     'device:Show basic hardware information'
     'diff:Diff files'
     'drm:Set of commands to work with DRM drivers '
+    'env:Handle kw envs'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -217,6 +218,16 @@ _kw_drm()
     '(--gui-on)--gui-off[turn-off the target GUI]' \
     '--conn-available[show all connectors available in the target machine]' \
     '--modes[show all available modes per card]'
+}
+
+_kw_env()
+{
+  _arguments : \
+    '(-c --create -u --use -d --destroy -l --list -e --exit-env)'{-c,--create}'[create new env]: : ' \
+    '(-u --use -c --create -d --destroy -l --list -e --exit-env)'{-u,--use}'[change current env to an existing env]: : ' \
+    '(-d --destroy -c --create -u --use -l --list -e --exit-env)'{-d,--destroy}'[delete an existing env]: : ' \
+    '(-l --list -c --create -u --use -d --destroy -e --exit-env)'{-l,--list}'[list all created envs]' \
+    '(-e --exit-env -c --create -u --use -d --destroy -l --list)'{-e,--exit-env}'[exit the current env]'
 }
 
 _kw "$@"
