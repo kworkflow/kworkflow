@@ -41,6 +41,7 @@ _kw()
     'report:Show kw pomodoro reports and kw usage statistics'
     'self-update:kw self-update mechanism'
     'ssh:SSH support'
+    'vars:Show variables'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -396,6 +397,11 @@ _kw_ssh()
     '(-r --remote)'{-r,--remote}'[explicitly tell which target machine to ssh into]: : ' \
     '(-s --script -c --command)'{-s,--script}'[execute a bash command in the target machine]: : ' \
     '(-c --command -s --script)'{-c,--command}'[execute a bash script in the target machine]: : '
+}
+
+_kw_vars()
+{
+  _nothing
 }
 
 _kw "$@"
