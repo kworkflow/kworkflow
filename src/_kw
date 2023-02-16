@@ -39,6 +39,7 @@ _kw()
     'pomodoro:kw pomodoro support'
     'remote:Manage the set of test machines ("remotes")'
     'report:Show kw pomodoro reports and kw usage statistics'
+    'self-update:kw self-update mechanism'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -380,6 +381,12 @@ _kw_report()
     '(-s --statistics -a --all -p --pomodoro)'{-s,--statistics}'[display statistics information]' \
     '(-a --all -p --pomodoro -s --statistics)'{-a,--all}'[display all information]' \
     '(-o --output)'{-o,--output}'[save the output of the report to a given file]: : '
+}
+
+_kw_self-update()
+{
+  _arguments : \
+    '(-u --unstable)'{-u,--unstable}'[update kw based on the unstable branch]'
 }
 
 _kw "$@"
