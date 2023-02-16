@@ -36,6 +36,7 @@ _kw()
     'mail:Send patches via email'
     'maintainers:Get maintainers and mailing list'
     'man:Show manual pages'
+    'pomodoro:kw pomodoro support'
   )
 
   if [[ "$CURRENT" -gt 2 ]]; then
@@ -329,6 +330,23 @@ _kw_man()
   _values 'kw commands' \
     'backup' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
     'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' 'vars'
+}
+
+_kw_pomodoro()
+{
+  local -a set_timer_options=()
+
+  if ((words[(I)-t|--set-timer])); then
+    set_timer_options=(
+      '(-g --tag)'{-g,--tag}'[associate a tag to the timebox]:: : '
+      '(-d --description)'{-d,--description}'[add a more descriptive text associated with the timer]:: : '
+    )
+  fi
+
+  _arguments : \
+    '(-t --set-timer -l --list)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
+    '(-l --list -t --set-timer)'{-l,--list}'[shows information associated with each Pomodoro timebox created by the user]' \
+    $set_timer_options
 }
 
 _kw "$@"
