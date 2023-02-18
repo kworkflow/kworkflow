@@ -173,6 +173,7 @@ function grouping_day_data()
   local timebox_sec
   local total_time_box_sec=0
   local total_repetition=0
+  local -A date_printed
 
   day_path=$(join_path "$KW_POMODORO_DATA" "$day")
   if [[ ! -f "$day_path" ]]; then
@@ -184,15 +185,20 @@ function grouping_day_data()
     tag=$(printf '%s\n' "$line" | cut -d ',' -f1)
     timebox=$(printf '%s\n' "$line" | cut -d ',' -f2)
     start_time=$(printf '%s\n' "$line" | cut -d ',' -f3)
-    details=$(printf '%s\n' "$line" | cut -d ',' -f4)
+    details=$(printf '%s\n' "$line" | cut -d ',' -f1,2,3 --complement)
 
     time_label=$(expand_time_labels "$timebox")
     [[ "$?" != 0 ]] && continue
 
+    if [[ ! -v date_printed["$tag"] ]]; then
+      date_printed["$tag"]=1
+      tags_details["$tag"]+=" - $day"$'\n'
+    fi
+
     end_time=$(date --date="$start_time $time_label" +%H:%M:%S)
 
     [[ -n "$details" ]] && details=": $details"
-    tags_details["$tag"]+=" * [$start_time-$end_time][$timebox]$details"$'\n'
+    tags_details["$tag"]+="   * [$start_time-$end_time][$timebox]$details"$'\n'
 
     # Preparing metadata: total timebox in sec, total repetition
     timebox_sec=$(timebox_to_sec "$timebox")
@@ -273,7 +279,7 @@ function grouping_year_data()
   done
 }
 
-function show_total_work_hours()
+function calculate_total_work_hours()
 {
   local work_hours_sec="$1"
   local hours
@@ -284,7 +290,7 @@ function show_total_work_hours()
   minutes=$((work_hours_sec % 3600 / 60))
   seconds=$((work_hours_sec % 60))
 
-  printf ' * Total hours of focus: %02d:%02d:%02d\n' "$hours" "$minutes" "$seconds"
+  printf '%02d:%02d:%02d' "$hours" "$minutes" "$seconds"
 }
 
 # Show report data after processing.
@@ -296,6 +302,7 @@ function show_data
   local tag_time
   local tag_repetition=0
   local total_focus_time=0
+  local total_focus_hours
 
   printf '%s\n' "# Report: $date"
 
@@ -307,7 +314,8 @@ function show_data
     total_repetition=$((total_repetition + tag_repetition))
   done
 
-  show_total_work_hours "$total_focus_time"
+  total_focus_hours=$(calculate_total_work_hours "$total_focus_time")
+  printf '%s\n' " * Total hours of focus: ${total_focus_hours}"
   printf '%s\n\n' " * Total focus session(s): $total_repetition"
 
   for tag in "${!tags_details[@]}"; do
@@ -315,7 +323,7 @@ function show_data
     total_time=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f1)
     total_repetition=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f2)
 
-    total_time=$(sec_to_format "$total_time")
+    total_time=$(calculate_total_work_hours "$total_time")
     printf '%s\n' " - Total focus time: $total_time" \
       " - Total repetitions: $total_repetition" \
       '' \
@@ -342,9 +350,21 @@ function save_data_to()
     exit "$ret"
   fi
 
-  truncate -s 0 "$path"
-  [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "$path"
-  [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "$path"
+  if [[ -d "$path" ]]; then
+    output='report_output'
+
+    [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "${path}/${output}"
+    [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "${path}/${output}"
+
+    success -n "The report output was saved in: "
+    success "${path}/${output}" | tr -s '/'
+  else
+    [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "$path"
+    [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "$path"
+
+    success -n "The report output was saved in: "
+    success "${path}" | tr -s '/'
+  fi
 }
 
 function parse_report_options()
@@ -488,3 +508,5 @@ function report_help()
     '  report [--year[=<year>]] - Display all the information for the specified year' \
     '  report [--output <path>] - Save report to <path>'
 }
+
+load_kworkflow_config

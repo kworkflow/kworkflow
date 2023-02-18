@@ -6,12 +6,15 @@ kw-deploy
 
 SYNOPSIS
 ========
-*kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local | \--vm]
+*kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local]
                       [\--setup]
-                      [-r | \--reboot] [-m | \--modules] [-s | \--ls-line]
+                      [-r | \--reboot] [\--no-reboot]
+                      [-m | \--modules] [-s | \--ls-line]
                       [-l | \--list] [-a | \--list-all]
                       [(-u | \--uninstall) <kernel-name>[,...]] [-f \--force]
                       [\--alert=(s | v | (sv | vs) | n)]
+                      [-p | \--create-package]
+                      [(-F | \--from-package) <kw-package-path>]
 
 DESCRIPTION
 ===========
@@ -59,11 +62,11 @@ OPTIONS
   need root access. ``kw deploy --local`` should not be executed with sudo
   or root.
 
-\--vm:
-  Deploy the Kernel image and modules to QEMU vm.
-
 -r, \--reboot:
   Reboot machine after deploy.
+
+\--no-reboot:
+  Do not reboot machine after deploy.
 
 \--setup:
   This command runs a basic setup in the target machine, including installing
@@ -91,6 +94,15 @@ OPTIONS
   kw can lead to system failures, and it is not recommended; only use it
   if you are sure about what you are doing.
 
+-p, \--create-package:
+  It is possible to create a kw package that can be shared with other users and
+  deployed with kw. This option instructs kw to just generate the package
+  without deploying it; notice that the package will be available in the
+  current folder.
+
+-F, \--from-package:
+  You can use this option to deploy a custom kernel from kw package.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -109,13 +121,10 @@ For these examples, we suppose the fields in your **kworkflow.config** file are
 already configured.
 
 First, if you are working in a specific kernel module, and if you want to
-install your recent changes in your VM you can use::
+install your recent changes in your local machine you can use::
 
   cd <kernel-path>
-  kw d --vm --modules
-
-.. note::
-  Turn off your VM before use the **install** command.
+  kw d --local --modules
 
 For building and installing a new module version based on the current kernel
 version, you can use::
@@ -131,3 +140,14 @@ order to prepare your target machine to receive your new kernel via `kw d`::
 
 Alternatively, you can just run `kw d` directly; the standard behavior will
 automatically run the setup operation in your first deploy.
+
+Suppose that you want to share a specific kernel with someone else for
+validation; you can generate a kw package with::
+
+  kw deploy --create-package
+
+The above command will create a \*.kw.tar package file that can be shared with
+any other kw user. If you want to install a custom kernel from this package,
+you can use::
+
+  kw deploy --from-package 5.19.0-THIS-IS-AN-EXAMPLE+.kw.tar

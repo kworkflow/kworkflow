@@ -6,10 +6,24 @@ SAMPLES_DIR="$TEST_DIR/samples"
 EXTERNAL_DIR="$TEST_DIR/external"
 TMP_TEST_DIR="$TEST_DIR/.tmp"
 
+KW_REMOTE_SAMPLES_DIR="${SAMPLES_DIR}/remote_samples"
+
 # Common samples
 MAINTAINERS_SAMPLE="$SAMPLES_DIR/MAINTAINERS"
 KW_CONFIG_SAMPLE="$SAMPLES_DIR/kworkflow.config"
+KW_BUILD_CONFIG_SAMPLE="$SAMPLES_DIR/build.config"
+KW_DEPLOY_CONFIG_SAMPLE="$SAMPLES_DIR/deploy.config"
+KW_VM_CONFIG_SAMPLE="$SAMPLES_DIR/vm.config"
+KW_MAIL_CONFIG_SAMPLE="$SAMPLES_DIR/mail.config"
+KW_NOTIFICATION_CONFIG_SAMPLE="$SAMPLES_DIR/notification.config"
+KW_REMOTE_CONFIG_SAMPLE="${KW_REMOTE_SAMPLES_DIR}/remote.config"
+
 KW_CONFIG_SAMPLE_X86="$SAMPLES_DIR/kworkflow_x86.config"
+KW_BUILD_CONFIG_SAMPLE_X86="$SAMPLES_DIR/build_x86.config"
+KW_VM_CONFIG_SAMPLE_X86="$SAMPLES_DIR/vm_x86.config"
+
+# Config file
+STD_CONFIG_FILE="${SAMPLES_DIR}/.config"
 
 # External files
 CHECKPATH_EXT="$EXTERNAL_DIR/get_maintainer.pl"
@@ -23,6 +37,7 @@ function init_env()
 {
   unset -v KW_LIB_DIR KWORKFLOW
   KW_LIB_DIR="./src"
+  KWORKFLOW=".kw"
   export KW_LIB_DIR KWORKFLOW
   export -f include
 }
@@ -101,6 +116,9 @@ function mk_fake_kernel_root()
   mkdir -p "$path/arch/arm64/boot/"
   touch "$path/arch/x86_64/boot/bzImage"
   touch "$path/arch/arm64/boot/Image"
+
+  printf 'This is a bzImage fake\n' > "${path}/arch/x86_64/boot/bzImage"
+  printf 'This is a Image fake\n' > "$path/arch/arm64/boot/Image"
 }
 
 function mk_fake_remote()
@@ -115,6 +133,53 @@ function mk_fake_remote()
 
   touch "$modules_path/$modules_name"/file{1,2}
   touch "$FAKE_KW/$kernel_install_path"/{debian.sh,deploy.sh}
+}
+
+# Create a fake kw package.
+#
+# @FAKE_KW: Target path to create the kw package
+# @output: Save kw package file to output
+# @kernel_name: Kernel name. If not set, it is 'test'
+# @kernel_binary_name: Kernel binary name. If not set, it is 'vmlinuz-test'
+# @architecture: Target achitecture. If not set, it is 'x86_64'
+function mk_fake_tar_file_to_deploy()
+{
+  local FAKE_KW="$1"
+  local output="$2"
+  local kernel_name="$3"
+  local kernel_binary_name="$4"
+  local architecture="$5"
+
+  kernel_name=${kernel_name:-'test'}
+  kernel_binary_name=${kernel_binary_name:-'vmlinuz-test'}
+  architecture=${architecture:-'x86_64'}
+
+  # Create kw_pkg dir
+  mkdir -p "${FAKE_KW}/kw_pkg/"
+
+  # Create fake files
+  touch "${FAKE_KW}/kw_pkg/${kernel_binary_name}"
+  touch "${FAKE_KW}/kw_pkg/${kernel_name}.config"
+  touch "${FAKE_KW}/kw_pkg/kw.pkg.info"
+
+  # Create modules
+  mkdir -p "${FAKE_KW}/kw_pkg/modules/lib/modules/"
+  touch "${FAKE_KW}/kw_pkg/modules/lib/modules/something_1"
+  touch "${FAKE_KW}/kw_pkg/modules/lib/modules/something_2"
+
+  # Compress everything
+  cmd="tar --gzip --directory='$FAKE_KW' --create --file=${kernel_name}.kw.tar kw_pkg"
+  eval "$cmd"
+
+  # Move to output if requested
+  if [[ -d "$output" ]]; then
+    mv "${FAKE_KW}/${kernel_name}.kw.tar" "$output"
+  elif [[ -n "$output" && ! -d "$output" ]]; then
+    printf 'Invalid parameter: %s\n' "$output"
+  fi
+
+  # Clean temporary files
+  rm -rf "${FAKE_KW}/kw_pkg/"
 }
 
 function mk_fake_remote_system()
@@ -195,6 +260,32 @@ function mk_fake_git()
   git commit --allow-empty -q -m 'Third commit'
 }
 
+function mk_fake_kw_folder()
+{
+  local target_folder="$1"
+  local kw_config_folder="${target_folder}/.kw"
+
+  [[ -z "$target_folder" ]] && return 22
+
+  mkdir -p "$kw_config_folder"
+  # Copy sample files
+  cp "$KW_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_BUILD_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_DEPLOY_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_VM_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_MAIL_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_NOTIFICATION_CONFIG_SAMPLE" "$kw_config_folder"
+  cp "$KW_REMOTE_CONFIG_SAMPLE" "$kw_config_folder"
+}
+
+function mk_fake_kw_env()
+{
+  local env_kw="${PWD}/.kw/envs/fake_env"
+
+  mkdir -p "$env_kw"
+  printf '%s' 'fake_env' > "${PWD}/.kw/env.current"
+}
+
 # This function expects an array of string with the command sequence and a
 # string containing the output.
 #
@@ -237,6 +328,41 @@ function assert_substring_match()
 
   if ! grep -qi "$expected" <<< "$output"; then
     fail "line $line: $msg"
+    return
+  fi
+}
+
+# This function asserts an exact line match (case sensitive).
+#
+# @lineno $LINENO variable
+# @expected_line Expected line
+# @result_to_compare Raw output to be compared
+function assert_line_match()
+{
+  local lineno="$1"
+  local expected_line="$2"
+  local result_to_compare="$3"
+
+  if ! grep -qFx "$expected_line" <<< "$result_to_compare"; then
+    fail "line ${lineno}: expected exact match of line '${expected_line}'"
+    return
+  fi
+}
+
+# This function asserts that an exact line is a no match (case sensitive).
+# Its the inverse of assert_line_match() function.
+#
+# @lineno $LINENO variable
+# @not_expected_line Not expected line
+# @result_to_compare Raw output to be compared
+function assert_no_line_match()
+{
+  local lineno="$1"
+  local not_expected_line="$2"
+  local result_to_compare="$3"
+
+  if grep -qFx "$not_expected_line" <<< "$result_to_compare"; then
+    fail "line ${lineno}: expected NO exact match of line '${not_expected_line}'"
     return
   fi
 }
@@ -288,6 +414,17 @@ function compare_array_values()
       "$equal" \
       '-----'
   fi
+}
+
+function get_config_option_to_string()
+{
+  local config_path="$1"
+  local output
+
+  output=$(< "$config_path")
+  output=$(printf '%s\n' "$output" | grep -oE '^(#?\w+=?)' | sed -E 's/[#=]//g')
+
+  printf '%s' "$output"
 }
 
 function invoke_shunit()

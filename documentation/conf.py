@@ -67,7 +67,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -159,7 +159,10 @@ man_pages = [
     ('man/features/backup', 'backup', 'save and restore kw data', [author], 1),
     ('man/features/build', 'build', 'build the kernel', [author], 1),
     ('man/features/codestyle', 'codestyle', 'checkpatch wrapper', [author], 1),
-    ('man/features/configm', 'configm', 'config manager', [author], 1),
+    ('man/features/kernel-config-manager', 'kernel-config-manager', 'config manager', [author], 1),
+    ('man/features/config', 'config', 'config manager', [author], 1),
+    ('man/features/env', 'env', 'kw env manager', [author], 1),
+    ('man/features/remote', 'remote', 'Manage set of tracked test machines', [author], 1),
     ('man/features/debug', 'debug', 'kernel debug', [author], 1),
     ('man/features/deploy', 'deploy', 'deploy the kernel', [author], 1),
     ('man/features/device', 'device', 'hardware information', [author], 1),
@@ -174,6 +177,7 @@ man_pages = [
     ('man/features/ssh', 'ssh', 'ssh access', [author], 1),
     ('man/features/vars', 'vars', 'view kw config values', [author], 1),
     ('man/features/vm', 'vm', 'commands to work with QEMU VMs', [author], 1),
+    ('man/features/self-update', 'self-update', 'kw self-update mechanism', ['David Tadokoro, Everaldo Junior'], 1),
 ]
 
 

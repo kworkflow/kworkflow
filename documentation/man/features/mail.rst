@@ -6,7 +6,7 @@ kw-mail
 
 SYNOPSIS
 ========
-| *kw mail* (-s | \--send) [\--simulate] [\--private] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
+| *kw mail* (-s | \--send) [\--simulate] [\--private] [\--rfc] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
 | *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
 | *kw mail* (-i | \--interactive) [\--local | \--global]
 | *kw mail* (-l | \--list)
@@ -62,6 +62,9 @@ OPTIONS
 
 \--private:
   Supress auto generation of recipients.
+
+\--rfc:
+  Add a request for comment prefix to the e-mail's subject.
 
 <rev-range>...:
   Specify the *<rev-range>* to be sent. The last commit is taken as the

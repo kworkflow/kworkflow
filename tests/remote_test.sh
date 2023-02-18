@@ -34,6 +34,7 @@ function oneTimeSetUp()
 
   cp -f 'tests/samples/kworkflow.config' "$TEST_PATH/.kw/"
   cp -f 'tests/samples/dmesg' "$TEST_PATH"
+  cp -f "${KW_REMOTE_SAMPLES_DIR}/remote.config" "${TEST_PATH}/.kw/"
 
   export KW_CACHE_DIR="$FAKE_KW"
   export KW_PLUGINS_DIR="$FAKE_KW"
@@ -63,10 +64,11 @@ function setUp()
     return
   }
 
-  load_configuration
-  remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
-  remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
-  remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible return to original directory"
@@ -84,6 +86,12 @@ function test_populate_remote_info()
 {
   local ret
   local output
+  local -r current_path="$PWD"
+
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   # Force an unspected error
   configurations=()
@@ -109,24 +117,154 @@ function test_populate_remote_info()
   assertEquals "($LINENO) Expected ada" 'ada' "${remote_parameters['REMOTE_USER']}"
 
   # Let's check with a config file information
-  parse_configuration "$KW_CONFIG_SAMPLE"
-
   populate_remote_info ''
-  assertEquals "($LINENO) Expected 127.0.0.1" '127.0.0.1' "${remote_parameters['REMOTE_IP']}"
-  assertEquals "($LINENO) Expected 3333" 3333 "${remote_parameters['REMOTE_PORT']}"
-  assertEquals "($LINENO) Expected juca" 'juca' "${remote_parameters['REMOTE_USER']}"
+  assertEquals "($LINENO) Expected origin" 'origin' "${remote_parameters['REMOTE_FILE_HOST']}"
+  assertEquals "($LINENO) Expected remote.config path" "${PWD}/.kw/remote.config" "${remote_parameters['REMOTE_FILE']}"
 
-  # Let's check a failure case
-  remote_parameters=()
-  configurations=()
-  populate_remote_info > /dev/null
-  ret="$?"
-  assertEquals "($LINENO) We did not load kworkflow.config, we expect an error" 22 "$ret"
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible return to original directory"
+    return
+  }
+}
+
+function test_is_ssh_connection_configured()
+{
+  local remote='test_remote'
+  local user='test_user'
+  local port='22'
+  local flag='TEST_MODE'
+  local current_path="$PWD"
+
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  remote_parameters['REMOTE_IP']="$remote"
+  remote_parameters['REMOTE_USER']="$user"
+  remote_parameters['REMOTE_PORT']="$port"
+
+  is_ssh_connection_configured "$flag" > /dev/null
+
+  assertEquals "($LINENO):" 0 "$?"
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move to the original path"
+    return
+  }
+}
+
+function test_is_ssh_connection_configured_with_remote_config_file()
+{
+  local flag='TEST_MODE'
+  local current_path="$PWD"
+
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']='origin'
+
+  is_ssh_connection_configured "$flag" > /dev/null
+
+  assertEquals "($LINENO):" 0 "$?"
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move to the original path"
+    return
+  }
+}
+
+function test_is_ssh_connection_configured_no_remote_config_file()
+{
+  local flag='TEST_MODE'
+  local current_path="$PWD"
+
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+
+  is_ssh_connection_configured "$flag"
+
+  assertEquals "($LINENO):" 2 "$?"
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move to the original path"
+    return
+  }
+}
+
+function test_ssh_connection_failure_message()
+{
+  local expected_remote='deb-tm'
+  local expected_user='root'
+  local expected_port='333'
+  local returned_remote
+  local returned_user
+  local returned_port
+  local ret
+  local no_config_file_failure_message='Could not find remote config file.'$'\n'
+  no_config_file_failure_message+='Suggestion: check if there is a remote.config or try using'$'\n'
+  no_config_file_failure_message+='  kw ssh (-r | --remote) <user>@<ip>:<port>'
+
+  cd "$TEST_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Case 1: IP, user and port passed as command line arguments (kw ssh -r)
+  remote_parameters['REMOTE_IP']='deb-tm'
+  remote_parameters['REMOTE_USER']='root'
+  remote_parameters['REMOTE_PORT']='333'
+
+  ret=$(ssh_connection_failure_message)
+  returned_remote=$(printf '%s' "$ret" | grep 'IP' | sed 's/ IP: //')
+  returned_user=$(printf '%s' "$ret" | grep 'User' | sed 's/ User: //')
+  returned_port=$(printf '%s' "$ret" | grep 'Port' | sed 's/ Port: //')
+
+  assertEquals "($LINENO):" "$expected_remote" "$returned_remote"
+  assertEquals "($LINENO):" "$expected_user" "$returned_user"
+  assertEquals "($LINENO):" "$expected_port" "$returned_port"
+
+  # Case 2: Using a remote config file
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']='origin'
+
+  ret=$(ssh_connection_failure_message)
+  returned_remote=$(printf '%s' "$ret" | grep 'IP' | sed 's/ IP: //')
+  returned_user=$(printf '%s' "$ret" | grep 'User' | sed 's/ User: //')
+  returned_port=$(printf '%s' "$ret" | grep 'Port' | sed 's/ Port: //')
+
+  assertEquals "($LINENO):" "$expected_remote" "$returned_remote"
+  assertEquals "($LINENO):" "$expected_user" "$returned_user"
+  assertEquals "($LINENO):" "$expected_port" "$returned_port"
+
+  # Case 3: No remote config file found
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+
+  ret=$(ssh_connection_failure_message)
+  assertEquals "($LINENO):" "$no_config_file_failure_message" "$ret"
 }
 
 function test_cmd_remote()
 {
-  local log_path="$SHUNIT_TMPDIR/cmd_remote_test.log"
+  local log_path="${SHUNIT_TMPDIR}/cmd_remote_test.log"
   local command='ls -lah'
   local remote='178.31.38.12'
   local port='2222'
@@ -136,13 +274,20 @@ function test_cmd_remote()
   local expected_command
   local ret
 
-  parse_configuration "$SAMPLES_DIR/kworkflow_ssh_config_file.config"
-  expected_command="ssh -F ~/.ssh/config xpto sudo \"$command\""
-  output=$(cmd_remotely "$command" "$flag" "$remote" "$port" "$user")
+  remote_parameters['REMOTE_FILE']="${SHUNIT_TMPDIR}/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']='origin'
+
+  expected_command="ssh -F ${SHUNIT_TMPDIR}/remote.config origin sudo \"$command\""
+  output=$(cmd_remotely "$command" "$flag")
   assertEquals "($LINENO): Command did not match" "$expected_command" "$output"
 
   configurations=()
   parse_configuration "$SAMPLES_DIR/kworkflow_template.config"
+
+  # Remote
+  remote_parameters['REMOTE_IP']='localhost'
+  remote_parameters['REMOTE_PORT']='22'
+  remote_parameters['REMOTE_USER']='root'
 
   expected_command="ssh -p $port $user@$remote sudo \"$command\""
   output=$(cmd_remotely "$command" "$flag" "$remote" "$port" "$user")
@@ -177,6 +322,10 @@ function test_cp2remote()
   local RSYNC_PREFIX='rsync --info=progress2 -e'
   local RSYNC_FLAGS="-LrlptD --rsync-path='sudo rsync'"
   local expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS $rsync_params"
+
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
 
   # Load default configureation, because we want to test default values
   output=$(cp2remote "$flag" "$src" "$dst" "$rsync_params" "$remote" "$port" "$user")
@@ -217,12 +366,16 @@ function test_cp2remote()
 
 function test_which_distro()
 {
-  local cmd='cat /etc/os-release | grep -w ID | cut -d = -f 2'
+  local cmd='cat /etc/os-release'
   local remote='172.16.224.1'
   local user='xpto'
   local port='2222'
   local flag='TEST_MODE'
   local expected_str
+
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
 
   output=$(which_distro "$remote" "$port" "$user" "$flag")
   expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
@@ -233,14 +386,11 @@ function test_which_distro()
   expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
   assertEquals "($LINENO)" "$expected_str" "$output"
 
-  user='juca'
   port=3333
   output=$(which_distro "$remote" '' '' "$flag")
   expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
   assertEquals "($LINENO)" "$expected_str" "$output"
 
-  user='juca'
-  port=3333
   remote='127.0.0.1'
   output=$(which_distro '' '' '' "$flag")
   expected_str="ssh -p $port $user@$remote sudo \"$cmd\""

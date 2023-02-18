@@ -50,18 +50,15 @@ exceptions ext4 fib fib6"
 
 function tearDown()
 {
-  # Clean everything inside directory
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
+  if [[ -d "$SHUNIT_TMPDIR" ]]; then
+    rm -rf "${SHUNIT_TMPDIR}"
+  fi
+}
 
-  rm -rf ./*
-
-  cd "$original_dir" || {
-    fail "($LINENO) It was not possible to move back to original directory"
-    return
-  }
+# Mock function
+function get_today_info()
+{
+  printf 'kw_2021_10_22-07_34_07'
 }
 
 function test_prepare_log_database()
@@ -310,19 +307,49 @@ function test_build_event_command_string()
 }
 
 #debug [--remote [REMOTE:PORT]] --cmd=\"COMMAND\"\n" \
+function test_parser_debug_options_remote()
+{
+  # 1) Parser remote without config file.
+  parser_debug_options --remote 'juca@localhost:33'
+  assert_equals_helper 'Expected localhost' "$LINENO" "${remote_parameters['REMOTE_IP']}" 'localhost'
+  assert_equals_helper 'Expected port 33' "$LINENO" "${remote_parameters['REMOTE_PORT']}" 33
+  assert_equals_helper 'Expected user' "$LINENO" "${remote_parameters['REMOTE_USER']}" 'juca'
+
+  # 2) Parser remote with config file
+
+  # Setup folder to emulate kw config
+  mkdir -p "${SHUNIT_TMPDIR}/.kw"
+  cp "${KW_REMOTE_SAMPLES_DIR}/remote.config" "${SHUNIT_TMPDIR}/.kw"
+
+  # Execute function inside emulate kw config
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # 2.1) We have a config file, with origin set as host, and user request it
+  parser_debug_options --remote 'origin'
+  assert_equals_helper 'Expected origin' "$LINENO" "${remote_parameters['REMOTE_FILE_HOST']}" 'origin'
+
+  # 2.2) We have a config file, with --remote NAME, but we don't have NAME in the
+  #      config file.
+  parser_debug_options --remote 'debian-test-dns'
+  assert_equals_helper 'Expected empty' "$LINENO" "${remote_parameters['REMOTE_FILE_HOST']}" ''
+  assert_equals_helper 'Expected debian-test-dns' "$LINENO" "${remote_parameters['REMOTE_IP']}" 'debian-test-dns'
+
+  parser_debug_options --remote '192.0.2.0'
+  assert_equals_helper 'Expected 192.0.2.0' "$LINENO" "${remote_parameters['REMOTE_IP']}" '192.0.2.0'
+
+  cd "$original_dir" || {
+    fail "($LINENO) It was not possible to move back to original directory"
+    return
+  }
+}
+
 function test_parser_debug_options()
 {
   local event_str
   local fake_cmd='modprobe amdgpu'
-
-  configurations['default_deploy_target']=3 # REMOTE
-
-  # Validate remote option
-  parser_debug_options --remote 'juca@localhost:33'
-  assert_equals_helper 'Expected localhost' "$LINENO" "${remote_parameters['REMOTE_IP']}" 'localhost'
-
-  assert_equals_helper 'Expected port 33' "$LINENO" "${remote_parameters['REMOTE_PORT']}" 33
-  assert_equals_helper 'Expected user' "$LINENO" "${remote_parameters['REMOTE_USER']}" 'juca'
 
   # Validate list option
   parser_debug_options --list
@@ -467,7 +494,12 @@ function test_ftrace_debug()
   assert_equals_helper 'Expected command' "$LINENO" "$output" "$expected_cmd"
 
   expected_cmd_base="$expected_cmd"
+
   # Remote
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
+
   output=$(ftrace_debug 3 'TEST_MODE' 'function_graph:amdgpu_dm*')
   expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd_base\""
   assert_equals_helper 'Expected remote command' "$LINENO" "$output" "$expected_cmd"
@@ -579,12 +611,6 @@ function test_ftrace_list()
   source 'src/remote.sh' --source-only
 }
 
-# Mock function
-function get_today_info()
-{
-  printf 'kw_2021_10_22-07_34_07'
-}
-
 function test_dmesg_debug()
 {
   local output
@@ -630,6 +656,10 @@ function test_dmesg_debug()
 
   # Check if was created a dmesg file
   assertTrue "($LINENO) Expected to find kw_debug/dmesg file" '[[ -f "$PWD/kw_debug/dmesg" ]]'
+
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
 
   output=$(dmesg_debug 3 'TEST_MODE' 'kw_debug' 1 '')
   expected_cmd="$std_ssh sudo \"$std_dmesg --follow\" | tee kw_debug/dmesg"
@@ -730,7 +760,7 @@ function test_event_debug()
   expected_cmd+=" && screen -S kw_2021_10_22-07_34_07 -X quit"
   declare -a expected_cmd_seq=(
     "$default_ssh sudo \" $expected_cmd\" | tee kw_debug/event"
-    'scp -P 3333 juca@127.0.0.1:~/kw_2021_10_22-07_34_07 kw_debug/event'
+    "rsync --info=progress2 -e 'ssh -p 3333' juca@127.0.0.1:${HOME}/kw_2021_10_22-07_34_07 kw_debug/event -LrlptD --rsync-path='sudo rsync'"
   )
 
   output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' 'kw_debug' '' "$igt_cmd_sample")
@@ -750,6 +780,10 @@ function test_stop_debug()
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
   local disable_trace="printf '0' > /sys/kernel/debug/tracing/tracing_on && printf '' > $ftracer_filter"
   local disable_cmd
+
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
 
   #Not a follow option
   output=$(stop_debug 'TEST_MODE')
@@ -782,6 +816,10 @@ function test_reset_debug()
   local current_tracer='/sys/kernel/debug/tracing/current_tracer'
   local ftracer_filter='/sys/kernel/debug/tracing/set_ftrace_filter'
   local expected_cmd
+
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
 
   disable_cmd="$debug_off && printf 'nop' > $current_tracer"
   disable_cmd+=" && printf '' > $ftracer_filter && printf '' > $trace_pipe_path"

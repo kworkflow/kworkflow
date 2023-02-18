@@ -1,5 +1,3 @@
-qemu
-libguestfs-tools
 git
 tar
 python3-docutils
@@ -20,3 +18,7 @@ zstd
 bc
 git-email
 pv
+rsync
+ccache
+patch
+sqlite

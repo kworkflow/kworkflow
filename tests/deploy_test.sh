@@ -18,7 +18,7 @@ function setUp()
   # Override some global variable
   export test_path="$FAKE_KERNEL"
   export KW_CACHE_DIR="$SHUNIT_TMPDIR/.cache"
-  export KW_ETC_DIR="$PWD/$SAMPLES_DIR/etc"
+  export KW_ETC_DIR="${SAMPLES_DIR}/etc"
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export KW_PLUGINS_DIR="$PWD/src/plugins"
   export REMOTE_KW_DEPLOY='/opt/kw'
@@ -31,12 +31,18 @@ function setUp()
 
   # Define some basic values for configurations
   parse_configuration "$KW_CONFIG_SAMPLE"
+  parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
+  parse_configuration "$KW_DEPLOY_CONFIG_SAMPLE" deploy_config
+  parse_configuration "$KW_VM_CONFIG_SAMPLE" vm_config
 
   # Usually, we call populate_remote_info to fill out remote info. However, to
   # keep the test more reliable, we manually set this values here
   remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
   remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
   remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
+
+  # Clean env
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
 
   # Mock functions
   shopt -s expand_aliases
@@ -47,7 +53,6 @@ function setUp()
   alias sudo='sudo_mock'
   alias date='date_mock'
   alias generate_tarball='generate_tarball_mock'
-  alias vm_umount='vm_umount_mock'
 
   # Standard configuration makes the below standard commands
   CONFIG_REMOTE='juca@127.0.0.1'
@@ -73,7 +78,7 @@ function setUp()
   COPY_CONFIG_FILE="cp .config ${TO_DEPLOY_BOOT_PATH}/config-${NAME}"
   COPY_KERNEL_IMAGE="cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/Image-${NAME}"
 
-  GENERATE_BOOT_TAR_FILE="tar --auto-compress --directory='${LOCAL_TO_DEPLOY_PATH}'"
+  GENERATE_BOOT_TAR_FILE="tar --lzop --directory='${LOCAL_TO_DEPLOY_PATH}'"
   GENERATE_BOOT_TAR_FILE+=" --create --file='${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar' boot"
 
   SEND_BOOT_FILES_HOST2REMOTE="$CONFIG_RSYNC ${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar"
@@ -101,15 +106,6 @@ function setUp()
     "$SEND_BOOT_FILES_HOST2REMOTE"
   )
 
-  # Base sequence for VM deploy
-  declare -ga BASE_EXPECTED_CMD_ARM_VM=(
-    "$SENDING_KERNEL_MSG"
-    "$UNDEFINED_CONFIG"
-    "$COPY_KERNEL_IMAGE"
-    "cp -r $LOCAL_TO_DEPLOY_PATH/boot/* ${configurations[mount_point]}/boot/"
-    'Did you check if your VM is mounted?'
-  )
-
   # Base sequence for X86
   COPY_KERNEL_IMAGE="cp arch/x86_64/boot/bzImage ${TO_DEPLOY_BOOT_PATH}/vmlinuz-${NAME}"
 
@@ -123,6 +119,11 @@ function setUp()
     "$GENERATE_BOOT_TAR_FILE"
     "$SEND_BOOT_FILES_HOST2REMOTE"
   )
+
+  # Create non kernel tree directory to test commands that can be run
+  # outside kernel tree (--list, --list-all, --ls-line, --uninstall)
+  NON_KERNEL_TREE="${SHUNIT_TMPDIR}/non_kernel_tree"
+  mkdir -p "${NON_KERNEL_TREE}"
 }
 
 function get_deploy_cmd_helper()
@@ -217,11 +218,12 @@ function test_setup_remote_ssh_with_passwordless()
     '-> Trying to set up passwordless access'
     '' # Extra line due to \n in the say message
     'ssh-copy-id root@127.0.0.1'
-    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 root@127.0.0.1 exit'
+    'ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p 3333 root@127.0.0.1 exit'
     'ssh-copy-id juca@127.0.0.1'
-    'ssh -q -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
+    'ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
   )
 
+  remote_parameters['REMOTE_USER']='juca'
   output=$(setup_remote_ssh_with_passwordless 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
@@ -237,7 +239,7 @@ function test_prepare_distro_for_deploy()
   declare -a expected_cmd=(
     '-> Basic distro set up'
     '' # Extra space for the \n in the message
-    "$ssh_prefix \"$cmd\""
+    "$ssh_prefix \"$cmd 3\""
   )
 
   # Remote
@@ -253,7 +255,11 @@ function test_prepare_distro_for_deploy()
   expected_cmd=(
     '-> Basic distro set up'
     '' # Extra space for the \n
-    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz'
+    'sudo -E mv /etc/skel/.screenrc /tmp'
+    'sudo -E systemctl restart pacman-init.service'
+    'sudo -E pacman-key --populate'
+    'yes | sudo -E pacman -Syu'
+    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober rng-tools'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
@@ -304,7 +310,7 @@ function test_check_setup_status()
 
   # 2. Success case
   touch "$REMOTE_KW_DEPLOY/status"
-  check_setup_status 1
+  check_setup_status 2
   assert_equals_helper 'Wrong return value' "($LINENO)" 0 "$?"
 }
 
@@ -342,8 +348,8 @@ function test_modules_install_to_no_strip_and_config_debug_info_enabled()
 
   # Test preparation
   cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
-  configurations[strip_modules_debug_option]='no'
-  KW_ETC_DIR="$PWD/etc"
+  deploy_config[strip_modules_debug_option]='no'
+  KW_ETC_DIR="${PWD}/etc"
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -359,12 +365,76 @@ function test_modules_install_to_no_strip_and_config_debug_info_enabled()
   }
 }
 
+function test_modules_install_to_with_env()
+{
+  local output
+  local original="$PWD"
+  local make_cmd="make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=${test_path} modules_install"
+
+  make_cmd+=" O=${KW_CACHE_DIR}/envs/fake_env"
+
+  declare -a expected_cmd=(
+    '* Preparing modules'
+    "$make_cmd"
+  )
+
+  cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/envs/fake_env"
+  mk_fake_kw_env
+
+  output=$(modules_install_to "$test_path" 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_modules_install_to_with_env_local()
+{
+  local output
+  local original="$PWD"
+  local make_cmd="sudo true && sudo -E make INSTALL_MOD_STRIP=1 modules_install"
+
+  make_cmd+=" O=${KW_CACHE_DIR}/envs/fake_env"
+
+  declare -a expected_cmd=(
+    '* Preparing modules'
+    "$make_cmd"
+  )
+
+  cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/envs/fake_env"
+  mk_fake_kw_env
+
+  output=$(modules_install_to "$test_path" 'TEST_MODE' 'local')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 function test_compose_copy_source_parameter_for_dtb_no_pattern()
 {
   local output
   local expected_result
 
-  configurations[dtb_copy_pattern]=''
+  deploy_config[dtb_copy_pattern]=''
   expected_result='arch/arm64/boot/dts/*.dtb'
   output=$(compose_copy_source_parameter_for_dtb 'arm64')
 
@@ -376,7 +446,7 @@ function test_compose_copy_source_parameter_for_dtb_multiple_folder()
   local output
   local expected_result
 
-  configurations[dtb_copy_pattern]='broadcom,rockchip,arm'
+  deploy_config[dtb_copy_pattern]='broadcom,rockchip,arm'
   expected_result=' -r arch/arm/boot/dts/{broadcom,rockchip,arm}'
   output=$(compose_copy_source_parameter_for_dtb 'arm')
 
@@ -388,13 +458,13 @@ function test_compose_copy_source_parameter_for_dtb_wildcard()
   local output
   local expected_result
 
-  configurations[dtb_copy_pattern]='broadcom,rockchip/*,arm'
+  deploy_config[dtb_copy_pattern]='broadcom,rockchip/*,arm'
   expected_result=' -r arch/arm/boot/dts/{broadcom,rockchip/*,arm}'
   output=$(compose_copy_source_parameter_for_dtb 'arm')
 
   assert_equals_helper 'Expected * pattern' "$LINENO" "$expected_result" "$output"
 
-  configurations[dtb_copy_pattern]='rockchip/*'
+  deploy_config[dtb_copy_pattern]='rockchip/*'
   expected_result='arch/arm64/boot/dts/rockchip/*'
   output=$(compose_copy_source_parameter_for_dtb 'arm64')
 
@@ -406,392 +476,11 @@ function test_compose_copy_source_parameter_for_dtb_any_other_pattern()
   local output
   local expected_result
 
-  configurations[dtb_copy_pattern]='broadcom'
+  deploy_config[dtb_copy_pattern]='broadcom'
   expected_result=' -r arch/arm/boot/dts/broadcom'
   output=$(compose_copy_source_parameter_for_dtb 'arm')
 
   assert_equals_helper 'Expected folder name' "$LINENO" "$expected_result" "$output"
-}
-
-function test_kernel_install_to_remote_reboot()
-{
-  local original="$PWD"
-  local deploy_params
-  local execute_deploy_remote
-  local expected_cmd
-  local output
-  local reboot=1
-
-  # Composing expected commands
-  deploy_params="${NAME} debian Image ${reboot} arm64 'remote' TEST_MODE"
-  execute_deploy_remote=$(get_deploy_cmd_helper "$deploy_params")
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  BASE_EXPECTED_CMD_ARM_REMOTE+=("$execute_deploy_remote")
-  # Test 1: Local deploy: reboot
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_REMOTE' "$output"
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_to_remote_no_reboot()
-{
-  local original="$PWD"
-  local deploy_params
-  local deploy_cmd
-  local execute_deploy_remote
-  local expected_cmd
-  local output
-  local reboot=0
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  deploy_params="${NAME} debian Image ${reboot} arm64 'remote' TEST_MODE"
-  execute_deploy_remote=$(get_deploy_cmd_helper "$deploy_params")
-
-  # Drop last element from previous test
-  BASE_EXPECTED_CMD_ARM_REMOTE+=("$execute_deploy_remote")
-  output=$(run_kernel_install 0 'test' 'TEST_MODE' 3 '127.0.0.1:3333')
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_REMOTE' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_archlinux_install_to_remote()
-{
-  local original="$PWD"
-  local deploy_params
-  local deploy_cmd
-  local execute_deploy_remote
-  local output
-  local reboot=1
-
-  # Setup this test for ArchLinux as a target
-  # We need to force ArchLinux in the distro detection
-  alias detect_distro='detect_distro_arch_mock'
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  deploy_params="${NAME} arch Image ${reboot} arm64 'remote' TEST_MODE"
-  execute_deploy_remote=$(get_deploy_cmd_helper "$deploy_params")
-  BASE_EXPECTED_CMD_ARM_REMOTE+=("$execute_deploy_remote")
-
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3) # 3: REMOTE_TARGET
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_REMOTE' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_x86_64_to_remote()
-{
-  local original="$PWD"
-  local remote='root@localhost'
-  local deploy_params="test debian bzImage 1 x86_64 'remote' TEST_MODE"
-  local deploy_cmd="$DEPLOY_REMOTE_PREFIX"
-  local ssh_cmd='ssh -p 22'
-  local rsync_cmd="rsync --info=progress2 -e '$ssh_cmd'"
-  local execute_deploy_remote
-  local output
-
-  # Composing expected commands
-  deploy_cmd+=" --kernel-update $deploy_params"
-
-  # Test preparation
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-  # Reset values
-  configurations=()
-  remote_parameters=()
-  cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
-  parse_configuration "$FAKE_KERNEL/kworkflow.config"
-
-  remote_parameters['REMOTE_IP']=${configurations[ssh_ip]}
-  remote_parameters['REMOTE_PORT']=${configurations[ssh_port]}
-  remote_parameters['REMOTE_USER']=${configurations[ssh_user]}
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  execute_deploy_remote="$ssh_cmd $remote sudo \"$deploy_cmd\""
-
-  BASE_EXPECTED_CMD_X86_REMOTE+=("$execute_deploy_remote")
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333')
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_X86_REMOTE' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_x86_64_to_remote_no_kernel_image_failure()
-{
-  local original="$PWD"
-  local expected_msg
-  local output
-
-  # Test preparation
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-  # Reset values
-  configurations=()
-  remote_parameters=()
-  cp "$KW_CONFIG_SAMPLE_X86" "$FAKE_KERNEL/kworkflow.config"
-  parse_configuration "$FAKE_KERNEL/kworkflow.config"
-
-  configurations['kernel_img_name']=''
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  # Test failures
-  rm -rf 'arch/x86_64/'
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
-    tail -n +1 | head -1)
-  expected_msg='We could not find a valid kernel image at arch/x86_64/boot'
-  assertEquals "($LINENO)" "$output" "$expected_msg"
-  assert_equals_helper "Could not find a valid image" "$LINENO" "$expected_msg" "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-}
-
-function test_kernel_install_binary_name_without_kernel_img_name_param()
-{
-  local original="$PWD"
-  local expected_msg
-  local output
-  local deploy_params
-  local execute_deploy_remote
-
-  configurations['kernel_img_name']=''
-  deploy_params="${NAME} debian Image 1 arm64 'remote' TEST_MODE"
-  execute_deploy_remote=$(get_deploy_cmd_helper "$deploy_params")
-
-  declare -ga BASE_EXPECTED_CMD_CUSTOM_ARM_REMOTE=(
-    "$SENDING_KERNEL_MSG"
-    "$UNDEFINED_CONFIG"
-    "cp arch/arm64/boot/Image ${TO_DEPLOY_BOOT_PATH}/kernel-${NAME}"
-    "$GENERATE_BOOT_TAR_FILE"
-    "rsync --info=progress2 -e 'ssh -p 3333' ${LOCAL_TO_DEPLOY_PATH}/${NAME}_boot.tar juca@127.0.0.1:$KW_DEPLOY_TMP_FILE $STD_RSYNC_FLAG"
-    "$execute_deploy_remote"
-  )
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  # Test kernel image infer
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 3 '127.0.0.1:3333' |
-    tail -n +1)
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_CUSTOM_ARM_REMOTE' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_arm_local_no_config()
-{
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  alias collect_deploy_info='collect_deploy_info_mock'
-
-  # This mock the find command, to add multiple kernel images
-  alias find='find_kernels_mock'
-
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_arm_local_with_config()
-{
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  alias collect_deploy_info='collect_deploy_info_mock'
-  # This mock refers to the function run_bootloader_update
-  alias find='find_kernels_mock'
-
-  # Test 2: Copy config file
-  cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
-
-  # Replace warning message by copying config
-  BASE_EXPECTED_CMD_ARM_LOCAL[1]="$COPY_CONFIG_FILE"
-
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_LOCAL' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_arm_local_ensure_not_run_as_root()
-{
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  alias collect_deploy_info='collect_deploy_info_mock'
-  # This mock refers to the function run_bootloader_update
-  alias find='find_kernels_mock'
-
-  # Make sure that we are not running as a root user
-  alias id='root_id_mock;true'
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  ret="$?"
-  assert_equals_helper 'Wrong return value' "($LINENO)" 1 "$ret"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-}
-
-function test_kernel_install_arm_local_unknown_distro()
-{
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  alias collect_deploy_info='collect_deploy_info_mock'
-  # This mock refers to the function run_bootloader_update
-  alias find='find_kernels_mock'
-
-  # Make sure that we are not running as a root user
-  alias detect_distro='which_distro_none_mock'
-  output=$(run_kernel_install 1 'test' 'TEST_MODE' 2)
-  assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_to_vm_no_config()
-{
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  output=$(run_kernel_install 0 'test' 'TEST_MODE' 1)
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_VM' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_to_vm_with_config()
-{
-  local name='test'
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  cp "$SAMPLES_DIR/.config" ./ # Config file with "test" as a kernel name
-
-  BASE_EXPECTED_CMD_ARM_VM[1]="$COPY_CONFIG_FILE"
-  output=$(run_kernel_install 0 "$name" 'TEST_MODE' 1)
-  compare_command_sequence '' "$LINENO" 'BASE_EXPECTED_CMD_ARM_VM' "$output"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-}
-
-function test_kernel_install_to_vm_invalid_distro()
-{
-  local name='test'
-  local original="$PWD"
-  local output
-
-  cd "$FAKE_KERNEL" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
-  alias detect_distro='which_distro_none_mock'
-
-  output=$(run_kernel_install 0 "$name" 'TEST_MODE' 1)
-  assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
-
-  cd "$original" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
 }
 
 function test_kernel_modules()
@@ -829,14 +518,14 @@ function test_kernel_modules()
   compress_cmd="tar --auto-compress --directory='$local_remote_path/lib/modules/' --create --file='$to_deploy_path/$version.tar' $version"
 
   # Rsync modules
-  rsync_tarball="$CONFIG_RSYNC $to_deploy_path/$version.tar $CONFIG_REMOTE:$remote_path $STD_RSYNC_FLAG"
+  rsync_tarball="${CONFIG_RSYNC} ${to_deploy_path}/${version}.kw.tar ${CONFIG_REMOTE}:${remote_path} ${STD_RSYNC_FLAG}"
 
   # Install module inside remote
-  deploy_remote_cmd+=" --modules $version.tar"
+  deploy_remote_cmd+=" --modules ${version}.kw.tar"
 
   exec_module_install="$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_remote_cmd\""
 
-  # Test 1: Check modules deploy for a remote
+  # Check modules deploy for a remote
   cp "${SAMPLES_DIR}/.config" "$FAKE_KERNEL"
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -844,30 +533,21 @@ function test_kernel_modules()
   }
 
   declare -a expected_cmd=(
-    "$PREPARING_MODULES_MSG"
-    "$make_install_cmd" # make install
-    "$compress_cmd"     # Prepare tarball
-    "* Sending kernel modules ($version) to the remote"
-    "$rsync_tarball"       # Sending tarball
+    "$rsync_tarball" # Sending tarball
+    '* Sending kernel package (5.4.0-rc7-test) to the remote'
     "$exec_module_install" # Installing module in the target
   )
 
   # Create folder so generate_tarball won't complain
-  mkdir -p "$local_remote_path/lib/modules/$version"
+  mkdir -p "${local_remote_path}/lib/modules/${version}"
 
-  output=$(modules_install 'TEST_MODE' 3)
+  deploy_config['deploy_default_compression']=''
+
+  output=$(modules_install 3 "${to_deploy_path}/${version}.kw.tar" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
-  # Test 2: Deploy modules to local
-  output=$(modules_install 'TEST_MODE' 1)
-  declare -a expected_cmd=(
-    "$PREPARING_MODULES_MSG"
-    'make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=/home/lala modules_install'
-  )
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-
-  # Test 3: Deploy modules locally vm
-  output=$(modules_install 'TEST_MODE' 2)
+  # Deploy modules locally
+  output=$(modules_install 2 'fake/path' 'TEST_MODE')
   declare -a expected_cmd=(
     "$PREPARING_MODULES_MSG"
     'sudo true && sudo -E make INSTALL_MOD_STRIP=1 modules_install'
@@ -890,14 +570,11 @@ function test_list_remote_kernels()
   # Rsync script command
   local remote_list_cmd="$CONFIG_SSH $CONFIG_REMOTE sudo"
   local output
-  local deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
-
-  # Composing command
+  local deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX" # Composing command
   deploy_remote_cmd+=" --list-kernels TEST_MODE 0 "
   remote_list_cmd+=" \"$deploy_remote_cmd\""
 
   output=$(run_list_installed_kernels 'TEST_MODE' 0 3)
-
   assert_equals_helper 'Standard list' "$LINENO" "$remote_list_cmd" "$output"
 }
 
@@ -972,16 +649,15 @@ function test_parse_deploy_options()
   assert_equals_helper 'Default LS_LINE did not match expectation' "($LINENO)" '0' "${options_values['LS_LINE']}"
   assert_equals_helper 'Default LS_ALL did not match expectation' "($LINENO)" '' "${options_values['LS_ALL']}"
   assert_equals_helper 'Default MENU_CONFIG did not match expectation' "($LINENO)" 'nconfig' "${options_values['MENU_CONFIG']}"
-  assert_equals_helper 'Default TARGET did not match expectation' "($LINENO)" '1' "${options_values['TARGET']}"
+  assert_equals_helper 'Default TARGET did not match expectation' "($LINENO)" 3 "${options_values['TARGET']}"
 
   # test individual options
   unset options_values
   declare -gA options_values
   parse_deploy_options --remote 'user@127.0.2.1:8888'
   assert_equals_helper 'Could not set deploy REMOTE_USER' "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
-  assert_equals_helper 'Could not set deploy REMOTE' "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
-  assert_equals_helper 'Could not set deploy REMOTE_PORT' "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
-  assert_equals_helper 'Could not set deploy REMOTE_IP' "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
+  assert_equals_helper 'Could not set deploy REMOTE' "($LINENO)" "${remote_parameters['REMOTE_IP']}" '127.0.2.1'
+  assert_equals_helper 'Could not set deploy REMOTE_PORT' "($LINENO)" "${remote_parameters['REMOTE_PORT']}" '8888'
 
   unset options_values
   declare -gA options_values
@@ -1003,13 +679,18 @@ function test_parse_deploy_options()
 
   unset options_values
   declare -gA options_values
-  parse_deploy_options --vm
-  assert_equals_helper 'Could not set deploy TARGET' "($LINENO)" '1' "${options_values['TARGET']}"
+  parse_deploy_options --reboot
+  assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '1' "${options_values['REBOOT']}"
 
   unset options_values
   declare -gA options_values
-  parse_deploy_options --reboot
-  assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '1' "${options_values['REBOOT']}"
+  parse_deploy_options --no-reboot
+  assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '0' "${options_values['REBOOT']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --reboot --no-reboot
+  assert_equals_helper 'Could not set deploy REBOOT' "($LINENO)" '0' "${options_values['REBOOT']}"
 
   unset options_values
   declare -gA options_values
@@ -1094,7 +775,6 @@ function test_parse_deploy_options()
   assert_equals_helper 'Option composition failed on MODULES' "($LINENO)" '1' "${options_values['MODULES']}"
   assert_equals_helper 'Option composition failed on LS_LINE' "($LINENO)" '1' "${options_values['LS_LINE']}"
   assert_equals_helper 'Option composition failed on REMOTE_USER' "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
-  assert_equals_helper 'Option composition failed on REMOTE' "($LINENO)" '127.0.2.1:8888' "${remote_parameters['REMOTE']}"
   assert_equals_helper 'Option composition failed on REMOTE_PORT' "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
   assert_equals_helper 'Option composition failed on REMOTE_IP' "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
 }
@@ -1185,18 +865,6 @@ function test_collect_target_info_for_deploy()
   include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
   include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
 
-  # Corner-cases
-  alias detect_distro='which_distro_none_mock'
-  output=$(collect_target_info_for_deploy 1 'TEST_MODE')
-  assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
-
-  # VM
-  alias collect_deploy_info='collect_deploy_info_mock'
-  alias detect_distro='detect_distro_arch_mock'
-  collect_target_info_for_deploy 1 'TEST_MODE'
-  assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'GRUB'
-  assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'arch'
-
   # LOCAL
   alias collect_deploy_info='collect_deploy_info_other_mock'
   collect_target_info_for_deploy 2 'TEST_MODE'
@@ -1206,11 +874,358 @@ function test_collect_target_info_for_deploy()
   # REMOTE
   function cmd_remotely()
   {
+    # shellcheck disable=SC2317
     printf '[bootloader]=syslinux [distro]=chrome'
   }
   collect_target_info_for_deploy 3 'TEST_MODE'
   assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'syslinux'
   assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'chrome'
+}
+
+function test_get_kernel_binary_name_outside_env()
+{
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  build_config['arch']='arm64'
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'Expected Image for ARM' "($LINENO)" "$output" 'Image'
+
+  build_config['arch']='x86_64'
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'Expected bzImage for x86' "($LINENO)" "$output" 'bzImage'
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_kernel_binary_name_inside_env()
+{
+  local output
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
+
+  build_config['arch']='arm64'
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'Expected Image for ARM' "($LINENO)" "$output" 'Image'
+
+  build_config['arch']='x86_64'
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'Expected bzImage for x86' "($LINENO)" "$output" 'bzImage'
+}
+
+function test_get_kernel_binary_name_invalid_operation()
+{
+  local output
+
+  output=$(get_kernel_binary_name)
+  assert_equals_helper 'It should not find a kernel image' "($LINENO)" 125 "$?"
+}
+
+function test_get_config_file_for_deploy_local_config()
+{
+  local original="$PWD"
+  local fake_cache_path
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Mini-setup
+  fake_cache_path="${PWD}/TEST"
+  mkdir "$fake_cache_path"
+
+  cp "$STD_CONFIG_FILE" ./
+  get_config_file_for_deploy 'test' "$fake_cache_path"
+
+  assertFileEquals "$STD_CONFIG_FILE" "${fake_cache_path}/config-test"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_file_for_deploy_no_kernel_name()
+{
+  local original="$PWD"
+  local fake_cache_path
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Mini-setup
+  fake_cache_path="${PWD}/TEST"
+  mkdir "$fake_cache_path"
+
+  cp "$STD_CONFIG_FILE" ./
+  get_config_file_for_deploy '' "$fake_cache_path"
+  assert_equals_helper 'There is no kernel name' "($LINENO)" 22 "$?"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_config_file_for_deploy_inside_env()
+{
+  local original="$PWD"
+  local fake_cache_path
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
+
+  # Mini-setup
+  fake_cache_path="${FAKE_KERNEL}/TEST"
+  mkdir "$fake_cache_path"
+
+  cp "$STD_CONFIG_FILE" "$FAKE_KERNEL"
+  get_config_file_for_deploy 'test' "$fake_cache_path"
+  assertFileEquals "$STD_CONFIG_FILE" "${fake_cache_path}/config-test"
+}
+
+function test_get_config_file_for_deploy_warning_message()
+{
+  local output
+  local original="$PWD"
+  local fake_cache_path
+  local expected_str='Undefined .config file for the target kernel.'
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${FAKE_KERNEL}/invalid/"
+
+  # Mini-setup
+  fake_cache_path="${FAKE_KERNEL}/TEST"
+  mkdir "$fake_cache_path"
+
+  cp "$STD_CONFIG_FILE" "$FAKE_KERNEL"
+  output=$(get_config_file_for_deploy 'test' "$fake_cache_path")
+  assert_equals_helper 'Expected a warning' "($LINENO)" "$expected_str" "$output"
+}
+
+function test_get_kernel_image_for_deploy_no_env_x86()
+{
+  local original="$PWD"
+  local final_kernel_binary_image_name
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Mini-setup
+  fake_cache_path="${FAKE_KERNEL}/TEST"
+  mkdir "$fake_cache_path"
+
+  get_kernel_image_for_deploy 'x86_64' 'test' 'bzImage' 'arch/x86_64/boot' "$fake_cache_path" final_kernel_binary_image_name
+  assertFileEquals 'arch/x86_64/boot/bzImage' "${fake_cache_path}/vmlinuz-test"
+  assert_equals_helper 'vmlinuz for x86' "(${LINENO})" 'vmlinuz-test' "$final_kernel_binary_image_name"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_kernel_image_for_deploy_no_env_arm()
+{
+  local original="$PWD"
+  local final_kernel_binary_image_name
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Mini-setup
+  fake_cache_path="${FAKE_KERNEL}/TEST"
+  mkdir "$fake_cache_path"
+
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache_path" final_kernel_binary_image_name
+  assertFileEquals 'arch/arm64/boot/Image' "${fake_cache_path}/Image-test"
+  assert_equals_helper 'Image for ARM' "(${LINENO})" 'Image-test' "$final_kernel_binary_image_name"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_kernel_image_for_deploy_inside_env()
+{
+  local original="$PWD"
+  local fake_cache
+  local final_kernel_binary_image_name
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
+
+  # Mini-setup
+  fake_cache="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}/TEST"
+  mkdir -p "$fake_cache"
+
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache" final_kernel_binary_image_name
+  assert_equals_helper 'Image for ARM' "(${LINENO})" 'Image-test' "$final_kernel_binary_image_name"
+
+  assertFileEquals "${FAKE_KERNEL}/arch/arm64/boot/Image" "${fake_cache}/Image-test"
+}
+
+function test_get_kernel_image_for_deploy_kernel_image_does_not_exist()
+{
+  local original="$PWD"
+  local fake_cache
+  local final_kernel_binary_image_name
+
+  get_kernel_image_for_deploy 'arm64' 'test' 'Image' 'arch/arm64/boot' "$fake_cache" final_kernel_binary_image_name
+  assert_equals_helper 'There is no kernel image' "($LINENO)" 2 "$?"
+}
+
+# TODO: Move this function to mk_fake_kernel_root
+function create_fake_dts_folder()
+{
+  local base_path
+
+  mkdir -p "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays"
+  mkdir -p "${FAKE_KERNEL}/arch/arm64/boot/dts/broadcom"
+
+  touch "${FAKE_KERNEL}/arch/arm64/boot/dts/broadcom/bcm2710-rpi-2-b.dts"
+  touch "${FAKE_KERNEL}/arch/arm64/boot/dts/broadcom/bcm2710-rpi-2-b.dtb"
+  touch "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays/something.dts"
+  touch "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays/something.dtbo"
+}
+
+function test_get_dts_and_dtb_files_for_deploy_copy_overlay_and_dtbo()
+{
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # dtb setup
+  create_fake_dts_folder
+  mkdir "${FAKE_KERNEL}/TEST"
+
+  get_dts_and_dtb_files_for_deploy 'arm64' 'arch/arm64/boot' "${FAKE_KERNEL}/TEST"
+  assertTrue "($LINENO): Copy overlay folder" '[[ -d ${FAKE_KERNEL}/TEST/overlays ]]'
+  assertTrue "($LINENO): Expted dtb files" '[[ -f ${FAKE_KERNEL}/TEST/bcm2710-rpi-2-b.dtb ]]'
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_dts_and_dtb_files_for_deploy_copy_only_dtbo()
+{
+  local original="$PWD"
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # dtb setup
+  create_fake_dts_folder
+  rm -rf "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays"
+
+  mkdir "${FAKE_KERNEL}/TEST"
+
+  get_dts_and_dtb_files_for_deploy 'arm64' 'arch/arm64/boot' "${FAKE_KERNEL}/TEST"
+
+  assertTrue "($LINENO): It should not have overlays" '[[ ! -d ${FAKE_KERNEL}/TEST/overlays ]]'
+  assertTrue "($LINENO): Expted dtb files" '[[ -f ${FAKE_KERNEL}/TEST/bcm2710-rpi-2-b.dtb ]]'
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_get_dts_and_dtb_files_for_deploy_inside_env()
+{
+  local fake_cache
+
+  # Mini-setup
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
+  fake_cache="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}/TEST"
+  mkdir -p "$fake_cache"
+
+  # dtb setup
+  create_fake_dts_folder
+
+  get_dts_and_dtb_files_for_deploy 'arm64' 'arch/arm64/boot' "${FAKE_KERNEL}/TEST"
+  assertTrue "($LINENO): Copy overlay folder" '[[ -d ${FAKE_KERNEL}/TEST/overlays ]]'
+  assertTrue "($LINENO): Expted dtb files" '[[ -f ${FAKE_KERNEL}/TEST/bcm2710-rpi-2-b.dtb ]]'
+}
+
+function test_create_pkg_metadata_file_for_deploy()
+{
+  local original="$PWD"
+  local output
+
+  cd "$FAKE_KERNEL" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  mkdir 'TEST'
+
+  create_pkg_metadata_file_for_deploy 'x86_64' 'test' 'vmlinuz' './TEST'
+  output=$(grep 'kernel_name' './TEST/kw.pkg.info')
+  assertEquals "($LINENO)" 'kernel_name=test' "$output"
+
+  output=$(grep 'kernel_binary_image_file' './TEST/kw.pkg.info')
+  assertEquals "($LINENO)" 'kernel_binary_image_file=vmlinuz' "$output"
+
+  output=$(grep 'architecture' './TEST/kw.pkg.info')
+  assertEquals "($LINENO)" 'architecture=x86_64' "$output"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_run_commands_outside_kernel_tree()
+{
+  local output
+  local original="$PWD"
+
+  cd "${NON_KERNEL_TREE}" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --list
+  assertTrue "($LINENO) - Should list outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --list-all
+  assertTrue "($LINENO) - Should list all outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --ls-line
+  assertTrue "($LINENO) - Should line list outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --uninstall 'some_kernel'
+  assertTrue "($LINENO) - Should uninstall outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
+
+  cd "$original" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
 }
 
 invoke_shunit

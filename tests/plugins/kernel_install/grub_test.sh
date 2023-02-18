@@ -5,64 +5,70 @@ include './src/plugins/kernel_install/grub.sh'
 include './src/kwio.sh'
 include './tests/utils.sh'
 
-function setUp()
-{
-  FAKE_VM_IMG="$SHUNIT_TMPDIR/fake_vm"
-  touch "$FAKE_VM_IMG"
-}
-
 function test_grub()
 {
   local output
   local expected_cmd
 
+  function command_exists()
+  {
+    local command="$1"
+    local package=${command%% *}
+
+    return 22 # EINVAL
+  }
+
+  output=$(run_bootloader_update 'TEST_MODE' 'local')
+  ret="$?"
+  assert_equals_helper 'Local update' "$LINENO" '125' "$ret"
+
+  output=$(run_bootloader_update 'TEST_MODE' 'remote')
+  ret="$?"
+  assert_equals_helper 'Remote update' "$LINENO" '125' "$ret"
+
+  function command_exists()
+  {
+    local command="$1"
+    local package=${command%% *}
+
+    if [[ $command == 'grub-mkconfig' ]]; then
+      return 0
+    fi
+
+    return 22 # EINVAL
+  }
+
   output=$(run_bootloader_update 'TEST_MODE' 'local')
   expected_cmd='sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
+
   assert_equals_helper 'Local update' "$LINENO" "$expected_cmd" "$output"
 
   output=$(run_bootloader_update 'TEST_MODE' 'remote')
   expected_cmd='grub-mkconfig -o /boot/grub/grub.cfg'
+
   assert_equals_helper 'Remote update' "$LINENO" "$expected_cmd" "$output"
-}
 
-function test_run_bootloader_for_vm()
-{
-  local name='xpto'
-  local output
-  local cmd_grub="$DEFAULT_GRUB_CMD_UPDATE"
-  local mount_root=': mount /dev/sda1 /'
-  local mkdir_grub=': mkdir-p /boot/grub'
-  local setup_grub=": write /boot/grub/device.map '(hd0,1) /dev/sda'"
-  local grub_install='grub-install --directory=/usr/lib/grub/i386-pc --target=i386-pc --boot-directory=/boot --recheck --debug /dev/sda'
-  local guest_fish_cmd
-
-  # No vm
-  output=$(run_bootloader_for_vm 'TEST_MODE')
-  assertEquals "($LINENO)" 125 "$?"
-
-  # Normal flow
-  configurations[qemu_path_image]="$FAKE_VM_IMG"
-
-  # Let's replace vm_umount function
-  function vm_umount()
+  function command_exists()
   {
-    printf 'vm_umount'
+    local command="$1"
+    local package=${command%% *}
+
+    if [[ $command == 'grub2-mkconfig' ]]; then
+      return 0
+    fi
+
+    return 22 # EINVAL
   }
 
-  guest_fish_cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-      $mount_root \
-      $mkdir_grub $setup_grub : command '$grub_install' \
-      : command '$cmd_grub'"
+  output=$(run_bootloader_update 'TEST_MODE' 'local')
+  expected_cmd='sudo -E grub2-mkconfig -o /boot/grub2/grub.cfg'
 
-  declare -a cmd_sequence=(
-    "-> Updating grub for $name on VM. This can take a few minutes."
-    'sleep 0.5s'
-    "$guest_fish_cmd"
-    'Done.'
-  )
+  assert_equals_helper 'Local update' "$LINENO" "$expected_cmd" "$output"
 
-  output=$(run_bootloader_for_vm 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+  output=$(run_bootloader_update 'TEST_MODE' 'remote')
+  expected_cmd='grub2-mkconfig -o /boot/grub2/grub.cfg'
+
+  assert_equals_helper 'Remote update' "$LINENO" "$expected_cmd" "$output"
 }
 
 invoke_shunit

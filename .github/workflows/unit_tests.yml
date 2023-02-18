@@ -1,4 +1,4 @@
-name: unit-tests
+name: Unit tests
 on:
   [push, pull_request]
 jobs:
@@ -10,45 +10,24 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 3
 
       - name: Update the system
         run: |
-          sudo apt-get update -y
+          sudo apt update -y
 
       - name: Install dependencies
         run: |
-          sudo apt-get install -y shunit2 kcov bash git \
-          python-docutils dash graphviz python3-sphinx
+          sudo apt install -y shunit2 bc sqlite3 bsdmainutils
 
       - name: Prepare for tests
         run: |
           ./run_tests.sh prepare
-          mkdir kcov_out/
+          git config --global user.email "kw@kworkflow.net"
+          git config --global user.name "Kworkflow"
 
       - name: Unit tests
         run: |
-          git config --global user.email "kw@kworkflow.net"
-          git config --global user.name "Kworkflow"
-          git init
-          git commit --allow-empty -m "Test commit 1"
-          git commit --allow-empty -m "Test commit 2"
           ./run_tests.sh
-
-      - name: Check documentation
-        run: |
-          ./setup.sh --docs --force
-
-      - name: Check installation
-        run: |
-          ./setup.sh -i --force
-
-      - name: Kcov test
-        run: |
-          kcov --include-path=src,kw \
-          --exclude-pattern=src/bash_autocomplete.sh,src/help.sh \
-          kcov_out/ ./run_tests.sh
-
-      - name: Upload coverage do codecov
-        run: |
-          bash <(curl -s https://codecov.io/bash) -s kcov_out/

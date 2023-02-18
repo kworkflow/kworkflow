@@ -310,4 +310,17 @@ function test_concatenate_with_commas()
   assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
 }
 
+function test_str_has_special_characters()
+{
+  local output
+  local expected
+  local ret
+
+  output=$(str_has_special_characters 'no special char here')
+  assert_equals_helper 'No error expected' "$LINENO" "$?" 1
+
+  output=$(str_has_special_characters 'We have a special char!')
+  assert_equals_helper 'We expected a special char here' "$LINENO" "$?" 0
+}
+
 invoke_shunit

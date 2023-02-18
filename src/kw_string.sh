@@ -193,3 +193,18 @@ function concatenate_with_commas()
 
   printf '%s\n' "$*"
 }
+
+# This function check if a string has some special character associated with
+# it. By special character, we refer to: !, @, #, $, %, ^, &, (, ), and +.
+#
+# @str: Target string
+#
+# Return:
+# If match a special character, return 0. Otherwise retun 1.
+function str_has_special_characters()
+{
+  local str="$*"
+
+  [[ "$str" == *['!'@#\$%^\&*\(\)+]* ]] && return 0
+  return 1
+}

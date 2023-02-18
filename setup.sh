@@ -25,13 +25,14 @@ declare -r sounddir="$sharedir/sound"
 declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
 declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
+declare -r dot_configs_dir="${datadir}/configs"
 
 ##
 ## Source code references
 ##
 declare -r SRCDIR='src'
 declare -r MAN='documentation/man/'
-declare -r CONFIG_DIR='etc'
+declare -r CONFIG_DIR='etc/'
 declare -r KW_CACHE_DIR="$cachedir"
 
 declare -r SOUNDS='sounds'
@@ -51,7 +52,7 @@ function check_dependencies()
 
   if [[ "$distro" =~ 'arch' ]]; then
     while IFS='' read -r package; do
-      installed=$(pacman -Qs "$package" > /dev/null)
+      installed=$(pacman -Ql "$package" &> /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/arch.dependencies"
     cmd="pacman -S $package_list"
@@ -63,8 +64,8 @@ function check_dependencies()
     cmd="apt install -y $package_list"
   elif [[ "$distro" =~ 'fedora' ]]; then
     while IFS='' read -r package; do
-      installed=$(dnf list installed "$package" 2> /dev/null | grep -c "$package")
-      [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
+      installed=$(rpm -q "$package" &> /dev/null)
+      [[ "$?" -ne 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/fedora.dependencies"
     cmd="dnf install -y $package_list"
   else
@@ -82,7 +83,11 @@ function check_dependencies()
     fi
 
     # Install system packages
-    eval "sudo $cmd"
+    if [[ "$EUID" -eq 0 ]]; then
+      eval "$cmd"
+    else
+      eval "sudo $cmd"
+    fi
   fi
 
   while IFS='' read -r package; do
@@ -138,7 +143,7 @@ function update_path()
     [[ "$path" -ef "$binpath" ]] && return
   done
 
-  safe_append "PATH=$HOME/.local/bin:\$PATH # kw" "$HOME/$shellrc"
+  safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "${HOME}/${shellrc}"
 }
 
 function update_current_bash()
@@ -159,6 +164,28 @@ function cmd_output_manager()
 
   eval "$cmd"
   return "$?"
+}
+
+# TODO: Remove me one day
+# KW used git to track saved configs from kernel-config-manager.
+# It changed so this function removes the unused .git folder from
+# the dot_configs_dir
+function remove_legacy_git_from_kernel_config_manager()
+{
+  local -r original_path="$PWD"
+
+  [[ ! -d "${dot_configs_dir}"/.git ]] && return
+
+  if pushd "$dot_configs_dir" &> /dev/null; then
+    rm -rf .git/
+    popd &> /dev/null || {
+      complain "Could not return to original path from dot_configs_dir=$dot_configs_dir"
+      exit 1
+    }
+  else
+    complain 'Could not cd to dot_configs_dir'
+    return
+  fi
 }
 
 function usage()
@@ -262,26 +289,6 @@ function clean_legacy()
   remove_kw_from_PATH_variable
 }
 
-function setup_config_file()
-{
-  local config_files_path="$etcdir"
-  local config_file_template="$config_files_path/kworkflow_template.config"
-  local global_config_name='kworkflow.config'
-
-  if [[ -f "$config_file_template" ]]; then
-    cp "$config_file_template" "$config_files_path/$global_config_name"
-    sed -i -e "s/USERKW/$USER/g" -e "s,SOUNDPATH,$sounddir,g" \
-      -e "/^#?.*/d" "$config_files_path/$global_config_name"
-    ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      return "$ret"
-    fi
-  else
-    warning "setup could not find $config_file_template"
-    return 2
-  fi
-}
-
 function ASSERT_IF_NOT_EQ_ZERO()
 {
   local msg="$1"
@@ -332,14 +339,12 @@ function synchronize_files()
   cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
 
+  setup_global_config_file
+
   # User data
   mkdir -p "$datadir"
   mkdir -p "$datadir/statistics"
   mkdir -p "$datadir/configs"
-
-  # Copy and setup global config file
-  setup_config_file
-  ASSERT_IF_NOT_EQ_ZERO 'Config file failed' "$?"
 
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc
@@ -353,11 +358,9 @@ function synchronize_files()
 
   if command_exists 'zsh'; then
     # Add tabcompletion to zshrc
-    if [[ -f "$HOME/.zshrc" || -L "$HOME/.zshrc" ]]; then
-      local zshcomp=$'# Enable bash completion for zsh\n'
-      zshcomp+='autoload bashcompinit && bashcompinit'
-
-      safe_append "$zshcomp" "$HOME/.zshrc"
+    if [[ -f "${HOME}/.zshrc" || -L "${HOME}/.zshrc" ]]; then
+      safe_append '# Enable bash completion for zsh' "${HOME}/.zshrc"
+      safe_append 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
       append_bashcompletion '.zshrc'
       update_path '.zshrc'
     else
@@ -375,9 +378,9 @@ function synchronize_files()
 function append_bashcompletion()
 {
   local shellrc="$1"
-  local msg="# $app_name"$'\n'"source $libdir/$BASH_AUTOCOMPLETE.sh"
 
-  safe_append "$msg" "$HOME/$shellrc"
+  safe_append "# ${app_name}" "${HOME}/${shellrc}"
+  safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/${shellrc}"
 }
 
 function safe_append()
@@ -418,8 +421,31 @@ function install_home()
   # Synchronize source files
   say 'Installing ...'
   synchronize_files
+  # Remove old git repo to manage .config files
+  remove_legacy_git_from_kernel_config_manager
   # Update version based on the current branch
   update_version
+}
+
+function setup_global_config_file()
+{
+  local config_files_path="$etcdir"
+  local config_file_template="$config_files_path/notification_template.config"
+  local global_config_name='notification.config'
+
+  if [[ -f "$config_file_template" ]]; then
+    # Default config
+    cp "$config_file_template" "$config_files_path/notification.config"
+    sed -i -e "s,SOUNDPATH,$sounddir,g" \
+      -e "/^#?.*/d" "$config_files_path/notification.config"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      return "$ret"
+    fi
+  else
+    warning "setup could not find $config_file_template"
+    return 2
+  fi
 }
 
 # Options

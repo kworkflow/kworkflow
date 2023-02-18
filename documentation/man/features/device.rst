@@ -6,7 +6,7 @@ kw-device
 
 SYNOPSIS
 ========
-*kw device* [\--local | \--vm | \--remote [<remote>:<port>]]
+*kw device* [\--local | \--remote [<remote>:<port>]]
 
 DESCRIPTION
 ===========
@@ -23,9 +23,6 @@ OPTIONS
 =======
 \--local:
   Show hardware information from host machine.
-
-\--vm:
-  Show hardware information from virtual machine.
 
 \--remote [<remote>:<port>]:
   Show hardware information from remote machine.

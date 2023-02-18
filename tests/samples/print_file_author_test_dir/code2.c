@@ -5,7 +5,7 @@
  * Copyright (C) 2018 Bob Hilson
  *
  * This file is used to test the print_files_authors function
- * at src/get_maintainer_wrapper.sh.
+ * at src/maintainers.sh.
  *
  */
 

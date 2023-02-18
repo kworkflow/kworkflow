@@ -17,8 +17,8 @@ DESCRIPTION
 Pomodoro feature. This feature intends to keep all procedures related to data
 processing that will end up as a report for the user.
 
-Another help feature is the ``--statistics | -s`` option that keeps track of 
-metadata regarding utilization of features. This data is used to show **kw** 
+Another help feature is the ``--statistics | -s`` option that keeps track of
+metadata regarding utilization of features. This data is used to show **kw**
 usage statistics. In summary, this feature keeps track of:
 
 1. **Build**
@@ -28,7 +28,7 @@ usage statistics. In summary, this feature keeps track of:
 For all the data tracked by **kw**, users can retrieve the total amount of time
 spent by a specific command, the average time consumed by the feature and the
 shortest and highest time required for executing the feature. All of this
-information can be retrieved by the ``--statistics | -s`` option, the suboptions 
+information can be retrieved by the ``--statistics | -s`` option, the suboptions
 define the levels of granularity.
 
 The collection of the data processed and displayed by ``--statistics`` is
@@ -58,16 +58,16 @@ OPTIONS
   Exhibits the current year summary if the user does not specify *<year>*.
 
 \--all:
-  Display all information for the current date. You can choose the date and 
-  range with date options. 
+  Display all information for the current date. You can choose the date and
+  range with date options.
 
 \--pomodoro:
   Display current date pomodoro report. You can choose the date and range
-  with date options. 
+  with date options.
 
 \--statistics:
   Display statistics for the current date. You can choose the date and range
-  with date options. 
+  with date options.
 
 \--output <file-path>:
   Save the output of the report to *<file-path>*.

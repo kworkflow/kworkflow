@@ -9,13 +9,13 @@ declare -gA options_values
 declare -g root='/'
 declare -g PROC_CONFIG_PATH='/proc/config.gz'
 
-# This function handles the options available in 'configm'.
+# This function handles the options available in 'kernel-config-manager'.
 #
 # @* This parameter expects a list of parameters, such as '-n', '-d', and '-f'.
 #
 # Returns:
 # Return 0 if everything ends well, otherwise return an errno code.
-function execute_config_manager()
+function kernel_config_manager_main()
 {
   local name_config
   local description_config
@@ -26,6 +26,7 @@ function execute_config_manager()
   local remote
   local ip
   local port
+  local env_name
 
   if [[ -z "$*" ]]; then
     list_configs
@@ -37,11 +38,15 @@ function execute_config_manager()
     exit 0
   fi
 
-  parse_configm_options "$@"
-
+  parse_kernel_config_manager_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
     exit 22 # EINVAL
+  fi
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${env_name}"
   fi
 
   name_config="${options_values['SAVE']}"
@@ -90,8 +95,12 @@ function save_config_file()
   local -r force="$1"
   local -r name="$2"
   local -r description="$3"
-  local -r original_path="$PWD"
+  local original_path="$PWD"
   local -r dot_configs_dir="$KW_DATA_DIR/configs"
+
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    original_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
 
   if [[ ! -f "$original_path/.config" ]]; then
     complain 'There is no .config file in the current directory'
@@ -101,7 +110,6 @@ function save_config_file()
   if [[ ! -d "$dot_configs_dir" || ! -d "$dot_configs_dir/$metadata_dir" ]]; then
     mkdir -p "$dot_configs_dir"
     cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
-    git init --quiet
     mkdir -p "$metadata_dir" "$configs_dir"
   fi
 
@@ -122,12 +130,15 @@ function save_config_file()
     printf '%s\n' "$description" > "$metadata_dir/$name"
   fi
 
-  cp "$original_path/.config" "$dot_configs_dir/$configs_dir/$name"
-  git add "$configs_dir/$name" "$metadata_dir/$name"
-  git commit -m "New config file added: $USER - $(date)" > /dev/null 2>&1
-
-  if [[ "$?" == 1 ]]; then
+  if cmp -s "${original_path}/.config" "${dot_configs_dir}/${configs_dir}/${name}"; then
     warning "Warning: $name: there's nothing new in this file"
+  fi
+
+  cp "$original_path/.config" "$dot_configs_dir/$configs_dir/$name"
+  ret="$?"
+
+  if [[ "$ret" -gt 0 ]]; then
+    complain "Could not save user config files"
   else
     success "Saved $name"
   fi
@@ -176,9 +187,6 @@ function get_config_from_proc()
   local flag="$1"
   local output="$2"
   local target="$3"
-  local user="${remote_parameters['REMOTE_USER']}"
-  local ip="${remote_parameters['REMOTE_IP']}"
-  local port="${remote_parameters['REMOTE_PORT']}"
   local ret
   local -r CMD_LOAD_CONFIG_MODULE="modprobe -q configs && [ -s $PROC_CONFIG_PATH ]"
   local CMD_GET_CONFIG="zcat /proc/config.gz > $output"
@@ -202,13 +210,13 @@ function get_config_from_proc()
       return 0
       ;;
     3) # REMOTE
-      cmd_remotely "[ -f $PROC_CONFIG_PATH ]" "$flag" "$ip" "$port" "$user"
+      cmd_remotely "[ -f $PROC_CONFIG_PATH ]" "$flag"
       if [[ "$?" != 0 ]]; then
-        cmd_remotely "$CMD_LOAD_CONFIG_MODULE" "$flag" "$ip" "$port" "$user"
+        cmd_remotely "$CMD_LOAD_CONFIG_MODULE" "$flag"
         [[ "$?" != 0 ]] && return 95 # Operation not supported
       fi
 
-      cmd_remotely "$CMD_GET_CONFIG" "$flag" "$ip" "$port" "$user"
+      cmd_remotely "$CMD_GET_CONFIG" "$flag"
       [[ "$?" != 0 ]] && return 95 # Operation not supported
       remote2host "$flag" "/tmp/$output" "$PWD"
       return 0
@@ -287,16 +295,12 @@ function get_config_from_defconfig()
     return 125 # ECANCELED
   fi
 
-  cross_compile=${configurations[cross_compile]}
-  arch=${configurations[arch]}
-  # TODO: Right now, the below variable has no meaning and will be empty. Let's
-  # expand the config file to enable developers to define ASIC targets.
-  asic=${configurations[asic]}
+  cross_compile=${build_config[cross_compile]:-${configurations[cross_compile]}}
+  arch=${build_config[arch]:-${configurations[arch]}}
 
   # Build command
   [[ -n "$arch" ]] && cmd+=" ARCH=$arch"
   [[ -n "$cross_compile" ]] && cmd+=" CROSS_COMPILE=$cross_compile"
-  [[ -n "$asic" ]] && cmd+=" $asic\_defconfig"
 
   # If the --output option is passed, we don't want to override the current
   # config
@@ -341,8 +345,14 @@ function fetch_config()
   local cmd
   local arch
   local ret
+  local config_base_path="$PWD"
 
   output=${output:-'.config'}
+
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+    output_kbuild_flag=" --silent O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
 
   if [[ "$target" == "$REMOTE_TARGET" ]]; then
     # Check connection before try to work with remote
@@ -358,18 +368,18 @@ function fetch_config()
   # files temporarily.
   mkdir -p "$KW_CACHE_DIR/config"
 
-  if [[ -f "$PWD/$output" ]]; then
+  if [[ -f "${config_base_path}/${output}" ]]; then
     if [[ -z "$force" && $(ask_yN "Do you want to overwrite $output in your current directory?") =~ "0" ]]; then
       warning 'Operation aborted'
       return 125 #ECANCELED
     fi
 
-    cp "$PWD/$output" "$KW_CACHE_DIR/config"
+    cp "${config_base_path}/${output}" "$KW_CACHE_DIR/config"
   fi
 
   # If --output is provided, we need to backup the current config file
-  if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
-    cp "$PWD/.config" "$KW_CACHE_DIR/config"
+  if [[ -f "${config_base_path}/.config" && "$output" != '.config' ]]; then
+    cp "${config_base_path}/.config" "${KW_CACHE_DIR}/config"
   fi
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
@@ -390,7 +400,7 @@ function fetch_config()
 
   # Let's ensure that we keep all of the options from the old .config and set
   # new options to their default values.
-  cmd='make olddefconfig'
+  cmd="make olddefconfig${output_kbuild_flag}"
   cmd_manager "$flag" "$cmd"
 
   if [[ -n "$optimize" ]]; then
@@ -408,13 +418,13 @@ function fetch_config()
         mods=$(cmd_manager "$flag" 'lsmod')
         ;;
       3) # REMOTE
-        mods=$(cmd_remotely 'lsmod' "$flag" "$ip" "$port" "$user")
+        mods=$(cmd_remotely 'lsmod' "$flag")
         ;;
     esac
 
     printf "%s" "$mods" > "$KW_CACHE_DIR/lsmod"
 
-    cmd="make localmodconfig LSMOD=$KW_CACHE_DIR/lsmod"
+    cmd="make localmodconfig LSMOD=${KW_CACHE_DIR}/lsmod${output_kbuild_flag}"
 
     # 'make localmodconfig' uses .config from the current directory. So, we need
     # to rename the configuration file named <output> to .config. We also need to
@@ -423,15 +433,15 @@ function fetch_config()
     # If there is a .config, we move it to KW_CACHE_DIR, rename <output> to
     # .config, run 'make localmodconfig', then move things back to place.
     if [[ "$output" != '.config' ]]; then
-      if [[ -f "$PWD/.config" ]]; then
-        cmd_manager "$flag" "mv $PWD/$output $PWD/.config"
+      if [[ -f "${config_base_path}/.config" ]]; then
+        cmd_manager "$flag" "mv ${config_base_path}/$output ${config_base_path}/.config"
         cmd_manager "$flag" "$cmd"
-        cmd_manager "$flag" "mv $PWD/.config $PWD/$output"
-        cmd_manager "$flag" "mv $KW_CACHE_DIR/config/.config $PWD/.config"
+        cmd_manager "$flag" "mv ${config_base_path}/.config ${config_base_path}/${output}"
+        cmd_manager "$flag" "mv ${KW_CACHE_DIR}/config/.config ${config_base_path}/.config"
       else
-        cmd_manager "$flag" "mv $PWD/$output $PWD/.config"
+        cmd_manager "$flag" "mv ${config_base_path}/${output} ${config_base_path}/.config"
         cmd_manager "$flag" "$cmd"
-        cmd_manager "$flag" "mv $PWD/.config $PWD/$output"
+        cmd_manager "$flag" "mv ${config_base_path}/.config ${config_base_path}/${output}"
       fi
     else
       cmd_manager "$flag" "$cmd"
@@ -464,7 +474,7 @@ function list_configs()
   done
 }
 
-# Remove and Get operation in the configm has similar criteria for working,
+# Remove and Get operation in the kernel-config-manager has similar criteria for working,
 # because of this, basic_config_validations centralize the basic requirement
 # validation.
 #
@@ -513,18 +523,23 @@ function get_config()
 {
   local target="$1"
   local force="$2"
-  local -r dot_configs_dir="$KW_DATA_DIR/configs/configs"
+  local -r dot_configs_dir="${KW_DATA_DIR}/configs/configs"
   local -r msg='This operation will override the current .config file'
+  local config_base_path="$PWD"
 
   force=${force:-0}
 
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
+
   # If we does not have a local config, there's no reason to warn the user
-  [[ ! -f "$PWD/.config" ]] && force=1
+  [[ ! -f "${config_base_path}/.config" ]] && force=1
 
-  basic_config_validations "$target" "$force" "Get" "$msg"
+  basic_config_validations "$target" "$force" 'Get' "$msg"
 
-  cp "$dot_configs_dir/$target" .config
-  say "Current config file updated based on $target"
+  cp "${dot_configs_dir}/${target}" "${config_base_path}/.config"
+  say "Current config file updated based on ${target}"
 }
 
 # Remove a config file under kw management
@@ -541,26 +556,33 @@ function remove_config()
   local original_path="$PWD"
   local -r dot_configs_dir="$KW_DATA_DIR/configs"
   local -r msg="This operation will remove $target from kw management"
+  local ret
+  local configs
 
   basic_config_validations "$target" "$force" 'Remove' "$msg"
 
   cd "$dot_configs_dir" || exit_msg 'It was not possible to move to configs dir'
-  git rm "$configs_dir/$target" "$dot_configs_dir/$metadata_dir/$target" > /dev/null 2>&1
-  git commit -m "Removed $target config: $USER - $(date)" > /dev/null 2>&1
+
+  rm "${configs_dir}/${target}" "${dot_configs_dir}/${metadata_dir}/${target}"
+  ret="$?"
+  if [[ "$ret" -ne 0 ]]; then
+    exit_msg 'Could not remove config file'
+  fi
   cd "$original_path" || exit_msg 'It was not possible to move back from configs dir'
 
   say "The $target config file was removed from kw management"
 
   # Without config file, there's no reason to keep config directory
-  if [ ! "$(ls "$dot_configs_dir")" ]; then
-    rm -rf "/tmp/$configs_dir"
+  configs=$(ls "${dot_configs_dir}/${configs_dir}")
+  if [[ -z "$configs" ]]; then
+    rm -rf "/tmp/${configs_dir}"
     mv "$dot_configs_dir" /tmp
   fi
 }
 
-# This function parses the options from 'kw configm', and populates the global
+# This function parses the options from 'kw kernel-config-manager', and populates the global
 # variable options_values accordingly.
-function parse_configm_options()
+function parse_kernel_config_manager_options()
 {
   local short_options
   local long_options
@@ -572,11 +594,12 @@ function parse_configm_options()
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
   if [[ "$?" != 0 ]]; then
-    options_values['ERROR']="$(kw_parse_get_errors 'kw configm' "$short_options" \
+    options_values['ERROR']="$(kw_parse_get_errors 'kw kernel-config-manager' "$short_options" \
       "$long_options" "$@")"
     return 22 # EINVAL
   fi
 
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
   options_values['SAVE']=''
   options_values['FORCE']=''
   options_values['OPTIMIZE']=''
@@ -586,11 +609,9 @@ function parse_configm_options()
   options_values['REMOVE']=''
   options_values['TARGET']="$LOCAL_TARGET"
 
-  eval "set -- $options"
-
   # Set basic default values
-  if [[ -n ${configurations[default_deploy_target]} ]]; then
-    local config_file_deploy_target=${configurations[default_deploy_target]}
+  if [[ -n ${deploy_config[default_deploy_target]} ]]; then
+    local config_file_deploy_target=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
   else
     options_values['TARGET']="$VM_TARGET"
@@ -602,6 +623,7 @@ function parse_configm_options()
     return 22 # EINVAL
   fi
 
+  eval "set -- $options"
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --force | -f)
@@ -646,13 +668,13 @@ function parse_configm_options()
         shift
         ;;
       --remote)
-        options_values['TARGET']="$REMOTE_TARGET"
-        shift
-        populate_remote_info "$1"
+        populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
+          options_values['ERROR']="$options"
           return 22 # EINVAL
         fi
-        shift
+        options_values['TARGET']="$REMOTE_TARGET"
+        shift 2
         ;;
       --)
         shift
@@ -680,13 +702,17 @@ function config_manager_help()
 {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'configm'
+    kworkflow_man 'kernel-config-manager'
     return
   fi
   printf '%s\n' 'kw config manager:' \
-    '  configm --fetch [(-o | --output) <filename>] [-f | --force] [--optimize] [--remote [<user>@<ip>:<port>]] - Fetch a config' \
-    '  configm (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
-    '  configm (-l | --list) - List config files under kw management' \
-    '  configm --get <name> [-f | --force] - Get a config labeled with <name>' \
-    '  configm (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
+    '  kernel-config-manager --fetch [(-o | --output) <filename>] [-f | --force] [--optimize] [--remote [<user>@<ip>:<port>]] - Fetch a config' \
+    '  kernel-config-manager (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
+    '  kernel-config-manager (-l | --list) - List config files under kw management' \
+    '  kernel-config-manager --get <name> [-f | --force] - Get a config labeled with <name>' \
+    '  kernel-config-manager (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
 }
+
+load_build_config
+load_deploy_config
+load_kworkflow_config

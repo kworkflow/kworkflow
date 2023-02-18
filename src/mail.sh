@@ -81,7 +81,7 @@ function mail_main()
 function mail_send()
 {
   local flag="$1"
-  local opts="${configurations[send_opts]}"
+  local opts="${mail_config[send_opts]}"
   local to_recipients="${options_values['TO']}"
   local cc_recipients="${options_values['CC']}"
   local dryrun="${options_values['SIMULATE']}"
@@ -89,6 +89,7 @@ function mail_send()
   local version="${options_values['PATCH_VERSION']}"
   local extra_opts="${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
   local private="${options_values['PRIVATE']}"
+  local rfc="${options_values['RFC']}"
   local kernel_root
   local patch_count=0
   local cmd='git send-email'
@@ -123,6 +124,7 @@ function mail_send()
 
   [[ -n "$opts" ]] && cmd+=" $opts"
   [[ -n "$private" ]] && cmd+=" $private"
+  [[ -n "$rfc" ]] && cmd+=" $rfc"
   [[ -n "$extra_opts" ]] && cmd+=" $extra_opts"
 
   cmd_manager "$flag" "$cmd"
@@ -205,7 +207,7 @@ function generate_kernel_recipients()
   local cc=''
   local to_list=''
   local cc_list=''
-  local blocked="${configurations[blocked_emails]}"
+  local blocked="${mail_config[blocked_emails]}"
   local patch_cache="${KW_CACHE_DIR}/patches"
   local cover_letter_to="${patch_cache}/to/cover-letter"
   local cover_letter_cc="${patch_cache}/cc/cover-letter"
@@ -458,7 +460,7 @@ function add_config()
   cmd_manager "$flag" "$cmd"
 }
 
-# This function gets all the currently set values for the configurations used
+# This function gets all the currently set values for the mail_config used
 # by this script and writes them to the global variable set_confs
 #
 # @cmd_scope:  The scope being imposed on the command
@@ -911,7 +913,7 @@ function parse_mail_options()
   local commit_count=''
   local short_options='s,t,f,v:,i,l,n,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
-  long_options+='template::,interactive,no-interactive,list,private,'
+  long_options+='template::,interactive,no-interactive,list,private,rfc,'
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -944,6 +946,7 @@ function parse_mail_options()
   options_values['CMD_SCOPE']=''
   options_values['PATCH_VERSION']=''
   options_values['PASS_OPTION_TO_SEND_EMAIL']=''
+  options_values['RFC']=''
   options_values['COMMIT_RANGE']=''
   options_values['PRIVATE']=''
 
@@ -1038,6 +1041,10 @@ function parse_mail_options()
         options_values['NO_INTERACTIVE']=1
         shift
         ;;
+      --rfc)
+        options_values['RFC']='--rfc'
+        shift
+        ;;
       -v)
         options_values['PATCH_VERSION']="$1$2"
         shift 2
@@ -1089,3 +1096,5 @@ function mail_help()
     '  mail --verify - Check if required configurations are set' \
     '  mail --template[=<template>] [-n] - Set send-email configs based on <template>'
 }
+
+load_mail_config

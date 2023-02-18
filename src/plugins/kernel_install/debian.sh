@@ -16,10 +16,17 @@ declare -ag required_packages=(
   'xz-utils'
   'lzop'
   'zstd'
+  'os-prober'
 )
 
 # Debian package manager command
 declare -g package_manager_cmd='apt-get install -y'
+
+# Setup hook
+function distro_pre_setup()
+{
+  : # NOTHING
+}
 
 function generate_debian_temporary_root_file_system()
 {
@@ -44,50 +51,6 @@ function generate_debian_temporary_root_file_system()
     cmd="sudo -E $cmd"
   fi
 
-  if [[ "$target" != 'vm' ]]; then
-    # Update initramfs
-    cmd_manager "$flag" "$cmd"
-  else
-    generate_rootfs_with_libguestfs "$flag" "$name"
-  fi
-}
-
-function generate_rootfs_with_libguestfs()
-{
-  local flag="$1"
-  local name="$2"
-  # We assume Debian as a default option
-  local mount_root=': mount /dev/sda1 /'
-  local mkdir_init=': mkdir-p /etc/initramfs-tools'
-  local cmd_init="update-initramfs -c -k $name"
-
-  flag=${flag:-'SILENT'}
-
-  if [[ ! -f "${configurations[qemu_path_image]}" ]]; then
-    complain "There is no VM in ${configurations[qemu_path_image]}"
-    return 125 # ECANCELED
-  fi
-
-  # For executing libguestfs commands we need to umount the vm
-  if [[ $(findmnt "${configurations[mount_point]}") ]]; then
-    vm_umount
-  fi
-
-  cmd="guestfish --rw -a ${configurations[qemu_path_image]} run \
-      $mount_root : command '$cmd_init'"
-
-  warning " -> Generating rootfs $name on VM. This can take a few minutes."
-
-  cmd_manager "$flag" 'sleep 0.5s'
-  {
-    cmd_manager "$flag" "$cmd"
-  } 1> /dev/null # No visible stdout but still shows errors
-
-  # TODO: The below line is here for test purpose. We need a better way to
-  # do that.
-  [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$cmd"
-
-  say 'Done.'
-
-  return 0
+  # Update initramfs
+  cmd_manager "$flag" "$cmd"
 }

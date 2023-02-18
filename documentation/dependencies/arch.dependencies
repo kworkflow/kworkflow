@@ -1,4 +1,3 @@
-qemu
 bash
 git
 tar
@@ -24,3 +23,5 @@ perl-io-socket-ssl
 sqlite3
 pv
 rsync
+ccache
+python-setuptools

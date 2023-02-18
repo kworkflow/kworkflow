@@ -14,7 +14,7 @@ Deploy Overview
 ---------------
 
 Alright, at this point, we expect that you have already learned how to compile
-the :ref:`Linux kernel from the source<buildlinux>` and :ref:`manage your config file<configm-tutorial>`
+the :ref:`Linux kernel from the source<buildlinux>` and :ref:`manage your config file<kernel-config-manager-tutorial>`
 as described in the previous tutorials (if not, please, read those tutorials
 first). Now that you know how to compile your new kernel, you probably want to
 know how to install it to a Linux-based system. Don't worry, kw is here to
@@ -38,7 +38,7 @@ Kw Deploy Limitations
 Let's start by setting the expectations around `kw deploy` and describing its
 current limitations:
 
-* The target machine must be Debian or Arch Linux family (by family, we are
+* The target machine must be Debian, Fedora or Arch Linux family (by family, we are
   talking about derivative distros). For example, Ubuntu and Mint are derivated
   from Debian, meaning that kw supports those distros.
 * Right now, kw only supports the GRUB2 bootloader.
@@ -67,18 +67,15 @@ Remote Machine Deploy
 ---------------------
 
 Before trying to deploy your new kernel, let's first update
-`kworkflow.config` by making sure that you set the following options
-correctly::
+`kworkflow.config` and `remote.config` by making sure that you set the following
+options correctly::
 
-   ssh_remote=<IP or NAME>
-   ssh_port=22
-
-Replace the `ssh_remote` with the IP or the destination name and the ssh port
-(the default port is 22, and you probably don't need to update this parameter).
+  kw remote add my-x86-test-system root@<IP or NAME>:<PORT>
 
 .. note::
-   If you don't know anything about `kworkflow.config`, take a look at
-   :ref:`kw configuration<setup-tutorial>`.
+   If you don't know anything about `kworkflow.config` or `remote.config`, take
+   a look at :ref:`kw configuration<setup-tutorial>` and
+   :ref:`kw-remote<remote-doc>`.
 
 Now, make sure that you can use kw to login into your target machine::
 
@@ -129,7 +126,7 @@ Local Machine Deploy
 
 In this scenario, a target kernel might be the one in your host machine. For
 example, suppose that you want to install the latest stable kernel from
-Torvalds' tree in your laptop; in this case, kw deploy `--local` is what you are
+Torvalds' tree in your laptop; in this case, kw deploy `\--local` is what you are
 looking for.
 
 Ok, in this case, let's start by entering in your kernel code::
@@ -146,20 +143,6 @@ Now, you can use::
 
 If you only deploy your kernel to a local machine, you can change the option
 `default_deploy_target` to `local` in your `.kw/kworflow.config` file.
-
-QEMU VM Deploy
---------------
-
-Thanks to `guestfish <https://libguestfs.org/guestfish.1.html>`_, kw provides
-close integration with the QEMU VM file. If you want to deploy your new kernel
-to a QEMU VM, you first need to ensure two things:
-
-1. Your VM is turned off.
-2. Your config file has the correct path to the QEMU image.
-
-If those conditions are true, you just need to run::
-
-  kw deploy --vm
 
 Improving your Workflow
 -----------------------

@@ -27,19 +27,15 @@ function oneTimeSetUp()
   # Mock functions
   shopt -s expand_aliases
   alias identify_bootloader_from_files='identify_bootloader_from_files_mock'
-  alias run_bootloader_for_vm='run_bootloader_for_vm_mock'
   alias run_bootloader_update='run_bootloader_update_mock'
   alias generate_debian_temporary_root_file_system='generate_debian_temporary_root_file_system_mock'
   alias findmnt='findmnt_mock'
-  alias vm_umount='vm_umount'
-  alias vm_mount='vm_mount_mock'
   alias total_of_installed_kernels='total_of_installed_kernels_mock'
 
   . ./src/plugins/kernel_install/utils.sh --source-only
 
   REMOTE_KW_DEPLOY="$PWD/tests/samples"
   INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
-  declare -gA configurations
 }
 
 function oneTimeTearDown()
@@ -85,11 +81,6 @@ function identify_bootloader_from_files_mock()
   printf 'GRUB'
 }
 
-function run_bootloader_for_vm_mock()
-{
-  printf 'run_bootloader_for_vm_mock\n'
-}
-
 function run_bootloader_update_mock()
 {
   printf 'run_bootloader_update_mock\n'
@@ -113,14 +104,10 @@ function findmnt_mock()
   printf '%s\n' '/home  /dev/lala ext4   rw,relatime'
 }
 
-function vm_umount()
+function findmnt_only_filesystem_mock()
 {
-  printf '%s\n' 'vm_umount'
-}
-
-function vm_mount_mock()
-{
-  printf '%s\n' 'vm_mount'
+  # findmnt --first-only --noheadings --output FSTYPE "$target_path"
+  printf 'btrfs'
 }
 
 function test_cmd_manager()
@@ -278,7 +265,7 @@ function test_kernel_force_uninstall_unmanaged()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
-function test_remove_managed_kernel()
+function test_remove_managed_kernel_local()
 {
   local target='xpto'
   local prefix="./test"
@@ -326,7 +313,7 @@ function test_remove_managed_kernel()
   for file in ${boot_files[@]}; do
     cmd_sequence["$index"]="Removing: $file"
     ((index++))
-    cmd_sequence["$index"]="rm $file"
+    cmd_sequence["$index"]="sudo -E rm $file"
     ((index++))
   done
 
@@ -342,11 +329,11 @@ function test_remove_managed_kernel()
 
 function test_do_uninstall_invalid_path_cmd_sequence()
 {
-  local target='xpto'
+  local kernel_name='xpto'
   local prefix="${TARGET_PATH}"
-  local modules_lib_path="$prefix/lib/modules/$target"
-  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
-  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
+  local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
+  local initramfs_tools_var_path="${prefix}/var/lib/initramfs-tools/${kernel_name}"
+  local mkinitcpio_d_path="${prefix}/etc/mkinitcpio.d/${kernel_name}.preset"
   local output
 
   declare -a cmd_sequence=(
@@ -355,17 +342,17 @@ function test_do_uninstall_invalid_path_cmd_sequence()
     "Can't find $modules_lib_path"
   )
 
-  output=$(do_uninstall "$target" "$prefix" "$TEST_MODE")
+  output=$(do_uninstall 'remote' "$kernel_name" "$prefix" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
 function test_do_uninstall_valid_path_cmd_sequence()
 {
-  local target='xpto'
+  local kernel_name='xpto'
   local prefix="${TARGET_PATH}"
-  local modules_lib_path="$prefix/lib/modules/$target"
-  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
-  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
+  local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
+  local initramfs_tools_var_path="${prefix}/var/lib/initramfs-tools/${kernel_name}"
+  local mkinitcpio_d_path="${prefix}/etc/mkinitcpio.d/${kernel_name}.preset"
   local output
   local boot_files
   local index=0
@@ -377,10 +364,10 @@ function test_do_uninstall_valid_path_cmd_sequence()
   }
 
   mkdir -p "$prefix"
-  mk_fake_remote_system "$prefix" "$target"
+  mk_fake_remote_system "$prefix" "$kernel_name"
 
   # Composing command
-  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${target}*" | sort)
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name}*" | sort)
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$index"]="Removing: $file"
@@ -403,7 +390,7 @@ function test_do_uninstall_valid_path_cmd_sequence()
     ((index++))
   done
 
-  output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
+  output=$(do_uninstall 'remote' "$kernel_name" "$prefix" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
@@ -414,22 +401,22 @@ function test_do_uninstall_valid_path_cmd_sequence()
 
 function test_do_uninstall_partial_cmd_sequence()
 {
-  local target='xpto'
+  local kernel_name='xpto'
   local prefix="$TARGET_PATH"
-  local modules_lib_path="$prefix/lib/modules/$target"
-  local initramfs_tools_var_path="$prefix/var/lib/initramfs-tools/$target"
-  local mkinitcpio_d_path="$prefix/etc/mkinitcpio.d/$target.preset"
+  local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
+  local initramfs_tools_var_path="${prefix}/var/lib/initramfs-tools/${kernel_name}"
+  local mkinitcpio_d_path="${prefix}/etc/mkinitcpio.d/${kernel_name}.preset"
   local output
   local index=0
   local boot_files
 
   mkdir -p "$prefix"
-  mk_fake_remote_system "$prefix" "$target"
+  mk_fake_remote_system "$prefix" "$kernel_name"
 
   rm -rf "$modules_lib_path"
 
   # Composing command
-  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${target}*" | sort)
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name}*" | sort)
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$index"]="Removing: $file"
@@ -451,7 +438,7 @@ function test_do_uninstall_partial_cmd_sequence()
     ((index++))
   done
 
-  output=$(do_uninstall "$target" "$prefix" 'TEST_MODE')
+  output=$(do_uninstall 'remote' "$kernel_name" "$prefix" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
@@ -465,6 +452,7 @@ function test_install_modules()
   local module_target='5.9.0-rc5-NEW-VRR-TRACK+.tar'
   local cmd
   local output
+  local lib_modules_path_bkp="$LIB_MODULES_PATH"
 
   output=$(install_modules "$module_target" 'TEST_MODE')
   assert_equals_helper 'We did not find required files' "$LINENO" "$?" 2
@@ -474,21 +462,27 @@ function test_install_modules()
     return
   }
 
-  touch "$module_target"
+  # Test preparation
+  mk_fake_tar_file_to_deploy "$PWD"
+  LIB_MODULES_PATH="${KW_DEPLOY_TMP_FILE}${LIB_MODULES_PATH}"
+  mkdir -p "$LIB_MODULES_PATH"
 
-  output=$(install_modules "$module_target" 'TEST_MODE')
-  cmd="tar --directory='/lib/modules' --extract --file='$KW_DEPLOY_TMP_FILE/$module_target'"
-  assert_equals_helper 'Standard uncompression' "$LINENO" "$cmd" "$output"
+  install_modules 'remote'
+
+  assertTrue "($LINENO): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_1" ]]'
+  assertTrue "($LINENO): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_2" ]]'
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
+  LIB_MODULES_PATH="$lib_modules_path_bkp"
 }
 
 function test_install_kernel_remote()
 {
-  local name='5.9.0-rc5-TEST'
+  local name='test'
   local kernel_image_name='bzImage'
   local reboot='1'
   local architecture='x86_64'
@@ -497,26 +491,72 @@ function test_install_kernel_remote()
   local path_prefix=''
   local output
 
-  output=$(install_kernel '' 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
   ret="$?"
-  assert_equals_helper 'Test invalid name' "$LINENO" '22' "$ret"
+  assert_equals_helper 'Test invalid name' "$LINENO" 2 "$ret"
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "tar -xaf ${KW_DEPLOY_TMP_FILE}/${name}_boot.tar --directory=/ --no-same-owner"
-    "generate_debian_temporary_root_file_system $flag $name $target GRUB"
+    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "cp ${PWD}/boot/vmlinuz-${name} ${PWD}/boot/vmlinuz-${name}.old"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/config-test /boot/"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
+    'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
     'run_bootloader_update_mock'
-    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
+    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
     'reboot'
   )
 
-  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  # Check remote kernel installation with dtb
+  declare -a cmd_sequence2=(
+    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/config-test /boot/"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
+    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/*.dtb /boot/"
+    'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
+    'run_bootloader_update_mock'
+    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+    'reboot'
+  )
+
+  # Test preparation
+  mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE" "$name"
+  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_name=%s\n' "$name" > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_binary_image_file=%s\n' "$kernel_image_name" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'architecture=%s\n' "$architecture" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'previous_kernel_backup=yes\n' >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  touch "${PWD}/boot/vmlinuz-${name}"
+
+  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  # Now add a .dtb file and remove vmlinuz
+  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/test.dtb"
+  rm "${PWD}/boot/vmlinuz-${name}"
+
+  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'cmd_sequence2' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 }
 
 function test_install_kernel_local()
 {
-  local name='5.9.0-rc5-TEST'
+  local name='test'
   local kernel_image_name='bzImage'
   local reboot='1'
   local architecture='x86_64'
@@ -526,52 +566,44 @@ function test_install_kernel_local()
   local path_prefix=''
   local output
 
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Test preparation
+  mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
+  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_name=%s\n' "$name" > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_binary_image_file=%s\n' "$kernel_image_name" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'architecture=%s\n' "$architecture" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "generate_debian_temporary_root_file_system $flag $name $target GRUB"
+    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
+    "sudo -E rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/config-test /boot/"
+    "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
+    'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'run_bootloader_update_mock'
-    "grep -Fxq $name $INSTALLED_KERNELS_PATH"
-    "$sudo_cmd reboot"
+    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+    'sudo -E reboot'
   )
 
-  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
+  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
 }
 
-function test_install_kernel_vm()
+function distro_pre_setup()
 {
-  local name='5.9.0-rc5-TEST'
-  local kernel_image_name='bzImage'
-  local reboot='1'
-  local architecture='x86_64'
-  local target='vm'
-  local path_prefix="$SHUNIT_TMPDIR"
-  local output
-
-  # Setup this specific test
-  touch "$SHUNIT_TMPDIR/boot/vmlinuz-$name"
-  touch "$SHUNIT_TMPDIR/.config"
-  touch "$SHUNIT_TMPDIR/virty.qcow2"
-  rm -rf "${SHUNIT_TMPDIR:?}"/boot
-  configurations[mount_point]="$SHUNIT_TMPDIR"
-  configurations[qemu_path_image]="$SHUNIT_TMPDIR/virty.qcow2"
-
-  # Check standard remote kernel installation
-  declare -a cmd_sequence=(
-    "cp  .config $path_prefix/boot/config-$name"
-    'vm_mount'
-    "generate_debian_temporary_root_file_system TEST_MODE $name $target GRUB $path_prefix"
-    'run_bootloader_update_mock'
-    'vm_umount'
-    'vm_mount'
-    "touch $SHUNIT_TMPDIR/$INSTALLED_KERNELS_PATH"
-    "grep -Fxq $name $SHUNIT_TMPDIR/$INSTALLED_KERNELS_PATH"
-    'vm_umount'
-    #"sudo tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
-  )
-
-  output=$(install_kernel "$name" 'debian' "$kernel_image_name" "$reboot" "$architecture" "$target" 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+  :
 }
 
 function test_distro_deploy_setup()
@@ -590,6 +622,146 @@ function test_distro_deploy_setup()
   expected_cmd="$package_manager_cmd ${required_packages[*]} "
 
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_detect_filesystem_type()
+{
+  local output
+
+  alias findmnt='findmnt_only_filesystem_mock'
+
+  output=$(detect_filesystem_type '')
+  assert_equals_helper 'We expected btrfs' "$LINENO" 'btrfs' "$output"
+}
+
+function test_is_filesystem_writable()
+{
+  local output
+  local expected_cmd
+
+  output=$(is_filesystem_writable 'ext4' 'TEST_MODE')
+  assert_equals_helper 'Expected nothing' "$LINENO" "$?" 0
+
+  output=$(is_filesystem_writable 'xpto-lala' 'TEST_MODE')
+  assert_equals_helper 'Expected EOPNOTSUPP error' "$LINENO" "$?" 95
+
+  output=$(is_filesystem_writable 'btrfs' 'TEST_MODE')
+  expected_cmd='btrfs property get / ro | grep "ro=false" --silent'
+  assert_equals_helper 'Expected btrfs property get command' "$LINENO" "$output" "$expected_cmd"
+
+  AB_ROOTFS_PARTITION="${PWD}/kw"
+  output=$(is_filesystem_writable 'ext4' 'TEST_MODE')
+  expected_cmd="tune2fs -l '$AB_ROOTFS_PARTITION' | grep -q '^Filesystem features: .*read-only.*$'"
+  assert_equals_helper 'Expected tune2fs command' "$LINENO" "$output" "$expected_cmd"
+}
+
+function test_make_root_partition_writable()
+{
+  local output
+  local expected_sequence
+
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 0
+    }
+    make_root_partition_writable 'TEST_MODE'
+  )"
+  assert_equals_helper 'It is writable, do nothing' "$LINENO" "$?" 0
+
+  # Check ext4
+  AB_ROOTFS_PARTITION='/xpto/la'
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 1
+    }
+    function detect_filesystem_type()
+    {
+      printf 'ext4'
+    }
+    make_root_partition_writable 'TEST_MODE'
+  )"
+  expected_sequence=(
+    "tune2fs -O ^read-only ${AB_ROOTFS_PARTITION}"
+    'mount -o remount,rw /'
+  )
+  compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
+
+  # Check btrfs
+  AB_ROOTFS_PARTITION='/xpto/la'
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 1
+    }
+    function detect_filesystem_type()
+    {
+      printf 'btrfs'
+    }
+    make_root_partition_writable 'TEST_MODE'
+  )"
+  expected_sequence=(
+    'mount -o remount,rw /'
+    'btrfs property set / ro false'
+  )
+  compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
+}
+
+function test_uncompress_kw_package()
+{
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Test preparation
+  mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
+
+  uncompress_kw_package
+  assertTrue "($LINENO): Expected kw_pkg" '[[ -d "${KW_DEPLOY_TMP_FILE}/kw_pkg" ]]'
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+}
+
+function test_uncompress_kw_package_check_invalid_path()
+{
+  uncompress_kw_package '/somethig/xpto/abc/kw.pkg.tar'
+  assert_equals_helper 'Invalid path' "($LINENO)" 2 "$?"
+}
+
+function test_parse_kw_package_metadata()
+{
+  # Prepare fake kw.pkg.info
+  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_name=test\n' > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'kernel_binary_image_file=vmlinuz-test\n' >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  printf 'architecture=x86_64\n' >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+
+  parse_kw_package_metadata ''
+  name=${kw_package_metadata['kernel_name']}
+  arch=${kw_package_metadata['architecture']}
+  kernel_image_name=${kw_package_metadata['kernel_binary_image_file']}
+
+  assert_equals_helper 'Wrong kernel name' "($LINENO)" 'test' "${kw_package_metadata['kernel_name']}"
+  assert_equals_helper 'Wrong architecture' "($LINENO)" 'x86_64' "${kw_package_metadata['architecture']}"
+  assert_equals_helper 'Wrong binary image name' "($LINENO)" 'vmlinuz-test' "${kw_package_metadata['kernel_binary_image_file']}"
+}
+
+function test_parse_kw_package_metadata_invalid_path()
+{
+  parse_kw_package_metadata '/an/invalid/folder'
+  assert_equals_helper 'Expected an error with invalid path' "($LINENO)" 22 "$?"
+}
+
+function test_parse_kw_package_metadata_no_pkg_info()
+{
+  parse_kw_package_metadata ''
+  assert_equals_helper 'Expected an error due to the lack of info file' "($LINENO)" 22 "$?"
 }
 
 invoke_shunit

@@ -2,7 +2,7 @@
   How to manage your .config files
 ====================================
 
-.. _configm-tutorial:
+.. _kernel-config-manager-tutorial:
 
 .. contents::
    :depth: 1
@@ -21,32 +21,32 @@ devices. You probably end up with numerous `.config` files saved somewhere in
 your hard disk, and when you need it, you take a look at this old and dusty
 folder. What if we have a tool to manage these config files? What if I tell you
 that we already have it under kw? Yeah, we have it, and in this tutorial, we
-will learn about the `config manager` or just the configm feature.
+will learn about the `config manager` or just the kernel-config-manager feature.
 
 Save your config file
 ---------------------
 
 If you are in a kernel tree with an important `.config` file, you can save it
-under kw by using the `--save` option, which requires giving a name for your
+under kw by using the `\--save` option, which requires giving a name for your
 config. For example, let's suppose that you are working in the Raspberry Pi
 tree and you have a good config file; you can save it by using::
 
-  kw configm --save "RASP4"
+  kw kernel-config-manager --save "RASP4"
 
-The name you used in the `--save` option will be used later to retrieve the
+The name you used in the `\--save` option will be used later to retrieve the
 config file. You probably noticed that just using the name does not describe
-your config file well, and for this reason, `configm` also provides a
+your config file well, and for this reason, `kernel-config-manager` also provides a
 description option to better describe your config file. For example, you could
 use::
 
-  kw configm --save "RASP4" -d "RASP4 config file used in the project LALA"
+  kw kernel-config-manager --save "RASP4" -d "RASP4 config file used in the project LALA"
 
 List config files under kw
 --------------------------
 
 To show all the config files saved using kw, you just need to use::
 
-  kw configm --list # kw g -l
+  kw kernel-config-manager --list # kw k -l
 
 The above command displays the configs labels and the descriptions associated
 to them.
@@ -57,11 +57,11 @@ Retrieve a config file
 If you want to retrieve a specific config file, you can use the following
 command::
 
-  kw configm --get <label>
+  kw kernel-config-manager --get <label>
 
 For example::
 
-  kw configm --get RASP4
+  kw kernel-config-manager --get RASP4
 
 This command will first check if you already have a `.config` file in your
 kernel tree; if you do, it will ask you whether to override it or not.
@@ -69,17 +69,16 @@ kernel tree; if you do, it will ask you whether to override it or not.
 Conclusion
 ----------
 
-The configm option makes it easier for you to keep track of different config
+The kernel-config-manager option makes it easier for you to keep track of different config
 files. Another advantage of using this feature comes from the fact that the
 backup option also saves these files, enabling you to easily move your config
-files. Finally, under the hood, these config files are maintained under a git
-repository managed by kw; if you really want to see it, you can check the
-folder::
+files. Finally, under the hood, these config files are maintained by a folder structure
+managed by kw. If you want to see these files, they are stored inside this folder::
 
-  $XDG_DATA_HOME/kw
+  $XDG_DATA_HOME/kw/configs
 
 Or::
 
-  $HOME/.local/share/kw
+  $HOME/.local/share/kw/configs
 
 Depending on your configurations.
