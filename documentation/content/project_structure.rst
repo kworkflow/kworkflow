@@ -117,6 +117,35 @@ need to follow this template:
 3. Implement ``<your_feature_name>_main()`` function in the file you created in
    step 1.
 
+These next steps relate to Bash and Zsh completions for **kw**. They are
+necessary to maintain the project updated.
+
+For the Bash completions, add your feature to the file `src/bash_autocomplete.sh`.
+Use the implementations of other features as a guide to create one for your new
+feature.
+
+For the Zsh completions, the steps are a little more complex:
+
+1. In the file `src/_kw`, add a string ``<your_feature_name>:<small_description>``
+   to the `commands` array inside the `_kw` function.
+2. Add a function in the `src/_kw` named ``_kw_<your_feature_name>``
+   and implement the completions for your feature using the other
+   implementations as a guide. The Zsh completion system is really
+   complex (but powerful), so below are some references to further
+   help you write your own custom Zsh completions.
+3. If your feature has a short version, add a line
+   ``_kw_<your_feature_short_version>() { _kw_<your_feature_name> }``
+   above the real completion function of the feature.
+
+Zsh completions references:
+
+* `A short tutorial <https://github.com/zsh-users/zsh-completions/blob/master/zsh-completions-howto.org#writing-your-own-completion-functions/>`_
+
+* `A long tutorial (focus on the section 6.10) <https://zsh.sourceforge.io/Guide/zshguide06.html>`_
+
+* `man page for Zsh completion system <https://zsh.sourceforge.io/Doc/Release/Completion-System.html#Completion-Functions>`_
+
+
 Fix a bug or improve a feature
 ------------------------------
 
@@ -127,3 +156,6 @@ find yourself in the code by following this step:
 2. After identifying the feature name, see which file is included.
 3. Take a look at the ``<feature_name>_main()`` to understand the code
    sequence.
+
+If you add/change/remove options for a feature, you also need to update the
+Bash and Zsh completions for **kw**.
