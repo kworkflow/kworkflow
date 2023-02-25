@@ -19,6 +19,9 @@ setUp()
 
   # Create fake .kw folder
   mk_fake_kw_folder "$TEST_PATH"
+
+  # Create a dummy kernel .config file
+  cp "$STD_CONFIG_FILE" ./
 }
 
 tearDown()

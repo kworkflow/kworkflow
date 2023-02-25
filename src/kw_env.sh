@@ -183,7 +183,7 @@ function create_new_env()
     return
   fi
 
-  warning "You don't have a config file, git it from default paths"
+  warning "You don't have a config file, get it from default paths"
   if [[ -e /proc/config.gz ]]; then
     zcat /proc/config.gz > "${cache_build_path}/${ENV_DIR}/${env_name}/.config"
   elif [[ -e "/boot/config-$(uname -r)" ]]; then
