@@ -183,7 +183,7 @@ function create_new_env()
     return
   fi
 
-  warning "You don't have a config file, git it from default paths"
+  warning "You don't have a config file, get it from default paths"
   if [[ -e /proc/config.gz ]]; then
     zcat /proc/config.gz > "${cache_build_path}/${ENV_DIR}/${env_name}/.config"
   elif [[ -e "/boot/config-$(uname -r)" ]]; then
@@ -216,11 +216,12 @@ function destroy_env()
   if [[ $(ask_yN 'Are you sure you want to delete this environment?') =~ 0 ]]; then
     return 22 # EINVAL
   fi
-  # Here it is checked if the current env is equal to the env we want to
-  # destroy, if so, we call the exit_env function to exit the environment mode.
-  current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
-  if [[ "$current_env" == "$env_name" ]]; then
-    exit_env
+
+  if [[ -f "${local_kw_configs}/${ENV_CURRENT_FILE}" ]]; then
+    current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
+    if [[ "$current_env" == "$env_name" ]]; then
+      exit_env
+    fi
   fi
 
   rm -rf "${local_kw_configs:?}/${ENV_DIR}/${env_name}" && rm -rf "${cache_build_path:?}/${ENV_DIR}/${env_name}"

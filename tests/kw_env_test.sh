@@ -19,6 +19,9 @@ setUp()
 
   # Create fake .kw folder
   mk_fake_kw_folder "$TEST_PATH"
+
+  # Create a dummy kernel .config file
+  cp "$STD_CONFIG_FILE" ./
 }
 
 tearDown()
@@ -288,6 +291,21 @@ function test_destroy_env_checking_the_existence_of_a_directory()
   # MACHINE_C
   assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/envs/MACHINE_C) since the env was destroyed." '[[ -d "${PWD}/.kw/envs/MACHINE_C" ]]'
   assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_C" ]]'
+}
+
+function test_create_and_destroy_env()
+{
+  local output
+  options_values['CREATE']='MACHINE_E'
+  create_new_env
+
+  # Destroying the MACHINE_E env
+  options_values['DESTROY']='MACHINE_E'
+  output="$(printf '%s\n' 'y' | destroy_env)"
+
+  # MACHINE_E
+  assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/MACHINE_E) since the env was destroyed." '[[ -d "${PWD}/.kw/MACHINE_E" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/MACHINE_E) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/MACHINE_E" ]]'
 }
 
 invoke_shunit

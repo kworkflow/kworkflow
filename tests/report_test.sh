@@ -395,7 +395,7 @@ function test_save_data_to()
   [[ ! -f "${SHUNIT_TMPDIR}/report_output" ]] && fail "$LINENO: We expect to find a test file"
 
   # Try to use an invalid root directory path.
-  output=$(save_data_to '/root/')
+  output=$(save_data_to '/lala/do/not')
   ret="$?"
   assert_equals_helper "We expect a root path invalid" "$LINENO" "$ret" 1
 

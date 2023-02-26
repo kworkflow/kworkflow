@@ -259,6 +259,12 @@ function test_mail_parser()
   local expected
   local ret
 
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git dir"
+    exit "$ret"
+  }
+
   # Invalid options
   parse_mail_options '-t' '--smtpuser'
   ret="$?"
@@ -400,6 +406,13 @@ function test_mail_parser()
   parse_mail_options '-t' '--smtppass' 'verySafePass'
   expected='verySafePass'
   assert_equals_helper 'Set smtp pass' "$LINENO" "${options_values['sendemail.smtppass']}" "$expected"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+
 }
 
 function test_mail_send()
