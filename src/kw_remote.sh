@@ -127,11 +127,11 @@ function add_new_remote()
   fi
 
   # Check if remote name already exists
-  grep -xq "^Host ${name}$" "$local_remote_config_file"
+  grep --line-regexp --quiet "^Host ${name}$" "$local_remote_config_file"
   if [[ "$?" == 0 ]]; then
-    sed -i -r "/^Host ${name}$/{n;s/Hostname.*/Hostname ${remote_parameters['REMOTE_IP']}/}" "$local_remote_config_file"
-    sed -i -r "/^Host ${name}$/{n;n;s/Port.*/Port ${remote_parameters['REMOTE_PORT']}/}" "$local_remote_config_file"
-    sed -i -r "/^Host ${name}$/{n;n;n;s/User.*/User ${remote_parameters['REMOTE_USER']}/}" "$local_remote_config_file"
+    sed --in-place --regexp-extended "/^Host ${name}$/{n;s/Hostname.*/Hostname ${remote_parameters['REMOTE_IP']}/}" "$local_remote_config_file"
+    sed --in-place --regexp-extended "/^Host ${name}$/{n;n;s/Port.*/Port ${remote_parameters['REMOTE_PORT']}/}" "$local_remote_config_file"
+    sed --in-place --regexp-extended "/^Host ${name}$/{n;n;n;s/User.*/User ${remote_parameters['REMOTE_USER']}/}" "$local_remote_config_file"
     return
   fi
 
@@ -149,14 +149,14 @@ function set_default_remote()
 {
   local default_remote="${options_values['DEFAULT_REMOTE']}"
 
-  grep -xq "^#kw-default=.*" "$local_remote_config_file"
+  grep --line-regexp --quiet "^#kw-default=.*" "$local_remote_config_file"
   # We don't have the default header yet, let's add it
   if [[ "$?" != 0 ]]; then
-    sed -i "1s/^/#kw-default=${default_remote}\n/" "$local_remote_config_file"
+    sed --in-place "1s/^/#kw-default=${default_remote}\n/" "$local_remote_config_file"
     return "$?"
   fi
 
-  grep -xq "^Host ${default_remote}$" "$local_remote_config_file"
+  grep --line-regexp --quiet "^Host ${default_remote}$" "$local_remote_config_file"
   # We don't have the default header yet, let's add it
   if [[ "$?" != 0 ]]; then
     complain "We could not find '${default_remote}'. Is this a valid remote?"
@@ -164,7 +164,7 @@ function set_default_remote()
   fi
 
   # We already have the default remote
-  sed -i -r "s/^#kw-default=.*/#kw-default=${default_remote}/" "$local_remote_config_file"
+  sed --in-place --regexp-extended "s/^#kw-default=.*/#kw-default=${default_remote}/" "$local_remote_config_file"
 }
 
 function remove_remote()
@@ -182,20 +182,20 @@ function remove_remote()
   target_remote="${remove_parameters[0]}"
 
   # Check if remote name exists
-  grep -xq "^Host ${target_remote}$" "$local_remote_config_file"
+  grep --line-regexp --quiet "^Host ${target_remote}$" "$local_remote_config_file"
   if [[ "$?" == 0 ]]; then
-    grep -xq "^#kw-default=${target_remote}" "$local_remote_config_file"
+    grep --line-regexp --quiet "^#kw-default=${target_remote}" "$local_remote_config_file"
     # Check if the target remote is the default
     if [[ "$?" == 0 ]]; then
       warning "'${target_remote}' was the default remote, please, set a new default"
-      sed -i "/^#kw-default=${target_remote}/d" "$local_remote_config_file"
+      sed --in-place "/^#kw-default=${target_remote}/d" "$local_remote_config_file"
     fi
 
-    sed -i -r "/^Host ${target_remote}$/{n;/Hostname.*/d}" "$local_remote_config_file"
-    sed -i -r "/^Host ${target_remote}$/{n;/Port.*/d}" "$local_remote_config_file"
-    sed -i -r "/^Host ${target_remote}$/{n;/User.*/d}" "$local_remote_config_file"
-    sed -i -r "/^Host ${target_remote}$/d" "$local_remote_config_file"
-    sed -i -r '/^$/d' "$local_remote_config_file"
+    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/Hostname.*/d}" "$local_remote_config_file"
+    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/Port.*/d}" "$local_remote_config_file"
+    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/User.*/d}" "$local_remote_config_file"
+    sed --in-place --regexp-extended "/^Host ${target_remote}$/d" "$local_remote_config_file"
+    sed --in-place --regexp-extended '/^$/d' "$local_remote_config_file"
   else
     complain "We could not find ${target_remote}"
     return 22 # EINVAL
@@ -227,7 +227,7 @@ function rename_remote()
   fi
 
   # Check if new name already exists
-  grep -xq "^Host ${new_name}$" "$local_remote_config_file"
+  grep --line-regexp --quiet "^Host ${new_name}$" "$local_remote_config_file"
   if [[ "$?" == 0 ]]; then
     complain "It looks like that '${new_name}' already exists"
     complain "Please, choose another name or remove '${old_name}' first"
@@ -235,12 +235,12 @@ function rename_remote()
   fi
 
   # Check if remote name already exists
-  grep -xq "^Host ${old_name}$" "$local_remote_config_file"
+  grep --line-regexp --quiet "^Host ${old_name}$" "$local_remote_config_file"
   if [[ "$?" == 0 ]]; then
-    sed -i -r "s/^Host $old_name/Host $new_name/" "$local_remote_config_file"
+    sed --in-place --regexp-extended "s/^Host $old_name/Host $new_name/" "$local_remote_config_file"
 
     # Check if the target remote was marked as a default
-    grep -xq "^#kw-default=${old_name}$" "$local_remote_config_file"
+    grep --line-regexp --quiet "^#kw-default=${old_name}$" "$local_remote_config_file"
     if [[ "$?" == 0 ]]; then
       options_values['DEFAULT_REMOTE']="$new_name"
       set_default_remote
