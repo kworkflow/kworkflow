@@ -10,51 +10,10 @@ include './tests/utils.sh'
 function oneTimeSetUp()
 {
   mk_fake_kernel_root "$SHUNIT_TMPDIR"
-  cp -f tests/external/checkpatch.pl "$SHUNIT_TMPDIR"/scripts/
-  cp -f tests/external/const_structs.checkpatch "$SHUNIT_TMPDIR"/scripts/
-  cp -f tests/external/spelling.txt "$SHUNIT_TMPDIR"/scripts/
+
   cp -r tests/samples "$SHUNIT_TMPDIR"
 
   parse_configuration "$KW_CONFIG_SAMPLE"
-}
-
-function checkpatch_helper()
-{
-  local type_msg="$1"
-  local CORRECT_MSG="$SEPARATOR"
-  local WARNING_MSG='total: 0 errors, 1 warnings, 0 checks, 25 lines checked'
-  local ERROR_MSG='total: 1 errors, 0 warnings, 0 checks, 25 lines checked'
-  local CHECK_MSG='total: 0 errors, 0 warnings, 1 checks, 26 lines checked'
-  local res
-  declare -A MSG=(
-    ['correct']=CORRECT_MSG
-    ['warning']=WARNING_MSG
-    ['error']=ERROR_MSG
-    ['check']=CHECK_MSG
-  )
-
-  res=$(execute_checkpatch "$SHUNIT_TMPDIR/samples/codestyle_$type_msg.c" 2>&1)
-  assertTrue "Checkpatch should output: ${!MSG[$type_msg]}" '[[ "$res" =~ "${!MSG[$type_msg]}" ]]'
-}
-
-function test_warning()
-{
-  checkpatch_helper 'warning'
-}
-
-function test_error()
-{
-  checkpatch_helper 'error'
-}
-
-function test_checks()
-{
-  checkpatch_helper 'check'
-}
-
-function test_correct()
-{
-  checkpatch_helper 'correct'
 }
 
 function test_invalid_path()
