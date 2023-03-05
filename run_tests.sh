@@ -4,85 +4,15 @@
 include './tests/utils.sh'
 include './src/kwio.sh'
 
-declare -r PATH_TO_TESTS_EXTERNALS='tests/external'
-
 function show_help()
 {
-  printf '%s\n' "Usage: $0 [help] [list] [test <tfile1> ...] [prepare [-f|--force-update]]" \
+  printf '%s\n' "Usage: $0 [help] [list] [test <tfile1> ...]" \
     'Run tests for kworkflow.' \
     "Example: $0 test kw_test" \
     '' \
     '  help - displays this help message' \
     '  list - lists all test files under tests/' \
-    '  test - runs the given test files' \
-    '  prepare - prepare environment for tests. -f will update environment, even if already prepared.'
-}
-
-function download_stuff()
-{
-  local URL="$1"
-  local PATH_TO="$2"
-  local OVERWRITE="$3"
-
-  if "$OVERWRITE"; then
-    ret=$(wget -N "$URL" -P "$PATH_TO")
-  else
-    ret=$(wget -nc "$URL" -P "$PATH_TO")
-  fi
-
-  if [[ "$?" != 0 ]]; then
-    return 113 # Host unreachable errno
-  fi
-}
-
-function get_external_scripts()
-{
-  local OVERWRITE="$1"
-  local ret
-  local -r CHECKPATCH_URL='https://raw.githubusercontent.com/torvalds/linux/master/scripts/checkpatch.pl'
-  local -r MAINTAINER_URL='https://raw.githubusercontent.com/torvalds/linux/master/scripts/get_maintainer.pl'
-  local -r CHECKPATCH_CONST_STRUCTS='https://raw.githubusercontent.com/torvalds/linux/master/scripts/const_structs.checkpatch'
-  local -r CHECKPATCH_SPELLING='https://raw.githubusercontent.com/torvalds/linux/master/scripts/spelling.txt'
-  local DOWNLOAD_URLS=(
-    CHECKPATCH_URL
-    CHECKPATCH_CONST_STRUCTS
-    CHECKPATCH_SPELLING
-    MAINTAINER_URL
-  )
-
-  say $'Downloading external scripts...\n'
-
-  mkdir -p "$PATH_TO_TESTS_EXTERNALS"
-  for url in "${DOWNLOAD_URLS[@]}"; do
-    download_stuff "${!url}" "$PATH_TO_TESTS_EXTERNALS" "$OVERWRITE"
-    if [[ "$?" -eq 113 ]]; then
-      return 113 # Host unreachable errno
-    fi
-  done
-}
-
-# Check and downloads required files for testing. Argument is $1 = true|false,
-# whether to update required files even if they exist already (true) or just
-# download if they don't exist (false). Default, when no argument is given, is
-# false.
-function check_required_files()
-{
-  local force_update="$1"
-
-  force_update=${force_update:-'false'}
-
-  if [[ "$force_update" == 'false' && -f "$PATH_TO_TESTS_EXTERNALS/checkpatch.pl" && -f "$PATH_TO_TESTS_EXTERNALS/const_structs.checkpatch" && -f "$PATH_TO_TESTS_EXTERNALS/spelling.txt" && -f "$PATH_TO_TESTS_EXTERNALS/get_maintainer.pl" ]]; then
-    # Errno code for File exist
-    return 17
-  else
-    say '--> Preparing unit test'
-    get_external_scripts "$force_update"
-    if [[ "$?" -eq 113 ]]; then
-      complain 'Failed to download external scripts. Check your connection.'
-      complain 'Cannot run kw tests'
-      exit 1
-    fi
-  fi
+    '  test - runs the given test'
 }
 
 # Reports tests results.
@@ -170,11 +100,9 @@ function strip_path()
   done
 }
 
-check_required_files
 check_files="$?"
 #shellcheck disable=SC2086
 if [[ "$#" -eq 0 ]]; then
-  check_required_files
   files_list=$(find ./tests -name '*_test.sh' | grep -Ev 'samples/.*|/shunit2/')
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
@@ -191,15 +119,6 @@ elif [[ "$1" == 'list' ]]; then
 elif [[ "$1" == 'test' ]]; then
   strip_path "${@:2}"
   run_tests
-elif [[ "$1" == 'prepare' ]]; then
-  if [[ "$#" -gt 1 && ("$2" == '--force-update' || "$2" == '-f') ]]; then
-    check_required_files true
-    check_files="$?"
-  fi
-
-  if [[ "$check_files" -eq 17 ]]; then
-    say 'You are ready to run the unit test'
-  fi
 else
   show_help
 fi

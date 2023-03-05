@@ -52,7 +52,7 @@ function oneTimeSetUp()
   local original_dir="$PWD"
   mk_fake_kernel_root "$FAKE_KERNEL"
   cp -f tests/samples/MAINTAINERS "$FAKE_KERNEL"/MAINTAINERS
-  cp -f tests/external/get_maintainer.pl "$FAKE_KERNEL"/scripts/
+  cp -f tests/samples/external/get_maintainer.pl "$FAKE_KERNEL"/scripts/
   cp -f tests/samples/update_patch_test{_model,}{,2}.patch "$FAKE_KERNEL"/
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move to temporary directory"

@@ -5,7 +5,12 @@ KWORKFLOW=${KWORKFLOW:-'kw'}
 # Global paths
 
 # Kw shell files
-KW_LIB_DIR="${KW_LIB_DIR:-"$HOME/.local/lib"}/$KWORKFLOW"
+if [[ -f '/usr/bin/kw' ]]; then
+  KW_LIB_DIR='/usr/share/kw'
+else
+  KW_LIB_DIR="${KW_LIB_DIR:-"${HOME}/.local/lib"}/${KWORKFLOW}"
+fi
+
 KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}"
 
 # Share files

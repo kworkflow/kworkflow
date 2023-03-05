@@ -33,6 +33,7 @@ function setupFakeKernelRepo()
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
+
   touch "COPYING"
   touch "CREDITS"
   touch "Kbuild"
@@ -55,7 +56,6 @@ function setupFakeKernelRepo()
     return
   }
   cp -f tests/samples/MAINTAINERS "$SHUNIT_TMPDIR/MAINTAINERS"
-  cp -f tests/external/get_maintainer.pl "$SHUNIT_TMPDIR/scripts/"
 }
 
 function tearDown()
