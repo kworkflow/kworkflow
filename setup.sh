@@ -413,7 +413,6 @@ function synchronize_files()
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
   say "$app_name installed into $HOME"
-  warning ' -> For a better experience with kw, please, open a new terminal.'
 }
 
 function append_bashcompletion()
@@ -488,6 +487,22 @@ function install_home()
   remove_legacy_git_from_kernel_config_manager
   # Update version based on the current branch
   update_version
+  # Show current environment in terminal
+  setup_bashrc_to_show_current_kw_env
+
+  warning ''
+  warning '-> For a better experience with kw, please, open a new terminal.'
+}
+
+function setup_bashrc_to_show_current_kw_env()
+{
+  local config_file_template="${etcdir}/kw_prompt_current_env_name.sh"
+
+  say ''
+  say ' Note: If you want to see kw env in the prompt, add something like the below line to your PS1:'
+  say ' PS1="${PS1/\\$/}" && PS1+="\$(kw_get_current_env_name)$ "'
+
+  safe_append "source ${config_file_template}" "${HOME}/.bashrc"
 }
 
 function setup_global_config_file()

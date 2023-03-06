@@ -40,6 +40,8 @@ Then install **kw**::
 
   ./setup.sh --install
 
+You can check out more details in :ref:`kw env<kw-env>`.
+
 Actually, in this folder you can see three executables: **run_tests.sh**,
 **setup.sh** and **kw**.
 
