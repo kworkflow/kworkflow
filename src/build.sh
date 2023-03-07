@@ -4,32 +4,6 @@ include "$KW_LIB_DIR/kw_config_loader.sh"
 
 declare -gA options_values
 
-# This function retrieves and prints information related to the kernel that
-# will be compiled.
-function build_info()
-{
-  local flag="$1"
-  local kernel_name
-  local kernel_version
-  local compiled_modules
-  local env_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
-  local config_path='.config'
-
-  kernel_name=$(get_kernel_release "$flag")
-  kernel_version=$(get_kernel_version "$flag")
-
-  say 'Kernel source information'
-  printf '%s\n' "  Name: $kernel_name" \
-    "  Version: $kernel_version"
-
-  [[ -f "${env_path}/.config" ]] && config_path="${env_path}/.config"
-
-  if [[ -f "$config_path" ]]; then
-    compiled_modules=$(grep -c '=m' "$config_path")
-    printf '%s\n' "  Total modules to be compiled: $compiled_modules"
-  fi
-}
-
 # This function is responsible for manipulating kernel build operations such as
 # compile/cross-compile and menuconfig.
 #
@@ -38,7 +12,7 @@ function build_info()
 #
 # Return:
 # In case of successful return 0, otherwise, return 22 or 125.
-function kernel_build()
+function build_kernel_main()
 {
   local flag="$1"
   shift 1
@@ -164,6 +138,32 @@ function kernel_build()
   fi
 
   return "$ret"
+}
+
+# This function retrieves and prints information related to the kernel that
+# will be compiled.
+function build_info()
+{
+  local flag="$1"
+  local kernel_name
+  local kernel_version
+  local compiled_modules
+  local env_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  local config_path='.config'
+
+  kernel_name=$(get_kernel_release "$flag")
+  kernel_version=$(get_kernel_version "$flag")
+
+  say 'Kernel source information'
+  printf '%s\n' "  Name: $kernel_name" \
+    "  Version: $kernel_version"
+
+  [[ -f "${env_path}/.config" ]] && config_path="${env_path}/.config"
+
+  if [[ -f "$config_path" ]]; then
+    compiled_modules=$(grep -c '=m' "$config_path")
+    printf '%s\n' "  Total modules to be compiled: $compiled_modules"
+  fi
 }
 
 # This function runs the make command under the hood, which in this
