@@ -81,7 +81,7 @@ function kw()
       (
         include "$KW_LIB_DIR/build.sh"
 
-        kernel_build '' "$@"
+        build_kernel_main '' "$@"
         local ret="$?"
         alert_completion 'kw build' "$1"
         return "$ret"
@@ -102,7 +102,7 @@ function kw()
         include "$KW_LIB_DIR/deploy.sh"
         include "$KW_LIB_DIR/build.sh"
 
-        kernel_build && deploy_main 1 "$@"
+        build_kernel_main && deploy_main 1 "$@"
         local ret="$?"
         alert_completion 'kw bd' "$1"
         return "$ret"
