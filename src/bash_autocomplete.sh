@@ -20,7 +20,7 @@ function _kw_autocomplete()
   kw_options['backup']='--restore --force --help'
 
   kw_options['build']='--menu --info --doc --cpu-scaling --ccache --warnings
-                       --save-log-to --llvm --help --full-cleanup'
+                       --save-log-to --llvm --help --full-cleanup --verbose'
   kw_options['b']="${kw_options['build']}"
 
   kw_options['kernel-config-manager']='--fetch --get --list --remove --save --force
