@@ -395,6 +395,9 @@ function test_parse_build_options_check_options_values()
 
   assert_equals_helper 'Default CLEAN did not match expectation' \
     "($LINENO)" '' "${options_values['CLEAN']}"
+
+  assert_equals_helper 'Default VERBOSE did not match expectation' \
+    "($LINENO)" '' "${options_values['VERBOSE']}"
 }
 
 function test_parse_build_options()
@@ -505,6 +508,12 @@ function test_parse_build_options()
   parse_build_options --full-cleanup
   assert_equals_helper 'Could not set build option FULL_CLEANUP' \
     "($LINENO)" 1 "${options_values['FULL_CLEANUP']}"
+
+  # VERBOSE
+  options_values=()
+  parse_build_options --verbose
+  assert_equals_helper 'Could not set build option VERBOSE' \
+    "($LINENO)" 1 "${options_values['VERBOSE']}"
 
   # Unsopported option
   output="$(parse_build_options --mispelled 2>&1)"

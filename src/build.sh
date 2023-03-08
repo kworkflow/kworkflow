@@ -58,6 +58,9 @@ function build_kernel_main()
   clean=${options_values['CLEAN']}
   full_cleanup=${options_values['FULL_CLEANUP']}
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+  flag=${flag:-'SILENT'}
+
   if [[ -n "${options_values['INFO']}" ]]; then
     build_info ''
     exit
@@ -178,6 +181,8 @@ function build_menu_config()
   local llvm="$5"
   local cmd
 
+  flag=${flag:-'SILENT'}
+
   cmd="make -j ${llvm}ARCH=${platform_ops} ${menu_config}${env_path}"
   cmd_manager "$flag" "$cmd"
 }
@@ -191,6 +196,8 @@ function build_doc()
   local doc_type="$4"
   local output_path="$5"
   local cmd
+
+  flag=${flag:-'SILENT'}
 
   cmd="make ${optimizations} ${doc_type}${output_path}${env_path}"
   cmd_manager "$flag" "$cmd"
@@ -212,6 +219,8 @@ function build_clean()
   local env_path="$2"
   local cmd
 
+  flag=${flag:-'SILENT'}
+
   cmd="make clean${env_path}"
   cmd_manager "$flag" "$cmd"
 }
@@ -224,6 +233,8 @@ function full_cleanup()
   local flag="$1"
   local env_path="$2"
   local cmd
+
+  flag=${flag:-'SILENT'}
 
   cmd="make distclean${env_path}"
   cmd_manager "$flag" "$cmd"
@@ -275,7 +286,7 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose'
   local short_options='h,i,n,d,S:,w::,s:,c,f'
   local doc_type
   local file_name_size
@@ -303,6 +314,7 @@ function parse_build_options()
   options_values['USE_LLVM_TOOLCHAIN']="${build_config[use_llvm]:-${configurations[use_llvm]}}"
   options_values['CLEAN']=''
   options_values['FULL_CLEANUP']=''
+  options_values['VERBOSE']=''
 
   # Check llvm option
   if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
@@ -351,6 +363,10 @@ function parse_build_options()
         ;;
       --full-cleanup | -f)
         options_values['FULL_CLEANUP']=1
+        shift
+        ;;
+      --verbose)
+        options_values['VERBOSE']=1
         shift
         ;;
       --doc | -d)
@@ -408,7 +424,9 @@ function build_help()
     '  build (-s | --save-log-to) <path> - Save compilation log to path' \
     '  build (--llvm) - Enable use of the LLVM toolchain' \
     '  build (-c | --clean) - Clean option integrated into env' \
-    '  build (-f | --full-cleanup) - Reset the kernel tree to its default option integrated into env'
+    '  build (-f | --full-cleanup) - Reset the kernel tree to its default option integrated into env' \
+    '  build (--verbose) - Show a detailed output'
+
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well
