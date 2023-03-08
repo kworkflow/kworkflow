@@ -183,11 +183,11 @@ function test_force_wrong_etc_path()
 
 function test_get_template_name_noniteractive()
 {
-  options_values['TEMPLATE']=':x86-64'
+  options_values['TEMPLATE']='x86-64'
   get_template_name
   assertEquals "($LINENO)" 'x86-64' "${options_values['TEMPLATE']}"
 
-  options_values['TEMPLATE']=':rpi4-raspbian-64-cross-x86-arm'
+  options_values['TEMPLATE']='rpi4-raspbian-64-cross-x86-arm'
   get_template_name
 
   assertEquals "($LINENO)" 'rpi4-raspbian-64-cross-x86-arm' "${options_values['TEMPLATE']}"
@@ -270,12 +270,12 @@ function test_parse_init_options()
   unset options_values
   declare -gA options_values
   parse_init_options --template='rpi4-raspbian-64-cross-x86-arm'
-  assertEquals "($LINENO):" ':rpi4-raspbian-64-cross-x86-arm' "${options_values['TEMPLATE']}"
+  assertEquals "($LINENO):" 'rpi4-raspbian-64-cross-x86-arm' "${options_values['TEMPLATE']}"
 
   unset options_values
   declare -gA options_values
   parse_init_options --template
-  assertEquals "($LINENO):" ':' "${options_values['TEMPLATE']}"
+  assertEquals "($LINENO):" '' "${options_values['TEMPLATE']}"
 }
 
 invoke_shunit

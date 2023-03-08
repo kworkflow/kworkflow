@@ -49,15 +49,11 @@ function init_kw()
 
   config_file_already_exist_question
 
-  if [[ -n "${options_values['TEMPLATE']}" ]]; then
-    get_template_name ''
-    ret="$?"
-    if [[ "$?" != 0 ]]; then
-      complain 'Invalid template, try: kw init --template'
-      return "$ret"
-    fi
-  else
-    options_values['TEMPLATE']='x86-64'
+  get_template_name ''
+  ret="$?"
+  if [[ "$?" != 0 ]]; then
+    complain 'Invalid template, try: kw init --template'
+    return "$ret"
   fi
 
   config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/kworkflow_template.config"
@@ -159,7 +155,7 @@ function config_file_already_exist_question()
 function get_template_name()
 {
   local test_mode="$1"
-  local template="${options_values['TEMPLATE']:1}" # removes colon
+  local template="${options_values['TEMPLATE']}" # removes colon
   local templates_path="$KW_ETC_DIR/init_templates"
 
   if [[ -z "$template" ]]; then
@@ -211,7 +207,7 @@ function parse_init_options()
 
   options_values['ARCH']=''
   options_values['FORCE']=''
-  options_values['TEMPLATE']=''
+  options_values['TEMPLATE']='x86-64'
 
   eval "set -- $options"
 
@@ -236,7 +232,7 @@ function parse_init_options()
         ;;
       --template)
         option="$(str_strip "${2,,}")"
-        options_values['TEMPLATE']=":$option" # colon sets the option
+        options_values['TEMPLATE']="$option"
         shift 2
         ;;
       --)
