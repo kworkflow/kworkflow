@@ -228,11 +228,19 @@ function test_setup_remote_ssh_with_passwordless()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_prepare_distro_for_deploy()
+function detect_filesystem_type_mock_ext4()
+{
+  printf '%s\n' 'ext4'
+}
+
+function test_prepare_distro_for_deploy_ext4()
 {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
   local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+
+  alias detect_filesystem_type='detect_filesystem_type_mock_ext4'
+
   cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
   cmd+=" --deploy-setup TEST_MODE"
 
@@ -255,6 +263,59 @@ function test_prepare_distro_for_deploy()
   expected_cmd=(
     '-> Basic distro set up'
     '' # Extra space for the \n
+    'sudo -E mv /etc/skel/.screenrc /tmp'
+    'sudo -E systemctl restart pacman-init.service'
+    'sudo -E pacman-key --populate'
+    'yes | sudo -E pacman -Syu'
+    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober rng-tools'
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
+function detect_filesystem_type_mock_btrfs()
+{
+  printf '%s\n' 'btrfs'
+}
+
+function btrfs_property_get_root_ro_mock()
+{
+  printf '%s' 'ro=false'
+}
+
+function test_prepare_distro_for_deploy_btrfs()
+{
+  local output
+  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
+  local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+
+  alias detect_filesystem_type='detect_filesystem_type_mock_btrfs'
+  alias btrfs='btrfs_property_get_root_ro_mock'
+
+  cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+  cmd+=" --deploy-setup TEST_MODE"
+
+  declare -a expected_cmd=(
+    '-> Basic distro set up'
+    '' # Extra space for the \n in the message
+    "$ssh_prefix \"$cmd 3\""
+  )
+
+  # Remote
+  output=$(prepare_distro_for_deploy 3 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  # Local - We need to force a specific distro
+  expected_cmd=()
+
+  # Let's change the detect ditro to point to Arch
+  alias detect_distro='detect_distro_arch_mock'
+  output=$(prepare_distro_for_deploy 2 'TEST_MODE')
+  expected_cmd=(
+    '-> Basic distro set up'
+    '' # Extra space for the \n
+    ''
+    'btrfs property get / ro | grep "ro=false" --silent'
     'sudo -E mv /etc/skel/.screenrc /tmp'
     'sudo -E systemctl restart pacman-init.service'
     'sudo -E pacman-key --populate'
