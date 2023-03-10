@@ -32,6 +32,11 @@ upstream_patches_ui_main()
   local all_registered_list="${lore_config['lists']}"
   local ret
 
+  if [[ "$1" =~ -h|--help ]]; then
+    upstream_patches_ui_help "$1"
+    exit 0
+  fi
+
   ui_setup "${lore_config['dialog_layout']}"
 
   IFS=',' read -r -a registered_lists <<< "$all_registered_list"
@@ -290,6 +295,16 @@ function register_mailing_list()
       handle_exit "$ret"
       ;;
   esac
+}
+
+function upstream_patches_ui_help()
+{
+  if [[ "$1" == --help ]]; then
+    # TODO: Make man page for this feature
+    exit
+  fi
+  printf '%s\n' 'kw upstream_patches_ui:' \
+    '  upstream_patches_ui - Open UI with lore.kernel.org archives'
 }
 
 load_lore_config
