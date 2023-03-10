@@ -26,3 +26,5 @@ pv
 rsync
 ccache
 dialog
+curl
+libxml-xpath-perl

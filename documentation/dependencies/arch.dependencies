@@ -26,3 +26,5 @@ rsync
 ccache
 python-setuptools
 dialog
+curl
+perl-xml-xpath
