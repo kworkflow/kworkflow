@@ -23,3 +23,5 @@ ccache
 patch
 sqlite
 dialog
+curl
+perl-XML-XPath
