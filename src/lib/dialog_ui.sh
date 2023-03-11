@@ -187,6 +187,57 @@ function create_simple_checklist()
   return "$ret"
 }
 
+# Create simple loading screen notification for delayed actions.
+#
+# @loading_message: The message to be displayed to the user while loading.
+# @height: Menu height in lines size, the default value is 8.
+# @width: Menu width in column size, the default value is 60.
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# There is no return. The function just displays the infobox and returns,
+# assuming the next command is going to delay its completionand that another
+# screen is going to clear the current (the infobox).
+function create_loading_screen_notification()
+{
+  local loading_message="$1"
+  local height="$2"
+  local width="$3"
+  local flag="$4"
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+  height=${height:-'8'}
+  width=${width:-'60'}
+  back_title=${back_title:-$"$KW_UPSTREAM_TITLE"}
+
+  # Add dialog layout if there is one
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT} "
+  fi
+
+  # We should not use --clear because this flushes the infobox
+  cmd+='dialog --colors'
+
+  # Start infobox
+  # TODO: if possible, we should try using a progress bar/gauge
+  cmd+=" --infobox \$'${loading_message}'"
+
+  # Set height and width
+  cmd+=" '${height}' '${width}'"
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  # dialog --infobox does not return a menu_return_string
+  cmd_manager "$flag" "$cmd" 2>&1 1>&3
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 # This function is responsible for handling the dialog exit.
 #
 # @exit_status: Exit code

@@ -121,6 +121,32 @@ function test_create_simple_checklist_use_all_options()
   assert_equals_helper 'Expected simple checklist' "$LINENO" "${output}" "${expected_cmd}"
 }
 
+function test_create_loading_screen_notification_rely_on_some_default_options()
+{
+  local loading_message='kunit test inside kw'
+  local expected_cmd="dialog --colors"
+  local output
+
+  expected_cmd+=" --infobox \$'${loading_message}'"
+  expected_cmd+=" '8' '60'"
+
+  output=$(create_loading_screen_notification "$loading_message" '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${output}" "${expected_cmd}"
+}
+
+function test_create_loading_screen_notification_use_all_options()
+{
+  local loading_message='kunit test inside kw'
+  local expected_cmd="dialog --colors"
+  local output
+
+  expected_cmd+=" --infobox \$'${loading_message}'"
+  expected_cmd+=" '1234' '4321'"
+
+  output=$(create_loading_screen_notification "$loading_message" '1234' '4321' 'TEST_MODE')
+  assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${output}" "${expected_cmd}"
+}
+
 function test_prettify_string_failures()
 {
   prettify_string
