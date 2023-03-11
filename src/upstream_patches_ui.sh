@@ -154,6 +154,7 @@ function show_new_patches_in_the_mailing_list()
   # Query patches from mailing list, this info will be saved at
   # ${list_of_mailinglist_patches[@]}
   if [[ "${screen_sequence['SHOW_SCREEN_PARAMETER']}" != 'return' ]]; then
+    create_loading_screen_notification "Loading patches from ${list_name} list"
     get_patches_from_mailing_list "$list_name" patches_from_mailing_list
   fi
 
@@ -206,6 +207,7 @@ function show_series_details()
             printf 'TODO' # TODO
             ;;
           'Download')
+            create_loading_screen_notification "Downloading patch(es)"$'\n'"- ${patch_title}"
             download_series "$total_patches" "$patch_url" "${lore_config['download_to']}" "$patch_title"
             ;;
         esac
