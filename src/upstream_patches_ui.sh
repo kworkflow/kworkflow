@@ -230,12 +230,12 @@ function show_series_details()
 # @_target_array_list: List of patches to be displayed
 function list_patches()
 {
-  local message_box="$1"
+  local menu_title="$1"
   local -n _target_array_list="$2"
   local selected_patch
   local ret
 
-  create_menu_options 'Bookmarked patches' "$message_box" '_target_array_list' 1
+  create_menu_options "${menu_title}" '' '_target_array_list' 1
   ret="$?"
 
   selected_patch=$((menu_return_string - 1))
