@@ -7,3 +7,6 @@ tests/.tmp_kw_config_loader_test
 tests/.tmp
 build/
 kcov_out/
+
+# Pip virtualenv folder
+docs_virtual_env
