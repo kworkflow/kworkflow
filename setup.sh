@@ -41,10 +41,11 @@ declare -r DOCUMENTATION='documentation'
 
 declare -r CONFIGS_PATH='configs'
 
+declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
+
 function check_dependencies()
 {
   local package_list=''
-  local pip_package_list=''
   local cmd=''
   local distro
 
@@ -90,22 +91,33 @@ function check_dependencies()
     fi
   fi
 
-  while IFS='' read -r package; do
-    python3 -c "import pkg_resources; pkg_resources.require('$package')" &> /dev/null
-    [[ "$?" != 0 ]] && pip_package_list="\"$package\" $pip_package_list"
-  done < "$DOCUMENTATION/dependencies/pip.dependencies"
+}
 
-  if [[ -n "$pip_package_list" ]]; then
-    if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following pip dependencies $pip_package_list?") =~ '0' ]]; then
-        return 0
-      fi
-    fi
+function generate_documentation()
+{
+  local ret
 
-    # Install pip packages
-    cmd="pip install $pip_package_list"
-    eval "$cmd"
+  python3 -m venv "$DOCS_VIRTUAL_ENV"
+
+  # Activate python virtual env
+  source "${DOCS_VIRTUAL_ENV}/bin/activate"
+  say 'Creating python virtual env...'
+  cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+  eval "$cmd"
+  ret="$?"
+
+  if [[ "$ret" == 0 ]]; then
+    sphinx-build -nW -b html documentation/ build
+  else
+    complain 'Could not install pip dependencies'
   fi
+  # Deactivate python virtual env
+  deactivate
+
+  if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+    rm --recursive "$DOCS_VIRTUAL_ENV"
+  fi
+  return "$ret"
 }
 
 # TODO
@@ -331,8 +343,22 @@ function synchronize_files()
 
   # man file
   mkdir -p "$mandir"
+
+  python3 -m venv "$DOCS_VIRTUAL_ENV"
+
+  # Activate python virtual env
+  source "${DOCS_VIRTUAL_ENV}/bin/activate"
+  say 'Creating python virtual env...'
+  cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+  eval "$cmd"
   cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
+  # Deactivate python virtual env
+  deactivate
+
+  if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+    rm -r "$DOCS_VIRTUAL_ENV"
+  fi
 
   # etc files
   mkdir -p "$etcdir"
@@ -508,8 +534,7 @@ case "$1" in
     usage
     ;;
   --docs)
-    check_dependencies
-    sphinx-build -nW -b html documentation/ build
+    generate_documentation
     ;;
   *)
     complain 'Invalid number of arguments'

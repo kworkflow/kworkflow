@@ -11,8 +11,6 @@ python3-venv
 latexmk
 librsvg2-bin
 texlive-xetex
-python3-sphinx
-python3-dask-sphinx-theme
 python3-pip
 bzip2
 lzip
