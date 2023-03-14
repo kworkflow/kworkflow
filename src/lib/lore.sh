@@ -18,6 +18,15 @@ declare -gr MAILING_LISTS_PAGE='lore_main_page.html'
 # Path to mailing list file to be parsed
 declare -g LIST_PAGE_PATH="${CACHE_LORE_DIR}/${MAILING_LISTS_PAGE}"
 
+# Directory for storing every data related to lore
+declare -g LORE_DATA_DIR="${KW_DATA_DIR}/lore"
+
+# File name for the lore bookmarked series
+declare -gr LORE_BOOKMARKED_SERIES='lore_bookmarked_series'
+
+# Path to bookmarked series file
+declare -g BOOKMARKED_SERIES_PATH="${LORE_DATA_DIR}/${LORE_BOOKMARKED_SERIES}"
+
 # List of lore mailing list tracked by the user
 declare -gA available_lore_mailing_lists
 
@@ -35,6 +44,26 @@ declare -gr SEPARATOR_CHAR='Æ'
 # can be a ',' but by default, we use 'Æ'. We used ',' in the example for make
 # it easy to undertand.
 declare -ag list_of_mailinglist_patches
+
+# This function creates the directory used by kw for any lore related data.
+#
+# Return:
+# Returns 0 if the lore data directory was created successfully and the failing
+# status code otherwise (probably 111 EACCESS).
+function create_lore_data_dir()
+{
+  local ret
+
+  [[ -d "${LORE_DATA_DIR}" ]] && return
+
+  mkdir -p "${LORE_DATA_DIR}"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Could not create lore data dir in ${LORE_DATA_DIR}"
+  fi
+
+  return "$ret"
+}
 
 function setup_cache()
 {
@@ -360,6 +389,7 @@ function get_patches_from_mailing_list()
 {
   local target_mailing_list="$1"
   local -n _dialog_array="$2"
+  declare -A series
   local raw_string
   local count=1
   local index=0
@@ -373,15 +403,9 @@ function get_patches_from_mailing_list()
   processing_new_patches "$target_mailing_list"
 
   # Format data for printing
-  for element in "${list_of_mailinglist_patches[@]}"; do
-    IFS="${SEPARATOR_CHAR}" read -r -a columns <<< "$element"
-    patch_version="${columns[2]}"
-    total_patches="${columns[3]}"
-    patch_title="${columns[4]}"
-
-    # convert_title_to_patch_name "$patch_title"
-
-    tmp_data=$(printf 'V%-2s |#%-3s| %-100s' "$patch_version" "$total_patches" "$patch_title")
+  for raw_series in "${list_of_mailinglist_patches[@]}"; do
+    parse_raw_series "${raw_series}" 'series'
+    tmp_data=$(printf 'V%-2s |#%-3s| %-100s' "${series['patch_version']}" "${series['total_patches']}" "${series['patch_title']}")
     _dialog_array["$index"]="$tmp_data"
     ((index++))
   done
@@ -457,4 +481,201 @@ function download_series()
     download "${url}raw" "$patch_file_name" "${save_to}" &
   done
   wait
+}
+
+# This function deletes a patch series from the local storage
+#
+# @download_dir_path: The path to the directory where the series was stored
+# @patch_title: The title of the patch
+# @flag: Flag to control function output
+#
+# Return:
+# Return 0 if there are files related to the patch to be deleted and 2 (ENOENT)
+# if there aren't.
+function delete_series_from_local_storage()
+{
+  local download_dir_path="$1"
+  local patch_title="$2"
+  local flag="$3"
+  local filename_pattern
+  local files_to_remove
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  filename_pattern=$(convert_title_to_patch_name "$patch_title")
+
+  # Find doesn't return a non-zero status code when not matching any file.
+  # We use grep to work-around it.
+  files_to_remove=$(find "${download_dir_path}" -iname "*${filename_pattern}" | grep '.')
+  ret="$?"
+
+  if [[ "$ret" == 0 ]]; then
+    while IFS=' ' read -r file; do
+      is_safe_path_to_remove "$file"
+      if [[ "$?" == 0 ]]; then
+        cmd_manager "$flag" "rm ${file}"
+      fi
+    done <<< "${files_to_remove}"
+  else
+    return 2 # ENOENT
+  fi
+}
+
+# This function creates the lore bookmarked series file if it doesn't
+# already exists
+#
+# Return:
+# Returns 0 if the file is created successfully, and the return value of
+# create_lore_data_dir in case it isn't 0.
+function create_lore_bookmarked_file()
+{
+  local ret
+
+  create_lore_data_dir
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return "$ret"
+  fi
+
+  [[ -f "${BOOKMARKED_SERIES_PATH}" ]] && return
+  touch "${BOOKMARKED_SERIES_PATH}"
+}
+
+# This function adds a given series to a local bookmark database for
+# series managed by kw. To achieve uniqueness for each series the function
+# assigns an ID and timestamp (for informational purposes).
+#
+# @target_patch: Patch (series) in the same format as list_of_mailinglist_patches
+#   to be added to local bookmark database
+# @download_dir_path: The directory where the patch (series) was saved
+function add_series_to_bookmark()
+{
+  local target_patch="$1"
+  local download_dir_path="$2"
+  local patch_id
+  local timestamp
+  local count
+
+  create_lore_bookmarked_file
+
+  patch_id=$(printf '%s' "${target_patch}" | sha256sum | cut -d ' ' -f1)
+  timestamp=$(date '+%Y/%m/%d %H:%M')
+
+  count=$(grep --count "${patch_id}" "${BOOKMARKED_SERIES_PATH}")
+  if [[ "$count" == 0 ]]; then
+    {
+      printf '%s%s' "${target_patch}" "${SEPARATOR_CHAR}"
+      printf '%s%s' "${download_dir_path}" "${SEPARATOR_CHAR}"
+      printf '%s%s' "${patch_id}" "${SEPARATOR_CHAR}"
+      printf '%s\n' "$timestamp"
+    } >> "${BOOKMARKED_SERIES_PATH}"
+  fi
+}
+
+# This function removes a series from the local bookmark database by its index
+# in the database.
+#
+# @series_index: The index in the local bookmark database
+#
+# Return:
+# Returns 2 (ENOENT) if there is no local bookmark database file and the status
+# code of the last command (sed), otherwise.
+#
+# TODO:
+# - Find an alternative way to identify a series, this one may not be the most
+#   reliable.
+function remove_series_from_bookmark_by_index()
+{
+  local series_index="$1"
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  sed --in-place "${series_index}d" "${BOOKMARKED_SERIES_PATH}"
+}
+
+# This function populates an array passed as argument with all the bookmarked
+# series. Each element will detain the information to be displayed in the bookmarked
+# patches screen.
+#
+# @_bookmarked_series: An array reference to be populated with all the bookmarked
+#   series.
+#
+# TODO:
+# - Better decide which information will be shown in the bookmarked patches screen
+function get_bookmarked_series()
+{
+  local -n _bookmarked_series="$1"
+  declare -A series
+  local index=0
+  local timestamp
+  local patch_title
+  local patch_author
+  local tmp_data
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  _bookmarked_series=()
+
+  while IFS='' read -r raw_series; do
+    parse_raw_series "${raw_series}" 'series'
+    tmp_data=$(printf ' %s | %-70s | %s' "${series['timestamp']}" "${series['patch_title']}" "${series['patch_author']}")
+    _bookmarked_series["$index"]="${tmp_data}"
+    ((index++))
+  done < "${BOOKMARKED_SERIES_PATH}"
+}
+
+# This function gets a series from the local bookmark database by its index
+# in the database.
+#
+# @series_index: The index in the local bookmark database
+#
+# Return:
+# Return the bookmarked series raw data.
+#
+# TODO:
+# - Find an alternative way to identify a series, this one may not be the most
+#   reliable.
+function get_bookmarked_series_by_index()
+{
+  local series_index="$1"
+  local target_patch
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  target_patch=$(sed "${series_index}!d" "${BOOKMARKED_SERIES_PATH}")
+
+  printf '%s' "${target_patch}"
+}
+
+# This function parses a raw series data in the format stored
+# by kw into an array reference. The fields 'download_dir_path',
+# 'patch_id' and 'timestamp' are optional and refer to a bookmarked
+# patch (series).
+#
+# TODO:
+# - When we integrate with the kw database, this function should be
+#   deprecated.
+function parse_raw_series()
+{
+  local raw_series="$1"
+  local -n _series="$2"
+  local columns
+
+  IFS="${SEPARATOR_CHAR}" read -ra columns <<< "${raw_series}"
+  _series['patch_author']="${columns[0]}"
+  _series['author_email']="${columns[1]}"
+  _series['patch_version']="${columns[2]}"
+  _series['total_patches']="${columns[3]}"
+  _series['patch_title']="${columns[4]}"
+  _series['patch_url']="${columns[5]}"
+  _series['download_dir_path']="${columns[6]}"
+  _series['patch_id']="${columns[7]}"
+  _series['timestamp']="${columns[8]}"
 }

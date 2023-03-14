@@ -8,10 +8,37 @@ function oneTimeSetUp()
   export KW_CACHE_DIR="${SHUNIT_TMPDIR}/cache"
   export CACHE_LORE_DIR="${KW_CACHE_DIR}/lore"
   export LIST_PAGE_PATH="${CACHE_LORE_DIR}/lore_main_page.html"
+  export LORE_DATA_DIR="${SHUNIT_TMPDIR}/lore"
+  export BOOKMARKED_SERIES_PATH="${LORE_DATA_DIR}/lore_bookmarked_series"
 
   mkdir -p "$CACHE_LORE_DIR"
+  mkdir -p "${LORE_DATA_DIR}"
 
   cp "${SAMPLES_DIR}/web/reduced_lore_main_page.html" "${CACHE_LORE_DIR}/lore_main_page.html"
+}
+
+function setUp()
+{
+  export ORIGINAL_PATH="$PWD"
+
+  touch "${BOOKMARKED_SERIES_PATH}"
+
+  cd "${SHUNIT_TMPDIR}" || {
+    fail "($LINENO): setUp(): It was not possible to move into ${SHUNIT_TMPDIR}"
+    return
+  }
+}
+
+function tearDown()
+{
+  if [[ -f "${BOOKMARKED_SERIES_PATH}" && "${BOOKMARKED_SERIES_PATH}" != '/' ]]; then
+    rm "${BOOKMARKED_SERIES_PATH}"
+  fi
+
+  cd "${ORIGINAL_PATH}" || {
+    fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
+    return
+  }
 }
 
 function test_retrieve_available_mailing_lists()
@@ -168,6 +195,124 @@ function test_extract_metadata_from_patch_title_rfc()
   output=$(extract_metadata_from_patch_title "$sample_name")
 
   assertEquals "($LINENO)" "$output" "$expected"
+}
+
+function test_delete_series_from_local_storage()
+{
+  local download_dir_path="${SHUNIT_TMPDIR}/some/dir"
+  local patch_title='drm/amdgpu: fix some Big problem in some_function'
+  local flag='TEST_MODE'
+  local output
+  local expected
+
+  mkdir -p "${download_dir_path}"
+
+  delete_series_from_local_storage "${download_dir_path}" "${patch_title}" "$flag"
+  assertEquals "($LINENO) - Should return 2" 2 "$?"
+
+  touch "${download_dir_path}/0002-drm-amdgpu_fix_some_Big_problem_in_some_function.mbox"
+  output=$(delete_series_from_local_storage "${download_dir_path}" "${patch_title}" "$flag")
+  expected="rm ${download_dir_path}/0002-drm-amdgpu_fix_some_Big_problem_in_some_function.mbox"
+  assertEquals "($LINENO) - Should delete both files" "$expected" "$output"
+}
+
+function test_create_lore_bookmarked_file()
+{
+  if [[ "${BOOKMARKED_SERIES_PATH}" != '/' ]]; then
+    rm "${BOOKMARKED_SERIES_PATH}"
+  fi
+
+  create_lore_bookmarked_file
+  assertTrue "($LINENO) - Local bookmark database was not created" "[[ -f ${BOOKMARKED_SERIES_PATH} ]]"
+}
+
+function test_add_series_to_bookmark()
+{
+  local target_patch1='someseries1'
+  local target_patch2='someseries2'
+  local target_patch3='someseries3'
+  local download_dir_path='somedir'
+  local output
+  local count
+
+  add_series_to_bookmark "${target_patch1}" "${download_dir_path}"
+  output=$(< "${BOOKMARKED_SERIES_PATH}")
+  printf '%s' "$output" | grep --quiet "${target_patch1}${SEPARATOR_CHAR}${download_dir_path}"
+  assertTrue "($LINENO) - Should add series to local bookmark database" "[[ \"$?\" == 0 ]]"
+
+  add_series_to_bookmark "${target_patch1}" "${download_dir_path}"
+  output=$(< "${BOOKMARKED_SERIES_PATH}")
+  count=$(printf '%s' "$output" | grep --count "${target_patch1}${SEPARATOR_CHAR}${download_dir_path}")
+  assertEquals "($LINENO) - Should not duplicate entries " 1 "$count"
+
+  add_series_to_bookmark "${target_patch2}" "${download_dir_path}"
+  add_series_to_bookmark "${target_patch3}" "${download_dir_path}"
+  count=$(wc --lines "${BOOKMARKED_SERIES_PATH}" | cut --delimiter ' ' -f1)
+  assertEquals "($LINENO) - Should have 3 entries" 3 "$count"
+}
+
+function test_remove_series_from_bookmark_by_index()
+{
+  local output
+  local expected
+
+  {
+    printf 'entry1\n'
+    printf 'entry2\n'
+    printf 'entry3\n'
+  } >> "${BOOKMARKED_SERIES_PATH}"
+
+  remove_series_from_bookmark_by_index 2
+  expected='entry1'$'\n''entry3'
+  output=$(< "${BOOKMARKED_SERIES_PATH}")
+  assertEquals "($LINENO) - Should delete entry 2" "$expected" "$output"
+
+  remove_series_from_bookmark_by_index 2
+  expected='entry1'
+  output=$(< "${BOOKMARKED_SERIES_PATH}")
+  assertEquals "($LINENO) - Should only have entry 1" "$expected" "$output"
+}
+
+function test_get_bookmarked_series()
+{
+  local -a bookmarked_series=()
+  local char="${SEPARATOR_CHAR}"
+  local output
+
+  {
+    printf 'AUTHOR1%s %s %s %sTITLE1%s %s %s %sDATE1\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+    printf 'AUTHOR2%s %s %s %sTITLE2%s %s %s %sDATE2\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+    printf 'AUTHOR3%s %s %s %sTITLE3%s %s %s %sDATE3\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+  } >> "${BOOKMARKED_SERIES_PATH}"
+
+  get_bookmarked_series bookmarked_series
+
+  expected=' DATE1 | TITLE1                                                                 | AUTHOR1'
+  assertEquals "($LINENO)" "$expected" "${bookmarked_series[0]}"
+  expected=' DATE2 | TITLE2                                                                 | AUTHOR2'
+  assertEquals "($LINENO)" "$expected" "${bookmarked_series[1]}"
+  expected=' DATE3 | TITLE3                                                                 | AUTHOR3'
+  assertEquals "($LINENO)" "$expected" "${bookmarked_series[2]}"
+}
+
+function test_get_bookmarked_series_by_index()
+{
+  local output
+  local expected
+
+  {
+    printf 'entry1\n'
+    printf 'entry2\n'
+    printf 'entry3\n'
+  } >> "${BOOKMARKED_SERIES_PATH}"
+
+  output=$(get_bookmarked_series_by_index 1)
+  expected='entry1'
+  assertEquals "($LINENO) - Should get the first entry" "$expected" "$output"
+
+  output=$(get_bookmarked_series_by_index 2)
+  expected='entry2'
+  assertEquals "($LINENO) - Should get the second entry" "$expected" "$output"
 }
 
 invoke_shunit

@@ -247,7 +247,7 @@ function handle_exit()
 
   # Handling stop
   case "$exit_status" in
-    1 | 255) # Exit
+    1 | 22 | 255) # Exit
       clear
       exit 0
       ;;

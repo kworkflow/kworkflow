@@ -28,3 +28,4 @@ python-setuptools
 dialog
 curl
 perl-xml-xpath
+coreutils

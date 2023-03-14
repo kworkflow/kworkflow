@@ -11,18 +11,12 @@ include "${KW_LIB_DIR}/kwio.sh"
 
 declare -ga registered_lists
 declare -ga patches_from_mailing_list
-
-# TODO: Bookmarked patches must come from local database
-declare -ga bookmarked_patches=(
-  '2022-11-10 | #1   | drm/amd/pm: Enable bad memory page/channel recording support for smu v13_0_0'
-  '2021-05-10 | #255 | DC Patches November 19, 2022'
-  '2000-01-29 | #12  | drm/amdgpu: add drv_vram_usage_va for virt data exchange'
-  '2022-07-01 | #7   | drm/amdgpu: fix pci device refcount leak'
-)
+declare -ga bookmarked_series
 
 declare -gA screen_sequence=(
   ['SHOW_SCREEN']='register'
   ['SHOW_SCREEN_PARAMETER']=''
+  ['RETURNING']=''
 )
 
 # This function is responsible for managing the UI interface loop; here, it is
@@ -73,6 +67,10 @@ upstream_patches_ui_main()
         show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}" list_of_mailinglist_patches
         ret="$?"
         ;;
+      'show_bookmarked_series_details')
+        show_bookmarked_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
+        ret="$?"
+        ;;
     esac
 
     handle_exit "$ret"
@@ -115,8 +113,72 @@ function dashboard_entry_menu()
 # developer. For this reason, we just need to display the save patches.
 function show_bookmarked_patches()
 {
-  # TODO: Get bookmarked_patches from the local database
-  list_patches 'Bookmarked patches' bookmarked_patches
+  if [[ -z "${screen_sequence['RETURNING']}" ]]; then
+    get_bookmarked_series bookmarked_series
+  fi
+
+  # Avoiding stale value
+  screen_sequence['RETURNING']=''
+
+  list_patches 'Bookmarked patches' bookmarked_series "${screen_sequence['SHOW_SCREEN']}"
+}
+
+# Screen resposible for showing a specific bookmarked series details
+#
+# @series_index: Series index
+function show_bookmarked_series_details()
+{
+  local series_index="$1"
+  declare -A series
+  local -a action_list
+  local patch_metadata
+  local raw_series
+  local message_box
+
+  action_list=('Unbookmark')
+
+  # The local bookmark database starting index is 1 and the index
+  # passed as argument starts at 0.
+  if [[ ! "${series_index}" =~ ^[0-9]+$ || "${series_index}" -lt 0 ]]; then
+    complain "Invalid value for series_index: '${series_index}'"
+    handle_exit 22 # EINVAL
+  fi
+
+  ((series_index++))
+
+  raw_series=$(get_bookmarked_series_by_index "${series_index}")
+  parse_raw_series "${raw_series}" 'series'
+
+  patch_metadata=$(prettify_string 'Series:' "${series['patch_title']}")
+  patch_metadata+=$(prettify_string 'Author:' "${series['patch_author']}")
+  patch_metadata+=$(prettify_string 'Version:' "${series['patch_version']}")
+  patch_metadata+=$(prettify_string 'Patches:' "${series['total_patches']}")
+  message_box="$patch_metadata"
+
+  create_simple_checklist 'Bookmarked Series info and actions' "$message_box" 'action_list' 1
+  ret="$?"
+
+  case "$ret" in
+    0) # OK
+      IFS=' ' read -ra selected_options <<< "$menu_return_string"
+      for option in "${selected_options[@]}"; do
+        case "$option" in
+          'Unbookmark')
+            delete_series_from_local_storage "${series['download_dir_path']}" "${series['patch_title']}"
+            remove_series_from_bookmark_by_index "${series_index}"
+            screen_sequence['SHOW_SCREEN']='bookmarked_patches'
+            ;;
+        esac
+      done
+      ;;
+    1) # Exit
+      handle_exit "$ret"
+      ;;
+    3) # Return
+      screen_sequence['SHOW_SCREEN']='bookmarked_patches'
+      screen_sequence['RETURNING']=1
+      ;;
+  esac
 }
 
 # Show all mailing list that the developer is registered
@@ -153,12 +215,16 @@ function show_new_patches_in_the_mailing_list()
 
   # Query patches from mailing list, this info will be saved at
   # ${list_of_mailinglist_patches[@]}
-  if [[ "${screen_sequence['SHOW_SCREEN_PARAMETER']}" != 'return' ]]; then
+  if [[ -z "${screen_sequence['RETURNING']}" ]]; then
     create_loading_screen_notification "Loading patches from ${list_name} list"
     get_patches_from_mailing_list "$list_name" patches_from_mailing_list
   fi
 
-  list_patches "Patches from ${screen_sequence['SHOW_SCREEN_PARAMETER']}" patches_from_mailing_list
+  # Avoiding stale value
+  screen_sequence['RETURNING']=''
+
+  list_patches "Patches from ${screen_sequence['SHOW_SCREEN_PARAMETER']}" patches_from_mailing_list \
+    "${screen_sequence['SHOW_SCREEN']}"
 }
 
 # Screen resposible for show a specific patch details
@@ -169,30 +235,22 @@ function show_series_details()
 {
   local patch_index="$1"
   local -n _target_patch_metadata="$2"
+  declare -A series
   local -a action_list
   local patch_metadata
-  local target_patch
+  local raw_series
   local message_box
-  local columns
-  local patch_url
-  local patch_title
-  local total_patches
 
   # TODO: Add apply patch
   action_list=('Bookmark' 'Download')
 
-  target_patch=${_target_patch_metadata["$patch_index"]}
-  IFS="${SEPARATOR_CHAR}" read -r -a columns <<< "$target_patch"
+  raw_series=${_target_patch_metadata["$patch_index"]}
+  parse_raw_series "${raw_series}" 'series'
 
-  patch_metadata=$(prettify_string 'Series:' "${columns[4]}")
-  patch_metadata+=$(prettify_string 'Author:' "${columns[0]}")
-  patch_metadata+=$(prettify_string 'Version:' "${columns[2]}")
-  patch_metadata+=$(prettify_string 'Patches:' "${columns[3]}")
-
-  total_patches="${columns[3]}"
-  patch_title="${columns[4]}"
-  patch_url="${columns[5]}"
-
+  patch_metadata=$(prettify_string 'Series:' "${series['patch_title']}")
+  patch_metadata+=$(prettify_string 'Author:' "${series['patch_author']}")
+  patch_metadata+=$(prettify_string 'Version:' "${series['patch_version']}")
+  patch_metadata+=$(prettify_string 'Patches:' "${series['total_patches']}")
   message_box="$patch_metadata"
 
   create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list' 1
@@ -204,11 +262,13 @@ function show_series_details()
       for option in "${selected_options[@]}"; do
         case "$option" in
           'Bookmark')
-            printf 'TODO' # TODO
+            create_loading_screen_notification "Bookmarking patch(es)"$'\n'"- ${series['patch_title']}"
+            download_series "${series['total_patches']}" "${series['patch_url']}" "${lore_config['download_to']}" "${series['patch_title']}"
+            add_series_to_bookmark "${raw_series}" "${lore_config['download_to']}"
             ;;
           'Download')
-            create_loading_screen_notification "Downloading patch(es)"$'\n'"- ${patch_title}"
-            download_series "$total_patches" "$patch_url" "${lore_config['download_to']}" "$patch_title"
+            create_loading_screen_notification "Downloading patch(es)"$'\n'"- ${series['patch_title']}"
+            download_series "${series['total_patches']}" "${series['patch_url']}" "${lore_config['download_to']}" "${series['patch_title']}"
             ;;
         esac
       done
@@ -218,7 +278,7 @@ function show_series_details()
       ;;
     3) # Return
       screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
-      screen_sequence['SHOW_SCREEN_PARAMETER']='return'
+      screen_sequence['RETURNING']=1
       ;;
   esac
 }
@@ -230,10 +290,12 @@ function show_series_details()
 #
 # @message_box: Text description to the list of patches
 # @_target_array_list: List of patches to be displayed
+# @previous_screen: Determines the next screen if an option is chosen
 function list_patches()
 {
   local menu_title="$1"
   local -n _target_array_list="$2"
+  local previous_screen="$3"
   local selected_patch
   local ret
 
@@ -244,7 +306,14 @@ function list_patches()
 
   case "$ret" in
     0) # OK
-      screen_sequence['SHOW_SCREEN']='show_series_details'
+      case "$previous_screen" in
+        'show_new_patches_in_the_mailing_list')
+          screen_sequence['SHOW_SCREEN']='show_series_details'
+          ;;
+        'bookmarked_patches')
+          screen_sequence['SHOW_SCREEN']='show_bookmarked_series_details'
+          ;;
+      esac
       screen_sequence['SHOW_SCREEN_PARAMETER']="$selected_patch"
       ;;
     1) # Exit
