@@ -25,3 +25,4 @@ sqlite
 dialog
 curl
 perl-XML-XPath
+coreutils

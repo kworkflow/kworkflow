@@ -28,3 +28,4 @@ ccache
 dialog
 curl
 libxml-xpath-perl
+coreutils
