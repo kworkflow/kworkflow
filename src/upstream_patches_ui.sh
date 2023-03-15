@@ -113,6 +113,8 @@ function dashboard_entry_menu()
 # developer. For this reason, we just need to display the save patches.
 function show_bookmarked_patches()
 {
+  local fallback_message
+
   if [[ -z "${screen_sequence['RETURNING']}" ]]; then
     get_bookmarked_series bookmarked_series
   fi
@@ -120,7 +122,9 @@ function show_bookmarked_patches()
   # Avoiding stale value
   screen_sequence['RETURNING']=''
 
-  list_patches 'Bookmarked patches' bookmarked_series "${screen_sequence['SHOW_SCREEN']}"
+  fallback_message='kw could not find any bookmarked patches.'$'\n'$'\n'
+  fallback_message+='Try bookmarking patches in the menu "Registered mailing list"'
+  list_patches 'Bookmarked patches' bookmarked_series "${screen_sequence['SHOW_SCREEN']}" "${fallback_message}"
 }
 
 # Screen resposible for showing a specific bookmarked series details
@@ -165,7 +169,14 @@ function show_bookmarked_series_details()
         case "$option" in
           'Unbookmark')
             delete_series_from_local_storage "${series['download_dir_path']}" "${series['patch_title']}"
+            if [[ "$?" != 0 ]]; then
+              create_message_box 'Error' 'Could not delete patch(es)'$'\n'"- ${series['patch_title']}"
+              continue
+            fi
             remove_series_from_bookmark_by_index "${series_index}"
+            if [[ "$?" != 0 ]]; then
+              create_message_box 'Error' 'Could not unbookmark patch(es)'$'\n'"- ${series['patch_title']}"
+            fi
             screen_sequence['SHOW_SCREEN']='bookmarked_patches'
             ;;
         esac
@@ -212,6 +223,7 @@ function show_new_patches_in_the_mailing_list()
 {
   local list_name="$1"
   local -a new_patches
+  local fallback_message
 
   # Query patches from mailing list, this info will be saved at
   # ${list_of_mailinglist_patches[@]}
@@ -223,8 +235,9 @@ function show_new_patches_in_the_mailing_list()
   # Avoiding stale value
   screen_sequence['RETURNING']=''
 
+  fallback_message='kw could not retrieve patches from this mailing list'
   list_patches "Patches from ${screen_sequence['SHOW_SCREEN_PARAMETER']}" patches_from_mailing_list \
-    "${screen_sequence['SHOW_SCREEN']}"
+    "${screen_sequence['SHOW_SCREEN']}" "${fallback_message}"
 }
 
 # Screen resposible for show a specific patch details
@@ -262,13 +275,23 @@ function show_series_details()
       for option in "${selected_options[@]}"; do
         case "$option" in
           'Bookmark')
-            create_loading_screen_notification "Bookmarking patch(es)"$'\n'"- ${series['patch_title']}"
+            create_loading_screen_notification 'Bookmarking patch(es)'$'\n'"- ${series['patch_title']}"
             download_series "${series['total_patches']}" "${series['patch_url']}" "${lore_config['download_to']}" "${series['patch_title']}"
+            if [[ "$?" != 0 ]]; then
+              create_message_box 'Error' 'Could not download patch(es)'$'\n'"- ${series['patch_title']}"
+              continue
+            fi
             add_series_to_bookmark "${raw_series}" "${lore_config['download_to']}"
+            if [[ "$?" != 0 ]]; then
+              create_message_box 'Error' 'Could not bookmark patch(es)'$'\n'"- ${series['patch_title']}"
+            fi
             ;;
           'Download')
-            create_loading_screen_notification "Downloading patch(es)"$'\n'"- ${series['patch_title']}"
+            create_loading_screen_notification 'Downloading patch(es)'$'\n'"- ${series['patch_title']}"
             download_series "${series['total_patches']}" "${series['patch_url']}" "${lore_config['download_to']}" "${series['patch_title']}"
+            if [[ "$?" != 0 ]]; then
+              create_message_box 'Error' 'Could not download patch(es)'$'\n'"- ${series['patch_title']}"
+            fi
             ;;
         esac
       done
@@ -291,13 +314,21 @@ function show_series_details()
 # @message_box: Text description to the list of patches
 # @_target_array_list: List of patches to be displayed
 # @previous_screen: Determines the next screen if an option is chosen
+# @fallback_message: Message for when there are no patches to display
 function list_patches()
 {
   local menu_title="$1"
   local -n _target_array_list="$2"
   local previous_screen="$3"
+  local fallback_message="$4"
   local selected_patch
   local ret
+
+  if [[ -z "${_target_array_list}" ]]; then
+    create_message_box "${menu_title}" "${fallback_message}"
+    screen_sequence['SHOW_SCREEN']='dashboard'
+    return "$?"
+  fi
 
   create_menu_options "${menu_title}" '' '_target_array_list' 1
   ret="$?"

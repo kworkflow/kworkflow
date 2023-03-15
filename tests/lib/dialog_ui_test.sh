@@ -147,6 +147,34 @@ function test_create_loading_screen_notification_use_all_options()
   assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${output}" "${expected_cmd}"
 }
 
+function test_create_message_box_rely_on_some_default_options()
+{
+  local box_title='Bookmarked patches'
+  local message_box='There are no bookmarked patches...'
+  local expected_cmd=" dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
+  local output
+
+  expected_cmd+=" --title \$'${box_title}' --clear --colors"
+  expected_cmd+=" --msgbox \$'${message_box}'"
+  expected_cmd+=" '15' '40'"
+  output=$(create_message_box "${box_title}" "${message_box}" '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected message box with some default options' "$LINENO" "$output" "${expected_cmd}"
+}
+
+function test_create_message_box_use_all_options()
+{
+  local box_title='Bookmarked patches'
+  local message_box='There are no bookmarked patches...'
+  local expected_cmd=" dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
+  local output
+
+  expected_cmd+=" --title \$'${box_title}' --clear --colors"
+  expected_cmd+=" --msgbox \$'${message_box}'"
+  expected_cmd+=" '1234' '4321'"
+  output=$(create_message_box "${box_title}" "${message_box}" '1234' '4321' 'TEST_MODE')
+  assert_equals_helper 'Expected message box with all custom options' "$LINENO" "$output" "${expected_cmd}"
+}
+
 function test_prettify_string_failures()
 {
   prettify_string
