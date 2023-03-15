@@ -238,6 +238,55 @@ function create_loading_screen_notification()
   return "$ret"
 }
 
+# Create simple message box. Can be used for displaying errors and notifications.
+#
+# @box_title: Title of the box
+# @message_box: The message to be displayed.
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Unlike other dialog screens, this one doesn't return a menu_return_string,
+# just the status code of the command which should be 0, if everything worked
+# as expected.
+function create_message_box()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local height="$3"
+  local width="$4"
+  local flag="$5"
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+  height=${height:-'15'}
+  width=${width:-'40'}
+  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+
+  # Add layout to dialog
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  cmd+=" dialog --backtitle \$'${back_title}' --title \$'${box_title}' --clear --colors"
+
+  cmd+=" --msgbox \$'${message_box}'"
+
+  # Set height and width
+  cmd+=" '${height}' '${width}'"
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  cmd_manager "$flag" "$cmd" 2>&1 1>&3
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 # This function is responsible for handling the dialog exit.
 #
 # @exit_status: Exit code

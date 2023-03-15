@@ -126,21 +126,48 @@ function test_show_bookmarked_series_details()
   assert_equals_helper 'Expected failure' "$LINENO" $"$output" $"$expected_result"
 }
 
-function test_list_patches()
+function test_list_patches_with_patches()
 {
+  local target_array_list
+
   # shellcheck disable=SC2317
   function create_menu_options()
   {
     menu_return_string='3'
   }
 
-  list_patches 'Message test' 'patches_from_mailing_list' 'show_new_patches_in_the_mailing_list'
+  target_array_list=(
+    'some_patch'
+    'some_other_patch'
+    'more_patches'
+  )
+
+  list_patches 'Message test' target_array_list 'show_new_patches_in_the_mailing_list' ''
   assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'show_series_details'
   assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN_PARAMETER']}" 2
 
-  list_patches 'Message test' 'bookmarked_patches' 'bookmarked_patches'
+  list_patches 'Message test' target_array_list 'bookmarked_patches' ''
   assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'show_bookmarked_series_details'
   assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN_PARAMETER']}" 2
+}
+
+function test_list_patches_without_patches()
+{
+  local target_array_list
+
+  # shellcheck disable=SC2317
+  function create_message_box()
+  {
+    return
+  }
+
+  target_array_list=()
+
+  list_patches 'Message test' target_array_list 'show_new_patches_in_the_mailing_list' ''
+  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'dashboard'
+
+  list_patches 'Message test' target_array_list 'bookmarked_patches' ''
+  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'dashboard'
 }
 
 invoke_shunit
