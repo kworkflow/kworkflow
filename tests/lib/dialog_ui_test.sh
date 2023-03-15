@@ -92,14 +92,15 @@ function test_create_simple_checklist_rely_on_some_default_options()
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
+  local -a check_statuses=(1 '')
   local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
   local output
 
   expected_cmd+=" --title \$'${menu_title}' --clear --colors --cancel-label $'Exit' --checklist $\"${menu_message_box}\""
   expected_cmd+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
-  expected_cmd+=" 'Checklist 1' '' 'off' 'Checklist 2' '' 'off'"
+  expected_cmd+=" 'Checklist 1' '' 'on' 'Checklist 2' '' 'off'"
 
-  output=$(create_simple_checklist "$menu_title" "$menu_message_box" menu_list_string_array '' '' '' '' '' 'TEST_MODE')
+  output=$(create_simple_checklist "$menu_title" "$menu_message_box" 'menu_list_string_array' 'check_statuses' '' '' '' '' '' 'TEST_MODE')
   assert_equals_helper 'Expected simple checklist' "$LINENO" "${output}" "${expected_cmd}"
 }
 
@@ -108,6 +109,7 @@ function test_create_simple_checklist_use_all_options()
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
+  local -a check_statuses=(1 '')
   local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
   local output
 
@@ -115,9 +117,9 @@ function test_create_simple_checklist_use_all_options()
   expected_cmd+=" --extra-button --extra-label 'Return'"
   expected_cmd+=" --checklist $\"${menu_message_box}\""
   expected_cmd+=" '442' '244' '3'"
-  expected_cmd+=" 'Checklist 1' '' 'off' 'Checklist 2' '' 'off'"
+  expected_cmd+=" 'Checklist 1' '' 'on' 'Checklist 2' '' 'off'"
 
-  output=$(create_simple_checklist "$menu_title" "$menu_message_box" menu_list_string_array 1 'Nop' '442' '244' '3' 'TEST_MODE')
+  output=$(create_simple_checklist "$menu_title" "$menu_message_box" 'menu_list_string_array' 'check_statuses' 1 'Nop' '442' '244' '3' 'TEST_MODE')
   assert_equals_helper 'Expected simple checklist' "$LINENO" "${output}" "${expected_cmd}"
 }
 

@@ -135,6 +135,7 @@ function show_bookmarked_series_details()
   local series_index="$1"
   declare -A series
   local -a action_list
+  local -a check_statuses=('')
   local patch_metadata
   local raw_series
   local message_box
@@ -159,7 +160,7 @@ function show_bookmarked_series_details()
   patch_metadata+=$(prettify_string 'Patches:' "${series['total_patches']}")
   message_box="$patch_metadata"
 
-  create_simple_checklist 'Bookmarked Series info and actions' "$message_box" 'action_list' 1
+  create_simple_checklist 'Bookmarked Series info and actions' "$message_box" 'action_list' 'check_statuses' 1
   ret="$?"
 
   case "$ret" in
@@ -250,6 +251,7 @@ function show_series_details()
   local -n _target_patch_metadata="$2"
   declare -A series
   local -a action_list
+  local -a check_statuses=('' '')
   local patch_metadata
   local raw_series
   local message_box
@@ -266,7 +268,14 @@ function show_series_details()
   patch_metadata+=$(prettify_string 'Patches:' "${series['total_patches']}")
   message_box="$patch_metadata"
 
-  create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list' 1
+  is_bookmarked "${raw_series}"
+  if [[ "$?" == 0 ]]; then
+    check_statuses[0]=1
+    # TODO: when we refine the 'Download' action, we should revise the set below
+    check_statuses[1]=1
+  fi
+
+  create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list' 'check_statuses' 1
   ret="$?"
 
   case "$ret" in
@@ -363,6 +372,7 @@ function register_mailing_list()
   local message_box
   local new_list
   local -a menu_list_string_array
+  local -a check_statuses=()
   local lore_config_path="${PWD}/.kw/lore.config"
   local ret
 
@@ -379,7 +389,7 @@ function register_mailing_list()
   message_box="It looks like that you don't have any lore list registered; please"
   message_box+=" select one or more of the below list:"
 
-  create_simple_checklist 'Lore list' "$message_box" 'menu_list_string_array'
+  create_simple_checklist 'Lore list' "$message_box" 'menu_list_string_array' 'check_statuses'
   ret="$?"
 
   new_list=$(printf '%s' "$menu_return_string" | tr -s '[:blank:]' ',')
