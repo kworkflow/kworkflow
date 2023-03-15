@@ -679,3 +679,33 @@ function parse_raw_series()
   _series['patch_id']="${columns[7]}"
   _series['timestamp']="${columns[8]}"
 }
+
+# This function is a predicate about the existence of given patch in the local
+# bookmark database.
+#
+# @target_patch: The patch metadata. Used to get the target patch id.
+#
+# Return:
+# Returns 0 if given patch is present in local database, 1 if it is not and 2 if
+# there is no local database.
+#
+# TODO:
+# - Revise the return value of 1.
+function is_bookmarked()
+{
+  local target_patch="$1"
+  local patch_id
+  local count
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  patch_id=$(printf '%s' "${target_patch}" | sha256sum | cut -d ' ' -f1)
+  count=$(grep --count "${patch_id}" "${BOOKMARKED_SERIES_PATH}")
+  if [[ "$count" != 0 ]]; then
+    return 0
+  fi
+
+  return 1
+}

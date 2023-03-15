@@ -122,6 +122,7 @@ function create_menu_options()
 # @menu_title: This is the menu title used on the top left of the dialog screen.
 # @menu_message_box: The instruction text used for this menu.
 # @_menu_list_string_array: An array reference containing all the strings to be used in the menu.
+# @_check_statuses: An array reference containing all the statuses of the checks (if they are on/off).
 # @cancel_label: Cancel label. If not set, the default is 'Exit']
 # @height: Menu height in lines size
 # @width: Menu width in column size
@@ -137,12 +138,14 @@ function create_simple_checklist()
   local menu_title="$1"
   local menu_message_box="$2"
   local -n _menu_list_string_array="$3"
-  local back_button_label="$4"
-  local cancel_label="$5"
-  local height="$6"
-  local width="$7"
-  local list_height="$8"
-  local flag="$9"
+  local -n _check_statuses="$4"
+  local back_button_label="$5"
+  local cancel_label="$6"
+  local height="$7"
+  local width="$8"
+  local list_height="$9"
+  local flag="${10}"
+  local index=0
   local cmd
   local ret
 
@@ -175,7 +178,12 @@ function create_simple_checklist()
   cmd+=" '${height}' '${width}' '${list_height}'"
 
   for item in "${_menu_list_string_array[@]}"; do
-    cmd+=" '${item}' '' 'off'"
+    if [[ -n "${_check_statuses}" && -n ${_check_statuses["$index"]} ]]; then
+      cmd+=" '${item}' '' 'on'"
+    else
+      cmd+=" '${item}' '' 'off'"
+    fi
+    ((index++))
   done
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0

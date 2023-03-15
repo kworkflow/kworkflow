@@ -315,4 +315,26 @@ function test_get_bookmarked_series_by_index()
   assertEquals "($LINENO) - Should get the second entry" "$expected" "$output"
 }
 
+function test_is_boookmarked()
+{
+  # The below are the sha256sum of 'entry1', 'entry2' and 'entry3', respectively
+  {
+    printf 'c17dd9010a5c6b0e5b2ad5a845762d8b206e6166a4e63d32deca8c5664fdfcac\n'
+    printf 'ad2063741cce2d9f2862b07152b06528d175e9e658ade8f2daa416834c9c089a\n'
+    printf 'a671a481a0edc8cd6eab7640f9c8e225a82e5c8e49122a86158f20fa22254409\n'
+  } >> "${BOOKMARKED_SERIES_PATH}"
+
+  is_bookmarked 'entry2'
+  assertEquals "($LINENO) - Should return 0 (patch bookmarked)" 0 "$?"
+
+  is_bookmarked 'entry1234'
+  assertEquals "($LINENO) - Should return 1 (patch not bookmarked)" 1 "$?"
+
+  if [[ "${BOOKMARKED_SERIES_PATH}" != '/' ]]; then
+    rm "${BOOKMARKED_SERIES_PATH}"
+  fi
+  is_bookmarked 'entry3'
+  assertEquals "($LINENO) - Should return 2 (local bookmark database non-existent)" 2 "$?"
+}
+
 invoke_shunit
