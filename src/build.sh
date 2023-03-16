@@ -102,7 +102,7 @@ function kernel_build()
   fi
 
   if [[ -n "$clean" ]]; then
-    build_clean "$flag"
+    build_clean "$flag" "$output_kbuild_flag"
     return "$?"
   fi
 
@@ -181,9 +181,10 @@ function kernel_build()
 function build_clean()
 {
   local flag="$1"
+  local env_path="$2"
   local cmd
 
-  cmd="make clean${output_kbuild_flag}"
+  cmd="make clean${env_path}"
   cmd_manager "$flag" "$cmd"
 }
 
