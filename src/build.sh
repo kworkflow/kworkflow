@@ -141,9 +141,8 @@ function kernel_build()
   fi
 
   if [[ -n "$doc_type" ]]; then
-    command="make ${optimizations} ${doc_type}${output_path}${output_kbuild_flag}"
-    cmd_manager "$flag" "$command"
-    return
+    build_doc "$flag" "$output_kbuild_flag" "$optimizations" "$doc_type" "$output_path"
+    return "$?"
   fi
 
   command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_path}${output_kbuild_flag}"
@@ -180,6 +179,20 @@ function build_menu_config()
   local cmd
 
   cmd="make -j ${llvm}ARCH=${platform_ops} ${menu_config}${env_path}"
+  cmd_manager "$flag" "$cmd"
+}
+
+# This function builds kernel-doc, by default it will create htmldocs.
+function build_doc()
+{
+  local flag="$1"
+  local env_path="$2"
+  local optimizations="$3"
+  local doc_type="$4"
+  local output_path="$5"
+  local cmd
+
+  cmd="make ${optimizations} ${doc_type}${output_path}${env_path}"
   cmd_manager "$flag" "$cmd"
 }
 
