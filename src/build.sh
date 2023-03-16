@@ -118,8 +118,7 @@ function kernel_build()
   fi
 
   if [[ -n "$menu_config" ]]; then
-    command="make -j ${llvm}ARCH=${platform_ops} ${menu_config}${output_kbuild_flag}"
-    cmd_manager "$flag" "$command"
+    build_menu_config "$flag" "$output_kbuild_flag" "$menu_config" "$platform_ops" "$llvm"
     exit
   fi
 
@@ -166,6 +165,22 @@ function kernel_build()
   fi
 
   return "$ret"
+}
+
+# This function runs the make command under the hood, which in this
+# context is used to build and configure the linux kernel using the
+# "menuconfig" interface.
+function build_menu_config()
+{
+  local flag="$1"
+  local env_path="$2"
+  local menu_config="$3"
+  local platform_ops="$4"
+  local llvm="$5"
+  local cmd
+
+  cmd="make -j ${llvm}ARCH=${platform_ops} ${menu_config}${env_path}"
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function runs the 'make clean' command under the hood, with
