@@ -168,9 +168,8 @@ function get_template_name()
     available_templates+=('exit kw init templates')
     say 'You may choose one of the following templates to start your configuration.'
     printf '(enter the corresponding number to choose)\n'
-    select user_choice in "${available_templates[@]^}"; do
-      [[ "$user_choice" =~ ^Skip ]] && return
-      [[ "$user_choice" =~ ^Exit ]] && exit
+    select user_choice in "${available_templates[@]}"; do
+      [[ "$user_choice" == 'exit kw init templates' ]] && exit
 
       template="${user_choice,,}"
       break
