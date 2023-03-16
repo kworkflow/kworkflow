@@ -86,13 +86,13 @@ function dashboard_entry_menu()
 {
   local message_box
   local -a menu_list_string_array
+  local message_box
   local ret
 
   # TODO: Get list from liblore
   menu_list_string_array=('Registered mailing list' 'Bookmarked patches')
 
-  message_box="It looks like that you don't have any lore list registered; please"
-  message_box+=' select one or more of the below list:'
+  message_box=''
 
   create_menu_options 'Dashboard' "$message_box" 'menu_list_string_array'
   ret="$?"
