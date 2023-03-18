@@ -376,6 +376,10 @@ function assert_no_line_match()
 # @result_to_compare Raw output to be compared
 function assert_equals_helper()
 {
+  local _none='\033[0m'
+  local _red='\033[1;31m'
+  local _blue='\033[1;34m'
+
   local msg="$1"
   local line="$2"
   # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
@@ -387,7 +391,15 @@ function assert_equals_helper()
 
   # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
   # shellcheck disable=2128
-  assertEquals "line $line: $msg" "$result_to_compare" "$expected"
+
+  assertEquals "$expected" "$result_to_compare" &> /dev/null
+
+  if [ $? -ne 0 ]; then
+    echo -e "${_red}ASSERT:${_none} line $line: $msg"
+    echo -e "${_blue}Expected Result:${_none} ${_blue}$expected${_none}"
+    echo -e "${_red}-> Actual Result:${_none} ${_red}$result_to_compare${_none}"
+    return 1
+  fi
 }
 
 # Create an invalid file path
