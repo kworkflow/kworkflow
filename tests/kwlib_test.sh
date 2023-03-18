@@ -863,4 +863,32 @@ function test_get_current_env_name()
   }
 }
 
+function test_is_safe_path_to_remove()
+{
+  local path
+
+  cd "${SHUNIT_TMPDIR}" || {
+    fail "($LINENO): It was not possible to move into ${SHUNIT_TMPDIR}"
+    return
+  }
+
+  path='some/random/path/that/doesnt/exists'
+  is_safe_path_to_remove "$path"
+  assertEquals "($LINENO) - Should return 2 as path doesn't exists" 2 "$?"
+
+  path='/'
+  is_safe_path_to_remove "$path"
+  assertEquals "($LINENO) - Should return 1 as path is root" 1 "$?"
+
+  path='a/safe/path'
+  mkdir -p "$path"
+  is_safe_path_to_remove "$path"
+  assertEquals "($LINENO) - Should return 0 as is safe to remove" 0 "$?"
+
+  cd "${ORIGINAL_DIR}" || {
+    fail "($LINENO): It was not possible to move back to original directory"
+    return
+  }
+}
+
 invoke_shunit
