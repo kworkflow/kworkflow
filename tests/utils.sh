@@ -391,7 +391,6 @@ function assert_equals_helper()
 
   # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
   # shellcheck disable=2128
-
   assertEquals "$expected" "$result_to_compare" &> /dev/null
 
   if [ $? -ne 0 ]; then
