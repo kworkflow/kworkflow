@@ -33,6 +33,11 @@ LOCAL_TO_DEPLOY_DIR="to_deploy"
 LOCAL_REMOTE_DIR="remote"
 KERNEL_INSTALL_PLUGIN_PATH="src/plugins/kernel_install/"
 
+# Colors
+readonly KW_COLOR_NONE='\033[0m'
+readonly KW_COLOR_RED='\033[1;31m'
+readonly KW_COLOR_GREEN='\033[1;32m'
+
 function init_env()
 {
   unset -v KW_LIB_DIR KWORKFLOW
@@ -304,10 +309,12 @@ function compare_command_sequence()
 
   while read -r f; do
     if [[ "${expected_res[$count]}" != "${f}" ]]; then
-      fail "line $line, statement $count: $msg
-Expected: \"${expected_res[$count]}\"
-but got:  \"${f}\"
-"
+      if ! fail &> /dev/null; then
+        printf '%bASSERT:%b line %s, statement %d: %s\n  %bExpected:%b %b\"%s\"%b\n  %b-> but got:%b %b\"%s\"%b\n' \
+          "$KW_COLOR_RED" "$KW_COLOR_NONE" "$line" "$count" "${msg}" \
+          "$KW_COLOR_GREEN" "$KW_COLOR_NONE" "$KW_COLOR_GREEN" "${expected_res[$count]}" "$KW_COLOR_NONE" \
+          "$KW_COLOR_RED" "$KW_COLOR_NONE" "$KW_COLOR_RED" "${f}" "$KW_COLOR_NONE"
+      fi
     fi
     ((count++))
   done <<< "$result_to_compare"
