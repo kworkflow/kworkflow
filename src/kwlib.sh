@@ -680,3 +680,21 @@ function get_current_env_name()
 
   return "$ret"
 }
+
+# A common task is to remove files/directories. This function is a predicate
+# to check if a given path is safe to remove (e.g. is not the '/')
+#
+# @path: Path to be checked
+#
+# Return:
+# Returns 0 if the path is safe to remove, 1 if it is not and 2 if it doesn't
+# exists.
+function is_safe_path_to_remove()
+{
+  local path="$1"
+
+  [[ ! -e "$path" ]] && return 2   # ENOENT
+  [[ "$path" == '/' ]] && return 1 # EPERM
+
+  return 0
+}
