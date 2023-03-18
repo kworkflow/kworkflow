@@ -786,6 +786,7 @@ function test_get_kernel_release()
 {
   local output
 
+  # shellcheck disable=SC2317
   function get_current_env_name()
   {
     printf ''
@@ -801,6 +802,7 @@ function test_get_kernel_release_with_env()
   local output
   local expected="make kernelrelease O=${KW_CACHE_DIR}/envs/fake_env --silent 2> /dev/null"
 
+  # shellcheck disable=SC2317
   function get_current_env_name()
   {
     printf 'fake_env'
@@ -814,6 +816,7 @@ function test_get_kernel_version()
 {
   local output
 
+  # shellcheck disable=SC2317
   function get_current_env_name()
   {
     printf ''
@@ -829,6 +832,7 @@ function test_get_kernel_version_with_env()
   local output
   local expected="make kernelversion O=${KW_CACHE_DIR}/envs/fake_env --silent 2> /dev/null"
 
+  # shellcheck disable=SC2317
   function get_current_env_name()
   {
     printf 'fake_env'
