@@ -306,7 +306,7 @@ function detect_distro()
   local distro_ids='none'
   local etc_path
   local os_release_process
-  declare -a os_family=('debian' 'arch' 'fedora')
+  declare -a os_family=('debian' 'arch' 'fedora' 'gentoo')
 
   etc_path=$(join_path "$root_path" '/etc')
 
