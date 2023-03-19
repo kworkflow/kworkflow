@@ -43,52 +43,54 @@ declare -r CONFIGS_PATH='configs'
 
 declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
 
+function debian_pkg_check()
+{
+  dpkg-query -W --showformat='${Status}\n' "$1" 2> /dev/null | grep -c 'ok installed'
+}
+
 function check_dependencies()
 {
   local package_list=''
   local cmd=''
   local distro
-
+  readonly IS_INSTALLED_CMD=0
+  readonly DISTRO_CMD_FOR_INSTALL_PACKAGE=1
+  declare -a debian=('debian_pkg_check ' 'apt install -y')
+  declare -a arch=('pacman -Ql ' 'pacman -S')
+  declare -a gentoo=('qlist -I ' 'emerge')
+  declare -a fedora=('rpm -q ' 'dnf install -y')
+  declare -A distro_commands=(['arch']=arch ['gentoo']=gentoo ['fedora']=fedora ['debian']=debian)
+  declare -n distro_cmd
   distro=$(detect_distro '/')
+  distro_cmd="${distro_commands["$distro"]}"
 
-  if [[ "$distro" =~ 'arch' ]]; then
+  if [[ -v distro_commands["$distro"] ]]; then
     while IFS='' read -r package; do
-      installed=$(pacman -Ql "$package" &> /dev/null)
-      [[ "$?" != 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/arch.dependencies"
-    cmd="pacman -S $package_list"
-  elif [[ "$distro" =~ 'debian' ]]; then
-    while IFS='' read -r package; do
-      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
-      [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/debian.dependencies"
-    cmd="apt install -y $package_list"
-  elif [[ "$distro" =~ 'fedora' ]]; then
-    while IFS='' read -r package; do
-      installed=$(rpm -q "$package" &> /dev/null)
+      installed=$(${distro_cmd[$IS_INSTALLED_CMD]} "$package" &> /dev/null)
       [[ "$?" -ne 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/fedora.dependencies"
-    cmd="dnf install -y $package_list"
-  else
-    warning 'Unfortunately, we do not have official support for your distro (yet)'
-    warning 'Please, try to find the following packages:'
-    warning "$(cat "$DOCUMENTATION/dependencies/arch.dependencies")"
-    return 0
-  fi
+    done < "${DOCUMENTATION}/dependencies/${distro}.dependencies"
+    cmd="${distro_cmd[$DISTRO_CMD_FOR_INSTALL_PACKAGE]} ${package_list}"
 
-  if [[ -n "$package_list" ]]; then
-    if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies $package_list?") =~ '0' ]]; then
-        return 0
+    if [[ -n "$package_list" ]]; then
+      if [[ "$FORCE" == 0 ]]; then
+        if [[ $(ask_yN "Can we install the following dependencies $package_list?") =~ '0' ]]; then
+          return 0
+        fi
       fi
     fi
 
     # Install system packages
     if [[ "$EUID" -eq 0 ]]; then
-      eval "$cmd"
+      eval "${cmd}"
     else
-      eval "sudo $cmd"
+      eval "sudo ${cmd}"
     fi
+
+  else
+    warning 'Unfortunately, we do not have official support for your distro (yet)'
+    warning 'Please, try to find the following packages:'
+    warning "$(< "${DOCUMENTATION}/dependencies/arch.dependencies")"
+    return 0
   fi
 
 }
