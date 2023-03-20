@@ -255,9 +255,10 @@ function show_series_details()
   local patch_metadata
   local raw_series
   local message_box
+  local kernel_tree="${lore_config['kernel_tree']}"
+  local target_branch="${lore_config['target_branch']}"
 
-  # TODO: Add apply patch
-  action_list=('Bookmark' 'Download')
+  action_list=('Bookmark' 'Download' 'Apply')
 
   raw_series=${_target_patch_metadata["$patch_index"]}
   parse_raw_series "${raw_series}" 'series'
@@ -301,6 +302,9 @@ function show_series_details()
             if [[ "$?" != 0 ]]; then
               create_message_box 'Error' 'Could not download patch(es)'$'\n'"- ${series['patch_title']}"
             fi
+            ;;
+          'Apply')
+            apply_patch "${series['total_patches']}" "${series['patch_url']}" "${series['patch_title']}" "${kernel_tree}" "${target_branch}"
             ;;
         esac
       done

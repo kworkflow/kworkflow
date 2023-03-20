@@ -709,3 +709,41 @@ function is_bookmarked()
 
   return 1
 }
+
+function apply_patch()
+{
+  local total_patches="$1"
+  local patch_url="$2"
+  local patch_title="$3"
+  local kernel_tree="$4"
+  local target_branch="$5"
+  local flag="$6"
+  local path_to_tmp_dir
+  local filename_pattern
+  local files_to_remove
+  local cmd
+  local ret
+
+  path_to_tmp_dir=$(mktemp --directory)
+
+  download_series "${total_patches}" "${patch_url}" "${path_to_tmp_dir}" "${patch_title}"
+
+  cmd="git -C ${kernel_tree} switch ${target_branch}"
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Could not switch kernel tree ${kernel_tree} to branch ${target_branch}"
+    return "$ret"
+  fi
+
+  filename_pattern=$(convert_title_to_patch_name "${patch_title}")
+  files_to_apply=$(find "${path_to_tmp_dir}" -iname "*${filename_pattern}" | sort)
+  while IFS=' ' read -r file; do
+    cmd="git -C ${kernel_tree} am ${file}"
+    cmd_manager "$flag" "$cmd"
+    if [[ "$ret" != 0 ]]; then
+      complain "Could not apply patch ${file} kernel tree ${kernel_tree}"
+      return "$ret"
+    fi
+  done <<< "${files_to_apply}"
+}
