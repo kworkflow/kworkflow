@@ -11,6 +11,7 @@ SYNOPSIS
 | *kw* (*env*) [(-d | \--destroy <NAME>)]
 | *kw* (*env*) [(-l | \--list)]
 | *kw* (*env*) [(-e | \--exit-env)]
+| *kw* (*env*) [\--verbose]
 
 DESCRIPTION
 ===========
@@ -57,6 +58,11 @@ OPTIONS
   Allow users to "exit" the env feature. If the user is using a specific env
   and doesn't want to use it anymore, the `--exit-env` option will remove all
   symbolic links and copy the current env's configuration files to the .kw.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.
 
 EXAMPLES
 ========
