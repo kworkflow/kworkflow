@@ -53,7 +53,7 @@ OPTIONS
 -l, \--list:
   It shows all envs created via `\--create` option.
 
--n, \--exit-env:
+-e, \--exit-env:
   Allow users to "exit" the env feature. If the user is using a specific env
   and doesn't want to use it anymore, the `--exit-env` option will remove all
   symbolic links and copy the current env's configuration files to the .kw.
