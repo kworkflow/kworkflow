@@ -210,6 +210,10 @@ function test_parse_env_options()
   output=$(parse_env_options -h)
   assertEquals "($LINENO)" "$?" 0
 
+  # Check verbose
+  output=$(parse_env_options --verbose)
+  assertEquals "($LINENO)" "$?" 0
+
   # Check create
   parse_env_options --create abc
   assert_equals_helper 'Create envs' \
