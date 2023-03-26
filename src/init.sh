@@ -47,6 +47,11 @@ function init_kw()
     return 22 # EINVAL
   fi
 
+  if [[ -n "${options_values['VERBOSE']}" ]]; then
+    flag='VERBOSE'
+  fi
+  flag=${flag:-'SILENT'}
+
   config_file_already_exist_question
 
   get_template_name ''
@@ -69,17 +74,27 @@ function init_kw()
     exit 2 # ENOENT
   fi
 
-  mkdir --parents "${PWD}/${KW_DIR}"
-  cp "$config_file_template" "${PWD}/${KW_DIR}/${name}"
-  cp "$vm_config_file_template" "${PWD}/${KW_DIR}/${vm_name}"
-  cp "$build_config_file_template" "${PWD}/${KW_DIR}/${build_name}"
-  cp "$deploy_config_file_template" "${PWD}/${KW_DIR}/${deploy_name}"
-  cp "$mail_config_file_template" "${PWD}/${KW_DIR}/${mail_name}"
-  cp "$notification_config_file_template" "${PWD}/${KW_DIR}/${notification_name}"
-  cp "$remote_file_template" "${PWD}/${KW_DIR}/${remote_name}"
+  cmd="mkdir --parents \"${PWD}/${KW_DIR}\""
+  cmd_manager "$flag" "$cmd"
+  cmd="cp \"$config_file_template\" \"${PWD}/${KW_DIR}/${name}\""
+  cmd_manager "$flag" "$cmd"
+  cmd="cp \"$vm_config_file_template\" \"${PWD}/${KW_DIR}/${vm_name}\""
+  cmd_manager "$flag" "$cmd"
+  cmd="cp \"$build_config_file_template\" \"${PWD}/${KW_DIR}/${build_name}\""
+  cmd_manager "$flag" "$cmd"
+  cmd="cp \"$deploy_config_file_template\" \"${PWD}/${KW_DIR}/${deploy_name}\""
+  cmd_manager "$flag" "$cmd"
+  cmd="cp \"$mail_config_file_template\" \"${PWD}/${KW_DIR}/${mail_name}\""
+  cmd_manager "$flag" "$cmd"
+  cmd="cp \"$notification_config_file_template\" \"${PWD}/${KW_DIR}/${notification_name}\""
+  cmd_manager "$flag" "$cmd"
+  cmd="cp \"$remote_file_template\" \"${PWD}/${KW_DIR}/${remote_name}\""
+  cmd_manager "$flag" "$cmd"
 
-  sed --in-place --expression "s/USERKW/${USER}/g" -e '/^#?.*/d' "${PWD}/${KW_DIR}/${vm_name}"
-  sed --in-place --expression "s,SOUNDPATH,${KW_SOUND_DIR},g" -e '/^#?.*/d' "${PWD}/${KW_DIR}/${notification_name}"
+  cmd="sed --in-place --expression \"s/USERKW/${USER}/g\" --expression '/^#?.*/d' \"${PWD}/${KW_DIR}/${vm_name}\""
+  cmd_manager "$flag" "$cmd"
+  cmd="sed --in-place --expression \"s,SOUNDPATH,${KW_SOUND_DIR},g\" --expression '/^#?.*/d' \"${PWD}/${KW_DIR}/${notification_name}\""
+  cmd_manager "$flag" "$cmd"
 
   if [[ -n "${options_values['ARCH']}" ]]; then
     if [[ -d "${PWD}/arch/${options_values['ARCH']}" || -n "${options_values['FORCE']}" ]]; then
@@ -128,18 +143,22 @@ function set_config_value()
   local option="$1"
   local value="$2"
   local path="${3:-"${PWD}/${KW_DIR}/${name}"}"
+  local flag=${flag:-'SILENT'}
 
-  sed --in-place --regexp-extended "s/(${option}=).*/\1${value}/" "$path"
+  cmd="sed --in-place --regexp-extended \"s/(${option}=).*/\1${value}/\" \"$path\""
+  cmd_manager "$flag" "$cmd"
 }
 
 function config_file_already_exist_question()
 {
   local name='kworkflow.config'
+  local flag=${flag:-'SILENT'}
 
   if [[ -f "${PWD}/${KW_DIR}/${name}" ]]; then
     if [[ -n "${options_values['FORCE']}" ||
       $(ask_yN 'It looks like you already have a kw config file. Do you want to overwrite it?') =~ '1' ]]; then
-      mv "${PWD}/${KW_DIR}/${name}" '/tmp'
+      cmd="mv \"${PWD}/${KW_DIR}/${name}\" '/tmp'"
+      cmd_manager "$flag" "$cmd"
     else
       say 'Initialization aborted!'
       exit 0
@@ -157,6 +176,7 @@ function get_template_name()
   local test_mode="$1"
   local template="${options_values['TEMPLATE']}" # removes colon
   local templates_path="$KW_ETC_DIR/init_templates"
+  local flag=${flag:-'SILENT'}
 
   if [[ -z "$template" ]]; then
     mapfile -t available_templates < <(find "$templates_path" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort -r)
@@ -194,8 +214,8 @@ function get_template_name()
 
 function parse_init_options()
 {
-  local long_options='arch:,remote:,target:,force,template::'
-  local short_options='a:,r:,t:,f'
+  local long_options='arch:,remote:,target:,force,template::,verbose'
+  local short_options='a:,r:,t:,f,v'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -208,6 +228,7 @@ function parse_init_options()
   options_values['ARCH']=''
   options_values['FORCE']=''
   options_values['TEMPLATE']='x86-64'
+  options_values['VERBOSE']=''
 
   eval "set -- $options"
 
@@ -235,6 +256,10 @@ function parse_init_options()
         options_values['TEMPLATE']="$option"
         shift 2
         ;;
+      --verbose | -v)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --)
         shift
         ;;
@@ -259,7 +284,8 @@ function init_help()
     '  init --template[=name] - Create kw config file from template.' \
     '  init --arch <arch> - Set the arch field in the kworkflow.config file.' \
     '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
-    '  init --target <target> Set the default_deploy_target field in the kworkflow.config file'
+    '  init --target <target> Set the default_deploy_target field in the kworkflow.config file' \
+    '  init [-v | --verbose] - Show a detailed output'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well
