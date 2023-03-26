@@ -6,8 +6,8 @@ kw-init
 
 SYNOPSIS
 ========
-| *kw* *init* [\--template[=name]]
-| *kw* *init* [\--arch <name>][\--remote <user>@<ip>:<port>][\--target <target>]
+| *kw* *init* [\--verbose] [\--template[=name]]
+| *kw* *init* [\--verbose] [\--arch <name>][\--remote <user>@<ip>:<port>][\--target <target>]
 
 DESCRIPTION
 ===========
@@ -36,6 +36,9 @@ OPTIONS
 \--target <target>:
   Set the variable `default_deploy_target` from **kworkflow.config** to
   *<target>*, which can be local or remote.
+
+\--verbose:
+  Verbose mode allows the user to see the commands executed under the hood.
 
 EXAMPLES
 ========

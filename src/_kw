@@ -280,6 +280,7 @@ _kw_help()
 _kw_init()
 {
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-a --arch)'{-a,--arch}'[set the variable arch of kw]: : ' \
     '(-r --remote)'{-r,--remote}'[set the remote user, ip and port]: : ' \
     '(-t --target)'{-t,--target}'[set the default_deploy_target config of kw between local or remote]: :(local remote)' \

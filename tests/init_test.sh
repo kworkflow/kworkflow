@@ -276,6 +276,11 @@ function test_parse_init_options()
   declare -gA options_values
   parse_init_options --template
   assertEquals "($LINENO):" '' "${options_values['TEMPLATE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_init_options --verbose
+  assertEquals "($LINENO):" '1' "${options_values['VERBOSE']}"
 }
 
 invoke_shunit
