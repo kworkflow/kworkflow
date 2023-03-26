@@ -69,7 +69,7 @@ function init_kw()
     exit 2 # ENOENT
   fi
 
-  mkdir -p "${PWD}/${KW_DIR}"
+  mkdir --parents "${PWD}/${KW_DIR}"
   cp "$config_file_template" "${PWD}/${KW_DIR}/${name}"
   cp "$vm_config_file_template" "${PWD}/${KW_DIR}/${vm_name}"
   cp "$build_config_file_template" "${PWD}/${KW_DIR}/${build_name}"
@@ -78,8 +78,8 @@ function init_kw()
   cp "$notification_config_file_template" "${PWD}/${KW_DIR}/${notification_name}"
   cp "$remote_file_template" "${PWD}/${KW_DIR}/${remote_name}"
 
-  sed -i -e "s/USERKW/${USER}/g" -e '/^#?.*/d' "${PWD}/${KW_DIR}/${vm_name}"
-  sed -i -e "s,SOUNDPATH,${KW_SOUND_DIR},g" -e '/^#?.*/d' "${PWD}/${KW_DIR}/${notification_name}"
+  sed --in-place --expression "s/USERKW/${USER}/g" -e '/^#?.*/d' "${PWD}/${KW_DIR}/${vm_name}"
+  sed --in-place --expression "s,SOUNDPATH,${KW_SOUND_DIR},g" -e '/^#?.*/d' "${PWD}/${KW_DIR}/${notification_name}"
 
   if [[ -n "${options_values['ARCH']}" ]]; then
     if [[ -d "${PWD}/arch/${options_values['ARCH']}" || -n "${options_values['FORCE']}" ]]; then
@@ -129,7 +129,7 @@ function set_config_value()
   local value="$2"
   local path="${3:-"${PWD}/${KW_DIR}/${name}"}"
 
-  sed -i -r "s/(${option}=).*/\1${value}/" "$path"
+  sed --in-place --regexp-extended "s/(${option}=).*/\1${value}/" "$path"
 }
 
 function config_file_already_exist_question()
