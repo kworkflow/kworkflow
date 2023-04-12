@@ -393,14 +393,21 @@ _kw_pomodoro()
   if ((words[(I)-t|--set-timer])); then
     set_timer_options=(
       '(-g --tag)'{-g,--tag}'[associate a tag to the timebox]:: : '
+    )
+  fi
+
+  if ((words[(I)-g|--tag])); then
+    tag_options=(
       '(-d --description)'{-d,--description}'[add a more descriptive text associated with the timer]:: : '
     )
   fi
 
   _arguments : \
-    '(-t --set-timer -l --list)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
-    '(-l --list -t --set-timer)'{-l,--list}'[shows information associated with each Pomodoro timebox created by the user]' \
-    $set_timer_options
+    '(-t --set-timer -c --check-timer -s --show-tags)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
+    '(-c --check-timer -t --set-timer -s --show-tags)'{-c,--check-timer}'[shows information of each active Pomodoro timebox]' \
+    '(-s --show-tags -c --check-timer -t --set-timer)'{-s,--show-tags}'[shows registered tags]' \
+    $set_timer_options \
+    $tag_options
 }
 
 _kw_remote()
