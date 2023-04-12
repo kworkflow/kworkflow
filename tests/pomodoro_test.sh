@@ -11,6 +11,8 @@ function setUp()
   export KW_POMODORO_TAG_LIST="$KW_POMODORO_DATA/tags"
 
   touch "$POMODORO_LOG_FILE"
+
+  declare -gA options_values
 }
 
 function tearDown()
@@ -150,59 +152,65 @@ function test_show_active_pomodoro_timebox()
   assert_equals_helper 'We should have no output' "$LINENO" "$output" ''
 }
 
-function test_pomodoro_parser()
+function test_parse_pomodoro()
 {
   local output
 
-  pomodoro_parser '-t 10m'
+  parse_pomodoro '-t' '10m'
   assert_equals_helper 'Time parser failed (minutes)' "$LINENO" "${options_values['TIMER']}" '10m'
 
-  pomodoro_parser '-t 333h'
+  parse_pomodoro '-t' '333h'
   assert_equals_helper 'Time parser failed (hour)' "$LINENO" "${options_values['TIMER']}" '333h'
 
-  pomodoro_parser '--set-timer 234s'
+  parse_pomodoro '--set-timer' '234s'
   assert_equals_helper 'Time parser failed (sec)' "$LINENO" "${options_values['TIMER']}" '234s'
 
-  output=$(pomodoro_parser '--set-timer 23 s')
+  output=$(parse_pomodoro '--set-timer' '23 s')
   assert_equals_helper 'No space' "$LINENO" "$?" '22'
 
-  output=$(pomodoro_parser '--set-timer 234')
+  output=$(parse_pomodoro '--set-timer' '234')
   assert_equals_helper 'No suffix' "$LINENO" "$?" '22'
 
-  output=$(pomodoro_parser '--set-timer uum')
+  output=$(parse_pomodoro '--set-timer' 'uum')
   assert_equals_helper 'No a number' "$LINENO" "$?" '22'
 
-  pomodoro_parser '--list'
+  parse_pomodoro '--check-timer'
   assert_equals_helper 'Show current timebox' "$LINENO" "${options_values['SHOW_TIMER']}" '1'
 
-  pomodoro_parser '--tag Something is here'
+  parse_pomodoro '--tag' 'Something is here'
+  assert_equals_helper 'Tag requires set timer' "$LINENO" "$?" 22
+
+  parse_pomodoro '--set-timer' '1234s' '--tag' 'Something is here'
   assert_equals_helper 'Get tag' "$LINENO" "${options_values['TAG']}" 'Something is here'
 
-  pomodoro_parser '--tag    Extra  space   '
+  parse_pomodoro '--set-timer' '1234s' '--tag' '   Extra space   '
   assert_equals_helper 'Handle extra space failed' "$LINENO" "${options_values['TAG']}" 'Extra space'
 
-  output=$(pomodoro_parser '--description lala lalala')
-  assert_equals_helper 'Description requires tag' "$LINENO" "$?" '22'
+  str_sample='com ç -u ^ xpo-la ¬ x--bl'
+  parse_pomodoro '--set-timer' '1234s' '--tag' "$str_sample"
+  assert_equals_helper 'Handle diverse chars' "$LINENO" "${options_values['TAG']}" "$str_sample"
+
+  output=$(parse_pomodoro '--description' 'lala lalala')
+  assert_equals_helper 'Description requires tag' "$LINENO" "$?" 22
+
+  output=$(parse_pomodoro '-g' 'Some tag' '--description' 'lala lalala')
+  assert_equals_helper 'Description requires set timer' "$LINENO" "$?" 22
 
   str_sample='This is just a simple description'
-  pomodoro_parser "--tag Extra space -d $str_sample"
-  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
+  parse_pomodoro '--set-timer' '1234s' '--tag' 'Some tag' '-d' "$str_sample"
+  assert_equals_helper 'Wrong description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
 
   str_sample_spaces='            This is just a simple description    '
-  pomodoro_parser "--tag Extra space -d $str_sample_spaces"
-  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
-
-  apostrophe="Let's try something with apostrophe (I'm, you're, we're)"
-  pomodoro_parser "--tag apostrophe -d $apostrophe"
-  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$apostrophe"
+  parse_pomodoro '--set-timer' '1234s' '--tag' 'Some tag' '-d' "$str_sample_spaces"
+  assert_equals_helper 'Wrong description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
 
   str_sample='Does --comment --lal -u -x xpto-bla and xpto--blablbal'
-  pomodoro_parser "--tag Extra space -d $str_sample"
-  assert_equals_helper 'Get description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
+  parse_pomodoro '--set-timer' '1234s' '--tag' 'Some tag' '-d' "$str_sample"
+  assert_equals_helper 'Wrong description' "$LINENO" "${options_values['DESCRIPTION']}" "$str_sample"
 
-  str_sample='--com --lal -u -x xpo-la x--bl'
-  pomodoro_parser "--tag $str_sample"
-  assert_equals_helper 'Get description' "$LINENO" "${options_values['TAG']}" "$str_sample"
+  apostrophe="Let's try something with apostrophe (I'm, you're, we're)"
+  parse_pomodoro '--set-timer' '1234s' '--tag' 'apostrophe' '--description' "$apostrophe"
+  assert_equals_helper 'Wrong description' "$LINENO" "${options_values['DESCRIPTION']}" "$apostrophe"
 }
 
 function test_setup_pomodoro()
@@ -294,14 +302,19 @@ function test_is_tag_already_registered()
   assertEquals "$LINENO: We expect to find Tag 0" "$?" 0
 }
 
-function test_translate_id_to_tag()
+function test_get_tag_name()
 {
   local output
+  local expected
 
   setup_pomodoro > /dev/null
 
-  translate_id_to_tag ''
-  assert_equals_helper 'Empty string should be detected' "$LINENO" "$?" '22'
+  get_tag_name ''
+  assert_equals_helper 'Empty string should be detected' "$LINENO" '22' "$?"
+
+  output=$(get_tag_name 'Some tag')
+  expected='Some tag'
+  assert_equals_helper 'Should return same value if it is not a number' "$LINENO" "$expected" "$output"
 
   register_tag 'tag 1'
   register_tag 'tag 2'
@@ -309,17 +322,69 @@ function test_translate_id_to_tag()
   register_tag 'tag 4'
 
   for i in {1..4}; do
-    output=$(translate_id_to_tag "$i")
+    output=$(get_tag_name "$i")
     expected="tag $i"
-    assert_equals_helper 'We expect to find a tag' "$LINENO: ($i)" "$output" "$expected"
+    assert_equals_helper 'We expect to find a tag' "$LINENO: ($i)" "$expected" "$output"
   done
 
   # Try to get an ID out of range
-  translate_id_to_tag 65
-  assert_equals_helper 'Out of range' "$LINENO" "$?" '22'
+  get_tag_name 65
+  assert_equals_helper 'Out of range' "$LINENO" '22' "$?"
 
-  translate_id_to_tag -2
-  assert_equals_helper 'Out of range' "$LINENO" "$?" '22'
+  get_tag_name -2
+  assert_equals_helper 'Out of range' "$LINENO" '22' "$?"
+}
+
+function test_is_valid_argument()
+{
+  local expected_error
+
+  is_valid_argument '--long-option' 'some-option'
+  assert_equals_helper 'Long option should return 22' "$LINENO" 22 "$?"
+  expected_error='Invalid some-option argument: --long-option'
+  assert_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" "${options_values[ERROR]}"
+
+  is_valid_argument '-o' 'some-option'
+  assert_equals_helper 'Short option should return 22' "$LINENO" 22 "$?"
+  expected_error='Invalid some-option argument: -o'
+  assert_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" "${options_values[ERROR]}"
+
+  is_valid_argument 'valid-argument' 'some-option'
+  assert_equals_helper 'Valid argument should return 0' "$LINENO" 0 "$?"
+}
+
+function test_is_valid_time()
+{
+  local expected_error
+
+  is_valid_time 'invalid-time'
+  assert_equals_helper 'Invalid time should return 22' "$LINENO" 22 "$?"
+  expected_error='Invalid time: invalid-time'
+  assert_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" "${options_values[ERROR]}"
+
+  is_valid_time '1'
+  assert_equals_helper 'Number without time scale should return 22' "$LINENO" 22 "$?"
+  expected_error='Invalid time: 1'
+  assert_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" "${options_values[ERROR]}"
+
+  is_valid_time 'NUMBERm'
+  assert_equals_helper 'Not a number with time scale should return 22' "$LINENO" 22 "$?"
+  expected_error='Invalid time: NUMBERm'
+  assert_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" "${options_values[ERROR]}"
+
+  is_valid_time '0m'
+  assert_equals_helper 'Null time should return 22' "$LINENO" 22 "$?"
+  expected_error='Time should be bigger than zero'
+  assert_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" "${options_values[ERROR]}"
+
+  is_valid_time '1234h'
+  assert_equals_helper 'Valid time should return 0' "$LINENO" 0 "$?"
+
+  is_valid_time '7654321m'
+  assert_equals_helper 'Valid time should return 0' "$LINENO" 0 "$?"
+
+  is_valid_time '999000999000s'
+  assert_equals_helper 'Valid time should return 0' "$LINENO" 0 "$?"
 }
 
 invoke_shunit
