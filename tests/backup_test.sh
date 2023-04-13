@@ -181,6 +181,11 @@ function test_parse_backup_options()
 
   unset options_values
   declare -gA options_values
+  parse_backup_options --verbose > /dev/null
+  assert_equals_helper 'VERBOSE could not be set' "($LINENO)" '1' "${options_values['VERBOSE']}"
+
+  unset options_values
+  declare -gA options_values
   parse_backup_options /path
   assert_equals_helper 'BACKUP_PATH could not be set' "($LINENO)" '/path' "${options_values['BACKUP_PATH']}"
 

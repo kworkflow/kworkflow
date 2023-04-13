@@ -8,6 +8,7 @@ SYNOPSIS
 ========
 | *kw* *backup* [<path>]
 | *kw* *backup* (-r | \--restore) <path> [(-f | \--force)]
+| *kw* *backup* (\--verbose)
 
 DESCRIPTION
 ===========
@@ -23,6 +24,11 @@ OPTIONS
   folder. If files with the same name are found during the restoration process,
   then it will by default ask you on how to proceed. To simply replace all files
   from **KW_DATA_DIR** with the backup, you may use the `\--force` option.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.
 
 EXAMPLES
 ========
