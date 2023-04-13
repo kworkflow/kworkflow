@@ -76,6 +76,7 @@ _kw_backup()
   fi
 
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-r --restore)'{-r,--restore}'[restore kw data from specified path]: :_files' \
     $force \
     $args
