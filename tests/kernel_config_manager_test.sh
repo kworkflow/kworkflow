@@ -3,420 +3,259 @@
 include './src/kernel_config_manager.sh'
 include './tests/utils.sh'
 
-COMMAND_MSG_UNKNOWN='Unknown option'
-COMMAND_MSG_INVALID_ARG='Invalid argument'
-COMMAND_NO_SUCH_FILE='No such file or directory'
+function oneTimeSetUp()
+{
+  # Common values used in suite
+  readonly NAME_1='test_save_1'
+  readonly NAME_2='test_save_2'
+  readonly YES_FORCE=1
+  readonly NO_FORCE=0
+  readonly CONTENT='The content'
+  readonly DESCRIPTION_1='This is the first description'
+  readonly DESCRIPTION_2="Hi, I'm the second description"
 
-readonly YES_FORCE='1'
-readonly NO_FORCE='0'
+  # Important values for isolating tests and mocking
+  export KW_DATA_DIR="${SHUNIT_TMPDIR}"
+  export KW_CACHE_DIR="${SHUNIT_TMPDIR}/cache"
+  export dot_configs_dir="${KW_DATA_DIR}/configs"
+  export original_dir="$PWD"
 
-readonly CONTENT='The content'
-
-readonly NAME_1='test_save_1'
-readonly NAME_2='test_save_2'
-
-readonly DESCRIPTION_1='This is the first description'
-readonly DESCRIPTION_2="Hi, I'm the second description"
+  # Loading sample configurations
+  parse_configuration "${KW_CONFIG_SAMPLE}"
+  parse_configuration "${KW_BUILD_CONFIG_SAMPLE}" build_config
+}
 
 function setUp()
 {
-  local -r current_path="$PWD"
-
-  cd "$SHUNIT_TMPDIR" || {
+  cd "${SHUNIT_TMPDIR}" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
   }
 
-  touch .config
-  printf '%s\n' "$CONTENT" > .config
+  mkdir -p "${dot_configs_dir}"
 
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-  export KW_CACHE_DIR="${SHUNIT_TMPDIR}/cache"
-  mkdir -p "${SHUNIT_TMPDIR}/configs"
-
-  KW_DATA_DIR="$SHUNIT_TMPDIR"
-  export configs_path="${KW_DATA_DIR}/configs"
-
-  parse_configuration "$KW_CONFIG_SAMPLE"
-  parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
-  declare -la expected_cmd=()
+  touch '.config'
+  printf '%s\n' "$CONTENT" > '.config'
 }
 
 function tearDown()
 {
-  rm -rf "$SHUNIT_TMPDIR"
-  mkdir -p "$SHUNIT_TMPDIR"
-  unset expected_cmd
+  if is_safe_path_to_remove "${dot_configs_dir}"; then
+    rm -rf "${dot_configs_dir}"
+  fi
+
+  cd "${original_dir}" || {
+    fail "($LINENO) It was not possible to back to the kw folder"
+    return
+  }
 }
 
 function test_kernel_config_manager_main_SAVE_fails()
 {
-  local msg_prefix=" --save"
-  local ret
+  local output
 
-  ret=$(kernel_config_manager_main --save 2>&1 > /dev/null)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
+  output=$(kernel_config_manager_main '--save' > /dev/null)
+  assert_equals_helper ' --save' "$LINENO" 22 "$?"
 
-  ret=$(kernel_config_manager_main --save --lala)
-  assert_equals_helper "$msg_prefix --lala" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
+  output=$(kernel_config_manager_main '--save' '--lala')
+  assert_equals_helper ' --save --lala' "$LINENO" 'Invalid argument' "$output"
 
-  ret=$(kernel_config_manager_main --save -n)
-  assert_equals_helper "$msg_prefix -n" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
+  output=$(kernel_config_manager_main '--save' '-n')
+  assert_equals_helper ' --save -n' "$LINENO" 'Invalid argument' "$output"
 
-  ret=$(kernel_config_manager_main --save -d)
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
+  output=$(kernel_config_manager_main '--save' '-d')
+  assert_equals_helper ' --save -d' "$LINENO" 'Invalid argument' "$output"
 
-  ret=$(kernel_config_manager_main --save -d)
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
+  output=$(kernel_config_manager_main '--save' '-d')
+  assert_equals_helper ' --save -d' "$LINENO" 'Invalid argument' "$output"
 
-  ret=$(kernel_config_manager_main --save -d "lalala and xpto")
-  assert_equals_helper "$msg_prefix -d" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
+  output=$(kernel_config_manager_main '--save' '-d' "lalala and xpto")
+  assert_equals_helper ' --save -d' "$LINENO" 'Invalid argument' "$output"
 
-  ret=$(kernel_config_manager_main --save -f)
-  assert_equals_helper "$msg_prefix -f" "$LINENO" "$ret" "$COMMAND_MSG_INVALID_ARG"
+  output=$(kernel_config_manager_main '--save' '-f')
+  assert_equals_helper ' --save -f' "$LINENO" 'Invalid argument' "$output"
 }
 
 function test_save_config_file_check_save_failures()
 {
-  local current_path="$PWD"
-  local ret=0
+  if is_safe_path_to_remove '.config'; then
+    rm '.config'
+  fi
+  save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1" > /dev/null
+  assert_equals_helper 'No .config file should return ENOENT' "$LINENO" 2 "$?"
 
-  # Test without config file -> should fail
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  rm -f .config
-  ret=$(save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1")
-  assert_equals_helper 'No .config file should return ENOENT' "$LINENO" "$?" "2"
-
-  # Test with different name
-  touch .configuration
-  ret=$(save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1")
-  assert_equals_helper "Should return ENOENT, because '.config' != '.configuration'" "$LINENO" "$?" "2"
-  rm .configuration
-
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  touch '.configuration'
+  save_config_file "$NO_FORCE $NAME_1" "$DESCRIPTION_1" > /dev/null
+  assert_equals_helper "Should return ENOENT, because '.config' != '.configuration'" "$LINENO" 2 "$?"
+  if is_safe_path_to_remove '.configuration'; then
+    rm '.configuration'
+  fi
 }
 
 function test_save_config_file_check_directories_creation()
 {
-  local current_path="$PWD"
-
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
 
   # Check if all the expected files were created
-  assertTrue "$LINENO: The configs dir was not created" '[[ -d $configs_path ]]'
-  assertTrue "$LINENO: The metadata dir is not available" '[[ -d $configs_path/metadata ]]'
-  assertTrue "$LINENO: The configs dir is not available" '[[ -d $configs_path/configs ]]'
+  assertTrue "${LINENO}: The configs dir was not created" '[[ -d ${dot_configs_dir} ]]'
+  assertTrue "${LINENO}: The metadata dir is not available" '[[ -d ${dot_configs_dir}/metadata ]]'
+  assertTrue "${LINENO}: The configs dir is not available" '[[ -d ${dot_configs_dir}/configs ]]'
 }
 
 function test_save_config_file_check_saved_config()
 {
-  local current_path="$PWD"
-  local ret=0
-  local msg
-  local tmp
+  local output
 
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
 
-  msg="Failed to find $NAME_1"
-  assertTrue "$LINENO: $msg" '[[ -f $configs_path/configs/$NAME_1 ]]'
-  msg="Failed the metadata related to $NAME_1"
-  assertTrue "$LINENO: $msg" '[[ -f $configs_path/metadata/$NAME_1 ]]'
+  assertTrue "${LINENO}: Failed to find ${NAME_1}" '[[ -f ${dot_configs_dir}/configs/${NAME_1} ]]'
+  assertTrue "${LINENO}: Failed the metadata related to ${NAME_1}" '[[ -f $dot_configs_dir/metadata/${NAME_1} ]]'
 
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $NO_FORCE $NAME_2)
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  save_config_file "$NO_FORCE" "$NAME_2" > /dev/null
+  assertTrue "${LINENO}: Failed to find ${NAME_2}" '[[ -f ${dot_configs_dir}/configs/${NAME_2} ]]'
+  assertTrue "${LINENO}: Failed the metadata related to ${NAME_2}" '[[ -f ${dot_configs_dir}/metadata/${NAME_2} ]]'
 
-  msg="Failed to find $NAME_2"
-  assertTrue "$LINENO: $msg" '[[ -f $configs_path/configs/$NAME_2 ]]'
-  msg="Failed the metadata related to $NAME_2"
-  assertTrue "$LINENO: $msg" '[[ -f $configs_path/metadata/$NAME_2 ]]'
-
-  tmp=$(cat "$configs_path/configs/$NAME_2")
-  msg="Content in the file does not match"
-  assertTrue "$LINENO: $msg" '[[ $tmp = $CONTENT ]]'
+  output=$(cat "${dot_configs_dir}/configs/${NAME_2}")
+  assert_equals_helper 'Content in the file does not match' "$LINENO" "$CONTENT" "$output"
 }
 
 function test_save_config_file_check_description()
 {
-  local current_path="$PWD"
-  local ret=0
-  local msg
-  local tmp
+  local output
 
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
+  output=$(cat "${dot_configs_dir}/metadata/${NAME_1}")
+  assert_equals_helper "The description content for ${NAME_1} does not match" "$LINENO" "$DESCRIPTION_1" "$output"
 
-  tmp=$(cat "$configs_path/metadata/$NAME_1")
-  msg="The description content for $NAME_1 does not match"
-  assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_1 ]]'
-
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-  tmp=$(cat "$configs_path/metadata/$NAME_2")
-  msg="The description content for $NAME_2 does not match"
-  assertTrue "$LINENO: $msg" '[[ $tmp = $DESCRIPTION_2 ]]'
+  save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
+  output=$(cat "${dot_configs_dir}/metadata/${NAME_2}")
+  assert_equals_helper "The description content for ${NAME_2} does not match" "$LINENO" "$DESCRIPTION_2" "$output"
 }
 
 function test_save_config_file_check_force()
 {
-  local current_path="$PWD"
-  local ret=0
+  local output
+  local expected
 
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
-  ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-  assertTrue "$LINENO: We expected no changes" '[[ $ret =~ Warning ]]'
+  save_config_file "$YES_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
+  output=$(save_config_file "$YES_FORCE" "$NAME_2" "$DESCRIPTION_2")
+  expected="Warning: ${NAME_2}: there's nothing new in this file"$'\n'
+  expected+="Saved ${NAME_2}"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
 function test_list_config_check_when_there_is_no_config()
 {
-  local current_path="$PWD"
-  local ret=0
+  local output
 
-  # There's no configs yet, initialize it
-  ret=$(list_configs)
-  assertTrue "$LINENO: We expected no changes" '[[ $ret =~ $LS_NO_FILES ]]'
+  output=$(list_configs)
+  assert_equals_helper 'Wrong output' "$LINENO" 'There is no tracked .config file' "$output"
 }
 
 function test_list_config_normal_output()
 {
-  local current_path="$PWD"
-  local ret=0
+  local output
   local msg
 
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $YES_FORCE $NAME_1 "$DESCRIPTION_1")
-  ret=$(save_config_file $YES_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  save_config_file "$YES_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
+  save_config_file "$YES_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
 
-  # There's no configs yet, initialize it
-  ret=$(list_configs)
-  msg="We expected 'Name' in the output, but we got $ret"
-  assertTrue "$LINENO: $msg" '[[ $ret =~ Name ]]'
-
-  msg="We expected 'Description' in the output, but we got $ret"
-  assertTrue "$LINENO: $msg" '[[ $ret =~ Description ]]'
-
-  msg="We expected $NAME_1 in the output, but we got $ret"
-  assertTrue "$LINENO: $msg" '[[ $ret =~ $NAME_1 ]]'
-
-  msg="We expected $DESCRIPTION_1 in the output, but we got $ret"
-  assertTrue "$LINENO: $msg" '[[ $ret =~ $DESCRIPTION_1 ]]'
-
-  msg="We expected $NAME_2 in the output, but we got $ret"
-  assertTrue "$LINENO: $msg" '[[ $ret =~ $NAME_2 ]]'
-
-  msg="We expected $DESCRIPTION_2 in the output, but we got $ret"
-  assertTrue "$LINENO:$msg" '[[ $ret =~ $DESCRIPTION_2 ]]'
+  output=$(list_configs)
+  assertTrue "${LINENO}: We expected 'Name' in the output, but we got ${output}" '[[ ${output} =~ Name ]]'
+  assertTrue "${LINENO}: We expected 'Description' in the output, but we got ${output}" '[[ ${output} =~ Description ]]'
+  assertTrue "${LINENO}: We expected ${NAME_1} in the output, but we got ${output}" '[[ ${output} =~ ${NAME_1} ]]'
+  assertTrue "${LINENO}: We expected ${DESCRIPTION_1} in the output, but we got ${output}" '[[ ${output} =~ ${DESCRIPTION_1} ]]'
+  assertTrue "${LINENO}: We expected ${NAME_2} in the output, but we got ${output}" '[[ ${output} =~ ${NAME_2} ]]'
+  assertTrue "${LINENO}: We expected ${DESCRIPTION_2} in the output, but we got ${output}" '[[ ${output} =~ ${DESCRIPTION_2} ]]'
 }
 
 function test_kernel_config_manager_main_get_config_invalid_option()
 {
-  local msg_prefix=" --get"
+  local output
 
-  ret=$(kernel_config_manager_main --get 2>&1 > /dev/null)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
+  output=$(kernel_config_manager_main '--get' > /dev/null)
+  assert_equals_helper ' --get' "$LINENO" 22 "$?"
 
-  ret=$(kernel_config_manager_main --get something_wrong)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
+  output=$(kernel_config_manager_main '--get' 'something_wrong')
+  assert_equals_helper ' --get' "$LINENO" 'No such file or directory: something_wrong' "$output"
 }
 
 function test_get_config()
 {
-  local current_path="$PWD"
-  local ret=0
-  local msg="This operation will override the current .config file"
-  local replace_msg="Current config file updated based on $NAME_1"
+  local output
 
   declare -a expected_output=(
-    "$msg"
-    "$replace_msg"
+    'This operation will override the current .config file'
+    "Current config file updated based on ${NAME_1}"
   )
 
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
+  save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
 
   # Case 1: We already have a local config, pop up with replace question
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  output=$(printf '%s\n' 'y' | get_config "$NAME_1")
-  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
+  output=$(get_config "$NAME_1" <<< 'y')
+  compare_command_sequence 'Wrong output' "$LINENO" 'expected_output' "$output"
 
   # Case 2: There's no local .config file
-  rm -f .config
-  output=$(get_config "$NAME_1")
-  ret=$(cat .config)
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-  assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
+  if is_safe_path_to_remove '.config'; then
+    rm '.config'
+  fi
+  get_config "$NAME_1" > /dev/null
+  output=$(cat .config)
+  assert_equals_helper "We expected ${CONTENT}, but we got ${output}" "$LINENO" "$CONTENT" "$output"
 }
 
 function test_get_config_with_force()
 {
-  local current_path="$PWD"
-  local ret=0
+  local output
 
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
+  save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
 
   # Case 1: There's no local .config file
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  rm -f .config
-  get_config "$NAME_1" 1 > /dev/null 2>&1
-  ret=$(cat .config)
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-  assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
+  if is_safe_path_to_remove '.config'; then
+    rm '.config'
+  fi
+  get_config "$NAME_1" 1 > /dev/null
+  output=$(cat .config)
+  assert_equals_helper "We expected ${CONTENT}, but we got ${output}" "$LINENO" "$CONTENT" "$output"
 
   # Case 2: There's a .config file
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-  get_config "$NAME_2" 1 > /dev/null 2>&1
-  ret=$(cat .config)
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
-
-  assertTrue "$LINENO: We expected $CONTENT, but we got $ret" '[[ $ret =~ $CONTENT ]]'
+  get_config "$NAME_2" 1 > /dev/null
+  output=$(cat .config)
+  assert_equals_helper "We expected ${CONTENT}, but we got ${output}" "$LINENO" "$CONTENT" "$output"
 }
 
 function test_kernel_config_manager_main_remove_that_should_fail()
 {
-  local msg_prefix=" -r"
+  local output
 
-  ret=$(kernel_config_manager_main -r 2>&1 > /dev/null)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$?" 22
+  output=$(kernel_config_manager_main '--remove' 2>&1 > /dev/null)
+  assert_equals_helper ' --remove' "$LINENO" 22 "$?"
 
-  ret=$(kernel_config_manager_main -r something_wrong)
-  assert_equals_helper "$msg_prefix" "$LINENO" "$COMMAND_NO_SUCH_FILE: something_wrong" "$ret"
+  output=$(kernel_config_manager_main '--remove' something_wrong)
+  assert_equals_helper ' --remove' "$LINENO" 'No such file or directory: something_wrong' "$output"
 }
 
 function test_remove_config()
 {
-  local current_path="$PWD"
-  local ret=0
+  local output
 
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
+  save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
+  save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
 
-  ret=$(save_config_file $NO_FORCE $NAME_1 "$DESCRIPTION_1")
-  ret=$(save_config_file $NO_FORCE $NAME_2 "$DESCRIPTION_2")
-  ret=$(find configs/configs -mindepth 1 -type f | wc -l)
   # Case 1: We should have two files
-  assertTrue "We expected , 2 files but got $ret" '[[ $ret = "2" ]]'
+  output=$(find 'configs/configs' -mindepth 1 -type f | wc -l)
+  assert_equals_helper "We expected 2 files but got ${output}" "$LINENO" 2 "$output"
 
   # Case 2: Remove one config file
   remove_config "$NAME_1" 1 > /dev/null 2>&1
-  ret=$(find configs/configs -mindepth 1 -type f | wc -l)
-  assertTrue "$LINENO: We expected , 1 files but got $ret" '[[ $ret = "1" ]]'
+  output=$(find configs/configs -mindepth 1 -type f | wc -l)
+  assert_equals_helper "We expected 1 file but got ${output}" "$LINENO" 1 "$output"
 
   # Case 2: Remove all config files
   remove_config "$NAME_2" 1 > /dev/null 2>&1
-  assertTrue "$LINENO: We expected no file related to config" '[[ ! -f configs/configs ]]'
-
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  assertTrue "${LINENO}: We expected no file related to config" '[[ ! -f "configs/configs" ]]'
 }
 
 function test_cleanup()
@@ -440,17 +279,11 @@ function test_cleanup()
 
 function test_get_config_from_proc()
 {
-  local -r current_path="$PWD"
   local output
   declare -la expected_cmd=()
 
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
   get_config_from_proc 'TEST_MODE' '' 1
-  assert_equals_helper 'proc/config.gz is not supported for VM' "$LINENO" "$?" 95
+  assert_equals_helper 'proc/config.gz is not supported for VM' "$LINENO" 95 "$?"
 
   # 2) Local
   # Mocking non-existent proc
@@ -463,18 +296,18 @@ function test_get_config_from_proc()
   )
 
   output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
 
   # Creating a fake config
-  touch "proc/config.gz"
+  touch 'proc/config.gz'
 
   expected_cmd=()
-  declare -a expected_cmd=(
+  expected_cmd=(
     'zcat /proc/config.gz > .config'
   )
 
   output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
 
   # 3) Remote
   remote_parameters['REMOTE_IP']='127.0.0.1'
@@ -489,94 +322,69 @@ function test_get_config_from_proc()
   )
 
   output=$(get_config_from_proc 'TEST_MODE' '.config' 3)
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+  compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
 
   # Removing fake proc
-  rm -rf 'proc'
-
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  if is_safe_path_to_remove 'proc'; then
+    rm -rf 'proc'
+  fi
 }
 
 function test_get_config_from_boot()
 {
-  local -r current_path="$PWD"
-  local output
-
+  # shellcheck disable=SC2317
   function uname()
   {
     printf '%s\n' '5.5.0-rc2-VKMS+'
   }
 
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
-
   get_config_from_boot 'TEST_MODE' '' 1
-  assert_equals_helper 'We do not support VMs yet' "$LINENO" "$?" 95
+  assert_equals_helper 'We do not support VMs yet' "$LINENO" 95 "$?"
 
   # Preparing
   export root="./"
 
   # LOCAL
   get_config_from_boot 'SILENT' '.config' 2
-  assert_equals_helper 'We do not have a config file' "$LINENO" "$?" 95
+  assert_equals_helper 'We do not have a config file' "$LINENO" 95 "$?"
 
   mk_fake_boot
   get_config_from_boot 'SILENT' '.config' 2
-  assert_equals_helper 'We did not copy the target file' "$LINENO" "$?" 0
+  assert_equals_helper 'We did not copy the target file' "$LINENO" 0 "$?"
 
-  # REMOTE: We need integration test to cover remote in this case
-
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  # REMOTE
+  # TODO: We need integration test to cover remote in this case
 }
 
 function test_get_config_from_defconfig()
 {
-  local -r current_path="$PWD"
   local output
   local single_cmd
 
   get_config_from_defconfig 'TEST_MODE' '.config' > /dev/null
-  assert_equals_helper 'We should fail if we are not in a kernel dir' "$LINENO" "$?" 125
-
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
+  assert_equals_helper 'We should fail if we are not in a kernel dir' "$LINENO" 125 "$?"
 
   mk_fake_kernel_root "$PWD"
   # Case with different config
   single_cmd='make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-'
   single_cmd+=" && mv $PWD/.config lala && mv $PWD/cache/config/.config $PWD/.config"
   output=$(get_config_from_defconfig 'TEST_MODE' 'lala')
-  assert_equals_helper 'Config file backup' "$LINENO" "$output" "$single_cmd"
+  assert_equals_helper 'Config file backup' "$LINENO" "$single_cmd" "$output"
 
   # Case with cross-compile
   single_cmd='make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-'
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
-  assert_equals_helper 'Cross compilation failed' "$LINENO" "$output" "$single_cmd"
+  assert_equals_helper 'Cross compilation failed' "$LINENO" "$single_cmd" "$output"
 
   build_config[arch]=''
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
   single_cmd='make defconfig CROSS_COMPILE=aarch64-linux-gnu-'
-  assert_equals_helper 'No arch' "$LINENO" "$output" "$single_cmd"
+  assert_equals_helper 'No arch' "$LINENO" "$single_cmd" "$output"
 
   build_config[cross_compile]=''
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
   single_cmd='make defconfig'
-  assert_equals_helper 'No arch' "$LINENO" "$output" "$single_cmd"
-
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  assert_equals_helper 'No arch' "$LINENO" "$single_cmd" "$output"
 }
 
 function test_fetch_config()
@@ -588,11 +396,12 @@ function test_fetch_config()
 
   declare -a expected_output
 
-  export root="$SHUNIT_TMPDIR/kernel/"
+  export root="${SHUNIT_TMPDIR}/kernel/"
 
   mkdir -p "$root"
   mkdir -p "$KW_CACHE_DIR"
 
+  # shellcheck disable=SC2317
   function uname()
   {
     printf '%s\n' 'x86'
@@ -605,8 +414,8 @@ function test_fetch_config()
 
   # Check error message when run optimize outside kernel structure
   output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' 1)
-  assert_equals_helper 'No fake kernel should be here' "$LINENO" "$output" \
-    'This command should be run in a kernel tree.'
+  assert_equals_helper 'No fake kernel should be here' "$LINENO" \
+    'This command should be run in a kernel tree.' "$output"
 
   # Retrieve config using local
   mk_fake_kernel_root "$PWD"
@@ -637,7 +446,7 @@ function test_fetch_config()
 
   # Say no to overwriting the file
   output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
-  assert_equals_helper 'The operation should have been aborted' "$LINENO" "$output" 'Operation aborted'
+  assert_equals_helper 'The operation should have been aborted' "$LINENO" 'Operation aborted' "$output"
 
   # Say yes to overwriting the file
   output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
@@ -662,7 +471,7 @@ function test_fetch_config()
   mk_fake_kernel_root "$PWD"
 
   output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
-  assert_equals_helper 'The operation should have been aborted' "$LINENO" "$output" 'Operation aborted'
+  assert_equals_helper 'The operation should have been aborted' "$LINENO" 'Operation aborted' "$output"
 
   rm "$PWD/.config"
   mkdir "${root}proc"
@@ -692,6 +501,7 @@ function test_fetch_config()
   remote_parameters['REMOTE_IP']='localhost'
   remote_parameters['REMOTE_PORT']='1234'
   output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$REMOTE_TARGET")
+  # TODO: There is nothing being tested here
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -701,36 +511,18 @@ function test_fetch_config()
 
 function test_get_config_with_env()
 {
-  local current_path="$PWD"
-  local ret=0
   local output
-
-  declare -a expected_output=(
-    "$msg"
-    "$replace_msg"
-  )
-
-  # There's no configs yet, initialize it
-  cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
-    return
-  }
 
   # Create a fake env folder
   mkdir -p 'fake_env'
   options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${PWD}/fake_env"
 
   # Create a fake config file
-  mkdir -p "${configs_path}/configs"
-  touch "${configs_path}/configs/FAKE_CONFIG"
+  mkdir -p "${dot_configs_dir}/configs"
+  touch "${dot_configs_dir}/configs/FAKE_CONFIG"
 
-  output=$(printf '%s\n' 'y' | get_config 'FAKE_CONFIG')
-
-  assertTrue "($LINENO): config file was not added to the env" "[[ -f ./fake_env/.config ]]"
-  cd "$current_path" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
-    return
-  }
+  output=$(get_config 'FAKE_CONFIG' <<< 'y')
+  assertTrue "${LINENO}: config file was not added to the env" '[[ -f "./fake_env/.config" ]]'
 }
 
 function test_kernel_config_manager_parser()
@@ -745,74 +537,74 @@ function test_kernel_config_manager_parser()
   ret="$?"
   parse_kernel_config_manager_options '-s'
   ret=$((ret + $?))
-  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+  assert_equals_helper 'Option without argument' "$LINENO" 44 "$ret"
 
   parse_kernel_config_manager_options '--remove'
   ret="$?"
   parse_kernel_config_manager_options '-r'
   ret=$((ret + $?))
-  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+  assert_equals_helper 'Option without argument' "$LINENO" 44 "$ret"
 
   parse_kernel_config_manager_options '--description'
   ret="$?"
   parse_kernel_config_manager_options '-d'
   ret=$((ret + $?))
-  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+  assert_equals_helper 'Option without argument' "$LINENO" 44 "$ret"
 
   parse_kernel_config_manager_options '--output'
   ret="$?"
   parse_kernel_config_manager_options '-o'
   ret=$((ret + $?))
-  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 44
+  assert_equals_helper 'Option without argument' "$LINENO" 44 "$ret"
 
   parse_kernel_config_manager_options '--get'
   ret="$?"
-  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
+  assert_equals_helper 'Option without argument' "$LINENO" 22 "$ret"
 
   parse_kernel_config_manager_options '--remote'
   ret="$?"
-  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
+  assert_equals_helper 'Option without argument' "$LINENO" 22 "$ret"
 
   parse_kernel_config_manager_options '--LalaXpto' 'lala xpto'
   ret="$?"
-  assert_equals_helper 'Invalid option' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid option' "$LINENO" 22 "$ret"
 
   parse_kernel_config_manager_options '--wrongOption' 'lala xpto'
   ret="$?"
-  assert_equals_helper 'Invalid option' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid option' "$LINENO" 22 "$ret"
 
   # valid options
   parse_kernel_config_manager_options '--force'
   expected=1
-  assert_equals_helper 'Set force flag' "$LINENO" "${options_values['FORCE']}" "$expected"
+  assert_equals_helper 'Set force flag' "$LINENO" "$expected" "${options_values['FORCE']}"
 
   parse_kernel_config_manager_options '-s' "$NAME_1" '-d' "$DESCRIPTION_1"
-  assert_equals_helper 'Set save options' "$LINENO" "${options_values['SAVE']}" "$NAME_1"
-  assert_equals_helper 'Set description options' "$LINENO" "${options_values['DESCRIPTION']}" "$DESCRIPTION_1"
+  assert_equals_helper 'Set save options' "$LINENO" "$NAME_1" "${options_values['SAVE']}"
+  assert_equals_helper 'Set description options' "$LINENO" "$DESCRIPTION_1" "${options_values['DESCRIPTION']}"
 
   parse_kernel_config_manager_options '--get' "$NAME_1"
-  assert_equals_helper 'Set get flag' "$LINENO" "${options_values['GET']}" "$NAME_1"
+  assert_equals_helper 'Set get flag' "$LINENO" "$NAME_1" "${options_values['GET']}"
 
   parse_kernel_config_manager_options '--remove' "$NAME_1"
-  assert_equals_helper 'Set remove flag' "$LINENO" "${options_values['REMOVE']}" "$NAME_1"
+  assert_equals_helper 'Set remove flag' "$LINENO" "$NAME_1" "${options_values['REMOVE']}"
 
   parse_kernel_config_manager_options '--list'
   expected=1
-  assert_equals_helper 'Set list flag' "$LINENO" "${options_values['LIST']}" "$expected"
+  assert_equals_helper 'Set list flag' "$LINENO" "$expected" "${options_values['LIST']}"
 
   parse_kernel_config_manager_options '--fetch'
   expected=1
-  assert_equals_helper 'Set fetch flag' "$LINENO" "${options_values['FETCH']}" "$expected"
+  assert_equals_helper 'Set fetch flag' "$LINENO" "$expected" "${options_values['FETCH']}"
 
   parse_kernel_config_manager_options '--output' "$NAME_1"
-  assert_equals_helper 'Set output flag' "$LINENO" "${options_values['OUTPUT']}" "$NAME_1"
+  assert_equals_helper 'Set output flag' "$LINENO" "$NAME_1" "${options_values['OUTPUT']}"
 
   parse_kernel_config_manager_options '--remote' "$NAME_1"
-  assert_equals_helper 'Set remote flag' "$LINENO" "${options_values['TARGET']}" 3
+  assert_equals_helper 'Set remote flag' "$LINENO" 3 "${options_values['TARGET']}"
 
   parse_kernel_config_manager_options '--optimize'
   expected=1
-  assert_equals_helper 'Set optimize flag' "$LINENO" "${options_values['OPTIMIZE']}" "$expected"
+  assert_equals_helper 'Set optimize flag' "$LINENO" "$expected" "${options_values['OPTIMIZE']}"
 }
 
 invoke_shunit
