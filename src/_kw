@@ -353,6 +353,7 @@ _kw_mail()
   fi
 
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-s --send -t --setup -i --interactive -l --list --verify --template)'{-s,--send}'[send a patch by email using git send-email]' \
     '(-t --setup -s --send -i --interactive -l --list --verify --template)'{-t,--setup}'[initialize and configure mail functionality]' \
     '(-i --interactive -s --send -t --setup -l --list --verify --template)'{-i,--interactive}'[interactively prompt the user for the values of the options]' \
