@@ -23,6 +23,10 @@ declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
 #shellcheck disable=SC2119
 function mail_main()
 {
+  local flag
+
+  flag=${flag:-'SILENT'}
+
   if [[ "$1" =~ -h|--help ]]; then
     mail_help "$1"
     exit 0
@@ -35,8 +39,10 @@ function mail_main()
     return 22 # EINVAL
   fi
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   if [[ -n "${options_values['SEND']}" ]]; then
-    mail_send
+    mail_send "$flag"
     return 0
   fi
 
@@ -59,12 +65,12 @@ function mail_main()
   fi
 
   if [[ -n "${options_values['INTERACTIVE']}" ]]; then
-    interactive_setup
+    interactive_setup "$flag"
     exit
   fi
 
   if [[ "${options_values['SETUP']}" == 1 ]]; then
-    mail_setup
+    mail_setup "$flag"
     exit
   fi
 
@@ -912,7 +918,7 @@ function parse_mail_options()
   local patch_version=''
   local commit_count=''
   local short_options='s,t,f,v:,i,l,n,'
-  local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
+  local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,verbose,'
   long_options+='template::,interactive,no-interactive,list,private,rfc,'
   local pass_option_to_send_email
 
@@ -950,6 +956,7 @@ function parse_mail_options()
   options_values['RFC']=''
   options_values['COMMIT_RANGE']=''
   options_values['PRIVATE']=''
+  options_values['VERBOSE']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -1050,6 +1057,10 @@ function parse_mail_options()
         options_values['PATCH_VERSION']="$1$2"
         shift 2
         ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --)
         shift
         # if a reference is passed after the -- we need to account for it
@@ -1103,7 +1114,8 @@ function mail_help()
     '  mail (-i | --interactive) - Setup interactively' \
     '  mail (-l | --list) - List the configurable options' \
     '  mail --verify - Check if required configurations are set' \
-    '  mail --template[=<template>] [-n] - Set send-email configs based on <template>'
+    '  mail --template[=<template>] [-n] - Set send-email configs based on <template>' \
+    '  mail --verbose - Show a detailed output'
 }
 
 load_mail_config

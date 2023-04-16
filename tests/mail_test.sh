@@ -308,6 +308,9 @@ function test_mail_parser()
   parse_mail_options '--send'
   assert_equals_helper 'Set send flag' "$LINENO" "${options_values['SEND']}" 1
 
+  parse_mail_options '--verbose'
+  assert_equals_helper 'Set verbose option' "$LINENO" "${options_values['VERBOSE']}" 1
+
   parse_mail_options '--private'
   expected='--suppress-cc=all'
   assert_equals_helper 'Set private flag' "$LINENO" "${options_values['PRIVATE']}" "$expected"

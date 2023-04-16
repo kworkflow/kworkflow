@@ -12,6 +12,8 @@ SYNOPSIS
 | *kw mail* (-l | \--list)
 | *kw mail* \--verify [\--local | \--global]
 | *kw mail* \--template[=<template>] [-n | \--no-interactive] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
+| *kw mail* \--verbose
+
 
 DESCRIPTION
 ===========
@@ -115,6 +117,11 @@ OPTIONS
 
 -l, \--list:
   Lists the settings that mail uses.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.
 
 EXAMPLES
 ========
