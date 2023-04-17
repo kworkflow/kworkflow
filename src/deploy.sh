@@ -133,10 +133,16 @@ function deploy_main()
     say 'Available kernels:'
     start=$(date +%s)
     run_list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
+    ret="$?"
     end=$(date +%s)
-
     runtime=$((end - start))
-    statistics_manager 'list' "$start" "$runtime"
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'list' "$start" "$runtime"
+    else
+      statistics_manager 'list' "$start" "$runtime" 'failure'
+    fi
+
     exit "$?"
   fi
 
@@ -144,10 +150,16 @@ function deploy_main()
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
     run_kernel_uninstall "$target" "$reboot" "$uninstall" "$flag" "$uninstall_force"
+    ret="$?"
     end=$(date +%s)
-
     runtime=$((end - start))
-    statistics_manager 'uninstall' "$start" "$runtime"
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'uninstall' "$start" "$runtime"
+    else
+      statistics_manager 'uninstall' "$start" "$runtime" 'failure'
+    fi
+
     return "$?"
   fi
 
@@ -235,21 +247,27 @@ function deploy_main()
     # Update name: release + alias
     run_kernel_install "$return_tar_path" "$kernel_binary_image_name" "$flag"
     ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      end=$(date +%s)
-      runtime=$((runtime + (end - start)))
+    end=$(date +%s)
+    runtime=$((end - start))
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'deploy' "$start" "$runtime"
+    else
       statistics_manager 'deploy' "$start" "$runtime" 'failure'
       exit "$ret"
     fi
-    end=$(date +%s)
-    runtime=$((runtime + (end - start)))
-    statistics_manager 'deploy' "$start" "$runtime"
   else # Only module deploy
     start=$(date +%s)
     modules_install "$target" "$return_tar_path" "$flag"
+    ret="$?"
     end=$(date +%s)
     runtime=$((end - start))
-    statistics_manager 'modules_deploy' "$start" "$runtime"
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'modules_deploy' "$start" "$runtime"
+    else
+      statistics_manager 'modules_deploy' "$start" "$runtime" 'failure'
+    fi
   fi
 
   #shellcheck disable=SC2119
@@ -633,7 +651,7 @@ function run_list_installed_kernels()
       ;;
   esac
 
-  return 0
+  return "$?"
 }
 
 # Before we start the deploy, we need to collect some basic info to ensure the
