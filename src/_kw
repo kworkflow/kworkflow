@@ -257,6 +257,7 @@ _kw_e() { _kw_explore }
 _kw_explore()
 {
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-l --log -g --grep -a --all)'{-l,--log}'[search based on git log]' \
     '(-g --grep -l --log -a --all)'{-g,--grep}'[search for string matches using GNU grep. Also searches in .git]' \
     '(-a --all -l --log -g --grep)'{-a,--all}'[search for all matches in files under or not git management]' \
