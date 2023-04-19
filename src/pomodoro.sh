@@ -1,14 +1,11 @@
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/kw_db.sh"
 include "$KW_LIB_DIR/kw_string.sh"
 include "$KW_LIB_DIR/kw_time_and_date.sh"
 
 # Hash containing command line options
 declare -gA options_values
-POMODORO_LOG_FILE="${KW_DATA_DIR}/pomodoro_current.log"
-
-declare -g KW_POMODORO_DATA="${KW_DATA_DIR}/pomodoro"
-declare -g KW_POMODORO_TAG_LIST="${KW_POMODORO_DATA}/tags"
 
 MAX_TAG_LENGTH=32
 MAX_DESCRIPTION_LENGTH=512
@@ -44,7 +41,6 @@ function pomodoro_main()
   fi
 
   if [[ -n "${options_values['TIMER']}" ]]; then
-    touch "${POMODORO_LOG_FILE}"
     timer_thread &
   fi
 }
@@ -53,85 +49,45 @@ function pomodoro_main()
 # tells the user the current status of his work section.
 function show_active_pomodoro_timebox()
 {
-  local timestamp
-  local timebox
-  local diff_time
-  local timestamp_to_date
   local current_timestamp
+  local start_date
+  local start_time
+  local duration
+  local timestamp
+  local elapsed_time
+  local remaining_time
 
   current_timestamp=$(get_timestamp_sec)
 
-  if [[ -f "${POMODORO_LOG_FILE}" ]]; then
-    while read -r line; do
-      # Get data from file
-      timestamp=$(printf '%s\n' "$line" | cut -d',' -f1)
-      timebox=$(printf '%s\n' "$line" | cut -d',' -f2)
+  while IFS=$'\n' read -r raw_active_timebox && [[ -n "${raw_active_timebox}" ]]; do
+    start_date=$(printf '%s' "${raw_active_timebox}" | cut -d '|' -f1)
+    start_time=$(printf '%s' "${raw_active_timebox}" | cut -d '|' -f2)
+    duration=$(printf '%s' "${raw_active_timebox}" | cut -d '|' -f3)
 
-      # Calculate and process output
-      timestamp_to_date=$(date_to_format "@$timestamp" '+%H:%M:%S[%Y/%m/%d]')
-      diff_time=$((current_timestamp - timestamp))
+    start_date=$(printf '%s' "${start_date}" | sed 's/-/\//g')
+    timestamp=$(date --date="${start_date} ${start_time}" '+%s')
+    elapsed_time=$((current_timestamp - timestamp))
+    remaining_time=$((duration - elapsed_time))
 
-      timebox=$(calculate_missing_time "$timebox" "${diff_time}")
-
-      say "Started at: $timestamp_to_date"
-      say '- Elapsed time:' "$(sec_to_format "${diff_time}")"
-      say '- You still have' "$(sec_to_format "$timebox")"
-    done < "${POMODORO_LOG_FILE}"
-  fi
-}
-
-# Based on the timebox requested by the user and the elapsed time, this
-# function calculates how much time the user still left before the end of its
-# timebox.
-#
-# @timebox: User timebox requested (it must end with h, m, or s)
-# @elapsed_time: Elapsed time since the beginning of the Pomodoro section
-#
-# Return:
-# Return how many seconds the user still has before his section ends. If it
-# already over, it will return 0.
-function calculate_missing_time()
-{
-  local timebox="$1"
-  local elapsed_time="$2"
-  local time_type
-  local time_value
-
-  time_type=$(last_char "$timebox")
-  if [[ ! "$time_type" =~ h|m|s ]]; then
-    time_type='s'
-    timebox="$timebox$time_type"
-  fi
-
-  time_value=$(chop "$timebox")
-
-  case "$time_type" in
-    h)
-      time_value=$((3600 * time_value))
-      ;;
-    m)
-      time_value=$((60 * time_value))
-      ;;
-  esac
-
-  missing_time=$((time_value - elapsed_time))
-  if [[ "$missing_time" -lt 0 ]]; then
-    missing_time=0
-  fi
-
-  printf '%s\n' "$missing_time"
+    say "Started at: ${start_time} [${start_date}]"
+    say '- Elapsed time:' "$(sec_to_format "${elapsed_time}")"
+    say '- You still have' "$(sec_to_format "${remaining_time}")"
+  done <<< "$(select_from 'active_timebox' '"date","time","duration"')"
 }
 
 # Show registered tags with number identification.
 function show_tags()
 {
-  if [[ ! -s "${KW_POMODORO_TAG_LIST}" ]]; then
+  local tags
+
+  tags=$(select_from 'tag WHERE "active" IS 1' '"id" AS "ID", "name" AS "Name"' '.mode column' 'id')
+  if [[ -z "$tags" ]]; then
     say 'You did not register any tag yet'
-    exit 0
+    return 0
   fi
 
-  # Show line numbers
-  nl -n rn -s . "$KW_POMODORO_TAG_LIST"
+  say 'TAGS:'
+  printf '%s\n' "$tags"
 }
 
 # Register a new tag if it is not yet defined.
@@ -139,56 +95,30 @@ function show_tags()
 # @tag: tag name
 function register_tag()
 {
-  local tag
-
-  tag="$1"
-
-  setup_pomodoro > /dev/null
+  local tag="$1"
 
   if ! is_tag_already_registered "$tag"; then
-    printf '%s\n' "$tag" >> "${KW_POMODORO_TAG_LIST}"
+    insert_into 'tag' "('name')" "('${tag}')"
   fi
-}
-
-# Create the required folders and files to record Pomodoro data. To define
-# where to save data, we use the current date as a reference. In other words,
-# this function creates folders following YYYY/MM pattern and a file with the
-# present day.
-#
-# Return:
-# For simplicity's sake, it returns the path for saving today's data.
-function setup_pomodoro()
-{
-  local year_month_dir
-  local today
-
-  year_month_dir=$(get_today_info '+%Y/%m')
-  today=$(get_today_info '+%d')
-
-  mkdir -p "${KW_POMODORO_DATA}/${year_month_dir}"
-  touch "${KW_POMODORO_DATA}/${year_month_dir}/${today}"
-  touch "${KW_POMODORO_TAG_LIST}"
-
-  printf '%s\n' "${KW_POMODORO_DATA}/${year_month_dir}/${today}"
 }
 
 # Search in a file for a specific tag name. If it finds, it returns 0;
 # otherwise, return a positive number.
 #
-# @tag: Tag name
+# @tag_name: Tag name
 #
 # Return:
 # Return 0 if it finds a match, or a value greater than 0 if it does not find
 # anything.
 function is_tag_already_registered()
 {
-  local tag
+  local tag_name="$1"
+  local is_tag_registered=''
 
-  tag="$*"
+  is_tag_registered=$(select_from "tag WHERE name IS '${tag_name}'")
 
-  tag="\<$tag\>" # \<STRING\> forces the exact match
-  grep -q "$tag" "$KW_POMODORO_TAG_LIST"
-  return "$?"
+  [[ -n "${is_tag_registered}" ]] && return 0
+  return 1
 }
 
 # This is the thread function that will be used to notify when the Pomodoro
@@ -204,8 +134,6 @@ function timer_thread()
 
   flag=${flag:-'SILENT'}
 
-  register_timebox "$timestamp"
-
   if [[ -n "${options_values['TAG']}" ]]; then
     register_data_for_report
   fi
@@ -213,49 +141,32 @@ function timer_thread()
   cmd_manager "$flag" "sleep ${options_values['TIMER']}"
   alert_completion "Pomodoro: Your ${options_values['TIMER']} timebox ended" '--alert=vs'
 
-  remove_completed_timebox "$timestamp"
   exit 0
-}
-
-# kw pomodoro registers timebox values in the log file used to display the
-# Pomodoro section's current status. This function appends a new line to this
-# file based on the timestamp passed to it.
-#
-# @timestamp: Timestamp to be saved in the log file
-function register_timebox()
-{
-  local timestamp="$1"
-  printf '%s\n' "$timestamp,${options_values['TIMER']}" >> "${POMODORO_LOG_FILE}"
 }
 
 # This function registers the tag name, the timer value, the starting time and
 # the description (if there is one) in the local database.
 function register_data_for_report()
 {
-  local save_to
-  local time_now
-  local data_line
+  local start_date
+  local start_time
+  local duration
+  local description
+  local columns='("tag_name","date","time","duration","description")'
+  local -a values=()
+  local formatted_data
 
-  save_to=$(setup_pomodoro)
-  time_now=$(date +%T)
+  # Organize data to be inserted
+  start_date=$(date +%Y-%m-%d)
+  start_time=$(date +%H:%M:%S)
+  duration=$(timebox_to_sec "${options_values['TIMER']}")
+  description="${options_values['DESCRIPTION']}"
+  [[ -z "$description" ]] && description='NULL'
+  values=("${options_values['TAG']}" "${start_date}" "${start_time}" "$duration" "$description")
 
-  data_line="${options_values['TAG']},${options_values['TIMER']},${time_now}"
-
-  if [[ -n "${options_values['DESCRIPTION']}" ]]; then
-    data_line="${data_line},${options_values['DESCRIPTION']}"
-  fi
-
-  printf '%s\n' "${data_line}" >> "${save_to}"
-}
-
-# When a timebox finishes, this function removes the section-time from the log
-# file by using the timestamp as a reference.
-#
-# @timestamp: Timestamp to be removed from the file
-function remove_completed_timebox()
-{
-  local timestamp="$1"
-  sed -i "/$timestamp/d" "$POMODORO_LOG_FILE"
+  # Format the data and insert it into the database
+  formatted_data="$(format_values_db 5 "${values[@]}")"
+  insert_into '"pomodoro_report"' "$columns" "${formatted_data}"
 }
 
 # This function checks if the time passed as argument is a valid one, i.e, is
@@ -314,7 +225,7 @@ function is_valid_argument()
 function get_tag_name()
 {
   local value="$1"
-  local total_lines
+  local tag
 
   # Basic check
   [[ -z "$value" ]] && return 22 # EINVAL
@@ -324,15 +235,13 @@ function get_tag_name()
     return 0
   fi
 
-  total_lines=$(wc -l "$KW_POMODORO_TAG_LIST" | cut -d' ' -f1)
-  if [[ "$value" -le 0 || "$value" -gt "$total_lines" ]]; then
+  tag=$(select_from "tag WHERE id IS ${value}" 'name')
+  if [[ -z "$tag" ]]; then
     options_values['ERROR']="There is no tag with ID: ${value}"
     return 22 # EINVAL
   fi
 
-  result=$(sed "$value"'q;d' "$KW_POMODORO_TAG_LIST")
-  [[ -z "$result" ]] && return 22 # EINVAL
-  printf '%s\n' "$result"
+  printf '%s\n' "$tag"
   return 0
 }
 
