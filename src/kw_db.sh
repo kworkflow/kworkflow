@@ -182,6 +182,7 @@ function remove_from()
 # @table:     Table to select info from
 # @columns:   Columns of the table to get
 # @pre_cmd:   Pre command to execute
+# @order_by:  List of attributes to use for ordering
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
 #
@@ -193,9 +194,11 @@ function select_from()
   local table="$1"
   local columns="${2:-"*"}"
   local pre_cmd="$3"
-  local db="${4:-"$DB_NAME"}"
-  local db_folder="${5:-"$KW_DATA_DIR"}"
+  local order_by="$4"
+  local db="${5:-"$DB_NAME"}"
+  local db_folder="${6:-"$KW_DATA_DIR"}"
   local db_path
+  local query
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -209,7 +212,11 @@ function select_from()
     return 22 # EINVAL
   fi
 
-  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" -cmd "$pre_cmd" "$db_path" -batch "SELECT $columns FROM $table;"
+  query="SELECT $columns FROM $table ;"
+  if [[ -n "${order_by}" ]]; then
+    query="SELECT $columns FROM $table ORDER BY ${order_by} ;"
+  fi
+  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" -cmd "$pre_cmd" "$db_path" -batch "$query"
 }
 
 # This function takes arguments and assembles them into the correct format to

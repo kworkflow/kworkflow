@@ -1,155 +1,116 @@
 #!/bin/bash
 
 include './src/pomodoro.sh'
+include './src/kw_db.sh'
 include './tests/utils.sh'
+
+function oneTimeSetUp()
+{
+  declare -g DB_FILES
+  DB_FILES="$(realpath './tests/samples/db_files')"
+  export KW_DATA_DIR="${SHUNIT_TMPDIR}"
+  KW_DB_DIR="$(realpath './database')"
+}
 
 function setUp()
 {
-  mkdir -p "$TMP_TEST_DIR"
-  export POMODORO_LOG_FILE="$SHUNIT_TMPDIR/pomodoro_current.log"
-  export KW_POMODORO_DATA="$SHUNIT_TMPDIR/pomodoro"
-  export KW_POMODORO_TAG_LIST="$KW_POMODORO_DATA/tags"
-
-  touch "$POMODORO_LOG_FILE"
-
   declare -gA options_values
+
+  setupDatabase
 }
 
 function tearDown()
 {
-  rm -rf "$SHUNIT_TMPDIR"
-  mkdir -p "$SHUNIT_TMPDIR"
+  teardownDatabase
 }
 
-function test_register_timebox()
+function setupDatabase()
 {
-  local timebox='3332232557'
-  local output
-  local expected_result
-
-  options_values['TIMER']='2m'
-  register_timebox "$timebox"
-  output=$(cat "$POMODORO_LOG_FILE")
-  expected_result="$timebox,${options_values['TIMER']}"
-  assert_equals_helper 'Regitered file did not match' "$LINENO" "$expected_result" "$output"
-
-  declare -a expected_content=(
-    "$expected_result"
-    '4332232557,30m'
-    '433222557,1h'
-  )
-
-  options_values['TIMER']='30m'
-  register_timebox '4332232557'
-
-  options_values['TIMER']='1h'
-  register_timebox '433222557'
-
-  output=$(cat "$POMODORO_LOG_FILE")
-  compare_command_sequence '' "$LINENO" 'expected_content' "$output"
+  execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
 }
 
-function test_remove_completed_timebox()
+function teardownDatabase()
 {
-  # Register a bunch of data
-  options_values['TIMER']='30m'
-  register_timebox '4332232557'
-
-  options_values['TIMER']='1h'
-  register_timebox '433222557'
-
-  options_values['TIMER']='43s'
-  register_timebox '933222557'
-
-  declare -a expected_content=(
-    '4332232557,30m'
-    '933222557,43s'
-  )
-
-  remove_completed_timebox '433222557'
-  output=$(cat "$POMODORO_LOG_FILE")
-  compare_command_sequence '' "$LINENO" 'expected_content' "$output"
-
-  remove_completed_timebox '933222557'
-  output=$(cat "$POMODORO_LOG_FILE")
-  assert_equals_helper 'Line was not removed' "$LINENO" '4332232557,30m' "$output"
-
-  remove_completed_timebox '4332232557'
-  output=$(cat "$POMODORO_LOG_FILE")
-  assert_equals_helper 'File should be empty' "$LINENO" '' "$output"
-
-  # Invalid timestamp
-  remove_completed_timebox '99032432'
-  output=$(cat "$POMODORO_LOG_FILE")
-  assert_equals_helper 'Line was not removed' "$LINENO" '' "$output"
-}
-
-function test_calculate_missing_time()
-{
-  local output
-
-  output=$(calculate_missing_time '2m' 59)
-  assert_equals_helper 'Expected 61 seconds' "$LINENO" "$output" '61'
-
-  output=$(calculate_missing_time '2m' 10)
-  assert_equals_helper 'Expected 110 seconds' "$LINENO" "$output" '110'
-
-  output=$(calculate_missing_time '337s' 40)
-  assert_equals_helper 'Expected 297 seconds' "$LINENO" "$output" '297'
-
-  # No time type, we suppose seconds
-  output=$(calculate_missing_time '337' 40)
-  assert_equals_helper 'Expected 297 seconds' "$LINENO" "$output" '297'
-
-  output=$(calculate_missing_time '2h' 0)
-  assert_equals_helper 'Expected 7200 seconds' "$LINENO" "$output" '7200'
-
-  output=$(calculate_missing_time '10m' 0)
-  assert_equals_helper 'Expected 600 seconds' "$LINENO" "$output" '600'
-
-  # Negative value
-  output=$(calculate_missing_time '10s' 20)
-  assert_equals_helper 'Expected 0 seconds' "$LINENO" "$output" '0'
-}
-
-function get_timestamp_sec_mock()
-{
-  printf '%s\n' '3332232700'
+  is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
+  if [[ "$?" == 0 ]]; then
+    rm "${KW_DATA_DIR}/kw.db"
+  fi
 }
 
 function test_show_active_pomodoro_timebox()
 {
-  local timestamp='3332232557'
-  local timestamp_to_date
-  local missing_time
-  local diff_time
+  local columns='("tag_name","date","time","duration")'
+  local values
+  local current_timestamp
+  local timestamp
+  local start_date
+  local start_time
+  local timezone
   local output
+  declare -a expected=()
 
-  shopt -s expand_aliases
-  alias get_timestamp_sec='get_timestamp_sec_mock'
+  # We need to manipulate timezones to assure that these tests are timezone independent
+  timezone=$(date '+%z')
+  timezone="${timezone::-2}"
+  # shellcheck disable=SC2076
+  if [[ "$timezone" =~ '+' ]]; then
+    timezone="-${timezone:1}"
+  else
+    timezone="+${timezone:1}"
+  fi
 
-  options_values['TIMER']='2m'
-  register_timebox "$timestamp"
+  # shellcheck disable=SC2317
+  function get_timestamp_sec()
+  {
+    # 2075/08/05 12:11:40 UTC
+    printf '%s\n' '3332232700'
+  }
+
+  # No active timebox
+  current_timestamp=$(date '+%s')
+  timestamp=$((current_timestamp - 3600))
+  timestamp=$(TZ="UTC${timezone}" date -d @"${timestamp}" '+%Y/%m/%d %H:%M:%S')
+  start_date=$(printf '%s' "${timestamp}" | sed 's/\//-/g' | cut -d ' ' -f1)
+  start_time=$(printf '%s' "${timestamp}" | cut -d ' ' -f2)
+  values="('fake_tag','${start_date}','${start_time}','3599')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO 'pomodoro_report' ${columns} VALUES ${values} ;"
   output=$(show_active_pomodoro_timebox)
+  expected=()
+  compare_command_sequence 'Should not have any active timebox' "$LINENO" 'expected' "$output"
 
-  timestamp_to_date=$(date_to_format "@$timestamp" '+%H:%M:%S[%Y/%m/%d]')
-  diff_time=$((3332232700 - timestamp))
-  elapsed_time=$(sec_to_format "$diff_time")
-  missing_time=$(calculate_missing_time "${options_values['TIMER']}" "$diff_time")
-  missing_time=$(sec_to_format "$missing_time")
-
-  declare -a expected_content=(
-    "Started at: $timestamp_to_date"
-    "- Elapsed time: $elapsed_time"
-    "- You still have $missing_time"
+  # One active timebox
+  # 2075/08/05 12:09:17 UTC
+  timestamp=3332232557
+  timestamp=$(TZ="UTC${timezone}" date -d @"${timestamp}" '+%Y/%m/%d %H:%M:%S')
+  start_date=$(printf '%s' "${timestamp}" | sed 's/\//-/g' | cut -d ' ' -f1)
+  start_time=$(printf '%s' "${timestamp}" | cut -d ' ' -f2)
+  values="('fake_tag','${start_date}','${start_time}','3600')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO 'pomodoro_report' ${columns} VALUES ${values} ;"
+  output=$(show_active_pomodoro_timebox)
+  start_date=$(printf '%s' "${timestamp}" | cut -d ' ' -f1)
+  expected=(
+    "Started at: ${start_time} [${start_date}]"
+    '- Elapsed time: 00:02:23'
+    '- You still have 00:57:37'
   )
+  compare_command_sequence 'Should have one active timebox' "$LINENO" 'expected' "$output"
 
+  # Multiple active timebox
+  # 2075/08/05 12:10:30 UTC
+  timestamp=3332232630
+  timestamp=$(TZ="UTC${timezone}" date -d @"${timestamp}" '+%Y/%m/%d %H:%M:%S')
+  start_date=$(printf '%s' "${timestamp}" | sed 's/\//-/g' | cut -d ' ' -f1)
+  start_time=$(printf '%s' "${timestamp}" | cut -d ' ' -f2)
+  values="('fake_tag','${start_date}','${start_time}','120')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO 'pomodoro_report' ${columns} VALUES ${values} ;"
   output=$(show_active_pomodoro_timebox)
-  compare_command_sequence '' "$LINENO" 'expected_content' "$output"
-
-  rm "$POMODORO_LOG_FILE"
-  output=$(show_active_pomodoro_timebox 2>&1)
-  assert_equals_helper 'We should have no output' "$LINENO" "$output" ''
+  start_date=$(printf '%s' "${timestamp}" | cut -d ' ' -f1)
+  expected+=(
+    "Started at: ${start_time} [${start_date}]"
+    '- Elapsed time: 00:01:10'
+    '- You still have 00:00:50'
+  )
+  compare_command_sequence 'Should have two active timeboxes' "$LINENO" 'expected' "$output"
 }
 
 function test_parse_pomodoro()
@@ -213,58 +174,45 @@ function test_parse_pomodoro()
   assert_equals_helper 'Wrong description' "$LINENO" "${options_values['DESCRIPTION']}" "$apostrophe"
 }
 
-function test_setup_pomodoro()
-{
-  local output
-  local year_month
-  local today
-
-  year_month=$(date '+%Y/%m')
-  today=$(date '+%d')
-
-  output=$(setup_pomodoro)
-  assertTrue 'Date file was not created' '[[ -f "$KW_POMODORO_DATA/$year_month/$today" ]]'
-}
-
 function test_register_data_for_report()
 {
+  local start_date
   local output
-  local year_month
-  local today
-  local description
-  local sample_str
+  declare -a output_array
 
-  year_month=$(date '+%Y/%m')
-  today=$(date '+%d')
-
-  options_values['TAG']='Test 12'
+  # Case 1: no description
+  options_values['TAG']='Testing 1,2,3'
   options_values['TIMER']='30m'
-  output=$(register_data_for_report)
+  options_values['DESCRIPTION']=''
+  start_date=$(date +%Y-%m-%d)
+  register_data_for_report
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM pomodoro_report WHERE id IS 1 ;")
+  # output_array is (<id> <tag_id> <tag_name> <start_date> <start_time> <duration> <description>)
+  IFS='|' read -ra output_array <<< "$output"
+  assert_equals_helper 'Tag name inserted is wrong' "$LINENO" "${options_values['TAG']}" "${output_array[2]}"
+  assert_equals_helper 'Start date inserted is wrong' "$LINENO" "${start_date}" "${output_array[3]}"
+  assert_equals_helper 'Duration  inserted is wrong' "$LINENO" 1800 "${output_array[5]}"
+  assert_equals_helper 'Description should be empty' "$LINENO" '' "${output_array[6]}"
 
-  assertTrue 'Date file was not created' '[[ -f "$KW_POMODORO_DATA/$year_month/$today" ]]'
-
-  data=$(cat "$KW_POMODORO_DATA/$year_month/$today")
-  tag=$(printf '%s\n' "$data" | cut -d',' -f1)
-  timer=$(printf '%s\n' "$data" | cut -d',' -f2)
-
-  assert_equals_helper 'Label did not match' "$LINENO" "$tag" "${options_values['TAG']}"
-  assert_equals_helper 'Timer did not match' "$LINENO" "$timer" "${options_values['TIMER']}"
-  rm "$KW_POMODORO_DATA/$year_month/$today"
-  sample_str='Simple description'
-  options_values['DESCRIPTION']="$sample_str"
-  output=$(register_data_for_report)
-  data=$(cat "$KW_POMODORO_DATA/$year_month/$today")
-  description=$(printf '%s\n' "$data" | cut -d',' -f4)
-
-  assert_equals_helper 'Label did not match' "$LINENO" "$sample_str" "${options_values['DESCRIPTION']}"
+  # Case 2: with description
+  options_values['TAG']='3,2,1 gnitseT'
+  options_values['TIMER']='12h'
+  options_values['DESCRIPTION']='Simple description'
+  start_date=$(date +%Y-%m-%d)
+  register_data_for_report
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM pomodoro_report WHERE id IS 2 ;")
+  # output_array is (<id> <tag_id> <tag_name> <start_date> <start_time> <duration> <description>)
+  IFS='|' read -ra output_array <<< "$output"
+  assert_equals_helper 'Tag name inserted is wrong' "$LINENO" "${options_values['TAG']}" "${output_array[2]}"
+  assert_equals_helper 'Start date inserted is wrong' "$LINENO" "${start_date}" "${output_array[3]}"
+  assert_equals_helper 'Duration inserted is wrong' "$LINENO" 43200 "${output_array[5]}"
+  assert_equals_helper 'Description inserted is wrong' "$LINENO" "${options_values['DESCRIPTION']}" "${output_array[6]}"
 }
 
 function test_register_tag()
 {
   local output
 
-  # We need basic setup for tags
-  setup_pomodoro > /dev/null
   declare -a expected_content=(
     'tag 1'
     'tag 2'
@@ -272,7 +220,7 @@ function test_register_tag()
 
   register_tag 'tag 1'
   register_tag 'tag 2'
-  output=$(cat "$KW_POMODORO_TAG_LIST")
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name FROM tag ;")
 
   compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 
@@ -287,17 +235,13 @@ function test_register_tag()
 
 function test_is_tag_already_registered()
 {
-  # We need basic setup for test this function
-  setup_pomodoro > /dev/null
-  touch "$KW_POMODORO_TAG_LIST"
-
   is_tag_already_registered 'Tag 0'
   assertNotEquals "$LINENO: We should not get a success" "$?" 0
 
   is_tag_already_registered ''
   assertNotEquals "$LINENO: We should not get a success" "$?" 0
 
-  printf '%s\n' 'Tag 0' >> "$KW_POMODORO_TAG_LIST"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO tag ('name') VALUES ('Tag 0') ;"
   is_tag_already_registered 'Tag 0'
   assertEquals "$LINENO: We expect to find Tag 0" "$?" 0
 }
@@ -306,8 +250,6 @@ function test_get_tag_name()
 {
   local output
   local expected
-
-  setup_pomodoro > /dev/null
 
   get_tag_name ''
   assert_equals_helper 'Empty string should be detected' "$LINENO" '22' "$?"
@@ -385,6 +327,54 @@ function test_is_valid_time()
 
   is_valid_time '999000999000s'
   assert_equals_helper 'Valid time should return 0' "$LINENO" 0 "$?"
+}
+
+function test_show_tags()
+{
+  local output
+  local expected
+  local values
+
+  output=$(show_tags)
+  expected='You did not register any tag yet'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # Testing both the right tag names and the order by ID
+  values="('DDDDDDD'), ('BBBBBBB'), ('CCCCCCC'), ('AAAAAAA')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO tag ('name') VALUES ${values} ;"
+  output=$(show_tags)
+  expected='TAGS:'$'\n'
+  expected+='ID  Name   '$'\n'
+  expected+='--  -------'$'\n'
+  expected+='1   DDDDDDD'$'\n'
+  expected+='2   BBBBBBB'$'\n'
+  expected+='3   CCCCCCC'$'\n'
+  expected+='4   AAAAAAA'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # Testing addition of tag
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO tag ('name') VALUES ('1111111') ;"
+  output=$(show_tags)
+  expected='TAGS:'$'\n'
+  expected+='ID  Name   '$'\n'
+  expected+='--  -------'$'\n'
+  expected+='1   DDDDDDD'$'\n'
+  expected+='2   BBBBBBB'$'\n'
+  expected+='3   CCCCCCC'$'\n'
+  expected+='4   AAAAAAA'$'\n'
+  expected+='5   1111111'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # Testing removal of tag (although not allowed it is valid to test)
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "DELETE FROM tag WHERE id=1 OR id=3 ;"
+  output=$(show_tags)
+  expected='TAGS:'$'\n'
+  expected+='ID  Name   '$'\n'
+  expected+='--  -------'$'\n'
+  expected+='2   BBBBBBB'$'\n'
+  expected+='4   AAAAAAA'$'\n'
+  expected+='5   1111111'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
 invoke_shunit
