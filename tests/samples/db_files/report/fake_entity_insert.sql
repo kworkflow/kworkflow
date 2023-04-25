@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS "fake_entity" (
+  "id" INTEGER NOT NULL UNIQUE,
+  "date" TEXT NOT NULL UNIQUE,
+  PRIMARY KEY("id")
+);
+
+INSERT INTO "fake_entity" ("date") VALUES
+('2023-01-01'),('2023-01-02'),('2023-02-01'),
+('1930-11-08'),('1930-11-12'),('1930-11-29'),
+('1945-04-07'),('1945-08-15'),('1945-12-03');

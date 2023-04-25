@@ -1,4 +1,5 @@
 include "${KW_LIB_DIR}/kw_string.sh"
+include "${KW_LIB_DIR}/kwio.sh"
 
 # Returns the value of time as an integer number of seconds since the Epoch.
 function get_timestamp_sec()
@@ -21,6 +22,39 @@ function sec_to_format()
   format=${format:-'+%H:%M:%S'}
 
   date -d@"$value" -u "$format"
+}
+
+# Convert seconds to arbitrarily long value in the format H:M:S. This means
+# that values greater than 86399 seconds (23:59:59 in format) won't loop
+# back around the '24-Hour Time Format'. For example, calling
+#   secs_to_arbitrarily_long_hours_mins_secs 86400
+# would return '24:00:00', not '00:00:00'.
+#
+# @value: Value in seconds to be converted to arbitrarily long value in H:M:S
+#
+# Return:
+# Return 0 and a string with the arbitrarily long value in H:M:S format
+# if @value is an integer. Return 22 (EINVAL) otherwise.
+function secs_to_arbitrarily_long_hours_mins_secs()
+{
+  local value="$1"
+  local hours
+  local minutes
+  local seconds
+
+  # If value is not an integer, we can't convert it
+  [[ ! "$value" =~ ^[0-9]+$ ]] && return 22 # EINVAL
+
+  hours=$((value / 3600))
+  minutes=$(((value / 60) % 60))
+  seconds=$((value % 60))
+
+  # Append leading zero if necessary
+  [[ "${#hours}" -lt 2 ]] && hours="0${hours}"
+  [[ "${#minutes}" -lt 2 ]] && minutes="0${minutes}"
+  [[ "${#seconds}" -lt 2 ]] && seconds="0${seconds}"
+
+  printf '%s:%s:%s' "$hours" "$minutes" "$seconds"
 }
 
 # Return present day.
@@ -55,6 +89,44 @@ function get_week_beginning_day()
   week_day_num=$(date -d "$date_param" '+%w' 2> /dev/null)
 
   date --date="${date_param} - ${week_day_num} day" "$format" 2> /dev/null
+}
+
+# Based on any date, this function returns a string with all the days of a
+# certain week from sunday to saturday. In the return string, the dates are
+# separeted by the pipe character '|'. This function depends on the function
+# 'get_week_beginning_day'.
+#
+# @date_param: It represents the date reference used to derive the first day of
+#              that week. If null, it will assumes today.
+# @format: Date format parameter, for more information about formats, use
+#          `man date`. If it is null, assumes YYYY/MM/DD.
+#
+# Return:
+# String with all days of given week. If format is wrong, the call to the
+# 'get_week_beginning_day' function will return an error code that will be
+# returned by this function.
+function get_days_of_week()
+{
+  local date_param="$1"
+  local format=${2:-'+%Y/%m/%d'}
+  local beginning_day_of_week
+  local days_of_week
+  local ret
+
+  beginning_day_of_week=$(get_week_beginning_day "${date_param}" "$format")
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Invalid date ${date_param}"
+    return "$ret"
+  fi
+
+  days_of_week="${beginning_day_of_week}"
+  for ((i = 1; i < 7; i++)); do
+    day=$(date --date="${beginning_day_of_week} + ${i} day" "$format")
+    days_of_week+="|${day}"
+  done
+
+  printf '%s' "${days_of_week}"
 }
 
 # Convert a value to a specific date format. If uses do not provide any format,
