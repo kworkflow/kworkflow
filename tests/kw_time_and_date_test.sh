@@ -25,6 +25,40 @@ function test_sec_to_format()
   assertEquals "($LINENO)" "$formatted_time" '46'
 }
 
+function test_secs_to_arbitrarily_long_hours_mins_secs()
+{
+  local output
+  local expected
+
+  output=$(secs_to_arbitrarily_long_hours_mins_secs)
+  assert_equals_helper 'Empty value should result in an error code' "$LINENO" 22 "$?"
+
+  output=$(secs_to_arbitrarily_long_hours_mins_secs '123m4')
+  assert_equals_helper 'Non-integer value should result in an error code' "$LINENO" 22 "$?"
+
+  output=$(secs_to_arbitrarily_long_hours_mins_secs '9999 ')
+  assert_equals_helper 'Non-integer value should result in an error code' "$LINENO" 22 "$?"
+
+  output=$(secs_to_arbitrarily_long_hours_mins_secs ' 1111')
+  assert_equals_helper 'Non-integer value should result in an error code' "$LINENO" 22 "$?"
+
+  output=$(secs_to_arbitrarily_long_hours_mins_secs 0)
+  expected='00:00:00'
+  assert_equals_helper 'Wrong conversion' "$LINENO" "$expected" "$output"
+
+  output=$(secs_to_arbitrarily_long_hours_mins_secs 3666)
+  expected='01:01:06'
+  assert_equals_helper 'Wrong conversion' "$LINENO" "$expected" "$output"
+
+  output=$(secs_to_arbitrarily_long_hours_mins_secs 86400)
+  expected='24:00:00'
+  assert_equals_helper 'Wrong conversion' "$LINENO" "$expected" "$output"
+
+  output=$(secs_to_arbitrarily_long_hours_mins_secs 10000000000000000)
+  expected='2777777777777:46:40'
+  assert_equals_helper 'Wrong conversion' "$LINENO" "$expected" "$output"
+}
+
 function test_get_today_info()
 {
   local today
@@ -66,6 +100,51 @@ function test_get_week_beginning_day()
 
   week_day=$(get_week_beginning_day)
   assert_equals_helper 'The first day of this week' "$LINENO" "$first_week_day" "$week_day"
+}
+
+function test_get_days_of_week()
+{
+  local current_day
+  local week_day
+  local beginning_day_of_week
+  local output
+  local expected
+
+  # No parameters passed. Default to current week
+  current_day=$(date '+%Y/%m/%d')
+  week_day=$(date '+%w')
+  beginning_day_of_week=$(date --date="${current_day} - ${week_day} day" '+%Y/%m/%d')
+  expected="${beginning_day_of_week}"
+  for ((i = 1; i < 7; i++)); do
+    day=$(date --date="${beginning_day_of_week} + ${i} day" '+%Y/%m/%d')
+    expected+="|${day}"
+  done
+  output=$(get_days_of_week)
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # Test arbitrary week with default format
+  expected='1990/04/01|1990/04/02|1990/04/03|1990/04/04|1990/04/05|1990/04/06|1990/04/07'
+  output=$(get_days_of_week '1990/04/01')
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  output=$(get_days_of_week '1990/04/07')
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  output=$(get_days_of_week '1990/04/04')
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # Test arbitrary week with custom format
+  expected='08/29|08/30|08/31|09/01|09/02|09/03|09/04'
+  output=$(get_days_of_week '1880/08/29' '+%m/%d')
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  output=$(get_days_of_week '1880/09/04' '+%m/%d')
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  output=$(get_days_of_week '1880/09/02' '+%m/%d')
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  # Test invalid date parameter
+  expected='Invalid date 1880/09-02'
+  output=$(get_days_of_week '1880/09-02' '+%m/%d')
+  assert_equals_helper 'Invalid date parameter should return error code' "$LINENO" 1 "$?"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
 function test_date_to_format()

@@ -1,22 +1,58 @@
 #!/bin/bash
 
 include './src/report.sh'
+include './src/kw_db.sh'
 include './tests/utils.sh'
 
 function oneTimeSetUp()
 {
-  cp -r "$SAMPLES_DIR"/pomodoro_data/* "$SHUNIT_TMPDIR"
-  export KW_POMODORO_DATA="$SHUNIT_TMPDIR"
+  declare -g DB_FILES
+  DB_FILES="$(realpath './tests/samples/db_files/report')"
+  export KW_DATA_DIR="${SHUNIT_TMPDIR}"
+  KW_DB_DIR="$(realpath './database')"
 }
 
 function setUp()
 {
-  declare -gA tags_details
+  declare -gA options_values
+  declare -g target_period
+
+  # Statistics data structures
+  declare -g statistics_raw_data
+  declare -gA statistics=(['deploy']='' ['build']='' ['list']='' ['uninstall']='' ['modules_deploy']='')
+
+  # Pomodoro data structures
+  declare -g pomodoro_raw_data
+  declare -gA pomodoro_sessions
+  declare -gA pomodoro_metadata
+
+  setupDatabase
 }
 
 function tearDown()
 {
-  unset tags_details
+  unset options_values
+  unset target_period
+  unset statistics_raw_data
+  unset statistics
+  unset pomodoro_raw_data
+  unset pomodoro_sessions
+  unset pomodoro_metadata
+
+  teardownDatabase
+}
+
+function setupDatabase()
+{
+  execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
+}
+
+function teardownDatabase()
+{
+  is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
+  if [[ "$?" == 0 ]]; then
+    rm "${KW_DATA_DIR}/kw.db"
+  fi
 }
 
 function test_parse_report_options()
@@ -32,7 +68,7 @@ function test_parse_report_options()
   assert_equals_helper 'Get today info' "$LINENO" "${options_values['DAY']}" "$expected_result"
 
   parse_report_options '--week'
-  expected_result=$(get_week_beginning_day)
+  expected_result=$(get_days_of_week)
   assert_equals_helper 'Get this week info' "$LINENO" "${options_values['WEEK']}" "$expected_result"
 
   parse_report_options '--month'
@@ -58,8 +94,8 @@ function test_parse_report_options()
   ## Weeks
   ref_date='1990/04/10'
   parse_report_options "--week=$ref_date"
-  expected_result=$(get_week_beginning_day "$ref_date")
-  assert_equals_helper 'We expected 1990/04/04' "$LINENO" "${options_values['WEEK']}" "$expected_result"
+  expected_result=$(get_days_of_week "$ref_date")
+  assert_equals_helper 'We expected all days of week' "$LINENO" "${options_values['WEEK']}" "$expected_result"
 
   ref_date='2022/04/32'
   output=$(parse_report_options "--week=$ref_date" 2> /dev/null)
@@ -88,12 +124,16 @@ function test_statistics()
 {
   local msg
   local start_target_week
-  local end_target_week
+  local current_day
+  local current_month
+
+  current_day=$(date '+%Y/%m/%d')
+  current_month=$(date '+%Y/%m')
 
   declare -a expected_cmd=(
-    'You have disable_statistics_data_track marked as "yes"'
-    'If you want to see the statistics, change this option to "no"'
-    '# Statistics:'
+    'You have "disable_statistics_data_track" marked as "yes"'
+    'If you want to track statistics, change this option to "no"'
+    "[STATISTICS] kw doesn't have any data of the target period: day ${current_day}"
   )
 
   configurations[disable_statistics_data_track]='yes'
@@ -103,306 +143,434 @@ function test_statistics()
   configurations[disable_statistics_data_track]='no'
 
   # DAY
-  msg=$'# Statistics: \nCurrently, kw does not have any data for the present date.'
+  msg="[STATISTICS] kw doesn't have any data of the target period: day ${current_day}"
 
   output=$(report_main --statistics --day)
   assertEquals "($LINENO)" "$msg" "$output"
 
-  #WEEK
+  # WEEK
   start_target_week='2021/11/14'
-  end_target_week='2021/11/20'
-  msg=$(printf "# Statistics: \nSorry, kw does not have any data from %s to %s" "$start_target_week" "$end_target_week")
+  msg="[STATISTICS] kw doesn't have any data of the target period: week of day ${start_target_week}"
 
   output=$(report_main --statistics --week=2021/11/17)
   assertEquals "($LINENO)" "$msg" "$output"
 
-  #MONTH
-  msg=$'# Statistics: \nCurrently, kw does not have any data for the present month.'
+  # MONTH
+  msg="[STATISTICS] kw doesn't have any data of the target period: month ${current_month}"
 
   output=$(report_main --statistics --month)
   assertEquals "($LINENO)" "$msg" "$output"
 
-  #YEAR
-  msg=$'# Statistics: \nCurrently, kw does not have any data for the requested year.'
+  # YEAR
+  msg='[STATISTICS] kw doesn'"'"'t have any data of the target period: year 2019'
 
   output=$(report_main --statistics --year=2019)
   assertEquals "($LINENO)" "$msg" "$output"
 }
 
-function test_expand_time_labels()
+function test_pomodoro()
 {
-  local output
-  local ret
-
-  # No label
-  output=$(expand_time_labels '300')
-  assert_equals_helper 'Expects 300 seconds' "$LINENO" "$output" '300 seconds'
-
-  output=$(expand_time_labels '30s')
-  assert_equals_helper 'Expects 30 seconds' "$LINENO" "$output" '30 seconds'
-
-  output=$(expand_time_labels '30m')
-  assert_equals_helper 'Expects 30 minutes' "$LINENO" "$output" '30 minutes'
-
-  output=$(expand_time_labels '3h')
-  assert_equals_helper 'Expects 3 hours' "$LINENO" "$output" '3 hours'
-
-  output=$(expand_time_labels 'Nothing')
-  ret="$?"
-  assert_equals_helper 'Expected an error code' "$LINENO" "$ret" 22
-
-  output=$(expand_time_labels '')
-  ret="$?"
-  assert_equals_helper 'Expected an error code' "$LINENO" "$ret" 22
-}
-
-function test_grouping_day_data()
-{
-  local count=0
-  local line
-  local expected
-
-  # Here we use $'...' to evaluate the newline at the end of the strings
-  declare -a expected_content=(
-    $' - 2021/04/04\n   * [06:00:40-06:20:40][20m]: Tag 1 description\n'
-    $' - 2021/04/04\n   * [08:30:50-08:45:50][15m]: Tag 2 description\n'
-    $' - 2021/04/04\n   * [09:00:00-10:00:00][1h]: Tag 3 description\n'
-    $' - 2021/04/04\n   * [11:00:00-11:00:44][44s]: Tag 4 description\n'
-    $' - 2021/04/04\n   * [14:00:00-14:30:00][30m]: Tag 5 description\n'
-    $' - 2021/04/04\n   * [15:00:00-15:10:00][10m]\n'
-  )
-
-  declare -a expected_tags=(
-    'tag_1'
-    'tag_2'
-    'tag_3'
-    'tag_4'
-    'tag_5'
-    'tag_6'
-  )
-
-  grouping_day_data '2021/04/04'
-  for tag in "${expected_tags[@]}"; do
-    line="${expected_content[$count]}"
-    assert_equals_helper "Loop $count failed" "$LINENO" "${tags_details[$tag]}" "$line"
-    ((count++))
-  done
-
-  expected=$' - 2021/04/05\n   * [06:00:40-06:20:40][20m]: Description, with comma\n'
-  grouping_day_data '2021/04/05'
-  assert_equals_helper 'Did not parse commas correctly' "$LINENO" "${tags_details['comma_tag']}" "$expected"
-
-  # Try to process file with bad data
-  count=0
-  declare -a expected_content=(
-    $' - bad_data/2021/04/04\n   * [06:00:40-06:20:40][20m]: Tag 1 description\n'
-    $' - bad_data/2021/04/04\n   * [09:00:00-10:00:00][1h]: Tag 3 description\n'
-  )
-
-  declare -a expected_tags=(
-    'bad_tag_1'
-    # We must skip bad_tag_2
-    'bad_tag_3'
-    # We must skip bad_tag_4
-  )
-
-  grouping_day_data 'bad_data/2021/04/04'
-  for tag in "${expected_tags[@]}"; do
-    line="${expected_content[$count]}"
-    assert_equals_helper "Loop $count failed" "$LINENO" "${tags_details[$tag]}" "$line"
-    ((count++))
-  done
-}
-
-function test_grouping_week_data()
-{
-  local fake_base_data='1815/12'
-  local day_path
-
-  # Create fake files just for test: 1815/12/10-1815/12/16
-  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
-  for ((i = 10; i < 17; i++)); do
-    day_path="$SHUNIT_TMPDIR/$fake_base_data/$i"
-    touch "$day_path"
-    printf '%s\n' "$i,20m,06:00:40,Tag $i description" > "$day_path"
-  done
-
-  grouping_week_data '1815/12/10'
-
-  output="${#tags_details[@]}"
-  assert_equals_helper 'We expect 7 keys' "$LINENO" "$output" 7
-
-  # Check tags just in case
-  for ((i = 10; i < 17; i++)); do
-    value="${tags_details[$i]}"
-    [[ -z "$value" ]] && fail "$LINENO:$i: We expect one tag per week day"
-  done
-
-  # Let's remove some files, and check an incomplete week
-  unset tags_details
-  declare -gA tags_details
-  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
-  for ((i = 14; i < 17; i++)); do
-    day_path="$SHUNIT_TMPDIR/$fake_base_data/$i"
-    rm "$day_path"
-  done
-
-  grouping_week_data '1815/12/10'
-  output="${#tags_details[@]}"
-  assert_equals_helper 'We expect 4 keys' "$LINENO" "$output" 4
-}
-
-function test_grouping_month_data()
-{
-  local fake_base_data='1815/12'
-  local day_path
-  local month_total_days
-
-  month_total_days=$(days_in_the_month 12 1815)
-  # Create fake files just for test: 1815/12/10-1815/12/16
-  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
-  for ((i = 1; i <= month_total_days; i++)); do
-    day_path="$SHUNIT_TMPDIR/$fake_base_data/"$(printf "%02d\n" "$i")
-    touch "$day_path"
-    printf '%s\n' "$i,20m,06:00:40,Tag $i description" > "$day_path"
-  done
-
-  grouping_month_data '1815/12'
-
-  output="${#tags_details[@]}"
-  assert_equals_helper "We expect $month_total_days keys" "$LINENO" "$output" "$month_total_days"
-
-  # Let's remove some files, and check an incomplete week
-  unset tags_details
-  declare -gA tags_details
-  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
-  for ((i = 20; i < 24; i++)); do
-    day_path="$SHUNIT_TMPDIR/$fake_base_data/"$(printf "%02d\n" "$i")
-    rm "$day_path"
-  done
-
-  grouping_month_data '1815/12'
-  output="${#tags_details[@]}"
-  assert_equals_helper 'We expect 27 keys' "$LINENO" "$output" 27
-}
-
-function test_grouping_year_data()
-{
-  local fake_base_data=2016
-  local day_path
-  local month_total_days
+  local start_target_week
   local current_day
   local current_month
+  local expected
 
-  # Create fake files just for test: 1815/12/10-1815/12/16
-  mkdir -p "$SHUNIT_TMPDIR/$fake_base_data"
-  for ((month = 1; month <= 12; month++)); do
-    current_month=$(printf "%02d\n" "$month")
-    month_total_days=$(days_in_the_month "$month" "$fake_base_data")
-    month_path=$(join_path "$fake_base_data" "$current_month")
-    mkdir -p "$SHUNIT_TMPDIR/$month_path"
-    for ((day = 1; day <= month_total_days; day++)); do
-      current_day=$(printf "%02d\n" "$day")
-      day_path="$SHUNIT_TMPDIR/$month_path/$current_day"
-      touch "$day_path"
-      printf '%s\n' "$month_path-$day,20m,06:00:40,Tag $month_path-$day description" > "$day_path"
-    done
-  done
+  current_day=$(date '+%Y/%m/%d')
+  current_month=$(date '+%Y/%m')
 
-  grouping_year_data '2016'
+  # DAY
+  expected="[POMODORO] kw doesn't have any data of the target period: day ${current_day}"
 
-  output="${#tags_details[@]}"
-  assert_equals_helper "We expect 366 (leap year) keys" "$LINENO" "$output" 366
+  output=$(report_main --pomodoro --day)
+  assert_equals_helper 'Wrong error output' "$LINENO" "$expected" "$output"
+
+  # WEEK
+  start_target_week='2021/11/14'
+  expected="[POMODORO] kw doesn't have any data of the target period: week of day ${start_target_week}"
+
+  output=$(report_main --pomodoro --week=2021/11/17)
+  assert_equals_helper 'Wrong error output' "$LINENO" "$expected" "$output"
+
+  # MONTH
+  expected="[POMODORO] kw doesn't have any data of the target period: month ${current_month}"
+
+  output=$(report_main --pomodoro --month)
+  assert_equals_helper 'Wrong error output' "$LINENO" "$expected" "$output"
+
+  # YEAR
+  expected='[POMODORO] kw doesn'"'"'t have any data of the target period: year 2019'
+
+  output=$(report_main --pomodoro --year=2019)
+  assert_equals_helper 'Wrong error output' "$LINENO" "$expected" "$output"
 }
 
-function test_calculate_total_work_hours()
+function test_set_raw_data_target_period_setting()
+{
+
+  # Test setting of target period for day
+  options_values['DAY']='1970/01/01'
+  set_raw_data
+  options_values['DAY']=''
+  assert_equals_helper 'Wrong set of target period' "$LINENO" 'day 1970/01/01' "${target_period}"
+
+  # Test setting of target period for week
+  options_values['WEEK']='1969/12/28|1969/12/29|1969/12/30|1969/12/31|1970/01/01|1970/01/02|1970/01/03'
+  set_raw_data
+  options_values['WEEK']=''
+  assert_equals_helper 'Wrong set of target period' "$LINENO" 'week of day 1969/12/28' "${target_period}"
+
+  # Test setting of target period for day
+  options_values['MONTH']='1970/01'
+  set_raw_data
+  options_values['MONTH']=''
+  assert_equals_helper 'Wrong set of target period' "$LINENO" 'month 1970/01' "${target_period}"
+
+  # Test setting of target period for day
+  options_values['YEAR']='1970'
+  set_raw_data
+  options_values['YEAR']=''
+  assert_equals_helper 'Wrong set of target period' "$LINENO" 'year 1970' "${target_period}"
+}
+
+function test_set_raw_data_setting_raw_data()
+{
+  local expected
+
+  # See the file tests/samples/db-files/report/statistics_and_pomodoro_insert.sql
+  # for context of the next tests.
+  sqlite3 "${KW_DATA_DIR}/kw.db" < "${DB_FILES}/statistics_and_pomodoro_insert.sql"
+
+  options_values['STATISTICS']=''
+  options_values['YEAR']='1970'
+  set_raw_data
+  options_values['YEAR']=''
+  assert_equals_helper 'set_raw_data without statistics flag should not set statistics_raw_data' "$LINENO" '' "${statistics_raw_data}"
+
+  options_values['POMODORO']=''
+  options_values['YEAR']='1970'
+  set_raw_data
+  options_values['YEAR']=''
+  assert_equals_helper 'set_raw_data without Pomodoro flag should not set pomodoro_raw_data' "$LINENO" '' "${pomodoro_raw_data}"
+
+  options_values['STATISTICS']=1
+  options_values['POMODORO']=1
+
+  options_values['DAY']='1998/04/17'
+  set_raw_data
+  options_values['DAY']=''
+  expected='4|deploy|success|1998-04-17|12:12:12|1'
+  assert_equals_helper 'Wrong statistics_raw_data set for day 1998/04/17' "$LINENO" "$expected" "${statistics_raw_data}"
+
+  options_values['WEEK']='1998/04/12|1998/04/13|1998/04/14|1998/04/15|1998/04/16|1998/04/17|1998/04/18'
+  set_raw_data
+  options_values['WEEK']=''
+  expected='2|list|unknown|1998-04-12|12:12:12|1'$'\n'
+  expected+='3|list|failure|1998-04-14|12:12:12|1'$'\n'
+  expected+='4|deploy|success|1998-04-17|12:12:12|1'$'\n'
+  expected+='5|list|interrupted|1998-04-18|12:12:12|1'
+  assert_equals_helper 'Wrong statistics_raw_data set for week of day 1998/04/12' "$LINENO" "$expected" "${statistics_raw_data}"
+
+  options_values['WEEK']='1998/04/05|1998/04/06|1998/04/07|1998/04/08|1998/04/09|1998/04/10|1998/04/11'
+  set_raw_data
+  options_values['WEEK']=''
+  expected='12|1|tag1|1998-04-10|12:12:12|1234|someDescription'
+  assert_equals_helper 'Wrong pomodoro_raw_data set for week of day 1998/04/05' "$LINENO" "$expected" "${pomodoro_raw_data}"
+
+  options_values['MONTH']='1998/05'
+  set_raw_data
+  options_values['MONTH']=''
+  expected='17|3|tag3|1998-05-17|12:12:12|1234|someDescription'$'\n'
+  expected+='18|3|tag3|1998-05-18|12:12:12|1234|someDescription'
+  assert_equals_helper 'Wrong pomodoro_raw_data set for month 1998/05' "$LINENO" "$expected" "${pomodoro_raw_data}"
+
+  options_values['YEAR']='1923'
+  set_raw_data
+  options_values['YEAR']=''
+  expected='8|modules_deploy|success|1923-04-17|12:12:12|1'$'\n'
+  expected+='9|list|interrupted|1923-04-18|12:12:12|1'$'\n'
+  expected+='10|build|success|1923-12-01|12:12:12|1'
+  assert_equals_helper 'Wrong statistics_raw_data set for year 1923' "$LINENO" "$expected" "${statistics_raw_data}"
+}
+
+function test_get_raw_data_from_period_of_time()
 {
   local output
   local expected
 
-  output=$(calculate_total_work_hours 1)
-  expected='00:00:01'
-  assert_equals_helper 'We expected 1 second' "$LINENO" "$output" "$expected"
+  # See the file tests/samples/db-files/report/fake_entity_insert.sql
+  # for context of the next tests.
+  sqlite3 "${KW_DATA_DIR}/kw.db" < "${DB_FILES}/fake_entity_insert.sql"
 
-  output=$(calculate_total_work_hours 60)
-  expected='00:01:00'
-  assert_equals_helper 'We expected 1 minute' "$LINENO" "$output" "$expected"
+  output=$(get_raw_data_from_period_of_time 'fake_entity' "'^2023-01-01$'")
+  expected='1|2023-01-01'
+  assert_equals_helper 'Wrong output for exact day 2023/01/01' "$LINENO" "$expected" "$output"
 
-  output=$(calculate_total_work_hours 3600)
-  expected='01:00:00'
-  assert_equals_helper 'We expected 1 hour' "$LINENO" "$output" "$expected"
+  output=$(get_raw_data_from_period_of_time 'fake_entity' "'^2023-01-02|2023-02-01$'")
+  expected='2|2023-01-02'$'\n''3|2023-02-01'
+  assert_equals_helper 'Wrong output for day 2023/01/02 or 2023/02/01' "$LINENO" "$expected" "$output"
 
-  output=$(calculate_total_work_hours 89999)
-  expected='24:59:59'
-  assert_equals_helper 'We expected full clock' "$LINENO" "$output" "$expected"
+  output=$(get_raw_data_from_period_of_time 'fake_entity' "'^1930-11-..$'")
+  expected='4|1930-11-08'$'\n''5|1930-11-12'$'\n''6|1930-11-29'
+  assert_equals_helper 'Wrong output for any day of month 1930/11' "$LINENO" "$expected" "$output"
 
-  output=$(calculate_total_work_hours 360000)
-  expected='100:00:00'
-  assert_equals_helper 'We expected 100 hours' "$LINENO" "$output" "$expected"
+  output=$(get_raw_data_from_period_of_time 'fake_entity' "'^1945-..-..$'")
+  expected='7|1945-04-07'$'\n''8|1945-08-15'$'\n''9|1945-12-03'
+  assert_equals_helper 'Wrong output for any day of year 1945' "$LINENO" "$expected" "$output"
 }
 
-function test_show_data()
+function test_process_and_format_statistics_raw_data_without_data()
 {
-  local count=0
-  local line
+  local expected
+
+  target_period='1998/04/17'
+  statistics_raw_data=''
+  process_and_format_statistics_raw_data
+  assert_equals_helper 'Should result in an error code' "$LINENO" 2 "$?"
+  expected="kw doesn't have any data of the target period: ${target_period}"
+  assert_equals_helper 'Should result in an error message' "$LINENO" "$expected" "${options_values['ERROR']}"
+}
+
+function test_process_and_format_statistics_raw_data_with_data()
+{
+  local expected
+
+  # Add 'list' entries
+  statistics_raw_data='1|list|success|1970-01-01|00:00:00|5400'$'\n'
+  statistics_raw_data+='2|list|success|1970-01-01|00:00:00|7200'$'\n'
+  statistics_raw_data+='3|list|success|1970-01-01|00:00:00|7200'$'\n'
+  statistics_raw_data+='4|list|success|1970-01-01|00:00:00|3600'$'\n'
+  statistics_raw_data+='5|list|success|1970-01-01|00:00:00|3600'$'\n'
+  # Add 'build' entries
+  statistics_raw_data+='6|build|success|1970-01-01|00:00:00|1'$'\n'
+  statistics_raw_data+='7|build|success|1970-01-01|00:00:00|2'$'\n'
+  statistics_raw_data+='8|build|success|1970-01-01|00:00:00|3'$'\n'
+  statistics_raw_data+='9|build|success|1970-01-01|00:00:00|4'$'\n'
+  statistics_raw_data+='10|build|success|1970-01-01|00:00:00|5'$'\n'
+  # Add 'deploy' entries
+  statistics_raw_data+='11|deploy|success|1970-01-01|00:00:00|36000'$'\n'
+  statistics_raw_data+='12|deploy|success|1970-01-01|00:00:00|36000'$'\n'
+  statistics_raw_data+='13|deploy|success|1970-01-01|00:00:00|36000'$'\n'
+  statistics_raw_data+='14|deploy|success|1970-01-01|00:00:00|36000'$'\n'
+  statistics_raw_data+='15|deploy|success|1970-01-01|00:00:00|36000'$'\n'
+  # Add 'modules_deploy' entries
+  statistics_raw_data+='16|modules_deploy|success|1970-01-01|00:00:00|1708'$'\n'
+  statistics_raw_data+='17|modules_deploy|success|1970-01-01|00:00:00|30996'$'\n'
+  statistics_raw_data+='18|modules_deploy|success|1970-01-01|00:00:00|56'$'\n'
+  statistics_raw_data+='19|modules_deploy|success|1970-01-01|00:00:00|19809'$'\n'
+  statistics_raw_data+='20|modules_deploy|success|1970-01-01|00:00:00|113'$'\n'
+  # Add 'uninstall' entries
+  statistics_raw_data+='21|uninstall|success|1970-01-01|00:00:00|0'$'\n'
+  statistics_raw_data+='22|uninstall|success|1970-01-01|00:00:00|0'$'\n'
+  statistics_raw_data+='23|uninstall|success|1970-01-01|00:00:00|0'$'\n'
+  statistics_raw_data+='24|uninstall|success|1970-01-01|00:00:00|0'$'\n'
+  statistics_raw_data+='25|uninstall|success|1970-01-01|00:00:00|0'
+
+  process_and_format_statistics_raw_data
+
+  expected='List               5 02:00:00 01:00:00 01:30:00'
+  assert_equals_helper 'Wrong processing and formatting for List' "$LINENO" "$expected" "${statistics['list']}"
+
+  expected='Build              5 00:00:05 00:00:01 00:00:03'
+  assert_equals_helper 'Wrong processing and formatting for Build' "$LINENO" "$expected" "${statistics['build']}"
+
+  expected='Deploy             5 10:00:00 10:00:00 10:00:00'
+  assert_equals_helper 'Wrong processing and formatting for Deploy' "$LINENO" "$expected" "${statistics['deploy']}"
+
+  expected='Modules_deploy     5 08:36:36 00:00:56 02:55:36'
+  assert_equals_helper 'Wrong processing and formatting for Modules_deploy' "$LINENO" "$expected" "${statistics['modules_deploy']}"
+
+  expected='Uninstall          5 00:00:00 00:00:00 00:00:00'
+  assert_equals_helper 'Wrong processing and formatting for Uninstall' "$LINENO" "$expected" "${statistics['uninstall']}"
+}
+
+function test_process_and_format_pomodoro_raw_data_without_data()
+{
+  local expected
+
+  target_period='day 1998/04/17'
+  pomodoro_raw_data=''
+  process_and_format_pomodoro_raw_data
+  assert_equals_helper 'Should result in an error code' "$LINENO" 2 "$?"
+  expected="kw doesn't have any data of the target period: ${target_period}"
+  assert_equals_helper 'Should result in an error message' "$LINENO" "$expected" "${options_values['ERROR']}"
+}
+
+function test_process_and_format_pomodoro_raw_data_with_data()
+{
+  local expected
+  local yellow
+  local green
+  local normal
+
+  # Set color codes for comparing output
+  yellow=$(tput setaf 3)
+  green=$(tput setaf 2)
+  normal=$(tput sgr0)
+
+  # Population the Pomodoro data structures
+  pomodoro_raw_data='1|1|tag1|1970-01-01|00:00:00|3600|someDescription'$'\n'
+  pomodoro_raw_data+='2|2|tag2|1600-02-29|21:11:12|72000|someDescription'$'\n'
+  pomodoro_raw_data+='3|3|tag3|1600-02-29|21:11:12|48000|someDescription'$'\n'
+  pomodoro_raw_data+='4|1|tag1|2012-12-31|23:58:00|132|'$'\n'
+  pomodoro_raw_data+='5|1|tag1|2023-04-24|12:05:17|30|anotherDescription'
+  process_and_format_pomodoro_raw_data
+
+  # Tests for a single tag sessions and metadata
+  expected="    (${yellow}1970-01-01 ${green}00:00:00->01:00:00${normal}) [Duration 01:00:00]: someDescription"$'\n'
+  expected+="    (${yellow}2012-12-31 ${green}23:58:00->00:00:12${normal}) [Duration 00:02:12]: "$'\n'
+  expected+="    (${yellow}2023-04-24 ${green}12:05:17->12:05:47${normal}) [Duration 00:00:30]: anotherDescription"$'\n'
+  assert_equals_helper 'Wrong processing and formatting for tag1 sessions' "$LINENO" "$expected" "${pomodoro_sessions['tag1']}"
+  expected='- Total focus time: 01:02:42'$'\n'
+  expected+='- Number of sessions: 3'
+  assert_equals_helper 'Wrong processing and formatting for tag1 metadata' "$LINENO" "$expected" "${pomodoro_metadata['tag1']}"
+
+  # Test for all tags metadata
+  expected='- Total focus time from all tags: 34:22:42'$'\n'
+  expected+='- Number of sessions from all tags: 5'
+  assert_equals_helper 'Wrong processing and formatting for all tags metadata' "$LINENO" "$expected" "${pomodoro_metadata['ALL_TAGS']}"
+}
+
+function test_show_report()
+{
   local output
+  local expected
+  local expected_statistics
+  local expected_pomodoro
 
-  grouping_day_data '2020/04/04'
-  output=$(show_data)
+  target_period='year 2007'
 
-  # Output can change multiple times. For this reason, I don't see a good
-  # reason for a very detailed test on this function behavior. Let's just check
-  # for a few keywords.
+  # Expect no output
+  options_values['STATISTICS']=''
+  options_values['POMODORO']=''
+  output=$(show_report)
+  assert_equals_helper 'With statistics and Pomodoro flags unset, output should be empty' "$LINENO" '' "$output"
 
-  assertTrue "$LINENO: We expected to find at least one Summary entry" '[[ "$output" =~ 'Summary:' ]]'
-  assertTrue "$LINENO: We expected to find tag_2" '[[ "$output" =~ 'tag_2' ]]'
-  assertTrue "$LINENO: We expected to find 06:00:40-" '[[ "$output" =~ '06:00:40-' ]]'
+  # Error message for statistics
+  options_values['STATISTICS']=1
+  statistics_raw_data=''
+  options_values['ERROR']='Some error message'
+  output=$(show_report)
+  expected='[STATISTICS] Some error message'
+  assert_equals_helper 'No statistics should result in error message' "$LINENO" "$expected" "$output"
 
-  grouping_day_data '2020/04/05'
-  output=$(show_data)
+  # Error message for Pomodoro
+  options_values['STATISTICS']=''
+  options_values['POMODORO']=1
+  pomodoro_raw_data=''
+  options_values['ERROR']='Another error message'
+  output=$(show_report)
+  expected='[POMODORO] Another error message'
+  assert_equals_helper 'No Pomodoro data should result in error message' "$LINENO" "$expected" "$output"
 
-  assertTrue "$LINENO: We expected to find per tag output over 24h" "[[ \"$output\" =~ 'time: 72:00:00' ]]"
+  # Expect output for statistics
+  options_values['POMODORO']=''
+  options_values['STATISTICS']=1
+  statistics_raw_data=1
+  statistics['fake_command1']='fake data 1'
+  statistics['fake_command2']=''
+  statistics['fake_command3']='fake data 3'
+  output=$(show_report)
+  expected_statistics='# Statistics Report: year 2007'$'\n'
+  expected_statistics+='               Total  Max      Min      Average'$'\n'
+  expected_statistics+='fake data 1'$'\n'
+  expected_statistics+='fake data 3'
+  assert_equals_helper 'Wrong statistics output' "$LINENO" "${expected_statistics}" "$output"
+
+  # Expect output for Pomodoro
+  options_values['STATISTICS']=''
+  options_values['POMODORO']=1
+  pomodoro_raw_data=1
+  pomodoro_sessions['tag1']='fake session 1'
+  pomodoro_metadata['tag1']='fake metadata 1'
+  pomodoro_sessions['tag2']='fake session 2'
+  pomodoro_metadata['tag2']='fake metadata 2'
+  pomodoro_metadata['ALL_TAGS']='fake metadata all tags'
+  output=$(show_report)
+  expected_pomodoro='# Pomodoro Report: year 2007'$'\n''fake metadata all tags'$'\n'$'\n'
+  expected_pomodoro+='## tag1'$'\n''fake metadata 1'$'\n''- Sessions:'$'\n''fake session 1'$'\n'
+  expected_pomodoro+='## tag2'$'\n''fake metadata 2'$'\n''- Sessions:'$'\n''fake session 2'
+  assert_equals_helper 'Wrong Pomodoro output' "$LINENO" "${expected_pomodoro}" "$output"
+
+  # Expect output for statistics and Pomodoro
+  options_values['STATISTICS']=1
+  output=$(show_report)
+  expected="${expected_statistics}"$'\n'$'\n'"${expected_pomodoro}"
+  assert_equals_helper 'Wrong statistics and Pomodoro output' "$LINENO" "$expected" "$output"
 }
 
 function test_save_data_to()
 {
   local output
   local expected
+  local ret
+  local yellow
+  local green
+  local normal
 
-  grouping_day_data '2020/04/04'
-  save_data_to "$SHUNIT_TMPDIR/test" > /dev/null 2>&1
-  [[ ! -f "$SHUNIT_TMPDIR/test" ]] && fail "$LINENO: We expect to find a test file"
+  # Set color codes for comparing output
+  yellow=$(tput setaf 3)
+  green=$(tput setaf 2)
+  normal=$(tput sgr0)
 
-  output=$(cat "$SHUNIT_TMPDIR/test")
-  [[ ! "$output" =~ 'Summary:' ]] && fail "$LINENO: We expected to find at least one Summary entry"
+  # Prepare options
+  options_values['MONTH']='1998/04'
+  options_values['STATISTICS']=1
+  options_values['POMODORO']=1
+
+  # Populate database and data structures
+  sqlite3 "${KW_DATA_DIR}/kw.db" < "${DB_FILES}/statistics_and_pomodoro_insert.sql"
+  set_raw_data
+  process_and_format_statistics_raw_data
+  process_and_format_pomodoro_raw_data
+
+  # Use valid path to create valid report file
+  save_data_to "${SHUNIT_TMPDIR}/test" > /dev/null 2>&1
+
+  assertTrue "(${LINENO}) We expect to find a test file" "[[ -f ${SHUNIT_TMPDIR}/test ]]"
+
+  # Test contents of valid report file
+  output=$(< "${SHUNIT_TMPDIR}/test")
+  expected='# Statistics Report: month 1998/04'
+  assertTrue "(${LINENO}) We expect to find the statistics report header" "[[ '${output}' =~ '${expected}' ]]"
+  expected='               Total  Max      Min      Average'
+  assertTrue "(${LINENO}) We expect to find statistics values header" "[[ '${output}' =~ '${expected}' ]]"
+  expected='List               3 00:00:01 00:00:01 00:00:01'
+  assertTrue "(${LINENO}) Wrong values for 'List' command" "[[ '${output}' =~ '${expected}' ]]"
+  expected='# Pomodoro Report: month 1998/04'
+  assertTrue "(${LINENO}) We expect to find the Pomodoro report header" "[[ '${output}' =~ '${expected}' ]]"
+  expected='- Total focus time from all tags: 01:42:50'$'\n''- Number of sessions from all tags: 5'
+  assertTrue "(${LINENO}) Wrong all tags metadata" "[[ '${output}' =~ '${expected}' ]]"
+  expected='## tag1'$'\n''- Total focus time: 00:41:08'$'\n''- Number of sessions: 2'
+  assertTrue "(${LINENO}) Wrong tag1 metadata" "[[ '${output}' =~ '${expected}' ]]"
+  expected="    (${yellow}1998-04-12 ${green}12:12:12->12:32:46${normal}) [Duration 00:20:34]: someDescription"
+  assertTrue "(${LINENO}) Wrong tag1 metadata" "[[ '${output}' =~ '${expected}' ]]"
 
   # Try to use an invalid path.
   output=$(save_data_to '/this/is/An/InvaLid/Path')
   ret="$?"
-  assert_equals_helper "We expect an invalid path error" "$LINENO" "$ret" 1
+  assert_equals_helper 'We expect an invalid path error' "$LINENO" 1 "$ret"
 
   # Try to use a valid path to directory.
   output=$(save_data_to "${SHUNIT_TMPDIR}")
   ret="$?"
-  assert_equals_helper "We expect a valid path" "$LINENO" "$ret" 0
+  assert_equals_helper 'We expect a directory path to be valid' "$LINENO" 0 "$ret"
 
   # Verifying that the correct message is displayed.
   expected="The report output was saved in: ${SHUNIT_TMPDIR}/report_output"
-  message="$output"
-  assert_equals_helper "We expect a valid message" "$LINENO" "$message" "$expected"
+  assert_equals_helper 'We expect a valid message' "$LINENO" "$expected" "$output"
 
   # Verifying that the correct filename is displayed.
-  [[ ! -f "${SHUNIT_TMPDIR}/report_output" ]] && fail "$LINENO: We expect to find a test file"
+  assertTrue "(${LINENO}): We expect to find a test file with the correct name" "[[ -f ${SHUNIT_TMPDIR}/report_output ]]"
 
   # Try to use an invalid root directory path.
   output=$(save_data_to '/lala/do/not')
   ret="$?"
-  assert_equals_helper "We expect a root path invalid" "$LINENO" "$ret" 1
+  assert_equals_helper 'We expect a root path to be invalid' "$LINENO" "$ret" 1
 
   # Try to use an invalid folder path error.
   output=$(save_data_to '/tmp/folder_not_created/')
   ret="$?"
-  assert_equals_helper "We expect an invalid path error where the folder was not created." "$LINENO" "$ret" 1
+  assert_equals_helper 'We expect an invalid path error where the folder was not created.' "$LINENO" 1 "$ret"
 }
 
 invoke_shunit
