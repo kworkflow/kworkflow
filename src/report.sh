@@ -471,8 +471,8 @@ function parse_report_options()
         ;;
       *)
         options_values['ERROR']="Unrecognized argument: $1"
-        return 22 # EINVAL
         shift
+        return 22 # EINVAL
         ;;
     esac
   done
