@@ -145,4 +145,36 @@ function test_days_in_the_month()
   assert_equals_helper 'Invalid month' "$LINENO" "$ret" 22
 }
 
+function test_timebox_to_sec()
+{
+  local output
+
+  timebox_to_sec 'invalid' > /dev/null 2>&1
+  assert_equals_helper 'Invalid timebox should return error code' "$LINENO" 22 "$?"
+
+  timebox_to_sec '11mm' > /dev/null 2>&1
+  assert_equals_helper 'Invalid timebox should return error code' "$LINENO" 22 "$?"
+
+  timebox_to_sec '12345h ' > /dev/null 2>&1
+  assert_equals_helper 'Invalid timebox should return error code' "$LINENO" 22 "$?"
+
+  timebox_to_sec ' 987654321s' > /dev/null 2>&1
+  assert_equals_helper 'Invalid timebox should return error code' "$LINENO" 22 "$?"
+
+  output=$(timebox_to_sec '2718281828s')
+  assert_equals_helper 'Amount in seconds should be the same' "$LINENO" '2718281828' "$output"
+
+  output=$(timebox_to_sec '12m')
+  assert_equals_helper 'Wrong conversion of minutes to seconds' "$LINENO" '720' "$output"
+
+  output=$(timebox_to_sec '5h')
+  assert_equals_helper 'Wrong conversion of hours to seconds' "$LINENO" '18000' "$output"
+
+  output=$(timebox_to_sec '9999999h')
+  assert_equals_helper 'Wrong conversion of hours to seconds' "$LINENO" '35999996400' "$output"
+
+  output=$(timebox_to_sec '0m')
+  assert_equals_helper 'Null amount of time should return zero seconds' "$LINENO" '0' "$output"
+}
+
 invoke_shunit
