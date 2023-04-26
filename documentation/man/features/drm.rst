@@ -9,7 +9,7 @@ SYNOPSIS
 | *kw* *drm* [\--local | \--remote [<remote>:<port>]]
 |            [\--load-module=<module>[:<param1>,...][;<module>:...] |
 |            \--unload-module=<module>[;<module>;...] |
-|            \--gui-on | \--gui-off | \--conn-available | \--modes]
+|            \--gui-on | \--gui-off | \--conn-available | \--modes | \--verbose]
 
 DESCRIPTION
 ===========
@@ -60,6 +60,11 @@ OPTIONS
 
 \--modes:
   Show all available modes per card.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.
 
 EXAMPLES
 ========
