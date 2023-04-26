@@ -133,30 +133,6 @@ function expand_time_labels()
   printf '%s\n' "$time_label"
 }
 
-function timebox_to_sec()
-{
-  local timebox="$1"
-  local time_type
-  local time_value
-
-  time_type=$(last_char "$timebox")
-  time_value=$(chop "$timebox")
-
-  case "$time_type" in
-    h)
-      time_value=$((3600 * time_value))
-      ;;
-    m)
-      time_value=$((60 * time_value))
-      ;;
-    s)
-      true # Do nothing
-      ;;
-  esac
-
-  printf '%s\n' "$time_value"
-}
-
 # Group day data in the tags_details and tags_metadata. Part of the process
 # includes pre-processing raw data in something good to be displayed for users.
 #

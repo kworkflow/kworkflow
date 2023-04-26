@@ -9,6 +9,7 @@ declare -r KW_LIB_DIR='src'
 include "${KW_LIB_DIR}/kwio.sh"
 include "${KW_LIB_DIR}/kwlib.sh"
 include "${KW_LIB_DIR}/kw_string.sh"
+include "${KW_LIB_DIR}/kw_time_and_date.sh"
 include "${KW_LIB_DIR}/kw_db.sh"
 
 declare -r KW_DB_DIR='database'
@@ -230,30 +231,6 @@ function migrate_kernel_configs()
     complain "Couldn't rename ${datadir}/configs/metadata to ${datadir}/configs/legacy_metadata"
     return 1 #EPERM
   fi
-}
-
-function timebox_to_sec()
-{
-  local timebox="$1"
-  local time_type
-  local time_value
-
-  time_type=$(last_char "$timebox")
-  time_value=$(chop "$timebox")
-
-  case "$time_type" in
-    h)
-      time_value=$((3600 * time_value))
-      ;;
-    m)
-      time_value=$((60 * time_value))
-      ;;
-    s)
-      : # Do nothing
-      ;;
-  esac
-
-  printf '%s\n' "$time_value"
 }
 
 db_migration_main

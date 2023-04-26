@@ -1,3 +1,5 @@
+include "${KW_LIB_DIR}/kw_string.sh"
+
 # Returns the value of time as an integer number of seconds since the Epoch.
 function get_timestamp_sec()
 {
@@ -115,4 +117,40 @@ function days_in_the_month()
   fi
 
   printf '%s\n' "$days"
+}
+
+# Convert a time in timebox format to the time value in seconds. Example:
+# calling 'timebox_to_sec 2h' returns the string '7200'.
+#
+# @timebox: Timebox in the format <INTEGER>(h|m|s)
+#
+# Return:
+# If timebox is valid, returns 0 and a string with the time value in seconds.
+# Returns 22 (EINVAL) otherwise.
+function timebox_to_sec()
+{
+  local timebox="$1"
+  local time_type
+  local time_value
+
+  if [[ ! "$timebox" =~ ^[0-9]+(h|m|s)$ ]]; then
+    return 22 # EINVAL
+  fi
+
+  time_type=$(last_char "$timebox")
+  time_value=$(chop "$timebox")
+
+  case "$time_type" in
+    h)
+      time_value=$((3600 * time_value))
+      ;;
+    m)
+      time_value=$((60 * time_value))
+      ;;
+    s)
+      true # Do nothing
+      ;;
+  esac
+
+  printf '%s\n' "$time_value"
 }
