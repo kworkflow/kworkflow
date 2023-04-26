@@ -231,7 +231,7 @@ _kw_diff()
 _kw_drm()
 {
   _arguments : \
-    '(-v --verbose)'{-v,--verbose}'[verbose output]' \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(--unload-module)--load-module=-[specify one or more modules to be loaded with or without parameters]: : ' \
     '(--load-module)--unload-module=-[specify one or more modules to be unloaded]: : ' \
     '(--remote)--local[specify host as the target machine]' \

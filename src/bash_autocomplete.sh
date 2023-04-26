@@ -68,7 +68,7 @@ function _kw_autocomplete()
   kw_options['remote']='add remove rename --set-default --verbose --list'
 
   kw_options['drm']='--remote --local --gui-on --gui-off --load-module
-                     --unload-module --conn-available --modes --help'
+                     --unload-module --conn-available --modes --help --verbose'
 
   kw_options['env']='--create --list --use --exit-env --verbose'
 
