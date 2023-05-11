@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './tests/utils.sh'
-include './src/kw_db.sh'
+include './src/lib/kw_db.sh'
 
 function oneTimeSetUp()
 {

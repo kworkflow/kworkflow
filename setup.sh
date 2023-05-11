@@ -3,7 +3,7 @@ KW_LIB_DIR='src'
 . 'src/kw_include.sh' --source-only
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
-include "${KW_LIB_DIR}/kw_db.sh"
+include "${KW_LIB_DIR}/lib/kw_db.sh"
 
 SILENT=1
 VERBOSE=0

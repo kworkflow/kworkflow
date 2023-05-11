@@ -8,7 +8,7 @@ include "$KW_LIB_DIR/kw_time_and_date.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kw_string.sh"
 include "$KW_LIB_DIR/statistics.sh"
-include "${KW_LIB_DIR}/kw_db.sh"
+include "${KW_LIB_DIR}/lib/kw_db.sh"
 
 declare -gA options_values
 declare -g target_period
