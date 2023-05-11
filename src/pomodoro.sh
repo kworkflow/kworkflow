@@ -70,8 +70,8 @@ function show_active_pomodoro_timebox()
     remaining_time=$((duration - elapsed_time))
 
     say "Started at: ${start_time} [${start_date}]"
-    say '- Elapsed time:' "$(sec_to_format "${elapsed_time}")"
-    say '- You still have' "$(sec_to_format "${remaining_time}")"
+    say '- Elapsed time:' "$(secs_to_arbitrarily_long_hours_mins_secs "${elapsed_time}")"
+    say '- You still have' "$(secs_to_arbitrarily_long_hours_mins_secs "${remaining_time}")"
   done <<< "$(select_from 'active_timebox' '"date","time","duration"')"
 }
 
