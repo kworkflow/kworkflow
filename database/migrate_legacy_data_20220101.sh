@@ -10,7 +10,7 @@ include "${KW_LIB_DIR}/kwio.sh"
 include "${KW_LIB_DIR}/kwlib.sh"
 include "${KW_LIB_DIR}/kw_string.sh"
 include "${KW_LIB_DIR}/kw_time_and_date.sh"
-include "${KW_LIB_DIR}/kw_db.sh"
+include "${KW_LIB_DIR}/lib/kw_db.sh"
 
 declare -r KW_DB_DIR='database'
 declare -r app_name='kw'
