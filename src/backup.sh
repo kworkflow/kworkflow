@@ -104,9 +104,8 @@ function restore_backup()
   fi
 
   if [[ -z "${options_values['FORCE']}" ]]; then
-    restore_config "$flag"
-    restore_pomodoro "$flag"
-    restore_statistics
+    restore_database "$flag"
+    restore_config_files "$flag"
   fi
 
   success "Backup restored at $KW_DATA_DIR"
@@ -252,6 +251,69 @@ function restore_statistics()
 {
   if [[ -d "$decompress_path/statistics" ]]; then
     restore_data_from_dir 'statistics'
+  fi
+}
+
+# This function restores the kw SQLite database from `KW_DATA_DIR`.
+#
+# @flag: Flag to control function output
+function restore_database()
+{
+  local flag="$1"
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  if [[ -f "${decompress_path}/kw.db" ]]; then
+    cmd="cp ${decompress_path}/kw.db ${KW_DATA_DIR}/kw.db"
+    cmd_manager "$flag" "$cmd"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain "Couldn't restore database from ${decompress_path}/kw.db to ${KW_DATA_DIR}/kw.db"
+      exit "$ret"
+    fi
+  fi
+}
+
+# This function restores the kernel config files from `KW_DATA_DIR`.
+#
+# @flag: Flag to control function output
+function restore_config_files()
+{
+  local flag="$1"
+  local config_file_paths
+  local config_filename
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  # Only get config file paths that are direct children of `configs` in backup.
+  # We sort the paths to avoid flaky tests.
+  config_file_paths=$(find "${decompress_path}/configs" -maxdepth 1 -type f | sort --dictionary-order)
+
+  if [[ -n "$config_file_paths" ]]; then
+    if [[ ! -d "${KW_DATA_DIR}/configs" ]]; then
+      cmd="mkdir --parents ${KW_DATA_DIR}/configs"
+      cmd_manager "$flag" "$cmd"
+      ret="$?"
+      if [[ "$ret" != 0 ]]; then
+        complain "Couldn't create ${KW_DATA_DIR}/configs"
+        exit "$ret"
+      fi
+    fi
+
+    while IFS=$'\n' read -r config_file_path; do
+      config_filename="${config_file_path##*/}" # get just the file name
+      cmd="cp ${config_file_path} ${KW_DATA_DIR}/configs/${config_filename}"
+      cmd_manager "$flag" "$cmd"
+      ret="$?"
+      if [[ "$ret" != 0 ]]; then
+        complain "Couldn't copy ${config_file_path} to ${KW_DATA_DIR}/configs/${config_filename}"
+        exit "$ret"
+      fi
+    done <<< "$config_file_paths"
   fi
 }
 
