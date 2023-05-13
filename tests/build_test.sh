@@ -876,7 +876,7 @@ function test_kernel_build_inside_an_env()
 
   declare -a expected_cmd=(
     "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig O=${env_output}"
-    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 2>&1 | tee ./log O=${env_output}"
+    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 O=${env_output} 2>&1 | tee ./log"
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"

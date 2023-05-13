@@ -122,7 +122,7 @@ function build_kernel_main()
     return "$?"
   fi
 
-  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_path}${output_kbuild_flag}"
+  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_kbuild_flag}${output_path}"
 
   # Let's avoid menu question by default
   cmd_manager "$flag" "make -j ${llvm}ARCH=${platform_ops} --silent olddefconfig${output_kbuild_flag}"
