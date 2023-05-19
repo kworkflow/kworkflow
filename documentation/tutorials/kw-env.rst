@@ -59,7 +59,7 @@ Switch between envs
 
 Let's say that you want to switch from one config to another, you can just use::
 
- kw env --use X86_32_CONFIG_TO_TEST_MACHINE_P]
+ kw env --use X86_32_CONFIG_TO_TEST_MACHINE_P
 
 If you want to check if everything looks correct, you can use::
 
