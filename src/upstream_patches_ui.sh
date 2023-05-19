@@ -412,8 +412,9 @@ function register_mailing_list()
 function upstream_patches_ui_help()
 {
   if [[ "$1" == --help ]]; then
-    # TODO: Make man page for this feature
-    exit
+    include "${KW_LIB_DIR}/help.sh"
+    kworkflow_man 'upstream-patches-ui'
+    return
   fi
   printf '%s\n' 'kw upstream_patches_ui:' \
     '  upstream_patches_ui - Open UI with lore.kernel.org archives'

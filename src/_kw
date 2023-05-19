@@ -382,7 +382,8 @@ _kw_man()
 {
   _values 'kw commands' \
     'backup' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
-    'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' 'vars'
+    'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
+    'upstream-patches-ui' 'vars'
 }
 
 _kw_p() { _kw_pomodoro }

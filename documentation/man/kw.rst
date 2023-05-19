@@ -76,6 +76,15 @@ dmesg. All the debug options are intended to support remote and local targets.
 
   :ref:`kw-debug<debug-doc>`
 
+COMMAND TO INTERACT WITH THE PUBLIC MAILING LISTS
+-------------------------------------------------
+
+Some projects like the Linux kernel are collaboratively developed using
+public mailing lists. kw has a feature that provides a friendly UI to these
+lists and also integrates other kw features to allow a unified kernel development.
+
+  :ref:`kw-upstream-patches-ui<upstream-patches-ui-doc>`
+
 OTHER COMMANDS
 --------------
 This section describes a tool available in **kw** to help developers keep track
