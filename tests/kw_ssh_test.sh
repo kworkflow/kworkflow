@@ -238,4 +238,97 @@ function test_ssh_remote()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
+function test_send_to_path_with_port_user_remote()
+{
+  local output
+  local expected_cmd
+
+  local -a inputs=(
+    'y' # overwrite it
+    'y' # overwrite it
+  )
+
+  touch 'some_file'
+  mkdir 'some_folder'
+
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+  remote_parameters['REMOTE_USER']='mr_white'
+  remote_parameters['REMOTE_IP']='192.168.3.1'
+  remote_parameters['REMOTE_PORT']='3244'
+  options_values['SEND']="${PWD}/some_file"
+  options_values['TO']="$PWD"
+
+  output="$(printf '%s\n' "${inputs[@]}" | ssh_transfer_file 'TEST_MODE' 'send')"
+
+  declare -a expected_cmd=(
+    "ssh -p 3244 mr_white@192.168.3.1 '[[ -f ${PWD}/some_file ]]'"
+    'The '\''some_file'\'' file already exists on the remote machine.'
+    "rsync -avzq ${PWD}/some_file -e 'ssh -p 3244' mr_white@192.168.3.1:${PWD}"
+    'File(s) uploaded successfully.'
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  options_values['SEND']="${PWD}/some_folder"
+  options_values['TO']="$PWD"
+
+  output="$(printf '%s\n' "${inputs[@]}" | ssh_transfer_file 'TEST_MODE' 'send')"
+
+  declare -a expected_cmd=(
+    "ssh -p 3244 mr_white@192.168.3.1 '[[ -f ${PWD}/some_folder ]]'"
+    'The '\''some_folder'\'' file already exists on the remote machine.'
+    "rsync -avzq ${PWD}/some_folder -e 'ssh -p 3244' mr_white@192.168.3.1:${PWD}"
+    'File(s) uploaded successfully.'
+  )
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
+function test_get_from_path_with_port_user_remote()
+{
+  local output
+  local expected_cmd
+  local -a inputs=(
+    'y' # overwrite it
+    'y' # overwrite it
+  )
+
+  touch 'file.data'
+  mkdir 'some_dir'
+  mkdir 'other_dir'
+
+  remote_parameters['REMOTE_FILE']=''
+  remote_parameters['REMOTE_FILE_HOST']=''
+  remote_parameters['REMOTE_USER']='pinkman'
+  remote_parameters['REMOTE_IP']='192.168.3.1'
+  remote_parameters['REMOTE_PORT']='3244'
+  options_values['GET']="${PWD}/file.data"
+  options_values['TO']="${PWD}/some_dir"
+
+  output="$(printf '%s\n' "${inputs[@]}" | ssh_transfer_file 'TEST_MODE' 'get')"
+
+  declare -a expected_cmd=(
+    "ssh -p 3244 pinkman@192.168.3.1 [[ ! -e '${PWD}/file.data' ]]"
+    "The file or directory '${PWD}/file.data' does not exist on the remote machine."
+    "rsync -e 'ssh -p 3244' -avzq pinkman@192.168.3.1:${PWD}/file.data ${PWD}/some_dir"
+    'The file(s) have been successfully received.'
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  options_values['GET']="${PWD}/other_dir"
+  options_values['TO']=''
+
+  output="$(printf '%s\n' "${inputs[@]}" | ssh_transfer_file 'TEST_MODE' 'get')"
+
+  declare -a expected_cmd=(
+    "ssh -p 3244 pinkman@192.168.3.1 [[ ! -e '${PWD}/other_dir' ]]"
+    "The file or directory '${PWD}/other_dir' does not exist on the remote machine."
+    "rsync -e 'ssh -p 3244' -avzq pinkman@192.168.3.1:${PWD}/other_dir ."
+    'The file(s) have been successfully received.'
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
 invoke_shunit
