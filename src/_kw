@@ -461,11 +461,19 @@ _kw_self-update()
 _kw_s() { _kw_ssh }
 _kw_ssh()
 {
+  local to=''
+
+  if ((words[(I)--send|--get])); then
+    to='--to[specify the destination path]: : '
+  fi
+
   _arguments : \
     '(--verbose)--verbose[enable verbose mode]' \
-    '(-r --remote)'{-r,--remote}'[explicitly tell which target machine to ssh into]: : ' \
-    '(-s --script -c --command)'{-s,--script}'[execute a bash command in the target machine]: : ' \
-    '(-c --command -s --script)'{-c,--command}'[execute a bash script in the target machine]: : '
+    '(-s --script -c --command --send --get)'{-s,--script}'[execute a bash command in the target machine]: : ' \
+    '(-c --command -s --script --send --get)'{-c,--command}'[execute a bash script in the target machine]: : ' \
+    '(-s --script -c --command --get)--send[send a file or directory to the remote machine]: : ' \
+    '(-s --script -c --command --send)--get[get a file or directory from the remote machine]: : ' \
+    $to
 }
 
 _kw_patch-hub()

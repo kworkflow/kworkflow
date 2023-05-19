@@ -9,6 +9,8 @@ SYNOPSIS
 | *kw* (*s* | *ssh*) [(-s | \--script) <script-path>] [\--verbose]
 | *kw* (*s* | *ssh*) [(-c | \--command) <string-command>] [\--verbose]
 | *kw* (*s* | *ssh*) [(-r | \--remote) <USER@IP:PORT | CONFIG_HOST_NAME>] [\--verbose]
+| *kw* (*s* | *ssh*) \--send <from-local-path> [\--to <to-remote-path>] [\--verbose]
+| *kw* (*s* | *ssh*) \--get <from-remote-path> [\--to <to-local-path>] [\--verbose]
 
 DESCRIPTION
 ===========
@@ -34,6 +36,18 @@ OPTIONS
   its progress. This functionality is very useful during the debugging process, allowing
   you to identify possible errors more easily.
 
+\--send <from-local-path> \--to <to-remote-path>:
+  Transfers a file or directory located in *<from-local-path>* to the remote destination
+  specified in *<remote-path>*. If the user does not supply the ``--to`` option, the file or
+  directory specified in *<from-local-path>* will be transferred to the user's home folder
+  on the remote destination.
+
+\--get <from-remote-path> \--to <to-local-path>:
+  Gets a file or directory from the specified remote path *<from-remote-path>* and saves
+  it to the local machine at the specified path *<to-local-path>*. When the user does not
+  specify the ``--to`` option, the default destination directory is automatically set
+  to the current directory where the user is located.
+
 EXAMPLES
 ========
 
@@ -44,3 +58,11 @@ After you start your VM you can ssh into it with::
 
   kw s -c "dmesg -wH"
   kw s
+
+If you want to send a file or directory to a remote machine::
+
+  kw s --send /path/to/file/or/folder --to /tmp/
+
+If you want to get a file or directory from a remote machine::
+
+  kw s --get /path/to/file/or/folder --to /path/to/save

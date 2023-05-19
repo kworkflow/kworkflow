@@ -35,7 +35,7 @@ function _kw_autocomplete()
   kw_options['diff']='--no-interactive'
   kw_options['df']="${kw_options['diff']}"
 
-  kw_options['ssh']='--remote --script --command --verbose --help'
+  kw_options['ssh']='--remote --script --command --verbose --help --send --get --to'
   kw_options['s']="${kw_options['ssh']}"
 
   kw_options['self-update']='--unstable --help --verbose'
