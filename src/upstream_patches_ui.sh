@@ -169,7 +169,7 @@ function show_bookmarked_series_details()
       for option in "${selected_options[@]}"; do
         case "$option" in
           'Unbookmark')
-            delete_series_from_local_storage "${series['download_dir_path']}" "${series['patch_title']}"
+            delete_series_from_local_storage "${series['download_dir_path']}" "${series['patch_url']}"
             if [[ "$?" != 0 ]]; then
               create_message_box 'Error' 'Could not delete patch(es)'$'\n'"- ${series['patch_title']}"
               continue
@@ -255,6 +255,7 @@ function show_series_details()
   local patch_metadata
   local raw_series
   local message_box
+  local output
 
   # TODO: Add apply patch
   action_list=('Bookmark' 'Download')
@@ -285,9 +286,9 @@ function show_series_details()
         case "$option" in
           'Bookmark')
             create_loading_screen_notification 'Bookmarking patch(es)'$'\n'"- ${series['patch_title']}"
-            download_series "${series['total_patches']}" "${series['patch_url']}" "${lore_config['download_to']}" "${series['patch_title']}"
+            output=$(download_series "${series['patch_url']}" "${lore_config['download_to']}")
             if [[ "$?" != 0 ]]; then
-              create_message_box 'Error' 'Could not download patch(es)'$'\n'"- ${series['patch_title']}"
+              create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${series['patch_title']}"$'\n'"[error message] ${output}"
               continue
             fi
             add_series_to_bookmark "${raw_series}" "${lore_config['download_to']}"
@@ -297,9 +298,9 @@ function show_series_details()
             ;;
           'Download')
             create_loading_screen_notification 'Downloading patch(es)'$'\n'"- ${series['patch_title']}"
-            download_series "${series['total_patches']}" "${series['patch_url']}" "${lore_config['download_to']}" "${series['patch_title']}"
+            output=$(download_series "${series['patch_url']}" "${lore_config['download_to']}")
             if [[ "$?" != 0 ]]; then
-              create_message_box 'Error' 'Could not download patch(es)'$'\n'"- ${series['patch_title']}"
+              create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${series['patch_title']}"$'\n'"[error message] ${output}"
             fi
             ;;
         esac

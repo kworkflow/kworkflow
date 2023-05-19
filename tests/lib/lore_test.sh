@@ -200,20 +200,20 @@ function test_extract_metadata_from_patch_title_rfc()
 function test_delete_series_from_local_storage()
 {
   local download_dir_path="${SHUNIT_TMPDIR}/some/dir"
-  local patch_title='drm/amdgpu: fix some Big problem in some_function'
+  local series_url='https://lore.kernel.org/some-list/message-id/'
   local flag='TEST_MODE'
   local output
   local expected
 
   mkdir -p "${download_dir_path}"
 
-  delete_series_from_local_storage "${download_dir_path}" "${patch_title}" "$flag"
+  delete_series_from_local_storage "${download_dir_path}" "${series_url}" "$flag"
   assertEquals "($LINENO) - Should return 2" 2 "$?"
 
-  touch "${download_dir_path}/0002-drm-amdgpu_fix_some_Big_problem_in_some_function.mbox"
-  output=$(delete_series_from_local_storage "${download_dir_path}" "${patch_title}" "$flag")
-  expected="rm ${download_dir_path}/0002-drm-amdgpu_fix_some_Big_problem_in_some_function.mbox"
-  assertEquals "($LINENO) - Should delete both files" "$expected" "$output"
+  touch "${download_dir_path}/message-id.mbx"
+  output=$(delete_series_from_local_storage "${download_dir_path}" "${series_url}" "$flag")
+  expected="rm ${download_dir_path}/message-id.mbx"
+  assert_equals_helper 'Should delete .mbx file' "$LINENO" "$expected" "$output"
 }
 
 function test_create_lore_bookmarked_file()
@@ -335,6 +335,52 @@ function test_is_boookmarked()
   fi
   is_bookmarked 'entry3'
   assertEquals "($LINENO) - Should return 2 (local bookmark database non-existent)" 2 "$?"
+}
+
+function test_download_series()
+{
+  local series_url='https://lore.kernel.org/some-list/1234567.789-1-email@email.com/'
+  local save_to="${SHUNIT_TMPDIR}/kw_download"
+  local flag='TEST_MODE'
+  local output
+  local expected
+
+  download_series '' '' "$flag" > /dev/null 2>&1
+  assert_equals_helper 'No arguments should return 22' "$LINENO" 22 "$?"
+
+  download_series "$series_url" '' "$flag" > /dev/null 2>&1
+  assert_equals_helper 'No output directory should return 22' "$LINENO" 22 "$?"
+
+  download_series '' "$save_to" "$flag" > /dev/null 2>&1
+  assert_equals_helper 'No series URL should return 22' "$LINENO" 22 "$?"
+
+  output=$(download_series 'http://url/with/http/' "$save_to" "$flag")
+  assertTrue "${LINENO} - Should replace 'http' for 'https'" "[[ '${output}' =~ 'https://url/with/http/' ]]"
+
+  output=$(download_series "$series_url" "$save_to" "$flag")
+  expected="mkdir --parents '${save_to}'"$'\n'
+  expected+="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '1234567.789-1-email@email.com.mbx'"
+  assert_equals_helper 'Wrong commands issued' "$LINENO" "$expected" "$output"
+}
+
+function test_extract_message_id_from_url()
+{
+  local output
+  local expected
+
+  extract_message_id_from_url
+  assert_equals_helper 'No URL should return 22' "$LINENO" 22 "$?"
+
+  extract_message_id_from_url ''
+  assert_equals_helper 'Empty URL should return 22' "$LINENO" 22 "$?"
+
+  output=$(extract_message_id_from_url 'https://lore.kernel.org/some-list/1234567.789-1-email@email.com/')
+  expected='1234567.789-1-email@email.com'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  output=$(extract_message_id_from_url 'https://lore.kernel.org/some-list/1234567.789-1-email@email.com/#T/#u')
+  expected='1234567.789-1-email@email.com'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
 invoke_shunit

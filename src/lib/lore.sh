@@ -411,112 +411,90 @@ function get_patches_from_mailing_list()
   done
 }
 
-function title_to_path()
-{
-  local title="$1"
-  local file_name
-
-  # Replace space in favor of _
-  file_name="${title// /_}"
-
-  # Replace .
-  file_name="${file_name//./_}"
-
-  # Replace special character
-  file_name="${file_name//[&*+%!:,]/}"
-
-  # Replace /
-  file_name="${file_name//[\/\\]/-}"
-
-  printf '%s' "$file_name"
-}
-
-function convert_title_to_patch_name()
-{
-  local title="$1"
-  local index="$2"
-  local file_name
-
-  file_name=$(title_to_path "$title")
-
-  if [[ -n "$index" ]]; then
-    printf '%04d-%s\n' "$index" "${file_name}.mbox"
-    return
-  fi
-
-  printf '%s\n' "${file_name}.mbox"
-}
-
-function url_update_patch_number()
-{
-  local url="$1"
-  local new_number="$2"
-
-  url="${url/-[0-9]*-/-$link_ref-}"
-
-  printf '%s' "$url"
-}
-
+# This function downloads a patch series in a .mbx format to a given directory
+# using a series URL. The series URL should be the concatenation of the lore URL, the
+# target mailing list, and the message ID. Below is an example of such a URL:
+#   https://lore.kernel.org/some-list/2367462342.4535535-1-email@email.com/
+# The output filename is '<message ID>.mbx'. This function uses the `b4` tool underneath
+# to delegate the process of fetching and downloading the series. The file generated is
+# ready to be applied into a git tree, containing just the patches in the right order,
+# without the cover letter.
+#
+# @series_url: The URL of the series
+# @save_to: Path to the target output directory
+# @flag: Flag to control function output
+#
+# Return:
+# Return 0 if the thread was successfully downloaded, 22 if the series URL or the output
+# directory passed as arguments is empty and the error code of `b4` in case it fails.
 function download_series()
 {
-  local total_patches="$1"
-  local first_message_id="$2"
-  local save_to="$3"
-  local title="$4"
-  local total=0
-  local link_ref=0
-  local url
-  local patch_file_name
+  local series_url="$1"
+  local save_to="$2"
+  local flag="$3"
+  local series_filename
+  local cmd
+  local ret
 
-  mkdir -p "$save_to"
+  flag=${flag:-'SILENT'}
 
-  url=$(replace_http_by_https "$first_message_id")
+  # Safety checking
+  if [[ -z "$series_url" || -z "$save_to" ]]; then
+    return 22 # EINVAL
+  fi
 
-  until ! is_the_link_valid "$url"; do
-    ((total++))
-    ((link_ref++))
+  # Create the output directory if it doesn't exists
+  cmd_manager "$flag" "mkdir --parents '${save_to}'"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Couldn't create directory in ${save_to}"
+    return "$ret"
+  fi
 
-    url=$(url_update_patch_number "$url" "$link_ref")
-    patch_file_name=$(convert_title_to_patch_name "$title" "$link_ref")
-    download "${url}raw" "$patch_file_name" "${save_to}" &
-  done
-  wait
+  # Although, by default, b4 uses the message-ID as the output name, we should assure it
+  series_filename=$(extract_message_id_from_url "$series_url")
+
+  # For safe-keeping, check the protocol used
+  series_url=$(replace_http_by_https "$series_url")
+
+  # Issue the command to download the series
+  cmd="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '${series_filename}.mbx'"
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" == 1 ]]; then
+    # Unfortunately, unknown message-ID and invalid outdir errors are the same (errno #1)
+    complain 'An error occurred during the execution of b4'
+    complain "b4 command: ${cmd}"
+  elif [[ "$ret" == 2 ]]; then
+    complain 'b4 unrecognized arguments'
+    complain "b4 command: ${cmd}"
+  fi
+
+  return "$ret"
 }
 
 # This function deletes a patch series from the local storage
 #
 # @download_dir_path: The path to the directory where the series was stored
-# @patch_title: The title of the patch
+# @series_url: The URL of the series
 # @flag: Flag to control function output
 #
 # Return:
-# Return 0 if there are files related to the patch to be deleted and 2 (ENOENT)
-# if there aren't.
+# Return 0 if the target file was found and deleted succesfully and 2 (ENOENT),
+# otherwise.
 function delete_series_from_local_storage()
 {
   local download_dir_path="$1"
-  local patch_title="$2"
+  local series_url="$2"
   local flag="$3"
-  local filename_pattern
-  local files_to_remove
-  local ret
+  local series_filename
 
   flag=${flag:-'SILENT'}
 
-  filename_pattern=$(convert_title_to_patch_name "$patch_title")
+  series_filename=$(extract_message_id_from_url "$series_url")
 
-  # Find doesn't return a non-zero status code when not matching any file.
-  # We use grep to work-around it.
-  files_to_remove=$(find "${download_dir_path}" -iname "*${filename_pattern}" | grep '.')
-  ret="$?"
-
-  if [[ "$ret" == 0 ]]; then
-    while IFS=' ' read -r file; do
-      is_safe_path_to_remove "$file"
-      if [[ "$?" == 0 ]]; then
-        cmd_manager "$flag" "rm ${file}"
-      fi
-    done <<< "${files_to_remove}"
+  if [[ -f "${download_dir_path}/${series_filename}.mbx" ]]; then
+    cmd_manager "$flag" "rm ${download_dir_path}/${series_filename}.mbx"
   else
     return 2 # ENOENT
   fi
@@ -708,4 +686,27 @@ function is_bookmarked()
   fi
 
   return 1
+}
+
+# Every patch series has a message-ID that identifies it in a given public
+# mailing list. This function extracts the message-ID of an URL passed as
+# arguments. The function assumes that the URL passed follows the pattern:
+#   https://lore.kernel.org/<public-mailing-list>/<message-ID>
+#
+# @series_url: The URL of the series
+#
+# Return:
+# Returns 22 (EINVAL) in case the URL passed as argument is empty and 0,
+# otherwise.
+function extract_message_id_from_url()
+{
+  local series_url="$1"
+  local message_id
+
+  if [[ -z "$series_url" ]]; then
+    return 22 # EINVAL
+  fi
+
+  message_id=$(printf '%s' "$series_url" | cut --delimiter '/' -f5)
+  printf '%s' "$message_id"
 }
