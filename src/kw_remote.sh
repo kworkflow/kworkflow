@@ -165,12 +165,6 @@ function add_new_remote()
   remote="${remote_parameters['REMOTE_USER']}@${remote_parameters['REMOTE_IP']}"
   remote+=":${remote_parameters['REMOTE_PORT']}"
 
-  # Check if user request to set this new entry a default
-  if [[ -z "$first_time" && -n ${options_values['DEFAULT_REMOTE']} ]]; then
-    options_values['DEFAULT_REMOTE']="$name"
-    set_default_remote
-  fi
-
   # Check if remote name already exists
   grep --line-regexp --quiet "^Host ${name}$" "$remote_config_file"
   if [[ "$?" == 0 ]]; then
@@ -188,6 +182,12 @@ function add_new_remote()
     printf '  Port %s\n' "${remote_parameters['REMOTE_PORT']}"
     printf '  User %s\n' "${remote_parameters['REMOTE_USER']}"
   } >> "$remote_config_file"
+
+  # Check if user request to set this new entry as default
+  if [[ -z "$first_time" && "${options_values['DEFAULT_REMOTE_USED']}" -eq 1 ]]; then
+    options_values['DEFAULT_REMOTE']="$name"
+    set_default_remote
+  fi
 }
 
 function set_default_remote()
@@ -324,8 +324,8 @@ function rename_remote()
 
 function parse_remote_options()
 {
-  local long_options='add,remove,rename,verbose,list,set-default,global::'
-  local short_options='v,s'
+  local long_options='add,remove,rename,verbose,list,set-default::,global::'
+  local short_options='v,s::'
   local default_option
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -343,6 +343,7 @@ function parse_remote_options()
   options_values['VERBOSE']=''
   options_values['PARAMETERS']=''
   options_values['DEFAULT_REMOTE']=''
+  options_values['DEFAULT_REMOTE_USED']=''
   options_values['LIST']=''
   options_values['GLOBAL']=''
 
@@ -381,8 +382,8 @@ function parse_remote_options()
       --set-default | -s)
         default_option="$(str_strip "$2")"
         # set-default can be used in combination with add
-        [[ -z "$default_option" ]] && default_option=1
-        options_values['DEFAULT_REMOTE']="$default_option"
+        [[ -n "$default_option" ]] && options_values['DEFAULT_REMOTE']="$default_option"
+        options_values['DEFAULT_REMOTE_USED']=1
         shift 2
         ;;
       --verbose | -v)

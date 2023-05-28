@@ -28,6 +28,8 @@ function setUp()
 
 function tearDown()
 {
+  options_values['DEFAULT_REMOTE']=''
+
   cd "${ORIGINAL_PATH}" || {
     fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
     return
@@ -87,7 +89,6 @@ function test_add_new_remote_with_no_config_file()
   mapfile -t final_result_array < "${BASE_PATH_KW}/remote.config"
 
   compare_array_values expected_result final_result_array "$LINENO"
-
 }
 
 function test_add_new_remote_multiple_different_instances()
@@ -155,6 +156,45 @@ function test_add_new_remote_multiple_entry_with_duplication()
 
   options_values['PARAMETERS']='arch-machine juca@la-debian'
   output=$(add_new_remote)
+
+  options_values['PARAMETERS']='arch-machine juca@la-debian'
+  output=$(add_new_remote)
+
+  mapfile -t final_result_array < "${BASE_PATH_KW}/remote.config"
+
+  compare_array_values expected_result final_result_array "$LINENO"
+}
+
+function test_add_new_multiple_remotes_and_use_set_default_option()
+{
+  local output
+  local final_result_array
+
+  declare -a expected_result=(
+    '#kw-default=debian-machine'
+    'Host origin'
+    '  Hostname test-debian'
+    '  Port 3333'
+    '  User root'
+    'Host debian-machine'
+    '  Hostname test-debian'
+    '  Port 22'
+    '  User root'
+    'Host arch-machine'
+    '  Hostname la-debian'
+    '  Port 22'
+    '  User juca'
+  )
+
+  options_values['PARAMETERS']='origin root@test-debian:3333'
+  output=$(add_new_remote)
+
+  options_values['DEFAULT_REMOTE_USED']=1
+  options_values['DEFAULT_REMOTE']='debian-machine'
+  options_values['PARAMETERS']='debian-machine root@test-debian'
+  output=$(add_new_remote)
+  options_values['DEFAULT_REMOTE']=''
+  options_values['DEFAULT_REMOTE_USED']=''
 
   options_values['PARAMETERS']='arch-machine juca@la-debian'
   output=$(add_new_remote)
@@ -424,9 +464,8 @@ function test_set_default_remote_we_already_have_the_default_remote()
 
 function test_parse_remote_options()
 {
-
   # Add option
-  parse_remote_options add origin root@la:3333
+  parse_remote_options add origin 'root@la:3333'
   assert_equals_helper 'Request add' "($LINENO)" "${options_values['ADD']}" 1
   assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin root@la:3333 '
 
