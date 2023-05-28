@@ -14,16 +14,18 @@ declare -gA options_values
 #   attempt to execute a command or script on the remote host.
 function kw_ssh_main()
 {
+  local flag="$1"
   local port
   local script_path
   local cmd
   local ssh_cmd
-  local flag
   local user
   local remote
   local remote_file
   local remote_file_host
   local ssh_compose='ssh'
+
+  flag=${flag:-'SILENT'}
 
   parser_ssh_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -39,7 +41,8 @@ function kw_ssh_main()
 
   script_path=${options_values['SCRIPT']}
   cmd=${options_values['CMD']}
-  flag=${options_values['VERBOSE']}
+
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
   is_ssh_connection_configured "$flag"
   if [[ "$?" != 0 ]]; then
@@ -48,17 +51,17 @@ function kw_ssh_main()
   fi
 
   if [[ -n "$cmd" ]]; then
-    run_command_in_the_remote
+    run_command_in_the_remote "$flag"
     return "$?"
   fi
 
   if [[ -n "$script_path" ]]; then
-    run_script_in_the_remote
+    run_script_in_the_remote "$flag"
     return "$?"
   fi
 
   # Just ssh into the remote
-  ssh_remote
+  ssh_remote "$flag"
   return "$?"
 }
 
@@ -72,14 +75,13 @@ function handle_ssh()
   local remote_file_host
   local flag
 
+  flag=${flag:-'SILENT'}
+
   user="${remote_parameters['REMOTE_USER']}"
   remote="${remote_parameters['REMOTE_IP']}"
   port="${remote_parameters['REMOTE_PORT']}"
   remote_file="${remote_parameters['REMOTE_FILE']}"
   remote_file_host="${remote_parameters['REMOTE_FILE_HOST']}"
-  flag=${options_values['VERBOSE']}
-
-  [[ -z "$flag" ]] && ssh_compose+=' -v'
 
   # Add port
   [[ -n "$port" ]] && port="-p ${port}"
@@ -97,11 +99,12 @@ function handle_ssh()
 function run_command_in_the_remote()
 {
   local cmd
-  local flag
+  local flag="$1"
   local ssh_compose
 
+  flag=${flag:-'SILENT'}
+
   cmd=${options_values['CMD']}
-  flag=${options_values['VERBOSE']}
 
   ssh_compose=$(handle_ssh)
   ssh_compose+=" $cmd"
@@ -114,9 +117,9 @@ function run_script_in_the_remote()
   local script_path
   local ssh_compose
   local ssh_script
-  local flag
+  local flag="$1"
 
-  flag=${options_values['VERBOSE']}
+  flag=${flag:-'SILENT'}
 
   script_path=${options_values['SCRIPT']}
   if [[ ! -f "$script_path" ]]; then
@@ -134,9 +137,9 @@ function run_script_in_the_remote()
 function ssh_remote()
 {
   local ssh_compose
-  local flag
+  local flag="$1"
 
-  flag=${options_values['VERBOSE']}
+  flag=${flag:-'SILENT'}
 
   ssh_compose=$(handle_ssh)
 
@@ -147,7 +150,7 @@ function parser_ssh_options()
 {
   local options
   local long_options='help,test_mode,script:,command:,remote:,verbose'
-  local short_options='h,s:,c:,r:,v'
+  local short_options='h,s:,c:,r:'
   local transition_variables
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -159,7 +162,8 @@ function parser_ssh_options()
 
   options_values['SCRIPT']=''
   options_values['COMMAND']=''
-  options_values['VERBOSE']='SILENT'
+  options_values['VERBOSE']=''
+  options_values['TEST_MODE']=''
 
   populate_remote_info ''
   if [[ "$?" == 22 ]]; then
@@ -186,16 +190,16 @@ function parser_ssh_options()
         options_values['CMD']+="$2"
         shift 2
         ;;
-      --verbose | -v)
-        options_values['VERBOSE']=''
+      --verbose)
+        options_values['VERBOSE']=1
         shift
         ;;
       --help | -h)
         ssh_help "$1"
         exit
         ;;
-      test_mode)
-        options_values['VERBOSE']='TEST_MODE'
+      TEST_MODE)
+        options_values['TEST_MODE']='TEST_MODE'
         shift
         ;;
       --) # End of options, beginning of arguments
@@ -218,7 +222,7 @@ function ssh_help()
   fi
   printf '%s\n' 'kw ssh:' \
     '  ssh - ssh support under kw' \
-    '  ssh (-v | --verbose) - enable verbose for ssh operation' \
+    '  ssh (--verbose) - enable verbose for ssh operation' \
     '  ssh (-r | --remote) - ssh command line remote' \
     '  ssh (-s | --script) <script-path> - Script path in the host that will run in the target' \
     '  ssh (-c | --command) <string-command> - Command to be executed in the target machine'

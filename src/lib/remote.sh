@@ -23,15 +23,21 @@ function is_ssh_connection_configured()
   local user=${4:-${remote_parameters['REMOTE_USER']}}
   local remote_file=${5:-${remote_parameters[REMOTE_FILE]}}
   local remote_file_host=${5:-${remote_parameters[REMOTE_FILE_HOST]}}
-  local ssh_cmd="ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p $port $user@$remote exit"
+  local ssh_cmd='ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5'
 
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
     if [[ -n "${remote_file}" ]]; then
-      ssh_cmd="ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${remote_file} ${remote_file_host} exit"
+      ssh_cmd+=" -F ${remote_file} ${remote_file_host}"
     else
       return 2 # ENOENT
     fi
+  else
+    ssh_cmd+=" -p ${port} ${user}@${remote}"
   fi
+
+  [[ "$flag" == 'VERBOSE' ]] && ssh_cmd+=' -v'
+
+  ssh_cmd+=' exit'
 
   cmd_manager "$flag" "$ssh_cmd"
 }
