@@ -456,6 +456,7 @@ _kw_s() { _kw_ssh }
 _kw_ssh()
 {
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-r --remote)'{-r,--remote}'[explicitly tell which target machine to ssh into]: : ' \
     '(-s --script -c --command)'{-s,--script}'[execute a bash command in the target machine]: : ' \
     '(-c --command -s --script)'{-c,--command}'[execute a bash script in the target machine]: : '
