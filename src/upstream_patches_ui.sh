@@ -63,6 +63,10 @@ upstream_patches_ui_main()
         show_bookmarked_patches
         ret="$?"
         ;;
+      'settings')
+        show_settings_screen
+        ret="$?"
+        ;;
       'show_series_details')
         show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}" list_of_mailinglist_patches
         ret="$?"
@@ -87,8 +91,7 @@ function dashboard_entry_menu()
   local message_box
   local ret
 
-  # TODO: Get list from liblore
-  menu_list_string_array=('Registered mailing list' 'Bookmarked patches')
+  menu_list_string_array=('Registered mailing list' 'Bookmarked patches' 'Settings')
 
   message_box=''
 
@@ -105,6 +108,9 @@ function dashboard_entry_menu()
       ;;
     2) # Bookmarked patches
       screen_sequence['SHOW_SCREEN']='bookmarked_patches'
+      ;;
+    3) # Settings
+      screen_sequence['SHOW_SCREEN']='settings'
       ;;
   esac
 }
@@ -189,6 +195,33 @@ function show_bookmarked_series_details()
     3) # Return
       screen_sequence['SHOW_SCREEN']='bookmarked_patches'
       screen_sequence['RETURNING']=1
+      ;;
+  esac
+}
+
+# Screen that shows all types of settings available.
+function show_settings_screen()
+{
+  local -a menu_list_string_array
+  local ret
+
+  menu_list_string_array=('Register/Unregister Mailing Lists')
+  create_menu_options 'Settings' '' 'menu_list_string_array' 1
+  ret="$?"
+
+  case "$ret" in
+    0) # OK
+      case "$menu_return_string" in
+        1) # Register/Unregister Mailing Lists
+          screen_sequence['SHOW_SCREEN']='register'
+          ;;
+      esac
+      ;;
+    1) # Exit
+      handle_exit "$ret"
+      ;;
+    3) # Return
+      screen_sequence['SHOW_SCREEN']='dashboard'
       ;;
   esac
 }
