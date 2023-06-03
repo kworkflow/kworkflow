@@ -32,6 +32,7 @@ function build_kernel_main()
   local env_name
   local clean
   local output_kbuild_flag=''
+  local cflags
 
   parse_build_options "$@"
 
@@ -57,6 +58,7 @@ function build_kernel_main()
   llvm=${options_values['USE_LLVM_TOOLCHAIN']}
   clean=${options_values['CLEAN']}
   full_cleanup=${options_values['FULL_CLEANUP']}
+  cflags=${options_values['CFLAGS']}
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
   flag=${flag:-'SILENT'}
@@ -122,7 +124,12 @@ function build_kernel_main()
     return "$?"
   fi
 
-  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_kbuild_flag}${output_path}"
+  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}"
+
+  if [[ -n "$cflags" ]]; then
+    command+=" KCFLAGS=${cflags}"
+  fi
+  command+="${output_kbuild_flag}${output_path}"
 
   # Let's avoid menu question by default
   cmd_manager "$flag" "make -j ${llvm}ARCH=${platform_ops} --silent olddefconfig${output_kbuild_flag}"
@@ -286,7 +293,7 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags'
   local short_options='h,i,n,d,S:,w::,s:,c,f'
   local doc_type
   local file_name_size
@@ -315,6 +322,7 @@ function parse_build_options()
   options_values['CLEAN']=''
   options_values['FULL_CLEANUP']=''
   options_values['VERBOSE']=''
+  options_values['CFLAGS']="${build_config[cflags]}"
 
   # Check llvm option
   if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
@@ -364,6 +372,10 @@ function parse_build_options()
       --full-cleanup | -f)
         options_values['FULL_CLEANUP']=1
         shift
+        ;;
+      --cflags)
+        options_values['CFLAGS']="$2"
+        shift 2
         ;;
       --verbose)
         options_values['VERBOSE']=1
@@ -425,8 +437,8 @@ function build_help()
     '  build (--llvm) - Enable use of the LLVM toolchain' \
     '  build (-c | --clean) - Clean option integrated into env' \
     '  build (-f | --full-cleanup) - Reset the kernel tree to its default option integrated into env' \
+    '  build (--cflags) - Customize kernel compilation with specific flags' \
     '  build (--verbose) - Show a detailed output'
-
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well
