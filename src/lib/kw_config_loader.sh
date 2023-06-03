@@ -187,6 +187,7 @@ function show_build_variables()
     [cross_compile]='Cross-compile name'
     [menu_config]='Kernel menu config'
     [doc_type]='Command to generate kernel-doc'
+    [cflags]='Specify compilation flags'
   )
 
   printf '%s\n' "  Kernel build options:"

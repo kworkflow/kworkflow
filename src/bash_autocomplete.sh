@@ -21,7 +21,7 @@ function _kw_autocomplete()
   kw_options['init']='--arch --remote --target --force --template --verbose'
 
   kw_options['build']='--help --info --menu --cpu-scaling --ccache --llvm --clean
-                       --full-cleanup --verbose --doc --warnings --save-log-to'
+                       --full-cleanup --verbose --doc --warnings --save-log-to --cflags'
 
   kw_options['b']="${kw_options['build']}"
 

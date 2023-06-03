@@ -8,7 +8,7 @@ declare -gA config_file_list=(
   ['vm']='virtualizer mount_point qemu_hw_options qemu_net_options
           qemu_path_image'
   ['build']='arch kernel_img_name cross_compile menu_config doc_type
-             cpu_scaling_factor enable_ccache warning_level use_llvm'
+             cpu_scaling_factor enable_ccache warning_level use_llvm cflags'
   ['mail']='send_opts blocked_emails'
   ['deploy']='kw_files_remote_path deploy_temporary_files_path
               deploy_default_compression dtb_copy_pattern default_deploy_target
