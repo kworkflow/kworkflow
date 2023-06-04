@@ -373,6 +373,79 @@ function create_directory_selection_screen()
   return "$ret"
 }
 
+# Create a screen with a list of choices.
+#
+# @box_title: Title of the box
+# @message_box: The message to be displayed
+# @_choices: Associative array reference containing all the
+#   `<choice><choice_description>` pairs to be displayd
+# @_check_statuses: An array reference containing all the statuses of the checks
+#   (if they are on/off).
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 0 if the 'OK' button is pressed and 1 if the 'Cancel' button is pressed.
+# The key of the chosen pair (i.e. the `<choice>`) is returned via the
+# `menu_return_string` variable.
+function create_choice_list_screen()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local -n _choices="$3"
+  local -n _check_statuses="$4"
+  local height="$5"
+  local width="$6"
+  local flag="$7"
+  local choice_description
+  local index=0
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+  height=${height:-$DEFAULT_HEIGHT}
+  width=${width:-$DEFAULT_WIDTH}
+  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+
+  # Escape all single quotes to avoid breaking arguments
+  back_title=$(str_escape_single_quotes "$back_title")
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+
+  # Add layout to dialog
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  # Add general information to the dialog box
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  # Add radiolist screen
+  cmd+=" --radiolist $'${message_box}'"
+  # Set height and width
+  cmd+=" '${height}' '${width}' '0'"
+  # Add choices (${choices["${choice}"]} refers to the choice's description)
+  for choice in "${!_choices[@]}"; do
+    choice_description=$(str_escape_single_quotes "${_choices["${choice}"]}")
+    choice=$(str_escape_single_quotes "$choice")
+    if [[ "${_check_statuses["$index"]}" == 1 ]]; then
+      cmd+=" $'${choice}' $'${choice_description}' 'on'"
+    else
+      cmd+=" $'${choice}' $'${choice_description}' 'off'"
+    fi
+    ((index++))
+  done
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 # Creates a help message box for a dialog's screen. There must be a file
 # that follows the pattern of `load_module_text`, for reference see `src/kwio.sh`.
 #
