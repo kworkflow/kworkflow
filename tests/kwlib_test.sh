@@ -78,6 +78,21 @@ function teardownDatabase()
   fi
 }
 
+function setupGitRepository()
+{
+  declare -gr PATH_TO_GIT_REPOSITORY="${SHUNIT_TMPDIR}/git_repository"
+  mkdir -p "$PATH_TO_GIT_REPOSITORY"
+  git -C "$PATH_TO_GIT_REPOSITORY" init --initial-branch='master' --quiet
+}
+
+function teardownGitRepository()
+{
+  is_safe_path_to_remove "$PATH_TO_GIT_REPOSITORY"
+  if [[ "$?" == 0 ]]; then
+    rm -rf "$PATH_TO_GIT_REPOSITORY"
+  fi
+}
+
 function test_is_kernel_root()
 {
   is_kernel_root "$SHUNIT_TMPDIR"
@@ -897,6 +912,38 @@ function test_is_safe_path_to_remove()
     fail "($LINENO): It was not possible to move back to original directory"
     return
   }
+}
+
+function test_get_git_repository_branches()
+{
+  declare -A branches
+
+  setupGitRepository
+
+  # Prepare git repository
+  git -C "$PATH_TO_GIT_REPOSITORY" commit --allow-empty --message='commit_subject1' --quiet
+  git -C "$PATH_TO_GIT_REPOSITORY" checkout -b 'not_master' --quiet
+  git -C "$PATH_TO_GIT_REPOSITORY" commit --allow-empty --message='commit_subject2' --quiet
+  git -C "$PATH_TO_GIT_REPOSITORY" checkout -b 'main' --quiet
+  git -C "$PATH_TO_GIT_REPOSITORY" checkout -b 'not_main' --quiet
+  git -C "$PATH_TO_GIT_REPOSITORY" commit --allow-empty --message='commit_subject3' --quiet
+
+  # Test setting of 'branches'
+  get_git_repository_branches "$PATH_TO_GIT_REPOSITORY" 'branches'
+  assert_equals_helper 'Wrong value for "master" key' "$LINENO" 'commit_subject1' "${branches['master']}"
+  assert_equals_helper 'Wrong value for "not_master" key' "$LINENO" 'commit_subject2' "${branches['not_master']}"
+  assert_equals_helper 'Wrong value for "main" key' "$LINENO" 'commit_subject2' "${branches['main']}"
+  assert_equals_helper 'Wrong value for "not_main" key' "$LINENO" 'commit_subject3' "${branches['not_main']}"
+
+  # Delete a branch
+  git -C "$PATH_TO_GIT_REPOSITORY" switch master --quiet
+  git -C "$PATH_TO_GIT_REPOSITORY" branch -D not_master --quiet
+
+  # Test unsetting of 'branches'
+  get_git_repository_branches "$PATH_TO_GIT_REPOSITORY" 'branches'
+  assert_equals_helper 'Branch "not_master" was deleted and should not be set' "$LINENO" '' "${branches['not_master']}"
+
+  teardownGitRepository
 }
 
 invoke_shunit

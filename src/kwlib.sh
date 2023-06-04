@@ -677,3 +677,43 @@ function is_safe_path_to_remove()
 
   return 0
 }
+
+# This function gets the local branches of a given git repository. The data is transmitted
+# using an associative array reference passed as argument. Each key-value pair of the
+# array is like:
+#  `array_reference[<name_of_branch>]='<HEAD_commit_subject>'`
+#
+# @git_repository_path: Path to a git repository
+# @_branches: Associative array reference where data will be trasmitted
+# @flag Flag to control function output
+#
+# Return:
+# Returns data regarding the repository branches through the array reference passed as
+# argument.
+function get_git_repository_branches()
+{
+  local git_repository_path="$1"
+  local -n _branches="$2"
+  local flag="$3"
+  local output
+  local branch
+  local branch_metadata
+
+  flag=${flag:-'SILENT'}
+
+  output=$(cmd_manager "$flag" "git -C ${git_repository_path} branch --verbose")
+  # Clean output by removing asterisks and withespaces in the beginning of each line
+  output=$(printf '%s' "$output" | sed 's/\*//g')
+  output=$(printf '%s' "$output" | sed 's/^[ \t]*//g')
+
+  # Resetting associative array reference to prevent false branches
+  _branches=()
+
+  while IFS=$'\n' read -r line; do
+    # Format of "$line": '<branch_name><whitespaces><HEAD_commit_SHA> <HEAD_commit_subject>'
+    branch=$(printf '%s' "$line" | cut --delimiter=' ' -f1)
+    # Below we are: 1) cutting the branch name; 2) removing any whitespace in the beginning; 3) cutting the commit SHA
+    branch_metadata=$(printf '%s' "$line" | cut --delimiter=' ' -f2- | sed 's/^[ \t]*//' | cut --delimiter=' ' -f2-)
+    _branches["$branch"]="$branch_metadata"
+  done <<< "$output"
+}

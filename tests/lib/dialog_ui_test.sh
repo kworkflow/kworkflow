@@ -231,6 +231,42 @@ function test_create_help_screen()
   assert_equals_helper 'Wrong help screen for Directory Selection' "$LINENO" "$expected_cmd" "$output"
 }
 
+function test_create_choice_list_screen_rely_on_some_default_options()
+{
+  local box_title="Make 'a' choice!"
+  local message_box="Select \`one' of the below options."
+  declare -A choices=(['choice1']='good choice' ['choice2']='bad choice' ['choice3']='a choice is a choice')
+  local -a check_statuses=('' 1 '')
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd+=" --title $'Make \'a\' choice!' --clear --colors"
+  expected_cmd+=" --radiolist $'Select \`one\' of the below options.'"
+  expected_cmd+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
+  expected_cmd+=" $'choice1' $'${choices['choice1']}' 'off' $'choice2' $'${choices['choice2']}' 'on' $'choice3' $'${choices['choice3']}' 'off'"
+  output=$(create_choice_list_screen "$box_title" "$message_box" 'choices' 'check_statuses' '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected choice list with some default options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_choice_list_screen_use_all_options()
+{
+  local box_title="Make 'a' choice!"
+  local message_box="Select \`one' of the below options."
+  declare -A choices=(['choice1']='good choice' ['choice2']='bad choice' ['choice3']='a choice is a choice')
+  local -a check_statuses=('' 1 '')
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd+=" --title $'Make \'a\' choice!' --clear --colors"
+  expected_cmd+=" --radiolist $'Select \`one\' of the below options.'"
+  expected_cmd+=" '17041998' '10300507' '0'"
+  expected_cmd+=" $'choice1' $'${choices['choice1']}' 'off' $'choice2' $'${choices['choice2']}' 'on' $'choice3' $'${choices['choice3']}' 'off'"
+  output=$(create_choice_list_screen "$box_title" "$message_box" 'choices' 'check_statuses' '17041998' '10300507' 'TEST_MODE')
+  assert_equals_helper 'Expected choice list with all custom options' "$LINENO" "$expected_cmd" "$output"
+}
+
 function test_prettify_string_failures()
 {
   prettify_string
