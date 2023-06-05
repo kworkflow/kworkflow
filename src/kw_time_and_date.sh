@@ -1,4 +1,4 @@
-include "${KW_LIB_DIR}/kw_string.sh"
+include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/kwio.sh"
 
 # Returns the value of time as an integer number of seconds since the Epoch.

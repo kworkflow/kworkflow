@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/kw_string.sh'
+include './src/lib/kw_string.sh'
 include './tests/utils.sh'
 
 function test_chop()
