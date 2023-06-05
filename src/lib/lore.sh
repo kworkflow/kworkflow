@@ -3,7 +3,7 @@
 # sent to the public mailing lists.
 
 include "${KW_LIB_DIR}/kwlib.sh"
-include "${KW_LIB_DIR}/kw_string.sh"
+include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/web.sh"
 
 # Lore base URL
