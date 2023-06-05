@@ -3,6 +3,7 @@
 # dialog tool.
 
 include "${KW_LIB_DIR}/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kw_string.sh"
 
 declare -gr KW_UPSTREAM_TITLE='kw upstream patches manager'
 
@@ -77,15 +78,21 @@ function create_menu_options()
   max_elements_displayed_in_the_menu=${max_elements_displayed_in_the_menu:-'0'}
   back_title=${back_title:-$KW_UPSTREAM_TITLE}
 
+  # Escape all single quotes to avoid breaking arguments
+  back_title=$(str_escape_single_quotes "$back_title")
+  menu_title=$(str_escape_single_quotes "$menu_title")
+  cancel_label=$(str_escape_single_quotes "$cancel_label")
+  menu_message_box=$(str_escape_single_quotes "$menu_message_box")
+
   # Start to compose menu
   if [[ -n "$DIALOG_LAYOUT" ]]; then
     cmd="DIALOGRC=${DIALOG_LAYOUT} "
   fi
 
-  cmd+="dialog --backtitle \$'${back_title}' --title \$'${menu_title}' --clear --colors"
+  cmd+="dialog --backtitle $'${back_title}' --title $'${menu_title}' --clear --colors"
 
   # Change cancel label
-  cmd+=" --cancel-label \$'${cancel_label}'"
+  cmd+=" --cancel-label $'${cancel_label}'"
 
   # Add extra button?
   if [[ -n "$back_button_label" ]]; then
@@ -93,18 +100,20 @@ function create_menu_options()
   fi
 
   # Menu option
-  cmd+=" --menu $\"${menu_message_box}\""
+  cmd+=" --menu $'${menu_message_box}'"
 
   # Set height, width, and max display itens
   cmd+=" '${height}' '${width}' '${max_elements_displayed_in_the_menu}'"
 
   for item in "${_menu_list_string_array[@]}"; do
+    item=$(str_escape_single_quotes "$item")
+
     if [[ -n "$no_index" ]]; then
-      cmd+=" $\"${item}\" ''"
+      cmd+=" $'${item}' ''"
       continue
     fi
 
-    cmd+=" '${index}' $\"${item}\""
+    cmd+=" '${index}' $'${item}'"
     ((index++))
   done
 
@@ -156,15 +165,21 @@ function create_simple_checklist()
   cancel_label=${cancel_label:-'Exit'}
   back_title=${back_title:-$KW_UPSTREAM_TITLE}
 
+  # Escape all single quotes to avoid breaking arguments
+  back_title=$(str_escape_single_quotes "$back_title")
+  menu_title=$(str_escape_single_quotes "$menu_title")
+  cancel_label=$(str_escape_single_quotes "$cancel_label")
+  menu_message_box=$(str_escape_single_quotes "$menu_message_box")
+
   # Start to compose menu
   if [[ -n "$DIALOG_LAYOUT" ]]; then
     cmd="DIALOGRC=${DIALOG_LAYOUT} "
   fi
 
-  cmd+="dialog --backtitle \$'${back_title}' --title \$'${menu_title}' --clear --colors"
+  cmd+="dialog --backtitle $'${back_title}' --title $'${menu_title}' --clear --colors"
 
   # Change cancel label
-  cmd+=" --cancel-label \$'${cancel_label}'"
+  cmd+=" --cancel-label $'${cancel_label}'"
 
   # Add extra button?
   if [[ -n "$back_button_label" ]]; then
@@ -172,16 +187,17 @@ function create_simple_checklist()
   fi
 
   # Start to compose menu
-  cmd+=" --checklist $\"${menu_message_box}\""
+  cmd+=" --checklist $'${menu_message_box}'"
 
   # Set height, width, and max display itens
   cmd+=" '${height}' '${width}' '${list_height}'"
 
   for item in "${_menu_list_string_array[@]}"; do
+    item=$(str_escape_single_quotes "$item")
     if [[ -n "${_check_statuses}" && -n ${_check_statuses["$index"]} ]]; then
-      cmd+=" '${item}' '' 'on'"
+      cmd+=" $'${item}' '' 'on'"
     else
-      cmd+=" '${item}' '' 'off'"
+      cmd+=" $'${item}' '' 'off'"
     fi
     ((index++))
   done
@@ -231,7 +247,9 @@ function create_loading_screen_notification()
 
   # Start infobox
   # TODO: if possible, we should try using a progress bar/gauge
-  cmd+=" --infobox \$'${loading_message}'"
+  # Escape all single quotes to avoid breaking arguments
+  loading_message=$(str_escape_single_quotes "$loading_message")
+  cmd+=" --infobox $'${loading_message}'"
 
   # Set height and width
   cmd+=" '${height}' '${width}'"
@@ -274,14 +292,19 @@ function create_message_box()
   width=${width:-'40'}
   back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
 
+  # Escape all single quotes to avoid breaking arguments
+  back_title=$(str_escape_single_quotes "$back_title")
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+
   # Add layout to dialog
   if [[ -n "$DIALOG_LAYOUT" ]]; then
     cmd="DIALOGRC=${DIALOG_LAYOUT}"
   fi
 
-  cmd+=" dialog --backtitle \$'${back_title}' --title \$'${box_title}' --clear --colors"
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
 
-  cmd+=" --msgbox \$'${message_box}'"
+  cmd+=" --msgbox $'${message_box}'"
 
   # Set height and width
   cmd+=" '${height}' '${width}'"
