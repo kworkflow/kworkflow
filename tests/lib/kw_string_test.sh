@@ -344,4 +344,27 @@ function test_str_get_value_under_double_quotes()
 
 }
 
+function test_str_escape_single_quotes()
+{
+  local output
+  local expected
+
+  str_escape_single_quotes
+  assert_equals_helper 'Empty string should result in an error' "$LINENO" 22 "$?"
+
+  output=$(str_escape_single_quotes 'Please, do NOT escape me')
+  expected='Please, do NOT escape me'
+  assert_equals_helper 'Should not alter string without single quote' "$LINENO" "$expected" "$output"
+
+  output=$(str_escape_single_quotes 'I'"'"'m a setence with a single quote')
+  # shellcheck disable=SC1003
+  expected='I\'"'"'m a setence with a single quote'
+  assert_equals_helper 'Did not escape the single quote' "$LINENO" "$expected" "$output"
+
+  output=$(str_escape_single_quotes 'I'"'"'m, you'"'"'re, we'"'"'re and they'"'"'re')
+  # shellcheck disable=SC1003
+  expected='I\'"'"'m, you\'"'"'re, we\'"'"'re and they\'"'"'re'
+  assert_equals_helper 'Did not escape all the single quotes' "$LINENO" "$expected" "$output"
+}
+
 invoke_shunit

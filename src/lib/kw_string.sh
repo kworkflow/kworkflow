@@ -226,3 +226,22 @@ function str_get_value_under_double_quotes()
   printf '%s' "$string" | sed 's/^[^"]*"\([^"]*\)".*/\1/'
   return "$?"
 }
+
+# Escape (i.e. adds a '\' before) all single quotes. This is useful when we want
+# to make sure that a single quote `'` is interpreted as a literal in character
+# sequences like $'<string>'. For reference, see section 3.1.2.4 of
+# https://www.gnu.org/software/bash/manual/bash.html#Shell-Syntax.
+#
+# @string: String to be processed
+#
+# Return:
+# Returns the string with all single quotes escaped, if any, or 22 (EINVAL) if
+# the string is empty.
+function str_escape_single_quotes()
+{
+  local string="$1"
+
+  [[ -z "$string" ]] && return 22 # EINVAL
+
+  printf '%s' "$string" | sed "s/'/\\\'/g"
+}
