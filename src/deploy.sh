@@ -26,6 +26,7 @@ include "$KW_LIB_DIR/signal_manager.sh"
 # on the host that will be used for centralizing files required for the new
 # deploy.
 REMOTE_KW_DEPLOY='/opt/kw'
+KW_STATUS_BASE_PATH='/boot'
 KW_DEPLOY_TMP_FILE='/tmp/kw'
 REMOTE_INTERACE_CMD_PREFIX="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
 
@@ -372,7 +373,7 @@ function update_status_log()
   flag=${flag:-'SILENT'}
 
   log_date=$(date +'%m/%d/%Y-%H:%M:%S')
-  status_cmd="printf '%s;%s\n' '$target' '$log_date' >> $REMOTE_KW_DEPLOY/status"
+  status_cmd="printf '%s;%s\n' '$target' '$log_date' >> ${KW_STATUS_BASE_PATH}/kw_status"
 
   case "$target" in
     2) # LOCAL_TARGET
@@ -399,7 +400,7 @@ function check_setup_status()
 {
   local target="$1"
   local flag="$2"
-  local cmd="test -f $REMOTE_KW_DEPLOY/status"
+  local cmd="test -f ${KW_STATUS_BASE_PATH}/kw_status"
   local ret
 
   flag=${flag:-'SILENT'}
