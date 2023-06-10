@@ -22,6 +22,7 @@ function setUp()
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export KW_PLUGINS_DIR="$PWD/src/plugins"
   export REMOTE_KW_DEPLOY='/opt/kw'
+  export KW_STATUS_BASE_PATH="$SHUNIT_TMPDIR"
 
   KW_LIB_DIR="$PWD/$SAMPLES_DIR"
 
@@ -336,15 +337,14 @@ function test_update_status_log()
 
   # Remote
   log_date=$(date)
-  cmd="\"printf '%s;%s\n' '3' '$log_date' >> $REMOTE_KW_DEPLOY/status\""
+  cmd="\"printf '%s;%s\n' '3' '$log_date' >> ${KW_STATUS_BASE_PATH}/kw_status\""
   output=$(update_status_log 3 'TEST_MODE')
 
   assert_equals_helper 'Status file remote' "$LINENO" "$ssh_prefix $cmd" "$output"
 
   # Local
-  REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR"
   update_status_log 2
-  output=$(cat "$SHUNIT_TMPDIR/status")
+  output=$(cat "$SHUNIT_TMPDIR/kw_status")
   expected_data='2;12/31/2021-09:49:21'
 
   assert_equals_helper 'Status file data' "$LINENO" "$expected_data" "$output"
@@ -354,7 +354,7 @@ function test_check_setup_status()
 {
   local output
   local expected_cmd
-  local cmd_check="test -f $REMOTE_KW_DEPLOY/status"
+  local cmd_check="test -f ${KW_STATUS_BASE_PATH}/kw_status"
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
 
   # Remote
@@ -370,7 +370,7 @@ function test_check_setup_status()
   assert_equals_helper 'Wrong return value' "($LINENO)" 2 "$?"
 
   # 2. Success case
-  touch "$REMOTE_KW_DEPLOY/status"
+  touch "${KW_STATUS_BASE_PATH}/kw_status"
   check_setup_status 2
   assert_equals_helper 'Wrong return value' "($LINENO)" 0 "$?"
 }
