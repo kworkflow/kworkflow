@@ -710,3 +710,25 @@ function extract_message_id_from_url()
   message_id=$(printf '%s' "$series_url" | cut --delimiter '/' -f5)
   printf '%s' "$message_id"
 }
+
+# This function sets a configuration in a 'lore.config' file.
+#
+# @setting: Name of the setting to be updated
+# @new_value: New value to be set
+# @lore_config_path: Path to the target 'lore.config' file
+#
+# Return:
+# Returns 2 (ENOENT) if `@lore_config_path` doesn't exist and 0, otherwise.
+function save_new_lore_config()
+{
+  local setting="$1"
+  local new_value="$2"
+  local lore_config_path="$3"
+
+  if [[ ! -f "$lore_config_path" ]]; then
+    complain "${lore_config_path}: file doesn't exists"
+    return 2 # ENOENT
+  fi
+
+  sed --in-place --regexp-extended "s<(${setting}=).*<\1${new_value}<" "$lore_config_path"
+}
