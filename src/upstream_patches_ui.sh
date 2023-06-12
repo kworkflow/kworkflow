@@ -14,7 +14,7 @@ declare -ga patches_from_mailing_list
 declare -ga bookmarked_series
 
 declare -gA screen_sequence=(
-  ['SHOW_SCREEN']='register'
+  ['SHOW_SCREEN']='manage_mailing_lists'
   ['SHOW_SCREEN_PARAMETER']=''
   ['RETURNING']=''
 )
@@ -41,9 +41,8 @@ upstream_patches_ui_main()
   # Main loop
   while true; do
     case "${screen_sequence['SHOW_SCREEN']}" in
-      'register')
-        # First time here? Let's register some public mailing list
-        register_mailing_list 'SILENT'
+      'manage_mailing_lists')
+        show_mailing_lists_screen
         ret="$?"
         ;;
       'dashboard')
@@ -220,7 +219,7 @@ function show_settings_screen()
     0) # OK
       case "$menu_return_string" in
         1) # Register/Unregister Mailing Lists
-          screen_sequence['SHOW_SCREEN']='register'
+          screen_sequence['SHOW_SCREEN']='manage_mailing_lists'
           ;;
         2) # Save Patches To
           create_directory_selection_screen "${lore_config['save_patches_to']}" 'Select directory where patches will be downloaded'
@@ -435,14 +434,14 @@ function list_patches()
   esac
 }
 
-# Screen used to register to a new mailing list
-function register_mailing_list()
+# Screen used to manage the mailing lists
+function show_mailing_lists_screen()
 {
-  local flag="$1"
   local message_box
   local new_list
   local -a menu_list_string_array
   local -a check_statuses=()
+  local index=0
   local lore_config_path="${PWD}/.kw/lore.config"
   local ret
 
@@ -450,16 +449,31 @@ function register_mailing_list()
     lore_config_path="${KW_ETC_DIR}/lore.config"
   fi
 
-  retrieve_available_mailing_lists "$flag"
+  create_loading_screen_notification 'Retrieving available mailing lists from lore.kernel.org'
+  retrieve_available_mailing_lists
 
   # shellcheck disable=SC2207
   IFS=$'\n' menu_list_string_array=($(sort <<< "${!available_lore_mailing_lists[*]}"))
   unset IFS
 
-  message_box="It looks like that you don't have any lore list registered; please"
-  message_box+=" select one or more of the below list:"
+  # Put check marks on mailing lists already registered
+  for list in "${menu_list_string_array[@]}"; do
+    check_statuses["$index"]=0
+    # substring of others (e.g. 'yocto' and 'yocto-docs') may lead to false positives.
+    IFS=',' read -r -a registered_lists <<< "${lore_config['lists']}"
+    for registered_list in "${registered_lists[@]}"; do
+      [[ "$list" == "$registered_list" ]] && check_statuses["$index"]=1
+    done
+    ((index++))
+  done
 
-  create_simple_checklist 'Lore list' "$message_box" 'menu_list_string_array' 'check_statuses'
+  if [[ -z "${lore_config['lists']}" ]]; then
+    message_box="It looks like that you don't have any lore list registered."
+    message_box+=" Please, select one or more of the list below:"
+  fi
+
+  create_simple_checklist 'Register/Unresgister Mailing Lists' "$message_box" 'menu_list_string_array' \
+    'check_statuses' 1
   ret="$?"
 
   new_list=$(printf '%s' "$menu_return_string" | tr -s '[:blank:]' ',')
@@ -475,6 +489,9 @@ function register_mailing_list()
       ;;
     1) # Exit
       handle_exit "$ret"
+      ;;
+    3) # Return
+      screen_sequence['SHOW_SCREEN']='dashboard'
       ;;
   esac
 }
