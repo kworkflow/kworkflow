@@ -194,7 +194,7 @@ function create_simple_checklist()
 
   for item in "${_menu_list_string_array[@]}"; do
     item=$(str_escape_single_quotes "$item")
-    if [[ -n "${_check_statuses}" && -n ${_check_statuses["$index"]} ]]; then
+    if [[ "${_check_statuses["$index"]}" == 1 ]]; then
       cmd+=" $'${item}' '' 'on'"
     else
       cmd+=" $'${item}' '' 'off'"
