@@ -17,6 +17,8 @@ function setUp()
 
   mkdir -p "$TMP_DIR"
   mkdir -p "$KW_ETC_DIR"
+
+  cp --recursive 'etc/dialog_help' "${TMP_DIR}/dialog_help"
   # Let's run all test in a well-contained folder
   cd "${TMP_DIR}" || {
     fail "($LINENO): setUp: It was not possible to move into ${TMP_DIR}"
@@ -176,6 +178,57 @@ function test_create_message_box_use_all_options()
   expected_cmd+=" '1234' '4321'"
   output=$(create_message_box "${box_title}" "${message_box}" '1234' '4321' 'TEST_MODE')
   assert_equals_helper 'Expected message box with all custom options' "$LINENO" "$output" "${expected_cmd}"
+}
+
+function test_create_directory_selection_screen_rely_on_some_default_options()
+{
+  local starting_path='/some/creative/path'
+  local box_title="Choose 'a' Directory!"
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd+=" --title $'Choose \'a\' Directory!' --clear --colors"
+  expected_cmd+=" --help-button --dselect '${starting_path}'"
+  expected_cmd+=" '15' '80'"
+  output=$(create_directory_selection_screen "${starting_path}" "${box_title}" '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected directory selection with some default options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_directory_selection_screen_use_all_options()
+{
+  local starting_path='/some/creative/path'
+  local box_title="Choose 'a' Directory!"
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd+=" --title $'Choose \'a\' Directory!' --clear --colors"
+  expected_cmd+=" --help-button --dselect '${starting_path}'"
+  expected_cmd+=" '2718' '281828'"
+  output=$(create_directory_selection_screen "${starting_path}" "${box_title}" '2718' '281828' 'TEST_MODE')
+  assert_equals_helper 'Expected directory selection with all custom options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_help_screen()
+{
+  local expected_cmd
+  local output
+
+  create_help_screen 'fake_screen' 'TEST_MODE'
+  assert_equals_helper 'Invalid screen name should return 2' "$LINENO" 2 "$?"
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}' --title $'Directory Selection Help' --clear --colors --msgbox"
+  expected_cmd+=" $'There are 3 regions in the Directory Selection screen:"$'\n'
+  expected_cmd+='- [Upper Box]: list of directories in the current path.'$'\n'
+  expected_cmd+='- [Lower Box]: the current path (input box).'$'\n'
+  expected_cmd+='- [Buttons]: "OK" to confirm directory path, "Cancel" to cancel selection and "Help" to show this screen.'$'\n'$'\n'
+  expected_cmd+='To move between the regions, use the <TAB> key.'$'\n'
+  expected_cmd+='To complete the current path with the highlighted directory, use the <SPACE> key.'$'\n'
+  expected_cmd+="Typing while in the Upper Box or the Lower Box alters the current path.'"
+  expected_cmd+=" '15' '70'"
+  output=$(create_help_screen 'directory_selection' 'TEST_MODE')
+  assert_equals_helper 'Wrong help screen for Directory Selection' "$LINENO" "$expected_cmd" "$output"
 }
 
 function test_prettify_string_failures()

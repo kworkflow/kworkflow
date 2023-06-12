@@ -202,10 +202,17 @@ function show_bookmarked_series_details()
 # Screen that shows all types of settings available.
 function show_settings_screen()
 {
+  local lore_config_path="${PWD}/.kw/lore.config"
   local -a menu_list_string_array
+  local new_value
+  local output
   local ret
 
-  menu_list_string_array=('Register/Unregister Mailing Lists')
+  if [[ ! -f "${lore_config_path}" ]]; then
+    lore_config_path="${KW_ETC_DIR}/lore.config"
+  fi
+
+  menu_list_string_array=('Register/Unregister Mailing Lists' 'Save Patches To')
   create_menu_options 'Settings' '' 'menu_list_string_array' 1
   ret="$?"
 
@@ -214,6 +221,35 @@ function show_settings_screen()
       case "$menu_return_string" in
         1) # Register/Unregister Mailing Lists
           screen_sequence['SHOW_SCREEN']='register'
+          ;;
+        2) # Save Patches To
+          create_directory_selection_screen "${lore_config['save_patches_to']}" 'Select directory where patches will be downloaded'
+          case "$?" in
+            0) # OK
+              new_value=$(printf '%s' "$menu_return_string" | sed 's/\/$//')
+              if [[ ! -d "$new_value" ]]; then
+                create_message_box 'Error' "${new_value}: No such directory."
+              else
+                output=$(save_new_lore_config 'save_patches_to' "$new_value" "$lore_config_path")
+                if [[ "$?" != 0 ]]; then
+                  create_message_box 'Error' "Failed to save new value ${new_value} in ${lore_config_path}:"$'\n'"$output"
+                fi
+                # As we altered the settings, we need to reload lore.config
+                load_lore_config
+              fi
+              ;;
+            1) # Cancel
+              ;;
+            2) # Help
+              create_help_screen 'directory_selection'
+              if [[ "$?" != 0 ]]; then
+                create_message_box 'Error' 'Cannot create help screen'
+              fi
+              ;;
+          esac
+
+          # Just to be safe
+          screen_sequence['SHOW_SCREEN']='settings'
           ;;
       esac
       ;;
@@ -319,19 +355,19 @@ function show_series_details()
         case "$option" in
           'Bookmark')
             create_loading_screen_notification 'Bookmarking patch(es)'$'\n'"- ${series['patch_title']}"
-            output=$(download_series "${series['patch_url']}" "${lore_config['download_to']}")
+            output=$(download_series "${series['patch_url']}" "${lore_config['save_patches_to']}")
             if [[ "$?" != 0 ]]; then
               create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${series['patch_title']}"$'\n'"[error message] ${output}"
               continue
             fi
-            add_series_to_bookmark "${raw_series}" "${lore_config['download_to']}"
+            add_series_to_bookmark "${raw_series}" "${lore_config['save_patches_to']}"
             if [[ "$?" != 0 ]]; then
               create_message_box 'Error' 'Could not bookmark patch(es)'$'\n'"- ${series['patch_title']}"
             fi
             ;;
           'Download')
             create_loading_screen_notification 'Downloading patch(es)'$'\n'"- ${series['patch_title']}"
-            output=$(download_series "${series['patch_url']}" "${lore_config['download_to']}")
+            output=$(download_series "${series['patch_url']}" "${lore_config['save_patches_to']}")
             if [[ "$?" != 0 ]]; then
               create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${series['patch_title']}"$'\n'"[error message] ${output}"
             fi

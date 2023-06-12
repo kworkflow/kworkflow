@@ -318,6 +318,92 @@ function create_message_box()
   return "$ret"
 }
 
+# Create directory selection screen.
+#
+# @starting_path: Path that is in the input box when screen starts
+# @box_title: Title of the box
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 0 if the 'OK' button is pressed, 1 if the 'Cancel' button is pressed
+# and 2 if the 'Help' button is pressed. The string in the input box (current
+# path) is returned via the `menu_return_string` variable.
+function create_directory_selection_screen()
+{
+  local starting_path="$1"
+  local box_title="$2"
+  local height="$3"
+  local width="$4"
+  local flag="$5"
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+  height=${height:-'15'}
+  width=${width:-'80'}
+  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+
+  # Escape all single quotes to avoid breaking arguments
+  back_title=$(str_escape_single_quotes "$back_title")
+  box_title=$(str_escape_single_quotes "$box_title")
+
+  # Add layout to dialog
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  # Add general information to the dialog box
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  # Add help button
+  cmd+=" --help-button"
+  # Add directory selection screen
+  cmd+=" --dselect '${starting_path}'"
+  # Set height and width
+  cmd+=" '${height}' '${width}'"
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
+# Creates a help message box for a dialog's screen. There must be a file
+# that follows the pattern of `load_module_text`, for reference see `src/kwio.sh`.
+#
+# @screen_name: Name of screen to show the help. There must be a text file
+#   `${KW_ETC_DIR}/dialog_help/${screen_name}_help.txt` that holds the help message
+#   (in the proper format) to be displayed.
+# @flag: How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 2 (ENOENT) if there is no text file relative to @screen_name and 0, otherwise.
+function create_help_screen()
+{
+  local screen_name="$1"
+  local flag="$2"
+  local box_title
+  local message_box
+
+  flag=${flag:-'SILENT'}
+
+  if [[ ! -f "${KW_ETC_DIR}/dialog_help/${screen_name}_help.txt" ]]; then
+    return 2 # ENOENT
+  fi
+
+  load_module_text "${KW_ETC_DIR}/dialog_help/${screen_name}_help.txt"
+  box_title="${module_text_dictionary["${screen_name}_help_box_title"]}"
+  message_box="${module_text_dictionary["${screen_name}_help_message_box"]}"
+
+  create_message_box "$box_title" "$message_box" '15' '70' "$flag"
+}
+
 # This function is responsible for handling the dialog exit.
 #
 # @exit_status: Exit code

@@ -15,6 +15,7 @@ function oneTimeSetUp()
   mkdir -p "${LORE_DATA_DIR}"
 
   cp "${SAMPLES_DIR}/web/reduced_lore_main_page.html" "${CACHE_LORE_DIR}/lore_main_page.html"
+  cp "${SAMPLES_DIR}/lore_sample.config" "${SHUNIT_TMPDIR}/lore.config"
 }
 
 function setUp()
@@ -381,6 +382,43 @@ function test_extract_message_id_from_url()
   output=$(extract_message_id_from_url 'https://lore.kernel.org/some-list/1234567.789-1-email@email.com/#T/#u')
   expected='1234567.789-1-email@email.com'
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+}
+
+function test_save_new_lore_config()
+{
+  local setting
+  local new_value
+  local lore_config_path
+  local output
+  local expected
+
+  lore_config_path=$(realpath 'some/invalid/path' 2> /dev/null)
+  expected="${lore_config_path}: file doesn't exists"
+  output=$(save_new_lore_config 'some_setting' 'some_value' "$lore_config_path")
+  assert_equals_helper 'Invalid lore config path should return 2' "$LINENO" 2 "$?"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  lore_config_path=$(realpath 'lore.config')
+
+  setting='download_path'
+  new_value='/avenida/paulista'
+  save_new_lore_config "$setting" "$new_value" "$lore_config_path"
+  expected='default_ui=dialog'$'\n'
+  expected+='dialog_layout=black_and_white'$'\n'
+  expected+='lists='$'\n'
+  expected+='download_path=/avenida/paulista'
+  output=$(< "$lore_config_path")
+  assert_equals_helper 'Wrong lore.config contents' "$LINENO" "$expected" "$output"
+
+  setting='invalid_setting'
+  new_value='should_not_exist'
+  save_new_lore_config "$setting" "$new_value" "$lore_config_path"
+  expected='default_ui=dialog'$'\n'
+  expected+='dialog_layout=black_and_white'$'\n'
+  expected+='lists='$'\n'
+  expected+='download_path=/avenida/paulista'
+  output=$(< "$lore_config_path")
+  assert_equals_helper 'Wrong lore.config contents' "$LINENO" "$expected" "$output"
 }
 
 invoke_shunit

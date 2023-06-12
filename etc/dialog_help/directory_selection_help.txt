@@ -1,0 +1,11 @@
+[directory_selection_help_box_title]:
+Directory Selection Help
+[directory_selection_help_message_box]:
+There are 3 regions in the Directory Selection screen:
+- [Upper Box]: list of directories in the current path.
+- [Lower Box]: the current path (input box).
+- [Buttons]: "OK" to confirm directory path, "Cancel" to cancel selection and "Help" to show this screen.
+
+To move between the regions, use the <TAB> key.
+To complete the current path with the highlighted directory, use the <SPACE> key.
+Typing while in the Upper Box or the Lower Box alters the current path.
