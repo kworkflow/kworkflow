@@ -94,7 +94,7 @@ function test_create_simple_checklist_rely_on_some_default_options()
   local menu_title='kunit test inside kw'
   local menu_message_box="This shouldn't be a useful dialog's screen message box"
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
-  local -a check_statuses=(1 '')
+  local -a check_statuses=(1 0)
   local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
   local output
 
@@ -112,7 +112,7 @@ function test_create_simple_checklist_use_all_options()
   local menu_title='kunit test inside kw'
   local menu_message_box="This shouldn't be a useful dialog's screen message box"
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
-  local -a check_statuses=(1 '')
+  local -a check_statuses=(1 0)
   local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
   local output
 
