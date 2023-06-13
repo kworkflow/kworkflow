@@ -13,6 +13,7 @@ include "${KW_LIB_DIR}/kwlib.sh"
 declare -ga registered_lists
 declare -ga patches_from_mailing_list
 declare -ga bookmarked_series
+declare -g current_mailing_list
 
 declare -gA screen_sequence=(
   ['SHOW_SCREEN']='manage_mailing_lists'
@@ -350,22 +351,22 @@ function registered_mailing_list()
 
 function show_new_patches_in_the_mailing_list()
 {
-  local list_name="$1"
   local -a new_patches
   local fallback_message
 
-  # Query patches from mailing list, this info will be saved at
-  # ${list_of_mailinglist_patches[@]}
-  if [[ -z "${screen_sequence['RETURNING']}" ]]; then
-    create_loading_screen_notification "Loading patches from ${list_name} list"
-    get_patches_from_mailing_list "$list_name" patches_from_mailing_list
+  # If returning from a 'show_series_details' screen, i.e., we already fetched the information needed to render this screen.
+  if [[ -n "${screen_sequence['RETURNING']}" ]]; then
+    # Avoiding stale value
+    screen_sequence['RETURNING']=''
+  else
+    current_mailing_list="$1"
+    create_loading_screen_notification "Loading patches from ${current_mailing_list} list"
+    # Query patches from mailing list, this info will be saved at "${list_of_mailinglist_patches[@]}".
+    get_patches_from_mailing_list "$current_mailing_list" patches_from_mailing_list
   fi
 
-  # Avoiding stale value
-  screen_sequence['RETURNING']=''
-
   fallback_message='kw could not retrieve patches from this mailing list'
-  list_patches "Patches from ${screen_sequence['SHOW_SCREEN_PARAMETER']}" patches_from_mailing_list \
+  list_patches "Patches from ${current_mailing_list}" patches_from_mailing_list \
     "${screen_sequence['SHOW_SCREEN']}" "${fallback_message}"
 }
 
