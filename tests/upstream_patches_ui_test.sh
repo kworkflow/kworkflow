@@ -185,4 +185,35 @@ function test_show_settings_screen()
   assert_equals_helper 'Should set next screen to "manage_mailing_lists"' "$LINENO" 'manage_mailing_lists' "${screen_sequence['SHOW_SCREEN']}"
 }
 
+function test_show_new_patches_in_the_mailing_list_title()
+{
+  declare current_mailing_list=''
+
+  # shellcheck disable=SC2317
+  function create_loading_screen_notification()
+  {
+    return
+  }
+  # shellcheck disable=SC2317
+  function get_patches_from_mailing_list()
+  {
+    return
+  }
+  # shellcheck disable=SC2317
+  function list_patches()
+  {
+    return
+  }
+
+  # Not returning from a (supposed) series detail screen should set "$current_mailing_list" global variable to "$1"
+  screen_sequence['RETURNING']=''
+  show_new_patches_in_the_mailing_list 'amd-gfx'
+  assert_equals_helper 'Wrong "current_mailing_list" value' "$LINENO" 'amd-gfx' "$current_mailing_list"
+
+  # Returning from a (supposed) series detail screen should use the old "$current_mailing_list" value
+  screen_sequence['RETURNING']=1
+  show_new_patches_in_the_mailing_list 'arbitrary-value'
+  assert_equals_helper 'Wrong "current_mailing_list" value' "$LINENO" 'amd-gfx' "$current_mailing_list"
+}
+
 invoke_shunit
