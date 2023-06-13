@@ -4,6 +4,7 @@
 include "$KW_LIB_DIR/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/remote.sh"
+include "${KW_LIB_DIR}/ui/guided_setup/guided_setup_core.sh"
 
 KW_DIR='.kw'
 
@@ -34,17 +35,22 @@ function init_main()
     exit 0
   fi
 
+  parse_init_options "$@"
+  if [[ "$?" -gt 0 ]]; then
+    complain "${options_values['ERROR']}"
+    return 22 # EINVAL
+  fi
+
+  if [[ -n "${options_values['GUIDED_SETUP']}" ]]; then
+    guided_setup_main_loop
+    return "$?"
+  fi
+
   if ! is_kernel_root "$PWD"; then
     warning 'This command should be run in a kernel tree.'
     if [[ $(ask_yN 'Do you want to continue?') =~ '0' ]]; then
       exit 125 # ECANCELED
     fi
-  fi
-
-  parse_init_options "$@"
-  if [[ "$?" -gt 0 ]]; then
-    complain "${options_values['ERROR']}"
-    return 22 # EINVAL
   fi
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
@@ -201,7 +207,7 @@ function get_template_name()
 
 function parse_init_options()
 {
-  local long_options='arch:,remote:,target:,force,template::,verbose'
+  local long_options='arch:,remote:,target:,force,template::,guided-setup,verbose'
   local short_options='a:,r:,t:,f'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -216,6 +222,7 @@ function parse_init_options()
   options_values['FORCE']=''
   options_values['TEMPLATE']='x86-64'
   options_values['VERBOSE']=''
+  options_values['GUIDED_SETUP']=''
 
   eval "set -- $options"
 
@@ -237,6 +244,10 @@ function parse_init_options()
       --force | -f)
         shift
         options_values['FORCE']=1
+        ;;
+      --guided-setup)
+        shift
+        options_values['GUIDED_SETUP']=1
         ;;
       --template)
         option="$(str_strip "${2,,}")"

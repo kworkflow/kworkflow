@@ -1,0 +1,2 @@
+[welcome_page]:
+This is the kw guided setup to help you through the first-time configuration. Please, read each page carefully to ensure you have the best configuration for your needs.

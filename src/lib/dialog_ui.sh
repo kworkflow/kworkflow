@@ -318,6 +318,77 @@ function create_message_box()
   return "$ret"
 }
 
+# This option creates the yes/no screen. Note from the parameters that this
+# function is highly configurable, allowing you to change the button names and
+# add extra buttons. This flexibility, for example, can help create an
+# installation screen with "Next" and "Previous" buttons.
+#
+# @box_title: Title of the box
+# @message_box: The message to be displayed
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @yes_label: If not set, this function assumes 'Yes' as a label
+# @no_label: If not set, this function assumes 'No' as a label
+# @extra_button: Allow user to have one extra button (e.g., Exit)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Unlike other dialog screens, this one doesn't return a menu_return_string,
+# just the status code of the command which should be 0, if everything worked
+# as expected.
+function create_yes_no_message()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local height="$3"
+  local width="$4"
+  local yes_label="$5"
+  local no_label="$6"
+  local extra_button="$7"
+  local flag="$8"
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+  height=${height:-'15'}
+  width=${width:-'40'}
+  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+  yes_label=${yes_label:-'Yes'}
+  no_label=${no_label:-'No'}
+  extra_button=${extra_button:-''}
+
+  # Escape all single quotes to avoid breaking arguments
+  back_title=$(str_escape_single_quotes "$back_title")
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+
+  # Add layout to dialog
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  cmd+=" --yes-label $'${yes_label}' --no-label $'${no_label}'"
+
+  if [[ -n "$extra_button" ]]; then
+    cmd+=" --extra-label $'${extra_button}'"
+  fi
+
+  cmd+=" --yesno $'${message_box}'"
+
+  # Set height and width
+  cmd+=" '${height}' '${width}'"
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  cmd_manager "$flag" "$cmd" 2>&1 1>&3
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 # Create directory selection screen.
 #
 # @starting_path: Path that is in the input box when screen starts
