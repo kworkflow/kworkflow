@@ -182,7 +182,7 @@ function remote2host()
 
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
     if [[ -n ${remote_parameters['REMOTE_FILE']} ]]; then
-      rsync_target="'ssh -F ${remote_parameters['REMOTE_FILE']}' ${remote_parameters['REMOTE_FILE_HOST']}:${src} ${dsc}"
+      rsync_target="'ssh -F ${remote_parameters['REMOTE_FILE']}' ${remote_parameters['REMOTE_FILE_HOST']}:${src} ${dst}"
     fi
   else
     rsync_target="'ssh -p ${port}' ${user}@${remote}:${src} ${dst}"

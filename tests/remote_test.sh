@@ -28,6 +28,8 @@ function oneTimeSetUp()
 
   FAKE_KW="$SHUNIT_TMPDIR/fake_kw"
   TEST_PATH="$SHUNIT_TMPDIR/test_path"
+  RSYNC_PREFIX='rsync --info=progress2 -e'
+  RSYNC_FLAGS="-LrlptD --rsync-path='sudo rsync'"
 
   mkdir -p "$FAKE_KW"
   mkdir -p "$TEST_PATH/.kw"
@@ -319,8 +321,6 @@ function test_cp2remote()
   local user='kw'
   local flag='TEST_MODE'
   local rsync_params='--include="*/" --exclude="*"'
-  local RSYNC_PREFIX='rsync --info=progress2 -e'
-  local RSYNC_FLAGS="-LrlptD --rsync-path='sudo rsync'"
   local expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS $rsync_params"
 
   remote_parameters['REMOTE_IP']='127.0.0.1'
@@ -362,6 +362,53 @@ function test_cp2remote()
   expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS"
   output=$(cp2remote "$flag" '' '' '' '' '' '')
   assert_equals_helper 'Default src, dst, remote, port, and user' "$LINENO" "$expected_cmd_str" "$output"
+}
+
+function test_remote2host()
+{
+  local flag='TEST_MODE'
+  local src='/some/path'
+  local dst='/another/path'
+  local remote_host='origin'
+  local port='2223'
+  local user='root'
+  local remote='192.168.122.116'
+  local output
+  local expected_cmd_str
+
+  # Use remote configuration file
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']="$remote_host"
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -F ${TEST_PATH}/.kw/remote.config' $remote_host:$src $dst $RSYNC_FLAGS"
+  output=$(remote2host "$flag" "$src" "$dst" '' '' '' '' '')
+  assert_equals_helper 'Remote configuration file' "$LINENO" "$expected_cmd_str" "$output"
+
+  remote_parameters['REMOTE_IP']='192.168.122.197'
+  remote_parameters['REMOTE_PORT']='2225'
+  remote_parameters['REMOTE_USER']='juca'
+
+  # No use of remote_parameters by remote2host
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $user@$remote:$src $dst $RSYNC_FLAGS"
+  output=$(remote2host "$flag" "$src" "$dst" "$remote" "$port" "$user")
+  assert_equals_helper 'Pass ip, port and user to remote2host' "$LINENO" "$expected_cmd_str" "$output"
+
+  # Default remote
+  remote='192.168.122.197'
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $user@$remote:$src $dst $RSYNC_FLAGS"
+  output=$(remote2host "$flag" "$src" "$dst" '' "$port" "$user")
+  assert_equals_helper 'Default remote' "$LINENO" "$expected_cmd_str" "$output"
+
+  # Default port
+  port='2225'
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $user@$remote:$src $dst $RSYNC_FLAGS"
+  output=$(remote2host "$flag" "$src" "$dst" "$remote" '' "$user")
+  assert_equals_helper 'Default port' "$LINENO" "$expected_cmd_str" "$output"
+
+  # Default user
+  user='juca'
+  expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $user@$remote:$src $dst $RSYNC_FLAGS"
+  output=$(remote2host "$flag" "$src" "$dst" "$remote" "$port")
+  assert_equals_helper 'Default user' "$LINENO" "$expected_cmd_str" "$output"
 }
 
 function test_which_distro()
