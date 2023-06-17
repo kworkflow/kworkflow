@@ -278,7 +278,10 @@ function show_settings_screen()
             1) # Cancel
               ;;
             2) # Help
-              create_directory_selection_help_screen
+              create_help_screen 'directory_selection'
+              if [[ "$?" != 0 ]]; then
+                create_message_box 'Error' 'Cannot create help screen'
+              fi
               ;;
           esac
           # Just to be safe
