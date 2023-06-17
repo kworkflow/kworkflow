@@ -268,6 +268,7 @@ function show_settings_screen()
               if ! is_kernel_root "$new_value"; then
                 create_message_box 'Error' "${new_value}: Not a Linux kernel source tree."
               else
+                new_value=$(realpath "$new_value")
                 save_new_lore_config 'kernel_tree_path' "$new_value" "$lore_config_path"
                 # As we changed the kernel tree, we set the target branch to empty
                 save_new_lore_config 'kernel_tree_branch' '' "$lore_config_path"
