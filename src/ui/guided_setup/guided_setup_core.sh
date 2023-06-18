@@ -1,3 +1,5 @@
+include "${KW_LIB_DIR}/ui/guided_setup/deploy_setup_screen.sh"
+include "${KW_LIB_DIR}/ui/guided_setup/build_setup_screen.sh"
 include "${KW_LIB_DIR}/ui/guided_setup/welcome_screen.sh"
 include "${KW_LIB_DIR}/lib/dialog_ui.sh"
 include "${KW_LIB_DIR}/kwlib.sh"
@@ -26,7 +28,12 @@ function guided_setup_main_loop()
         ret="$?"
         ;;
       'build_setup')
-        exit
+        build_setup_screen 'SILENT'
+        ret="$?"
+        ;;
+      'deploy_setup')
+        deploy_setup_screen 'SILENT'
+        ret="$?"
         ;;
     esac
 

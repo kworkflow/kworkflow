@@ -1,2 +1,15 @@
 [welcome_page]:
 This is the kw guided setup to help you through the first-time configuration. Please, read each page carefully to ensure you have the best configuration for your needs.
+
+[configure_compiler]:
+By default, kw configures GCC as the default compiler; however, you can change to LLVM.
+
+[menu_option]:
+The kernel offers several user interfacing tools with which you can manually configure the kernel options. Kw allows you to configure the menu configuration you feel more comfortable with.
+If the above description does not mean anything to you, we recommend you keep the default option.
+
+[cross_compile]:
+A cross compiler is a compiler capable of creating executable code for a platform other than the one on which the compiler is running.
+
+[reboot_after_deploy]:
+If you want to reboot your target machine after the deploy gets done, you can change the option `reboot_after_deploy` from "no" to "yes".

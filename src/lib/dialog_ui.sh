@@ -517,6 +517,76 @@ function create_choice_list_screen()
   return "$ret"
 }
 
+function create_form_screen()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local back_title="$3"
+  local -n _fields_list="$4"
+  local ok_label="$5"
+  local cancel_label="$6"
+  local extra_label="$7"
+  local height="$8"
+  local width="$9"
+  local flag="${10}"
+  local choice_description
+  local index=0
+  local cmd
+  local ret
+  local start_text_field=0
+  local auxiliar_label_size=0
+  local row=1
+
+  flag=${flag:-'SILENT'}
+  height=${height:-$DEFAULT_HEIGHT}
+  width=${width:-$DEFAULT_WIDTH}
+  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+  ok_label=${ok_label:-"$ok_label"}
+  cancel_label=${cancel_label:-"$cancel_label"}
+  extra_label=${extra_label:-"$extra_label"}
+
+  # Escape all single quotes to avoid breaking arguments
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+
+  # Add layout to dialog
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  # Add general information to the dialog box
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  # Set height and width
+
+  # Find out the largest label to know where we need to start the field
+  for field in "${_fields_list[@]}"; do
+    auxiliar_label_size=$(str_length "$field")
+    if [[ "${auxiliar_label_size}" -gt "${start_text_field}" ]]; then
+      start_text_field="${auxiliar_label_size}"
+    fi
+  done
+  # Add two extra spaces to the start point
+  start_text_field=$(( start_text_field + 2 ))
+
+  # Creating form line
+  cmd+=" --form $'${message_box}'"
+
+  cmd+=" '${height}' '${width}' '0'"
+
+  for label in "${_fields_list[@]}"; do
+    cmd+=" $'${label}:' $'${row}' 1 $'' $'${row}' $'${start_text_field}' 10 0"
+    (( row++ ))
+  done
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 # Creates a help message box for a dialog's screen. There must be a file
 # that follows the pattern of `load_module_text`, for reference see `src/kwio.sh`.
 #
