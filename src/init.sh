@@ -14,7 +14,7 @@ declare -gA options_values
 #
 # Returns:
 # In case of failure, this function returns ENOENT.
-function init_kw()
+function init_main()
 {
   local config_template_folder="${KW_ETC_DIR}/init_templates"
   local name='kworkflow.config'
