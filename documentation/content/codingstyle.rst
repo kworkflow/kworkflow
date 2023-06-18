@@ -300,6 +300,23 @@ to the return value with the string reference to it, for example::
   return 22 # EINVAL
   return 2 # ENOENT
 
+Avoid short options
+-------------------
+
+Usually, commands available in the terminal provide two ways of passing the
+same option: through a short option and through a long option. The short
+options are convenient for daily use; however, for writing kw code it is better
+to use the long option because it is more human readable. See the below
+example:
+
+Bad::
+
+  rsync -vr dir1 dir2
+
+Good::
+
+  rsync --verbose --recursive dir1 dir2
+
 Conclusion
 ----------
 
