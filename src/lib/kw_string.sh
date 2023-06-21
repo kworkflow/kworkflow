@@ -245,3 +245,38 @@ function str_escape_single_quotes()
 
   printf '%s' "$string" | sed "s/'/\\\'/g"
 }
+
+# Convert arbitrary string to Unix-friendly filename.
+#
+# @string: String to be processed
+#
+# Return:
+# Returns the Unix-friendly filename version of the string, or 22 (EINVAL) if
+# the string is empty, only composed of removable character, or has a net size
+# greater than 255 characters.
+function string_to_unix_filename()
+{
+  local string="$1"
+  local filename
+
+  # Replace space and forward slash in favor of underscore
+  filename="${string//[ \/]/_}"
+
+  # Remove special character
+  filename="${filename//[$&*+%!?:,\'\"\`]/}"
+
+  # Remove parenthesis, brackets and curly braces
+  filename="${filename//[\[\]\(\)\{\}]/}"
+
+  # An empty string can mean that the original one was empty or
+  # that it is only composed of chars that are removed. Either way
+  # we should not return an empty string as there is no such thing
+  # as an empty path in Unix.
+  [[ -z "$filename" ]] && return 22 # EINVAL
+
+  # Most filesystems have a maximum filename length of 255 characters
+  # For reference, see https://en.wikipedia.org/wiki/Comparison_of_file_systems#Limits
+  [[ "${#filename}" -gt 255 ]] && return 22 # EINVAL
+
+  printf '%s' "$filename"
+}
