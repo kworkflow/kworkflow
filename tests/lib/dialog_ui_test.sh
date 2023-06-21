@@ -267,6 +267,39 @@ function test_create_choice_list_screen_use_all_options()
   assert_equals_helper 'Expected choice list with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
+function test_create_yes_no_prompt_rely_on_some_default_options()
+{
+  local box_title="Choose Yes 'or' No!"
+  local message_box="This is \`a Yes/No' prompt."
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd+=" --title $'Choose Yes \'or\' No!' --clear --colors"
+  expected_cmd+=" --yes-label $'Yes' --no-label $'No'"
+  expected_cmd+=" --yesno $'This is \`a Yes/No\' prompt.'"
+  expected_cmd+=" '15' '40'"
+  output=$(create_yes_no_prompt "$box_title" "$message_box" '' '' '' '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected Yes/No prompt with some default options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_yes_no_prompt_use_all_options()
+{
+  local box_title="Choose Yes 'or' No!"
+  local message_box="This is \`a Yes/No' prompt."
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd+=" --title $'Choose Yes \'or\' No!' --clear --colors"
+  expected_cmd+=" --yes-label $'No' --no-label $'Yes'"
+  expected_cmd+=" --extra-button --extra-label $'Not Extra'"
+  expected_cmd+=" --yesno $'This is \`a Yes/No\' prompt.'"
+  expected_cmd+=" '31415' '2718281828'"
+  output=$(create_yes_no_prompt "$box_title" "$message_box" 'No' 'Yes' 'Not Extra' '31415' '2718281828' 'TEST_MODE')
+  assert_equals_helper 'Expected Yes/No prompt with all custom options' "$LINENO" "$expected_cmd" "$output"
+}
+
 function test_prettify_string_failures()
 {
   prettify_string
