@@ -373,6 +373,69 @@ function create_directory_selection_screen()
   return "$ret"
 }
 
+# Create file selection screen.
+#
+# @starting_path: Path that is in the input box when screen starts
+# @box_title: Title of the box
+# @extra_label: Label to override 'Extra' button. If empty, 'Extra' button
+#   is not displayed.
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 0 if the 'OK' button is pressed, 1 if the 'Cancel' button is pressed
+# and 2 if the 'Help' button is pressed. The string in the input box (current
+# path) is returned via the `menu_return_string` variable.
+function create_file_selection_screen()
+{
+  local starting_path="$1"
+  local box_title="$2"
+  local extra_label="$3"
+  local height="$4"
+  local width="$5"
+  local flag="$6"
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+  height=${height:-'15'}
+  width=${width:-'80'}
+  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+
+  # Escape all single quotes to avoid breaking arguments
+  back_title=$(str_escape_single_quotes "$back_title")
+  box_title=$(str_escape_single_quotes "$box_title")
+  extra_label=$(str_escape_single_quotes "$extra_label")
+
+  # Add layout to dialog
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  # Add general information to the dialog box
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  # Add help button
+  cmd+=" --help-button"
+  # Add extra button, if needed
+  if [[ -n "$extra_label" ]]; then
+    cmd+=" --extra-button --extra-label $'${extra_label}'"
+  fi
+  # Add file selection screen
+  cmd+=" --fselect '${starting_path}'"
+  # Set height and width
+  cmd+=" '${height}' '${width}'"
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 # Create a screen with a list of choices.
 #
 # @box_title: Title of the box

@@ -210,6 +210,36 @@ function test_create_directory_selection_screen_use_all_options()
   assert_equals_helper 'Expected directory selection with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
+function test_create_file_selection_screen_rely_on_some_default_options()
+{
+  local starting_path='/some/creative/path'
+  local box_title="Choose 'a' File!"
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd+=" --title $'Choose \'a\' File!' --clear --colors"
+  expected_cmd+=" --help-button --fselect '${starting_path}'"
+  expected_cmd+=" '15' '80'"
+  output=$(create_file_selection_screen "${starting_path}" "${box_title}" '' '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected file selection with some default options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_file_selection_screen_use_all_options()
+{
+  local starting_path='/some/creative/path'
+  local box_title="Choose 'a' File!"
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd+=" --title $'Choose \'a\' File!' --clear --colors"
+  expected_cmd+=" --help-button --extra-button --extra-label $'EXTRA' --fselect '${starting_path}'"
+  expected_cmd+=" '2718' '281828'"
+  output=$(create_file_selection_screen "${starting_path}" "${box_title}" 'EXTRA' '2718' '281828' 'TEST_MODE')
+  assert_equals_helper 'Expected file selection with all custom options' "$LINENO" "$expected_cmd" "$output"
+}
+
 function test_create_help_screen()
 {
   local expected_cmd
