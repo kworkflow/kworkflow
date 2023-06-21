@@ -446,6 +446,75 @@ function create_choice_list_screen()
   return "$ret"
 }
 
+# Create a screen with a Yes/No prompt.
+#
+# @box_title: Title of the box
+# @message_box: The message to be displayed
+# @ok_label: Label for the 'Yes' button
+# @no_label: Label for the 'No' button
+# @extra_label: Label for the 'Extra' button
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 0 if the 'Yes' button is pressed, 1 if the 'No' button is pressed and
+# 3 if the 'Extra' button is pressed.
+function create_yes_no_prompt()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local yes_label="$3"
+  local no_label="$4"
+  local extra_label="$5"
+  local height="$6"
+  local width="$7"
+  local flag="$8"
+  local cmd
+  local ret
+
+  yes_label=${yes_label:-'Yes'}
+  no_label=${no_label:-'No'}
+  flag=${flag:-'SILENT'}
+  height=${height:-'15'}
+  width=${width:-'40'}
+  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+
+  # Escape all single quotes to avoid breaking arguments
+  back_title=$(str_escape_single_quotes "$back_title")
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+  yes_label=$(str_escape_single_quotes "$yes_label")
+  no_label=$(str_escape_single_quotes "$no_label")
+  extra_label=$(str_escape_single_quotes "$extra_label")
+
+  # Add layout to dialog
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  # Add general information to the dialog box
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  # Add labels
+  cmd+=" --yes-label $'${yes_label}' --no-label $'${no_label}'"
+  if [[ -n "${extra_label}" ]]; then
+    cmd+=" --extra-button --extra-label $'${extra_label}'"
+  fi
+  # Add Yes/No screen
+  cmd+=" --yesno $'${message_box}'"
+  # Set height and width
+  cmd+=" '${height}' '${width}'"
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  cmd_manager "$flag" "$cmd" 2>&1 1>&3
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 # Creates a help message box for a dialog's screen. There must be a file
 # that follows the pattern of `load_module_text`, for reference see `src/kwio.sh`.
 #
