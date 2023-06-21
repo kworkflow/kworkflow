@@ -717,3 +717,60 @@ function get_git_repository_branches()
     _branches["$branch"]="$branch_metadata"
   done <<< "$output"
 }
+
+# This function gets metadata about the kernel config files (.config files) managed
+# by kw. The data is transmitted using an associative array reference passed as
+# argument. Each key-value pair of the array is like:
+#  `array_reference[<kernel_config_name>]='<kernel_config_description>'`
+#
+# @_kernel_configs: Associative array reference where data will be trasmitted
+#
+# Return:
+# Returns data regarding the kernel config files managed by kw through the array
+# reference passed as argument if successful. In case the `select_from` function
+# returns an error code, return this code.
+function get_kernel_configs_managed_by_kw()
+{
+  local -n _kernel_configs="$1"
+  local query_output
+  local kernel_config_name
+  local kernel_config_description
+  local ret
+
+  # Resetting associative array reference to prevent false configs
+  _kernel_configs=()
+
+  query_output=$(select_from 'kernel_config' '"name","description"')
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return "$ret"
+  fi
+
+  # Return, in case there are no kernel config files under kw management
+  [[ -z "$query_output" ]] && return
+
+  while IFS=$'\n' read -r entry; do
+    kernel_config_name=$(printf '%s' "$entry" | cut --delimiter='|' -f1)
+    kernel_config_description=$(printf '%s' "$entry" | cut --delimiter='|' -f2)
+    _kernel_configs["$kernel_config_name"]="$kernel_config_description"
+  done <<< "$query_output"
+}
+
+# This function gets the path of a kernel config file managed by kw given a kernel
+# config name.
+#
+# @kernel_config_name: Name of the kernel config file managed by kw
+#
+# Return:
+# Returns 2 (ENOENT) in case there is no kernel config file managed by kw with the name
+# `@kernel_config_name`. Otherwise, it returns 0 and the path to the kernel config file.
+function get_kernel_config_path_managed_by_kw()
+{
+  local kernel_config_name="$1"
+
+  kernel_config_path=$(select_from "kernel_config WHERE name IS '${kernel_config_name}'" '"path"')
+
+  [[ -z "$kernel_config_path" ]] && return 2 # ENOENT
+
+  printf '%s' "$kernel_config_path"
+}

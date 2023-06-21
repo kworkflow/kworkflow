@@ -239,6 +239,7 @@ function show_settings_screen()
   local new_value
   local output
   declare -A branches
+  declare -A kernel_configs
   local index
   local -a check_statuses
   local ret
@@ -252,6 +253,7 @@ function show_settings_screen()
     'Save Patches To'
     'Kernel Tree Path'
     'Kernel Tree Target Branch'
+    'Kernel Config File'
   )
   create_menu_options 'Settings' '' 'menu_list_string_array' 1
   ret="$?"
@@ -343,6 +345,79 @@ function show_settings_screen()
                 ;;
             esac
           fi
+          # Just to be safe
+          screen_sequence['SHOW_SCREEN']='settings'
+          ;;
+        5) # Kernel Config File
+          message_box='There are two options to choose a kernel .config file:'$'\n'
+          message_box+='1) Choose from your .config files managed by kw'$'\n'
+          message_box+='2) Choose from your filesystem'
+          create_yes_no_prompt 'Kernel Config File' "$message_box" 'Option 1' 'Option 2' 'Return'
+          case "$?" in
+            0) # Choose from your .config files managed by kw
+              get_kernel_configs_managed_by_kw 'kernel_configs'
+              if [[ "$?" == 2 ]]; then # practically the only error that can happen
+                message_box='There is no local kw database.'$'\n''Try to run `kw self-update` '
+                message_box+='or `./setup.sh --install` in the root of a kw repository.'
+                create_message_box 'ERROR' "$message_box"
+                return
+              fi
+              if [[ "${#kernel_configs[@]}" == 0 ]]; then
+                create_message_box '' 'There are no kernel configs under kw management'
+                return
+              fi
+
+              index=0
+              for kernel_config in "${!kernel_configs[@]}"; do
+                [[ "${lore_config['kernel_config_file_path']}" =~ \/$kernel_config$ ]] && check_statuses["$index"]=1
+                ((index++))
+              done
+              message_box='Select one of the .config files managed by kw.'$'\n'
+              message_box+='When building the kernel, this .config file will be used.'
+              create_choice_list_screen 'Kernel Config File' "$message_box" 'kernel_configs' 'check_statuses'
+              case "$?" in
+                0) # OK
+                  new_value=$(get_kernel_config_path_managed_by_kw "$menu_return_string")
+                  if [[ "$?" != 0 ]]; then
+                    create_message_box 'Error' "Couldn't find .config file managed by kw with name ${menu_return_string}"
+                  else
+                    save_new_lore_config 'kernel_config_file_path' "$new_value" "$lore_config_path"
+                    # As we altered the settings, we need to reload lore.config
+                    load_lore_config
+                  fi
+                  ;;
+                1) # Cancel
+                  ;;
+              esac
+              ;;
+            1) # Choose from your filesystem
+              create_file_selection_screen "${lore_config['kernel_config_file_path']}" 'Select Linux kernel .config file'
+              case "$?" in
+                0) # OK
+                  new_value=$(printf '%s' "$menu_return_string" | sed 's/\/$//')
+                  if [[ ! -f "$new_value" ]]; then
+                    create_message_box 'Error' "${new_value}: Not such a file."
+                  else
+                    new_value=$(realpath "$new_value")
+                    save_new_lore_config 'kernel_config_file_path' "$new_value" "$lore_config_path"
+                    # As we altered the settings, we need to reload lore.config
+                    load_lore_config
+                  fi
+                  ;;
+                1) # Cancel
+                  ;;
+                2) # Help
+                  create_help_screen 'file_selection'
+                  if [[ "$?" != 0 ]]; then
+                    create_message_box 'Error' 'Cannot create help screen'
+                  fi
+                  ;;
+              esac
+              ;;
+            3) # Return
+              ;;
+          esac
+
           # Just to be safe
           screen_sequence['SHOW_SCREEN']='settings'
           ;;

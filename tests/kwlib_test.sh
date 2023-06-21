@@ -946,4 +946,59 @@ function test_get_git_repository_branches()
   teardownGitRepository
 }
 
+function test_get_kernel_configs_managed_by_kw()
+{
+  declare -A kernel_configs
+  declare -A condition_array
+
+  get_kernel_configs_managed_by_kw 'kernel_configs'
+  assert_equals_helper 'No database should return 2' "$LINENO" 2 "$?"
+
+  setupDatabase
+
+  get_kernel_configs_managed_by_kw 'kernel_configs'
+  assert_equals_helper 'Associative array should be empty' "$LINENO" 0 "${#kernel_configs[@]}"
+
+  insert_into 'kernel_config' '(name,description,path,last_updated_datetime)' "('name-1','description 1','path-1','datetime-1')"
+  insert_into 'kernel_config' '(name,description,path,last_updated_datetime)' "('name-2','description 2','path-2','datetime-2')"
+  insert_into 'kernel_config' '(name,description,path,last_updated_datetime)' "('name-3','description 3','path-3','datetime-3')"
+  insert_into 'kernel_config' '(name,description,path,last_updated_datetime)' "('name-4','description 4','path-4','datetime-4')"
+
+  get_kernel_configs_managed_by_kw 'kernel_configs'
+  assert_equals_helper 'Wrong value for "name-1" key' "$LINENO" 'description 1' "${kernel_configs['name-1']}"
+  assert_equals_helper 'Wrong value for "name-2" key' "$LINENO" 'description 2' "${kernel_configs['name-2']}"
+  assert_equals_helper 'Wrong value for "name-3" key' "$LINENO" 'description 3' "${kernel_configs['name-3']}"
+  assert_equals_helper 'Wrong value for "name-4" key' "$LINENO" 'description 4' "${kernel_configs['name-4']}"
+
+  condition_array=(['name']='name-2')
+  remove_from '"kernel_config"' 'condition_array'
+  condition_array=(['name']='name-4')
+  remove_from '"kernel_config"' 'condition_array'
+
+  get_kernel_configs_managed_by_kw 'kernel_configs'
+  assert_equals_helper 'Kernel config "name-2" was removed and should not be set' "$LINENO" '' "${kernel_configs['name-2']}"
+  assert_equals_helper 'Kernel config "name-4" was removed and should not be set' "$LINENO" '' "${kernel_configs['name-4']}"
+
+  teardownDatabase
+}
+
+function test_get_kernel_config_path_managed_by_kw()
+{
+  local output
+  local expected
+
+  setupDatabase
+
+  insert_into 'kernel_config' '(name,description,path,last_updated_datetime)' "('valid_name','description','/linux/kernel/rocks','datetime')"
+
+  get_kernel_config_path_managed_by_kw 'invalid_name'
+  assert_equals_helper 'Invalid kernel config name should return 2' "$LINENO" 2 "$?"
+
+  expected='/linux/kernel/rocks'
+  output=$(get_kernel_config_path_managed_by_kw 'valid_name')
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  teardownDatabase
+}
+
 invoke_shunit
