@@ -42,6 +42,21 @@ function tearDown()
   }
 }
 
+function setupGitRepository()
+{
+  declare -gr PATH_TO_GIT_REPOSITORY="${SHUNIT_TMPDIR}/git_repository"
+  mkdir -p "$PATH_TO_GIT_REPOSITORY"
+  git -C "$PATH_TO_GIT_REPOSITORY" init --initial-branch='master' --quiet
+}
+
+function teardownGitRepository()
+{
+  is_safe_path_to_remove "$PATH_TO_GIT_REPOSITORY"
+  if [[ "$?" == 0 ]]; then
+    rm -rf "$PATH_TO_GIT_REPOSITORY"
+  fi
+}
+
 function test_retrieve_available_mailing_lists()
 {
   local index
@@ -360,7 +375,8 @@ function test_download_series()
 
   output=$(download_series "$series_url" "$save_to" "$flag")
   expected="mkdir --parents '${save_to}'"$'\n'
-  expected+="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '1234567.789-1-email@email.com.mbx'"
+  expected+="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '1234567.789-1-email@email.com.mbx'"$'\n'
+  expected+="${save_to}/1234567.789-1-email@email.com.mbx"
   assert_equals_helper 'Wrong commands issued' "$LINENO" "$expected" "$output"
 }
 
@@ -419,6 +435,126 @@ function test_save_new_lore_config()
   expected+='download_path=/avenida/paulista'
   output=$(< "$lore_config_path")
   assert_equals_helper 'Wrong lore.config contents' "$LINENO" "$expected" "$output"
+}
+
+function test_apply_patchset()
+{
+  local patchset_title='linux/kernel: Fixin'"'"' "something" [wrong], in func(){}`+*&%$'
+  local output
+  local expected
+  local original_function_declaration
+
+  apply_patchset "$patchset_title" 'patchset_path' '' 'branch_name' 'TEST_MODE'
+  assert_equals_helper 'Empty Linux kernel tree path should return 22' "$LINENO" 22 "$?"
+
+  apply_patchset "$patchset_title" 'patchset_path' 'kernel_path' '' 'TEST_MODE'
+  assert_equals_helper 'Empty base branch should return 22' "$LINENO" 22 "$?"
+
+  mkdir --parents "${SHUNIT_TMPDIR}/fake-kernel-tree"
+
+  expected="'${SHUNIT_TMPDIR}/fake-kernel-tree' is not a Linux kernel tree"
+  output=$(apply_patchset "$patchset_title" 'patchset_path' "${SHUNIT_TMPDIR}/fake-kernel-tree" 'branch_name' 'TEST_MODE')
+  assert_equals_helper 'Invalid Linux kernel tree should return 22' "$LINENO" 2 "$?"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  original_function_declaration=$(declare -f is_kernel_root)
+  # shellcheck disable=SC2317
+  function is_kernel_root()
+  {
+    return 0
+  }
+  # shellcheck disable=SC2317
+  function date()
+  {
+    printf '1998-04-17-12-21-59-'
+  }
+  export -f date
+
+  expected="git -C ${SHUNIT_TMPDIR}/fake-kernel-tree switch branch_name --quiet"$'\n'
+  expected+="git -C ${SHUNIT_TMPDIR}/fake-kernel-tree pull --quiet"$'\n'
+  expected+="git -C ${SHUNIT_TMPDIR}/fake-kernel-tree checkout -b 1998-04-17-12-21-59-linux_kernel_Fixin_something_wrong_in_func --quiet"$'\n'
+  expected+="git -C ${SHUNIT_TMPDIR}/fake-kernel-tree am --reject patchset_path --quiet > /dev/null 2>&1"$'\n'
+  expected+="New branch name: 1998-04-17-12-21-59-linux_kernel_Fixin_something_wrong_in_func"
+  output=$(apply_patchset "$patchset_title" 'patchset_path' "${SHUNIT_TMPDIR}/fake-kernel-tree" 'branch_name' 'TEST_MODE')
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  eval "function ${original_function_declaration}"
+}
+
+function test_fallback_to_wiggle()
+{
+  local output
+  local expected
+  local original_function_declaration
+
+  mkdir --parents "${SHUNIT_TMPDIR}/fake-kernel-tree"
+
+  expected="'${SHUNIT_TMPDIR}/fake-kernel-tree' is not a Linux kernel tree"
+  output=$(fallback_to_wiggle "${SHUNIT_TMPDIR}/fake-kernel-tree" 'TEST_MODE')
+  assert_equals_helper 'Invalid Linux kernel tree path should return 22' "$LINENO" 2 "$?"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  original_function_declaration=$(declare -f is_kernel_root)
+  # shellcheck disable=SC2317
+  function is_kernel_root()
+  {
+    return 0
+  }
+
+  touch "${SHUNIT_TMPDIR}/fake-kernel-tree/file.rej"
+  mkdir --parents "${SHUNIT_TMPDIR}/fake-kernel-tree/subdir"
+  touch "${SHUNIT_TMPDIR}/fake-kernel-tree/subdir/fail.rej"
+
+  output=$(fallback_to_wiggle "${SHUNIT_TMPDIR}/fake-kernel-tree" 'TEST_MODE')
+  expected='Using wiggle to apply rejected files.'$'\n'
+  expected+="Applying rejected file '${SHUNIT_TMPDIR}/fake-kernel-tree/file.rej' to '${SHUNIT_TMPDIR}/fake-kernel-tree/file'"$'\n'
+  expected+="wiggle --replace ${SHUNIT_TMPDIR}/fake-kernel-tree/file ${SHUNIT_TMPDIR}/fake-kernel-tree/file.rej"$'\n'
+  expected+='Application of rejected file was a success!'$'\n'
+  expected+="Applying rejected file '${SHUNIT_TMPDIR}/fake-kernel-tree/subdir/fail.rej' to '${SHUNIT_TMPDIR}/fake-kernel-tree/subdir/fail'"$'\n'
+  expected+="wiggle --replace ${SHUNIT_TMPDIR}/fake-kernel-tree/subdir/fail ${SHUNIT_TMPDIR}/fake-kernel-tree/subdir/fail.rej"$'\n'
+  expected+='Application of rejected file was a success!'$'\n'
+  expected+='Application of rejected files was a success!'$'\n'
+  expected+='Recommended examining each replaced file for unresolved conflicts and semantics.'
+  assert_equals_helper 'Wrong commands or output' "$LINENO" "$expected" "$output"
+
+  eval "function ${original_function_declaration}"
+}
+
+function test_get_apply_check_status()
+{
+  local output
+  local expected
+  local original_function_declaration
+
+  setupGitRepository
+
+  expected='Patchset title cannot be empty'
+  output=$(get_apply_check_status '' "$PATH_TO_GIT_REPOSITORY")
+  assert_equals_helper 'Empty patchset title should return 22' "$LINENO" 22 "$?"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  expected="'/not/a/kernel/root' is not a Linux kernel tree"
+  output=$(get_apply_check_status 'linux/kernel: fix something wrong' '/not/a/kernel/root')
+  assert_equals_helper 'Invalid Linux kernel tree path should return 22' "$LINENO" 22 "$?"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  original_function_declaration=$(declare -f is_kernel_root)
+  # shellcheck disable=SC2317
+  function is_kernel_root()
+  {
+    return 0
+  }
+
+  git -C "$PATH_TO_GIT_REPOSITORY" commit --allow-empty --message='commit1' --quiet
+  git -C "$PATH_TO_GIT_REPOSITORY" branch 'linux_kernel_Fixin_something_wrong_in_func' --quiet
+  output=$(get_apply_check_status 'linux/kernel: Fixin'"'"' "something" [wrong], in func(){}`+*&%$' "$PATH_TO_GIT_REPOSITORY")
+  assert_equals_helper 'Patchset is applied and should output 1' "$LINENO" 1 "$output"
+
+  output=$(get_apply_check_status 'not_applied_patchset' "$PATH_TO_GIT_REPOSITORY")
+  assert_equals_helper 'Patchset is not applied and should output 0' "$LINENO" 0 "$output"
+
+  teardownGitRepository
+  eval "function ${original_function_declaration}"
 }
 
 invoke_shunit

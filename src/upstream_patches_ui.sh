@@ -142,12 +142,12 @@ function show_bookmarked_series_details()
   local series_index="$1"
   declare -A series
   local -a action_list
-  local -a check_statuses=('')
+  local -a check_statuses=()
   local patch_metadata
   local raw_series
   local message_box
 
-  action_list=('Unbookmark')
+  action_list=('Unbookmark' 'Apply')
 
   # The local bookmark database starting index is 1 and the index
   # passed as argument starts at 0.
@@ -166,6 +166,8 @@ function show_bookmarked_series_details()
   patch_metadata+=$(prettify_string 'Version:' "${series['patch_version']}")
   patch_metadata+=$(prettify_string 'Patches:' "${series['total_patches']}")
   message_box="$patch_metadata"
+
+  check_statuses[1]=$(get_apply_check_status "${series['patch_title']}" "${lore_config['kernel_tree_path']}")
 
   create_simple_checklist 'Bookmarked Series info and actions' "$message_box" 'action_list' 'check_statuses' 1
   ret="$?"
@@ -186,6 +188,35 @@ function show_bookmarked_series_details()
               create_message_box 'Error' 'Could not unbookmark patch(es)'$'\n'"- ${series['patch_title']}"
             fi
             screen_sequence['SHOW_SCREEN']='bookmarked_patches'
+            ;;
+          'Apply')
+            if [[ -z "${lore_config['kernel_tree_path']}" || -z "${lore_config['kernel_tree_branch']}" ]]; then
+              create_message_box 'Error' 'The "Kernel Tree Path" and "Kernel Tree Branch" configs must be set.'$'\n''Go to Dashboard -> Settings.'
+              return
+            fi
+            message_box="The branch '${lore_config['kernel_tree_branch']}' of the Linux kernel tree located in '${lore_config['kernel_tree_path']}' "
+            message_box+='will be updated and a new branch based on it will be created for the patch application. Do you wish to proceed?'
+            create_yes_no_prompt 'Warning' "$message_box"
+            case "$?" in
+              0) # Yes
+                create_loading_screen_notification 'Applying patch(es)'$'\n'"- ${series['patch_title']}"
+                output=$(download_series "${series['patch_url']}" "${lore_config['save_patches_to']}")
+                if [[ "$?" != 0 ]]; then
+                  create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${series['patch_title']}"$'\n'"[error message] ${output}"
+                  return
+                fi
+
+                output=$(apply_patchset "${series['patch_title']}" "$output" "${lore_config['kernel_tree_path']}" "${lore_config['kernel_tree_branch']}")
+                if [[ "$?" != 0 ]]; then
+                  create_message_box 'Fail' 'Could not apply patch(es):'$'\n'"- ${series['patch_title']}"$'\n'$'\n'"[error message] ${output}"
+                  return
+                fi
+                create_message_box 'Success' "'${series['patch_title']}' applied."$'\n'"${output}"
+                ;;
+              1) # No
+                create_message_box '' 'Patch application aborted!'
+                ;;
+            esac
             ;;
         esac
       done
@@ -384,14 +415,13 @@ function show_series_details()
   local -n _target_patch_metadata="$2"
   declare -A series
   local -a action_list
-  local -a check_statuses=('' '')
+  local -a check_statuses=()
   local patch_metadata
   local raw_series
   local message_box
   local output
 
-  # TODO: Add apply patch
-  action_list=('Bookmark' 'Download')
+  action_list=('Bookmark' 'Download' 'Apply')
 
   raw_series=${_target_patch_metadata["$patch_index"]}
   parse_raw_series "${raw_series}" 'series'
@@ -408,6 +438,7 @@ function show_series_details()
     # TODO: when we refine the 'Download' action, we should revise the set below
     check_statuses[1]=1
   fi
+  check_statuses[2]=$(get_apply_check_status "${series['patch_title']}" "${lore_config['kernel_tree_path']}")
 
   create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list' 'check_statuses' 1
   ret="$?"
@@ -435,6 +466,35 @@ function show_series_details()
             if [[ "$?" != 0 ]]; then
               create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${series['patch_title']}"$'\n'"[error message] ${output}"
             fi
+            ;;
+          'Apply')
+            if [[ -z "${lore_config['kernel_tree_path']}" || -z "${lore_config['kernel_tree_branch']}" ]]; then
+              create_message_box 'Error' 'The "Kernel Tree Path" and "Kernel Tree Branch" configs must be set.'$'\n''Go to Dashboard -> Settings.'
+              return
+            fi
+            message_box="The branch '${lore_config['kernel_tree_branch']}' of the Linux kernel tree located in '${lore_config['kernel_tree_path']}' "
+            message_box+='will be updated and a new branch based on it will be created for the patch application. Do you wish to proceed?'
+            create_yes_no_prompt 'Warning' "$message_box"
+            case "$?" in
+              0) # Yes
+                create_loading_screen_notification 'Applying patch(es)'$'\n'"- ${series['patch_title']}"
+                output=$(download_series "${series['patch_url']}" "${lore_config['save_patches_to']}")
+                if [[ "$?" != 0 ]]; then
+                  create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${series['patch_title']}"$'\n'"[error message] ${output}"
+                  return
+                fi
+
+                output=$(apply_patchset "${series['patch_title']}" "$output" "${lore_config['kernel_tree_path']}" "${lore_config['kernel_tree_branch']}")
+                if [[ "$?" != 0 ]]; then
+                  create_message_box 'Fail' 'Could not apply patch(es):'$'\n'"- ${series['patch_title']}"$'\n'$'\n'"[error message] ${output}"
+                  return
+                fi
+                create_message_box 'Success' "'${series['patch_title']}' applied."$'\n'"${output}"
+                ;;
+              1) # No
+                create_message_box '' 'Patch application aborted!'
+                ;;
+            esac
             ;;
         esac
       done

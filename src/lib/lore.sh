@@ -426,7 +426,8 @@ function get_patches_from_mailing_list()
 #
 # Return:
 # Return 0 if the thread was successfully downloaded, 22 if the series URL or the output
-# directory passed as arguments is empty and the error code of `b4` in case it fails.
+# directory passed as arguments is empty and the error code of `b4` in case it fails. In
+# case of success, the path to .mbx file is outputted.
 function download_series()
 {
   local series_url="$1"
@@ -465,11 +466,14 @@ function download_series()
     # Unfortunately, unknown message-ID and invalid outdir errors are the same (errno #1)
     complain 'An error occurred during the execution of b4'
     complain "b4 command: ${cmd}"
+    return "$ret"
   elif [[ "$ret" == 2 ]]; then
     complain 'b4 unrecognized arguments'
     complain "b4 command: ${cmd}"
+    return "$ret"
   fi
 
+  printf '%s/%s.mbx' "${save_to}" "${series_filename}"
   return "$ret"
 }
 
@@ -731,4 +735,180 @@ function save_new_lore_config()
   fi
 
   sed --in-place --regexp-extended "s<(${setting}=).*<\1${new_value}<" "$lore_config_path"
+}
+
+# This function tries to apply a patchset to a branch of a Linux kernel tree given
+# the patchset title, the patchset .mbx file path, the Linux kernel tree path and the
+# base branch. The base branch is updated and a new branch based on it is created,
+# with the name following the pattern:
+#  YYYY-MM-DD-hh-mm-ss-<patchset_title_converted_to_filename>
+# In case the application fails, the function tries to apply the rejected files
+# generated using wiggle, but only if it is installed in the system.
+#
+# @series_title: Title of the patchset
+# @series_path: Path to the patchset .mbx file
+# @kernel_tree_path: Path to a Linux kernel tree
+# @base_kernel_tree_branch: Branch of Linux kernel tree to base new branch
+# @flag: Flag to control function output
+#
+# Return:
+# Returns 22 (EINVAL) in case `@kernel_tree_path` or `@base_kernel_tree_branch` are
+# empty, 2 (ENOENT) in case `@kernel_tree_path` is not a Linux kernel tree, an error
+# code in case any git or the wiggle commands fail, and 0, otherwise. Also, information
+# about the state of the execution are outputted to the standard output.
+function apply_patchset()
+{
+  local series_title="$1"
+  local series_path="$2"
+  local kernel_tree_path="$3"
+  local base_kernel_tree_branch="$4"
+  local flag="$5"
+  local path_to_tmp_dir
+  local new_branch_name
+  local output
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  if [[ -z "$kernel_tree_path" || -z "$base_kernel_tree_branch" ]]; then
+    return 22 # EINVAL
+  fi
+
+  if ! is_kernel_root "$kernel_tree_path"; then
+    complain "'${kernel_tree_path}' is not a Linux kernel tree"
+    return 2 # ENOENT
+  fi
+
+  cmd="git -C ${kernel_tree_path} switch ${base_kernel_tree_branch} --quiet"
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Could not switch kernel tree ${kernel_tree_path} to branch ${base_kernel_tree_branch}"
+    return "$ret"
+  fi
+
+  cmd="git -C ${kernel_tree_path} pull --quiet"
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Could not update branch ${base_kernel_tree_branch}"
+    return "$ret"
+  fi
+
+  new_branch_name=$(date +'%Y-%m-%d-%H-%M-%S-')
+  new_branch_name+=$(string_to_unix_filename "$series_title")
+  cmd="git -C ${kernel_tree_path} checkout -b ${new_branch_name} --quiet"
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Could not create new branch ${new_branch_name} based on ${base_kernel_tree_branch}"
+    return "$ret"
+  fi
+
+  cmd="git -C ${kernel_tree_path} am --reject ${series_path} --quiet > /dev/null 2>&1"
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    if command_exists 'wiggle'; then
+      fallback_to_wiggle "$kernel_tree_path" "$flag"
+      ret="$?"
+      if [[ "$ret" != 0 ]]; then
+        return "$ret"
+      fi
+    else
+      complain "Could not apply series ${series_path}"
+      complain "Possible 'git am' in progress in the branch: ${new_branch_name}"
+      return "$ret"
+    fi
+  fi
+
+  # Return new branch name, if application was successful
+  printf 'New branch name: %s' "${new_branch_name}"
+}
+
+# This function tries to apply rejected files in a Linux kernel tree using wiggle as
+# a fallback for failing to apply patches, like when using `git am`, for example.
+# It does this by locating any .rej file inside the tree and using wiggle for trying
+# to replace the original file.
+#
+# @kernel_tree_path: Path to a Linux kernel tree
+# @flag: Flag to control function output
+#
+# Return:
+# If `@kernel_tree_path` is not a Linux kernel tree path, returns 22 (EINVAL).
+# If the application of any rejected file is unsuccessful, returns the error code
+# of the wiggle command. In any case, messages are outputted to the standard
+# output about the status of execution.
+function fallback_to_wiggle()
+{
+  local kernel_tree_path="$1"
+  local flag="$2"
+  local rejected_files
+  local original_file
+
+  flag=${flag:-'SILENT'}
+
+  if ! is_kernel_root "$kernel_tree_path"; then
+    complain "'${kernel_tree_path}' is not a Linux kernel tree"
+    return 2 # ENOENT
+  fi
+
+  say 'Using wiggle to apply rejected files.'
+  rejected_files=$(find "$kernel_tree_path" -type f -name '*.rej' | sort --dictionary-order)
+  while IFS=$'\n' read -r rejected_file; do
+    original_file=$(printf '%s' "$rejected_file" | sed 's/\.rej//')
+    say "Applying rejected file '${rejected_file}' to '${original_file}'"
+    cmd_manager "$flag" "wiggle --replace ${original_file} ${rejected_file}"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain 'Application of rejected file failed...'
+      return "$ret"
+    else
+      success 'Application of rejected file was a success!'
+    fi
+  done <<< "$rejected_files"
+  warning 'Application of rejected files was a success!'
+  warning 'Recommended examining each replaced file for unresolved conflicts and semantics.'
+}
+
+# Get the check status of the 'Apply' action given a patchset title and a Linux
+# kernel tree path.
+#
+# @patch_title: Title of a patchset
+# @kernel_tree_path: Path to a Linux kernel tree
+# @flag: Flag to control function output
+#
+# Return:
+# Outputs 1 if the check status is 'checked' and 0 if it is 'unchecked'. In case
+# the `@patch_title` is empty or `@kernel_tree_path` is not a Linux kernel tree
+# path, returns 22 (EINVAL).
+function get_apply_check_status()
+{
+  local patch_title="$1"
+  local kernel_tree_path="$2"
+  local flag="$3"
+  local patch_title_filename
+  local git_branch_output
+
+  flag=${flag:-'SILENT'}
+
+  if [[ -z "$patch_title" ]]; then
+    complain 'Patchset title cannot be empty'
+    return 22 # EINVAL
+  fi
+
+  if ! is_kernel_root "$kernel_tree_path"; then
+    complain "'${kernel_tree_path}' is not a Linux kernel tree"
+    return 22 # EINVAL
+  fi
+
+  patch_title_filename=$(string_to_unix_filename "$patch_title")
+
+  git_branch_output=$(cmd_manager "$flag" "git -C ${kernel_tree_path} branch --verbose")
+  if [[ "$git_branch_output" =~ $patch_title_filename ]]; then
+    printf '%s' 1
+  else
+    printf '%s' 0
+  fi
 }
