@@ -367,4 +367,88 @@ function test_str_escape_single_quotes()
   assert_equals_helper 'Did not escape all the single quotes' "$LINENO" "$expected" "$output"
 }
 
+function test_string_to_unix_filename()
+{
+  local filename
+  local output
+  local expected
+
+  # Invalid Cases
+  string_to_unix_filename ''
+  assert_equals_helper 'Empty string should return 22' "$LINENO" 22 "$?"
+
+  string_to_unix_filename '&'
+  assert_equals_helper 'Removable char should return 22' "$LINENO" 22 "$?"
+
+  string_to_unix_filename "$&*+%!?:,'\"\`()[]{}"
+  assert_equals_helper 'String composed only of removable chars should return 22' "$LINENO" 22 "$?"
+
+  for i in {1..256}; do
+    filename+='a'
+  done
+  string_to_unix_filename "$filename"
+  assert_equals_helper 'Filename with more than 255 chars should return 22' "$LINENO" 22 "$?"
+
+  # Valid cases
+  filename=''
+  for i in {1..255}; do
+    filename+='a'
+  done
+  output=$(string_to_unix_filename "$filename")
+  assert_equals_helper 'Filename with 255 chars should return 0' "$LINENO" 0 "$?"
+  assert_equals_helper 'String should be unaltered' "$LINENO" "$filename" "$output"
+
+  output=$(string_to_unix_filename 'o')
+  expected='o'
+  assert_equals_helper 'Unix-friendly strings with single char should be unaltered' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename '7358917454705041598966597')
+  expected='7358917454705041598966597'
+  assert_equals_helper 'Unix-friendly strings with only numbers should be unaltered' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename 'perfectly_fine-file.name')
+  expected='perfectly_fine-file.name'
+  assert_equals_helper 'Unix-friendly strings with only letters should be unaltered' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename 'h1_h0w_4r3_y0u?')
+  expected='h1_h0w_4r3_y0u'
+  assert_equals_helper 'Unix-friendly strings with letters and numbers should be unaltered' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename 'Testing lots of spaces ')
+  expected='Testing_lots_of_spaces_'
+  assert_equals_helper 'Spaces should be replaced by underscores' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename 'Testing/forward/slashes/')
+  expected='Testing_forward_slashes_'
+  assert_equals_helper 'Forward slashes should be replaced by underscores' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename 'Testing do$$llarsign a&mpe&rs&and as*te*risk pl+u++s pe%r%c%entage ex!!clamation ??question ::co:lon ,c,,omma,s')
+  expected='Testing_dollarsign_ampersand_asterisk_plus_percentage_exclamation_question_colon_commas'
+  assert_equals_helper 'Special characters should be removed' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename "T'esting su'm sin'gle quotes''")
+  expected='Testing_sum_single_quotes'
+  assert_equals_helper 'Single quotes should be removed' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename 'Te""stin"g sum dou"bl"e quo"te"s"')
+  expected='Testing_sum_double_quotes'
+  assert_equals_helper 'Double quotes should be removed' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename 'T`est``ing s`um a`pos``tro`ph`es')
+  expected='Testing_sum_apostrophes'
+  assert_equals_helper 'Apostrophes should be removed' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename 'T(()()es()ting s(um p)aren(((((thesis')
+  expected='Testing_sum_parenthesis'
+  assert_equals_helper 'Parenthesis should be removed' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename '[][Testing []s]]u[[m brack][ets[[][]')
+  expected='Testing_sum_brackets'
+  assert_equals_helper 'Brackets should be removed' "$LINENO" "$expected" "$output"
+
+  output=$(string_to_unix_filename '}T}{}est{ing {{{{{sum curl{y b{}}race}s{')
+  expected='Testing_sum_curly_braces'
+  assert_equals_helper 'Curly braces should be removed' "$LINENO" "$expected" "$output"
+}
+
 invoke_shunit
