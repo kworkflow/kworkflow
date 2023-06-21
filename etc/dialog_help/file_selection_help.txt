@@ -1,0 +1,12 @@
+[file_selection_help_box_title]:
+File Selection Help
+[file_selection_help_message_box]:
+There are 4 regions in the Directory Selection screen:
+- [Upper Left Box]: list of directories in the current path.
+- [Upper Right Box]: list of files in the current path.
+- [Lower Box]: the current path (input box).
+- [Buttons]: "OK" to confirm file path, "Cancel" to cancel selection and "Help" to show this screen.
+
+To move between the regions, use the <TAB> key.
+To complete the current path with the highlighted directory/file, use the <SPACE> key.
+Typing while in the Upper Box or the Lower Box alters the current path.
