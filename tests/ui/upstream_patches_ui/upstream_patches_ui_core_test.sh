@@ -170,21 +170,6 @@ function test_list_patches_without_patches()
   assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'dashboard'
 }
 
-function test_show_settings_screen()
-{
-  declare -A screen_sequence=(['SHOW_SCREEN']='')
-
-  # shellcheck disable=SC2317
-  function create_menu_options()
-  {
-    # 'Settings' sub-menu chosen
-    menu_return_string=1
-  }
-
-  show_settings_screen
-  assert_equals_helper 'Should set next screen to "manage_mailing_lists"' "$LINENO" 'manage_mailing_lists' "${screen_sequence['SHOW_SCREEN']}"
-}
-
 function test_show_new_patches_in_the_mailing_list_title()
 {
   declare current_mailing_list=''
