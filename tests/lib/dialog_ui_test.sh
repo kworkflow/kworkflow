@@ -61,7 +61,7 @@ function test_create_menu_options_rely_on_some_default_options()
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
   local -a menu_list_string_array=("I'm number 1" "I'm number 2")
-  local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
+  local expected_cmd="dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Exit' --menu $'${menu_message_box}'"
@@ -77,7 +77,7 @@ function test_create_menu_options_use_all_options()
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
   local -a menu_list_string_array=("I'm number 1" "I'm number 2")
-  local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
+  local expected_cmd="dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Xpto'"
@@ -95,7 +95,7 @@ function test_create_simple_checklist_rely_on_some_default_options()
   local menu_message_box="This shouldn't be a useful dialog's screen message box"
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
   local -a check_statuses=(1 0)
-  local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
+  local expected_cmd="dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Exit'"
@@ -113,7 +113,7 @@ function test_create_simple_checklist_use_all_options()
   local menu_message_box="This shouldn't be a useful dialog's screen message box"
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
   local -a check_statuses=(1 0)
-  local expected_cmd="dialog --backtitle \$'${KW_UPSTREAM_TITLE}'"
+  local expected_cmd="dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Nop'"
@@ -156,7 +156,7 @@ function test_create_message_box_rely_on_some_default_options()
 {
   local box_title='Bookmarked patches'
   local message_box="There're no bookmarked patches..."
-  local expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  local expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${box_title}' --clear --colors"
@@ -170,7 +170,7 @@ function test_create_message_box_use_all_options()
 {
   local box_title='Bookmarked patches'
   local message_box="There're no bookmarked patches..."
-  local expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  local expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${box_title}' --clear --colors"
@@ -187,7 +187,7 @@ function test_create_directory_selection_screen_rely_on_some_default_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Choose \'a\' Directory!' --clear --colors"
   expected_cmd+=" --help-button --dselect '${starting_path}'"
   expected_cmd+=" '15' '80'"
@@ -202,7 +202,7 @@ function test_create_directory_selection_screen_use_all_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Choose \'a\' Directory!' --clear --colors"
   expected_cmd+=" --help-button --dselect '${starting_path}'"
   expected_cmd+=" '2718' '281828'"
@@ -217,7 +217,7 @@ function test_create_file_selection_screen_rely_on_some_default_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Choose \'a\' File!' --clear --colors"
   expected_cmd+=" --help-button --fselect '${starting_path}'"
   expected_cmd+=" '15' '80'"
@@ -232,7 +232,7 @@ function test_create_file_selection_screen_use_all_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Choose \'a\' File!' --clear --colors"
   expected_cmd+=" --help-button --extra-button --extra-label $'EXTRA' --fselect '${starting_path}'"
   expected_cmd+=" '2718' '281828'"
@@ -248,7 +248,7 @@ function test_create_help_screen()
   create_help_screen 'fake_screen' 'TEST_MODE'
   assert_equals_helper 'Invalid screen name should return 2' "$LINENO" 2 "$?"
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}' --title $'Directory Selection Help' --clear --colors --msgbox"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}' --title $'Directory Selection Help' --clear --colors --msgbox"
   expected_cmd+=" $'There are 3 regions in the Directory Selection screen:"$'\n'
   expected_cmd+='- [Upper Box]: list of directories in the current path.'$'\n'
   expected_cmd+='- [Lower Box]: the current path (input box).'$'\n'
@@ -270,7 +270,7 @@ function test_create_choice_list_screen_rely_on_some_default_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Make \'a\' choice!' --clear --colors"
   expected_cmd+=" --radiolist $'Select \`one\' of the below options.'"
   expected_cmd+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
@@ -288,7 +288,7 @@ function test_create_choice_list_screen_use_all_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Make \'a\' choice!' --clear --colors"
   expected_cmd+=" --radiolist $'Select \`one\' of the below options.'"
   expected_cmd+=" '17041998' '10300507' '0'"
@@ -304,7 +304,7 @@ function test_create_yes_no_prompt_rely_on_some_default_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Choose Yes \'or\' No!' --clear --colors"
   expected_cmd+=" --yes-label $'Yes' --no-label $'No'"
   expected_cmd+=" --yesno $'This is \`a Yes/No\' prompt.'"
@@ -320,7 +320,7 @@ function test_create_yes_no_prompt_use_all_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${KW_UPSTREAM_TITLE}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Choose Yes \'or\' No!' --clear --colors"
   expected_cmd+=" --yes-label $'No' --no-label $'Yes'"
   expected_cmd+=" --extra-button --extra-label $'Not Extra'"

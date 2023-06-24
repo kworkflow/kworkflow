@@ -1,16 +1,16 @@
 ======================
-kw-upstream-patches-ui
+kw-patch-hub
 ======================
 
-.. _upstream-patches-ui-doc:
+.. _patch-hub-doc:
 
 SYNOPSIS
 ========
-| *kw upstream-patches-ui*
+| *kw patch-hub*
 
 DESCRIPTION
 ===========
-The `kw upstream-patches-ui` feature provides an interface with the public mailing
+The `kw patch-hub` feature provides an interface with the public mailing
 lists archived on `https://lore.kernel.org`. The feature can be used to just consult
 patch series from a given list, but, as it integrates with other kw features, it
 simplifies the process of reviewing patch series, like:
@@ -20,11 +20,11 @@ simplifies the process of reviewing patch series, like:
 - Deploying the series version of the kernel
 - Replying with `Reviewed-by/Tested-by`
 
-`kw upstream-patches-ui` provides routines to automate and simplify these actions.
+`kw patch-hub` provides routines to automate and simplify these actions.
 
 EXAMPLES
 ========
 The feature is screen-focused, and to open the UI with the public mailing lists,
 just run::
 
-  kw upstream-patches-ui
+  kw patch-hub

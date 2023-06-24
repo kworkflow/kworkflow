@@ -1,10 +1,10 @@
-# The `upstream_patches_ui_core.sh` file centralizes the states representing the
-# sequences of screen of the `upstream-patches-ui` feature. The feature is implemented
+# The `patch_hub_core.sh` file centralizes the states representing the
+# sequences of screen of the `patch-hub` feature. The feature is implemented
 # as a state-machine that roughly follows the Model-View-Controller pattern. The roles
 # being:
 # - Model: `src/lib/lore.sh`
 # - View: `src/lib/dialog.sh`
-# - Controller: `src/ui/upstream_patches_ui`
+# - Controller: `src/ui/patch_hub`
 #
 # To keep the code clean and modular, it is best to break down major screen-sequences
 # (like 'Settings') in small files that should reside in the Controller directory.
@@ -14,8 +14,8 @@ include "${KW_LIB_DIR}/lib/dialog_ui.sh"
 include "${KW_LIB_DIR}/lib/lore.sh"
 include "${KW_LIB_DIR}/kwio.sh"
 include "${KW_LIB_DIR}/kwlib.sh"
-include "${KW_LIB_DIR}/ui/upstream_patches_ui/settings.sh"
-include "${KW_LIB_DIR}/ui/upstream_patches_ui/series_details.sh"
+include "${KW_LIB_DIR}/ui/patch_hub/settings.sh"
+include "${KW_LIB_DIR}/ui/patch_hub/series_details.sh"
 
 # These are references to data structures used all around the state-machine.
 declare -ga registered_lists
@@ -33,7 +33,7 @@ declare -gA screen_sequence=(
 
 # This function is the main loop of the state-machine that represents the feature.
 # It delegates the processing of states and state transitions to other functions.
-function upstream_patches_ui_main_loop()
+function patch_hub_main_loop()
 {
   local ret
 

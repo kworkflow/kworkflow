@@ -42,7 +42,7 @@ _kw()
     'report:Show kw pomodoro reports and kw usage statistics'
     'self-update:kw self-update mechanism'
     'ssh:SSH support'
-    'upstream-patches-ui: Open UI with lore.kernel.org archives'
+    'patch-hub: Open UI with lore.kernel.org archives'
     'vars:Show variables'
     'version:Show kw version'
   )
@@ -385,7 +385,7 @@ _kw_man()
   _values 'kw commands' \
     'backup' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
     'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
-    'upstream-patches-ui' 'vars'
+    'patch-hub' 'vars'
 }
 
 _kw_p() { _kw_pomodoro }
@@ -461,7 +461,7 @@ _kw_ssh()
     '(-c --command -s --script)'{-c,--command}'[execute a bash script in the target machine]: : '
 }
 
-_kw_upstream-patches-ui()
+_kw_patch-hub()
 {
   _nothing
 }

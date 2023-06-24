@@ -5,7 +5,7 @@
 include "${KW_LIB_DIR}/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 
-declare -gr KW_UPSTREAM_TITLE='kw upstream patches manager'
+declare -gr KW_PATCH_HUB_TITLE='kw patch-hub'
 
 # Some UI returns the user-selected option, and this global variable is used
 # for that.
@@ -76,7 +76,7 @@ function create_menu_options()
   width=${width:-$DEFAULT_WIDTH}
   cancel_label=${cancel_label:-'Exit'}
   max_elements_displayed_in_the_menu=${max_elements_displayed_in_the_menu:-'0'}
-  back_title=${back_title:-$KW_UPSTREAM_TITLE}
+  back_title=${back_title:-$KW_PATCH_HUB_TITLE}
 
   # Escape all single quotes to avoid breaking arguments
   back_title=$(str_escape_single_quotes "$back_title")
@@ -163,7 +163,7 @@ function create_simple_checklist()
   width=${width:-$DEFAULT_WIDTH}
   list_height=${list_height:-'0'}
   cancel_label=${cancel_label:-'Exit'}
-  back_title=${back_title:-$KW_UPSTREAM_TITLE}
+  back_title=${back_title:-$KW_PATCH_HUB_TITLE}
 
   # Escape all single quotes to avoid breaking arguments
   back_title=$(str_escape_single_quotes "$back_title")
@@ -235,7 +235,7 @@ function create_loading_screen_notification()
   flag=${flag:-'SILENT'}
   height=${height:-'8'}
   width=${width:-'60'}
-  back_title=${back_title:-$"$KW_UPSTREAM_TITLE"}
+  back_title=${back_title:-$"$KW_PATCH_HUB_TITLE"}
 
   # Add dialog layout if there is one
   if [[ -n "$DIALOG_LAYOUT" ]]; then
@@ -290,7 +290,7 @@ function create_message_box()
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
   width=${width:-'40'}
-  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
   back_title=$(str_escape_single_quotes "$back_title")
@@ -344,7 +344,7 @@ function create_directory_selection_screen()
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
   width=${width:-'80'}
-  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
   back_title=$(str_escape_single_quotes "$back_title")
@@ -402,7 +402,7 @@ function create_file_selection_screen()
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
   width=${width:-'80'}
-  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
   back_title=$(str_escape_single_quotes "$back_title")
@@ -470,7 +470,7 @@ function create_choice_list_screen()
   flag=${flag:-'SILENT'}
   height=${height:-$DEFAULT_HEIGHT}
   width=${width:-$DEFAULT_WIDTH}
-  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
   back_title=$(str_escape_single_quotes "$back_title")
@@ -542,7 +542,7 @@ function create_yes_no_prompt()
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
   width=${width:-'40'}
-  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
   back_title=$(str_escape_single_quotes "$back_title")
