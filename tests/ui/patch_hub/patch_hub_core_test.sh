@@ -8,6 +8,9 @@ function setUp()
   screen_sequence['SHOW_SCREEN']=''
 
   export ORIGINAL_PATH="$PWD"
+  export BOOKMARKED_SERIES_PATH="${SHUNIT_TMPDIR}/lore_bookmarked_series"
+
+  touch "$BOOKMARKED_SERIES_PATH"
 
   cd "${SHUNIT_TMPDIR}" || {
     fail "($LINENO): setUp(): It was not possible to move into ${SHUNIT_TMPDIR}"
@@ -63,7 +66,8 @@ function test_dashboard_entry_menu_check_failed()
 
 function test_list_patches_with_patches()
 {
-  local target_array_list
+  local -a patchsets_metadata_array
+  declare -ag list_of_mailinglist_patches
 
   # shellcheck disable=SC2317
   function create_menu_options()
@@ -71,24 +75,32 @@ function test_list_patches_with_patches()
     menu_return_string='3'
   }
 
-  target_array_list=(
-    'some_patch'
-    'some_other_patch'
-    'more_patches'
+  patchsets_metadata_array=(
+    'some_patch_metadata'
+    'some_other_patch_metadata'
+    'more_patches_metadata'
   )
 
-  list_patches 'Message test' target_array_list 'show_new_patches_in_the_mailing_list' ''
-  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'series_details'
-  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN_PARAMETER']}" 2
+  list_of_mailinglist_patches=(
+    'some_patch_raw_data'
+    'some_other_patch_raw_data'
+    'more_patches_raw_data'
+  )
 
-  list_patches 'Message test' target_array_list 'bookmarked_patches' ''
-  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'bookmarked_series_details'
-  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN_PARAMETER']}" 2
+  list_patches 'Message test' patchsets_metadata_array 'show_new_patches_in_the_mailing_list' ''
+  assert_equals_helper 'Wrong screen set' "$LINENO" 'series_details' "${screen_sequence['SHOW_SCREEN']}"
+  assert_equals_helper 'Wrong screen parameter' "$LINENO" 'more_patches_raw_data' "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
+
+  printf 'some_patch_raw_data\nsome_other_patch_raw_data\nmore_patches_raw_data' > "$BOOKMARKED_SERIES_PATH"
+
+  list_patches 'Message test' patchsets_metadata_array 'bookmarked_patches' ''
+  assert_equals_helper 'Wrong screen set' "$LINENO" 'bookmarked_series_details' "${screen_sequence['SHOW_SCREEN']}"
+  assert_equals_helper 'Wrong screen parameter' "$LINENO" 'more_patches_raw_data' "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
 }
 
 function test_list_patches_without_patches()
 {
-  local target_array_list
+  local -a target_array_list
 
   # shellcheck disable=SC2317
   function create_message_box()
