@@ -252,6 +252,28 @@ function test_add_series_to_bookmark()
   assertEquals "($LINENO) - Should have 3 entries" 3 "$count"
 }
 
+function test_remove_patchset_from_bookmark_by_id()
+{
+  local output
+  local expected
+
+  {
+    printf 'entry1Æc00ffee\n'
+    printf 'entry2Ædeadbeef\n'
+    printf 'entry3Æc00141d\n'
+  } >> "${BOOKMARKED_SERIES_PATH}"
+
+  remove_patchset_from_bookmark_by_id 'deadbeef'
+  expected='entry1Æc00ffee'$'\n''entry3Æc00141d'
+  output=$(< "${BOOKMARKED_SERIES_PATH}")
+  assertEquals "($LINENO) - Should delete entry 2" "$expected" "$output"
+
+  remove_patchset_from_bookmark_by_id 'c00141d'
+  expected='entry1Æc00ffee'
+  output=$(< "${BOOKMARKED_SERIES_PATH}")
+  assertEquals "($LINENO) - Should only have entry 1" "$expected" "$output"
+}
+
 function test_remove_series_from_bookmark_by_index()
 {
   local output

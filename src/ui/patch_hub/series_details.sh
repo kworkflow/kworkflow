@@ -1,40 +1,43 @@
 include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
-# Screen resposible for show a specific patch details
+# This function is responsible for showing the screen with a patchset details
+# and actions available. The `@show_bookmarked_patchset` variable setted indicates
+# that the patchset is a bookmarked one, which has different actions available.
 #
-# @patch_index: Patch index
-# @_target_patch_metadata: List with patches metadata
+# @raw_patchset: Raw data of patchset to be displayed
+# @show_bookmarked_patchset: If set, the patchset to be shown is bookmarked
 function show_series_details()
 {
-  local patch_index="$1"
-  local -n _target_patch_metadata="$2"
+  local raw_patchset="$1"
+  local show_bookmarked_patchset="$2"
   declare -A series
   local -a action_list
-  local -a check_statuses=('' '')
+  local -a check_statuses=()
   local patch_metadata
-  local raw_series
   local message_box
 
-  # TODO: Add apply patch
-  action_list=('Bookmark' 'Download')
+  if [[ -n "$show_bookmarked_patchset" ]]; then
+    action_list=('Unbookmark')
+  else
+    # TODO: Add apply patch
+    action_list=('Bookmark' 'Download')
 
-  raw_series=${_target_patch_metadata["$patch_index"]}
-  parse_raw_series "${raw_series}" 'series'
+    is_bookmarked "${raw_patchset}"
+    if [[ "$?" == 0 ]]; then
+      check_statuses[0]=1
+      # TODO: when we refine the 'Download' action, we should revise the set below
+      check_statuses[1]=1
+    fi
+  fi
 
+  parse_raw_series "${raw_patchset}" 'series'
   patch_metadata=$(prettify_string 'Series:' "${series['patch_title']}")
   patch_metadata+=$(prettify_string 'Author:' "${series['patch_author']}")
   patch_metadata+=$(prettify_string 'Version:' "${series['patch_version']}")
   patch_metadata+=$(prettify_string 'Patches:' "${series['total_patches']}")
   message_box="$patch_metadata"
 
-  is_bookmarked "${raw_series}"
-  if [[ "$?" == 0 ]]; then
-    check_statuses[0]=1
-    # TODO: when we refine the 'Download' action, we should revise the set below
-    check_statuses[1]=1
-  fi
-
-  create_simple_checklist 'Patch(es) info and actions' "$message_box" 'action_list' 'check_statuses' 1
+  create_simple_checklist 'Patchset info and actions' "$message_box" 'action_list' 'check_statuses' 1
   ret="$?"
 
   case "$ret" in
@@ -42,8 +45,11 @@ function show_series_details()
       IFS=' ' read -ra selected_options <<< "$menu_return_string"
       for option in "${selected_options[@]}"; do
         case "$option" in
+          'Unbookmark')
+            handle_unbookmark_action 'series'
+            ;;
           'Bookmark')
-            handle_bookmark_action 'series' "$raw_series"
+            handle_bookmark_action 'series' "$raw_patchset"
             ;;
           'Download')
             handle_download_action 'series'
@@ -57,66 +63,11 @@ function show_series_details()
       ;;
 
     3) # Return
-      screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
-      screen_sequence['RETURNING']=1
-      ;;
-  esac
-}
-
-# Screen resposible for showing a specific bookmarked series details
-#
-# @series_index: Series index
-function show_bookmarked_series_details()
-{
-  local series_index="$1"
-  declare -A series
-  local -a action_list
-  local -a check_statuses=('')
-  local patch_metadata
-  local raw_series
-  local message_box
-
-  action_list=('Unbookmark')
-
-  # The local bookmark database starting index is 1 and the index
-  # passed as argument starts at 0.
-  if [[ ! "${series_index}" =~ ^[0-9]+$ || "${series_index}" -lt 0 ]]; then
-    complain "Invalid value for series_index: '${series_index}'"
-    handle_exit 22 # EINVAL
-  fi
-
-  ((series_index++))
-
-  raw_series=$(get_bookmarked_series_by_index "${series_index}")
-  parse_raw_series "${raw_series}" 'series'
-
-  patch_metadata=$(prettify_string 'Series:' "${series['patch_title']}")
-  patch_metadata+=$(prettify_string 'Author:' "${series['patch_author']}")
-  patch_metadata+=$(prettify_string 'Version:' "${series['patch_version']}")
-  patch_metadata+=$(prettify_string 'Patches:' "${series['total_patches']}")
-  message_box="$patch_metadata"
-
-  create_simple_checklist 'Bookmarked Series info and actions' "$message_box" 'action_list' 'check_statuses' 1
-  ret="$?"
-
-  case "$ret" in
-    0) # OK
-      IFS=' ' read -ra selected_options <<< "$menu_return_string"
-      for option in "${selected_options[@]}"; do
-        case "$option" in
-          'Unbookmark')
-            handle_unbookmark_action 'series' "$series_index"
-            ;;
-        esac
-      done
-      ;;
-
-    1) # Exit
-      handle_exit "$ret"
-      ;;
-
-    3) # Return
-      screen_sequence['SHOW_SCREEN']='bookmarked_patches'
+      if [[ -n "$show_bookmarked_patchset" ]]; then
+        screen_sequence['SHOW_SCREEN']='bookmarked_patches'
+      else
+        screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
+      fi
       screen_sequence['RETURNING']=1
       ;;
   esac
@@ -160,14 +111,13 @@ function handle_download_action()
 function handle_unbookmark_action()
 {
   local -n _series="$1"
-  local series_index="$2"
 
   delete_series_from_local_storage "${_series['download_dir_path']}" "${_series['patch_url']}"
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' 'Could not delete patch(es)'$'\n'"- ${_series['patch_title']}"
   fi
 
-  remove_series_from_bookmark_by_index "${series_index}"
+  remove_patchset_from_bookmark_by_id "${_series['patch_id']}"
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' 'Could not unbookmark patch(es)'$'\n'"- ${_series['patch_title']}"
   fi

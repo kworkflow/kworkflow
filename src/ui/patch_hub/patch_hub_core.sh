@@ -81,11 +81,11 @@ function patch_hub_main_loop()
         ret="$?"
         ;;
       'series_details')
-        show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}" list_of_mailinglist_patches
+        show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
         ret="$?"
         ;;
       'bookmarked_series_details')
-        show_bookmarked_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
+        show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}" 1
         ret="$?"
         ;;
     esac
@@ -209,7 +209,6 @@ function list_patches()
   local -n _target_array_list="$2"
   local previous_screen="$3"
   local fallback_message="$4"
-  local selected_patch
   local ret
 
   if [[ -z "${_target_array_list}" ]]; then
@@ -221,19 +220,19 @@ function list_patches()
   create_menu_options "${menu_title}" '' '_target_array_list' 1
   ret="$?"
 
-  selected_patch=$((menu_return_string - 1))
-
   case "$ret" in
     0) # OK
       case "$previous_screen" in
         'show_new_patches_in_the_mailing_list')
           screen_sequence['SHOW_SCREEN']='series_details'
+          menu_return_string=$((menu_return_string - 1))
+          screen_sequence['SHOW_SCREEN_PARAMETER']=${list_of_mailinglist_patches["$menu_return_string"]}
           ;;
         'bookmarked_patches')
           screen_sequence['SHOW_SCREEN']='bookmarked_series_details'
+          screen_sequence['SHOW_SCREEN_PARAMETER']=$(get_bookmarked_series_by_index "$menu_return_string")
           ;;
       esac
-      screen_sequence['SHOW_SCREEN_PARAMETER']="$selected_patch"
       ;;
     1) # Exit
       handle_exit "$ret"

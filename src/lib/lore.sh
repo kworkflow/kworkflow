@@ -551,6 +551,25 @@ function add_series_to_bookmark()
   fi
 }
 
+# This function removes a patchset from the local bookmark database by its ID
+# in the database.
+#
+# @patchset_id: The ID of the patchset in the local bookmark database
+#
+# Return:
+# Returns 2 (ENOENT) if there is no local bookmark database file and the status
+# code of the last command (sed), otherwise.
+function remove_patchset_from_bookmark_by_id()
+{
+  local patchset_id="$1"
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  sed --in-place "/${patchset_id}/d" "${BOOKMARKED_SERIES_PATH}"
+}
+
 # This function removes a series from the local bookmark database by its index
 # in the database.
 #
@@ -559,10 +578,6 @@ function add_series_to_bookmark()
 # Return:
 # Returns 2 (ENOENT) if there is no local bookmark database file and the status
 # code of the last command (sed), otherwise.
-#
-# TODO:
-# - Find an alternative way to identify a series, this one may not be the most
-#   reliable.
 function remove_series_from_bookmark_by_index()
 {
   local series_index="$1"
