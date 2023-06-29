@@ -178,7 +178,7 @@ man_pages = [
     ('man/features/vars', 'vars', 'view kw config values', [author], 1),
     ('man/features/vm', 'vm', 'commands to work with QEMU VMs', [author], 1),
     ('man/features/self-update', 'self-update', 'kw self-update mechanism', ['David Tadokoro, Everaldo Junior'], 1),
-    ('man/features/upstream-patches-ui', 'upstream-patches-ui', 'UI with lore.kernel.org archives', ['David Tadokoro, Rodrigo Siqueira'], 1),
+    ('man/features/patch-hub', 'patch-hub', 'UI with lore.kernel.org archives', ['David Tadokoro, Rodrigo Siqueira'], 1),
 ]
 
 

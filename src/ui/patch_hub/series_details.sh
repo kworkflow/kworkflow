@@ -1,4 +1,4 @@
-include "${KW_LIB_DIR}/ui/upstream_patches_ui/upstream_patches_ui_core.sh"
+include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
 # Screen resposible for show a specific patch details
 #

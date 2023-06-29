@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/upstream_patches_ui.sh'
+include './src/patch_hub.sh'
 include './tests/utils.sh'
 
 function oneTimeSetUp()
@@ -24,22 +24,22 @@ function tearDown()
   }
 }
 
-function test_parse_upstream_patches_ui_options()
+function test_parse_patch_hub_options()
 {
   local expected
   local output
 
-  expected="kw upstream-patches-ui: unrecognized option '--illegal-long-option'"
+  expected="kw patch-hub: unrecognized option '--illegal-long-option'"
   unset options_values
   declare -A options_values
-  parse_upstream_patches_ui_options '--illegal-long-option'
+  parse_patch_hub_options '--illegal-long-option'
   assert_equals_helper 'Illegal long option should return 22' "$LINENO" 22 "$?"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "${options_values['ERROR']}"
 
-  expected="kw upstream-patches-ui: invalid option -- 'i'"
+  expected="kw patch-hub: invalid option -- 'i'"
   unset options_values
   declare -A options_values
-  parse_upstream_patches_ui_options '-i'
+  parse_patch_hub_options '-i'
   assert_equals_helper 'Illegal short option should return 22' "$LINENO" 22 "$?"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "${options_values['ERROR']}"
 }

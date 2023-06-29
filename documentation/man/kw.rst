@@ -83,7 +83,7 @@ Some projects like the Linux kernel are collaboratively developed using
 public mailing lists. kw has a feature that provides a friendly UI to these
 lists and also integrates other kw features to allow a unified kernel development.
 
-  :ref:`kw-upstream-patches-ui<upstream-patches-ui-doc>`
+  :ref:`kw-patch-hub<patch-hub-doc>`
 
 OTHER COMMANDS
 --------------

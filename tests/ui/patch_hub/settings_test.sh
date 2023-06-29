@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/ui/upstream_patches_ui/settings.sh'
+include './src/ui/patch_hub/settings.sh'
 include './tests/utils.sh'
 
 function setUp()
