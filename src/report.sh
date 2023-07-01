@@ -7,7 +7,7 @@ include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
-include "$KW_LIB_DIR/statistics.sh"
+include "${KW_LIB_DIR}/lib/statistics.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
 
 declare -gA options_values
