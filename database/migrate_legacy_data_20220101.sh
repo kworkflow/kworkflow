@@ -5,7 +5,7 @@
 
 declare -r KW_LIB_DIR='src'
 
-. "${KW_LIB_DIR}/kw_include.sh" --source-only
+. "${KW_LIB_DIR}/lib/kw_include.sh" --source-only
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
