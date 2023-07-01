@@ -2,7 +2,7 @@
 
 include './src/plugins/kernel_install/utils.sh'
 include './src/plugins/kernel_install/grub.sh'
-include './src/kwio.sh'
+include './src/lib/kwio.sh'
 include './tests/utils.sh'
 
 function test_grub()

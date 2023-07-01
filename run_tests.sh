@@ -2,7 +2,7 @@
 
 . ./src/kw_include.sh --source-only
 include './tests/utils.sh'
-include './src/kwio.sh'
+include './src/lib/kwio.sh'
 
 function show_help()
 {

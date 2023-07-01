@@ -1,5 +1,5 @@
 include "${KW_LIB_DIR}/kwlib.sh"
-include "${KW_LIB_DIR}/kwio.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/help.sh"
 
 declare -gA options_values

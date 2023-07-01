@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './tests/utils.sh'
-include './src/kwio.sh'
+include './src/lib/kwio.sh'
 include './src/kwlib.sh'
 
 # NOTE: All executions off 'alert_completion' in this test file must be done
@@ -12,19 +12,19 @@ include './src/kwlib.sh'
 declare -A notification_config
 declare -g load_module_text_path="$PWD/tests/samples/load_module_text_test_samples/"
 
-sound_file="$PWD/tests/.kwio_test_aux/sound.file"
-visual_file="$PWD/tests/.kwio_test_aux/visual.file"
+sound_file="$PWD/tests/lib/.kwio_test_aux/sound.file"
+visual_file="$PWD/tests/lib/.kwio_test_aux/visual.file"
 
 function setUp()
 {
-  mkdir -p tests/.kwio_test_aux
+  mkdir -p tests/lib/.kwio_test_aux
   notification_config['sound_alert_command']="touch $sound_file"
   notification_config['visual_alert_command']="touch $visual_file"
 }
 
 function tearDown()
 {
-  rm -rf tests/.kwio_test_aux
+  rm -rf tests/lib/.kwio_test_aux
 }
 
 function test_alert_completion_options()
@@ -66,7 +66,7 @@ function test_alert_completion_options()
 
 function test_alert_completition_validate_config_file_options()
 {
-  mkdir -p tests/.kwio_test_aux
+  mkdir -p tests/lib/.kwio_test_aux
 
   rm -f "$sound_file" "$visual_file"
   notification_config['alert']='vs'

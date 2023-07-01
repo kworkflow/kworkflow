@@ -12,7 +12,7 @@
 include "${KW_LIB_DIR}/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/dialog_ui.sh"
 include "${KW_LIB_DIR}/lib/lore.sh"
-include "${KW_LIB_DIR}/kwio.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/kwlib.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/settings.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/series_details.sh"

@@ -579,7 +579,7 @@ function create_yes_no_prompt()
 }
 
 # Creates a help message box for a dialog's screen. There must be a file
-# that follows the pattern of `load_module_text`, for reference see `src/kwio.sh`.
+# that follows the pattern of `load_module_text`, for reference see `src/lib/kwio.sh`.
 #
 # @screen_name: Name of screen to show the help. There must be a text file
 #   `${KW_ETC_DIR}/dialog_help/${screen_name}_help.txt` that holds the help message

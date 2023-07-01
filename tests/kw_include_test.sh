@@ -37,7 +37,7 @@ function test_include()
   local output
   local relpath
 
-  relpath="./src/kwio.sh"
+  relpath='./src/lib/kwio.sh'
   include "$relpath"
 
   fullpath="$(realpath "$relpath")"
