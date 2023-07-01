@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ./src/kw_include.sh --source-only
+. ./src/lib/kw_include.sh --source-only
 include './tests/utils.sh'
 include './src/lib/kwio.sh'
 

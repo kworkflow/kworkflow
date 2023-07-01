@@ -1,6 +1,6 @@
 #!/bin/bash
 KW_LIB_DIR='src'
-. 'src/kw_include.sh' --source-only
+. 'src/lib/kw_include.sh' --source-only
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
