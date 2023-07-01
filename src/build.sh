@@ -1,4 +1,4 @@
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "$KW_LIB_DIR/kw_config_loader.sh"
 
@@ -7,7 +7,7 @@ declare -gA options_values
 # This function is responsible for manipulating kernel build operations such as
 # compile/cross-compile and menuconfig.
 #
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 # @raw_options String with all user options
 #
 # Return:
@@ -209,7 +209,7 @@ function build_doc()
 #
 # @flag: Expecting a flag, by default, cmd_manager does not
 # expects flags and always show the command. For more details
-# see the function `cmd_manager` in `src/kwlib.sh`.
+# see the function `cmd_manager` in `src/lib/kwlib.sh`.
 #
 # @output_kbuild_flag: Will point to the current env path that
 # the user is using.

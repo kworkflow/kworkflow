@@ -1,4 +1,4 @@
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 
 declare -gA options_values

@@ -4,7 +4,7 @@
 
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kw_time_and_date.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 
 # Hash containing user options
@@ -115,7 +115,7 @@ function debug_main()
 # @target: Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
 # @list_target: List debug options
 # @flag: How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Return 22 in case of invalid option
@@ -164,7 +164,7 @@ function list_debug()
 #
 # @target: Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
 # @flag: How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function reset_debug()
 {
   local target="$1"
@@ -208,7 +208,7 @@ function reset_debug()
 #
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @keep_history: If set to a value different from empty or 0, it will create a
 # @follow: Follow log in real-time.
 # @user_cmd: User specific command.
@@ -275,7 +275,7 @@ function dmesg_debug()
 #
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @event: Raw string with event syntax
 # @keep_history: If set to a value different from empty or 0, it will create a
 # directory structure for keeping the trace history. Otherwise, it will create
@@ -395,7 +395,7 @@ function event_debug()
 #
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Output all data in a list format
@@ -441,7 +441,7 @@ function ftrace_list()
 #
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @ftrace_syntax: Raw string with event syntax
 # @keep_history: If set to a value different from empty or 0, it will create a
 # directory structure for keeping the trace history. Otherwise, it will create

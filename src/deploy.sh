@@ -279,7 +279,7 @@ function deploy_main()
 # the root user.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # If everything is alright, it returns 0, otherwise, it can return:
@@ -326,7 +326,7 @@ function setup_remote_ssh_with_passwordless()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function prepare_distro_for_deploy()
 {
   local target="$1"
@@ -362,7 +362,7 @@ function prepare_distro_for_deploy()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function update_status_log()
 {
   local target="$1"
@@ -392,7 +392,7 @@ function update_status_log()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Return 0 if the setup was done before, or 2 if not.
@@ -428,7 +428,7 @@ function check_setup_status()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Return 0 in case of success, otherwise, it return a code error
@@ -578,7 +578,7 @@ function prepare_remote_dir()
 # Create the temporary folder for local deploy.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of success return 0, otherwise it may return:
@@ -619,7 +619,7 @@ function prepare_local_dir()
 # Kernels.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @single_line If this option is set to 1 this function will display all
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
@@ -661,7 +661,7 @@ function run_list_installed_kernels()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Populate target_deploy_info
@@ -714,7 +714,7 @@ function collect_target_info_for_deploy()
 # @reboot If this value is equal 1, it means reboot machine after kernel
 #         installation.
 # @kernels_target_list String containing kernels name separated by comma
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 # @force If this value is equal to 1, try to uninstall kernels even if they are
 #        not managed by kw
 #
@@ -798,7 +798,7 @@ function cleanup()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @return_tar_path
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Note:
 # This function supposes that prepare_host_deploy_dir and prepare_remote_dir
@@ -836,7 +836,7 @@ function modules_install()
 #
 # @install_to Target path to install the output of the command `make
 #             modules_install`.
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 function modules_install_to()
 {
   local install_to="$1"
@@ -960,7 +960,7 @@ function get_kernel_binary_name()
 # @kernel_name: Kernel name set by the user.
 # @cache_base_kw_pkg_store_path: Cache folder path.
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return
 # In case of success return 0, otherwise return an error code.
@@ -1008,7 +1008,7 @@ function get_config_file_for_deploy()
 # @base_kernel_image_path: Base bath to the kernel binary in the kernel tree
 # @base_kw_deploy_store_path: Path to store the binary file to be deployed
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of error return an errno code
@@ -1059,7 +1059,7 @@ function get_kernel_image_for_deploy()
 # @base_kw_deploy_store_path: Path to store the binary file to be deployed
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function get_dts_and_dtb_files_for_deploy()
 {
   local arch="$1"
@@ -1121,7 +1121,7 @@ function create_pkg_metadata_file_for_deploy()
 # those files.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @kernel_img_name Kernel image file name, e.g., bzImage or Image.
 # @name Kernel name used during the deploy

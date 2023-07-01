@@ -6,7 +6,7 @@ declare -g LIB_MODULES_PATH='/lib/modules'
 declare -gA kw_package_metadata
 
 # ATTENTION:
-# This function follows the cmd_manager signature (src/kwlib.sh) because we
+# This function follows the cmd_manager signature (src/lib/kwlib.sh) because we
 # share the specific distro in the kw main code. However, when we deploy for a
 # remote machine, we need this function, and this is the reason that we added
 # this function.
@@ -149,7 +149,7 @@ function is_filesystem_writable()
 # to write.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function make_root_partition_writable()
 {
   local flag="$1"
@@ -338,7 +338,7 @@ function reboot_machine()
 #
 # @kw_pkg_tar_name Expected full kw package name
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of failure, return an errno code:
@@ -381,7 +381,7 @@ function uncompress_kw_package()
 #
 # @kw_pkg_tar_name Expected full kw package name
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of failure, return an errno code.
@@ -423,7 +423,7 @@ function install_modules()
 # update. Also notice that in some cases we need to update the initramfs.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @name Kernel name used during the deploy
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @kernel_image_name Kernel binary file name

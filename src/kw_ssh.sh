@@ -1,5 +1,5 @@
 include "${KW_LIB_DIR}/lib/remote.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 # Hash containing user options
 declare -gA options_values

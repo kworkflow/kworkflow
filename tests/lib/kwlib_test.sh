@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/maintainers.sh'
-include './src/kwlib.sh'
+include './src/lib/kwlib.sh'
 include './tests/utils.sh'
 
 function oneTimeSetUp()

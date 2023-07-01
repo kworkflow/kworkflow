@@ -180,7 +180,7 @@ function find_kernel_root()
 # Get the kernel release based on the command kernelrelease.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Note: Make sure that you called is_kernel_root before trying to execute this
 # function.
@@ -206,7 +206,7 @@ function get_kernel_release()
 # Get the kernel version name.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Note: Make sure that you called is_kernel_root before trying to execute this
 # function.

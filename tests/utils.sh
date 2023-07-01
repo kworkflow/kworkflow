@@ -96,7 +96,7 @@ function assertFileEquals()
 }
 
 # Receives a path and creates a fake kernel root in it. The goal is to make this
-# path recognizable by src/kwlib.sh:is_kernel_root().
+# path recognizable by src/lib/kwlib.sh:is_kernel_root().
 function mk_fake_kernel_root()
 {
   local -r path="$1"
