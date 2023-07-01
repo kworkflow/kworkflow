@@ -2,7 +2,7 @@
 # in this file is to handle this script in a way to make this tool easier for
 # users.
 
-include "$KW_LIB_DIR/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 # Runs checkpatch in the given path, which might be a file or directory.

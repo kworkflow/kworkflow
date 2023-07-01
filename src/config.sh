@@ -267,7 +267,7 @@ function show_configurations()
   local options_buffer
   local value
 
-  include "${KW_LIB_DIR}/kw_config_loader.sh"
+  include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 
   # Check which configs we need to show
   if [[ -n "${target_config_files}" ]]; then

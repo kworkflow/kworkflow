@@ -1,4 +1,4 @@
-include "$KW_LIB_DIR/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 declare -g PREFIX='/'
