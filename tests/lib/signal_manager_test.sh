@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/signal_manager.sh'
+include './src/lib/signal_manager.sh'
 include './tests/utils.sh'
 
 function oneTimeSetUp()

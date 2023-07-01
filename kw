@@ -59,7 +59,7 @@ export KWORKFLOW
 # The include function (sourced from this file) should always be used for file sourcing.
 . "${KW_LIB_DIR}/lib/kw_include.sh" --source-only
 
-include "$KW_LIB_DIR"/signal_manager.sh
+include "${KW_LIB_DIR}/lib/signal_manager.sh"
 
 function kw()
 {
