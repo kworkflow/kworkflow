@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/kw_time_and_date.sh'
+include './src/lib/kw_time_and_date.sh'
 include './tests/utils.sh'
 
 function setUp()

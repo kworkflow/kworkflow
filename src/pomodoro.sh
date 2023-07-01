@@ -2,7 +2,7 @@ include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
-include "$KW_LIB_DIR/kw_time_and_date.sh"
+include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 
 # Hash containing command line options
 declare -gA options_values

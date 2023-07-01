@@ -9,7 +9,7 @@ declare -r KW_LIB_DIR='src'
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
-include "${KW_LIB_DIR}/kw_time_and_date.sh"
+include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
 
 declare -r KW_DB_DIR='database'
