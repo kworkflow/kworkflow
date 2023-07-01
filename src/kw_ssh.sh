@@ -1,4 +1,4 @@
-include "$KW_LIB_DIR/remote.sh"
+include "${KW_LIB_DIR}/lib/remote.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
 # Hash containing user options

@@ -1,7 +1,7 @@
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/kwio.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
-include "$KW_LIB_DIR/remote.sh"
+include "${KW_LIB_DIR}/lib/remote.sh"
 include "$KW_LIB_DIR/signal_manager.sh"
 
 declare -gA options_values

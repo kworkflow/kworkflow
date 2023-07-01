@@ -1,5 +1,5 @@
 . "${KW_LIB_DIR}/kw_config_loader.sh" --source-only
-. "${KW_LIB_DIR}/remote.sh" --source-only
+. "${KW_LIB_DIR}/lib/remote.sh" --source-only
 . "${KW_LIB_DIR}/kwlib.sh" --source-only
 
 declare -gr UNLOAD='UNLOAD'

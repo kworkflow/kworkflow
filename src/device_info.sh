@@ -1,7 +1,7 @@
 # This file deals with functions related to hardware information
 
 include "${KW_LIB_DIR}/lib/kw_string.sh"
-include "$KW_LIB_DIR/remote.sh"
+include "${KW_LIB_DIR}/lib/remote.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 include "$KW_LIB_DIR/vm.sh"
 

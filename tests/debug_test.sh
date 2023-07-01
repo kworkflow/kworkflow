@@ -608,7 +608,7 @@ function test_ftrace_list()
 
   # Let's reload cmd_manager
   source 'src/kwlib.sh' --source-only
-  source 'src/remote.sh' --source-only
+  source 'src/lib/remote.sh' --source-only
 }
 
 function test_dmesg_debug()
