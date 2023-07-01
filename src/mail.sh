@@ -3,7 +3,7 @@
 # It's also able to verify if the configurations required to use git send-email
 # are set.
 
-include "$KW_LIB_DIR/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 

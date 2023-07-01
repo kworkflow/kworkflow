@@ -1,4 +1,4 @@
-# NOTE: src/kw_config_loader.sh must be included before this file
+# NOTE: src/lib/kw_config_loader.sh must be included before this file
 declare -gr BLUECOLOR='\033[1;34;49m%s\033[m'
 declare -gr REDCOLOR='\033[1;31;49m%s\033[m'
 declare -gr YELLOWCOLOR='\033[1;33;49m%s\033[m'

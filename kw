@@ -117,7 +117,7 @@ function kw()
       ;;
     ssh | s)
       (
-        include "${KW_LIB_DIR}/kw_config_loader.sh"
+        include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
         include "${KW_LIB_DIR}/kw_ssh.sh"
 
         kw_ssh_main "$@"
@@ -125,7 +125,7 @@ function kw()
       ;;
     vars)
       (
-        include "$KW_LIB_DIR/kw_config_loader.sh"
+        include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 
         show_variables_main "$@"
       )

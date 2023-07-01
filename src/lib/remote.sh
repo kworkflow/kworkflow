@@ -1,6 +1,6 @@
-# NOTE: It is recommended that src/kw_config_loader.sh be included before this
+# NOTE: It is recommended that src/lib/kw_config_loader.sh be included before this
 # file
-include "$KW_LIB_DIR/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 # We now have a kw directory visible for users in the home directory, which is

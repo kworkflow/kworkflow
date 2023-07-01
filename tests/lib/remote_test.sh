@@ -2,7 +2,7 @@
 
 include './src/lib/remote.sh'
 include './src/lib/kwlib.sh'
-include './src/kw_config_loader.sh'
+include './src/lib/kw_config_loader.sh'
 include './tests/utils.sh'
 
 function which_distro_mock()

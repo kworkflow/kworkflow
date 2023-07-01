@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './tests/utils.sh'
-include './src/kw_config_loader.sh'
+include './src/lib/kw_config_loader.sh'
 include './src/vm.sh'
 
 function setUp()

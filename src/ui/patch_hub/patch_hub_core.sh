@@ -9,7 +9,7 @@
 # To keep the code clean and modular, it is best to break down major screen-sequences
 # (like 'Settings') in small files that should reside in the Controller directory.
 
-include "${KW_LIB_DIR}/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/dialog_ui.sh"
 include "${KW_LIB_DIR}/lib/lore.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
