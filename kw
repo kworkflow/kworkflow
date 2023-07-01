@@ -39,7 +39,7 @@ ENV_DIR='envs'
 ##BEGIN-DEV-MODE##
 KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
 KW_BASE_DIR="$(dirname "${KW_BIN}")"
-if [ -f "${KW_BASE_DIR}/src/kwlib.sh" ]; then
+if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
   # running from source directory
   KW_LIB_DIR="${KW_BASE_DIR}/src"
   # KW_DATA_DIR # use default data folder

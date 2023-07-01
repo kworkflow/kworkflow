@@ -2,7 +2,7 @@
 # to build the interface between kw and lore. Notice that here we manage the
 # dialog tool.
 
-include "${KW_LIB_DIR}/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 
 declare -gr KW_PATCH_HUB_TITLE='kw patch-hub'
@@ -45,7 +45,7 @@ function ui_setup()
 # @height: Menu height in lines size
 # @width: Menu width in column size
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # If everything works as expected, the user option is saved in the
@@ -136,7 +136,7 @@ function create_menu_options()
 # @height: Menu height in lines size
 # @width: Menu width in column size
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # If everything works as expected, the user option is saved in the
@@ -217,7 +217,7 @@ function create_simple_checklist()
 # @height: Menu height in lines size, the default value is 8.
 # @width: Menu width in column size, the default value is 60.
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # There is no return. The function just displays the infobox and returns,
@@ -271,7 +271,7 @@ function create_loading_screen_notification()
 # @height: Menu height in lines size
 # @width: Menu width in column size
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Unlike other dialog screens, this one doesn't return a menu_return_string,
@@ -325,7 +325,7 @@ function create_message_box()
 # @height: Menu height in lines size
 # @width: Menu width in column size
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Returns 0 if the 'OK' button is pressed, 1 if the 'Cancel' button is pressed
@@ -382,7 +382,7 @@ function create_directory_selection_screen()
 # @height: Menu height in lines size
 # @width: Menu width in column size
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Returns 0 if the 'OK' button is pressed, 1 if the 'Cancel' button is pressed
@@ -447,7 +447,7 @@ function create_file_selection_screen()
 # @height: Menu height in lines size
 # @width: Menu width in column size
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Returns 0 if the 'OK' button is pressed and 1 if the 'Cancel' button is pressed.
@@ -519,7 +519,7 @@ function create_choice_list_screen()
 # @height: Menu height in lines size
 # @width: Menu width in column size
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Returns 0 if the 'Yes' button is pressed, 1 if the 'No' button is pressed and
@@ -585,7 +585,7 @@ function create_yes_no_prompt()
 #   `${KW_ETC_DIR}/dialog_help/${screen_name}_help.txt` that holds the help message
 #   (in the proper format) to be displayed.
 # @flag: How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Returns 2 (ENOENT) if there is no text file relative to @screen_name and 0, otherwise.

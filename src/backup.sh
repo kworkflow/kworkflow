@@ -2,7 +2,7 @@
 # the KW_DATA_DIR directory. These files are configs, pomodoro reports and
 # kw usage statistics.
 
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "$KW_LIB_DIR/kw_time_and_date.sh"

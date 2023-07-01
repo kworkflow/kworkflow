@@ -3,7 +3,7 @@
 # users.
 
 include "$KW_LIB_DIR/kw_config_loader.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 # Runs checkpatch in the given path, which might be a file or directory.
 #

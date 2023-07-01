@@ -2,7 +2,7 @@
 
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "$KW_LIB_DIR/vm.sh"
 
 declare -gA device_info_data=(['ram']='' # RAM memory in KB

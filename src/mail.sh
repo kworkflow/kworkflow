@@ -4,7 +4,7 @@
 # are set.
 
 include "$KW_LIB_DIR/kw_config_loader.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 
 # Hash containing user options

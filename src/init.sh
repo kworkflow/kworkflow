@@ -2,7 +2,7 @@
 # initialization. The initialization feature it is inspired on `git init`.
 
 include "${KW_LIB_DIR}/lib/kwio.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 
 KW_DIR='.kw'

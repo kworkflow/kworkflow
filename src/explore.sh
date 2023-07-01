@@ -3,7 +3,7 @@
 # things, you can understand from files to messages in git log.
 
 include "${KW_LIB_DIR}/lib/kwio.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 # Hash containing user options
 declare -gA options_values
@@ -187,7 +187,7 @@ function parse_explore_options()
 # @search_string A string that we want to find a match in the git log
 # @path This is an optional parameter for narrow down git log search
 # @flag How to display a command, the default value is "SILENT". For more
-#       options see `src/kwlib.sh` function `cmd_manager`
+#       options see `src/lib/kwlib.sh` function `cmd_manager`
 function explore_git_log()
 {
   local search_string="$1"
@@ -204,7 +204,7 @@ function explore_git_log()
 # @regex Specifies the regex that we want to search in the files
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
-#       options see `src/kwlib.sh` function `cmd_manager`
+#       options see `src/lib/kwlib.sh` function `cmd_manager`
 function explore_files_under_git()
 {
   local regex="$1"
@@ -223,7 +223,7 @@ function explore_files_under_git()
 # @regex Specifies the regex that we want to search in the files
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
-#       options see `src/kwlib.sh` function `cmd_manager`
+#       options see `src/lib/kwlib.sh` function `cmd_manager`
 function explore_all_files_git()
 {
   local regex="$1"
@@ -241,7 +241,7 @@ function explore_all_files_git()
 # @regex Specifies the regex that we want to search in the files
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
-#       options see `src/kwlib.sh` function `cmd_manager`
+#       options see `src/lib/kwlib.sh` function `cmd_manager`
 function explore_files_gnu_grep()
 {
   local regex="$1"

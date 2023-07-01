@@ -1,5 +1,5 @@
 include "${KW_LIB_DIR}/lib/kwio.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 # Hash containing user options
 declare -gA diff_options
@@ -99,7 +99,7 @@ function diff_parser_options()
 #
 # @folder_1 Path to the first folder
 # @folder_2 Path to the second folder
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of success, return 0, otherwise, return 22.
@@ -130,7 +130,7 @@ function diff_folders()
 # @file_2 Path to the second file
 # @interactive If set to 1, it interactively displays the diff, otherwise, it
 #              just prints all diff at once.
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 function diff_side_by_side()
 {
   local file_1="$1"

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/lib/remote.sh'
-include './src/kwlib.sh'
+include './src/lib/kwlib.sh'
 include './src/kw_config_loader.sh'
 include './tests/utils.sh'
 

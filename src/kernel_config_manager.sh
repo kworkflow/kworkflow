@@ -1,4 +1,4 @@
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
@@ -212,7 +212,7 @@ function cleanup()
 # For the remote option, this function reads from remote_parameters directly.
 #
 # @flag How to display a command, the default value is "SILENT". For more
-#   options see `src/kwlib.sh` function `cmd_manager`.
+#   options see `src/lib/kwlib.sh` function `cmd_manager`.
 # @output File name to save the config file.
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
 #
@@ -266,7 +266,7 @@ function get_config_from_proc()
 # which will try to retrieve the config file from the standard /boot folder.
 #
 # @flag How to display a command, the default value is "SILENT". For more
-#   options see `src/kwlib.sh` function `cmd_manager`.
+#   options see `src/lib/kwlib.sh` function `cmd_manager`.
 # @output File name to save the config file.
 # @target Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET)
 #
@@ -312,7 +312,7 @@ function get_config_from_boot()
 # the new config file.
 #
 # @flag How to display a command, the default value is "SILENT". For more
-#   options see `src/kwlib.sh` function `cmd_manager`.
+#   options see `src/lib/kwlib.sh` function `cmd_manager`.
 # @output File name to save the config file.
 #
 # Return:

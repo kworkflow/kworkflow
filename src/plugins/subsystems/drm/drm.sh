@@ -1,6 +1,6 @@
 . "${KW_LIB_DIR}/kw_config_loader.sh" --source-only
 . "${KW_LIB_DIR}/lib/remote.sh" --source-only
-. "${KW_LIB_DIR}/kwlib.sh" --source-only
+. "${KW_LIB_DIR}/lib/kwlib.sh" --source-only
 
 declare -gr UNLOAD='UNLOAD'
 declare -gA options_values
@@ -92,7 +92,7 @@ function drm_main()
 # @target Target can be LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
 # @parameters String passed via --[un]load-module=
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`.
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`.
 function module_control()
 {
   local operation="$1"
@@ -196,7 +196,7 @@ function convert_module_info()
 #            other output turn off (we use "OFF" for keeping the symmetry).
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`.
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`.
 function gui_control()
 {
   local operation="$1"

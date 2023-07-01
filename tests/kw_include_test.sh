@@ -48,8 +48,8 @@ function test_include()
 
 function test_include_twice()
 {
-  include ./src/kwlib.sh
-  include ./src/kwlib.sh
+  include ./src/lib/kwlib.sh
+  include ./src/lib/kwlib.sh
   assertEquals "($LINENO)" 0 "$?"
 }
 

@@ -1,5 +1,5 @@
 include "${KW_LIB_DIR}/lib/kwio.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 # these should be the default names for config files
 CONFIG_FILENAME='kworkflow.config'

@@ -1,7 +1,7 @@
 # NOTE: It is recommended that src/kw_config_loader.sh be included before this
 # file
 include "$KW_LIB_DIR/kw_config_loader.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
@@ -74,7 +74,7 @@ function ssh_connection_failure_message()
 #
 # @command Command to be executed inside the remote machine
 # @flag How to display a command, the default value is
-#   "HIGHLIGHT_CMD". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "HIGHLIGHT_CMD". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @remote IP or domain name.
 # @port TCP Port. Default value is 22.
 # @user User in the host machine. Default value is "root"
@@ -130,7 +130,7 @@ function cmd_remotely()
 # @src Origin of the file to be send
 # @dst Destination for sending the file
 # @flag How to display a command, the default value is "HIGHLIGHT_CMD". For
-#   more options see `src/kwlib.sh` function `cmd_manager`
+#   more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @rsync_params Additional optional flags and parameters to be passed directly to rsync
 function cp2remote()
 {

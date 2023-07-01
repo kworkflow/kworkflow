@@ -2,7 +2,7 @@
 
 include './tests/utils.sh'
 include './src/lib/kwio.sh'
-include './src/kwlib.sh'
+include './src/lib/kwlib.sh'
 
 # NOTE: All executions off 'alert_completion' in this test file must be done
 # inside a subshell (i.e. "$(alert_completion ...)"), because this function
