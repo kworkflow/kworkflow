@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/statistics.sh'
+include './src/lib/statistics.sh'
 include './tests/utils.sh'
 
 # Pre-calculated:
