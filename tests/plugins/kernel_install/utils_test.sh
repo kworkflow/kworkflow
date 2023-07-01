@@ -2,7 +2,7 @@
 
 # We load utils in the oneTimeSetUp() to ensure we can replace some kw functions
 include './tests/utils.sh'
-include './src/kwio.sh'
+include './src/lib/kwio.sh'
 
 declare -r TEST_ROOT_PATH="$PWD"
 

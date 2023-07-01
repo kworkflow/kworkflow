@@ -2,7 +2,7 @@
 # command it unifies the way that we search for things in the project, by
 # things, you can understand from files to messages in git log.
 
-include "$KW_LIB_DIR/kwio.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
 # Hash containing user options

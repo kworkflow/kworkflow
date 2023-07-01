@@ -4,7 +4,7 @@
 
 include "$KW_LIB_DIR/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
-include "$KW_LIB_DIR/kwio.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 include "$KW_LIB_DIR/kw_time_and_date.sh"
 
 declare -gA options_values

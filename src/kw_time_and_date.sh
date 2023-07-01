@@ -1,5 +1,5 @@
 include "${KW_LIB_DIR}/lib/kw_string.sh"
-include "${KW_LIB_DIR}/kwio.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 
 # Returns the value of time as an integer number of seconds since the Epoch.
 function get_timestamp_sec()

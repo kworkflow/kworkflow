@@ -1,7 +1,7 @@
 # The init.sh keep all the operations related to the `kworkflow.config`
 # initialization. The initialization feature it is inspired on `git init`.
 
-include "$KW_LIB_DIR/kwio.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 

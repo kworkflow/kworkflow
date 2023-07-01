@@ -1,6 +1,6 @@
 # This file handles the interactions with the kw database
 
-include "$KW_LIB_DIR/kwio.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 include "$KW_LIB_DIR/kwlib.sh"
 
 declare -g DB_NAME='kw.db'
