@@ -3,7 +3,7 @@
 # responsible for aggregate and calculate values such as average and total.
 
 include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
-include "$KW_LIB_DIR/kw_time_and_date.sh"
+include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 
 # This is a data struct that describes the main type of data collected. We use
 # this in some internal loops.

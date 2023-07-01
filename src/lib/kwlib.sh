@@ -1,7 +1,7 @@
 # NOTE: src/lib/kw_config_loader.sh must be included before this file
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
-include "${KW_LIB_DIR}/kw_time_and_date.sh"
+include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 
 ENV_DIR='envs'
 
