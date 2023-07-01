@@ -1,5 +1,5 @@
 include "$KW_LIB_DIR/kwlib.sh"
-include "$KW_LIB_DIR/remote.sh"
+include "${KW_LIB_DIR}/lib/remote.sh"
 
 declare -gA options_values
 declare -g local_remote_config_file="${PWD}/.kw/remote.config"

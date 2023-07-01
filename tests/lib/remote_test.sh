@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/remote.sh'
+include './src/lib/remote.sh'
 include './src/kwlib.sh'
 include './src/kw_config_loader.sh'
 include './tests/utils.sh'

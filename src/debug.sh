@@ -5,7 +5,7 @@
 include "$KW_LIB_DIR/kw_config_loader.sh"
 include "$KW_LIB_DIR/kw_time_and_date.sh"
 include "$KW_LIB_DIR/kwlib.sh"
-include "$KW_LIB_DIR/remote.sh"
+include "${KW_LIB_DIR}/lib/remote.sh"
 
 # Hash containing user options
 declare -gA options_values
