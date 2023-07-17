@@ -330,6 +330,56 @@ function test_create_yes_no_prompt_use_all_options()
   assert_equals_helper 'Expected Yes/No prompt with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
+function test_create_form_screen_default_options()
+{
+  local box_title='Simple form'
+  local message_box='This is a simple form'
+  local back_title='Back title form'
+  declare -a fields_list=('User' 'IP' 'Port')
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${back_title}' --title $'${box_title}'"
+  expected_cmd+=' --clear --colors'
+  expected_cmd+=" --ok-label $'Ok' --cancel-label $'Cancel'"
+  expected_cmd+=" --form $'${message_box}'"
+  expected_cmd+=" '${DEFAULT_WIDTH}' '${DEFAULT_HEIGHT}' '0'"
+  expected_cmd+=" $'User:' $'1' 1 $'' $'1' $'6' 10 0"
+  expected_cmd+=" $'IP:' $'2' 1 $'' $'2' $'6' 10 0"
+  expected_cmd+=" $'Port:' $'3' 1 $'' $'3' $'6' 10 0"
+
+  output=$(create_form_screen "$box_title" "$message_box" 'fields_list' "$back_title" '' '' '' "${EXPECTED_DEFAULT_WIDTH}" "${EXPECTED_DEFAULT_HEIGHT}" 'TEST_MODE')
+
+  assert_equals_helper 'Expected form with default values' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_form_screen_all_options()
+{
+  local box_title='Simple form'
+  local message_box='This is a simple form'
+  local back_title='Back title form'
+  local ok_label='Next'
+  local cancel_label='Previous'
+  local extra_label='Cancel'
+  declare -a fields_list=('User' 'IP' 'Port')
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${back_title}' --title $'${box_title}'"
+  expected_cmd+=' --clear --colors'
+  expected_cmd+=" --ok-label $'${ok_label}' --cancel-label $'${cancel_label}'"
+  expected_cmd+=" --extra-button --extra-label ${extra_label}"
+  expected_cmd+=" --form $'${message_box}'"
+  expected_cmd+=" '200' '344' '0'"
+  expected_cmd+=" $'User:' $'1' 1 $'' $'1' $'6' 10 0"
+  expected_cmd+=" $'IP:' $'2' 1 $'' $'2' $'6' 10 0"
+  expected_cmd+=" $'Port:' $'3' 1 $'' $'3' $'6' 10 0"
+
+  output=$(create_form_screen "$box_title" "$message_box" 'fields_list' "$back_title" "$ok_label" "$cancel_label" "$extra_label" 200 344 'TEST_MODE')
+
+  assert_equals_helper 'Expected form with default values' "$LINENO" "$expected_cmd" "$output"
+}
+
 function test_prettify_string_failures()
 {
   prettify_string

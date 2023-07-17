@@ -625,6 +625,106 @@ function handle_exit()
   esac
 }
 
+# Create form screen.
+#
+# @box_title: Title of the box
+# @message_box: The message to be displayed
+# @back_title: Dialog back title
+# @_fields_list: Array of labels
+# @ok_label: Label for the traditional Ok button. By default, it is 'Ok'
+# @cancel_label: Label for the traditional Cancel button. By default, it is 'Cancel'
+# @extra_label: If this option label is set, one extra button is added
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 0 if the 'Ok' button is pressed, 1 if the 'Cancel' button is pressed
+# and 3 if the 'Extra' button is pressed. The menu_return_string will have all
+# the user input.
+function create_form_screen()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local -n _fields_list="$3"
+  local back_title="$4"
+  local ok_label="$5"
+  local cancel_label="$6"
+  local extra_label="$7"
+  local height="$8"
+  local width="$9"
+  local flag="${10}"
+  local auxiliar_label_size=0
+  local start_text_field=0
+  local row=1
+  local choice_description
+  local cmd
+  local ret
+
+  # Escape all single quotes to avoid breaking arguments
+  ok_label=$(str_escape_single_quotes "$ok_label")
+  cancel_label=$(str_escape_single_quotes "$cancel_label")
+  extra_label=$(str_escape_single_quotes "$extra_label")
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+  back_title=$(str_escape_single_quotes "$back_title")
+
+  height=${height:-"${DEFAULT_HEIGHT}"}
+  width=${width:-"${DEFAULT_WIDTH}"}
+  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
+  cancel_label=${cancel_label:-'Cancel'}
+  ok_label=${ok_label:-'Ok'}
+  flag=${flag:-'SILENT'}
+
+  # Add layout to dialog
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  # Add general information to the dialog box
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+
+  # Override OK and cancel labels
+  cmd+=" --ok-label $'${ok_label}'"
+  cmd+=" --cancel-label $'${cancel_label}'"
+
+  # Add extra button
+  if [[ -n "$extra_label" ]]; then
+    cmd+=" --extra-button --extra-label ${extra_label}"
+  fi
+
+  # Add form option
+  cmd+=" --form $'${message_box}'"
+
+  cmd+=" '${height}' '${width}' '0'"
+
+  # Find out the largest label to know where we need to start the input field
+  for field in "${_fields_list[@]}"; do
+    auxiliar_label_size=$(str_length "$field")
+    if [[ "${auxiliar_label_size}" -gt "${start_text_field}" ]]; then
+      start_text_field="${auxiliar_label_size}"
+    fi
+  done
+
+  # Add two extra spaces to the start point
+  start_text_field=$((start_text_field + 2))
+
+  for label in "${_fields_list[@]}"; do
+    label=$(str_escape_single_quotes "$label")
+    cmd+=" $'${label}:' $'${row}' 1 $'' $'${row}' $'${start_text_field}' 10 0"
+    ((row++))
+  done
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  exec 3>&1
+  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 function prettify_string()
 {
   local fixed_text="$1"
