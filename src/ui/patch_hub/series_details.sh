@@ -30,10 +30,10 @@ function show_series_details()
     fi
   fi
 
-  parse_raw_series "${raw_patchset}" 'series'
-  patch_metadata=$(prettify_string 'Series:' "${series['patch_title']}")
-  patch_metadata+=$(prettify_string 'Author:' "${series['patch_author']}")
-  patch_metadata+=$(prettify_string 'Version:' "${series['patch_version']}")
+  parse_raw_patchset_data "${raw_patchset}" 'series'
+  patch_metadata=$(prettify_string 'Series:' "${series['patchset_title']}")
+  patch_metadata+=$(prettify_string 'Author:' "${series['patchset_author']}")
+  patch_metadata+=$(prettify_string 'Version:' "${series['patchset_version']}")
   patch_metadata+=$(prettify_string 'Patches:' "${series['total_patches']}")
   message_box="$patch_metadata"
 
@@ -80,16 +80,16 @@ function handle_bookmark_action()
   local raw_series="$2"
   local output
 
-  create_loading_screen_notification 'Bookmarking patch(es)'$'\n'"- ${_series['patch_title']}"
+  create_loading_screen_notification 'Bookmarking patchset'$'\n'"- ${_series['patchset_title']}"
 
-  output=$(download_series "${_series['patch_url']}" "${lore_config['save_patches_to']}")
+  output=$(download_series "${_series['patchset_url']}" "${lore_config['save_patches_to']}")
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${_series['patch_title']}"$'\n'"[error message] ${output}"
+    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_series['patchset_title']}"$'\n'"[error message] ${output}"
   fi
 
-  add_series_to_bookmark "${raw_series}" "${lore_config['save_patches_to']}"
+  add_patchset_to_bookmarked_database "${raw_series}" "${lore_config['save_patches_to']}"
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not bookmark patch(es)'$'\n'"- ${_series['patch_title']}"
+    create_message_box 'Error' 'Could not bookmark patchset'$'\n'"- ${_series['patchset_title']}"
   fi
 }
 
@@ -99,11 +99,11 @@ function handle_download_action()
   local -n _series="$1"
   local output
 
-  create_loading_screen_notification 'Downloading patch(es)'$'\n'"- ${_series['patch_title']}"
+  create_loading_screen_notification 'Downloading patchset'$'\n'"- ${_series['patchset_title']}"
 
-  output=$(download_series "${_series['patch_url']}" "${lore_config['save_patches_to']}")
+  output=$(download_series "${_series['patchset_url']}" "${lore_config['save_patches_to']}")
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not download patch(es):'$'\n'"- ${_series['patch_title']}"$'\n'"[error message] ${output}"
+    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_series['patchset_title']}"$'\n'"[error message] ${output}"
   fi
 }
 
@@ -112,14 +112,14 @@ function handle_unbookmark_action()
 {
   local -n _series="$1"
 
-  delete_series_from_local_storage "${_series['download_dir_path']}" "${_series['patch_url']}"
+  delete_series_from_local_storage "${_series['download_dir_path']}" "${_series['patchset_url']}"
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not delete patch(es)'$'\n'"- ${_series['patch_title']}"
+    create_message_box 'Error' 'Could not delete patchset'$'\n'"- ${_series['patchset_title']}"
   fi
 
-  remove_patchset_from_bookmark_by_id "${_series['patch_id']}"
+  remove_patchset_from_bookmark_by_url "${_series['patchset_url']}"
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not unbookmark patch(es)'$'\n'"- ${_series['patch_title']}"
+    create_message_box 'Error' 'Could not unbookmark patchset'$'\n'"- ${_series['patchset_title']}"
   fi
 
   screen_sequence['SHOW_SCREEN']='bookmarked_patches'
