@@ -681,32 +681,46 @@ function parse_raw_patchset_data()
   _patchset['timestamp']="${columns[7]}"
 }
 
-# This function is a predicate about the existence of given patchset in the local
-# bookmark database.
+# This function gets the download status of a patchset, 0 being not stored in
+# `@dir_path` and 1 being stored in `@dir_path`.
 #
-# @raw_patchset: Raw data of patchset in the same format as list_of_mailinglist_patches
-#
-# Return:
-# Returns 0 if given patchset is present in local database, 1 if it is not and 2 if
-# there is no local database.
-#
-# TODO:
-# - Revise the return value of 1.
-function is_bookmarked()
+# @patchset_url: URL of the patchset in lore.kernel.org
+# @dir_path: Path to a directory
+function get_patchset_download_status()
 {
-  local raw_patchset="$1"
+  local patchset_url="$1"
+  local dir_path="$2"
+  local patchset_filename
+
+  patchset_filename=$(extract_message_id_from_url "$patchset_url")
+
+  if [[ ! -f "${dir_path}/${patchset_filename}.mbx" ]]; then
+    printf '%s' 0
+  else
+    printf '%s' 1
+  fi
+}
+
+# This function gets the bookmark status of a patchset, 0 being not in the local
+# bookmarked database and 1 being in the local bookmarked database.
+#
+# @patchset_url: The URL of the patchset that identifies the entry in the local
+#   bookmarked database
+function get_patchset_bookmark_status()
+{
+  local patchset_url="$1"
   local count
 
   if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
-    return 2 # ENOENT
+    create_lore_bookmarked_file
   fi
 
-  count=$(grep --count "$raw_patchset" "${BOOKMARKED_SERIES_PATH}")
-  if [[ "$count" != 0 ]]; then
-    return 0
+  count=$(grep --count "$patchset_url" "${BOOKMARKED_SERIES_PATH}")
+  if [[ "$count" == 0 ]]; then
+    printf '%s' 0
+  else
+    printf '%s' 1
   fi
-
-  return 1
 }
 
 # Every patch series has a message-ID that identifies it in a given public

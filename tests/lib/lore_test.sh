@@ -339,25 +339,37 @@ function test_get_bookmarked_series_by_index()
   assertEquals "($LINENO) - Should get the second entry" "$expected" "$output"
 }
 
-function test_is_boookmarked()
+function test_get_patchset_download_status()
 {
+  local dir_path="$SHUNIT_TMPDIR"
+  local output
+
+  touch "${dir_path}/0138948.2424-1-lore@kernel.org.mbx"
+  touch "${dir_path}/1676464.997845-1-lore@kernel.org.mbx"
+  touch "${dir_path}/28784575.16734-1-lore@kernel.org.mbx"
+
+  output=$(get_patchset_download_status 'http://lore.kernel.org/linux-staging/1676464.997845-1-lore@kernel.org/' "$dir_path")
+  assert_equals_helper 'Should output 1 (patch bookmarked)' "$LINENO" 1 "$output"
+
+  output=$(get_patchset_download_status 'http://lore.kernel.org/linux-invalid/404-1-inva@lid.url/' "$dir_path")
+  assert_equals_helper 'Should output 0 (patch not bookmarked)' "$LINENO" 0 "$output"
+}
+
+function test_get_patchset_bookmark_status()
+{
+  local output
+
   {
-    printf 'entry1\n'
-    printf 'entry2\n'
-    printf 'entry3\n'
+    printf 'entry1Æhttp://lore.kernel.org/amd-gfx/0138948.2424-1-lore@kernel.org/\n'
+    printf 'entry2Æhttp://lore.kernel.org/linux-staging/1676464.997845-1-lore@kernel.org/\n'
+    printf 'entry3Æhttp://lore.kernel.org/git/28784575.16734-1-lore@kernel.org/\n'
   } >> "${BOOKMARKED_SERIES_PATH}"
 
-  is_bookmarked 'entry2'
-  assertEquals "($LINENO) - Should return 0 (patch bookmarked)" 0 "$?"
+  output=$(get_patchset_bookmark_status 'http://lore.kernel.org/linux-staging/1676464.997845-1-lore@kernel.org/')
+  assert_equals_helper 'Should output 1 (patch bookmarked)' "$LINENO" 1 "$output"
 
-  is_bookmarked 'entry1234'
-  assertEquals "($LINENO) - Should return 1 (patch not bookmarked)" 1 "$?"
-
-  if [[ "${BOOKMARKED_SERIES_PATH}" != '/' ]]; then
-    rm "${BOOKMARKED_SERIES_PATH}"
-  fi
-  is_bookmarked 'entry3'
-  assertEquals "($LINENO) - Should return 2 (local bookmark database non-existent)" 2 "$?"
+  output=$(get_patchset_bookmark_status 'http://lore.kernel.org/linux-invalid/404-1-inva@lid.url/')
+  assert_equals_helper 'Should output 0 (patch not bookmarked)' "$LINENO" 0 "$output"
 }
 
 function test_download_series()
