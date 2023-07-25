@@ -227,49 +227,50 @@ function test_create_lore_bookmarked_file()
   assertTrue "($LINENO) - Local bookmark database was not created" "[[ -f ${BOOKMARKED_SERIES_PATH} ]]"
 }
 
-function test_add_series_to_bookmark()
+function test_add_patchset_to_bookmarked_database()
 {
-  local target_patch1='someseries1'
-  local target_patch2='someseries2'
-  local target_patch3='someseries3'
+  local raw_patchset1='somepatchset1'
+  local raw_patchset2='somepatchset2'
+  local raw_patchset3='somepatchset3'
   local download_dir_path='somedir'
   local output
   local count
 
-  add_series_to_bookmark "${target_patch1}" "${download_dir_path}"
+  add_patchset_to_bookmarked_database "${raw_patchset1}" "${download_dir_path}"
   output=$(< "${BOOKMARKED_SERIES_PATH}")
-  printf '%s' "$output" | grep --quiet "${target_patch1}${SEPARATOR_CHAR}${download_dir_path}"
+  printf '%s' "$output" | grep --quiet "${raw_patchset1}${SEPARATOR_CHAR}${download_dir_path}"
   assertTrue "($LINENO) - Should add series to local bookmark database" "[[ \"$?\" == 0 ]]"
 
-  add_series_to_bookmark "${target_patch1}" "${download_dir_path}"
+  add_patchset_to_bookmarked_database "${raw_patchset1}" "${download_dir_path}"
   output=$(< "${BOOKMARKED_SERIES_PATH}")
-  count=$(printf '%s' "$output" | grep --count "${target_patch1}${SEPARATOR_CHAR}${download_dir_path}")
+  count=$(printf '%s' "$output" | grep --count "${raw_patchset1}${SEPARATOR_CHAR}${download_dir_path}")
   assertEquals "($LINENO) - Should not duplicate entries " 1 "$count"
 
-  add_series_to_bookmark "${target_patch2}" "${download_dir_path}"
-  add_series_to_bookmark "${target_patch3}" "${download_dir_path}"
+  add_patchset_to_bookmarked_database "${raw_patchset2}" "${download_dir_path}"
+  add_patchset_to_bookmarked_database "${raw_patchset3}" "${download_dir_path}"
   count=$(wc --lines "${BOOKMARKED_SERIES_PATH}" | cut --delimiter ' ' -f1)
   assertEquals "($LINENO) - Should have 3 entries" 3 "$count"
 }
 
-function test_remove_patchset_from_bookmark_by_id()
+function test_remove_patchset_from_bookmark_by_url()
 {
   local output
   local expected
 
   {
-    printf 'entry1Æc00ffee\n'
-    printf 'entry2Ædeadbeef\n'
-    printf 'entry3Æc00141d\n'
+    printf 'entry1Æhttp://lore.kernel.org/amd-gfx/0138948.2424-1-lore@kernel.org/\n'
+    printf 'entry2Æhttp://lore.kernel.org/linux-staging/1676464.997845-1-lore@kernel.org/\n'
+    printf 'entry3Æhttp://lore.kernel.org/git/28784575.16734-1-lore@kernel.org/\n'
   } >> "${BOOKMARKED_SERIES_PATH}"
 
-  remove_patchset_from_bookmark_by_id 'deadbeef'
-  expected='entry1Æc00ffee'$'\n''entry3Æc00141d'
+  remove_patchset_from_bookmark_by_url 'http://lore.kernel.org/linux-staging/1676464.997845-1-lore@kernel.org/'
+  expected='entry1Æhttp://lore.kernel.org/amd-gfx/0138948.2424-1-lore@kernel.org/'$'\n'
+  expected+='entry3Æhttp://lore.kernel.org/git/28784575.16734-1-lore@kernel.org/'
   output=$(< "${BOOKMARKED_SERIES_PATH}")
   assertEquals "($LINENO) - Should delete entry 2" "$expected" "$output"
 
-  remove_patchset_from_bookmark_by_id 'c00141d'
-  expected='entry1Æc00ffee'
+  remove_patchset_from_bookmark_by_url 'http://lore.kernel.org/git/28784575.16734-1-lore@kernel.org/'
+  expected='entry1Æhttp://lore.kernel.org/amd-gfx/0138948.2424-1-lore@kernel.org/'
   output=$(< "${BOOKMARKED_SERIES_PATH}")
   assertEquals "($LINENO) - Should only have entry 1" "$expected" "$output"
 }
@@ -303,9 +304,9 @@ function test_get_bookmarked_series()
   local output
 
   {
-    printf 'AUTHOR1%s %s %s %sTITLE1%s %s %s %sDATE1\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
-    printf 'AUTHOR2%s %s %s %sTITLE2%s %s %s %sDATE2\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
-    printf 'AUTHOR3%s %s %s %sTITLE3%s %s %s %sDATE3\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+    printf 'AUTHOR1%s %s %s %sTITLE1%s %s %sDATE1\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+    printf 'AUTHOR2%s %s %s %sTITLE2%s %s %sDATE2\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+    printf 'AUTHOR3%s %s %s %sTITLE3%s %s %sDATE3\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char"
   } >> "${BOOKMARKED_SERIES_PATH}"
 
   get_bookmarked_series bookmarked_series
@@ -340,11 +341,10 @@ function test_get_bookmarked_series_by_index()
 
 function test_is_boookmarked()
 {
-  # The below are the sha256sum of 'entry1', 'entry2' and 'entry3', respectively
   {
-    printf 'c17dd9010a5c6b0e5b2ad5a845762d8b206e6166a4e63d32deca8c5664fdfcac\n'
-    printf 'ad2063741cce2d9f2862b07152b06528d175e9e658ade8f2daa416834c9c089a\n'
-    printf 'a671a481a0edc8cd6eab7640f9c8e225a82e5c8e49122a86158f20fa22254409\n'
+    printf 'entry1\n'
+    printf 'entry2\n'
+    printf 'entry3\n'
   } >> "${BOOKMARKED_SERIES_PATH}"
 
   is_bookmarked 'entry2'

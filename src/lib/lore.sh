@@ -403,9 +403,9 @@ function get_patches_from_mailing_list()
   processing_new_patches "$target_mailing_list"
 
   # Format data for printing
-  for raw_series in "${list_of_mailinglist_patches[@]}"; do
-    parse_raw_series "${raw_series}" 'series'
-    tmp_data=$(printf 'V%-2s |#%-3s| %-100s' "${series['patch_version']}" "${series['total_patches']}" "${series['patch_title']}")
+  for raw_patchset in "${list_of_mailinglist_patches[@]}"; do
+    parse_raw_patchset_data "${raw_patchset}" 'series'
+    tmp_data=$(printf 'V%-2s |#%-3s| %-100s' "${series['patchset_version']}" "${series['total_patches']}" "${series['patchset_title']}")
     _dialog_array["$index"]="$tmp_data"
     ((index++))
   done
@@ -520,54 +520,60 @@ function create_lore_bookmarked_file()
   touch "${BOOKMARKED_SERIES_PATH}"
 }
 
-# This function adds a given series to a local bookmark database for
-# series managed by kw. To achieve uniqueness for each series the function
-# assigns an ID and timestamp (for informational purposes).
+# This function adds an entry of a patchset instance to the local bookmarked database managed
+# by kw. An entry of a patchset on the database represents an instance of the patchset entity
+# that also has a timestamp indicating when the patchset was bookmarked and, optionally, a path
+# to a directory where the .mbx file of the instance is stored. The ID (primary key) of an entry
+# is its lore.kernel.org URL, which uniquely identifies a patchset in the public inbox.
 #
-# @target_patch: Patch (series) in the same format as list_of_mailinglist_patches
-#   to be added to local bookmark database
-# @download_dir_path: The directory where the patch (series) was saved
-function add_series_to_bookmark()
+# Note that the function assumes that the `@raw_patchset` passed as argument contains the
+# necessary attributes and is correctly formatted, leaving this responsability to the caller.
+#
+# @raw_patchset: Raw data of patchset in the same format as list_of_mailinglist_patches
+#   to be added to the local bookmarked database
+# @download_dir_path: The directory where the patchset .mbx was saved
+function add_patchset_to_bookmarked_database()
 {
-  local target_patch="$1"
+  local raw_patchset="$1"
   local download_dir_path="$2"
-  local patch_id
   local timestamp
   local count
 
   create_lore_bookmarked_file
 
-  patch_id=$(printf '%s' "${target_patch}" | sha256sum | cut -d ' ' -f1)
   timestamp=$(date '+%Y/%m/%d %H:%M')
 
-  count=$(grep --count "${patch_id}" "${BOOKMARKED_SERIES_PATH}")
+  count=$(grep --count "${raw_patchset}" "${BOOKMARKED_SERIES_PATH}")
   if [[ "$count" == 0 ]]; then
     {
-      printf '%s%s' "${target_patch}" "${SEPARATOR_CHAR}"
+      printf '%s%s' "${raw_patchset}" "${SEPARATOR_CHAR}"
       printf '%s%s' "${download_dir_path}" "${SEPARATOR_CHAR}"
-      printf '%s%s' "${patch_id}" "${SEPARATOR_CHAR}"
       printf '%s\n' "$timestamp"
     } >> "${BOOKMARKED_SERIES_PATH}"
   fi
 }
 
-# This function removes a patchset from the local bookmark database by its ID
-# in the database.
+# This function removes a patchset from the local bookmark database by its URL.
 #
-# @patchset_id: The ID of the patchset in the local bookmark database
+# @patchset_url: The URL of the patchset that identifies the entry in the local
+#   bookmarked database
 #
 # Return:
 # Returns 2 (ENOENT) if there is no local bookmark database file and the status
 # code of the last command (sed), otherwise.
-function remove_patchset_from_bookmark_by_id()
+function remove_patchset_from_bookmark_by_url()
 {
-  local patchset_id="$1"
+  local patchset_url="$1"
 
   if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
     return 2 # ENOENT
   fi
 
-  sed --in-place "/${patchset_id}/d" "${BOOKMARKED_SERIES_PATH}"
+  # Escape forward slashes in the URL
+  patchset_url=$(printf '%s' "$patchset_url" | sed 's/\//\\\//g')
+
+  # Remove patchset entry
+  sed --in-place "/${patchset_url}/d" "${BOOKMARKED_SERIES_PATH}"
 }
 
 # This function removes a series from the local bookmark database by its index
@@ -614,9 +620,9 @@ function get_bookmarked_series()
 
   _bookmarked_series=()
 
-  while IFS='' read -r raw_series; do
-    parse_raw_series "${raw_series}" 'series'
-    tmp_data=$(printf ' %s | %-70s | %s' "${series['timestamp']}" "${series['patch_title']}" "${series['patch_author']}")
+  while IFS='' read -r raw_patchset; do
+    parse_raw_patchset_data "${raw_patchset}" 'series'
+    tmp_data=$(printf ' %s | %-70s | %s' "${series['timestamp']}" "${series['patchset_title']}" "${series['patchset_author']}")
     _bookmarked_series["$index"]="${tmp_data}"
     ((index++))
   done < "${BOOKMARKED_SERIES_PATH}"
@@ -647,55 +653,55 @@ function get_bookmarked_series_by_index()
   printf '%s' "${target_patch}"
 }
 
-# This function parses a raw series data in the format stored
-# by kw into an array reference. The fields 'download_dir_path',
-# 'patch_id' and 'timestamp' are optional and refer to a bookmarked
-# patch (series).
+# This function parses raw data that represents a patchset instance into
+# an associative array passed as reference. This function assumes that the
+# raw data has attributes in the following order:
+#   patchset_author, author_email, patchset_version, total_patches, patchset_title,
+#   patchset_url, download_dir_path, timestamp.
 #
-# TODO:
-# - When we integrate with the kw database, this function should be
-#   deprecated.
-function parse_raw_series()
+# Note that the function doesn't verifies if the attributes are non-empty or
+# valid (i.e. represent a valid patchset instance), passing the responsability to
+# the caller.
+#
+# @raw_patchset: Raw data of patchset in the same format as list_of_mailinglist_patches
+function parse_raw_patchset_data()
 {
-  local raw_series="$1"
-  local -n _series="$2"
+  local raw_patchset="$1"
+  local -n _patchset="$2"
   local columns
 
-  IFS="${SEPARATOR_CHAR}" read -ra columns <<< "${raw_series}"
-  _series['patch_author']="${columns[0]}"
-  _series['author_email']="${columns[1]}"
-  _series['patch_version']="${columns[2]}"
-  _series['total_patches']="${columns[3]}"
-  _series['patch_title']="${columns[4]}"
-  _series['patch_url']="${columns[5]}"
-  _series['download_dir_path']="${columns[6]}"
-  _series['patch_id']="${columns[7]}"
-  _series['timestamp']="${columns[8]}"
+  IFS="${SEPARATOR_CHAR}" read -ra columns <<< "${raw_patchset}"
+  _patchset['patchset_author']="${columns[0]}"
+  _patchset['author_email']="${columns[1]}"
+  _patchset['patchset_version']="${columns[2]}"
+  _patchset['total_patches']="${columns[3]}"
+  _patchset['patchset_title']="${columns[4]}"
+  _patchset['patchset_url']="${columns[5]}"
+  _patchset['download_dir_path']="${columns[6]}"
+  _patchset['timestamp']="${columns[7]}"
 }
 
-# This function is a predicate about the existence of given patch in the local
+# This function is a predicate about the existence of given patchset in the local
 # bookmark database.
 #
-# @target_patch: The patch metadata. Used to get the target patch id.
+# @raw_patchset: Raw data of patchset in the same format as list_of_mailinglist_patches
 #
 # Return:
-# Returns 0 if given patch is present in local database, 1 if it is not and 2 if
+# Returns 0 if given patchset is present in local database, 1 if it is not and 2 if
 # there is no local database.
 #
 # TODO:
 # - Revise the return value of 1.
 function is_bookmarked()
 {
-  local target_patch="$1"
-  local patch_id
+  local raw_patchset="$1"
   local count
 
   if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
     return 2 # ENOENT
   fi
 
-  patch_id=$(printf '%s' "${target_patch}" | sha256sum | cut -d ' ' -f1)
-  count=$(grep --count "${patch_id}" "${BOOKMARKED_SERIES_PATH}")
+  count=$(grep --count "$raw_patchset" "${BOOKMARKED_SERIES_PATH}")
   if [[ "$count" != 0 ]]; then
     return 0
   fi
