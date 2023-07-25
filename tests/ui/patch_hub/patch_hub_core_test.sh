@@ -89,14 +89,14 @@ function test_list_patches_with_patches()
 
   screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
   list_patches 'Message test' list_of_mailinglist_patches ''
-  assert_equals_helper 'Wrong screen set' "$LINENO" 'series_details' "${screen_sequence['SHOW_SCREEN']}"
+  assert_equals_helper 'Wrong screen set' "$LINENO" 'patchset_details_and_actions' "${screen_sequence['SHOW_SCREEN']}"
   assert_equals_helper 'Wrong screen parameter' "$LINENO" 'more_patches_raw_data' "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
 
   printf 'some_patch_raw_data\nsome_other_patch_raw_data\nmore_patches_raw_data' > "$BOOKMARKED_SERIES_PATH"
 
   screen_sequence['SHOW_SCREEN']='bookmarked_patches'
   list_patches 'Message test' patchsets_metadata_array ''
-  assert_equals_helper 'Wrong screen set' "$LINENO" 'bookmarked_series_details' "${screen_sequence['SHOW_SCREEN']}"
+  assert_equals_helper 'Wrong screen set' "$LINENO" 'patchset_details_and_actions' "${screen_sequence['SHOW_SCREEN']}"
   assert_equals_helper 'Wrong screen parameter' "$LINENO" 'more_patches_raw_data' "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
 }
 

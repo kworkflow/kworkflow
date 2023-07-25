@@ -3,6 +3,12 @@
 include './src/ui/patch_hub/series_details.sh'
 include './tests/utils.sh'
 
+function oneTimeSetUp()
+{
+  export LORE_DATA_DIR="${SHUNIT_TMPDIR}/lore"
+  export BOOKMARKED_SERIES_PATH="${LORE_DATA_DIR}/lore_bookmarked_series"
+}
+
 function setUp()
 {
   screen_sequence['SHOW_SCREEN']=''
@@ -23,51 +29,16 @@ function tearDown()
   }
 }
 
-function test_show_series_details_of_not_bookmarked_patchset()
-{
-  local output
-  local expected_result='Patchset info and actions'
-
-  declare -ga patch_list_with_metadata=(
-    'Joe DoeÆjoedoe@lala.comÆV1Æ1Ædrm/amd/pm: Enable bad memory page/channel recording support for smu v13_0_0Æhttp://something.la'
-    'Juca PiramaÆjucapirama@xpto.comÆV1Æ255ÆDC Patches November 19, 2022Æhttp://anotherthing.la'
-    'Machado de AssisÆmachado@literatura.comÆV2Æ1Ædrm/amdgpu: add drv_vram_usage_va for virt data exchangeÆhttp://machado.good.books.la'
-    'Racionais McÆvidaloka@abc.comÆV2Æ1Ædrm/amdgpu: fix pci device refcount leakÆhttp://racionais.mc.vida.loka'
-  )
-
-  expected_result+=' \Zb\Z6Series:\ZnDC Patches November 19, 2022\n'
-  expected_result+='\Zb\Z6Author:\ZnJuca Pirama\n\Zb\Z6Version:\ZnV1\n'
-  expected_result+='\Zb\Z6Patches:\Zn255\n'
-  expected_result+=' Bookmark Download'
-
-  # shellcheck disable=SC2317
-  function create_simple_checklist()
-  {
-    local title="$1"
-    local message_box="$2"
-    local -n _action_list="$3"
-
-    printf '%s %s' "$title" "$message_box"
-
-    for action in "${_action_list[@]}"; do
-      printf ' %s' "$action"
-    done
-  }
-
-  output=$(show_series_details "${patch_list_with_metadata[1]}")
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected_result" "$output"
-}
-
-function test_show_series_details_of_bookmarked_patchset()
+function test_show_patchset_details_and_actions()
 {
   local raw_patchset='Juca PiramaÆjucapirama@xpto.comÆV1Æ255ÆDC Patches November 19, 2022Æhttp://anotherthing.la'
   local output
-  local expected_result='Patchset info and actions'
+  local expected_result='Patchset details and actions'
 
   expected_result+=' \Zb\Z6Series:\ZnDC Patches November 19, 2022\n'
   expected_result+='\Zb\Z6Author:\ZnJuca Pirama\n\Zb\Z6Version:\ZnV1\n'
   expected_result+='\Zb\Z6Patches:\Zn255\n'
-  expected_result+=' Unbookmark'
+  expected_result+=' Download Bookmark'
 
   # shellcheck disable=SC2317
   function create_simple_checklist()
@@ -83,8 +54,72 @@ function test_show_series_details_of_bookmarked_patchset()
     done
   }
 
-  output=$(show_series_details "$raw_patchset" 1)
+  output=$(show_patchset_details_and_actions "$raw_patchset")
   assert_equals_helper 'Wrong output' "$LINENO" "$expected_result" "$output"
+}
+
+function test_get_actions_to_take()
+{
+  local -a actions_starting_status=()
+  local selected_actions
+  local output
+  local expected
+
+  actions_starting_status[0]=0
+  actions_starting_status[1]=0
+  selected_actions=''
+  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
+  expected=''
+  assert_equals_helper 'Should output no action to take' "$LINENO" "$expected" "$output"
+
+  actions_starting_status[0]=0
+  actions_starting_status[1]=0
+  selected_actions='Download'
+  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
+  expected='download '
+  assert_equals_helper 'Should output the download action' "$LINENO" "$expected" "$output"
+
+  actions_starting_status[0]=0
+  actions_starting_status[1]=0
+  selected_actions='Bookmark'
+  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
+  expected='bookmark '
+  assert_equals_helper 'Should output the bookmark action' "$LINENO" "$expected" "$output"
+
+  actions_starting_status[0]=0
+  actions_starting_status[1]=0
+  selected_actions='Download Bookmark'
+  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
+  expected='download bookmark '
+  assert_equals_helper 'Should output the download and bookmark action' "$LINENO" "$expected" "$output"
+
+  actions_starting_status[0]=1
+  actions_starting_status[1]=1
+  selected_actions='Download Bookmark'
+  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
+  expected=''
+  assert_equals_helper 'Should output no action to take' "$LINENO" "$expected" "$output"
+
+  actions_starting_status[0]=1
+  actions_starting_status[1]=1
+  selected_actions='Bookmark'
+  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
+  expected='remove-download '
+  assert_equals_helper 'Should output the remove-download action' "$LINENO" "$expected" "$output"
+
+  actions_starting_status[0]=1
+  actions_starting_status[1]=1
+  selected_actions='Download'
+  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
+  expected='remove-bookmark '
+  assert_equals_helper 'Should output the remove-bookmark action' "$LINENO" "$expected" "$output"
+
+  actions_starting_status[0]=1
+  actions_starting_status[1]=1
+  selected_actions=''
+  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
+  expected='remove-download remove-bookmark '
+  assert_equals_helper 'Should output the remove-download and remove-bookmark action' "$LINENO" "$expected" "$output"
 }
 
 invoke_shunit

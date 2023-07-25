@@ -29,6 +29,7 @@ declare -g current_mailing_list
 declare -gA screen_sequence=(
   ['SHOW_SCREEN']=''
   ['SHOW_SCREEN_PARAMETER']=''
+  ['PREVIOUS_SCREEN']=''
   ['RETURNING']=''
 )
 
@@ -80,12 +81,8 @@ function patch_hub_main_loop()
         show_settings_screen
         ret="$?"
         ;;
-      'series_details')
-        show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
-        ret="$?"
-        ;;
-      'bookmarked_series_details')
-        show_series_details "${screen_sequence['SHOW_SCREEN_PARAMETER']}" 1
+      'patchset_details_and_actions')
+        show_patchset_details_and_actions "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
         ret="$?"
         ;;
     esac
@@ -134,12 +131,7 @@ function show_bookmarked_patches()
 {
   local fallback_message
 
-  if [[ -z "${screen_sequence['RETURNING']}" ]]; then
-    get_bookmarked_series bookmarked_series
-  fi
-
-  # Avoiding stale value
-  screen_sequence['RETURNING']=''
+  get_bookmarked_series bookmarked_series
 
   fallback_message='kw could not find any bookmarked patches.'$'\n'$'\n'
   fallback_message+='Try bookmarking patches in the menu "Registered mailing list"'
@@ -178,7 +170,8 @@ function show_new_patches_in_the_mailing_list()
   local -a new_patches
   local fallback_message
 
-  # If returning from a 'show_series_details' screen, i.e., we already fetched the information needed to render this screen.
+  # If returning from a 'patchset_details_and_actions' screen, i.e., we already fetched the
+  # information needed to render this screen.
   if [[ -n "${screen_sequence['RETURNING']}" ]]; then
     # Avoiding stale value
     screen_sequence['RETURNING']=''
@@ -221,15 +214,16 @@ function list_patches()
     0) # OK
       case "${screen_sequence['SHOW_SCREEN']}" in
         'show_new_patches_in_the_mailing_list')
-          screen_sequence['SHOW_SCREEN']='series_details'
+          screen_sequence['PREVIOUS_SCREEN']='show_new_patches_in_the_mailing_list'
           menu_return_string=$((menu_return_string - 1))
           screen_sequence['SHOW_SCREEN_PARAMETER']=${list_of_mailinglist_patches["$menu_return_string"]}
           ;;
         'bookmarked_patches')
-          screen_sequence['SHOW_SCREEN']='bookmarked_series_details'
+          screen_sequence['PREVIOUS_SCREEN']='bookmarked_patches'
           screen_sequence['SHOW_SCREEN_PARAMETER']=$(get_bookmarked_series_by_index "$menu_return_string")
           ;;
       esac
+      screen_sequence['SHOW_SCREEN']='patchset_details_and_actions'
       ;;
     1) # Exit
       handle_exit "$ret"
