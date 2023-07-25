@@ -143,7 +143,7 @@ function show_bookmarked_patches()
 
   fallback_message='kw could not find any bookmarked patches.'$'\n'$'\n'
   fallback_message+='Try bookmarking patches in the menu "Registered mailing list"'
-  list_patches 'Bookmarked patches' bookmarked_series "${screen_sequence['SHOW_SCREEN']}" "${fallback_message}"
+  list_patches 'Bookmarked patches' bookmarked_series "${fallback_message}"
 }
 
 # Show all mailing list that the developer is registered
@@ -190,8 +190,7 @@ function show_new_patches_in_the_mailing_list()
   fi
 
   fallback_message='kw could not retrieve patches from this mailing list'
-  list_patches "Patches from ${current_mailing_list}" patches_from_mailing_list \
-    "${screen_sequence['SHOW_SCREEN']}" "${fallback_message}"
+  list_patches "Patches from ${current_mailing_list}" patches_from_mailing_list "${fallback_message}"
 }
 
 # This is a generic function used to show a list of patches. If the user select
@@ -201,14 +200,12 @@ function show_new_patches_in_the_mailing_list()
 #
 # @message_box: Text description to the list of patches
 # @_target_array_list: List of patches to be displayed
-# @previous_screen: Determines the next screen if an option is chosen
 # @fallback_message: Message for when there are no patches to display
 function list_patches()
 {
   local menu_title="$1"
   local -n _target_array_list="$2"
-  local previous_screen="$3"
-  local fallback_message="$4"
+  local fallback_message="$3"
   local ret
 
   if [[ -z "${_target_array_list}" ]]; then
@@ -222,7 +219,7 @@ function list_patches()
 
   case "$ret" in
     0) # OK
-      case "$previous_screen" in
+      case "${screen_sequence['SHOW_SCREEN']}" in
         'show_new_patches_in_the_mailing_list')
           screen_sequence['SHOW_SCREEN']='series_details'
           menu_return_string=$((menu_return_string - 1))
