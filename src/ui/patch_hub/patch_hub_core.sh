@@ -16,7 +16,7 @@ include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/lore_mailing_lists.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/settings.sh"
-include "${KW_LIB_DIR}/ui/patch_hub/series_details.sh"
+include "${KW_LIB_DIR}/ui/patch_hub/patchset_details_and_actions.sh"
 
 # These are references to data structures used all around the state-machine.
 declare -ga registered_lists

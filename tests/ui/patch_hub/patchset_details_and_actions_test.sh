@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/ui/patch_hub/series_details.sh'
+include './src/ui/patch_hub/patchset_details_and_actions.sh'
 include './tests/utils.sh'
 
 function oneTimeSetUp()
