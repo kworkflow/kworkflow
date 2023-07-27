@@ -98,41 +98,30 @@ function get_actions_to_take()
   printf '%s' "$actions_to_take"
 }
 
-# TODO: Document and test this function
-function handle_bookmark_action()
-{
-  local -n _series="$1"
-  local raw_series="$2"
-  local output
-
-  create_loading_screen_notification 'Bookmarking patchset'$'\n'"- ${_series['patchset_title']}"
-
-  output=$(download_series "${_series['patchset_url']}" "${lore_config['save_patches_to']}")
-  if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_series['patchset_title']}"$'\n'"[error message] ${output}"
-  fi
-
-  add_patchset_to_bookmarked_database "${raw_series}" "${lore_config['save_patches_to']}"
-  if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not bookmark patchset'$'\n'"- ${_series['patchset_title']}"
-  fi
-}
-
-# TODO: Document and test this function
+# Handler of the 'download' action. To download a patchset is to download its
+# single .mbx file hosted in lore.kernel.org containing all the patches in the
+# patchset without the cover letter to the default downloads directory
+# determined by the 'save_patches_to' configuration.
+#
+# @_patchset: Associative array reference with metadata of patchset
 function handle_download_action()
 {
-  local -n _series="$1"
+  local -n _patchset="$1"
   local output
 
-  create_loading_screen_notification 'Downloading patchset'$'\n'"- ${_series['patchset_title']}"
+  create_loading_screen_notification 'Downloading patchset'$'\n'"- ${_patchset['patchset_title']}"
 
-  output=$(download_series "${_series['patchset_url']}" "${lore_config['save_patches_to']}")
+  output=$(download_series "${_patchset['patchset_url']}" "${lore_config['save_patches_to']}")
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_series['patchset_title']}"$'\n'"[error message] ${output}"
+    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
   fi
 }
 
-# TODO: Document and test this function
+# Handler of the 'remove download' action. The .mbx file of the patchset is
+# removed from the default downloads directory determined by the 'save_patches_to'
+# configuration.
+#
+# @_patchset: Associative array reference with metadata of patchset
 function handle_remove_download_action()
 {
   local -n _patchset="$1"
@@ -143,14 +132,41 @@ function handle_remove_download_action()
   fi
 }
 
-# TODO: Document and test this function
+# Handler of the 'bookmark' action. To bookmark a patchset is to add it to the
+# local bookmarked database managed by kw.
+#
+# @_patchset: Associative array reference with metadata of patchset
+# @raw_patchset: String with raw data of patchset
+function handle_bookmark_action()
+{
+  local -n _patchset="$1"
+  local raw_patchset="$2"
+  local output
+
+  output=$(download_series "${_patchset['patchset_url']}" "${lore_config['save_patches_to']}")
+  if [[ "$?" != 0 ]]; then
+    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
+  fi
+
+  create_loading_screen_notification 'Bookmarking patchset'$'\n'"- ${_patchset['patchset_title']}"
+
+  add_patchset_to_bookmarked_database "${raw_patchset}" "${lore_config['save_patches_to']}"
+  if [[ "$?" != 0 ]]; then
+    create_message_box 'Error' 'Could not bookmark patchset'$'\n'"- ${_patchset['patchset_title']}"
+  fi
+}
+
+# Handler of the 'remove bookmark' action. This function removes the patchset
+# from the local bookmarked database managed by kw.
+#
+# @_patchset: Associative array reference with metadata of patchset
 function handle_remove_bookmark_action()
 {
   local -n _patchset="$1"
 
   delete_series_from_local_storage "${lore_config['save_patches_to']}" "${_patchset['patchset_url']}"
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not delete patchset'$'\n'"- ${_patchset['patchset_title']}"
+    create_message_box 'Warning' 'Could not delete patchset .mbx file'$'\n'"- ${_patchset['patchset_title']}"
   fi
 
   remove_patchset_from_bookmark_by_url "${_patchset['patchset_url']}"

@@ -7,6 +7,10 @@ function oneTimeSetUp()
 {
   export LORE_DATA_DIR="${SHUNIT_TMPDIR}/lore"
   export BOOKMARKED_SERIES_PATH="${LORE_DATA_DIR}/lore_bookmarked_series"
+  # shellcheck disable=SC2155
+  export sample_mbx_file_path=$(realpath './tests/samples/ui/patch-hub/20230622_rodrigo_siqueira_dc_patches_june_22_2023.mbx')
+
+  cp "$sample_mbx_file_path" "$SHUNIT_TMPDIR"
 }
 
 function setUp()
@@ -120,6 +124,98 @@ function test_get_actions_to_take()
   output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
   expected='remove-download remove-bookmark '
   assert_equals_helper 'Should output the remove-download and remove-bookmark action' "$LINENO" "$expected" "$output"
+}
+
+# This unit test works on a local machine, but fails in the remote CI/CD pipeline.
+# This behaviour may be explained by the fact that this unit test really downloads
+# the patchset using b4 and the network environment of the remote may be blocking
+# it, causing the download to fail and this unit test too.
+test_handle_download_action()
+{
+  :
+  # declare -A patchset
+  # declare -A lore_config
+  # local mbx_file_path
+
+  # # shellcheck disable=SC2317
+  # function create_loading_screen_notification()
+  # {
+  #   return
+  # }
+
+  # patchset['patchset_url']='https://lore.kernel.org/amd-gfx/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com/'
+  # lore_config['save_patches_to']="$SHUNIT_TMPDIR"
+  # mbx_file_path="${lore_config['save_patches_to']}/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com.mbx"
+
+  # handle_download_action 'patchset' > /dev/null 2>&1
+  # [[ -f "$mbx_file_path" ]]
+  # assert_equals_helper 'Should have downloaded the .mbx file' "$LINENO" 0 "$?"
+
+  # cmp --silent "$sample_mbx_file_path" "$mbx_file_path"
+  # assert_equals_helper 'File downloaded diverges from sample' "$LINENO" 0 "$?"
+}
+
+test_handle_remove_download_action()
+{
+  declare -A patchset
+  declare -A lore_config
+  local mbx_file_path
+
+  patchset['patchset_url']='https://lore.kernel.org/amd-gfx/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com/'
+  lore_config['save_patches_to']="$SHUNIT_TMPDIR"
+  mbx_file_path="${lore_config['save_patches_to']}/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com.mbx"
+
+  touch "$mbx_file_path"
+  handle_remove_download_action 'patchset'
+  [[ ! -f "$mbx_file_path" ]]
+  assert_equals_helper 'Should have removed the .mbx file' "$LINENO" 0 "$?"
+}
+
+test_handle_bookmark_action()
+{
+  declare -A patchset
+  local output
+
+  # shellcheck disable=SC2317
+  function create_loading_screen_notification()
+  {
+    return
+  }
+
+  # We need to mock download_series or else the test
+  # fails in the remote CI/CD pipeline.
+  # shellcheck disable=SC2317
+  function download_series()
+  {
+    return 0
+  }
+
+  handle_bookmark_action 'patchset' 'this_is_a_raw_patchset'
+  output=$(< "$BOOKMARKED_SERIES_PATH")
+  [[ "$output" =~ 'this_is_a_raw_patchset' ]]
+  assert_equals_helper 'Should have added patchset entry to database' "$LINENO" 0 "$?"
+}
+
+test_handle_remove_bookmark_action()
+{
+  declare -A patchset
+  declare -A lore_config
+  local mbx_file_path
+  local output
+
+  patchset['patchset_url']='https://lore.kernel.org/amd-gfx/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com/'
+  lore_config['save_patches_to']="$SHUNIT_TMPDIR"
+  mbx_file_path="${lore_config['save_patches_to']}/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com.mbx"
+  touch "$mbx_file_path"
+  printf 'https://lore.kernel.org/list/message-ID/' >> "$BOOKMARKED_SERIES_PATH"
+
+  handle_remove_bookmark_action 'patchset'
+  [[ ! -f "$mbx_file_path" ]]
+  assert_equals_helper 'Should have removed the .mbx file' "$LINENO" 0 "$?"
+  output=$(< "$BOOKMARKED_SERIES_PATH")
+  # shellcheck disable=SC2076
+  [[ ! "$output" =~ "${patchset['patchset_url']}" ]]
+  assert_equals_helper 'Should have removed patchset entry from database' "$LINENO" 0 "$?"
 }
 
 invoke_shunit
