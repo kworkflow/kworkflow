@@ -1,7 +1,7 @@
 include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
 # Screen used to manage the mailing lists
-function show_mailing_lists_screen()
+function show_lore_mailing_lists()
 {
   local message_box
   local new_list
