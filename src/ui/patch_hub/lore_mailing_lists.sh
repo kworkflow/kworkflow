@@ -54,7 +54,6 @@ function show_lore_mailing_lists()
   esac
 }
 
-# TODO: Test this function
 # This function converts the available mailing lists from lore.kernel.org stored in the
 # associative array to an array. The way `available_lore_mailing_lists` is structured is
 # that the keys are the names of the lists and the values are the descriptions. This
@@ -72,7 +71,6 @@ function convert_available_lore_mailing_lists_to_array()
   unset IFS
 }
 
-# TODO: Test this function
 # This function assigns the check status of the lists in the `@_lists` array
 # and stores it in the `@_lists_check_status` array using the `@registered_lists_string`
 # string. A list is considered 'checked' if it is a registered list.
