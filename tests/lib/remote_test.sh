@@ -37,6 +37,7 @@ function oneTimeSetUp()
   cp -f 'tests/samples/kworkflow.config' "$TEST_PATH/.kw/"
   cp -f 'tests/samples/dmesg' "$TEST_PATH"
   cp -f "${KW_REMOTE_SAMPLES_DIR}/remote.config" "${TEST_PATH}/.kw/"
+  cp -f "${KW_REMOTE_SAMPLES_DIR}/remote_4.config" "${TEST_PATH}/.kw/"
 
   export KW_CACHE_DIR="$FAKE_KW"
   export KW_PLUGINS_DIR="$FAKE_KW"
@@ -262,6 +263,52 @@ function test_ssh_connection_failure_message()
 
   ret=$(ssh_connection_failure_message)
   assertEquals "($LINENO):" "$no_config_file_failure_message" "$ret"
+}
+
+function test_ssh_connection_failure_message_with_bad_formatted_remote_config()
+{
+  local displayed_ip
+  local displayed_user
+  local displayed_port
+  local output
+
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote_4.config"
+  remote_parameters['REMOTE_FILE_HOST']='origin'
+
+  output=$(ssh_connection_failure_message)
+  displayed_ip=$(printf '%s' "$output" | grep 'IP' | sed 's/ IP: //')
+  displayed_user=$(printf '%s' "$output" | grep 'User' | sed 's/ User: //')
+  displayed_port=$(printf '%s' "$output" | grep 'Port' | sed 's/ Port: //')
+
+  assert_equals_helper 'Wrong IP displayed' "$LINENO" 'deb-tm' "$displayed_ip"
+  assert_equals_helper 'Wrong User displayed' "$LINENO" 'root' "$displayed_user"
+  assert_equals_helper 'Wrong Port displayed' "$LINENO" 123 "$displayed_port"
+}
+
+function test_ssh_connection_failure_message_with_invalid_host_in_remote_config()
+{
+  local displayed_ip
+  local displayed_user
+  local displayed_port
+  local output
+
+  remote_parameters['REMOTE_IP']=''
+  remote_parameters['REMOTE_USER']=''
+  remote_parameters['REMOTE_PORT']=''
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote_4.config"
+  remote_parameters['REMOTE_FILE_HOST']='fedora-test'
+
+  output=$(ssh_connection_failure_message)
+  displayed_ip=$(printf '%s' "$output" | grep 'IP' | sed 's/ IP: //')
+  displayed_user=$(printf '%s' "$output" | grep 'User' | sed 's/ User: //')
+  displayed_port=$(printf '%s' "$output" | grep 'Port' | sed 's/ Port: //')
+
+  assert_equals_helper 'Wrong IP displayed' "$LINENO" 'fedora-tm' "$displayed_ip"
+  assert_equals_helper 'Wrong User displayed' "$LINENO" '' "$displayed_user"
+  assert_equals_helper 'Wrong Port displayed' "$LINENO" '' "$displayed_port"
 }
 
 function test_cmd_remote()
