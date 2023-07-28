@@ -50,7 +50,7 @@ function patch_hub_main_loop()
   # In case the user doesn't have any mailing list registered, the first
   # state should be "Register/Unregister Mailing Lists"
   if [[ "${#registered_lists[@]}" == 0 ]]; then
-    screen_sequence['SHOW_SCREEN']='manage_mailing_lists'
+    screen_sequence['SHOW_SCREEN']='lore_mailing_lists'
   fi
 
   # Main loop of the state-machine
@@ -60,8 +60,8 @@ function patch_hub_main_loop()
         dashboard_entry_menu
         ret="$?"
         ;;
-      'manage_mailing_lists')
-        show_mailing_lists_screen
+      'lore_mailing_lists')
+        show_lore_mailing_lists
         ret="$?"
         ;;
       'registered_mailing_list')

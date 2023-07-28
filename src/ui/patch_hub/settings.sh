@@ -24,7 +24,7 @@ function show_settings_screen()
     0) # OK
       case "$menu_return_string" in
         1) # Register/Unregister Mailing Lists
-          screen_sequence['SHOW_SCREEN']='manage_mailing_lists'
+          screen_sequence['SHOW_SCREEN']='lore_mailing_lists'
           ;;
         2) # Save Patches To
           change_save_patches_to_setting "$lore_config_path"
