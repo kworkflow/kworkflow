@@ -43,16 +43,37 @@ function ssh_connection_failure_message()
   local user=${remote_parameters['REMOTE_USER']}
   local remote_file=${remote_parameters['REMOTE_FILE']}
   local remote_file_host=${remote_parameters['REMOTE_FILE_HOST']}
-  local host_line_number
+  local line_number
+  local trimmed_remote_file
+  local line
 
   # If a config file is being used, we need to set the IP, port
   # and user from the config file.
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
     if [[ -n "${remote_parameters['REMOTE_FILE']}" ]]; then
-      host_line_number=$(grep -n "Host ${remote_file_host}" "${remote_file}" | cut -d: -f1)
-      remote=$(sed -n "$((host_line_number + 1))p" "${remote_file}" | cut -d\  -f4)
-      port=$(sed -n "$((host_line_number + 2))p" "${remote_file}" | cut -d\  -f4)
-      user=$(sed -n "$((host_line_number + 3))p" "${remote_file}" | cut -d\  -f4)
+      # Getting the line number of the target host
+      line_number=$(grep --line-number "^Host ${remote_file_host}\$" "$remote_file" | cut --delimiter=':' -f1)
+      ((line_number++))
+      # Trimming remote file from target host line upward
+      trimmed_remote_file=$(tail --lines "+${line_number}" "${remote_file}")
+      # Getting the line number of next host from target host, if it exists
+      line_number=$(printf '%s' "$trimmed_remote_file" | grep --line-number --max-count=1 '^Host' | cut --delimiter=':' -f1)
+      # In case next host exists, trim remote file again from next host line downward
+      if [[ -n "$line_number" ]]; then
+        ((line_number--))
+        trimmed_remote_file=$(printf '%s' "$trimmed_remote_file" | head --lines "$line_number")
+      fi
+
+      # Here, we are matching lines with Hostname/Port/User occurrences that happen between the target
+      # host line and the next host line (if it exists) in the remote config file and only have leading
+      # spaces (excludes commented lines). We then cut the resulting string to get only the value of
+      # the Hostname/Port/User line.
+      line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*Hostname')
+      remote=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
+      line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*Port')
+      port=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
+      line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*User')
+      user=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
     else
       complain 'Could not find remote config file.'
       complain 'Suggestion: check if there is a remote.config or try using'
