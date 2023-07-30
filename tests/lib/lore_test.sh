@@ -339,22 +339,6 @@ function test_get_bookmarked_series_by_index()
   assertEquals "($LINENO) - Should get the second entry" "$expected" "$output"
 }
 
-function test_get_patchset_download_status()
-{
-  local dir_path="$SHUNIT_TMPDIR"
-  local output
-
-  touch "${dir_path}/0138948.2424-1-lore@kernel.org.mbx"
-  touch "${dir_path}/1676464.997845-1-lore@kernel.org.mbx"
-  touch "${dir_path}/28784575.16734-1-lore@kernel.org.mbx"
-
-  output=$(get_patchset_download_status 'http://lore.kernel.org/linux-staging/1676464.997845-1-lore@kernel.org/' "$dir_path")
-  assert_equals_helper 'Should output 1 (patch bookmarked)' "$LINENO" 1 "$output"
-
-  output=$(get_patchset_download_status 'http://lore.kernel.org/linux-invalid/404-1-inva@lid.url/' "$dir_path")
-  assert_equals_helper 'Should output 0 (patch not bookmarked)' "$LINENO" 0 "$output"
-}
-
 function test_get_patchset_bookmark_status()
 {
   local output
@@ -394,7 +378,8 @@ function test_download_series()
 
   output=$(download_series "$series_url" "$save_to" "$flag")
   expected="mkdir --parents '${save_to}'"$'\n'
-  expected+="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '1234567.789-1-email@email.com.mbx'"
+  expected+="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '1234567.789-1-email@email.com.mbx'"$'\n'
+  expected+="${save_to}/1234567.789-1-email@email.com.mbx"
   assert_equals_helper 'Wrong commands issued' "$LINENO" "$expected" "$output"
 }
 

@@ -42,7 +42,7 @@ function test_show_patchset_details_and_actions()
   expected_result+=' \Zb\Z6Series:\ZnDC Patches November 19, 2022\n'
   expected_result+='\Zb\Z6Author:\ZnJuca Pirama\n\Zb\Z6Version:\ZnV1\n'
   expected_result+='\Zb\Z6Patches:\Zn255\n'
-  expected_result+=' Download Bookmark'
+  expected_result+=' Download to specific directory Bookmark'
 
   # shellcheck disable=SC2317
   function create_simple_checklist()
@@ -101,28 +101,21 @@ function test_get_actions_to_take()
   actions_starting_status[1]=1
   selected_actions='Download Bookmark'
   output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
-  expected=''
+  expected='download '
   assert_equals_helper 'Should output no action to take' "$LINENO" "$expected" "$output"
-
-  actions_starting_status[0]=1
-  actions_starting_status[1]=1
-  selected_actions='Bookmark'
-  output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
-  expected='remove-download '
-  assert_equals_helper 'Should output the remove-download action' "$LINENO" "$expected" "$output"
 
   actions_starting_status[0]=1
   actions_starting_status[1]=1
   selected_actions='Download'
   output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
-  expected='remove-bookmark '
+  expected='download remove-bookmark '
   assert_equals_helper 'Should output the remove-bookmark action' "$LINENO" "$expected" "$output"
 
   actions_starting_status[0]=1
   actions_starting_status[1]=1
   selected_actions=''
   output=$(get_actions_to_take 'actions_starting_status' "$selected_actions")
-  expected='remove-download remove-bookmark '
+  expected='remove-bookmark '
   assert_equals_helper 'Should output the remove-download and remove-bookmark action' "$LINENO" "$expected" "$output"
 }
 
@@ -153,22 +146,6 @@ test_handle_download_action()
 
   # cmp --silent "$sample_mbx_file_path" "$mbx_file_path"
   # assert_equals_helper 'File downloaded diverges from sample' "$LINENO" 0 "$?"
-}
-
-test_handle_remove_download_action()
-{
-  declare -A patchset
-  declare -A lore_config
-  local mbx_file_path
-
-  patchset['patchset_url']='https://lore.kernel.org/amd-gfx/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com/'
-  lore_config['save_patches_to']="$SHUNIT_TMPDIR"
-  mbx_file_path="${lore_config['save_patches_to']}/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com.mbx"
-
-  touch "$mbx_file_path"
-  handle_remove_download_action 'patchset'
-  [[ ! -f "$mbx_file_path" ]]
-  assert_equals_helper 'Should have removed the .mbx file' "$LINENO" 0 "$?"
 }
 
 test_handle_bookmark_action()

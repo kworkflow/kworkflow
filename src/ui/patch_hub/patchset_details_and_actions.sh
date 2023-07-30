@@ -8,7 +8,7 @@ function show_patchset_details_and_actions()
 {
   local raw_patchset="$1"
   declare -A patchset
-  local -a actions_list=('Download' 'Bookmark')
+  local -a actions_list=('Download to specific directory' 'Bookmark')
   local -a actions_starting_status=()
   local actions_to_take
   local patch_metadata
@@ -21,7 +21,7 @@ function show_patchset_details_and_actions()
   patch_metadata+=$(prettify_string 'Patches:' "${patchset['total_patches']}")
   message_box="$patch_metadata"
 
-  actions_starting_status[0]=$(get_patchset_download_status "${patchset['patchset_url']}" "${lore_config['save_patches_to']}")
+  # actions_starting_status[0]=$(get_patchset_download_status "${patchset['patchset_url']}" "${lore_config['save_patches_to']}")
   actions_starting_status[1]=$(get_patchset_bookmark_status "${patchset['patchset_url']}")
 
   create_simple_checklist 'Patchset details and actions' "$message_box" 'actions_list' 'actions_starting_status' 1
@@ -35,9 +35,6 @@ function show_patchset_details_and_actions()
         case "$action" in
           'download')
             handle_download_action 'patchset'
-            ;;
-          'remove-download')
-            handle_remove_download_action 'patchset'
             ;;
           'bookmark')
             handle_bookmark_action 'patchset' "$raw_patchset"
@@ -76,13 +73,8 @@ function get_actions_to_take()
   local actions_to_take
 
   # download
-  if [[ "${_actions_starting_status[0]}" == 0 && "$selected_actions" =~ 'Download' ]]; then
+  if [[ "$selected_actions" =~ 'Download' ]]; then
     actions_to_take+='download '
-  fi
-
-  # remove-download
-  if [[ "${_actions_starting_status[0]}" == 1 && ! "$selected_actions" =~ 'Download' ]]; then
-    actions_to_take+='remove-download '
   fi
 
   # bookmark
@@ -100,36 +92,48 @@ function get_actions_to_take()
 
 # Handler of the 'download' action. To download a patchset is to download its
 # single .mbx file hosted in lore.kernel.org containing all the patches in the
-# patchset without the cover letter to the default downloads directory
-# determined by the 'save_patches_to' configuration.
+# patchset without the cover letter to a user-chosen directory.
 #
 # @_patchset: Associative array reference with metadata of patchset
 function handle_download_action()
 {
   local -n _patchset="$1"
+  local download_dir_path
   local output
+  local message_box
 
-  create_loading_screen_notification 'Downloading patchset'$'\n'"- ${_patchset['patchset_title']}"
+  create_directory_selection_screen "${lore_config['save_patches_to']}" 'Select directory to download .mbx file'
 
-  output=$(download_series "${_patchset['patchset_url']}" "${lore_config['save_patches_to']}")
-  if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
-  fi
-}
+  case "$?" in
+    0) # OK
+      download_dir_path=$(printf '%s' "$menu_return_string" | sed 's/\/$//')
+      if [[ ! -d "$download_dir_path" ]]; then
+        create_message_box 'Error' "${download_dir_path}: No such directory."
+        return
+      fi
 
-# Handler of the 'remove download' action. The .mbx file of the patchset is
-# removed from the default downloads directory determined by the 'save_patches_to'
-# configuration.
-#
-# @_patchset: Associative array reference with metadata of patchset
-function handle_remove_download_action()
-{
-  local -n _patchset="$1"
+      create_loading_screen_notification 'Downloading patchset'$'\n'"${_patchset['patchset_title']}"
 
-  delete_series_from_local_storage "${lore_config['save_patches_to']}" "${_patchset['patchset_url']}"
-  if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not delete patchset'$'\n'"- ${_patchset['patchset_title']}"
-  fi
+      output=$(download_series "${_patchset['patchset_url']}" "$download_dir_path")
+      if [[ "$?" != 0 ]]; then
+        create_message_box 'Error' 'Could not download patchset:'$'\n'"${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
+      else
+        message_box='Downloaded patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+        message_box+='Filepath:'$'\n'"$output"
+        create_message_box 'Success' "$message_box"
+      fi
+      ;;
+
+    1) # Cancel
+      ;;
+
+    2) # Help
+      create_help_screen 'directory_selection'
+      if [[ "$?" != 0 ]]; then
+        create_message_box 'Error' 'Cannot create help screen'
+      fi
+      ;;
+  esac
 }
 
 # Handler of the 'bookmark' action. To bookmark a patchset is to add it to the
