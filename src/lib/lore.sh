@@ -468,6 +468,8 @@ function download_series()
   elif [[ "$ret" == 2 ]]; then
     complain 'b4 unrecognized arguments'
     complain "b4 command: ${cmd}"
+  else
+    printf '%s/%s.mbx' "$save_to" "$series_filename"
   fi
 
   return "$ret"
@@ -679,26 +681,6 @@ function parse_raw_patchset_data()
   _patchset['patchset_url']="${columns[5]}"
   _patchset['download_dir_path']="${columns[6]}"
   _patchset['timestamp']="${columns[7]}"
-}
-
-# This function gets the download status of a patchset, 0 being not stored in
-# `@dir_path` and 1 being stored in `@dir_path`.
-#
-# @patchset_url: URL of the patchset in lore.kernel.org
-# @dir_path: Path to a directory
-function get_patchset_download_status()
-{
-  local patchset_url="$1"
-  local dir_path="$2"
-  local patchset_filename
-
-  patchset_filename=$(extract_message_id_from_url "$patchset_url")
-
-  if [[ ! -f "${dir_path}/${patchset_filename}.mbx" ]]; then
-    printf '%s' 0
-  else
-    printf '%s' 1
-  fi
 }
 
 # This function gets the bookmark status of a patchset, 0 being not in the local
