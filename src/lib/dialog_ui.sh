@@ -38,8 +38,8 @@ function ui_setup()
 
 # This function is responsible for creating dialog menus.
 #
-# @menu_title: This is the menu title used on the top left of the dialog screen.
-# @menu_message_box: The instruction text used for this menu.
+# @box_title: This is the menu title used on the top left of the dialog screen.
+# @message_box: The instruction text used for this menu.
 # @_menu_list_string_array: An array reference containing all the strings to be used in the menu.
 # @cancel_label: Cancel label. If not set, the default is 'Exit']
 # @height: Menu height in lines size
@@ -53,8 +53,8 @@ function ui_setup()
 # code is returned.
 function create_menu_options()
 {
-  local menu_title="$1"
-  local menu_message_box="$2"
+  local box_title="$1"
+  local message_box="$2"
   local -n _menu_list_string_array="$3"
   local back_button_label="$4"
   local cancel_label="$5"
@@ -77,34 +77,28 @@ function create_menu_options()
   max_elements_displayed_in_the_menu=${max_elements_displayed_in_the_menu:-'0'}
 
   # Escape all single quotes to avoid breaking arguments
-  menu_title=$(str_escape_single_quotes "$menu_title")
+  box_title=$(str_escape_single_quotes "$box_title")
   cancel_label=$(str_escape_single_quotes "$cancel_label")
-  menu_message_box=$(str_escape_single_quotes "$menu_message_box")
+  message_box=$(str_escape_single_quotes "$message_box")
 
-  cmd=$(build_dialog_command_preamble "$menu_title")
-
+  cmd=$(build_dialog_command_preamble "$box_title")
   # Change cancel label
   cmd+=" --cancel-label $'${cancel_label}'"
-
-  # Add extra button?
+  # Add extra button
   if [[ -n "$back_button_label" ]]; then
     cmd+=" --extra-button --extra-label 'Return'"
   fi
-
-  # Menu option
-  cmd+=" --menu $'${menu_message_box}'"
-
+  # Add Menu screen
+  cmd+=" --menu $'${message_box}'"
   # Set height, width, and max display itens
   cmd+=" '${height}' '${width}' '${max_elements_displayed_in_the_menu}'"
-
+  # Add each menu option with or without index
   for item in "${_menu_list_string_array[@]}"; do
     item=$(str_escape_single_quotes "$item")
-
     if [[ -n "$no_index" ]]; then
       cmd+=" $'${item}' ''"
       continue
     fi
-
     cmd+=" '${index}' $'${item}'"
     ((index++))
   done
@@ -116,8 +110,8 @@ function create_menu_options()
 
 # Create simple checklist without index
 #
-# @menu_title: This is the menu title used on the top left of the dialog screen.
-# @menu_message_box: The instruction text used for this menu.
+# @box_title: This is the menu title used on the top left of the dialog screen.
+# @message_box: The instruction text used for this menu.
 # @_menu_list_string_array: An array reference containing all the strings to be used in the menu.
 # @_check_statuses: An array reference containing all the statuses of the checks (if they are on/off).
 # @cancel_label: Cancel label. If not set, the default is 'Exit']
@@ -132,8 +126,8 @@ function create_menu_options()
 # code is returned.
 function create_simple_checklist()
 {
-  local menu_title="$1"
-  local menu_message_box="$2"
+  local box_title="$1"
+  local message_box="$2"
   local -n _menu_list_string_array="$3"
   local -n _check_statuses="$4"
   local back_button_label="$5"
@@ -152,26 +146,22 @@ function create_simple_checklist()
   cancel_label=${cancel_label:-'Exit'}
 
   # Escape all single quotes to avoid breaking arguments
-  menu_title=$(str_escape_single_quotes "$menu_title")
+  box_title=$(str_escape_single_quotes "$box_title")
   cancel_label=$(str_escape_single_quotes "$cancel_label")
-  menu_message_box=$(str_escape_single_quotes "$menu_message_box")
+  message_box=$(str_escape_single_quotes "$message_box")
 
-  cmd=$(build_dialog_command_preamble "$menu_title")
-
+  cmd=$(build_dialog_command_preamble "$box_title")
   # Change cancel label
   cmd+=" --cancel-label $'${cancel_label}'"
-
-  # Add extra button?
+  # Add extra button
   if [[ -n "$back_button_label" ]]; then
     cmd+=" --extra-button --extra-label 'Return'"
   fi
-
-  # Start to compose menu
-  cmd+=" --checklist $'${menu_message_box}'"
-
+  # Add Checklist screen
+  cmd+=" --checklist $'${message_box}'"
   # Set height, width, and max display itens
   cmd+=" '${height}' '${width}' '${list_height}'"
-
+  # Add each checklist item with their respective starting check status
   for item in "${_menu_list_string_array[@]}"; do
     item=$(str_escape_single_quotes "$item")
     if [[ "${_check_statuses["$index"]}" == 1 ]]; then
@@ -211,20 +201,18 @@ function create_loading_screen_notification()
   height=${height:-'8'}
   width=${width:-'60'}
 
+  # Escape all single quotes to avoid breaking arguments
+  loading_message=$(str_escape_single_quotes "$loading_message")
+
   # Add dialog layout if there is one
   if [[ -n "$DIALOG_LAYOUT" ]]; then
     cmd="DIALOGRC=${DIALOG_LAYOUT} "
   fi
-
   # We should not use --clear because this flushes the infobox
   cmd+='dialog --colors'
-
-  # Start infobox
+  # Add Infobox screen
   # TODO: if possible, we should try using a progress bar/gauge
-  # Escape all single quotes to avoid breaking arguments
-  loading_message=$(str_escape_single_quotes "$loading_message")
   cmd+=" --infobox $'${loading_message}'"
-
   # Set height and width
   cmd+=" '${height}' '${width}'"
 
@@ -264,9 +252,8 @@ function create_message_box()
   message_box=$(str_escape_single_quotes "$message_box")
 
   cmd=$(build_dialog_command_preamble "$box_title")
-
+  # Add Message Box screen
   cmd+=" --msgbox $'${message_box}'"
-
   # Set height and width
   cmd+=" '${height}' '${width}'"
 
@@ -621,6 +608,12 @@ function create_form_screen()
   local choice_description
   local cmd
 
+  height=${height:-"${DEFAULT_HEIGHT}"}
+  width=${width:-"${DEFAULT_WIDTH}"}
+  cancel_label=${cancel_label:-'Cancel'}
+  ok_label=${ok_label:-'Ok'}
+  flag=${flag:-'SILENT'}
+
   # Escape all single quotes to avoid breaking arguments
   ok_label=$(str_escape_single_quotes "$ok_label")
   cancel_label=$(str_escape_single_quotes "$cancel_label")
@@ -628,26 +621,17 @@ function create_form_screen()
   box_title=$(str_escape_single_quotes "$box_title")
   message_box=$(str_escape_single_quotes "$message_box")
 
-  height=${height:-"${DEFAULT_HEIGHT}"}
-  width=${width:-"${DEFAULT_WIDTH}"}
-  cancel_label=${cancel_label:-'Cancel'}
-  ok_label=${ok_label:-'Ok'}
-  flag=${flag:-'SILENT'}
-
   cmd=$(build_dialog_command_preamble "$box_title")
-
   # Override OK and cancel labels
   cmd+=" --ok-label $'${ok_label}'"
   cmd+=" --cancel-label $'${cancel_label}'"
-
   # Add extra button
   if [[ -n "$extra_label" ]]; then
     cmd+=" --extra-button --extra-label ${extra_label}"
   fi
-
   # Add form option
   cmd+=" --form $'${message_box}'"
-
+  # Set height and width
   cmd+=" '${height}' '${width}' '0'"
 
   # Find out the largest label to know where we need to start the input field
@@ -661,6 +645,7 @@ function create_form_screen()
   # Add two extra spaces to the start point
   start_text_field=$((start_text_field + 2))
 
+  # Add form fields
   for label in "${_fields_list[@]}"; do
     label=$(str_escape_single_quotes "$label")
     cmd+=" $'${label}:' $'${row}' 1 $'' $'${row}' $'${start_text_field}' 10 0"
