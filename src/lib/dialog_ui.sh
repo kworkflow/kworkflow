@@ -65,7 +65,6 @@ function create_menu_options()
   local flag="${10}"
   local index=1
   local cmd
-  local ret
 
   if [[ "${#_menu_list_string_array[@]}" -eq 0 ]]; then
     return 22 # EINVAL
@@ -112,11 +111,7 @@ function create_menu_options()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 # Create simple checklist without index
@@ -149,7 +144,6 @@ function create_simple_checklist()
   local flag="${10}"
   local index=0
   local cmd
-  local ret
 
   flag=${flag:-'SILENT'}
   height=${height:-$DEFAULT_HEIGHT}
@@ -190,11 +184,7 @@ function create_simple_checklist()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 # Create simple loading screen notification for delayed actions.
@@ -216,7 +206,6 @@ function create_loading_screen_notification()
   local width="$3"
   local flag="$4"
   local cmd
-  local ret
 
   flag=${flag:-'SILENT'}
   height=${height:-'8'}
@@ -241,12 +230,7 @@ function create_loading_screen_notification()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  # dialog --infobox does not return a menu_return_string
-  cmd_manager "$flag" "$cmd" 2>&1 1>&3
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 # Create simple message box. Can be used for displaying errors and notifications.
@@ -270,7 +254,6 @@ function create_message_box()
   local width="$4"
   local flag="$5"
   local cmd
-  local ret
 
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
@@ -289,11 +272,7 @@ function create_message_box()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  cmd_manager "$flag" "$cmd" 2>&1 1>&3
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 # Create directory selection screen.
@@ -317,7 +296,6 @@ function create_directory_selection_screen()
   local width="$4"
   local flag="$5"
   local cmd
-  local ret
 
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
@@ -336,11 +314,7 @@ function create_directory_selection_screen()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 # Create file selection screen.
@@ -367,7 +341,6 @@ function create_file_selection_screen()
   local width="$5"
   local flag="$6"
   local cmd
-  local ret
 
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
@@ -391,11 +364,7 @@ function create_file_selection_screen()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 # Create a screen with a list of choices.
@@ -427,7 +396,6 @@ function create_choice_list_screen()
   local choice_description
   local index=0
   local cmd
-  local ret
 
   flag=${flag:-'SILENT'}
   height=${height:-$DEFAULT_HEIGHT}
@@ -456,11 +424,7 @@ function create_choice_list_screen()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 # Create a screen with a Yes/No prompt.
@@ -489,7 +453,6 @@ function create_yes_no_prompt()
   local width="$7"
   local flag="$8"
   local cmd
-  local ret
 
   yes_label=${yes_label:-'Yes'}
   no_label=${no_label:-'No'}
@@ -517,11 +480,7 @@ function create_yes_no_prompt()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  cmd_manager "$flag" "$cmd" 2>&1 1>&3
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 # Creates a help message box for a dialog's screen. There must be a file
@@ -583,6 +542,35 @@ function build_dialog_command_preamble()
   printf '%s' "$cmd"
 }
 
+# This function runs a dialog command. It does the file descriptor manipulation
+# needed for the command to work. It also stores the string returned by the user
+# interaction with the dialog screen in `menu_return_string` and returns the
+# exit code, both really important values to determine actions after the command
+# is run.
+#
+# @dialog_cmd: String containing a dialog command ready for run
+# @flag: How to display a command, the default value is "SILENT". For more options
+#   see `src/lib/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# The return value depends on the dialog command being run. Check the specific
+# dialog screen function for more details.
+# TODO: Is there a way to test this function?
+function run_dialog_command()
+{
+  local dialog_cmd="$1"
+  local flag="$2"
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  exec 3>&1
+  menu_return_string=$(cmd_manager "$flag" "$dialog_cmd" 2>&1 1>&3)
+  ret="$?"
+  exec 3>&-
+  return "$ret"
+}
+
 # This function is responsible for handling the dialog exit.
 #
 # @exit_status: Exit code
@@ -632,7 +620,6 @@ function create_form_screen()
   local row=1
   local choice_description
   local cmd
-  local ret
 
   # Escape all single quotes to avoid breaking arguments
   ok_label=$(str_escape_single_quotes "$ok_label")
@@ -682,11 +669,7 @@ function create_form_screen()
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
-  exec 3>&1
-  menu_return_string=$(cmd_manager "$flag" "$cmd" 2>&1 1>&3)
-  ret="$?"
-  exec 3>&-
-  return "$ret"
+  run_dialog_command "$cmd" "$flag"
 }
 
 function prettify_string()
