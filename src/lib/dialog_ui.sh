@@ -76,20 +76,13 @@ function create_menu_options()
   width=${width:-$DEFAULT_WIDTH}
   cancel_label=${cancel_label:-'Exit'}
   max_elements_displayed_in_the_menu=${max_elements_displayed_in_the_menu:-'0'}
-  back_title=${back_title:-$KW_PATCH_HUB_TITLE}
 
   # Escape all single quotes to avoid breaking arguments
-  back_title=$(str_escape_single_quotes "$back_title")
   menu_title=$(str_escape_single_quotes "$menu_title")
   cancel_label=$(str_escape_single_quotes "$cancel_label")
   menu_message_box=$(str_escape_single_quotes "$menu_message_box")
 
-  # Start to compose menu
-  if [[ -n "$DIALOG_LAYOUT" ]]; then
-    cmd="DIALOGRC=${DIALOG_LAYOUT} "
-  fi
-
-  cmd+="dialog --backtitle $'${back_title}' --title $'${menu_title}' --clear --colors"
+  cmd=$(build_dialog_command_preamble "$menu_title")
 
   # Change cancel label
   cmd+=" --cancel-label $'${cancel_label}'"
@@ -163,20 +156,13 @@ function create_simple_checklist()
   width=${width:-$DEFAULT_WIDTH}
   list_height=${list_height:-'0'}
   cancel_label=${cancel_label:-'Exit'}
-  back_title=${back_title:-$KW_PATCH_HUB_TITLE}
 
   # Escape all single quotes to avoid breaking arguments
-  back_title=$(str_escape_single_quotes "$back_title")
   menu_title=$(str_escape_single_quotes "$menu_title")
   cancel_label=$(str_escape_single_quotes "$cancel_label")
   menu_message_box=$(str_escape_single_quotes "$menu_message_box")
 
-  # Start to compose menu
-  if [[ -n "$DIALOG_LAYOUT" ]]; then
-    cmd="DIALOGRC=${DIALOG_LAYOUT} "
-  fi
-
-  cmd+="dialog --backtitle $'${back_title}' --title $'${menu_title}' --clear --colors"
+  cmd=$(build_dialog_command_preamble "$menu_title")
 
   # Change cancel label
   cmd+=" --cancel-label $'${cancel_label}'"
@@ -235,7 +221,6 @@ function create_loading_screen_notification()
   flag=${flag:-'SILENT'}
   height=${height:-'8'}
   width=${width:-'60'}
-  back_title=${back_title:-$"$KW_PATCH_HUB_TITLE"}
 
   # Add dialog layout if there is one
   if [[ -n "$DIALOG_LAYOUT" ]]; then
@@ -290,19 +275,12 @@ function create_message_box()
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
   width=${width:-'40'}
-  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
-  back_title=$(str_escape_single_quotes "$back_title")
   box_title=$(str_escape_single_quotes "$box_title")
   message_box=$(str_escape_single_quotes "$message_box")
 
-  # Add layout to dialog
-  if [[ -n "$DIALOG_LAYOUT" ]]; then
-    cmd="DIALOGRC=${DIALOG_LAYOUT}"
-  fi
-
-  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  cmd=$(build_dialog_command_preamble "$box_title")
 
   cmd+=" --msgbox $'${message_box}'"
 
@@ -344,19 +322,11 @@ function create_directory_selection_screen()
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
   width=${width:-'80'}
-  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
-  back_title=$(str_escape_single_quotes "$back_title")
   box_title=$(str_escape_single_quotes "$box_title")
 
-  # Add layout to dialog
-  if [[ -n "$DIALOG_LAYOUT" ]]; then
-    cmd="DIALOGRC=${DIALOG_LAYOUT}"
-  fi
-
-  # Add general information to the dialog box
-  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  cmd=$(build_dialog_command_preamble "$box_title")
   # Add help button
   cmd+=" --help-button"
   # Add directory selection screen
@@ -402,20 +372,12 @@ function create_file_selection_screen()
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
   width=${width:-'80'}
-  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
-  back_title=$(str_escape_single_quotes "$back_title")
   box_title=$(str_escape_single_quotes "$box_title")
   extra_label=$(str_escape_single_quotes "$extra_label")
 
-  # Add layout to dialog
-  if [[ -n "$DIALOG_LAYOUT" ]]; then
-    cmd="DIALOGRC=${DIALOG_LAYOUT}"
-  fi
-
-  # Add general information to the dialog box
-  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  cmd=$(build_dialog_command_preamble "$box_title")
   # Add help button
   cmd+=" --help-button"
   # Add extra button, if needed
@@ -470,20 +432,12 @@ function create_choice_list_screen()
   flag=${flag:-'SILENT'}
   height=${height:-$DEFAULT_HEIGHT}
   width=${width:-$DEFAULT_WIDTH}
-  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
-  back_title=$(str_escape_single_quotes "$back_title")
   box_title=$(str_escape_single_quotes "$box_title")
   message_box=$(str_escape_single_quotes "$message_box")
 
-  # Add layout to dialog
-  if [[ -n "$DIALOG_LAYOUT" ]]; then
-    cmd="DIALOGRC=${DIALOG_LAYOUT}"
-  fi
-
-  # Add general information to the dialog box
-  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  cmd=$(build_dialog_command_preamble "$box_title")
   # Add radiolist screen
   cmd+=" --radiolist $'${message_box}'"
   # Set height and width
@@ -542,23 +496,15 @@ function create_yes_no_prompt()
   flag=${flag:-'SILENT'}
   height=${height:-'15'}
   width=${width:-'40'}
-  back_title=${back_title:-"${KW_PATCH_HUB_TITLE}"}
 
   # Escape all single quotes to avoid breaking arguments
-  back_title=$(str_escape_single_quotes "$back_title")
   box_title=$(str_escape_single_quotes "$box_title")
   message_box=$(str_escape_single_quotes "$message_box")
   yes_label=$(str_escape_single_quotes "$yes_label")
   no_label=$(str_escape_single_quotes "$no_label")
   extra_label=$(str_escape_single_quotes "$extra_label")
 
-  # Add layout to dialog
-  if [[ -n "$DIALOG_LAYOUT" ]]; then
-    cmd="DIALOGRC=${DIALOG_LAYOUT}"
-  fi
-
-  # Add general information to the dialog box
-  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  cmd=$(build_dialog_command_preamble "$box_title")
   # Add labels
   cmd+=" --yes-label $'${yes_label}' --no-label $'${no_label}'"
   if [[ -n "${extra_label}" ]]; then
@@ -609,6 +555,34 @@ function create_help_screen()
   create_message_box "$box_title" "$message_box" '15' '70' "$flag"
 }
 
+# This function outputs the preamble of most dialog command. This preamble consists
+# of the configuration of a dialog layout, in case there is one, and the dialog box
+# back title and title.
+#
+# @title: Main title of dialog box.
+# @back_title: Back title of dialog box. If null, use `KW_PATCH_HUB_TITLE` as the
+#   default back title.
+function build_dialog_command_preamble()
+{
+  local title="$1"
+  local back_title="$2"
+  local cmd
+
+  # Add layout (if existent) to command.
+  if [[ -n "$DIALOG_LAYOUT" ]]; then
+    cmd="DIALOGRC=${DIALOG_LAYOUT}"
+  fi
+
+  # Define `back_title` value and escape single quotes for safety
+  back_title=${back_title:-$KW_PATCH_HUB_TITLE}
+  back_title=$(str_escape_single_quotes "$back_title")
+
+  # Add dialog box back title and title to command.
+  cmd+=" dialog --backtitle $'${back_title}' --title $'${title}' --clear --colors"
+
+  printf '%s' "$cmd"
+}
+
 # This function is responsible for handling the dialog exit.
 #
 # @exit_status: Exit code
@@ -629,7 +603,6 @@ function handle_exit()
 #
 # @box_title: Title of the box
 # @message_box: The message to be displayed
-# @back_title: Dialog back title
 # @_fields_list: Array of labels
 # @ok_label: Label for the traditional Ok button. By default, it is 'Ok'
 # @cancel_label: Label for the traditional Cancel button. By default, it is 'Cancel'
@@ -648,13 +621,12 @@ function create_form_screen()
   local box_title="$1"
   local message_box="$2"
   local -n _fields_list="$3"
-  local back_title="$4"
-  local ok_label="$5"
-  local cancel_label="$6"
-  local extra_label="$7"
-  local height="$8"
-  local width="$9"
-  local flag="${10}"
+  local ok_label="$4"
+  local cancel_label="$5"
+  local extra_label="$6"
+  local height="$7"
+  local width="$8"
+  local flag="$9"
   local auxiliar_label_size=0
   local start_text_field=0
   local row=1
@@ -668,22 +640,14 @@ function create_form_screen()
   extra_label=$(str_escape_single_quotes "$extra_label")
   box_title=$(str_escape_single_quotes "$box_title")
   message_box=$(str_escape_single_quotes "$message_box")
-  back_title=$(str_escape_single_quotes "$back_title")
 
   height=${height:-"${DEFAULT_HEIGHT}"}
   width=${width:-"${DEFAULT_WIDTH}"}
-  back_title=${back_title:-"${KW_UPSTREAM_TITLE}"}
   cancel_label=${cancel_label:-'Cancel'}
   ok_label=${ok_label:-'Ok'}
   flag=${flag:-'SILENT'}
 
-  # Add layout to dialog
-  if [[ -n "$DIALOG_LAYOUT" ]]; then
-    cmd="DIALOGRC=${DIALOG_LAYOUT}"
-  fi
-
-  # Add general information to the dialog box
-  cmd+=" dialog --backtitle $'${back_title}' --title $'${box_title}' --clear --colors"
+  cmd=$(build_dialog_command_preamble "$box_title")
 
   # Override OK and cancel labels
   cmd+=" --ok-label $'${ok_label}'"
