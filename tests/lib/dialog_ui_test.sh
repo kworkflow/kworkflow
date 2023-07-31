@@ -61,7 +61,7 @@ function test_create_menu_options_rely_on_some_default_options()
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
   local -a menu_list_string_array=("I'm number 1" "I'm number 2")
-  local expected_cmd="dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
+  local expected_cmd=" dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Exit' --menu $'${menu_message_box}'"
@@ -77,7 +77,7 @@ function test_create_menu_options_use_all_options()
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
   local -a menu_list_string_array=("I'm number 1" "I'm number 2")
-  local expected_cmd="dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
+  local expected_cmd=" dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Xpto'"
@@ -95,7 +95,7 @@ function test_create_simple_checklist_rely_on_some_default_options()
   local menu_message_box="This shouldn't be a useful dialog's screen message box"
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
   local -a check_statuses=(1 0)
-  local expected_cmd="dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
+  local expected_cmd=" dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Exit'"
@@ -113,7 +113,7 @@ function test_create_simple_checklist_use_all_options()
   local menu_message_box="This shouldn't be a useful dialog's screen message box"
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
   local -a check_statuses=(1 0)
-  local expected_cmd="dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
+  local expected_cmd=" dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
   expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Nop'"
@@ -334,12 +334,11 @@ function test_create_form_screen_default_options()
 {
   local box_title='Simple form'
   local message_box='This is a simple form'
-  local back_title='Back title form'
   declare -a fields_list=('User' 'IP' 'Port')
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${back_title}' --title $'${box_title}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}' --title $'${box_title}'"
   expected_cmd+=' --clear --colors'
   expected_cmd+=" --ok-label $'Ok' --cancel-label $'Cancel'"
   expected_cmd+=" --form $'${message_box}'"
@@ -348,7 +347,7 @@ function test_create_form_screen_default_options()
   expected_cmd+=" $'IP:' $'2' 1 $'' $'2' $'6' 10 0"
   expected_cmd+=" $'Port:' $'3' 1 $'' $'3' $'6' 10 0"
 
-  output=$(create_form_screen "$box_title" "$message_box" 'fields_list' "$back_title" '' '' '' "${EXPECTED_DEFAULT_WIDTH}" "${EXPECTED_DEFAULT_HEIGHT}" 'TEST_MODE')
+  output=$(create_form_screen "$box_title" "$message_box" 'fields_list' '' '' '' "${EXPECTED_DEFAULT_WIDTH}" "${EXPECTED_DEFAULT_HEIGHT}" 'TEST_MODE')
 
   assert_equals_helper 'Expected form with default values' "$LINENO" "$expected_cmd" "$output"
 }
@@ -357,7 +356,6 @@ function test_create_form_screen_all_options()
 {
   local box_title='Simple form'
   local message_box='This is a simple form'
-  local back_title='Back title form'
   local ok_label='Next'
   local cancel_label='Previous'
   local extra_label='Cancel'
@@ -365,7 +363,7 @@ function test_create_form_screen_all_options()
   local expected_cmd
   local output
 
-  expected_cmd=" dialog --backtitle $'${back_title}' --title $'${box_title}'"
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}' --title $'${box_title}'"
   expected_cmd+=' --clear --colors'
   expected_cmd+=" --ok-label $'${ok_label}' --cancel-label $'${cancel_label}'"
   expected_cmd+=" --extra-button --extra-label ${extra_label}"
@@ -375,9 +373,34 @@ function test_create_form_screen_all_options()
   expected_cmd+=" $'IP:' $'2' 1 $'' $'2' $'6' 10 0"
   expected_cmd+=" $'Port:' $'3' 1 $'' $'3' $'6' 10 0"
 
-  output=$(create_form_screen "$box_title" "$message_box" 'fields_list' "$back_title" "$ok_label" "$cancel_label" "$extra_label" 200 344 'TEST_MODE')
+  output=$(create_form_screen "$box_title" "$message_box" 'fields_list' "$ok_label" "$cancel_label" "$extra_label" 200 344 'TEST_MODE')
 
   assert_equals_helper 'Expected form with default values' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_build_dialog_command_preamble()
+{
+  local output
+  local expected
+
+  # No dialog layout
+  DIALOG_LAYOUT=''
+  output=$(build_dialog_command_preamble 'title')
+  expected=" dialog --backtitle \$'kw patch-hub' --title \$'title' --clear --colors"
+  assert_equals_helper 'Wrong command built' "$LINENO" "$expected" "$output"
+
+  # With dialog layout
+  DIALOG_LAYOUT='/path/to/dialog/layout'
+  output=$(build_dialog_command_preamble 'title')
+  expected='DIALOGRC=/path/to/dialog/layout'
+  expected+=" dialog --backtitle \$'kw patch-hub' --title \$'title' --clear --colors"
+  assert_equals_helper 'Wrong command built' "$LINENO" "$expected" "$output"
+
+  # With custom back title
+  DIALOG_LAYOUT=''
+  output=$(build_dialog_command_preamble 'title' 'back title')
+  expected=" dialog --backtitle \$'back title' --title \$'title' --clear --colors"
+  assert_equals_helper 'Wrong command built' "$LINENO" "$expected" "$output"
 }
 
 function test_prettify_string_failures()
