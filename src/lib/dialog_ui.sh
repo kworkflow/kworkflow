@@ -470,6 +470,89 @@ function create_yes_no_prompt()
   run_dialog_command "$cmd" "$flag"
 }
 
+# Create form screen.
+#
+# @box_title: Title of the box
+# @message_box: The message to be displayed
+# @_fields_list: Array of labels
+# @ok_label: Label for the traditional Ok button. By default, it is 'Ok'
+# @cancel_label: Label for the traditional Cancel button. By default, it is 'Cancel'
+# @extra_label: If this option label is set, one extra button is added
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 0 if the 'Ok' button is pressed, 1 if the 'Cancel' button is pressed
+# and 3 if the 'Extra' button is pressed. The menu_return_string will have all
+# the user input.
+function create_form_screen()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local -n _fields_list="$3"
+  local ok_label="$4"
+  local cancel_label="$5"
+  local extra_label="$6"
+  local height="$7"
+  local width="$8"
+  local flag="$9"
+  local auxiliar_label_size=0
+  local start_text_field=0
+  local row=1
+  local choice_description
+  local cmd
+
+  height=${height:-"${DEFAULT_HEIGHT}"}
+  width=${width:-"${DEFAULT_WIDTH}"}
+  cancel_label=${cancel_label:-'Cancel'}
+  ok_label=${ok_label:-'Ok'}
+  flag=${flag:-'SILENT'}
+
+  # Escape all single quotes to avoid breaking arguments
+  ok_label=$(str_escape_single_quotes "$ok_label")
+  cancel_label=$(str_escape_single_quotes "$cancel_label")
+  extra_label=$(str_escape_single_quotes "$extra_label")
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+
+  cmd=$(build_dialog_command_preamble "$box_title")
+  # Override OK and cancel labels
+  cmd+=" --ok-label $'${ok_label}'"
+  cmd+=" --cancel-label $'${cancel_label}'"
+  # Add extra button
+  if [[ -n "$extra_label" ]]; then
+    cmd+=" --extra-button --extra-label ${extra_label}"
+  fi
+  # Add form option
+  cmd+=" --form $'${message_box}'"
+  # Set height and width
+  cmd+=" '${height}' '${width}' '0'"
+
+  # Find out the largest label to know where we need to start the input field
+  for field in "${_fields_list[@]}"; do
+    auxiliar_label_size=$(str_length "$field")
+    if [[ "${auxiliar_label_size}" -gt "${start_text_field}" ]]; then
+      start_text_field="${auxiliar_label_size}"
+    fi
+  done
+
+  # Add two extra spaces to the start point
+  start_text_field=$((start_text_field + 2))
+
+  # Add form fields
+  for label in "${_fields_list[@]}"; do
+    label=$(str_escape_single_quotes "$label")
+    cmd+=" $'${label}:' $'${row}' 1 $'' $'${row}' $'${start_text_field}' 10 0"
+    ((row++))
+  done
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  run_dialog_command "$cmd" "$flag"
+}
+
 # Creates a help message box for a dialog's screen. There must be a file
 # that follows the pattern of `load_module_text`, for reference see `src/lib/kwio.sh`.
 #
@@ -572,89 +655,6 @@ function handle_exit()
       exit 0
       ;;
   esac
-}
-
-# Create form screen.
-#
-# @box_title: Title of the box
-# @message_box: The message to be displayed
-# @_fields_list: Array of labels
-# @ok_label: Label for the traditional Ok button. By default, it is 'Ok'
-# @cancel_label: Label for the traditional Cancel button. By default, it is 'Cancel'
-# @extra_label: If this option label is set, one extra button is added
-# @height: Menu height in lines size
-# @width: Menu width in column size
-# @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
-#
-# Return:
-# Returns 0 if the 'Ok' button is pressed, 1 if the 'Cancel' button is pressed
-# and 3 if the 'Extra' button is pressed. The menu_return_string will have all
-# the user input.
-function create_form_screen()
-{
-  local box_title="$1"
-  local message_box="$2"
-  local -n _fields_list="$3"
-  local ok_label="$4"
-  local cancel_label="$5"
-  local extra_label="$6"
-  local height="$7"
-  local width="$8"
-  local flag="$9"
-  local auxiliar_label_size=0
-  local start_text_field=0
-  local row=1
-  local choice_description
-  local cmd
-
-  height=${height:-"${DEFAULT_HEIGHT}"}
-  width=${width:-"${DEFAULT_WIDTH}"}
-  cancel_label=${cancel_label:-'Cancel'}
-  ok_label=${ok_label:-'Ok'}
-  flag=${flag:-'SILENT'}
-
-  # Escape all single quotes to avoid breaking arguments
-  ok_label=$(str_escape_single_quotes "$ok_label")
-  cancel_label=$(str_escape_single_quotes "$cancel_label")
-  extra_label=$(str_escape_single_quotes "$extra_label")
-  box_title=$(str_escape_single_quotes "$box_title")
-  message_box=$(str_escape_single_quotes "$message_box")
-
-  cmd=$(build_dialog_command_preamble "$box_title")
-  # Override OK and cancel labels
-  cmd+=" --ok-label $'${ok_label}'"
-  cmd+=" --cancel-label $'${cancel_label}'"
-  # Add extra button
-  if [[ -n "$extra_label" ]]; then
-    cmd+=" --extra-button --extra-label ${extra_label}"
-  fi
-  # Add form option
-  cmd+=" --form $'${message_box}'"
-  # Set height and width
-  cmd+=" '${height}' '${width}' '0'"
-
-  # Find out the largest label to know where we need to start the input field
-  for field in "${_fields_list[@]}"; do
-    auxiliar_label_size=$(str_length "$field")
-    if [[ "${auxiliar_label_size}" -gt "${start_text_field}" ]]; then
-      start_text_field="${auxiliar_label_size}"
-    fi
-  done
-
-  # Add two extra spaces to the start point
-  start_text_field=$((start_text_field + 2))
-
-  # Add form fields
-  for label in "${_fields_list[@]}"; do
-    label=$(str_escape_single_quotes "$label")
-    cmd+=" $'${label}:' $'${row}' 1 $'' $'${row}' $'${start_text_field}' 10 0"
-    ((row++))
-  done
-
-  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
-
-  run_dialog_command "$cmd" "$flag"
 }
 
 function prettify_string()
