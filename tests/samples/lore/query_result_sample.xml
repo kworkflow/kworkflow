@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+	xmlns:thr="http://purl.org/syndication/thread/1.0">
+	<title>rt:8.day.ago.. AND NOT s:Re - search results</title>
+	<link rel="alternate" type="text/html" href="http://lore.kernel.org/amd-gfx/?q=rt:8.day.ago..+AND+NOT+s:Re"/>
+	<link rel="self" href="http://lore.kernel.org/amd-gfx/?q=rt:8.day.ago..+AND+NOT+s:Re&amp;x=A"/>
+	<id>urn:uuid:1e2607f0-9e95-992c-5330-cac14ca56190</id>
+	<updated>2023-08-09T22:09:53Z</updated>
+	<entry>
+		<author>
+			<name>David Tadokoro</name>
+			<email>davidbtadokoro@usp.br</email>
+		</author>
+		<title>[PATCH] drm/amdkfd: Add missing tba_hi programming on aldebaran</title>
+		<updated>2023-08-09T21:27:00Z</updated>
+		<link href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"/>
+		<id>urn:uuid:2f9fa3da-2057-86a4-aa20-9ad0239ff7a3</id>
+		<content type="xhtml">
+			<div xmlns="http://www.w3.org/1999/xhtml">
+				<pre style="white-space:pre-wrap">Previously asymptomatic because high 32 bits were zero.
+
+Fixes: 615222cfed20 (&#34;drm/amdkfd: Relocate TBA/TMA to opposite side of VM hole&#34;)
+Signed-off-by: David Tadokoro &lt;davidbtadokoro@usp.br&gt;
+---
+ drivers/gpu/drm/amd/amdkfd/kfd_packet_manager_v9.c | 1 +
+ 1 file <a href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/#related">changed</a>, 1 insertion(+)
+
+					<span class="head">diff --git a/drivers/gpu/drm/amd/amdkfd/kfd_packet_manager_v9.c b/drivers/gpu/drm/amd/amdkfd/kfd_packet_manager_v9.c
+index 8fda16e6fee6..8ce6f5200905 100644
+--- a/drivers/gpu/drm/amd/amdkfd/kfd_packet_manager_v9.c
++++ b/drivers/gpu/drm/amd/amdkfd/kfd_packet_manager_v9.c
+					</span>
+					<span class="hunk">@@ -121,6 +121,7 @@ static int pm_map_process_aldebaran(struct packet_manager *pm,
+					</span> 	packet-&gt;sh_mem_bases = qpd-&gt;sh_mem_bases;
+ 	if (qpd-&gt;tba_addr) {
+ 		packet-&gt;sq_shader_tba_lo = lower_32_bits(qpd-&gt;tba_addr &gt;&gt; 8);
+					<span class="add">+		packet-&gt;sq_shader_tba_hi = upper_32_bits(qpd-&gt;tba_addr &gt;&gt; 8);
+					</span> 		packet-&gt;sq_shader_tma_lo = lower_32_bits(qpd-&gt;tma_addr &gt;&gt; 8);
+ 		packet-&gt;sq_shader_tma_hi = upper_32_bits(qpd-&gt;tma_addr &gt;&gt; 8);
+ 	}
+-- 
+2.25.1
+
+				</pre>
+			</div>
+		</content>
+	</entry>
+	<entry>
+		<author>
+			<name>Rodrigo Siqueira</name>
+			<email>rodrigo.siqueira@amd.com</email>
+		</author>
+		<title type="html">[PATCH] Revert &#34;drm/amd/pm: resolve reboot exception for si oland&#34;</title>
+		<updated>2023-08-09T19:10:26Z</updated>
+		<link href="http://lore.kernel.org/amd-gfx/20230809190956.435068-2-rodrigo.siqueira@amd.com/"/>
+		<id>urn:uuid:66fe77b1-55ad-6670-73ee-54e933cf5f63</id>
+		<thr:in-reply-to ref="urn:uuid:b09294a9-df54-a8b1-cf19-6f58c2febdd3" href="http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/"/>
+		<content type="xhtml">
+			<div xmlns="http://www.w3.org/1999/xhtml">
+				<pre style="white-space:pre-wrap">This reverts commit e490d60a2f76bff636c68ce4fe34c1b6c34bbd86.
+
+This causes hangs on SI when DC is enabled.
+
+Link: <a href="https://gitlab.freedesktop.org/drm/amd/-/issues/2755">https://gitlab.freedesktop.org/drm/amd/-/issues/2755</a>
+Signed-off-by: Rodrigo Siqueira &lt;rodrigo.siqueira@amd.com&gt;
+---
+ drivers/gpu/drm/amd/pm/legacy-dpm/si_dpm.c | 29 ++++++++++++++++++++++
+ 1 file <a href="http://lore.kernel.org/amd-gfx/20230809190956.435068-2-rodrigo.siqueira@amd.com/#related">changed</a>, 29 insertions(+)
+
+					<span class="head">diff --git a/drivers/gpu/drm/amd/pm/legacy-dpm/si_dpm.c b/drivers/gpu/drm/amd/pm/legacy-dpm/si_dpm.c
+index 02e69ccff3ba..d6d9e3b1b2c0 100644
+--- a/drivers/gpu/drm/amd/pm/legacy-dpm/si_dpm.c
++++ b/drivers/gpu/drm/amd/pm/legacy-dpm/si_dpm.c
+					</span>
+					<span class="hunk">@@ -6925,6 +6925,23 @@ static int si_dpm_enable(struct amdgpu_device *adev)
+					</span> 	return 0;
+ }
+ 
+					<span class="add">+static int si_set_temperature_range(struct amdgpu_device *adev)
++{
++	int ret;
++
++	ret = si_thermal_enable_alert(adev, false);
++	if (ret)
++		return ret;
++	ret = si_thermal_set_temperature_range(adev, R600_TEMP_RANGE_MIN, R600_TEMP_RANGE_MAX);
++	if (ret)
++		return ret;
++	ret = si_thermal_enable_alert(adev, true);
++	if (ret)
++		return ret;
++
++	return ret;
++}
++
+					</span> static void si_dpm_disable(struct amdgpu_device *adev)
+ {
+ 	struct rv7xx_power_info *pi = rv770_get_pi(adev);
+					<span class="hunk">@@ -7609,6 +7626,18 @@ static int si_dpm_process_interrupt(struct amdgpu_device *adev,
+					</span> 
+ static int si_dpm_late_init(void *handle)
+ {
+					<span class="add">+	int ret;
++	struct amdgpu_device *adev = (struct amdgpu_device *)handle;
++
++	if (!adev-&gt;pm.dpm_enabled)
++		return 0;
++
++	ret = si_set_temperature_range(adev);
++	if (ret)
++		return ret;
++#if 0 //TODO ?
++	si_dpm_powergate_uvd(adev, true);
++#endif
+					</span> 	return 0;
+ }
+ 
+-- 
+2.41.0
+
+				</pre>
+			</div>
+		</content>
+	</entry>
+	<entry>
+		<author>
+			<name>Rodrigo Siqueira</name>
+			<email>rodrigo.siqueira@amd.com</email>
+		</author>
+		<title type="html">[PATCH] drm/amdgpu: don&#39;t allow userspace to create a doorbell BO</title>
+		<updated>2023-08-09T19:10:22Z</updated>
+		<link href="http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/"/>
+		<id>urn:uuid:b09294a9-df54-a8b1-cf19-6f58c2febdd3</id>
+		<content type="xhtml">
+			<div xmlns="http://www.w3.org/1999/xhtml">
+				<pre style="white-space:pre-wrap">We need the domains in amdgpu_drm.h for the kernel driver to manage
+the pool, but we don&#39;t want userspace using it until the code
+is ready.  So reject for now.
+
+Signed-off-by: Rodrigo Siqueira &lt;rodrigo.siqueira@amd.com&gt;
+---
+ drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c | 4 ++++
+ 1 file <a href="http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/#related">changed</a>, 4 insertions(+)
+
+					<span class="head">diff --git a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+index 693b1fd1191a..ca4d2d430e28 100644
+--- a/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
++++ b/drivers/gpu/drm/amd/amdgpu/amdgpu_gem.c
+					</span>
+					<span class="hunk">@@ -289,6 +289,10 @@ int amdgpu_gem_create_ioctl(struct drm_device *dev, void *data,
+					</span> 	uint32_t handle, initial_domain;
+ 	int r;
+ 
+					<span class="add">+	/* reject DOORBELLs until userspace code to use it is available */
++	if (args-&gt;in.domains &#38; AMDGPU_GEM_DOMAIN_DOORBELL)
++		return -EINVAL;
++
+					</span> 	/* reject invalid gem flags */
+ 	if (flags &#38; ~(AMDGPU_GEM_CREATE_CPU_ACCESS_REQUIRED |
+ 		      AMDGPU_GEM_CREATE_NO_CPU_ACCESS |
+-- 
+2.41.0
+
+				</pre>
+			</div>
+		</content>
+	</entry>
+</feed>

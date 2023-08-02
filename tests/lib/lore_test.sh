@@ -16,6 +16,7 @@ function oneTimeSetUp()
 
   cp "${SAMPLES_DIR}/web/reduced_lore_main_page.html" "${CACHE_LORE_DIR}/lore_main_page.html"
   cp "${SAMPLES_DIR}/lore_sample.config" "${SHUNIT_TMPDIR}/lore.config"
+  cp "${SAMPLES_DIR}/lore/query_result_sample.xml" "${SHUNIT_TMPDIR}/query_result_sample.xml"
 }
 
 function setUp()
@@ -438,6 +439,157 @@ function test_save_new_lore_config()
   expected+='download_path=/avenida/paulista'
   output=$(< "$lore_config_path")
   assert_equals_helper 'Wrong lore.config contents' "$LINENO" "$expected" "$output"
+}
+
+function test_is_in_lore_timestamp_format_with_invalid_format()
+{
+  local timestamp
+
+  timestamp='Aug 23, 2021 at 11:24pm'
+  is_in_lore_timestamp_format "$timestamp"
+  assert_equals_helper 'Invalid format should return 1' "$LINENO" 1 "$?"
+
+  timestamp='29-12-2023T12:12:12Z'
+  is_in_lore_timestamp_format "$timestamp"
+  assert_equals_helper 'Invalid format should return 1' "$LINENO" 1 "$?"
+
+  timestamp='2023-01-01 23:34:32'
+  is_in_lore_timestamp_format "$timestamp"
+  assert_equals_helper 'Invalid format should return 1' "$LINENO" 1 "$?"
+
+  timestamp='2023-09-17T11:01:07Z '
+  is_in_lore_timestamp_format "$timestamp"
+  assert_equals_helper 'Invalid format should return 1' "$LINENO" 1 "$?"
+
+  timestamp='2023-11-31T01:22:32Z'
+  is_in_lore_timestamp_format "$timestamp"
+  assert_equals_helper 'Invalid date should return 1' "$LINENO" 1 "$?"
+}
+
+function test_is_in_lore_timestamp_format_with_valid_format()
+{
+  local timestamp
+
+  timestamp='2023-12-31T12:12:12Z'
+  is_in_lore_timestamp_format "$timestamp"
+  assert_equals_helper 'Valid format and date should return 0' "$LINENO" 0 "$?"
+}
+
+function test_compose_lore_query_url_with_verification_invalid_cases()
+{
+  local target_mailing_list
+  local lower_end_in_days_ago
+  local upper_end_in_timestamp
+  local output
+  local expected
+
+  target_mailing_list='amd-gfx'
+  lower_end_in_days_ago=''
+  upper_end_in_timestamp=''
+  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
+  assert_equals_helper 'Empty `lower_end_in_days_ago` should return 22' "$LINENO" 22 "$?"
+
+  target_mailing_list=''
+  lower_end_in_days_ago='8'
+  upper_end_in_timestamp=''
+  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
+  assert_equals_helper 'Empty `target_mailing_list` should return 22' "$LINENO" 22 "$?"
+
+  target_mailing_list='amd-gfx'
+  lower_end_in_days_ago='8332o14'
+  upper_end_in_timestamp='2023-01-01T00:00:00Z'
+  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
+  assert_equals_helper 'Invalid `lower_end_in_days_ago` (not an integer) value should return 22' "$LINENO" 22 "$?"
+
+  target_mailing_list='amd-gfx'
+  lower_end_in_days_ago='8'
+  upper_end_in_timestamp='2023-13-01T00:00:00Z'
+  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
+  assert_equals_helper 'Invalid `upper_end_in_timestamp` (invalid date) value should return 22' "$LINENO" 22 "$?"
+
+  target_mailing_list='amd-gfx'
+  lower_end_in_days_ago='8'
+  upper_end_in_timestamp='2023/01/01T00:00:00Z'
+  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
+  assert_equals_helper 'Invalid `upper_end_in_timestamp` (wrong timestamp format) value should return 22' "$LINENO" 22 "$?"
+}
+
+function test_compose_lore_query_url_with_verification_valid_cases()
+{
+  local target_mailing_list
+  local lower_end_in_days_ago
+  local upper_end_in_timestamp
+  local output
+  local expected
+
+  target_mailing_list='amd-gfx'
+  lower_end_in_days_ago='8'
+  upper_end_in_timestamp=''
+  expected='https://lore.kernel.org/amd-gfx/?q=rt:8.day.ago..+AND+NOT+s:Re&x=A'
+  output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp")
+  assert_equals_helper 'Empty `upper_end_in_timestamp` should return 0' "$LINENO" 0 "$?"
+  assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"
+
+  target_mailing_list='amd-gfx'
+  lower_end_in_days_ago='8'
+  upper_end_in_timestamp='2023-01-01T00:00:00Z'
+  expected='https://lore.kernel.org/amd-gfx/?q=rt:8.day.ago..2023-01-01T00:00:00Z+AND+NOT+s:Re&x=A'
+  output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp")
+  assert_equals_helper 'Valid arguments should return 0' "$LINENO" 0 "$?"
+  assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"
+}
+
+function test_pre_process_xml_result()
+{
+  local output
+  local expected
+
+  output=$(pre_process_xml_result "${SHUNIT_TMPDIR}/query_result_sample.xml")
+  expected='David Tadokoro'$'\n'
+  expected+='davidbtadokoro@usp.br'$'\n'
+  expected+='[PATCH] drm/amdkfd: Add missing tba_hi programming on aldebaran'$'\n'
+  expected+=' href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"'$'\n'
+  expected+='Rodrigo Siqueira'$'\n'
+  expected+='rodrigo.siqueira@amd.com'$'\n'
+  expected+='[PATCH] Revert "drm/amd/pm: resolve reboot exception for si oland"'$'\n'
+  expected+=' href="http://lore.kernel.org/amd-gfx/20230809190956.435068-2-rodrigo.siqueira@amd.com/"'$'\n'
+  expected+='Rodrigo Siqueira'$'\n'
+  expected+='rodrigo.siqueira@amd.com'$'\n'
+  expected+='[PATCH] drm/amdgpu: don'"'"'t allow userspace to create a doorbell BO'$'\n'
+  expected+=' href="http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/"'
+  assert_equals_helper 'Wrong pre-processed result' "$LINENO" "$expected" "$output"
+}
+
+function test_process_patchsets()
+{
+  local pre_processed_patches
+  local expected
+
+  pre_processed_patches='David Tadokoro'$'\n'
+  pre_processed_patches+='davidbtadokoro@usp.br'$'\n'
+  pre_processed_patches+='[PATCH] drm/amdkfd: Add missing tba_hi programming on aldebaran'$'\n'
+  pre_processed_patches+=' href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"'$'\n'
+  pre_processed_patches+='Rodrigo Siqueira'$'\n'
+  pre_processed_patches+='rodrigo.siqueira@amd.com'$'\n'
+  pre_processed_patches+='[PATCH] Revert "drm/amd/pm: resolve reboot exception for si oland"'$'\n'
+  pre_processed_patches+=' href="http://lore.kernel.org/amd-gfx/20230809190956.435068-2-rodrigo.siqueira@amd.com/"'$'\n'
+  pre_processed_patches+='Rodrigo Siqueira'$'\n'
+  pre_processed_patches+='rodrigo.siqueira@amd.com'$'\n'
+  pre_processed_patches+='[PATCH] drm/amdgpu: don'"'"'t allow userspace to create a doorbell BO'$'\n'
+  pre_processed_patches+=' href="http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/"'
+
+  list_of_mailinglist_patches=()
+  process_patchsets "$pre_processed_patches"
+
+  assert_equals_helper 'There should be only 2 patchsets in the array' "$LINENO" 2 "${#list_of_mailinglist_patches[@]}"
+
+  expected='David TadokoroÆdavidbtadokoro@usp.brÆ1Æ1Ædrm/amdkfd: Add missing tba_hi programming on aldebaranÆ'
+  expected+='http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/'
+  assert_equals_helper 'Wrong patchset at index 0' "$LINENO" "$expected" "${list_of_mailinglist_patches[0]}"
+
+  expected='Rodrigo SiqueiraÆrodrigo.siqueira@amd.comÆ1Æ1Ædrm/amdgpu: don'"'"'t allow userspace to create a doorbell BOÆ'
+  expected+='http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/'
+  assert_equals_helper 'Wrong patchset at index 1' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
 }
 
 invoke_shunit
