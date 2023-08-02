@@ -6,6 +6,26 @@ include './tests/utils.sh'
 oneTimeSetUp()
 {
   export KW_CACHE_DIR='fake_cache'
+
+  cp --recursive "${SAMPLES_DIR}/web/." "$SHUNIT_TMPDIR"
+}
+
+function setUp()
+{
+  export ORIGINAL_PATH="$PWD"
+
+  cd "${SHUNIT_TMPDIR}" || {
+    fail "($LINENO): setUp(): It was not possible to move into ${SHUNIT_TMPDIR}"
+    return
+  }
+}
+
+function tearDown()
+{
+  cd "${ORIGINAL_PATH}" || {
+    fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
+    return
+  }
 }
 
 function test_download()
@@ -48,6 +68,50 @@ function test_replace_http_by_https()
   output=$(replace_http_by_https 'lore.kernel.org/')
   assert_equals_helper 'No http prefix' "($LINENO)" "$?" 1
   assert_equals_helper 'Expected https' "($LINENO)" "$output" "$expected"
+}
+
+function test_is_html_file_with_non_html_files()
+{
+  local file_path
+
+  file_path="${SHUNIT_TMPDIR}/inexistent.path"
+  is_html_file "$file_path"
+  assert_equals_helper 'Invalid file path should return 2' "$LINENO" 2 "$?"
+
+  file_path="${SHUNIT_TMPDIR}/textfile.txt"
+  touch "$file_path"
+  printf 'Hey, I am just a\nsimple\nplain text\nor, if you prefer,\na .txt' > "$file_path"
+  is_html_file "$file_path"
+  assert_equals_helper 'Non HTML file should return 1' "$LINENO" 1 "$?"
+}
+
+function test_is_html_file_with_html_files()
+{
+  local file_path
+
+  file_path="${SHUNIT_TMPDIR}/sample1.html"
+  is_html_file "$file_path"
+  assert_equals_helper 'Valid HTML file should return 0' "$LINENO" 0 "$?"
+
+  file_path="${SHUNIT_TMPDIR}/sample2.html"
+  is_html_file "$file_path"
+  assert_equals_helper 'Valid HTML file should return 0' "$LINENO" 0 "$?"
+
+  file_path="${SHUNIT_TMPDIR}/sample3.html"
+  is_html_file "$file_path"
+  assert_equals_helper 'Valid HTML file should return 0' "$LINENO" 0 "$?"
+
+  file_path="${SHUNIT_TMPDIR}/sample4.html"
+  is_html_file "$file_path"
+  assert_equals_helper 'Valid HTML file should return 0' "$LINENO" 0 "$?"
+
+  file_path="${SHUNIT_TMPDIR}/sample5.html"
+  is_html_file "$file_path"
+  assert_equals_helper 'Valid HTML file should return 0' "$LINENO" 0 "$?"
+
+  file_path="${SHUNIT_TMPDIR}/sample6.html"
+  is_html_file "$file_path"
+  assert_equals_helper 'Valid HTML file should return 0' "$LINENO" 0 "$?"
 }
 
 invoke_shunit

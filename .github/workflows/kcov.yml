@@ -20,7 +20,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt install -y kcov shunit2 bc sqlite3 bsdmainutils
+          sudo apt install -y kcov shunit2 bc sqlite3 bsdmainutils libxml-xpath-perl
 
       - name: Prepare for tests
         run: |

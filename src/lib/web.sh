@@ -49,3 +49,30 @@ function replace_http_by_https()
 
   return "$ret"
 }
+
+# This function is a predicate to determine if a file is an HTML file. The function
+# tries to do this efficiently by first checking only the first line of the file. In
+# case further checking is needed, we look for other tokens in the whole file to
+# determine if it is an HTML.
+#
+# @file_path: Path to the file to be checked.
+#
+# Return:
+# Returns 0 if the function decided that the file is an HTML file, 1 if the function
+# decided it isn't, and 2 (ENOENT) if `@file_path` doesn't correspond to a file.
+function is_html_file()
+{
+  local file_path="$1"
+  local first_line_of_file
+
+  [[ ! -f "$file_path" ]] && return 2 # ENOENT
+
+  first_line_of_file=$(head --lines 1 "$file_path" | tr '[:upper:]' '[:lower:]')
+  if [[ "$first_line_of_file" =~ ^(<html|<\!doctype html>) ]]; then
+    return 0
+  fi
+
+  grep --silent '\(<head>\|<body>\)' "$file_path"
+  [[ "$?" == 0 ]] && return 0
+  return 1
+}

@@ -7,7 +7,7 @@ include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/web.sh"
 
 # Lore base URL
-declare -gr LORE_URL='https://lore.kernel.org/'
+declare -gr LORE_URL='https://lore.kernel.org'
 
 # Lore cache directory
 declare -g CACHE_LORE_DIR="${KW_CACHE_DIR}/lore"
@@ -33,6 +33,17 @@ declare -gA available_lore_mailing_lists
 # TODO: Find a better way to deal with this
 # Special character used for separate data.
 declare -gr SEPARATOR_CHAR='Æ'
+
+# TODO: Remove hardcode and add setting for this
+# Number of patchsets needed to fetch when querying a lore mailing list
+declare -gr NUMBER_OF_PATCHSETS_PER_FETCH=30
+
+# TODO: Remove hardcode and add setting for this
+# Size of timeframe in days considered for each request
+declare -gr TIMEFRAME_IN_DAYS=8
+
+# Number of patchsets processed in current lore fetch
+declare -g PATCHSETS_PROCESSED=0
 
 # This is a global array that kw uses to store the list of new patches from a
 # target mailing list. After kw parses the data from lore, we will have a list
@@ -224,6 +235,31 @@ function extract_metadata_from_patch_title()
   printf '%s%s%s%s' "$patch_version" "$total_patches" "$patch_title" "$url"
 }
 
+# This function checks if a timestamp is in the format used in lore.kernel.org.
+# The format is `YYYY-mm-ddTHH:MM:SSZ` and an example is `2023-04-17T14:30:59Z`.
+#
+# @timestamp: Timestamp to be checked
+#
+# Return:
+# Returns 0 if `@timestamp` is in the lore timestamp format and 1, otherwise.
+function is_in_lore_timestamp_format()
+{
+  local timestamp="$1"
+
+  # Check if the timestamp is in the exact format
+  if [[ ! "$timestamp" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
+    return 1
+  fi
+
+  # Check if it is a valid date
+  date '+%Y-%m-%dT%H:%M:%SZ' --date "$timestamp" > /dev/null 2>&1
+  if [[ "$?" == 0 ]]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 # This function was tailored to run in a subshell because we want to run this
 # sort of data processing in parallel to avoid blocking users for a long time.
 #
@@ -276,72 +312,148 @@ function reset_list_of_mailinglist_patches()
   list_of_mailinglist_patches=()
 }
 
-# This is the core function responsible for parsing the XML file containing the
-# new patches to be converted to the internal format used by kw. Basically, we
-# want to convert the XML file to this format:
+# This function composes a query URL to a public mailing list archived
+# on lore.kernel.org and verifies if the link is valid. A request to the
+# URL composed by this function returns an XML file with only patches from
+# a given timeframe ordered by their 'updated' attribute, if there are
+# patches that match the conditions. In case there are no matches to the
+# query, a HTML file is returned.
 #
-#  name, email, patch version, total patches, patch title, message-id
+# @target_mailing_list: String with valid public mailing list name
+# @from_n_days: Integer `n` of days in a `from n days ago` filter
+# @until_timestamp: Timestamp in a YYYY-MM-DDTHH:MM:SSZ format that
+#   `until YYYY-MM-DDTHH:MM:SSZ` in timeframe
 #
-# Notice that this function only cares about new patches; for this reason, we
-# only register the first patch as part of the list. Finally, it is worth
-# highlighting the parse steps used in this function:
-#
-#  1. Use xpath to extract: name, email, title, and message-id.
-#  2. The xpath output will keep the HTML attribute href for the message-id. By
-#     using this approach, we can know the end of the patch data.
-#  3. When we find the end of the data, we compress everything in a single line
-#     separated by SEPARATOR_CHAR and add it to the array list.
-#
-# @target_mailing_list A string name that matches the mailing list name
-#   registered to lore
-#
-# TODO:
-# - Can we make it easier to read?
-# - Can we simplify it?
-# - Can we make this function more reliable?
-# - Can we consider this function as our Model?
-function processing_new_patches()
+# Return:
+# Returns 22 in case the URL produced is invalid, or `@target_mailing_list`
+# or `@from_n_days` are empty. In case the URL produced is valid,
+# the function returns 0 and outputs the query URL.
+function compose_lore_query_url_with_verification()
 {
   local target_mailing_list="$1"
-  local raw_list_path
-  local pre_processed
+  local from_n_days="$2"
+  local until_timestamp="$3"
+  local query_filter
+  local query_url
+
+  # Verifying arguments that must be non-empty
+  if [[ -z "$target_mailing_list" || -z "$from_n_days" ]]; then
+    return 22 # EINVAL
+  fi
+
+  # Verifying if lower end is valid, i.e., is an integer
+  if [[ ! "$from_n_days" =~ ^[0-9]+$ ]]; then
+    return 22 # EINVAL
+  fi
+
+  # Verifying if upper end is valid, i.e., is a real date in the correct format
+  if [[ -n "$until_timestamp" ]]; then
+    is_in_lore_timestamp_format "$until_timestamp"
+    if [[ "$?" != 0 ]]; then
+      return 22 # EINVAL
+    fi
+  fi
+
+  # TODO: Add verification for `@target_mailing_list`.
+
+  # TODO: We need to use the query prefix 's:Re:' to filter out replies and match
+  # only real patches. Are we filtering possible patches? If no, can we filter more
+  # messages to obtain a lighter response file?
+  # TODO: We are using the 'rt:' prefix (a list of supported prefixes can be seen here
+  # https://lore.kernel.org/git/_/text/help/) because the response of the query orders
+  # patches by the 'recieved time', no matter if we use 'rt:' or 'd:', the date-time (
+  # 'Date:' field of the email messages). 'recieved time' seems to be reference the
+  # timestamp when the message arrived at the lore.kernel.org servers, although its
+  # description is really confusing (see the reference link). We need to check if there
+  # aren't any queries that are more correct and, maybe, more efficient.
+  query_filter="?q=rt:${from_n_days}.day.ago..${until_timestamp}+AND+NOT+s:Re&x=A"
+  query_url="${LORE_URL}/${target_mailing_list}/${query_filter}"
+  printf '%s' "$query_url"
+}
+
+# This function pre-processes an XML file containing a list of patches, extracting
+# just the metadata needed to process an XML element representing a patch. The `xpath`
+# command is used to capture the desired fields for each patch. A simplified example
+# of an XML element representing a patch is:
+#   <entry>
+#     <author>
+#       <name>David Tadokoro</name>
+#       <email>davidbtadokoro@usp.br</email>
+#     </author>
+#     <title>[PATCH] drm/amdkfd: Fix memory allocation</title>
+#     <updated>2023-08-09T21:27:00Z</updated>
+#     <link href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"/>
+#   </entry>
+#
+# The pre-processed version of this example element would be:
+#   David Tadokoro
+#   davidbtadokoro@usp.br
+#   [PATCH] drm/amdkfd: Fix memory allocation
+#    href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"
+#
+# @xml_file_path: Path to XML file
+#
+# Return:
+# The status code is the same as the `xpath` command and the pre-processed XML file
+# is outputted to the standard output
+function pre_process_xml_result()
+{
+  local xml_file_path="$1"
+  local xpath_query
+  local raw_xml
   local -r NAME_EXP='//entry/author/name/text()'
   local -r EMAIL_EXP='//entry/author/email/text()'
   local -r TITLE_EXP='//entry/title/text()'
   local -r LINK_EXP='//entry/link/@href'
-  local xpath_query
-  local count=0
-  local index=0
-  local title
-  local url_filter='?q=d:2.day.ago..+AND+NOT+s:Re&x=A'
-  local default_url="${LORE_URL}${target_mailing_list}/${url_filter}"
-  local shared_dir_for_parallelism
-  local list_patches_file_name="list-patches-${target_mailing_list}.xml"
 
-  download "$default_url" "$list_patches_file_name" "$CACHE_LORE_DIR" "$flag" || return "$?"
-
-  raw_list_path="${CACHE_LORE_DIR}/${list_patches_file_name}"
-
+  raw_xml=$(< "$xml_file_path")
   xpath_query="${NAME_EXP}|${EMAIL_EXP}|${TITLE_EXP}|${LINK_EXP}"
+  printf '%s' "$raw_xml" | xpath -q -e "$xpath_query"
+}
 
-  pre_processed=$(< "$raw_list_path")
-  pre_processed=$(printf '%s' "$pre_processed" | xpath -q -e "$xpath_query")
+# This function converts a list of patches into a list of patchsets stored
+# in the `list_of_mailinglist_patches` array. A patchset differs from a
+# single patch, because the first includes all patches in a series of patches
+# which can have different version. For each multipart patchset, the first patch
+# is either a cover letter or a actual patch and is the representative of the
+# patchset. This patch metadata is the one stored in `list_of_mailinglist_patches`.
+#
+# @pre_processed_patches: String containing a list of pre-processed patches
+# TODO:
+# - The function `is_introduction_patch` basically filters which patch is a
+#   representative of the patchset by the message-ID. Some valid representatives
+#   are wrongly filtered out, because of what the function considers a message-ID
+#   from a representative.
+# - The function `extract_metadata_from_patch_title` called by `thread_for_process_patch`
+#   counts the cover letter as a patch which results in patchsets with cover letters
+#   having one more patch than in reality.
+function process_patchsets()
+{
+  local pre_processed_patches="$1"
+  local shared_dir_for_parallelism
+  local processed_patchset
+  local starting_index
+  local patch_title
+  local patch_url
+  local count
+  local line
 
-  # Converting to:
-  #  Author, email, version, total patches, patch title, link
-  shared_dir_for_parallelism=$(mktemp -d)
+  shared_dir_for_parallelism=$(mktemp --directory)
+  starting_index="$PATCHSETS_PROCESSED"
+  count=0
+
   while IFS= read -r line; do
-    if [[ "$line" =~ href ]]; then
-      message_id_link=$(str_get_value_under_double_quotes "$line")
+    if [[ "$line" =~ ^[[:space:]]href= && "$PATCHSETS_PROCESSED" -lt "$NUMBER_OF_PATCHSETS_PER_FETCH" ]]; then
+      patch_url=$(str_get_value_under_double_quotes "$line")
 
-      if is_introduction_patch "$message_id_link"; then
+      if is_introduction_patch "$patch_url"; then
         # Process each patch in parallel
-        thread_for_process_patch "$index" "$shared_dir_for_parallelism" \
-          "$processed_line" "$message_id_link" "$title" &
-        ((index++))
+        thread_for_process_patch "$PATCHSETS_PROCESSED" "$shared_dir_for_parallelism" \
+          "$processed_patchset" "$patch_url" "$patch_title" &
+        ((PATCHSETS_PROCESSED++))
       fi
 
-      processed_line=''
+      processed_patchset=''
       count=0
       continue
     fi
@@ -352,26 +464,98 @@ function processing_new_patches()
     # save the title in a separated variable for later processing.
     case "$count" in
       0) # NAME
-        processed_line="$(process_name "$line")${SEPARATOR_CHAR}"
+        processed_patchset="$(process_name "$line")${SEPARATOR_CHAR}"
         ;;
       1) # EMAIL
-        processed_line+="${line}${SEPARATOR_CHAR}"
+        processed_patchset+="${line}${SEPARATOR_CHAR}"
         ;;
       2) # TITLE
-        title="$line"
+        patch_title="$line"
         ;;
     esac
 
     ((count++))
 
-  done <<< "$pre_processed"
+  done <<< "$pre_processed_patches"
   wait
 
-  # From the last interaction, we have one extra index that does not exist
-  ((index--))
-
-  for i in $(seq 0 "$index"); do
+  for i in $(seq "$starting_index" "$((PATCHSETS_PROCESSED - 1))"); do
     list_of_mailinglist_patches["$i"]=$(< "${shared_dir_for_parallelism}/${i}")
+  done
+}
+
+# This function is primarily a mediator to manage the complex action of fetching
+# the lastest patchsets from a public mailing list archived on lore.kernel.org.
+# The fetching of patchsets has 3 steps:
+#  1. Build a lore query URL to match only messages that are patches from a given
+#     timeframe.
+#  2. Make a request to the URL built in step to obtain a list of patches from
+#     the respective timeframe ordered by the recieved time of the patch on the
+#     lore.kernel.org servers.
+#  3. Process the list of patches to a list of patchsets stored in the
+#     `list_of_mailinglist_patches` array.
+#
+# In case the number of patchsets in `list_of_mailinglist_patches` is less than
+# `NUMBER_OF_PATCHSETS_PER_FETCH`, get a adjacent timeframe chunk and repeat steps
+# 1 to 3.
+#
+# Each entry in `list_of_mailinglist_patches` has the following patchset metadata
+# separated by `SEPARATOR_CHAR`:
+#   author name, author email, patchset version, number of patches, patch title, message-ID
+#
+# @target_mailing_list: A string name that matches the mailing list name
+#   registered to lore
+# @flag: Flag to control function output
+#
+# Return:
+# If either step 1 or 2 fails, returns the error code from these steps, and 0, otherwise.
+function fetch_latest_patchsets_from()
+{
+  local target_mailing_list="$1"
+  local flag="$2"
+  local pre_processed_patches
+  local last_patch_timestamp
+  local xml_result_file_name
+  local lore_query_url
+  local raw_xml
+  local days
+  local ret
+
+  # Assigning starting values.
+  days="$TIMEFRAME_IN_DAYS"
+  last_patch_timestamp=''
+  xml_result_file_name="${target_mailing_list}-patches.xml"
+  PATCHSETS_PROCESSED=0
+  flag=${flag:-'SILENT'}
+
+  while [[ "$PATCHSETS_PROCESSED" -lt "$NUMBER_OF_PATCHSETS_PER_FETCH" ]]; do
+    # Building URL for querying lore servers for a xml file with patches.
+    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$days" "$last_patch_timestamp")
+    ret="$?"
+    [[ "$ret" != 0 ]] && return "$ret"
+
+    # Request xml file with patches.
+    download "$lore_query_url" "$xml_result_file_name" "$CACHE_LORE_DIR" "$flag"
+    ret="$?"
+    [[ "$ret" != 0 ]] && return "$ret"
+
+    # If the resulting file doesn't contain any patches, it will be an html file.
+    # In this case, we expand the timeframe and make another fetch.
+    if is_html_file "${CACHE_LORE_DIR}/${xml_result_file_name}"; then
+      days="$((days + TIMEFRAME_IN_DAYS))"
+      continue
+    fi
+
+    # Processing patches into patchsets that will be stored in `list_of_mailinglist_patches`.
+    pre_processed_patches=$(pre_process_xml_result "${CACHE_LORE_DIR}/${xml_result_file_name}")
+    # TODO: Is passing `pre_processed_patches` (huge string) as argument a possible bottleneck?
+    process_patchsets "$pre_processed_patches"
+
+    # Update lower and upper ends of time period to query.
+    days="$((days + TIMEFRAME_IN_DAYS))"
+    raw_xml=$(< "${CACHE_LORE_DIR}/${xml_result_file_name}")
+    last_patch_timestamp=$(printf '%s' "$raw_xml" | xpath -q -e '//entry[last()]/updated/text()')
+    last_patch_timestamp=$(TZ=UTC date --date "${last_patch_timestamp} - 1 seconds" '+%Y-%m-%dT%H:%M:%SZ')
   done
 }
 
@@ -397,10 +581,13 @@ function get_patches_from_mailing_list()
   local total_patches
   local patch_title
   local tmp_data
+  local ret
 
   reset_list_of_mailinglist_patches
 
-  processing_new_patches "$target_mailing_list"
+  fetch_latest_patchsets_from "$target_mailing_list"
+  ret="$?"
+  [[ "$ret" != 0 ]] && return "$ret"
 
   # Format data for printing
   for raw_patchset in "${list_of_mailinglist_patches[@]}"; do
