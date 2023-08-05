@@ -172,40 +172,12 @@ function kw()
         remote_main "$@"
       )
       ;;
-    help | --help)
-      (
-        include "$KW_LIB_DIR/help.sh"
-
-        kworkflow_man
-      )
-      ;;
-    h | -h)
-      (
-        include "$KW_LIB_DIR/help.sh"
-
-        kworkflow_help
-      )
-      ;;
     explore | e)
       (
         include "$KW_LIB_DIR/explore.sh"
 
         explore_main "$@"
         return "$?"
-      )
-      ;;
-    man)
-      (
-        include "$KW_LIB_DIR/help.sh"
-
-        kworkflow_man "$@"
-      )
-      ;;
-    version | --version | -v)
-      (
-        include "$KW_LIB_DIR/help.sh"
-
-        kworkflow_version
       )
       ;;
     pomodoro | p)
@@ -285,7 +257,34 @@ function kw()
         vm_main "$@"
       )
       ;;
+    version | --version | -v)
+      (
+        include "$KW_LIB_DIR/help.sh"
 
+        kworkflow_version
+      )
+      ;;
+    man)
+      (
+        include "$KW_LIB_DIR/help.sh"
+
+        kworkflow_man "$@"
+      )
+      ;;
+    help | --help)
+      (
+        include "$KW_LIB_DIR/help.sh"
+
+        kworkflow_man
+      )
+      ;;
+    h | -h)
+      (
+        include "$KW_LIB_DIR/help.sh"
+
+        kworkflow_help
+      )
+      ;;
     *)
       (
         include "$KW_LIB_DIR/help.sh"
