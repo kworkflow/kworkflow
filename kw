@@ -11,27 +11,27 @@ else
   KW_LIB_DIR="${KW_LIB_DIR:-"${HOME}/.local/lib"}/${KWORKFLOW}"
 fi
 
-KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}"
+KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"${KW_LIB_DIR}/plugins"}"
 
 # Share files
-KW_SHARE_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
-KW_DOC_DIR="$KW_SHARE_DIR/doc"
-KW_MAN_DIR="$KW_SHARE_DIR/man"
-KW_SOUND_DIR="$KW_SHARE_DIR/sound"
-KW_DB_DIR="$KW_SHARE_DIR/database"
+KW_SHARE_DIR="${XDG_DATA_HOME:-"${HOME}/.local/share"}/${KWORKFLOW}"
+KW_DOC_DIR="${KW_SHARE_DIR}/doc"
+KW_MAN_DIR="${KW_SHARE_DIR}/man"
+KW_SOUND_DIR="${KW_SHARE_DIR}/sound"
+KW_DB_DIR="${KW_SHARE_DIR}/database"
 
 # User specific data files (currently this collapses with the share dir,
 # but would not for a system-wide installation)
-KW_DATA_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
+KW_DATA_DIR="${XDG_DATA_HOME:-"${HOME}/.local/share"}/${KWORKFLOW}"
 
 # Configuration files
-KW_ETC_DIR="${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW"
+KW_ETC_DIR="${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}"
 
 # Cache folder
-KW_CACHE_DIR="${XDG_CACHE_HOME:-"$HOME/.cache"}/$KWORKFLOW"
+KW_CACHE_DIR="${XDG_CACHE_HOME:-"${HOME}/.cache"}/${KWORKFLOW}"
 
 # State files
-KW_STATE_DIR="${XDG_STATE_HOME:-"$HOME/.local/state"}/$KWORKFLOW"
+KW_STATE_DIR="${XDG_STATE_HOME:-"${HOME}/.local/state"}/${KWORKFLOW}"
 
 # ENV dir name
 ENV_DIR='envs'
@@ -73,7 +73,7 @@ function kw()
   case "$action" in
     init)
       (
-        include "$KW_LIB_DIR/init.sh"
+        include "${KW_LIB_DIR}/init.sh"
 
         init_main "$@"
         return "$?"
@@ -81,7 +81,7 @@ function kw()
       ;;
     build | b)
       (
-        include "$KW_LIB_DIR/build.sh"
+        include "${KW_LIB_DIR}/build.sh"
 
         build_kernel_main '' "$@"
         local ret="$?"
@@ -91,7 +91,7 @@ function kw()
       ;;
     deploy | d)
       (
-        include "$KW_LIB_DIR/deploy.sh"
+        include "${KW_LIB_DIR}/deploy.sh"
 
         deploy_main '' "$@"
         local ret="$?"
@@ -101,8 +101,8 @@ function kw()
       ;;
     bd)
       (
-        include "$KW_LIB_DIR/deploy.sh"
-        include "$KW_LIB_DIR/build.sh"
+        include "${KW_LIB_DIR}/deploy.sh"
+        include "${KW_LIB_DIR}/build.sh"
 
         build_kernel_main && deploy_main 1 "$@"
         local ret="$?"
@@ -111,7 +111,7 @@ function kw()
       )
       ;;
     diff | df)
-      include "$KW_LIB_DIR/diff.sh"
+      include "${KW_LIB_DIR}/diff.sh"
 
       diff_manager "$@"
       ;;
@@ -132,7 +132,7 @@ function kw()
       ;;
     codestyle | c)
       (
-        include "$KW_LIB_DIR/checkpatch_wrapper.sh"
+        include "${KW_LIB_DIR}/checkpatch_wrapper.sh"
 
         execute_checkpatch "$@"
       )
@@ -153,28 +153,28 @@ function kw()
       ;;
     kernel-config-manager | k)
       (
-        include "$KW_LIB_DIR/kernel_config_manager.sh"
+        include "${KW_LIB_DIR}/kernel_config_manager.sh"
 
         kernel_config_manager_main "$@"
       )
       ;;
     config | g)
       (
-        include "$KW_LIB_DIR/config.sh"
+        include "${KW_LIB_DIR}/config.sh"
 
         config_main "$@"
       )
       ;;
     remote)
       (
-        include "$KW_LIB_DIR/kw_remote.sh"
+        include "${KW_LIB_DIR}/kw_remote.sh"
 
         remote_main "$@"
       )
       ;;
     explore | e)
       (
-        include "$KW_LIB_DIR/explore.sh"
+        include "${KW_LIB_DIR}/explore.sh"
 
         explore_main "$@"
         return "$?"
@@ -182,42 +182,42 @@ function kw()
       ;;
     pomodoro | p)
       (
-        include "$KW_LIB_DIR/pomodoro.sh"
+        include "${KW_LIB_DIR}/pomodoro.sh"
 
         pomodoro_main "$@"
       )
       ;;
     report | r)
       (
-        include "$KW_LIB_DIR/report.sh"
+        include "${KW_LIB_DIR}/report.sh"
 
         report_main "$@"
       )
       ;;
     device)
       (
-        include "$KW_LIB_DIR/device_info.sh"
+        include "${KW_LIB_DIR}/device_info.sh"
 
         device_info "$@"
       )
       ;;
     backup)
       (
-        include "$KW_LIB_DIR/backup.sh"
+        include "${KW_LIB_DIR}/backup.sh"
 
         backup "$@"
       )
       ;;
     debug)
       (
-        include "$KW_LIB_DIR/debug.sh"
+        include "${KW_LIB_DIR}/debug.sh"
 
         debug_main "$@"
       )
       ;;
     mail)
       (
-        include "$KW_LIB_DIR/mail.sh"
+        include "${KW_LIB_DIR}/mail.sh"
 
         mail_main "$@"
       )
@@ -237,7 +237,7 @@ function kw()
       )
       ;;
     clear-cache)
-      include "$KW_LIB_DIR/deploy.sh"
+      include "${KW_LIB_DIR}/deploy.sh"
 
       cleanup
       ;;
@@ -259,35 +259,35 @@ function kw()
       ;;
     version | --version | -v)
       (
-        include "$KW_LIB_DIR/help.sh"
+        include "${KW_LIB_DIR}/help.sh"
 
         kworkflow_version
       )
       ;;
     man)
       (
-        include "$KW_LIB_DIR/help.sh"
+        include "${KW_LIB_DIR}/help.sh"
 
         kworkflow_man "$@"
       )
       ;;
     help | --help)
       (
-        include "$KW_LIB_DIR/help.sh"
+        include "${KW_LIB_DIR}/help.sh"
 
         kworkflow_man
       )
       ;;
     h | -h)
       (
-        include "$KW_LIB_DIR/help.sh"
+        include "${KW_LIB_DIR}/help.sh"
 
         kworkflow_help
       )
       ;;
     *)
       (
-        include "$KW_LIB_DIR/help.sh"
+        include "${KW_LIB_DIR}/help.sh"
 
         complain 'Invalid option'
         kworkflow_help
