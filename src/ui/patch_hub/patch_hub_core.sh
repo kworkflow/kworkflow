@@ -141,20 +141,24 @@ function show_bookmarked_patches()
 # Show all mailing list that the developer is registered
 function registered_mailing_list()
 {
+  local -a registered_mailing_lists
   local message_box
   local selected_list
   local ret
 
+  # Load registered mailing lists from config file into array
+  IFS=',' read -r -a registered_mailing_lists <<< "${lore_config['lists']}"
+
   message_box='Below you can see all the mailing lists that you are registered:'
 
-  create_menu_options 'Mailing lists' "$message_box" 'registered_lists' 1
+  create_menu_options 'Mailing lists' "$message_box" 'registered_mailing_lists' 1
   ret="$?"
 
   selected_list=$((menu_return_string - 1)) # Normalize array index
   case "$ret" in
     0) # OK
       screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
-      screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_lists[$selected_list]}"
+      screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_mailing_lists[$selected_list]}"
       ;;
     1) # Exit
       handle_exit "$ret"
