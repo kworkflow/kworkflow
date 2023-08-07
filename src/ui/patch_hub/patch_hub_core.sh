@@ -19,7 +19,6 @@ include "${KW_LIB_DIR}/ui/patch_hub/settings.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/patchset_details_and_actions.sh"
 
 # These are references to data structures used all around the state-machine.
-declare -ga registered_lists
 declare -ga patches_from_mailing_list
 declare -ga bookmarked_series
 declare -g current_mailing_list
@@ -42,17 +41,12 @@ function patch_hub_main_loop()
   # Load UI variables that define screen size, layout and others.
   ui_setup "${lore_config['dialog_layout']}"
 
-  # Load the registered lists from the file to the data structure
-  IFS=',' read -r -a registered_lists <<< "${lore_config['lists']}"
-
   # "Dashboard" is the default state
   screen_sequence['SHOW_SCREEN']='dashboard'
 
   # In case the user doesn't have any mailing list registered, the first
   # state should be "Register/Unregister Mailing Lists"
-  if [[ "${#registered_lists[@]}" == 0 ]]; then
-    screen_sequence['SHOW_SCREEN']='lore_mailing_lists'
-  fi
+  [[ -z "${lore_config['lists']}" ]] && screen_sequence['SHOW_SCREEN']='lore_mailing_lists'
 
   # Main loop of the state-machine
   while true; do
