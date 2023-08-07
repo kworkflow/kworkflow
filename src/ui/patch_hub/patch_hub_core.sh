@@ -59,8 +59,8 @@ function patch_hub_main_loop()
         show_lore_mailing_lists
         ret="$?"
         ;;
-      'registered_mailing_list')
-        registered_mailing_list
+      'registered_mailing_lists')
+        show_registered_mailing_lists
         ret="$?"
         ;;
       'show_new_patches_in_the_mailing_list')
@@ -108,7 +108,7 @@ function dashboard_entry_menu()
 
   case "$menu_return_string" in
     1) # Registered mailing list
-      screen_sequence['SHOW_SCREEN']='registered_mailing_list'
+      screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
       ;;
     2) # Bookmarked patches
       screen_sequence['SHOW_SCREEN']='bookmarked_patches'
@@ -132,27 +132,30 @@ function show_bookmarked_patches()
   list_patches 'Bookmarked patches' bookmarked_series "${fallback_message}"
 }
 
-# Show all mailing list that the developer is registered
-function registered_mailing_list()
+# Show mailing lists available in lore.kernel.org that the user has registered.
+# A registered mailing list is one that was selected in the 'Register/Unregister
+# Mailing Lists'.
+function show_registered_mailing_lists()
 {
   local -a registered_mailing_lists
   local message_box
-  local selected_list
+  local selected_list_index
   local ret
 
   # Load registered mailing lists from config file into array
   IFS=',' read -r -a registered_mailing_lists <<< "${lore_config['lists']}"
 
-  message_box='Below you can see all the mailing lists that you are registered:'
+  message_box='Below, you can see the lore.kernel.org mailing lists that you have registered.'
+  message_box+='Select a mailing list to see the latest patchsets sent to it.'
 
-  create_menu_options 'Mailing lists' "$message_box" 'registered_mailing_lists' 1
+  create_menu_options 'Registered Mailing Lists' "$message_box" 'registered_mailing_lists' 1
   ret="$?"
 
-  selected_list=$((menu_return_string - 1)) # Normalize array index
+  selected_list_index=$((menu_return_string - 1)) # Normalize array index
   case "$ret" in
     0) # OK
       screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
-      screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_mailing_lists[$selected_list]}"
+      screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_mailing_lists[$selected_list_index]}"
       ;;
     1) # Exit
       handle_exit "$ret"
