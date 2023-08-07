@@ -36,7 +36,7 @@ function test_dashboard_entry_menu_check_valid_options()
   }
 
   dashboard_entry_menu
-  assert_equals_helper 'Expected register screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'registered_mailing_list'
+  assert_equals_helper 'Expected register screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'registered_mailing_lists'
 
   # Mock bookmarked
   # shellcheck disable=SC2317
