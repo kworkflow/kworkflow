@@ -21,7 +21,7 @@ function tearDown()
   }
 }
 
-function test_show_new_patches_in_the_mailing_list_title()
+function test_show_latest_patchsets_from_mailing_list_title()
 {
   declare current_mailing_list=''
 
@@ -43,12 +43,12 @@ function test_show_new_patches_in_the_mailing_list_title()
 
   # Not returning from a (supposed) series detail screen should set "$current_mailing_list" global variable to "$1"
   screen_sequence['RETURNING']=''
-  show_new_patches_in_the_mailing_list 'amd-gfx'
+  show_latest_patchsets_from_mailing_list 'amd-gfx'
   assert_equals_helper 'Wrong "current_mailing_list" value' "$LINENO" 'amd-gfx' "$current_mailing_list"
 
   # Returning from a (supposed) series detail screen should use the old "$current_mailing_list" value
   screen_sequence['RETURNING']=1
-  show_new_patches_in_the_mailing_list 'arbitrary-value'
+  show_latest_patchsets_from_mailing_list 'arbitrary-value'
   assert_equals_helper 'Wrong "current_mailing_list" value' "$LINENO" 'amd-gfx' "$current_mailing_list"
 }
 

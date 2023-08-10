@@ -64,8 +64,8 @@ function patch_hub_main_loop()
         show_registered_mailing_lists
         ret="$?"
         ;;
-      'show_new_patches_in_the_mailing_list')
-        show_new_patches_in_the_mailing_list "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
+      'latest_patchsets_from_mailing_list')
+        show_latest_patchsets_from_mailing_list "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
         ret="$?"
         ;;
       'bookmarked_patches')
@@ -155,7 +155,7 @@ function show_registered_mailing_lists()
   selected_list_index=$((menu_return_string - 1)) # Normalize array index
   case "$ret" in
     0) # OK
-      screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
+      screen_sequence['SHOW_SCREEN']='latest_patchsets_from_mailing_list'
       screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_mailing_lists[$selected_list_index]}"
       ;;
     1) # Exit
@@ -194,8 +194,8 @@ function list_patches()
   case "$ret" in
     0) # OK
       case "${screen_sequence['SHOW_SCREEN']}" in
-        'show_new_patches_in_the_mailing_list')
-          screen_sequence['PREVIOUS_SCREEN']='show_new_patches_in_the_mailing_list'
+        'latest_patchsets_from_mailing_list')
+          screen_sequence['PREVIOUS_SCREEN']='latest_patchsets_from_mailing_list'
           menu_return_string=$((menu_return_string - 1))
           screen_sequence['SHOW_SCREEN_PARAMETER']=${list_of_mailinglist_patches["$menu_return_string"]}
           ;;

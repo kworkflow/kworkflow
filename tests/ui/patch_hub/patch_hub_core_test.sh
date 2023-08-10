@@ -87,7 +87,7 @@ function test_list_patches_with_patches()
     'more_patches_raw_data'
   )
 
-  screen_sequence['SHOW_SCREEN']='show_new_patches_in_the_mailing_list'
+  screen_sequence['SHOW_SCREEN']='latest_patchsets_from_mailing_list'
   list_patches 'Message test' list_of_mailinglist_patches ''
   assert_equals_helper 'Wrong screen set' "$LINENO" 'patchset_details_and_actions' "${screen_sequence['SHOW_SCREEN']}"
   assert_equals_helper 'Wrong screen parameter' "$LINENO" 'more_patches_raw_data' "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
