@@ -1,6 +1,8 @@
 include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
-function show_new_patches_in_the_mailing_list()
+# This function displays a list of the latest patchsets from a target mailing list.
+# These patchsets are ordered by their recieved time in the lore.kernel.org servers.
+function show_latest_patchsets_from_mailing_list()
 {
   local -a new_patches
   local fallback_message
