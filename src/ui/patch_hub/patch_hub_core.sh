@@ -17,6 +17,7 @@ include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/lore_mailing_lists.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/settings.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/patchset_details_and_actions.sh"
+include "${KW_LIB_DIR}/ui/patch_hub/latest_patchsets_from_mailing_list.sh"
 
 # These are references to data structures used all around the state-machine.
 declare -ga patches_from_mailing_list
@@ -164,27 +165,6 @@ function show_registered_mailing_lists()
       screen_sequence['SHOW_SCREEN']='dashboard'
       ;;
   esac
-}
-
-function show_new_patches_in_the_mailing_list()
-{
-  local -a new_patches
-  local fallback_message
-
-  # If returning from a 'patchset_details_and_actions' screen, i.e., we already fetched the
-  # information needed to render this screen.
-  if [[ -n "${screen_sequence['RETURNING']}" ]]; then
-    # Avoiding stale value
-    screen_sequence['RETURNING']=''
-  else
-    current_mailing_list="$1"
-    create_loading_screen_notification "Loading patches from ${current_mailing_list} list"
-    # Query patches from mailing list, this info will be saved at "${list_of_mailinglist_patches[@]}".
-    get_patches_from_mailing_list "$current_mailing_list" patches_from_mailing_list
-  fi
-
-  fallback_message='kw could not retrieve patches from this mailing list'
-  list_patches "Patches from ${current_mailing_list}" patches_from_mailing_list "${fallback_message}"
 }
 
 # This is a generic function used to show a list of patches. If the user select
