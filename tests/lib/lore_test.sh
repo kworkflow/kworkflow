@@ -592,4 +592,68 @@ function test_process_patchsets()
   assert_equals_helper 'Wrong patchset at index 1' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
 }
 
+function test_reset_current_lore_fetch_session()
+{
+  list_of_mailinglist_patches[0]=1
+  list_of_mailinglist_patches[1]=1
+  list_of_mailinglist_patches[2]=1
+  PATCHSETS_PROCESSED=3
+  DAYS=16
+  LAST_TIMESTAMP='2023-01-01T00:00:00Z'
+
+  reset_current_lore_fetch_session
+  assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
+  assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
+  assert_equals_helper 'Should reset lower end of timeframe' "$LINENO" "$TIMEFRAME_SIZE_IN_DAYS" "$DAYS"
+  assert_equals_helper 'Should reset upper end of timeframe' "$LINENO" '' "$LAST_TIMESTAMP"
+}
+
+function test_format_patchsets()
+{
+  local -a formatted_patchsets_list
+
+  list_of_mailinglist_patches[0]='Jay CornwallÆjay.cornwall@amd.comÆ1Æ1Ædrm/amdkfd: Add missing tba_hi programming on aldebaranÆ'
+  list_of_mailinglist_patches[0]+='http://lore.kernel.org/amd-gfx/20230809212615.137674-1-jay.cornwall@amd.com/'
+  list_of_mailinglist_patches[1]='Alex DeucherÆalexander.deucher@amd.comÆ1Æ10Ædrm/amdgpu: don'"'"'t allow userspace to create a doorbell BOÆ'
+  list_of_mailinglist_patches[1]+='http://lore.kernel.org/amd-gfx/20230809190956.435068-1-alexander.deucher@amd.com/'
+  list_of_mailinglist_patches[2]='Juca PiramaÆjuca.pirama@jp.comÆ3Æ1Ædrm/amdgpu: improve everythingÆ'
+  list_of_mailinglist_patches[2]+='http://lore.kernel.org/amd-gfx/15230802663656.432068-1-juca.pirama@jp.com/'
+  formatted_patchsets_list[0]=1
+
+  format_patchsets 'formatted_patchsets_list' 1 2
+  assert_equals_helper 'Wrong number of patchsets formatted' "$LINENO" 3 "${#formatted_patchsets_list[@]}"
+
+  expected='V1  |#10 | drm/amdgpu: don'"'"'t allow userspace to create a doorbell BO'
+  [[ "${formatted_patchsets_list[1]}" =~ $expected ]] # to account for trailing whitespace
+  assert_equals_helper 'Wrong formatted patchset' "$LINENO" 0 "$?"
+
+  expected='V3  |#1  | drm/amdgpu: improve everything'
+  [[ "${formatted_patchsets_list[2]}" =~ $expected ]] # to account for trailing whitespace
+  assert_equals_helper 'Wrong formatted patchset' "$LINENO" 0 "$?"
+}
+
+function test_get_page_starting_index()
+{
+  local page
+  local output
+
+  NUMBER_OF_PATCHSETS_PER_PAGE=42
+  page=5
+
+  output=$(get_page_starting_index "$page")
+  assert_equals_helper 'Wrong starting index outputted' "$LINENO" 168 "$output"
+}
+
+function test_get_page_ending_index()
+{
+  local page
+  local output
+
+  NUMBER_OF_PATCHSETS_PER_PAGE=42
+  page=5
+
+  output=$(get_page_ending_index "$page")
+  assert_equals_helper 'Wrong ending index outputted' "$LINENO" 209 "$output"
+}
+
 invoke_shunit

@@ -20,7 +20,6 @@ include "${KW_LIB_DIR}/ui/patch_hub/patchset_details_and_actions.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/latest_patchsets_from_mailing_list.sh"
 
 # These are references to data structures used all around the state-machine.
-declare -ga patches_from_mailing_list
 declare -ga bookmarked_series
 declare -g current_mailing_list
 
@@ -30,7 +29,6 @@ declare -gA screen_sequence=(
   ['SHOW_SCREEN']=''
   ['SHOW_SCREEN_PARAMETER']=''
   ['PREVIOUS_SCREEN']=''
-  ['RETURNING']=''
 )
 
 # This function is the main loop of the state-machine that represents the feature.
@@ -65,7 +63,7 @@ function patch_hub_main_loop()
         ret="$?"
         ;;
       'latest_patchsets_from_mailing_list')
-        show_latest_patchsets_from_mailing_list "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
+        show_latest_patchsets_from_mailing_list
         ret="$?"
         ;;
       'bookmarked_patches')
@@ -154,7 +152,7 @@ function show_registered_mailing_lists()
   case "$ret" in
     0) # OK
       screen_sequence['SHOW_SCREEN']='latest_patchsets_from_mailing_list'
-      screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_mailing_lists["$menu_return_string"]}"
+      current_mailing_list="${registered_mailing_lists["$menu_return_string"]}"
       ;;
     1) # Exit
       handle_exit "$ret"

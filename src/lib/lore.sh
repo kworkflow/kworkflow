@@ -35,15 +35,23 @@ declare -gA available_lore_mailing_lists
 declare -gr SEPARATOR_CHAR='Æ'
 
 # TODO: Remove hardcode and add setting for this
-# Number of patchsets needed to fetch when querying a lore mailing list
-declare -gr NUMBER_OF_PATCHSETS_PER_FETCH=30
+# Number of patchsets per page when querying a lore mailing list
+declare -g NUMBER_OF_PATCHSETS_PER_PAGE=30
 
 # TODO: Remove hardcode and add setting for this
 # Size of timeframe in days considered for each request
-declare -gr TIMEFRAME_IN_DAYS=8
+declare -g TIMEFRAME_SIZE_IN_DAYS=8
 
-# Number of patchsets processed in current lore fetch
+# Number of patchsets processed current lore fetch session.
+# Also, the size of `list_of_mailinglist_patches`.
 declare -g PATCHSETS_PROCESSED=0
+
+# This is the lower end of the timeframe (from lower end) in days (e.g. 8 `DAYS` ago).
+declare -g DAYS="$TIMEFRAME_SIZE_IN_DAYS"
+
+# This is the upper end of the timeframe (until upper end) in the format YYYY-mm-ddTHH:MM:SSZ
+# (e.g. 2023-01-01T00:00:00Z). An empty value denotes 'until now'.
+declare -g LAST_TIMESTAMP=''
 
 # This is a global array that kw uses to store the list of new patches from a
 # target mailing list. After kw parses the data from lore, we will have a list
@@ -307,9 +315,17 @@ function process_name()
   printf '%s' "${full_name[1]} ${full_name[0]}"
 }
 
-function reset_list_of_mailinglist_patches()
+# This function resets all data structures that represent the current lore
+# fetch session. A lore fetch session is constituted by an array with the
+# latest patchsets of a lore public mailing list ordered, the number of patchsets
+# processed (the size of the array), and the oldest timeframe considered
+# (the last time period queried for patchsets).
+function reset_current_lore_fetch_session()
 {
   list_of_mailinglist_patches=()
+  PATCHSETS_PROCESSED=0
+  DAYS="$TIMEFRAME_SIZE_IN_DAYS"
+  LAST_TIMESTAMP=''
 }
 
 # This function composes a query URL to a public mailing list archived
@@ -443,7 +459,7 @@ function process_patchsets()
   count=0
 
   while IFS= read -r line; do
-    if [[ "$line" =~ ^[[:space:]]href= && "$PATCHSETS_PROCESSED" -lt "$NUMBER_OF_PATCHSETS_PER_FETCH" ]]; then
+    if [[ "$line" =~ ^[[:space:]]href= ]]; then
       patch_url=$(str_get_value_under_double_quotes "$line")
 
       if is_introduction_patch "$patch_url"; then
@@ -496,8 +512,12 @@ function process_patchsets()
 #     `list_of_mailinglist_patches` array.
 #
 # In case the number of patchsets in `list_of_mailinglist_patches` is less than
-# `NUMBER_OF_PATCHSETS_PER_FETCH`, get a adjacent timeframe chunk and repeat steps
-# 1 to 3.
+# `page` times `NUMBER_OF_PATCHSETS_PER_PAGE`, get a adjacent timeframe and repeat
+# steps 1 to 3.
+#
+# This function considers the totality of patchsets ordered in chunks of the same
+# size named pages. The `page` argument indicates until which page of the latest
+# patchsets should the fetch occur.
 #
 # Each entry in `list_of_mailinglist_patches` has the following patchset metadata
 # separated by `SEPARATOR_CHAR`:
@@ -505,6 +525,8 @@ function process_patchsets()
 #
 # @target_mailing_list: A string name that matches the mailing list name
 #   registered to lore
+# @page: Positive integer that represents until what page of latest patchsets the fetch
+#   should occur
 # @flag: Flag to control function output
 #
 # Return:
@@ -512,25 +534,20 @@ function process_patchsets()
 function fetch_latest_patchsets_from()
 {
   local target_mailing_list="$1"
-  local flag="$2"
+  local page="$2"
+  local flag="$3"
   local pre_processed_patches
-  local last_patch_timestamp
   local xml_result_file_name
   local lore_query_url
   local raw_xml
-  local days
   local ret
 
-  # Assigning starting values.
-  days="$TIMEFRAME_IN_DAYS"
-  last_patch_timestamp=''
-  xml_result_file_name="${target_mailing_list}-patches.xml"
-  PATCHSETS_PROCESSED=0
   flag=${flag:-'SILENT'}
+  xml_result_file_name="${target_mailing_list}-patches.xml"
 
-  while [[ "$PATCHSETS_PROCESSED" -lt "$NUMBER_OF_PATCHSETS_PER_FETCH" ]]; do
+  while [[ "$PATCHSETS_PROCESSED" -lt "$((page * NUMBER_OF_PATCHSETS_PER_PAGE))" ]]; do
     # Building URL for querying lore servers for a xml file with patches.
-    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$days" "$last_patch_timestamp")
+    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$DAYS" "$LAST_TIMESTAMP")
     ret="$?"
     [[ "$ret" != 0 ]] && return "$ret"
 
@@ -542,7 +559,7 @@ function fetch_latest_patchsets_from()
     # If the resulting file doesn't contain any patches, it will be an html file.
     # In this case, we expand the timeframe and make another fetch.
     if is_html_file "${CACHE_LORE_DIR}/${xml_result_file_name}"; then
-      days="$((days + TIMEFRAME_IN_DAYS))"
+      DAYS="$((DAYS + TIMEFRAME_SIZE_IN_DAYS))"
       continue
     fi
 
@@ -552,50 +569,62 @@ function fetch_latest_patchsets_from()
     process_patchsets "$pre_processed_patches"
 
     # Update lower and upper ends of time period to query.
-    days="$((days + TIMEFRAME_IN_DAYS))"
+    DAYS="$((DAYS + TIMEFRAME_SIZE_IN_DAYS))"
     raw_xml=$(< "${CACHE_LORE_DIR}/${xml_result_file_name}")
-    last_patch_timestamp=$(printf '%s' "$raw_xml" | xpath -q -e '//entry[last()]/updated/text()')
-    last_patch_timestamp=$(TZ=UTC date --date "${last_patch_timestamp} - 1 seconds" '+%Y-%m-%dT%H:%M:%SZ')
+    LAST_TIMESTAMP=$(printf '%s' "$raw_xml" | xpath -q -e '//entry[last()]/updated/text()')
+    LAST_TIMESTAMP=$(TZ=UTC date --date "${LAST_TIMESTAMP} - 1 seconds" '+%Y-%m-%dT%H:%M:%SZ')
   done
 }
 
-# This function is the bridge between the parsed data and the dialog interface
-# since it invokes the function responsible for handling lore data and
-# converting it to something that dialog can handle.
+# This function formats a range of patchsets metadata from `list_of_mailinglist_patches`
+# into an array reference passed as argument. The format of the metadata follows the
+# pattern:
 #
-# @target_mailing_list A string name that matches the mailing list name
-#   registered to lore
-# @_dialog_array An array reference to be populated inside this function
+#  V <version_of_patchset> | #<number_of_patches> | <patchset_title>
 #
-# TODO:
-# - Is this the equivalent to a controller?
-function get_patches_from_mailing_list()
+# @_formatted_patchsets_list: Array reference to output formatted range of patchsets metadata
+# @starting_index: Starting index of range from `list_of_mailinglist_patches`
+# @ending_index: Ending index of range `list_of_mailinglist_patches`
+function format_patchsets()
 {
-  local target_mailing_list="$1"
-  local -n _dialog_array="$2"
-  declare -A series
-  local raw_string
-  local count=1
-  local index=0
-  local patch_version
-  local total_patches
-  local patch_title
-  local tmp_data
-  local ret
+  local -n _formatted_patchsets_list="$1"
+  local starting_index="$2"
+  local ending_index="$3"
+  declare -A patchset
 
-  reset_list_of_mailinglist_patches
-
-  fetch_latest_patchsets_from "$target_mailing_list"
-  ret="$?"
-  [[ "$ret" != 0 ]] && return "$ret"
-
-  # Format data for printing
-  for raw_patchset in "${list_of_mailinglist_patches[@]}"; do
-    parse_raw_patchset_data "${raw_patchset}" 'series'
-    tmp_data=$(printf 'V%-2s |#%-3s| %-100s' "${series['patchset_version']}" "${series['total_patches']}" "${series['patchset_title']}")
-    _dialog_array["$index"]="$tmp_data"
-    ((index++))
+  for i in $(seq "$starting_index" "$ending_index"); do
+    parse_raw_patchset_data "${list_of_mailinglist_patches["$i"]}" 'patchset'
+    _formatted_patchsets_list["$i"]=$(printf 'V%-2s |#%-3s|' "${patchset['patchset_version']}" "${patchset['total_patches']}")
+    _formatted_patchsets_list["$i"]+=$(printf ' %-100s' "${patchset['patchset_title']}")
   done
+}
+
+# This function outputs the starting index in the `list_of_mailinglist_patches` array of a given
+# page, i.e., if the patchsets of the page 2 are from `list_of_mailinglist_patches[30]` until
+# `list_of_mailinglist_patches[59]`, this function outputs '30'.
+#
+# @page: Number of the target page.
+function get_page_starting_index()
+{
+  local page="$1"
+  local starting_index
+
+  starting_index=$(((page - 1) * NUMBER_OF_PATCHSETS_PER_PAGE))
+  printf '%s' "$starting_index"
+}
+
+# This function outputs the ending index in the `list_of_mailinglist_patches` array of a given
+# page, i.e., if the patchsets of the page 2 are from `list_of_mailinglist_patches[30]` until
+# `list_of_mailinglist_patches[59]`, this function outputs '59'.
+#
+# @page: Number of the target page
+function get_page_ending_index()
+{
+  local page="$1"
+  local ending_index_index
+
+  ending_index=$(((page * NUMBER_OF_PATCHSETS_PER_PAGE) - 1))
+  printf '%s' "$ending_index"
 }
 
 # This function downloads a patch series in a .mbx format to a given directory
