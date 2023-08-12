@@ -145,7 +145,7 @@ function show_registered_mailing_lists()
   # Load registered mailing lists from config file into array
   IFS=',' read -r -a registered_mailing_lists <<< "${lore_config['lists']}"
 
-  message_box='Below, you can see the lore.kernel.org mailing lists that you have registered.'
+  message_box='Below, you can see the lore.kernel.org mailing lists that you have registered.'$'\n'
   message_box+='Select a mailing list to see the latest patchsets sent to it.'
 
   create_menu_options 'Registered Mailing Lists' "$message_box" 'registered_mailing_lists' 1
