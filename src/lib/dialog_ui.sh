@@ -362,6 +362,9 @@ function create_file_selection_screen()
 #   `<choice><choice_description>` pairs to be displayd
 # @_check_statuses: An array reference containing all the statuses of the checks
 #   (if they are on/off).
+# @ok_label: Override the default 'Ok' button label option (Default is 'Yes').
+# @cancel_label: Override the default 'Cancel' button label option (Default is 'Cancel')
+# @extra_label: Label for the 'Extra' button
 # @height: Menu height in lines size
 # @width: Menu width in column size
 # @flag How to display a command, the default value is
@@ -377,9 +380,12 @@ function create_choice_list_screen()
   local message_box="$2"
   local -n _choices="$3"
   local -n _check_statuses="$4"
-  local height="$5"
-  local width="$6"
-  local flag="$7"
+  local ok_label="$5"
+  local cancel_label="$6"
+  local extra_button_label="$7"
+  local height="$8"
+  local width="$9"
+  local flag="${10}"
   local choice_description
   local index=0
   local cmd
@@ -387,12 +393,24 @@ function create_choice_list_screen()
   flag=${flag:-'SILENT'}
   height=${height:-$DEFAULT_HEIGHT}
   width=${width:-$DEFAULT_WIDTH}
+  cancel_label=${cancel_label:-'Cancel'}
+  ok_label=${ok_label:-'Ok'}
 
   # Escape all single quotes to avoid breaking arguments
+  ok_label=$(str_escape_single_quotes "$ok_label")
+  cancel_label=$(str_escape_single_quotes "$cancel_label")
+  extra_button_label=$(str_escape_single_quotes "$extra_button_label")
   box_title=$(str_escape_single_quotes "$box_title")
   message_box=$(str_escape_single_quotes "$message_box")
 
   cmd=$(build_dialog_command_preamble "$box_title")
+  # Override OK, cancel, and add extra button if necessary.
+  cmd+=" --ok-label $'${ok_label}'"
+  cmd+=" --cancel-label $'${cancel_label}'"
+  if [[ -n "$extra_button_label" ]]; then
+    cmd+=" --extra-button --extra-label $'${extra_button_label}'"
+  fi
+
   # Add radiolist screen
   cmd+=" --radiolist $'${message_box}'"
   # Set height and width
