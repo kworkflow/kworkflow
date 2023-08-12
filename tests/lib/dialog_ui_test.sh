@@ -272,10 +272,11 @@ function test_create_choice_list_screen_rely_on_some_default_options()
 
   expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Make \'a\' choice!' --clear --colors"
+  expected_cmd+=" --ok-label $'Ok' --cancel-label $'Cancel'"
   expected_cmd+=" --radiolist $'Select \`one\' of the below options.'"
   expected_cmd+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
   expected_cmd+=" $'choice1' $'${choices['choice1']}' 'off' $'choice2' $'${choices['choice2']}' 'on' $'choice3' $'${choices['choice3']}' 'off'"
-  output=$(create_choice_list_screen "$box_title" "$message_box" 'choices' 'check_statuses' '' '' 'TEST_MODE')
+  output=$(create_choice_list_screen "$box_title" "$message_box" 'choices' 'check_statuses' '' '' '' '' '' 'TEST_MODE')
   assert_equals_helper 'Expected choice list with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
@@ -290,10 +291,11 @@ function test_create_choice_list_screen_use_all_options()
 
   expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
   expected_cmd+=" --title $'Make \'a\' choice!' --clear --colors"
+  expected_cmd+=" --ok-label $'Next' --cancel-label $'Previous' --extra-button --extra-label $'Cancel'"
   expected_cmd+=" --radiolist $'Select \`one\' of the below options.'"
   expected_cmd+=" '17041998' '10300507' '0'"
   expected_cmd+=" $'choice1' $'${choices['choice1']}' 'off' $'choice2' $'${choices['choice2']}' 'on' $'choice3' $'${choices['choice3']}' 'off'"
-  output=$(create_choice_list_screen "$box_title" "$message_box" 'choices' 'check_statuses' '17041998' '10300507' 'TEST_MODE')
+  output=$(create_choice_list_screen "$box_title" "$message_box" 'choices' 'check_statuses' 'Next' 'Previous' 'Cancel' '17041998' '10300507' 'TEST_MODE')
   assert_equals_helper 'Expected choice list with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
