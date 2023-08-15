@@ -36,14 +36,24 @@ function ui_setup()
   fi
 }
 
-# This function is responsible for creating dialog menus.
+# Create menu with options that the user can select. This function is flexible enough
+# to allow the menu to have from 2 to 4 buttons with custom labels, options displayed
+# with or without indexes and to display just a range of options from the array passed
+# as reference.
 #
-# @box_title: This is the menu title used on the top left of the dialog screen.
-# @message_box: The instruction text used for this menu.
-# @_menu_list_string_array: An array reference containing all the strings to be used in the menu.
-# @cancel_label: Cancel label. If not set, the default is 'Exit']
+# @box_title: This is the menu title used on the top left of the dialog screen
+# @message_box: The instruction text used for this menu
+# @_list_of_options_array: An array reference with the options to be displayed
+# @starting_index: Starting index of range of options to be displayed. If not set,
+#   the default is 0.
+# @ending_index: Ending index of range of options to be displayed. If not set, the
+#   default is the size of `_list_of_options_array` minus 1 (last index of array).
+# @extra_label: Extra label. If not set, the 'Extra' button won't be displayed
+# @cancel_label: Cancel label. If not set, the default is 'Exit'
+# @help_label: Help label. If not set, the 'Help' button won't be displayed
 # @height: Menu height in lines size
 # @width: Menu width in column size
+# @no_index: Boolean to control display of index. If set, indexes won't be displayed
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
@@ -55,18 +65,20 @@ function create_menu_options()
 {
   local box_title="$1"
   local message_box="$2"
-  local -n _menu_list_string_array="$3"
-  local back_button_label="$4"
-  local cancel_label="$5"
-  local height="$6"
-  local width="$7"
-  local max_elements_displayed_in_the_menu="$8"
-  local no_index="$9"
-  local flag="${10}"
-  local index=1
+  local -n _list_of_options_array="$3"
+  local starting_index="$4"
+  local ending_index="$5"
+  local extra_label="$6"
+  local cancel_label="$7"
+  local help_label="$8"
+  local height="$9"
+  local width="${10}"
+  local no_index="${11}"
+  local flag="${12}"
+  local option
   local cmd
 
-  if [[ "${#_menu_list_string_array[@]}" -eq 0 ]]; then
+  if [[ "${#_list_of_options_array[@]}" -eq 0 ]]; then
     return 22 # EINVAL
   fi
 
@@ -74,33 +86,39 @@ function create_menu_options()
   height=${height:-$DEFAULT_HEIGHT}
   width=${width:-$DEFAULT_WIDTH}
   cancel_label=${cancel_label:-'Exit'}
-  max_elements_displayed_in_the_menu=${max_elements_displayed_in_the_menu:-'0'}
+  starting_index=${starting_index:-0}
+  ending_index=${ending_index:-$((${#_list_of_options_array[@]} - 1))}
 
   # Escape all single quotes to avoid breaking arguments
   box_title=$(str_escape_single_quotes "$box_title")
-  cancel_label=$(str_escape_single_quotes "$cancel_label")
   message_box=$(str_escape_single_quotes "$message_box")
+  cancel_label=$(str_escape_single_quotes "$cancel_label")
+  extra_label=$(str_escape_single_quotes "$extra_label")
+  help_label=$(str_escape_single_quotes "$help_label")
 
   cmd=$(build_dialog_command_preamble "$box_title")
   # Change cancel label
   cmd+=" --cancel-label $'${cancel_label}'"
   # Add extra button
-  if [[ -n "$back_button_label" ]]; then
-    cmd+=" --extra-button --extra-label 'Return'"
+  if [[ -n "$extra_label" ]]; then
+    cmd+=" --extra-button --extra-label $'${extra_label}'"
+  fi
+  # Add help button
+  if [[ -n "$help_label" ]]; then
+    cmd+=" --help-button --help-label $'${help_label}'"
   fi
   # Add Menu screen
   cmd+=" --menu $'${message_box}'"
   # Set height, width, and max display itens
-  cmd+=" '${height}' '${width}' '${max_elements_displayed_in_the_menu}'"
+  cmd+=" '${height}' '${width}' '0'"
   # Add each menu option with or without index
-  for item in "${_menu_list_string_array[@]}"; do
-    item=$(str_escape_single_quotes "$item")
+  for i in $(seq "$starting_index" "$ending_index"); do
+    option=$(str_escape_single_quotes "${_list_of_options_array["$i"]}")
     if [[ -n "$no_index" ]]; then
-      cmd+=" $'${item}' ''"
-      continue
+      cmd+=" $'${option}' ''"
+    else
+      cmd+=" '${i}' $'${option}'"
     fi
-    cmd+=" '${index}' $'${item}'"
-    ((index++))
   done
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0

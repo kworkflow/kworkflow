@@ -32,7 +32,7 @@ function test_dashboard_entry_menu_check_valid_options()
   # shellcheck disable=SC2317
   function create_menu_options()
   {
-    menu_return_string=1
+    menu_return_string=0
   }
 
   dashboard_entry_menu
@@ -42,7 +42,7 @@ function test_dashboard_entry_menu_check_valid_options()
   # shellcheck disable=SC2317
   function create_menu_options()
   {
-    menu_return_string=2
+    menu_return_string=1
   }
 
   dashboard_entry_menu
@@ -72,7 +72,7 @@ function test_list_patches_with_patches()
   # shellcheck disable=SC2317
   function create_menu_options()
   {
-    menu_return_string='3'
+    menu_return_string=2
   }
 
   patchsets_metadata_array=(
