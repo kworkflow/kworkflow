@@ -31,7 +31,7 @@ function test_show_settings_screen()
   function create_menu_options()
   {
     # 'Settings' sub-menu chosen
-    menu_return_string=1
+    menu_return_string=0
   }
 
   show_settings_screen

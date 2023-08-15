@@ -60,33 +60,34 @@ function test_create_menu_options_rely_on_some_default_options()
 {
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
-  local -a menu_list_string_array=("I'm number 1" "I'm number 2")
-  local expected_cmd=" dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
+  local -a menu_list_string_array=("I'm number 0" "I'm number 1" "I'm number 2" "I'm number 3" "I'm number 4" "I'm number 5")
+  local expected=" dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
-  expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Exit' --menu $'${menu_message_box}'"
-  expected_cmd+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
-  expected_cmd+=" '1' $'I\'m number 1' '2' $'I\'m number 2'"
+  expected+=" --title $'${menu_title}' --clear --colors --cancel-label $'Exit' --menu $'${menu_message_box}'"
+  expected+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
+  expected+=" '0' $'I\'m number 0' '1' $'I\'m number 1' '2' $'I\'m number 2' '3' $'I\'m number 3' '4' $'I\'m number 4' '5' $'I\'m number 5'"
 
-  output=$(create_menu_options "$menu_title" "$menu_message_box" menu_list_string_array '' '' '' '' '' '' 'TEST_MODE')
-  assert_equals_helper 'Expected simple dialog menu' "$LINENO" "${output}" "${expected_cmd}"
+  output=$(create_menu_options "$menu_title" "$menu_message_box" menu_list_string_array '' '' '' '' '' '' '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected menu with some default options' "$LINENO" "$expected" "$output"
 }
 
 function test_create_menu_options_use_all_options()
 {
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
-  local -a menu_list_string_array=("I'm number 1" "I'm number 2")
-  local expected_cmd=" dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
+  local -a menu_list_string_array=("I'm number 0" "I'm number 1" "I'm number 2" "I'm number 3" "I'm number 4" "I'm number 5")
+  local expected=" dialog --backtitle \$'${KW_PATCH_HUB_TITLE}'"
   local output
 
-  expected_cmd+=" --title $'${menu_title}' --clear --colors --cancel-label $'Xpto'"
-  expected_cmd+=" --extra-button --extra-label 'Return' --menu $'${menu_message_box}'"
-  expected_cmd+=" '300' '300' '1'"
-  expected_cmd+=" $'I\'m number 1' '' $'I\'m number 2' ''"
+  expected+=" --title $'${menu_title}' --clear --colors --cancel-label $'Xpto'"
+  expected+=" --extra-button --extra-label $'Return' --help-button --help-label $'LoremIpsum'"
+  expected+=" --menu $'${menu_message_box}'"
+  expected+=" '300' '300' '0'"
+  expected+=" $'I\'m number 2' '' $'I\'m number 3' '' $'I\'m number 4' ''"
 
-  output=$(create_menu_options "$menu_title" "$menu_message_box" menu_list_string_array 1 'Xpto' '300' '300' '1' '1' 'TEST_MODE')
-  assert_equals_helper 'Expected custom dialog menu' "$LINENO" "${output}" "${expected_cmd}"
+  output=$(create_menu_options "$menu_title" "$menu_message_box" menu_list_string_array 2 4 'Return' 'Xpto' 'LoremIpsum' 300 300 1 'TEST_MODE')
+  assert_equals_helper 'Expected menu with with all custom options' "$LINENO" "$expected" "$output"
 }
 
 function test_create_simple_checklist_rely_on_some_default_options()

@@ -17,24 +17,24 @@ function show_settings_screen()
     'Kernel Tree Path'
     'Kernel Tree Target Branch'
   )
-  create_menu_options 'Settings' '' 'menu_list_string_array' 1
+  create_menu_options 'Settings' '' 'menu_list_string_array' '' '' 'Return'
   ret="$?"
 
   case "$ret" in
     0) # OK
       case "$menu_return_string" in
-        1) # Register/Unregister Mailing Lists
+        0) # Register/Unregister Mailing Lists
           screen_sequence['SHOW_SCREEN']='lore_mailing_lists'
           ;;
-        2) # Save Patches To
+        1) # Save Patches To
           change_save_patches_to_setting "$lore_config_path"
           screen_sequence['SHOW_SCREEN']='settings'
           ;;
-        3) # Kernel Tree Path
+        2) # Kernel Tree Path
           change_kernel_tree_path_setting "$lore_config_path"
           screen_sequence['SHOW_SCREEN']='settings'
           ;;
-        4) # Kernel Tree Target Branch
+        3) # Kernel Tree Target Branch
           change_kernel_tree_branch_setting "$lore_config_path"
           screen_sequence['SHOW_SCREEN']='settings'
           ;;

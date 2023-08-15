@@ -108,13 +108,13 @@ function dashboard_entry_menu()
   fi
 
   case "$menu_return_string" in
-    1) # Registered mailing list
+    0) # Registered mailing list
       screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
       ;;
-    2) # Bookmarked patches
+    1) # Bookmarked patches
       screen_sequence['SHOW_SCREEN']='bookmarked_patches'
       ;;
-    3) # Settings
+    2) # Settings
       screen_sequence['SHOW_SCREEN']='settings'
       ;;
   esac
@@ -140,7 +140,6 @@ function show_registered_mailing_lists()
 {
   local -a registered_mailing_lists
   local message_box
-  local selected_list_index
   local ret
 
   # Load registered mailing lists from config file into array
@@ -149,14 +148,13 @@ function show_registered_mailing_lists()
   message_box='Below, you can see the lore.kernel.org mailing lists that you have registered.'$'\n'
   message_box+='Select a mailing list to see the latest patchsets sent to it.'
 
-  create_menu_options 'Registered Mailing Lists' "$message_box" 'registered_mailing_lists' 1
+  create_menu_options 'Registered Mailing Lists' "$message_box" 'registered_mailing_lists' '' '' 'Return'
   ret="$?"
 
-  selected_list_index=$((menu_return_string - 1)) # Normalize array index
   case "$ret" in
     0) # OK
       screen_sequence['SHOW_SCREEN']='latest_patchsets_from_mailing_list'
-      screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_mailing_lists[$selected_list_index]}"
+      screen_sequence['SHOW_SCREEN_PARAMETER']="${registered_mailing_lists["$menu_return_string"]}"
       ;;
     1) # Exit
       handle_exit "$ret"
@@ -188,7 +186,7 @@ function list_patches()
     return "$?"
   fi
 
-  create_menu_options "${menu_title}" '' '_target_array_list' 1
+  create_menu_options "${menu_title}" '' '_target_array_list' '' '' 'Return'
   ret="$?"
 
   case "$ret" in
@@ -196,11 +194,11 @@ function list_patches()
       case "${screen_sequence['SHOW_SCREEN']}" in
         'latest_patchsets_from_mailing_list')
           screen_sequence['PREVIOUS_SCREEN']='latest_patchsets_from_mailing_list'
-          menu_return_string=$((menu_return_string - 1))
           screen_sequence['SHOW_SCREEN_PARAMETER']=${list_of_mailinglist_patches["$menu_return_string"]}
           ;;
         'bookmarked_patches')
           screen_sequence['PREVIOUS_SCREEN']='bookmarked_patches'
+          menu_return_string=$((menu_return_string + 1))
           screen_sequence['SHOW_SCREEN_PARAMETER']=$(get_bookmarked_series_by_index "$menu_return_string")
           ;;
       esac
