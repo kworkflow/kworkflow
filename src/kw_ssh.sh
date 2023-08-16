@@ -14,7 +14,7 @@ declare -gA options_values
 #   attempt to execute a command or script on the remote host.
 function kw_ssh_main()
 {
-  local flag="$1"
+  local flag
   local port
   local script_path
   local cmd
@@ -24,8 +24,6 @@ function kw_ssh_main()
   local remote_file
   local remote_file_host
   local ssh_compose='ssh'
-
-  flag=${flag:-'SILENT'}
 
   parser_ssh_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -39,10 +37,12 @@ function kw_ssh_main()
   remote_file="${remote_parameters['REMOTE_FILE']}"
   remote_file_host="${remote_parameters['REMOTE_FILE_HOST']}"
 
+  flag=${options_values['TEST_MODE']}
   script_path=${options_values['SCRIPT']}
   cmd=${options_values['CMD']}
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+  flag=${flag:-'SILENT'}
 
   is_ssh_connection_configured "$flag"
   if [[ "$?" != 0 ]]; then
