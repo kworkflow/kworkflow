@@ -34,20 +34,12 @@ declare -gA available_lore_mailing_lists
 # Special character used for separate data.
 declare -gr SEPARATOR_CHAR='Æ'
 
-# TODO: Remove hardcode and add setting for this
-# Number of patchsets per page when querying a lore mailing list
-declare -g NUMBER_OF_PATCHSETS_PER_PAGE=30
-
-# TODO: Remove hardcode and add setting for this
-# Size of timeframe in days considered for each request
-declare -g TIMEFRAME_SIZE_IN_DAYS=8
-
 # Number of patchsets processed current lore fetch session.
 # Also, the size of `list_of_mailinglist_patches`.
 declare -g PATCHSETS_PROCESSED=0
 
 # This is the lower end of the timeframe (from lower end) in days (e.g. 8 `DAYS` ago).
-declare -g DAYS="$TIMEFRAME_SIZE_IN_DAYS"
+declare -g DAYS=''
 
 # This is the upper end of the timeframe (until upper end) in the format YYYY-mm-ddTHH:MM:SSZ
 # (e.g. 2023-01-01T00:00:00Z). An empty value denotes 'until now'.
@@ -318,13 +310,20 @@ function process_name()
 # This function resets all data structures that represent the current lore
 # fetch session. A lore fetch session is constituted by an array with the
 # latest patchsets of a lore public mailing list ordered, the number of patchsets
-# processed (the size of the array), and the oldest timeframe considered
-# (the last time period queried for patchsets).
+# processed (the size of the array), and a timeframe (from time A until time B).
+#
+# @lore_requests_timeframe: Size of the timeframe considered in days.
 function reset_current_lore_fetch_session()
 {
+  local lore_requests_timeframe="$1"
+
+  if [[ -z "$lore_requests_timeframe" || ! "$lore_requests_timeframe" =~ ^[0-9]+$ ]]; then
+    lore_requests_timeframe=14 # 2 weeks
+  fi
+
   list_of_mailinglist_patches=()
   PATCHSETS_PROCESSED=0
-  DAYS="$TIMEFRAME_SIZE_IN_DAYS"
+  DAYS="$lore_requests_timeframe"
   LAST_TIMESTAMP=''
 }
 
@@ -512,7 +511,7 @@ function process_patchsets()
 #     `list_of_mailinglist_patches` array.
 #
 # In case the number of patchsets in `list_of_mailinglist_patches` is less than
-# `page` times `NUMBER_OF_PATCHSETS_PER_PAGE`, get a adjacent timeframe and repeat
+# `page` times `patchsets_per_page`, get a adjacent timeframe and repeat
 # steps 1 to 3.
 #
 # This function considers the totality of patchsets ordered in chunks of the same
@@ -527,6 +526,8 @@ function process_patchsets()
 #   registered to lore
 # @page: Positive integer that represents until what page of latest patchsets the fetch
 #   should occur
+# @patchsets_per_page: Number of patchsets per page
+# @lore_requests_timeframe: Size of the timeframe considered in days
 # @flag: Flag to control function output
 #
 # Return:
@@ -535,7 +536,9 @@ function fetch_latest_patchsets_from()
 {
   local target_mailing_list="$1"
   local page="$2"
-  local flag="$3"
+  local patchsets_per_page="$3"
+  local lore_requests_timeframe="$4"
+  local flag="$5"
   local pre_processed_patches
   local xml_result_file_name
   local lore_query_url
@@ -545,7 +548,7 @@ function fetch_latest_patchsets_from()
   flag=${flag:-'SILENT'}
   xml_result_file_name="${target_mailing_list}-patches.xml"
 
-  while [[ "$PATCHSETS_PROCESSED" -lt "$((page * NUMBER_OF_PATCHSETS_PER_PAGE))" ]]; do
+  while [[ "$PATCHSETS_PROCESSED" -lt "$((page * patchsets_per_page))" ]]; do
     # Building URL for querying lore servers for a xml file with patches.
     lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$DAYS" "$LAST_TIMESTAMP")
     ret="$?"
@@ -559,7 +562,7 @@ function fetch_latest_patchsets_from()
     # If the resulting file doesn't contain any patches, it will be an html file.
     # In this case, we expand the timeframe and make another fetch.
     if is_html_file "${CACHE_LORE_DIR}/${xml_result_file_name}"; then
-      DAYS="$((DAYS + TIMEFRAME_SIZE_IN_DAYS))"
+      DAYS="$((DAYS + lore_requests_timeframe))"
       continue
     fi
 
@@ -569,7 +572,7 @@ function fetch_latest_patchsets_from()
     process_patchsets "$pre_processed_patches"
 
     # Update lower and upper ends of time period to query.
-    DAYS="$((DAYS + TIMEFRAME_SIZE_IN_DAYS))"
+    DAYS="$((DAYS + lore_requests_timeframe))"
     raw_xml=$(< "${CACHE_LORE_DIR}/${xml_result_file_name}")
     LAST_TIMESTAMP=$(printf '%s' "$raw_xml" | xpath -q -e '//entry[last()]/updated/text()')
     LAST_TIMESTAMP=$(TZ=UTC date --date "${LAST_TIMESTAMP} - 1 seconds" '+%Y-%m-%dT%H:%M:%SZ')
@@ -604,12 +607,14 @@ function format_patchsets()
 # `list_of_mailinglist_patches[59]`, this function outputs '30'.
 #
 # @page: Number of the target page.
+# @patchsets_per_page: Number of patchsets per page
 function get_page_starting_index()
 {
   local page="$1"
+  local patchsets_per_page="$2"
   local starting_index
 
-  starting_index=$(((page - 1) * NUMBER_OF_PATCHSETS_PER_PAGE))
+  starting_index=$(((page - 1) * patchsets_per_page))
   printf '%s' "$starting_index"
 }
 
@@ -618,12 +623,14 @@ function get_page_starting_index()
 # `list_of_mailinglist_patches[59]`, this function outputs '59'.
 #
 # @page: Number of the target page
+# @patchsets_per_page: Number of patchsets per page
 function get_page_ending_index()
 {
   local page="$1"
+  local patchsets_per_page="$2"
   local ending_index_index
 
-  ending_index=$(((page * NUMBER_OF_PATCHSETS_PER_PAGE) - 1))
+  ending_index=$(((page * patchsets_per_page) - 1))
   printf '%s' "$ending_index"
 }
 
