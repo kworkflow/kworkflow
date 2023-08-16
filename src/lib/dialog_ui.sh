@@ -589,6 +589,79 @@ function create_form_screen()
   run_dialog_command "$cmd" "$flag"
 }
 
+# Create a rangebox to collect an integer from the user. This rangebox can be
+# used to guaranteedly an integer from a restricted range.
+#
+# @box_title: Title of the box
+# @message_box: The message to be displayed
+# @min_value: Minimum value of the range
+# @max_value: Maximum value of the range
+# @default_value: Starting value of the rangebox
+# @extra_label: Extra label. If not set, the 'Extra' button won't be displayed
+# @cancel_label: Cancel label. If not set, the default is 'Exit'
+# @help_label: Help label. If not set, the 'Help' button won't be displayed
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 0 if the 'Ok' button is pressed, 1 if the 'Cancel' button is pressed,
+# 2 if the 'Help' button is pressed, and 3 if the 'Extra' button is pressed.
+# The menu_return_string will store the user selected value.
+function create_rangebox_screen()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local min_value="$3"
+  local max_value="$4"
+  local default_value="$5"
+  local extra_label="$6"
+  local cancel_label="$7"
+  local help_label="$8"
+  local height="$9"
+  local width="${10}"
+  local flag="${11}"
+  local cmd
+
+  min_value=${min_value:-'0'}
+  max_value=${max_value:-'100'}
+  default_value=${default_value:-$(((min_value + max_value) / 2))}
+  cancel_label=${cancel_label:-'Exit'}
+  flag=${flag:-'SILENT'}
+  height=${height:-'10'}
+  width=${width:-'60'}
+
+  # Escape all single quotes to avoid breaking arguments
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+  cancel_label=$(str_escape_single_quotes "$cancel_label")
+  help_label=$(str_escape_single_quotes "$help_label")
+  extra_label=$(str_escape_single_quotes "$extra_label")
+
+  cmd=$(build_dialog_command_preamble "$box_title")
+  # Override 'Cancel' button label
+  cmd+=" --cancel-label $'${cancel_label}'"
+  # Add 'Extra' button
+  if [[ -n "${extra_label}" ]]; then
+    cmd+=" --extra-button --extra-label $'${extra_label}'"
+  fi
+  # Add 'Help' button
+  if [[ -n "${help_label}" ]]; then
+    cmd+=" --help-button --help-label $'${help_label}'"
+  fi
+  # Add Rangebox screen
+  cmd+=" --rangebox $'${message_box}'"
+  # Set height and width
+  cmd+=" '${height}' '${width}'"
+  # Set range and default value
+  cmd+=" '${min_value}' '${max_value}' '${default_value}'"
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  run_dialog_command "$cmd" "$flag"
+}
+
 # Creates a help message box for a dialog's screen. There must be a file
 # that follows the pattern of `load_module_text`, for reference see `src/lib/kwio.sh`.
 #

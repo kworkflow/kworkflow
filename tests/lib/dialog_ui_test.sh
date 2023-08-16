@@ -381,6 +381,41 @@ function test_create_form_screen_all_options()
   assert_equals_helper 'Expected form with default values' "$LINENO" "$expected_cmd" "$output"
 }
 
+function test_create_rangebox_screen_rely_on_some_default_options()
+{
+  local box_title="Select a 'value' from this range"
+  local message_box="This is \`a rangebox'."
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
+  expected_cmd+=" --title $'Select a \'value\' from this range' --clear --colors"
+  expected_cmd+=" --cancel-label $'Exit'"
+  expected_cmd+=" --rangebox $'This is \`a rangebox\'.'"
+  expected_cmd+=" '10' '60'"
+  expected_cmd+=" '0' '100' '50'"
+  output=$(create_rangebox_screen "$box_title" "$message_box" '' '' '' '' '' '' '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected Rangebox with some default options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_rangebox_screen_use_all_options()
+{
+  local box_title="Select a 'value' from this range"
+  local message_box="This is \`a rangebox'."
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
+  expected_cmd+=" --title $'Select a \'value\' from this range' --clear --colors"
+  expected_cmd+=" --cancel-label $'Cancel'"
+  expected_cmd+=" --extra-button --extra-label $'range' --help-button --help-label $'box'"
+  expected_cmd+=" --rangebox $'This is \`a rangebox\'.'"
+  expected_cmd+=" '2718' '31415'"
+  expected_cmd+=" '23' '42' '318'"
+  output=$(create_rangebox_screen "$box_title" "$message_box" 23 42 318 'range' 'Cancel' 'box' 2718 31415 'TEST_MODE')
+  assert_equals_helper 'Expected Rangebox with all custom options' "$LINENO" "$expected_cmd" "$output"
+}
+
 function test_build_dialog_command_preamble()
 {
   local output
