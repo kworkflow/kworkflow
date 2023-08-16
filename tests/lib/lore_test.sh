@@ -592,7 +592,7 @@ function test_process_patchsets()
   assert_equals_helper 'Wrong patchset at index 1' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
 }
 
-function test_reset_current_lore_fetch_session()
+function test_reset_current_lore_fetch_session_valid_argument()
 {
   list_of_mailinglist_patches[0]=1
   list_of_mailinglist_patches[1]=1
@@ -601,10 +601,39 @@ function test_reset_current_lore_fetch_session()
   DAYS=16
   LAST_TIMESTAMP='2023-01-01T00:00:00Z'
 
-  reset_current_lore_fetch_session
+  reset_current_lore_fetch_session 2
   assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
   assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
-  assert_equals_helper 'Should reset lower end of timeframe' "$LINENO" "$TIMEFRAME_SIZE_IN_DAYS" "$DAYS"
+  assert_equals_helper 'Should reset lower end of timeframe' "$LINENO" 2 "$DAYS"
+  assert_equals_helper 'Should reset upper end of timeframe' "$LINENO" '' "$LAST_TIMESTAMP"
+}
+
+function test_reset_current_lore_fetch_session_invalid_argument()
+{
+  list_of_mailinglist_patches[0]=1
+  list_of_mailinglist_patches[1]=1
+  list_of_mailinglist_patches[2]=1
+  PATCHSETS_PROCESSED=3
+  DAYS=16
+  LAST_TIMESTAMP='2023-01-01T00:00:00Z'
+
+  reset_current_lore_fetch_session ''
+  assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
+  assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
+  assert_equals_helper 'Should reset lower end of timeframe' "$LINENO" 14 "$DAYS"
+  assert_equals_helper 'Should reset upper end of timeframe' "$LINENO" '' "$LAST_TIMESTAMP"
+
+  list_of_mailinglist_patches[0]=1
+  list_of_mailinglist_patches[1]=1
+  list_of_mailinglist_patches[2]=1
+  PATCHSETS_PROCESSED=3
+  DAYS=16
+  LAST_TIMESTAMP='2023-01-01T00:00:00Z'
+
+  reset_current_lore_fetch_session '12x00'
+  assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
+  assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
+  assert_equals_helper 'Should reset lower end of timeframe' "$LINENO" 14 "$DAYS"
   assert_equals_helper 'Should reset upper end of timeframe' "$LINENO" '' "$LAST_TIMESTAMP"
 }
 
@@ -635,24 +664,26 @@ function test_format_patchsets()
 function test_get_page_starting_index()
 {
   local page
+  local patchsets_per_page
   local output
 
-  NUMBER_OF_PATCHSETS_PER_PAGE=42
   page=5
+  patchsets_per_page=42
 
-  output=$(get_page_starting_index "$page")
+  output=$(get_page_starting_index "$page" "$patchsets_per_page")
   assert_equals_helper 'Wrong starting index outputted' "$LINENO" 168 "$output"
 }
 
 function test_get_page_ending_index()
 {
   local page
+  local patchsets_per_page
   local output
 
-  NUMBER_OF_PATCHSETS_PER_PAGE=42
   page=5
+  patchsets_per_page=42
 
-  output=$(get_page_ending_index "$page")
+  output=$(get_page_ending_index "$page" "$patchsets_per_page")
   assert_equals_helper 'Wrong ending index outputted' "$LINENO" 209 "$output"
 }
 

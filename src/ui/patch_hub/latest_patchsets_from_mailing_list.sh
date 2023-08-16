@@ -14,7 +14,8 @@ function show_latest_patchsets_from_mailing_list()
 
   create_loading_screen_notification "Loading patchsets from ${current_mailing_list} list"
   # Query patches from mailing list, this info will be saved at `list_of_mailinglist_patches[@]`.
-  fetch_latest_patchsets_from "$current_mailing_list" "$PAGE"
+  fetch_latest_patchsets_from "$current_mailing_list" "$PAGE" \
+    "${lore_config['patchsets_per_page']}" "${lore_config['lore_requests_timeframe']}"
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' "Couldn't fetch patchsets from ${current_mailing_list} list."
     screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
@@ -22,8 +23,8 @@ function show_latest_patchsets_from_mailing_list()
   fi
 
   # Getting the indexes of range from target page
-  starting_index=$(get_page_starting_index "$PAGE")
-  ending_index=$(get_page_ending_index "$PAGE")
+  starting_index=$(get_page_starting_index "$PAGE" "${lore_config['patchsets_per_page']}")
+  ending_index=$(get_page_ending_index "$PAGE" "${lore_config['patchsets_per_page']}")
   # Format and load patchset metadata for display, in case it wasn't done
   if [[ "$((ending_index + 1))" -gt "${#formatted_patchsets_list[@]}" ]]; then
     format_patchsets 'formatted_patchsets_list' "$starting_index" "$ending_index"
@@ -48,7 +49,7 @@ function show_latest_patchsets_from_mailing_list()
     3) # Previous
       ((PAGE--))
       if [[ "$PAGE" == 0 ]]; then
-        reset_current_lore_fetch_session
+        reset_current_lore_fetch_session "${lore_config['lore_requests_timeframe']}"
         PAGE=1
         formatted_patchsets_list=()
         screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
