@@ -262,7 +262,47 @@ function test_create_help_screen()
   assert_equals_helper 'Wrong help screen for Directory Selection' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_choice_list_screen_rely_on_some_default_options()
+function test_create_choice_list_screen_with_indexed_array_rely_on_some_default_options()
+{
+  local box_title="Make 'a' choice!"
+  local message_box="Select \`one' of the below options."
+  # shellcheck disable=SC2190
+  local -a choices=('choice1' 'choice2' 'choice3' 'choice4')
+  local -a check_statuses=('' 1 '' '')
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
+  expected_cmd+=" --title $'Make \'a\' choice!' --clear --colors"
+  expected_cmd+=" --ok-label $'Ok' --cancel-label $'Cancel'"
+  expected_cmd+=" --radiolist $'Select \`one\' of the below options.'"
+  expected_cmd+=" '${EXPECTED_DEFAULT_HEIGHT}' '${EXPECTED_DEFAULT_WIDTH}' '0'"
+  expected_cmd+=" $'choice1' '' 'off' $'choice2' '' 'on' $'choice3' '' 'off' $'choice4' '' 'off'"
+  output=$(create_choice_list_screen "$box_title" "$message_box" 'choices' 'check_statuses' '' '' '' '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected choice list with some default options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_choice_list_screen_with_indexed_array_use_all_options()
+{
+  local box_title="Make 'a' choice!"
+  local message_box="Select \`one' of the below options."
+  # shellcheck disable=SC2190
+  local -a choices=('choice1' 'choice2' 'choice3' 'choice4')
+  local -a check_statuses=('' 1 '' '')
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
+  expected_cmd+=" --title $'Make \'a\' choice!' --clear --colors"
+  expected_cmd+=" --ok-label $'Next' --cancel-label $'Previous' --extra-button --extra-label $'Cancel'"
+  expected_cmd+=" --radiolist $'Select \`one\' of the below options.'"
+  expected_cmd+=" '17041998' '10300507' '0'"
+  expected_cmd+=" $'choice1' '' 'off' $'choice2' '' 'on' $'choice3' '' 'off' $'choice4' '' 'off'"
+  output=$(create_choice_list_screen "$box_title" "$message_box" 'choices' 'check_statuses' 'Next' 'Previous' 'Cancel' '17041998' '10300507' 'TEST_MODE')
+  assert_equals_helper 'Expected choice list with all custom options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_choice_list_screen_with_associative_array_rely_on_some_default_options()
 {
   local box_title="Make 'a' choice!"
   local message_box="Select \`one' of the below options."
@@ -281,7 +321,7 @@ function test_create_choice_list_screen_rely_on_some_default_options()
   assert_equals_helper 'Expected choice list with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_choice_list_screen_use_all_options()
+function test_create_choice_list_screen_with_associative_array_use_all_options()
 {
   local box_title="Make 'a' choice!"
   local message_box="Select \`one' of the below options."
