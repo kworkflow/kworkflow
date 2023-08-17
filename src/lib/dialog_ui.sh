@@ -372,12 +372,16 @@ function create_file_selection_screen()
   run_dialog_command "$cmd" "$flag"
 }
 
-# Create a screen with a list of choices.
+# Create a screen with a list of choices. This function supports both choices with descriptions
+# and without description. The first behaviour happens by passing an associative array as
+# `_choices`, but, as associative arrays in bash are hashed, the order of display may not be the
+# order of definition. The second behaviour happens by passing an indexed array as `_choices` and,
+# in this case, the order of definition of the elements is the same as the displayed one.
 #
 # @box_title: Title of the box
 # @message_box: The message to be displayed
-# @_choices: Associative array reference containing all the
-#   `<choice><choice_description>` pairs to be displayd
+# @_choices: Reference to an associative array with `<choice><choice_description>`
+#   pairs to be displayed, or to an indexed array with a list of choices.
 # @_check_statuses: An array reference containing all the statuses of the checks
 #   (if they are on/off).
 # @ok_label: Override the default 'Ok' button label option (Default is 'Yes').
@@ -433,17 +437,30 @@ function create_choice_list_screen()
   cmd+=" --radiolist $'${message_box}'"
   # Set height and width
   cmd+=" '${height}' '${width}' '0'"
-  # Add choices (${choices["${choice}"]} refers to the choice's description)
-  for choice in "${!_choices[@]}"; do
-    choice_description=$(str_escape_single_quotes "${_choices["${choice}"]}")
-    choice=$(str_escape_single_quotes "$choice")
-    if [[ "${_check_statuses["$index"]}" == 1 ]]; then
-      cmd+=" $'${choice}' $'${choice_description}' 'on'"
-    else
-      cmd+=" $'${choice}' $'${choice_description}' 'off'"
-    fi
-    ((index++))
-  done
+  # Add choices without description if `_choices` is an indexed array
+  if [[ "$(typeset -p "$3")" =~ 'declare -a' ]]; then
+    for choice in "${_choices[@]}"; do
+      choice=$(str_escape_single_quotes "$choice")
+      if [[ "${_check_statuses["$index"]}" == 1 ]]; then
+        cmd+=" $'${choice}' '' 'on'"
+      else
+        cmd+=" $'${choice}' '' 'off'"
+      fi
+      ((index++))
+    done
+  # Add choices with description if `_choices` is an associative array
+  else
+    for choice in "${!_choices[@]}"; do
+      choice_description=$(str_escape_single_quotes "${_choices["${choice}"]}")
+      choice=$(str_escape_single_quotes "$choice")
+      if [[ "${_check_statuses["$index"]}" == 1 ]]; then
+        cmd+=" $'${choice}' $'${choice_description}' 'on'"
+      else
+        cmd+=" $'${choice}' $'${choice_description}' 'off'"
+      fi
+      ((index++))
+    done
+  fi
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
