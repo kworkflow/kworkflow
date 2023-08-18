@@ -38,12 +38,19 @@ declare -gr SEPARATOR_CHAR='Æ'
 # Also, the size of `list_of_mailinglist_patches`.
 declare -g PATCHSETS_PROCESSED=0
 
-# This is the lower end of the timeframe (from lower end) in days (e.g. 8 `DAYS` ago).
-declare -g DAYS=''
+# Any query to the lore servers is paginated and the maximum number of individual
+# messages returned is 200. This variable represents this value.
+declare -gr LORE_PAGE_SIZE=200
 
-# This is the upper end of the timeframe (until upper end) in the format YYYY-mm-ddTHH:MM:SSZ
-# (e.g. 2023-01-01T00:00:00Z). An empty value denotes 'until now'.
-declare -g LAST_TIMESTAMP=''
+# Lore servers accepts a parameter `o` in the query string. This parameter defines
+# the 'minimum index' of the query response. In other words, if a query matches N
+# messages, say N=500, adding `o=200` to the query string results in the response
+# from the server containing the messages of indexes 201 to 400, for example (if
+# `o=400` the response would have messages 401 to 500). This variable stores the
+# 'minimum index' of the current lore fetch session. Note that this is actually a
+# minimum exclusive (minorant) as the message of index `MIN_INDEX` isn't included
+# in the response (neither the message of index 0 exists).
+declare -g MIN_INDEX=0
 
 # This is a global array that kw uses to store the list of new patches from a
 # target mailing list. After kw parses the data from lore, we will have a list
@@ -235,31 +242,6 @@ function extract_metadata_from_patch_title()
   printf '%s%s%s%s' "$patch_version" "$total_patches" "$patch_title" "$url"
 }
 
-# This function checks if a timestamp is in the format used in lore.kernel.org.
-# The format is `YYYY-mm-ddTHH:MM:SSZ` and an example is `2023-04-17T14:30:59Z`.
-#
-# @timestamp: Timestamp to be checked
-#
-# Return:
-# Returns 0 if `@timestamp` is in the lore timestamp format and 1, otherwise.
-function is_in_lore_timestamp_format()
-{
-  local timestamp="$1"
-
-  # Check if the timestamp is in the exact format
-  if [[ ! "$timestamp" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$ ]]; then
-    return 1
-  fi
-
-  # Check if it is a valid date
-  date '+%Y-%m-%dT%H:%M:%SZ' --date "$timestamp" > /dev/null 2>&1
-  if [[ "$?" == 0 ]]; then
-    return 0
-  else
-    return 1
-  fi
-}
-
 # This function was tailored to run in a subshell because we want to run this
 # sort of data processing in parallel to avoid blocking users for a long time.
 #
@@ -310,78 +292,49 @@ function process_name()
 # This function resets all data structures that represent the current lore
 # fetch session. A lore fetch session is constituted by an array with the
 # latest patchsets of a lore public mailing list ordered, the number of patchsets
-# processed (the size of the array), and a timeframe (from time A until time B).
-#
-# @lore_requests_timeframe: Size of the timeframe considered in days.
+# processed (the size of the array), and the minimum exclusive index of the
+# response (see `MIN_INDEX` declaration).
 function reset_current_lore_fetch_session()
 {
-  local lore_requests_timeframe="$1"
-
-  if [[ -z "$lore_requests_timeframe" || ! "$lore_requests_timeframe" =~ ^[0-9]+$ ]]; then
-    lore_requests_timeframe=14 # 2 weeks
-  fi
-
   list_of_mailinglist_patches=()
   PATCHSETS_PROCESSED=0
-  DAYS="$lore_requests_timeframe"
-  LAST_TIMESTAMP=''
+  MIN_INDEX=0
 }
 
 # This function composes a query URL to a public mailing list archived
 # on lore.kernel.org and verifies if the link is valid. A request to the
-# URL composed by this function returns an XML file with only patches from
-# a given timeframe ordered by their 'updated' attribute, if there are
-# patches that match the conditions. In case there are no matches to the
-# query, a HTML file is returned.
+# URL composed by this function returns an XML file with only patches
+# ordered by their 'updated' attribute.
 #
 # @target_mailing_list: String with valid public mailing list name
-# @from_n_days: Integer `n` of days in a `from n days ago` filter
-# @until_timestamp: Timestamp in a YYYY-MM-DDTHH:MM:SSZ format that
-#   `until YYYY-MM-DDTHH:MM:SSZ` in timeframe
+# @min_index: Minimum exclusive index of patches to be contained in server response
 #
 # Return:
-# Returns 22 in case the URL produced is invalid, or `@target_mailing_list`
-# or `@from_n_days` are empty. In case the URL produced is valid,
-# the function returns 0 and outputs the query URL.
+# Returns 22 in case the URL produced is invalid or `@target_mailing_list`
+# is empty. In case the URL produced is valid, the function returns 0 and
+# outputs the query URL.
 function compose_lore_query_url_with_verification()
 {
   local target_mailing_list="$1"
-  local from_n_days="$2"
-  local until_timestamp="$3"
+  local min_index="$2"
   local query_filter
   local query_url
 
-  # Verifying arguments that must be non-empty
-  if [[ -z "$target_mailing_list" || -z "$from_n_days" ]]; then
+  if [[ -z "$target_mailing_list" || -z "$min_index" ]]; then
     return 22 # EINVAL
-  fi
-
-  # Verifying if lower end is valid, i.e., is an integer
-  if [[ ! "$from_n_days" =~ ^[0-9]+$ ]]; then
-    return 22 # EINVAL
-  fi
-
-  # Verifying if upper end is valid, i.e., is a real date in the correct format
-  if [[ -n "$until_timestamp" ]]; then
-    is_in_lore_timestamp_format "$until_timestamp"
-    if [[ "$?" != 0 ]]; then
-      return 22 # EINVAL
-    fi
   fi
 
   # TODO: Add verification for `@target_mailing_list`.
 
+  # Verifying if minimum index is valid, i.e., is an integer
+  if [[ ! "$min_index" =~ ^-?[0-9]+$ ]]; then
+    return 22 # EINVAL
+  fi
+
   # TODO: We need to use the query prefix 's:Re:' to filter out replies and match
   # only real patches. Are we filtering possible patches? If no, can we filter more
   # messages to obtain a lighter response file?
-  # TODO: We are using the 'rt:' prefix (a list of supported prefixes can be seen here
-  # https://lore.kernel.org/git/_/text/help/) because the response of the query orders
-  # patches by the 'recieved time', no matter if we use 'rt:' or 'd:', the date-time (
-  # 'Date:' field of the email messages). 'recieved time' seems to be reference the
-  # timestamp when the message arrived at the lore.kernel.org servers, although its
-  # description is really confusing (see the reference link). We need to check if there
-  # aren't any queries that are more correct and, maybe, more efficient.
-  query_filter="?q=rt:${from_n_days}.day.ago..${until_timestamp}+AND+NOT+s:Re&x=A"
+  query_filter="?q=rt:..+AND+NOT+s:Re&x=A&o=${min_index}"
   query_url="${LORE_URL}/${target_mailing_list}/${query_filter}"
   printf '%s' "$query_url"
 }
@@ -503,18 +456,16 @@ function process_patchsets()
 # the lastest patchsets from a public mailing list archived on lore.kernel.org.
 # The fetching of patchsets has 3 steps:
 #  1. Build a lore query URL to match only messages that are patches from a given
-#     timeframe.
-#  2. Make a request to the URL built in step to obtain a list of patches from
-#     the respective timeframe ordered by the recieved time of the patch on the
-#     lore.kernel.org servers.
+#     list from `MIN_INDEX` onward.
+#  2. Make a request to the URL built in step 1 to obtain a list of patches ordered
+#     by the recieved time on the lore.kernel.org servers.
 #  3. Process the list of patches to a list of patchsets stored in the
 #     `list_of_mailinglist_patches` array.
 #
 # In case the number of patchsets in `list_of_mailinglist_patches` is less than
-# `page` times `patchsets_per_page`, get a adjacent timeframe and repeat
-# steps 1 to 3.
+# `page` times `patchsets_per_page`, update `MIN_INDEX` and repeat steps 1 to 3.
 #
-# This function considers the totality of patchsets ordered in chunks of the same
+# This function considers the totality of ordered patchsets in chunks of the same
 # size named pages. The `page` argument indicates until which page of the latest
 # patchsets should the fetch occur.
 #
@@ -527,7 +478,6 @@ function process_patchsets()
 # @page: Positive integer that represents until what page of latest patchsets the fetch
 #   should occur
 # @patchsets_per_page: Number of patchsets per page
-# @lore_requests_timeframe: Size of the timeframe considered in days
 # @flag: Flag to control function output
 #
 # Return:
@@ -537,8 +487,10 @@ function fetch_latest_patchsets_from()
   local target_mailing_list="$1"
   local page="$2"
   local patchsets_per_page="$3"
-  local lore_requests_timeframe="$4"
-  local flag="$5"
+  local flag="$4"
+  local raw_xml
+  local lore_query_url
+  local xml_result_file_name
   local pre_processed_patches
   local xml_result_file_name
   local lore_query_url
@@ -550,7 +502,7 @@ function fetch_latest_patchsets_from()
 
   while [[ "$PATCHSETS_PROCESSED" -lt "$((page * patchsets_per_page))" ]]; do
     # Building URL for querying lore servers for a xml file with patches.
-    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$DAYS" "$LAST_TIMESTAMP")
+    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$MIN_INDEX")
     ret="$?"
     [[ "$ret" != 0 ]] && return "$ret"
 
@@ -559,11 +511,12 @@ function fetch_latest_patchsets_from()
     ret="$?"
     [[ "$ret" != 0 ]] && return "$ret"
 
-    # If the resulting file doesn't contain any patches, it will be an html file.
-    # In this case, we expand the timeframe and make another fetch.
-    if is_html_file "${CACHE_LORE_DIR}/${xml_result_file_name}"; then
-      DAYS="$((DAYS + lore_requests_timeframe))"
-      continue
+    raw_xml=$(< "${CACHE_LORE_DIR}/${xml_result_file_name}")
+
+    # If the resulting file doesn't contain any patches, it will be an "empty" XML with
+    # just '</feed>'. This can be considered a heuristic.
+    if [[ "$raw_xml" == '</feed>' ]]; then
+      break
     fi
 
     # Processing patches into patchsets that will be stored in `list_of_mailinglist_patches`.
@@ -571,11 +524,8 @@ function fetch_latest_patchsets_from()
     # TODO: Is passing `pre_processed_patches` (huge string) as argument a possible bottleneck?
     process_patchsets "$pre_processed_patches"
 
-    # Update lower and upper ends of time period to query.
-    DAYS="$((DAYS + lore_requests_timeframe))"
-    raw_xml=$(< "${CACHE_LORE_DIR}/${xml_result_file_name}")
-    LAST_TIMESTAMP=$(printf '%s' "$raw_xml" | xpath -q -e '//entry[last()]/updated/text()')
-    LAST_TIMESTAMP=$(TZ=UTC date --date "${LAST_TIMESTAMP} - 1 seconds" '+%Y-%m-%dT%H:%M:%SZ')
+    # Update minimum exclusive index.
+    MIN_INDEX=$((MIN_INDEX + LORE_PAGE_SIZE))
   done
 }
 
@@ -615,6 +565,10 @@ function get_page_starting_index()
   local starting_index
 
   starting_index=$(((page - 1) * patchsets_per_page))
+  # Avoid an starting index greater than the max index of `list_of_mailinglist_patches`
+  if [[ "$starting_index" -gt "$((${#list_of_mailinglist_patches[@]} - 1))" ]]; then
+    starting_index=$((${#list_of_mailinglist_patches[@]} - 1))
+  fi
   printf '%s' "$starting_index"
 }
 
@@ -628,9 +582,13 @@ function get_page_ending_index()
 {
   local page="$1"
   local patchsets_per_page="$2"
-  local ending_index_index
+  local ending_index
 
   ending_index=$(((page * patchsets_per_page) - 1))
+  # Avoid an ending index greater than the max index of `list_of_mailinglist_patches`
+  if [[ "$ending_index" -gt "$((${#list_of_mailinglist_patches[@]} - 1))" ]]; then
+    ending_index=$((${#list_of_mailinglist_patches[@]} - 1))
+  fi
   printf '%s' "$ending_index"
 }
 

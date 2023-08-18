@@ -441,100 +441,51 @@ function test_save_new_lore_config()
   assert_equals_helper 'Wrong lore.config contents' "$LINENO" "$expected" "$output"
 }
 
-function test_is_in_lore_timestamp_format_with_invalid_format()
-{
-  local timestamp
-
-  timestamp='Aug 23, 2021 at 11:24pm'
-  is_in_lore_timestamp_format "$timestamp"
-  assert_equals_helper 'Invalid format should return 1' "$LINENO" 1 "$?"
-
-  timestamp='29-12-2023T12:12:12Z'
-  is_in_lore_timestamp_format "$timestamp"
-  assert_equals_helper 'Invalid format should return 1' "$LINENO" 1 "$?"
-
-  timestamp='2023-01-01 23:34:32'
-  is_in_lore_timestamp_format "$timestamp"
-  assert_equals_helper 'Invalid format should return 1' "$LINENO" 1 "$?"
-
-  timestamp='2023-09-17T11:01:07Z '
-  is_in_lore_timestamp_format "$timestamp"
-  assert_equals_helper 'Invalid format should return 1' "$LINENO" 1 "$?"
-
-  timestamp='2023-11-31T01:22:32Z'
-  is_in_lore_timestamp_format "$timestamp"
-  assert_equals_helper 'Invalid date should return 1' "$LINENO" 1 "$?"
-}
-
-function test_is_in_lore_timestamp_format_with_valid_format()
-{
-  local timestamp
-
-  timestamp='2023-12-31T12:12:12Z'
-  is_in_lore_timestamp_format "$timestamp"
-  assert_equals_helper 'Valid format and date should return 0' "$LINENO" 0 "$?"
-}
-
 function test_compose_lore_query_url_with_verification_invalid_cases()
 {
   local target_mailing_list
-  local lower_end_in_days_ago
-  local upper_end_in_timestamp
-  local output
-  local expected
-
-  target_mailing_list='amd-gfx'
-  lower_end_in_days_ago=''
-  upper_end_in_timestamp=''
-  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
-  assert_equals_helper 'Empty `lower_end_in_days_ago` should return 22' "$LINENO" 22 "$?"
+  local min_index
 
   target_mailing_list=''
-  lower_end_in_days_ago='8'
-  upper_end_in_timestamp=''
-  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
+  min_index='200'
+  compose_lore_query_url_with_verification "$target_mailing_list" "$min_index"
   assert_equals_helper 'Empty `target_mailing_list` should return 22' "$LINENO" 22 "$?"
 
   target_mailing_list='amd-gfx'
-  lower_end_in_days_ago='8332o14'
+  min_index=''
   upper_end_in_timestamp='2023-01-01T00:00:00Z'
-  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
-  assert_equals_helper 'Invalid `lower_end_in_days_ago` (not an integer) value should return 22' "$LINENO" 22 "$?"
+  compose_lore_query_url_with_verification "$target_mailing_list" "$min_index"
+  assert_equals_helper 'Empty `min_index` value should return 22' "$LINENO" 22 "$?"
 
   target_mailing_list='amd-gfx'
-  lower_end_in_days_ago='8'
-  upper_end_in_timestamp='2023-13-01T00:00:00Z'
-  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
-  assert_equals_helper 'Invalid `upper_end_in_timestamp` (invalid date) value should return 22' "$LINENO" 22 "$?"
+  min_index='20a0'
+  compose_lore_query_url_with_verification "$target_mailing_list" "$min_index"
+  assert_equals_helper 'Invalid `min_index` (not an integer) value should return 22' "$LINENO" 22 "$?"
 
   target_mailing_list='amd-gfx'
-  lower_end_in_days_ago='8'
-  upper_end_in_timestamp='2023/01/01T00:00:00Z'
-  compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp"
-  assert_equals_helper 'Invalid `upper_end_in_timestamp` (wrong timestamp format) value should return 22' "$LINENO" 22 "$?"
+  min_index='200 '
+  compose_lore_query_url_with_verification "$target_mailing_list" "$min_index"
+  assert_equals_helper 'Invalid `min_index` (not an integer) value should return 22' "$LINENO" 22 "$?"
 }
 
 function test_compose_lore_query_url_with_verification_valid_cases()
 {
   local target_mailing_list
-  local lower_end_in_days_ago
-  local upper_end_in_timestamp
+  local min_index
   local output
   local expected
 
   target_mailing_list='amd-gfx'
-  lower_end_in_days_ago='8'
-  upper_end_in_timestamp=''
-  expected='https://lore.kernel.org/amd-gfx/?q=rt:8.day.ago..+AND+NOT+s:Re&x=A'
-  output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp")
-  assert_equals_helper 'Empty `upper_end_in_timestamp` should return 0' "$LINENO" 0 "$?"
+  min_index='200'
+  expected='https://lore.kernel.org/amd-gfx/?q=rt:..+AND+NOT+s:Re&x=A&o=200'
+  output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$min_index")
+  assert_equals_helper 'Valid arguments should return 0' "$LINENO" 0 "$?"
   assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"
 
   target_mailing_list='amd-gfx'
-  lower_end_in_days_ago='8'
-  upper_end_in_timestamp='2023-01-01T00:00:00Z'
-  expected='https://lore.kernel.org/amd-gfx/?q=rt:8.day.ago..2023-01-01T00:00:00Z+AND+NOT+s:Re&x=A'
-  output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$lower_end_in_days_ago" "$upper_end_in_timestamp")
+  min_index='-200'
+  expected='https://lore.kernel.org/amd-gfx/?q=rt:..+AND+NOT+s:Re&x=A&o=-200'
+  output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$min_index")
   assert_equals_helper 'Valid arguments should return 0' "$LINENO" 0 "$?"
   assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"
 }
@@ -592,49 +543,18 @@ function test_process_patchsets()
   assert_equals_helper 'Wrong patchset at index 1' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
 }
 
-function test_reset_current_lore_fetch_session_valid_argument()
+function test_reset_current_lore_fetch_session()
 {
   list_of_mailinglist_patches[0]=1
   list_of_mailinglist_patches[1]=1
   list_of_mailinglist_patches[2]=1
   PATCHSETS_PROCESSED=3
-  DAYS=16
-  LAST_TIMESTAMP='2023-01-01T00:00:00Z'
+  MIN_INDEX=200
 
   reset_current_lore_fetch_session 2
   assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
   assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
-  assert_equals_helper 'Should reset lower end of timeframe' "$LINENO" 2 "$DAYS"
-  assert_equals_helper 'Should reset upper end of timeframe' "$LINENO" '' "$LAST_TIMESTAMP"
-}
-
-function test_reset_current_lore_fetch_session_invalid_argument()
-{
-  list_of_mailinglist_patches[0]=1
-  list_of_mailinglist_patches[1]=1
-  list_of_mailinglist_patches[2]=1
-  PATCHSETS_PROCESSED=3
-  DAYS=16
-  LAST_TIMESTAMP='2023-01-01T00:00:00Z'
-
-  reset_current_lore_fetch_session ''
-  assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
-  assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
-  assert_equals_helper 'Should reset lower end of timeframe' "$LINENO" 14 "$DAYS"
-  assert_equals_helper 'Should reset upper end of timeframe' "$LINENO" '' "$LAST_TIMESTAMP"
-
-  list_of_mailinglist_patches[0]=1
-  list_of_mailinglist_patches[1]=1
-  list_of_mailinglist_patches[2]=1
-  PATCHSETS_PROCESSED=3
-  DAYS=16
-  LAST_TIMESTAMP='2023-01-01T00:00:00Z'
-
-  reset_current_lore_fetch_session '12x00'
-  assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
-  assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
-  assert_equals_helper 'Should reset lower end of timeframe' "$LINENO" 14 "$DAYS"
-  assert_equals_helper 'Should reset upper end of timeframe' "$LINENO" '' "$LAST_TIMESTAMP"
+  assert_equals_helper 'Should reset `MIN_INDEX`' "$LINENO" 0 "$MIN_INDEX"
 }
 
 function test_format_patchsets()
@@ -667,11 +587,22 @@ function test_get_page_starting_index()
   local patchsets_per_page
   local output
 
+  # Mocking `list_of_mailinglist_patches` with 199 patchsets
+  unset list_of_mailinglist_patches
+  declare -gA list_of_mailinglist_patches
+  for i in $(seq 0 199); do
+    list_of_mailinglist_patches["$i"]=1
+  done
+
   page=5
   patchsets_per_page=42
-
   output=$(get_page_starting_index "$page" "$patchsets_per_page")
   assert_equals_helper 'Wrong starting index outputted' "$LINENO" 168 "$output"
+
+  page=5
+  patchsets_per_page=50
+  output=$(get_page_starting_index "$page" "$patchsets_per_page")
+  assert_equals_helper 'Wrong starting index outputted' "$LINENO" 199 "$output"
 }
 
 function test_get_page_ending_index()
@@ -680,11 +611,22 @@ function test_get_page_ending_index()
   local patchsets_per_page
   local output
 
-  page=5
-  patchsets_per_page=42
+  # Mocking `list_of_mailinglist_patches` with 199 patchsets
+  unset list_of_mailinglist_patches
+  declare -gA list_of_mailinglist_patches
+  for i in $(seq 0 199); do
+    list_of_mailinglist_patches["$i"]=1
+  done
 
+  page=3
+  patchsets_per_page=42
   output=$(get_page_ending_index "$page" "$patchsets_per_page")
-  assert_equals_helper 'Wrong ending index outputted' "$LINENO" 209 "$output"
+  assert_equals_helper 'Wrong ending index outputted' "$LINENO" 125 "$output"
+
+  page=5
+  patchsets_per_page=50
+  output=$(get_page_ending_index "$page" "$patchsets_per_page")
+  assert_equals_helper 'Wrong ending index outputted' "$LINENO" 199 "$output"
 }
 
 invoke_shunit

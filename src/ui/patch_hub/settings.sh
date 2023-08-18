@@ -17,7 +17,6 @@ function show_settings_screen()
     'Kernel Tree Path'
     'Kernel Tree Target Branch'
     'Patchsets Per Page'
-    'Lore Requests Timeframe'
   )
   create_menu_options 'Settings' '' 'menu_list_string_array' '' '' 'Return'
   ret="$?"
@@ -42,10 +41,6 @@ function show_settings_screen()
           ;;
         4) # Patchsets Per Page
           change_patchsets_per_page_setting "$lore_config_path"
-          screen_sequence['SHOW_SCREEN']='settings'
-          ;;
-        5) # Lore Requests Timeframe
-          change_lore_requests_timeframe_setting "$lore_config_path"
           screen_sequence['SHOW_SCREEN']='settings'
           ;;
       esac
@@ -202,74 +197,6 @@ function change_patchsets_per_page_setting()
     0) # OK
       new_value=$(printf '%s' "$menu_return_string" | sed 's/\/$//' | cut --delimiter=' ' -f1)
       save_new_lore_config 'patchsets_per_page' "$new_value" "$lore_config_path"
-
-      # As we altered the settings, we need to reload lore.config
-      load_lore_config
-      ;;
-
-    1) # Cancel
-      ;;
-  esac
-}
-
-# This function handles the action of changing the 'lore_requests_timeframe' setting of lore.
-function change_lore_requests_timeframe_setting()
-{
-  local lore_config_path="$1"
-  local message_box
-  local new_value
-  local -a choices
-  local -a check_statuses
-  local index=0
-
-  choices=(
-    '1 week'
-    '2 weeks'
-    '1 month'
-    '6 months'
-  )
-  index=0
-  for choice in "${choices[@]}"; do
-    case "$choice" in
-      '1 week')
-        [[ "${lore_config['lore_requests_timeframe']}" == 7 ]] && check_statuses["$index"]=1
-        ;;
-      '2 weeks')
-        [[ "${lore_config['lore_requests_timeframe']}" == 14 ]] && check_statuses["$index"]=1
-        ;;
-      '1 month')
-        [[ "${lore_config['lore_requests_timeframe']}" == 30 ]] && check_statuses["$index"]=1
-        ;;
-      '6 months')
-        [[ "${lore_config['lore_requests_timeframe']}" == 180 ]] && check_statuses["$index"]=1
-        ;;
-    esac
-    ((index++))
-  done
-
-  message_box='Select the size of the time period that patch-hub will consider when fetching '
-  message_box+='patches from lore.kernel.org servers.'$'\n'
-  message_box+='For more idle lists, a bigger value may work better.'
-  create_choice_list_screen 'Lore Requests Timeframe' "$message_box" 'choices' 'check_statuses'
-
-  case "$?" in
-    0) # OK
-      new_value=$(printf '%s' "$menu_return_string" | sed 's/\/$//')
-      case "$new_value" in
-        '1 week')
-          new_value=7
-          ;;
-        '2 weeks')
-          new_value=14
-          ;;
-        '1 month')
-          new_value=30
-          ;;
-        '6 months')
-          new_value=180
-          ;;
-      esac
-      save_new_lore_config 'lore_requests_timeframe' "$new_value" "$lore_config_path"
 
       # As we altered the settings, we need to reload lore.config
       load_lore_config

@@ -153,7 +153,6 @@ function show_registered_mailing_lists()
     0) # OK
       screen_sequence['SHOW_SCREEN']='latest_patchsets_from_mailing_list'
       current_mailing_list="${registered_mailing_lists["$menu_return_string"]}"
-      reset_current_lore_fetch_session "${lore_config['lore_requests_timeframe']}"
       ;;
     1) # Exit
       handle_exit "$ret"
