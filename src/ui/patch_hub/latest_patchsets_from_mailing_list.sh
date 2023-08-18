@@ -14,8 +14,7 @@ function show_latest_patchsets_from_mailing_list()
 
   create_loading_screen_notification "Loading patchsets from ${current_mailing_list} list"
   # Query patches from mailing list, this info will be saved at `list_of_mailinglist_patches[@]`.
-  fetch_latest_patchsets_from "$current_mailing_list" "$PAGE" \
-    "${lore_config['patchsets_per_page']}" "${lore_config['lore_requests_timeframe']}"
+  fetch_latest_patchsets_from "$current_mailing_list" "$PAGE" "${lore_config['patchsets_per_page']}"
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' "Couldn't fetch patchsets from ${current_mailing_list} list."
     screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
@@ -49,7 +48,7 @@ function show_latest_patchsets_from_mailing_list()
     3) # Previous
       ((PAGE--))
       if [[ "$PAGE" == 0 ]]; then
-        reset_current_lore_fetch_session "${lore_config['lore_requests_timeframe']}"
+        reset_current_lore_fetch_session
         PAGE=1
         formatted_patchsets_list=()
         screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
