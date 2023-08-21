@@ -38,7 +38,7 @@ function _kw_autocomplete()
   kw_options['ssh']='--remote --script --command --verbose --help'
   kw_options['s']="${kw_options['ssh']}"
 
-  kw_options['self-update']='--unstable --help'
+  kw_options['self-update']='--unstable --help --verbose'
   kw_options['u']="${kw_options['self-update']}"
 
   kw_options['maintainers']='--authors --update-patch'

@@ -66,6 +66,11 @@ function test_parse_self_update_options()
 
   unset options_values
   declare -gA options_values
+  parse_self_update_options '--verbose'
+  assertEquals "($LINENO) VERBOSE could not be set" 1 "${options_values['VERBOSE']}"
+
+  unset options_values
+  declare -gA options_values
   parse_self_update_options '-u'
   assertEquals "($LINENO) UNSTABLE could not be set" 1 "${options_values['UNSTABLE']}"
 
