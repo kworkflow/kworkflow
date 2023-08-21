@@ -9,6 +9,9 @@ function self_update_main()
   local target_branch='master'
   local path_to_tmp_dir
   local ret
+  local flag
+
+  flag=${flag:-'SILENT'}
 
   parse_self_update_options "$@"
   if [[ "$?" != 0 ]]; then
@@ -16,6 +19,8 @@ function self_update_main()
     self_update_help
     return 22 # EINVAL
   fi
+
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
   if [[ -n "${options_values['UNSTABLE']}" ]]; then
     target_branch='unstable'
@@ -28,7 +33,7 @@ function self_update_main()
   fi
 
   path_to_tmp_dir=$(mktemp --directory)
-  update_from_official_repo "${target_branch}" "${path_to_tmp_dir}"
+  update_from_official_repo "${target_branch}" "${path_to_tmp_dir}" "$flag"
 
   ret="$?"
   if [[ "$ret" != 0 ]]; then
@@ -122,7 +127,7 @@ function update_from_official_repo()
 
 function parse_self_update_options()
 {
-  local long_options='unstable,help'
+  local long_options='unstable,help,verbose'
   local short_options='u,h'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -132,6 +137,9 @@ function parse_self_update_options()
       "$long_options" "$@")"
     return 22 # EINVAL
   fi
+
+  # Default values
+  options_values['VERBOSE']=''
 
   eval "set -- $options"
 
@@ -144,6 +152,10 @@ function parse_self_update_options()
       --help | -h)
         self_update_help "$1"
         exit
+        ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
         ;;
       --)
         shift

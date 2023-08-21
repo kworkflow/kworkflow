@@ -449,6 +449,7 @@ _kw_u() { _kw_self-update }
 _kw_self-update()
 {
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-u --unstable)'{-u,--unstable}'[update kw based on the unstable branch]'
 }
 
