@@ -27,6 +27,8 @@ function ui_setup()
 
   DEFAULT_WIDTH="$columns"
   DEFAULT_HEIGHT="$lines"
+  DEFAULT_SMALL_WIDTH="$((columns / 2))"
+  DEFAULT_SMALL_HEIGHT="$((lines / 3))"
 
   # Set sefault layout
   if [[ -n "$default_layout" ]]; then
@@ -673,6 +675,71 @@ function create_rangebox_screen()
   cmd+=" '${height}' '${width}'"
   # Set range and default value
   cmd+=" '${min_value}' '${max_value}' '${default_value}'"
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
+
+  run_dialog_command "$cmd" "$flag"
+}
+
+# Create an Inputbox to collect a string from the user. The string typed in the
+# Inputbox is returned in the variable `menu_return_string` if the user hits either
+# the 'Ok' button or the 'Extra' button. An empty string is also a valid input.
+#
+# @box_title: Title of the box
+# @message_box: The message to be displayed
+# @extra_label: Extra label. If not set, the 'Extra' button won't be displayed
+# @cancel_label: Cancel label. If not set, the default is 'Exit'
+# @help_label: Help label. If not set, the 'Help' button won't be displayed
+# @height: Menu height in lines size
+# @width: Menu width in column size
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Returns 0 if the 'Ok' button is pressed, 1 if the 'Cancel' button is pressed,
+# 2 if the 'Help' button is pressed, and 3 if the 'Extra' button is pressed.
+# The `menu_return_string` will store the string in the Inputbox if the user hits
+# either the 'Ok' button or the 'Extra' button. An empty string is also a valid
+# input.
+function create_inputbox_screen()
+{
+  local box_title="$1"
+  local message_box="$2"
+  local extra_label="$3"
+  local cancel_label="$4"
+  local help_label="$5"
+  local height="$6"
+  local width="$7"
+  local flag="$8"
+  local cmd
+
+  cancel_label=${cancel_label:-'Exit'}
+  flag=${flag:-'SILENT'}
+  height=${height:-$DEFAULT_SMALL_HEIGHT}
+  width=${width:-$DEFAULT_SMALL_WIDTH}
+
+  # Escape all single quotes to avoid breaking arguments
+  box_title=$(str_escape_single_quotes "$box_title")
+  message_box=$(str_escape_single_quotes "$message_box")
+  cancel_label=$(str_escape_single_quotes "$cancel_label")
+  extra_label=$(str_escape_single_quotes "$extra_label")
+  help_label=$(str_escape_single_quotes "$help_label")
+
+  cmd=$(build_dialog_command_preamble "$box_title")
+  # Override 'Cancel' button label
+  cmd+=" --cancel-label $'${cancel_label}'"
+  # Add 'Extra' button
+  if [[ -n "${extra_label}" ]]; then
+    cmd+=" --extra-button --extra-label $'${extra_label}'"
+  fi
+  # Add 'Help' button
+  if [[ -n "${help_label}" ]]; then
+    cmd+=" --help-button --help-label $'${help_label}'"
+  fi
+  # Add Inputbox screen
+  cmd+=" --inputbox $'${message_box}'"
+  # Set height and width
+  cmd+=" '${height}' '${width}'"
 
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
