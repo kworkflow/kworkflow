@@ -14,6 +14,8 @@ function setUp()
 
   EXPECTED_DEFAULT_WIDTH=$(eval tput"${TPUTTERM}" cols)
   EXPECTED_DEFAULT_HEIGHT=$(eval tput"${TPUTTERM}" lines)
+  EXPECTED_DEFAULT_SMALL_WIDTH="$((EXPECTED_DEFAULT_WIDTH / 2))"
+  EXPECTED_DEFAULT_SMALL_HEIGHT="$((EXPECTED_DEFAULT_HEIGHT / 3))"
 
   mkdir -p "$TMP_DIR"
   mkdir -p "$KW_ETC_DIR"
@@ -454,6 +456,39 @@ function test_create_rangebox_screen_use_all_options()
   expected_cmd+=" '23' '42' '318'"
   output=$(create_rangebox_screen "$box_title" "$message_box" 23 42 318 'range' 'Cancel' 'box' 2718 31415 'TEST_MODE')
   assert_equals_helper 'Expected Rangebox with all custom options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_inputbox_screen_rely_on_some_default_options()
+{
+  local box_title="Type a 'string' here!"
+  local message_box="This is \`a inputbox'."
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
+  expected_cmd+=" --title $'Type a \'string\' here!' --clear --colors"
+  expected_cmd+=" --cancel-label $'Exit'"
+  expected_cmd+=" --inputbox $'This is \`a inputbox\'.'"
+  expected_cmd+=" '${EXPECTED_DEFAULT_SMALL_HEIGHT}' '${EXPECTED_DEFAULT_SMALL_WIDTH}'"
+  output=$(create_inputbox_screen "$box_title" "$message_box" '' '' '' '' '' 'TEST_MODE')
+  assert_equals_helper 'Expected Inputbox with some default options' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_create_inputbox_screen_use_all_options()
+{
+  local box_title="Type a 'string' here!"
+  local message_box="This is \`a inputbox'."
+  local expected_cmd
+  local output
+
+  expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
+  expected_cmd+=" --title $'Type a \'string\' here!' --clear --colors"
+  expected_cmd+=" --cancel-label $'Cancel'"
+  expected_cmd+=" --extra-button --extra-label $'range' --help-button --help-label $'box'"
+  expected_cmd+=" --inputbox $'This is \`a inputbox\'.'"
+  expected_cmd+=" '11223348' '8498129'"
+  output=$(create_inputbox_screen "$box_title" "$message_box" 'range' 'Cancel' 'box' 11223348 8498129 'TEST_MODE')
+  assert_equals_helper 'Expected Inputbox with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
 function test_build_dialog_command_preamble()
