@@ -7,6 +7,7 @@ declare -ga formatted_patchsets_list
 # These patchsets are ordered by their recieved time in the lore.kernel.org servers.
 function show_latest_patchsets_from_mailing_list()
 {
+  local additional_filters="$1"
   local starting_index
   local ending_index
   local box_title
@@ -14,10 +15,15 @@ function show_latest_patchsets_from_mailing_list()
 
   create_loading_screen_notification "Loading patchsets from ${current_mailing_list} list"
   # Query patches from mailing list, this info will be saved at `list_of_mailinglist_patches[@]`.
-  fetch_latest_patchsets_from "$current_mailing_list" "$PAGE" "${lore_config['patchsets_per_page']}"
+  fetch_latest_patchsets_from "$current_mailing_list" "$PAGE" "${lore_config['patchsets_per_page']}" "$additional_filters"
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' "Couldn't fetch patchsets from ${current_mailing_list} list."
-    screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
+    if [[ -n "$additional_filters" ]]; then
+      screen_sequence['SHOW_SCREEN']='dashboard'
+      screen_sequence['SHOW_SCREEN_PARAMETER']=''
+    else
+      screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
+    fi
     return
   fi
 
@@ -51,7 +57,11 @@ function show_latest_patchsets_from_mailing_list()
         reset_current_lore_fetch_session
         PAGE=1
         formatted_patchsets_list=()
-        screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
+        if [[ -n "$additional_filters" ]]; then
+          screen_sequence['SHOW_SCREEN']='dashboard'
+        else
+          screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
+        fi
       fi
       ;;
   esac

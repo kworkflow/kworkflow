@@ -18,6 +18,7 @@ include "${KW_LIB_DIR}/ui/patch_hub/lore_mailing_lists.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/settings.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/patchset_details_and_actions.sh"
 include "${KW_LIB_DIR}/ui/patch_hub/latest_patchsets_from_mailing_list.sh"
+include "${KW_LIB_DIR}/ui/patch_hub/search_string_in_lore.sh"
 
 # These are references to data structures used all around the state-machine.
 declare -ga bookmarked_series
@@ -63,11 +64,15 @@ function patch_hub_main_loop()
         ret="$?"
         ;;
       'latest_patchsets_from_mailing_list')
-        show_latest_patchsets_from_mailing_list
+        show_latest_patchsets_from_mailing_list "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
         ret="$?"
         ;;
       'bookmarked_patches')
         show_bookmarked_patches
+        ret="$?"
+        ;;
+      'search_string_in_lore')
+        show_search_string_in_lore
         ret="$?"
         ;;
       'settings')
@@ -94,7 +99,12 @@ function dashboard_entry_menu()
   local message_box
   local ret
 
-  menu_list_string_array=('Registered mailing list' 'Bookmarked patches' 'Settings')
+  menu_list_string_array=(
+    'Registered mailing list'
+    'Bookmarked patches'
+    'Search in Lore'
+    'Settings'
+  )
 
   message_box=''
 
@@ -112,7 +122,10 @@ function dashboard_entry_menu()
     1) # Bookmarked patches
       screen_sequence['SHOW_SCREEN']='bookmarked_patches'
       ;;
-    2) # Settings
+    2) # Search in Lore
+      screen_sequence['SHOW_SCREEN']='search_string_in_lore'
+      ;;
+    3) # Settings
       screen_sequence['SHOW_SCREEN']='settings'
       ;;
   esac
@@ -152,6 +165,7 @@ function show_registered_mailing_lists()
   case "$ret" in
     0) # OK
       screen_sequence['SHOW_SCREEN']='latest_patchsets_from_mailing_list'
+      screen_sequence['SHOW_SCREEN_PARAMETER']=''
       current_mailing_list="${registered_mailing_lists["$menu_return_string"]}"
       ;;
     1) # Exit
