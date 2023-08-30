@@ -76,3 +76,52 @@ function is_html_file()
   [[ "$?" == 0 ]] && return 0
   return 1
 }
+
+# This function recieves a string and converts it to contain only characters that
+# are legal to be used within a URL (https://en.wikipedia.org/wiki/Percent-encoding).
+# Only illegal chars are percent-encoded. A percent-encoding of an ASCII char is
+# its ASCII number in hexadecimal format prefixed by a percent '%'. If the char is
+# non-ASCII, each byte of its byte sequence in UTF-8 is treated as an ASCII char
+# and converted accordingly.
+
+# Note: A full URL shouldn't be passed as argument, as the function will probably
+# break it (e.g., it will convert all foward slashes in the string).
+#
+# @string: String to be encoded
+#
+# Return:
+# The function outputs the encoded string and returns 0 in any case. An empty `string`
+# value is a valid argument.
+#
+# CREDITS:
+# This function was adapted to follow kw's coding style, and the primary reference
+# for it is https://github.com/dylanaraps/pure-bash-bible#percent-encode-a-string,
+# from the book 'pure bash bible', which is licensed under the MIT license. Also,
+# credits to meleu (https://github.com/meleu) who wrote a blogpost that can be
+# checked at https://meleu.sh/urlencode, from which this function was first found.
+function url_encode()
+{
+  local string="$1"
+  local LC_ALL
+  local char
+  local encoded_string
+
+  # We create a local `LC_ALL` to not pollute the user settings.
+  # The 'C' is to capture only the 26 ASCII chars from a to z in [a-z] (analogous for [A-Z]).
+  LC_ALL='C'
+
+  # In this loop, we are iterating through each char and encoding it when necessary
+  for ((i = 0; i < ${#string}; i++)); do
+    char="${string:i:1}"
+    if [[ "$char" =~ [a-zA-Z0-9.~_-] ]]; then
+      encoded_string+="$char"
+    else
+      # %% - Literal '%'
+      # %02X - Two digit hexadecimal with 0 preceding, if necessary
+      # "'$char" - ASCII number of "$char"
+      encoded_string+=$(printf '%%%02X' "'$char")
+    fi
+  done
+
+  printf '%s' "$encoded_string"
+}
