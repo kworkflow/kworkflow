@@ -306,8 +306,13 @@ function reset_current_lore_fetch_session()
 # URL composed by this function returns an XML file with only patches
 # ordered by their 'updated' attribute.
 #
+# The function allows the addition of optional filters by the `additional_filters`
+# argument. This argument has to comply with the format of lore API search (see
+# https://lore.kernel.org/amd-gfx/_/text/help/).
+#
 # @target_mailing_list: String with valid public mailing list name
 # @min_index: Minimum exclusive index of patches to be contained in server response
+# @additional_filters: Optional additional filters of query
 #
 # Return:
 # Returns 22 in case the URL produced is invalid or `@target_mailing_list`
@@ -317,6 +322,7 @@ function compose_lore_query_url_with_verification()
 {
   local target_mailing_list="$1"
   local min_index="$2"
+  local additional_filters="$3"
   local query_filter
   local query_url
 
@@ -334,7 +340,8 @@ function compose_lore_query_url_with_verification()
   # TODO: We need to use the query prefix 's:Re:' to filter out replies and match
   # only real patches. Are we filtering possible patches? If no, can we filter more
   # messages to obtain a lighter response file?
-  query_filter="?q=rt:..+AND+NOT+s:Re&x=A&o=${min_index}"
+  query_filter="?x=A&o=${min_index}&q=rt:..+AND+NOT+s:Re"
+  [[ -n "$additional_filters" ]] && query_filter+="+AND+${additional_filters}"
   query_url="${LORE_URL}/${target_mailing_list}/${query_filter}"
   printf '%s' "$query_url"
 }
@@ -478,16 +485,19 @@ function process_patchsets()
 # @page: Positive integer that represents until what page of latest patchsets the fetch
 #   should occur
 # @patchsets_per_page: Number of patchsets per page
+# @additional_filters: Optional additional filters of query
 # @flag: Flag to control function output
 #
 # Return:
 # If either step 1 or 2 fails, returns the error code from these steps, and 0, otherwise.
+# If the fetch has failed (i.e. the returned file is an HTML), return 22 (ENOENT).
 function fetch_latest_patchsets_from()
 {
   local target_mailing_list="$1"
   local page="$2"
   local patchsets_per_page="$3"
-  local flag="$4"
+  local additional_filters="$4"
+  local flag="$5"
   local raw_xml
   local lore_query_url
   local xml_result_file_name
@@ -502,7 +512,7 @@ function fetch_latest_patchsets_from()
 
   while [[ "$PATCHSETS_PROCESSED" -lt "$((page * patchsets_per_page))" ]]; do
     # Building URL for querying lore servers for a xml file with patches.
-    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$MIN_INDEX")
+    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$MIN_INDEX" "$additional_filters")
     ret="$?"
     [[ "$ret" != 0 ]] && return "$ret"
 
@@ -511,10 +521,16 @@ function fetch_latest_patchsets_from()
     ret="$?"
     [[ "$ret" != 0 ]] && return "$ret"
 
+    # If the returned file is an HTML, then the fetch has failed and we should signal the caller.
+    if is_html_file "${CACHE_LORE_DIR}/${xml_result_file_name}"; then
+      return 22 # ENOENT
+    fi
+
     raw_xml=$(< "${CACHE_LORE_DIR}/${xml_result_file_name}")
 
     # If the resulting file doesn't contain any patches, it will be an "empty" XML with
-    # just '</feed>'. This can be considered a heuristic.
+    # just '</feed>' and we can stop the fetch. This is different from a failed fetch
+    # and can be considered a heuristic.
     if [[ "$raw_xml" == '</feed>' ]]; then
       break
     fi
