@@ -114,4 +114,38 @@ function test_is_html_file_with_html_files()
   assert_equals_helper 'Valid HTML file should return 0' "$LINENO" 0 "$?"
 }
 
+function test_url_encode()
+{
+  local output
+  local expected
+
+  output=$(url_encode '')
+  expected=''
+  assert_equals_helper 'Should output an empty string' "$LINENO" "$expected" "$output"
+
+  output=$(url_encode 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+  expected='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  assert_equals_helper 'Should not alter valid ASCII letters' "$LINENO" "$expected" "$output"
+
+  output=$(url_encode '0123456789')
+  expected='0123456789'
+  assert_equals_helper 'Should not alter valid ASCII numbers' "$LINENO" "$expected" "$output"
+
+  output=$(url_encode '.~_-')
+  expected='.~_-'
+  assert_equals_helper 'Should not alter valid ASCII special characters' "$LINENO" "$expected" "$output"
+
+  output=$(url_encode ' !"#$%&'"'"'()*+,/:;<=>?@[\]^`{|}')
+  expected='%20%21%22%23%24%25%26%27%28%29%2A%2B%2C%2F%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E%60%7B%7C%7D'
+  assert_equals_helper 'Should percent-encode all invalid ASCII chars' "$LINENO" "$expected" "$output"
+
+  output=$(url_encode '■éøπ…≤µ∂˚')
+  expected='%E2%96%A0%C3%A9%C3%B8%CF%80%E2%80%A6%E2%89%A4%C2%B5%E2%88%82%CB%9A'
+  assert_equals_helper 'Should correctly percent-encode non-ASCII chars' "$LINENO" "$expected" "$output"
+
+  output=$(url_encode 'string to éncodî')
+  expected='string%20to%20%C3%A9ncod%C3%AE'
+  assert_equals_helper 'Wrong encoding of string' "$LINENO" "$expected" "$output"
+}
+
 invoke_shunit
