@@ -13,16 +13,13 @@ declare -g DEFAULT_GRUB_CMD_UPDATE='grub-mkconfig -o /boot/grub/grub.cfg'
 # 0 if a grub update command exists and 2 otherwise.
 function define_grub_cmd_update()
 {
-  local grub_cmd='grub-mkconfig'
-  local grub2_cmd='grub2-mkconfig'
-
-  if command_exists 'update-grub'; then
+  if [[ -x "$(sudo -u root -i command -v update-grub)" ]]; then
     DEFAULT_GRUB_CMD_UPDATE='update-grub'
     return 0
   fi
 
-  if ! command_exists "$grub_cmd"; then
-    if ! command_exists "$grub2_cmd"; then
+  if [[ ! -x "$(sudo -u root -i command -v grub-mkconfig)" ]]; then
+    if [[ ! -x "$(sudo -u root -i command -v grub2-mkconfig)" ]]; then
       return 2 # ENOENT
     fi
     DEFAULT_GRUB_CMD_UPDATE="grub2-mkconfig -o /boot/grub2/grub.cfg"
