@@ -32,6 +32,11 @@ the union of the recipients of each patch as the recipients of the cover-letter.
   *kworkflow.config* file.
 
 .. note::
+  You can add To\: and CC\: recipients to be included by default using the
+  *default_to_recipients* and *default_cc_recipients* configurations, respectively,
+  in the *mail.config* file.
+
+.. note::
   Any option recognized by ``git send-email`` can be passed directly to it if
   placed after the double dash (``--``) argument.
 

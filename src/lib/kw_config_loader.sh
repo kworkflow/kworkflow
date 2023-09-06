@@ -244,6 +244,8 @@ function show_mail_variables()
   local -Ar mail=(
     [send_opts]='Options to be used when sending a patch'
     [blocked_emails]='Blocked e-mail addresses'
+    [default_to_recipients]='E-mail addresses to always be included as To: recipients'
+    [default_cc_recipients]='E-mail addresses to always be included as CC: recipients'
   )
 
   printf '%s\n' "  kw mail options:"

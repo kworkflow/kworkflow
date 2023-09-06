@@ -133,7 +133,8 @@ _kw_config()
       build.cpu_scaling_factor build.enable_ccache build.warning_level build.use_llvm
       deploy.kw_files_remote_path deploy.deploy_temporary_files_path deploy.deploy_default_compression
       deploy.dtb_copy_pattern deploy.default_deploy_target deploy.reboot_after_deploy
-      deploy.strip_modules_debug_option mail.send_opts mail.blocked_emails
+      deploy.strip_modules_debug_option mail.send_opts mail.blocked_emails mail.default_cc_recipients
+      mail.default_to_recipients
     )'
 
     _multi_parts . "$configs"

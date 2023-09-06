@@ -9,7 +9,7 @@ declare -gA config_file_list=(
           qemu_path_image'
   ['build']='arch kernel_img_name cross_compile menu_config doc_type
              cpu_scaling_factor enable_ccache warning_level use_llvm cflags'
-  ['mail']='send_opts blocked_emails'
+  ['mail']='send_opts blocked_emails default_to_recipients default_cc_recipients'
   ['deploy']='kw_files_remote_path deploy_temporary_files_path
               deploy_default_compression dtb_copy_pattern default_deploy_target
               reboot_after_deploy strip_modules_debug_option

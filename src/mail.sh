@@ -217,6 +217,8 @@ function generate_kernel_recipients()
   local patch_cache="${KW_CACHE_DIR}/patches"
   local cover_letter_to="${patch_cache}/to/cover-letter"
   local cover_letter_cc="${patch_cache}/cc/cover-letter"
+  local default_to_recipients="${mail_config[default_to_recipients]}"
+  local default_cc_recipients="${mail_config[default_cc_recipients]}"
   local get_maintainer_cmd="perl ${kernel_root}/scripts/get_maintainer.pl"
   get_maintainer_cmd+=" --nogit --nogit-fallback --no-r --no-n --multiline"
   get_maintainer_cmd+=" --nokeywords --norolestats --remove-duplicates"
@@ -231,6 +233,14 @@ function generate_kernel_recipients()
 
     to="$(eval "$get_maintainer_cmd --no-l $patch_path")"
     cc="$(eval "$get_maintainer_cmd --no-m $patch_path")"
+
+    if [[ -n "$default_to_recipients" ]]; then
+      to=$(add_recipients "$to" "$default_to_recipients")
+    fi
+
+    if [[ -n "$default_cc_recipients" ]]; then
+      cc=$(add_recipients "$cc" "$default_cc_recipients")
+    fi
 
     if [[ -n "$blocked" ]]; then
       to="$(remove_blocked_recipients "$to" "$blocked")"
@@ -248,6 +258,29 @@ function generate_kernel_recipients()
 
   cc_list="$(sort -u "$cover_letter_cc")"
   printf '%s\n' "$cc_list" > "$cover_letter_cc"
+}
+
+# This function add recipients to a list of initial recipients.
+#
+# @initial_recipients: List of initial recipients separated by newline
+# @additional_recipients: List of additional recipients separated by comma
+#
+# Return:
+# Outputs the added list of recipients.
+function add_recipients()
+{
+  local initial_recipients="$1"
+  local additional_recipients="$2"
+  local recipients
+
+  [[ -n "$initial_recipients" ]] && recipients="$initial_recipients"$'\n'
+
+  IFS=',' read -r -a additional_recipients_list <<< "$additional_recipients"
+  for recipient in "${additional_recipients_list[@]}"; do
+    recipients+="$recipient"$'\n'
+  done
+
+  printf '%s' "$recipients"
 }
 
 # This function filters out any unwanted recipients from the auto generated
