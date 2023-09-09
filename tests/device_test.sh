@@ -6,6 +6,11 @@ include './tests/utils.sh'
 function oneTimeSetUp()
 {
   shopt -s expand_aliases
+}
+
+function setUp()
+{
+  options_values['TARGET']="$LOCAL_TARGET"
   remote_parameters['REMOTE_USER']='john'
   remote_parameters['REMOTE_IP']='something'
   remote_parameters['REMOTE_PORT']='2222'
@@ -14,20 +19,36 @@ function oneTimeSetUp()
 declare -gA configurations
 configurations[ssh_user]=john
 
-function test_get_ram()
+function test_get_ram_from_vm()
 {
   local cmd
   local output
 
   vm_config[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
-  get_ram "$VM_TARGET"
+  options_values['TARGET']="$VM_TARGET"
+  get_ram
   assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
+}
 
-  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
-  output=$(get_ram "$LOCAL_TARGET" 'TEST_MODE')
+function test_get_ram_from_local()
+{
+  local cmd
+  local output
+
+  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
+  options_values['TARGET']="$LOCAL_TARGET"
+  output=$(get_ram 'TEST_MODE')
   assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
+}
 
-  output=$(get_ram "$REMOTE_TARGET" 'TEST_MODE')
+function test_get_ram_from_remote()
+{
+  local cmd
+  local output
+
+  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
+  options_values['TARGET']="$REMOTE_TARGET"
+  output=$(get_ram 'TEST_MODE')
   assert_equals_helper 'Remote target RAM info gathering command did not match expectation' "($LINENO)" "ssh -p 2222 john@something sudo \"$cmd\"" "$output"
 }
 
@@ -135,6 +156,7 @@ function test_display_data()
   device_info_data['motherboard_vendor']='Vendor'
   device_info_data['motherboard_name']='ABC123'
   output=$(show_data)
+
   compare_command_sequence 'Failed to set target data' "$LINENO" 'expected_cmd' "$output"
 }
 
