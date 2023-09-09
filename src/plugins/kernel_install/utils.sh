@@ -679,7 +679,7 @@ function install_kernel()
   # See shellcheck warning SC2024: sudo doesn't affect redirects. That
   # is why we use tee. Also note that the stdin is passed to the eval
   # inside cmd_manager.
-  cmd="grep -Fxq $name $INSTALLED_KERNELS_PATH"
+  cmd="${sudo_cmd}grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
   cmd_manager "$flag" "$cmd"
   if [[ "$?" != 0 ]]; then
     cmd="$sudo_cmd tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"

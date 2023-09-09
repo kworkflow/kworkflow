@@ -624,6 +624,18 @@ function test_kernel_modules()
   }
 }
 
+function test_prepare_local_dir()
+{
+  declare -a expected_out=(
+    "rm --preserve-root=all --recursive --force ${KW_DEPLOY_TMP_FILE}"
+    "mkdir --parents ${KW_DEPLOY_TMP_FILE}"
+    "sudo -E mkdir --parents ${REMOTE_KW_DEPLOY}"
+  )
+
+  output=$(prepare_local_dir 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_out' "$output"
+}
+
 # This test validates the correct behavior of list kernel on a remote machine
 # by checking the expected command sequence; It is important to highlight that
 # we are not testing the actual kernel list code, this part is validated on

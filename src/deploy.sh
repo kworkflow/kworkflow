@@ -611,6 +611,16 @@ function prepare_local_dir()
   if [[ "$ret" != 0 ]]; then
     return 22 # EINVAL
   fi
+
+  # Create /opt/kw folder
+  # TODO: Rename REMOTE_KW_DEPLOY to something more generic since it is used
+  # for local or remote. Keep in mind that you'll need to replace
+  # REMOTE_KW_DEPLOY in this file and in the plugins/kernel_install.
+  cmd_manager "$flag" "sudo -E mkdir --parents ${REMOTE_KW_DEPLOY}"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return 22 # EINVAL
+  fi
 }
 
 # This function list all the available kernels in a VM, local, and remote

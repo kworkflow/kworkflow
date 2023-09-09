@@ -588,7 +588,7 @@ function test_install_kernel_local()
     "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'run_bootloader_update_mock'
-    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+    "sudo -E grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
     'sudo -E reboot'
   )
 
