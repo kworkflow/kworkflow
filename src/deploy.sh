@@ -367,20 +367,28 @@ function update_status_log()
 {
   local target="$1"
   local flag="$2"
+  local cmd=''
   local log_date=''
-  local status_cmd=''
+  local metadata_string=''
+  local kw_status_path=''
 
   flag=${flag:-'SILENT'}
 
   log_date=$(date +'%m/%d/%Y-%H:%M:%S')
-  status_cmd="printf '%s;%s\n' '$target' '$log_date' >> ${KW_STATUS_BASE_PATH}/kw_status"
+
+  [[ "$flag" == 'TEST_MODE' ]] && log_date='TEST_MODE'
+
+  metadata_string="printf '%s;%s\n' '${target}' '${log_date}'"
+  kw_status_path="${KW_STATUS_BASE_PATH}/kw_status"
 
   case "$target" in
     2) # LOCAL_TARGET
-      cmd_manager "$flag" "$status_cmd"
+      cmd="${metadata_string} | sudo -E tee --append ${kw_status_path}"
+      cmd_manager "${flag}" "${cmd}"
       ;;
     3) # REMOTE_TARGET
-      cmd_remotely "$status_cmd" "$flag"
+      cmd="${metadata_string} >> ${kw_status_path}"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 }
