@@ -29,16 +29,16 @@ declare -gA device_options
 
 # This function calls other functions to process and display the hardware
 # information of a target machine.
-function device_info()
+function device_main()
 {
   local ret
   local target
 
   device_info_parser "$@"
-
-  ret="$?"
-  if [[ "$ret" != 0 ]]; then
-    return "$ret"
+  if [[ "$?" != 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    device_info_help "$1"
+    exit 22 # EINVAL
   fi
 
   target="${device_options['target']}"

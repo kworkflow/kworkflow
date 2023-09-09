@@ -198,7 +198,7 @@ function kw()
       (
         include "${KW_LIB_DIR}/device_info.sh"
 
-        device_info "$@"
+        device_main "$@"
       )
       ;;
     backup)
