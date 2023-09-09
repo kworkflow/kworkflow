@@ -62,13 +62,13 @@ function device_main()
 # @target Target machine
 function get_ram()
 {
-  local target="$1"
-  local flag="$2"
+  local flag="$1"
+  local target=${options_values['TARGET']}
   local ram
   local cmd
 
   flag=${flag:-'SILENT'}
-  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
+  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
 
   case "$target" in
     1) # VM_TARGET
@@ -477,7 +477,7 @@ function learn_device()
     fi
   fi
 
-  get_ram "$target" "$flag"
+  get_ram "$flag"
   get_cpu "$target" "$flag"
   get_disk "$target" "$flag"
   get_os "$target" "$flag"
