@@ -266,6 +266,7 @@ function test_prepare_distro_for_deploy_ext4()
     '' # Extra space for the \n
     'sudo -E mv /etc/skel/.screenrc /tmp'
     'sudo -E systemctl restart pacman-init.service'
+    'sudo -E pacman-key --init'
     'sudo -E pacman-key --populate'
     'yes | sudo -E pacman -Syu'
     'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober rng-tools'
@@ -319,6 +320,7 @@ function test_prepare_distro_for_deploy_btrfs()
     'btrfs property get / ro | grep "ro=false" --silent'
     'sudo -E mv /etc/skel/.screenrc /tmp'
     'sudo -E systemctl restart pacman-init.service'
+    'sudo -E pacman-key --init'
     'sudo -E pacman-key --populate'
     'yes | sudo -E pacman -Syu'
     'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober rng-tools'
