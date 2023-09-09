@@ -7,6 +7,8 @@ function oneTimeSetUp()
 {
   shopt -s expand_aliases
   remote_parameters['REMOTE_USER']='john'
+  remote_parameters['REMOTE_IP']='something'
+  remote_parameters['REMOTE_PORT']='2222'
 }
 
 declare -gA configurations
@@ -25,10 +27,8 @@ function test_get_ram()
   output=$(get_ram "$LOCAL_TARGET" 'TEST_MODE')
   assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
 
-  device_options['ip']='127.0.0.1'
-  device_options['port']='2222'
   output=$(get_ram "$REMOTE_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Remote target RAM info gathering command did not match expectation' "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
+  assert_equals_helper 'Remote target RAM info gathering command did not match expectation' "($LINENO)" "ssh -p 2222 john@something sudo \"$cmd\"" "$output"
 }
 
 function test_get_cpu()
@@ -46,12 +46,10 @@ function test_get_cpu()
   compare_command_sequence 'Failed to gather local target CPU data' "$LINENO" 'expected_cmd' "$output"
 
   declare -a expected_cmd=(
-    "ssh -p 2222 john@127.0.0.1 sudo \"lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1\""
-    "ssh -p 2222 john@127.0.0.1 sudo \"lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'\""
+    "ssh -p 2222 john@something sudo \"lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1\""
+    "ssh -p 2222 john@something sudo \"lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'\""
   )
 
-  device_options['ip']='127.0.0.1'
-  device_options['port']='2222'
   output=$(get_cpu "$REMOTE_TARGET" 'TEST_MODE')
   compare_command_sequence 'Failed to gather remote target CPU data' "$LINENO" 'expected_cmd' "$output"
 }
@@ -70,10 +68,8 @@ function test_get_disk()
   output=$(get_disk "$LOCAL_TARGET" 'TEST_MODE')
   assert_equals_helper 'Failed to gather local target disk data' "($LINENO)" "$cmd" "$output"
 
-  device_options['ip']='127.0.0.1'
-  device_options['port']='2222'
   output=$(get_disk "$REMOTE_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Failed to gather remote target disk data' "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
+  assert_equals_helper 'Failed to gather remote target disk data' "($LINENO)" "ssh -p 2222 john@something sudo \"$cmd\"" "$output"
 }
 
 function test_get_motherboard()
@@ -124,7 +120,7 @@ function test_display_data()
     'Name: ABC123'
   )
 
-  device_options['target']="$LOCAL_TARGET"
+  options_values['target']="$LOCAL_TARGET"
   device_info_data['chassis']='Pizza Box'
   device_info_data['ram']='16777216'
   device_info_data['cpu_model']='A model'
