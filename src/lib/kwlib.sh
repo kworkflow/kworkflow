@@ -380,10 +380,15 @@ function statistics_manager()
 # @command The whole command that is meant to be executed
 function command_exists()
 {
-  local command="$1"
-  local package=${command%% *}
+  local cmd="$1"
+  local package=${cmd%% *}
 
   if [[ ! -x "$(command -v "$package")" ]]; then
+    # Fallback
+    # TODO: Right now, this fallback is a workaround that will work until some
+    # distro removes the r-x permission from /usr/sbin. We must find a more
+    # definitive solution to this problem.
+    [[ -x "/usr/sbin/${package}" ]] && return 0
     return 22 # EINVAL
   fi
   return 0
