@@ -310,7 +310,7 @@ function compare_command_sequence()
   while read -r f; do
     if [[ "${expected_res[$count]}" != "${f}" ]]; then
       if ! fail &> /dev/null; then
-        printf '%bASSERT:%b line %s, statement %d: %s\n  %bExpected:%b %b\"%s\"%b\n  %b-> but got:%b %b\"%s\"%b\n' \
+        printf '%bASSERT:%b line %s, statement %d: %s\n  %bExpected:%b %b\"%s\"%b\n  %b but got:%b %b\"%s\"%b\n' \
           "$KW_COLOR_RED" "$KW_COLOR_NONE" "$line" "$count" "${msg}" \
           "$KW_COLOR_GREEN" "$KW_COLOR_NONE" "$KW_COLOR_GREEN" "${expected_res[$count]}" "$KW_COLOR_NONE" \
           "$KW_COLOR_RED" "$KW_COLOR_NONE" "$KW_COLOR_RED" "${f}" "$KW_COLOR_NONE"

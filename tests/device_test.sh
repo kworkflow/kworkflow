@@ -35,8 +35,8 @@ function test_get_cpu()
 {
   local output
   declare -a expected_cmd=(
-    "lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1"
-    "lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'"
+    "lscpu | grep 'Model name:' | sed --regexp-extended 's/Model name:\s+//g' | cut --delimiter=' ' -f1"
+    "lscpu | grep MHz | sed --regexp-extended 's/(CPU.*)/\t\t\1/'"
   )
 
   get_cpu "$VM_TARGET"
@@ -46,8 +46,8 @@ function test_get_cpu()
   compare_command_sequence 'Failed to gather local target CPU data' "$LINENO" 'expected_cmd' "$output"
 
   declare -a expected_cmd=(
-    "ssh -p 2222 john@something sudo \"lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1\""
-    "ssh -p 2222 john@something sudo \"lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'\""
+    "ssh -p 2222 john@something sudo \"lscpu | grep 'Model name:' | sed --regexp-extended 's/Model name:\s+//g' | cut --delimiter=' ' -f1\""
+    "ssh -p 2222 john@something sudo \"lscpu | grep MHz | sed --regexp-extended 's/(CPU.*)/\t\t\1/'\""
   )
 
   output=$(get_cpu "$REMOTE_TARGET" 'TEST_MODE')
@@ -60,11 +60,11 @@ function test_get_disk()
   local output
 
   vm_config[mount_point]='somewhere/to/mount'
-  cmd="df -h ${vm_config[mount_point]} | tail -n 1 | tr -s ' '"
+  cmd="df -h ${vm_config[mount_point]} | tail --lines=1 | tr --squeeze-repeats ' '"
   output=$(get_disk "$VM_TARGET" 'TEST_MODE')
   assert_equals_helper 'Failed to gather VM target disk data' "($LINENO)" "$cmd" "$output"
 
-  cmd="df -h / | tail -n 1 | tr -s ' '"
+  cmd="df -h / | tail --lines=1 | tr --squeeze-repeats ' '"
   output=$(get_disk "$LOCAL_TARGET" 'TEST_MODE')
   assert_equals_helper 'Failed to gather local target disk data' "($LINENO)" "$cmd" "$output"
 
@@ -298,7 +298,7 @@ function test_get_gpu()
 
   # Check local deploy calls the expected commands
   declare -a expected_cmd=(
-    "lspci | grep -e VGA -e Display -e 3D | cut -d' ' -f1"
+    "lspci | grep --regexp=VGA --regexp=Display --regexp=3D | cut --delimiter=' ' -f1"
     'lspci -v -s 01:00.0'
     'lspci -v -s 00:02.0'
   )
