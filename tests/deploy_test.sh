@@ -329,27 +329,28 @@ function test_prepare_distro_for_deploy_btrfs()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_update_status_log()
+function test_update_status_log_remote_target()
 {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
-  local log_date
   local cmd
-  local expected_data
 
   # Remote
-  log_date=$(date)
-  cmd="\"printf '%s;%s\n' '3' '$log_date' >> ${KW_STATUS_BASE_PATH}/kw_status\""
+  cmd="\"printf '%s;%s\n' '3' 'TEST_MODE' >> ${KW_STATUS_BASE_PATH}/kw_status\""
   output=$(update_status_log 3 'TEST_MODE')
 
-  assert_equals_helper 'Status file remote' "$LINENO" "$ssh_prefix $cmd" "$output"
+  assert_equals_helper 'Status file remote' "$LINENO" "${ssh_prefix} ${cmd}" "$output"
+}
 
-  # Local
-  update_status_log 2
-  output=$(cat "$SHUNIT_TMPDIR/kw_status")
-  expected_data='2;12/31/2021-09:49:21'
+function test_update_status_log_local_target()
+{
+  local output
+  local expected_cmd
 
-  assert_equals_helper 'Status file data' "$LINENO" "$expected_data" "$output"
+  expected_cmd="printf '%s;%s\n' '2' 'TEST_MODE' | sudo -E tee --append ${KW_STATUS_BASE_PATH}/kw_status"
+  output=$(update_status_log 2 'TEST_MODE')
+
+  assert_equals_helper 'Local deploy command' "$LINENO" "$expected_cmd" "$output"
 }
 
 function test_check_setup_status()
