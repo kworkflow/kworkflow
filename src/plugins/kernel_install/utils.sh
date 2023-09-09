@@ -227,7 +227,12 @@ function distro_deploy_setup()
   # Install required packages
   printf -v package_list '%s ' "${required_packages[@]}"
 
-  install_package_cmd="$package_manager_cmd $package_list"
+  install_package_cmd="${package_manager_cmd} ${package_list}"
+
+  if [[ "$target" == 2 ]]; then
+    install_package_cmd="sudo -E ${install_package_cmd}"
+  fi
+
   cmd_manager "$flag" "$install_package_cmd"
 }
 

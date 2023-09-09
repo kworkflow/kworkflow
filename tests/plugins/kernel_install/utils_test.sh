@@ -624,6 +624,25 @@ function test_distro_deploy_setup()
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
 }
 
+function test_distro_deploy_setup_local()
+{
+  local output
+  local expected_cmd
+
+  package_manager_cmd='yes | some_package_manager'
+  required_packages=(
+    'abc'
+    'def'
+    'xpto'
+  )
+
+  output=$(distro_deploy_setup 'TEST_MODE' 2)
+
+  expected_cmd="sudo -E ${package_manager_cmd} ${required_packages[*]} "
+
+  assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
+}
+
 function test_detect_filesystem_type()
 {
   local output
