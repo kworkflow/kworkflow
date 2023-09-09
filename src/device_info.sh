@@ -3,7 +3,7 @@
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
-include "$KW_LIB_DIR/vm.sh"
+include "${KW_LIB_DIR}/vm.sh"
 
 declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['cpu_model']=''                       # CPU model vendor
@@ -31,9 +31,6 @@ declare -gA options_values
 # information of a target machine.
 function device_main()
 {
-  local ret
-  local target
-
   if [[ "$1" =~ -h|--help ]]; then
     device_info_help "$1"
     exit 0
@@ -46,9 +43,7 @@ function device_main()
     exit 22 # EINVAL
   fi
 
-  target="${options_values['TARGET']}"
-
-  if [[ "$target" == "$REMOTE_TARGET" ]]; then
+  if [[ "${options_values['TARGET']}" == "$REMOTE_TARGET" ]]; then
     # Check connection before try to work with remote
     is_ssh_connection_configured 'SILENT'
     if [[ "$?" != 0 ]]; then
@@ -77,7 +72,7 @@ function get_ram()
 
   case "$target" in
     1) # VM_TARGET
-      ram="$(printf '%s\n' "${vm_config[qemu_hw_options]}" | sed -r 's/.*-m ?([0-9]+).*/\1/')"
+      ram="$(printf '%s\n' "${vm_config[qemu_hw_options]}" | sed --regexp-extended 's/.*-m ?([0-9]+).*/\1/')"
       ram="$(numfmt --from-unit=M --to-unit=K "$ram")"
       ;;
     2) # LOCAL_TARGET
@@ -110,8 +105,8 @@ function get_cpu()
   local cpu_min
 
   flag=${flag:-'SILENT'}
-  cmd_frequency="lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'"
-  cmd_model="lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1"
+  cmd_model="lscpu | grep 'Model name:' | sed --regexp-extended 's/Model name:\s+//g' | cut --delimiter=' ' -f1"
+  cmd_frequency="lscpu | grep MHz | sed --regexp-extended 's/(CPU.*)/\t\t\1/'"
 
   case "$target" in
     1) #VM_TARGET
@@ -130,8 +125,7 @@ function get_cpu()
   device_info_data['cpu_model']="$cpu_model"
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$cpu_model" \
-      "$cpu_frequency"
+    printf '%s\n%s\n' "$cpu_model" "$cpu_frequency"
     return 0
   fi
 
@@ -163,10 +157,10 @@ function get_disk()
   local fs
 
   flag=${flag:-'SILENT'}
-  cmd="df -h / | tail -n 1 | tr -s ' '"
+  cmd="df -h / | tail --lines=1 | tr --squeeze-repeats ' '"
   case "$target" in
     1) # VM_TARGET
-      cmd="df -h ${vm_config[mount_point]} | tail -n 1 | tr -s ' '"
+      cmd="df -h ${vm_config[mount_point]} | tail --lines=1 | tr --squeeze-repeats ' '"
       info=$(cmd_manager "$flag" "$cmd")
       ;;
     2) # LOCAL_TARGET
@@ -227,11 +221,12 @@ function get_os()
       raw_os_release=$(cmd_remotely "$cmd" "$flag")
       ;;
   esac
-  raw_os_release=$(printf '%s\n' "$raw_os_release" | sed -n -e '/^NAME=/p' -e '/^VERSION=/p' -e '/^ID_LIKE=/p')
+
+  raw_os_release=$(printf '%s\n' "$raw_os_release" | sed --quiet --expression='/^NAME=/p' --expression='/^VERSION=/p' --expression='/^ID_LIKE=/p')
   # the last sed serves to remove the double quotes if present
-  os_name=$(printf '%s\n' "$raw_os_release" | sed -n -E "s/^NAME=//p" | tail -n1 | sed -E "s|^(['\"])(.*)\1$|\2|g")
-  os_version=$(printf '%s\n' "$raw_os_release" | sed -n -E "s/^VERSION=//p" | tail -n1 | sed -E "s|^(['\"])(.*)\1$|\2|g")
-  os_id_like=$(printf '%s\n' "$raw_os_release" | sed -n -E "s/^ID_LIKE=//p" | tail -n1 | sed -E "s|^(['\"])(.*)\1$|\2|g")
+  os_name=$(printf '%s\n' "$raw_os_release" | sed --quiet --regexp-extended "s/^NAME=//p" | tail -n1 | sed --regexp-extended "s|^(['\"])(.*)\1$|\2|g")
+  os_version=$(printf '%s\n' "$raw_os_release" | sed --quiet --regexp-extended "s/^VERSION=//p" | tail -n1 | sed --regexp-extended "s|^(['\"])(.*)\1$|\2|g")
+  os_id_like=$(printf '%s\n' "$raw_os_release" | sed --quiet --regexp-extended "s/^ID_LIKE=//p" | tail -n1 | sed --regexp-extended "s|^(['\"])(.*)\1$|\2|g")
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
     printf '%s\n' "$cmd"
@@ -260,11 +255,11 @@ function get_desktop_environment()
   flag=${flag:-'SILENT'}
 
   target=${target:-"${options_values['TARGET']}"}
-  cmd="ps -A | grep -v dev | grep -io -E -m1 $ux_regx"
+  cmd="ps -A | grep --invert-match dev | grep --ignore-case --only-matching --extended-regexp --max-count=1 ${ux_regx}"
 
   case "$target" in
     1) # VM_TARGET
-      desktop_env=$(find "${vm_config[mount_point]}/usr/share/xsessions" -type f -printf '%f ' | sed -r 's/\.desktop//g')
+      desktop_env=$(find "${vm_config[mount_point]}/usr/share/xsessions" -type f -printf '%f ' | sed --regexp-extended 's/\.desktop//g')
       ;;
     2) # LOCAL_TARGET
       desktop_env=$(cmd_manager "$flag" "$cmd")
@@ -313,24 +308,24 @@ function get_gpu()
   # The first thing we want to do is retrieve all PCI addresses from any GPU in
   # the target machine. After that, we will get, for each GPU, the desired
   # information.
-  cmd_pci_address="lspci | grep -e VGA -e Display -e 3D | cut -d' ' -f1"
+  cmd_pci_address="lspci | grep --regexp=VGA --regexp=Display --regexp=3D | cut --delimiter=' ' -f1"
   case "$target" in
     2) # LOCAL_TARGET
       pci_addresses=$(cmd_manager "$flag" "$cmd_pci_address")
       for g in $pci_addresses; do
         gpu_info=$(cmd_manager "$flag" "lspci -v -s $g")
-        gpu_name=$(printf '%s\n' "$gpu_info" | sed -nr '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
-        gpu_provider=$(printf '%s\n' "$gpu_info" | sed -nr '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
-        gpus["$g"]="$gpu_name;$gpu_provider"
+        gpu_name=$(printf '%s\n' "$gpu_info" | sed --quiet --regexp-extended '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
+        gpu_provider=$(printf '%s\n' "$gpu_info" | sed --quiet --regexp-extended '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
+        gpus["$g"]="${gpu_name};${gpu_provider}"
       done
       ;;
     3) # REMOTE_TARGET
       pci_addresses=$(cmd_remotely "$cmd_pci_address" "$flag")
       for g in $pci_addresses; do
         gpu_info=$(cmd_remotely "lspci -v -s ${g}" "$flag")
-        gpu_name=$(printf '%s\n' "$gpu_info" | sed -nr '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
-        gpu_provider=$(printf '%s\n' "$gpu_info" | sed -nr '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
-        gpus["$g"]="$gpu_name;$gpu_provider"
+        gpu_name=$(printf '%s\n' "$gpu_info" | sed --quiet --regexp-extended '/Subsystem/s/\s*.*:\s+(.*)/\1/p')
+        gpu_provider=$(printf '%s\n' "$gpu_info" | sed --quiet --regexp-extended '/controller/s/.+controller: *([^\[\(]+).+/\1/p')
+        gpus["$g"]="${gpu_name};${gpu_provider}"
       done
       ;;
   esac
@@ -353,8 +348,8 @@ function get_motherboard()
   local mb_vendor
   local cmd_name
   local cmd_vendor
-  local fallback_name_cmd="cat /proc/cpuinfo | grep Model | cut -d ':' -f2"
-  local fallback_vendor_cmd="cat /proc/cpuinfo | grep Hardware | cut -d ':' -f2"
+  local fallback_name_cmd="cat /proc/cpuinfo | grep Model | cut --delimiter=':' -f2"
+  local fallback_vendor_cmd="cat /proc/cpuinfo | grep Hardware | cut --eliminate=':' -f2"
 
   flag=${flag:-'SILENT'}
   cmd_name='[ -f /sys/devices/virtual/dmi/id/board_name ] && cat /sys/devices/virtual/dmi/id/board_name'
@@ -451,8 +446,8 @@ function get_img_info()
   local img_type
 
   img_info=$(file "${vm_config[qemu_path_image]}")
-  img_size=$(printf '%s\n' "$img_info" | sed -r 's/.*: .+, ([0-9]+) bytes/\1/')
-  img_type=$(printf '%s\n' "$img_info" | sed -r 's/.*: (.+),.+/\1/')
+  img_size=$(printf '%s\n' "$img_info" | sed --regexp-extended 's/.*: .+, ([0-9]+) bytes/\1/')
+  img_type=$(printf '%s\n' "$img_info" | sed --regexp-extended 's/.*: (.+),.+/\1/')
 
   # The variable img_size stores the image size in bytes. It has to be converted
   # to kB when we store it in the device_info_data variable.
@@ -642,7 +637,7 @@ function device_info_parser()
 function device_info_help()
 {
   if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
+    include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'device'
     return
   fi
