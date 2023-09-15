@@ -1,0 +1,5 @@
+entry,foo,0
+entry,bar,1000000
+return,bar,12000000
+entry,foobar,20000000
+exit,foobar,271000000
