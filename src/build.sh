@@ -26,7 +26,7 @@ function build_kernel_main()
   local optimizations
   local cpu_scaling_factor
   local parallel_cores
-  local warning
+  local warnings
   local output_path
   local llvm
   local env_name
