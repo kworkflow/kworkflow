@@ -129,6 +129,26 @@ function test_set_config_with_a_path_as_value()
   assert_equals_helper 'Change llvm' "($LINENO)" "$output" 'qemu_path_image=/DATA/QEMU_VMS/virty.qcow2'
 }
 
+function test_set_config_with_verbose_mode()
+{
+  local option
+  local new_value
+  local config_path
+  local output
+  local expected
+
+  option="default_to_recipients"
+  new_value="test@email.com"
+  config_path="${KW_CONFIG_BASE_PATH}/mail.config"
+  expected+="sed --in-place --regexp-extended --follow-symlinks \"s<(default_to_recipients=).*<\1test@email.com<\" \"${config_path}\""
+  expected+=$'\n'
+  expected+="sed --in-place --regexp-extended --follow-symlinks \"s<\#\s*default_to_recipients<default_to_recipients<\" \"${config_path}\""
+
+  output="$(set_config_value "$option" "$new_value" "$config_path" "VERBOSE")"
+
+  assert_equals_helper 'Wrong verbose output' "$LINENO" "$expected" "$output"
+}
+
 function test_check_if_target_config_exist()
 {
   check_if_target_config_exist 'vm' 'vm.config'
@@ -140,29 +160,41 @@ function test_check_if_target_config_exist()
 
 function test_parse_config_options()
 {
-  unset options_values
-  declare -gA options_values
+  # shellcheck disable=SC2317
+  function reset_options_values()
+  {
+    unset options_values
+    declare -gA options_values
+  }
 
+  reset_options_values
   parse_config_options
   assert_equals_helper 'Expected local as a default scope' \
     "($LINENO)" 'local' "${options_values['SCOPE']}"
 
   # test default options
+  reset_options_values
   parse_config_options --global
-
   assert_equals_helper 'Set global scope' \
     "($LINENO)" 'global' "${options_values['SCOPE']}"
 
+  reset_options_values
   parse_config_options --local
   assert_equals_helper 'Set local scope' \
     "($LINENO)" 'local' "${options_values['SCOPE']}"
 
+  reset_options_values
   parse_config_options 'build.something=xpto'
   assert_equals_helper 'Expected <build.something=xpto>' \
     "($LINENO)" 'build.something=xpto ' "${options_values['PARAMETERS']}"
 
+  reset_options_values
   parse_config_options --invalid
   assertEquals "($LINENO)" 22 "$?"
+
+  reset_options_values
+  parse_config_options --verbose
+  assertEquals "($LINENO):" '1' "${options_values['VERBOSE']}"
 }
 
 function test_show_configurations_without_parameters()

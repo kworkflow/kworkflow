@@ -147,6 +147,7 @@ _kw_config()
   fi
 
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-g --global -l --local -s --show)'{-g,--global}'[set global configuration]' \
     '(-l --local -g --global -s --show)'{-l,--local}'[set local configuration]' \
     '(-s --show -g --global -l --local)'{-s,--show}'[display current configurations]: :(vm kworkflow notification build deploy mail)' \

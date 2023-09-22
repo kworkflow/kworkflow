@@ -7,8 +7,8 @@ kw-config
 SYNOPSIS
 ========
 | *kw* (*g* | *config*)
-| *kw* (*g* | *config*) [(-g | \--global)] <config.option value>
-| *kw* (*g* | *config*) [(-l | \--local)] <config.option value>
+| *kw* (*g* | *config*) [\--verbose] [(-g | \--global)] <config.option value>
+| *kw* (*g* | *config*) [\--verbose] [(-l | \--local)] <config.option value>
 | *kw* (*g* | *config*) (-s | \--show) [<config_target>]...
 
 
@@ -36,7 +36,10 @@ OPTIONS
   configuration.
 
 -s, \--show:
-  Display current configurations
+  Display current configurations.
+
+\--verbose:
+  Display commands executed under the hood.
 
 EXAMPLES
 ========
@@ -57,3 +60,7 @@ If you want to display all configurations you could use::
 If you want to display deploy configurations you could use::
 
   kw config -s deploy
+
+In case of any issue, you can try to enable the verbose option::
+
+  kw config --verbose kworkflow.alert vs
