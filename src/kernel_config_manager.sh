@@ -193,13 +193,13 @@ function cleanup()
 
   # Setting dotglob to include hidden files when running 'mv'
   shopt -s dotglob
-  if [[ -d "$KW_CACHE_DIR/config" ]]; then
-    cmd_manager "$flag" "mv $KW_CACHE_DIR/config/* $PWD"
-    cmd_manager "$flag" "rmdir $KW_CACHE_DIR/config"
+  if [[ -d "${KW_CACHE_DIR}/config" ]]; then
+    cmd_manager "$flag" "mv ${KW_CACHE_DIR}/config/* ${PWD}"
+    cmd_manager "$flag" "rmdir ${KW_CACHE_DIR}/config"
   fi
 
-  if [[ -f "$KW_CACHE_DIR/lsmod" ]]; then
-    cmd_manager "$flag" "rm $KW_CACHE_DIR/lsmod"
+  if [[ -f "${KW_CACHE_DIR}/lsmod" ]]; then
+    cmd_manager "$flag" "rm ${KW_CACHE_DIR}/lsmod"
   fi
 
   say 'Exiting...'
@@ -224,15 +224,15 @@ function get_config_from_proc()
   local output="$2"
   local target="$3"
   local ret
-  local -r CMD_LOAD_CONFIG_MODULE="modprobe -q configs && [ -s $PROC_CONFIG_PATH ]"
-  local CMD_GET_CONFIG="zcat /proc/config.gz > $output"
+  local -r CMD_LOAD_CONFIG_MODULE="modprobe -q configs && [ -s ${PROC_CONFIG_PATH} ]"
+  local CMD_GET_CONFIG="zcat /proc/config.gz > ${output}"
   local config_base_path="$PWD"
 
   if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
     config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
   fi
 
-  [[ "$target" == 3 ]] && CMD_GET_CONFIG="zcat /proc/config.gz > /tmp/$output"
+  [[ "$target" == 3 ]] && CMD_GET_CONFIG="zcat /proc/config.gz > /tmp/${output}"
 
   case "$target" in
     1) # VM
@@ -243,7 +243,7 @@ function get_config_from_proc()
       # Try to find /proc/config, if we cannot find, attempt to load the module
       # and try it again. If we fail, give of of using /proc/config
       if [[ ! -f "$PROC_CONFIG_PATH" ]]; then
-        cmd_manager "$flag" "sudo $CMD_LOAD_CONFIG_MODULE"
+        cmd_manager "$flag" "sudo ${CMD_LOAD_CONFIG_MODULE}"
         [[ "$?" != 0 ]] && return 95 # Operation not supported
       fi
 
@@ -251,7 +251,7 @@ function get_config_from_proc()
       return 0
       ;;
     3) # REMOTE
-      cmd_remotely "[ -f $PROC_CONFIG_PATH ]" "$flag"
+      cmd_remotely "[ -f ${PROC_CONFIG_PATH} ]" "$flag"
       if [[ "$?" != 0 ]]; then
         cmd_remotely "$CMD_LOAD_CONFIG_MODULE" "$flag"
         [[ "$?" != 0 ]] && return 95 # Operation not supported
@@ -299,17 +299,17 @@ function get_config_from_boot()
       return 95 # We do not support this option with VM
       ;;
     2) # LOCAL
-      cmd="cp ${root}boot/config-$(uname -r) $output 2>/dev/null"
+      cmd="cp ${root}boot/config-$(uname -r) ${output} 2>/dev/null"
       cmd_manager "$flag" "$cmd"
       [[ "$?" != 0 ]] && return 95 # ENOTSUP
       return 0
       ;;
     3) # REMOTE
       kernel_release=$(cmd_remotely 'uname -r' "$flag")
-      cmd_remotely "[ -f ${root}boot/config-$kernel_release ]" "$flag"
+      cmd_remotely "[ -f ${root}boot/config-${kernel_release} ]" "$flag"
       [[ "$?" != 0 ]] && return 95 # ENOTSUP
 
-      remote2host "$flag" "${root}boot/config-$kernel_release" "$config_base_path"
+      remote2host "$flag" "${root}boot/config-${kernel_release}" "$config_base_path"
       return 0
       ;;
   esac
@@ -345,13 +345,13 @@ function get_config_from_defconfig()
   arch=${build_config[arch]:-${configurations[arch]}}
 
   # Build command
-  [[ -n "$arch" ]] && cmd+=" ARCH=$arch"
-  [[ -n "$cross_compile" ]] && cmd+=" CROSS_COMPILE=$cross_compile"
+  [[ -n "$arch" ]] && cmd+=" ARCH=${arch}"
+  [[ -n "$cross_compile" ]] && cmd+=" CROSS_COMPILE=${cross_compile}"
 
   # If the --output option is passed, we don't want to override the current
   # config
-  if [[ -f "$PWD/.config" && "$output" != '.config' ]]; then
-    cmd+=" && mv $PWD/.config $output && mv $KW_CACHE_DIR/config/.config $PWD/.config"
+  if [[ -f "${PWD}/.config" && "$output" != '.config' ]]; then
+    cmd+=" && mv ${PWD}/.config ${output} && mv ${KW_CACHE_DIR}/config/.config ${PWD}/.config"
   fi
 
   cmd_manager "$flag" "$cmd"
@@ -412,15 +412,15 @@ function fetch_config()
   # Folder to store files in case there's an interruption and we need to return
   # things to the state they were before or in case we need a place to store
   # files temporarily.
-  mkdir -p "$KW_CACHE_DIR/config"
+  mkdir -p "${KW_CACHE_DIR}/config"
 
   if [[ -f "${config_base_path}/${output}" ]]; then
-    if [[ -z "$force" && $(ask_yN "Do you want to overwrite $output in your current directory?") =~ "0" ]]; then
+    if [[ -z "$force" && $(ask_yN "Do you want to overwrite ${output} in your current directory?") =~ "0" ]]; then
       warning 'Operation aborted'
       return 125 #ECANCELED
     fi
 
-    cp "${config_base_path}/${output}" "$KW_CACHE_DIR/config"
+    cp "${config_base_path}/${output}" "${KW_CACHE_DIR}/config"
   fi
 
   # If --output is provided, we need to backup the current config file
@@ -468,7 +468,7 @@ function fetch_config()
         ;;
     esac
 
-    printf "%s" "$mods" > "$KW_CACHE_DIR/lsmod"
+    printf "%s" "$mods" > "${KW_CACHE_DIR}/lsmod"
 
     cmd="make localmodconfig LSMOD=${KW_CACHE_DIR}/lsmod${output_kbuild_flag}"
 
@@ -480,7 +480,7 @@ function fetch_config()
     # .config, run 'make localmodconfig', then move things back to place.
     if [[ "$output" != '.config' ]]; then
       if [[ -f "${config_base_path}/.config" ]]; then
-        cmd_manager "$flag" "mv ${config_base_path}/$output ${config_base_path}/.config"
+        cmd_manager "$flag" "mv ${config_base_path}/${output} ${config_base_path}/.config"
         cmd_manager "$flag" "$cmd"
         cmd_manager "$flag" "mv ${config_base_path}/.config ${config_base_path}/${output}"
         cmd_manager "$flag" "mv ${KW_CACHE_DIR}/config/.config ${config_base_path}/.config"
@@ -493,10 +493,10 @@ function fetch_config()
       cmd_manager "$flag" "$cmd"
     fi
 
-    rm -f "$KW_CACHE_DIR/lsmod"
+    rm -f "${KW_CACHE_DIR}/lsmod"
   fi
 
-  rm -rf "$KW_CACHE_DIR/config"
+  rm -rf "${KW_CACHE_DIR}/config"
   success 'Successfully retrieved' "$output"
 }
 
@@ -563,7 +563,7 @@ function basic_config_validations()
   if [[ "$force" != 1 ]]; then
     warning "$message"
     if [[ $(ask_yN 'Are you sure that you want to proceed?') =~ '0' ]]; then
-      say "$operation operation aborted"
+      say "${operation} operation aborted"
       exit 0
     fi
   fi
@@ -677,11 +677,11 @@ function parse_kernel_config_manager_options()
 
   populate_remote_info ''
   if [[ "$?" == 22 ]]; then
-    options_values['ERROR']="Invalid remote: $remote"
+    options_values['ERROR']="Invalid remote: ${remote}"
     return 22 # EINVAL
   fi
 
-  eval "set -- $options"
+  eval "set -- ${options}"
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --force | -f)
@@ -738,7 +738,7 @@ function parse_kernel_config_manager_options()
         shift
         ;;
       *)
-        complain "Invalid option: $1"
+        complain "Invalid option: ${1}"
         exit 22 # EINVAL
         ;;
     esac
@@ -759,7 +759,7 @@ function parse_kernel_config_manager_options()
 function config_manager_help()
 {
   if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
+    include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'kernel-config-manager'
     return
   fi
