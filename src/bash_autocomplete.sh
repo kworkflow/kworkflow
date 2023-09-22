@@ -48,7 +48,7 @@ function _kw_autocomplete()
                                        --remove --fetch --output --optimize --remote'
   kw_options['k']="${kw_options['kernel-config-manager']}"
 
-  kw_options['config']='--local --global --show --help'
+  kw_options['config']='--local --global --show --help --verbose'
 
   kw_options['remote']='add remove rename --list --global --set-default --verbose'
 

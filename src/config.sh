@@ -22,6 +22,7 @@ declare -gA config_file_list=(
 
 function config_main()
 {
+  local flag
   local parameters
   local target_config_file
   local option_and_value
@@ -30,6 +31,8 @@ function config_main()
   local is_show_configurations=false
   local option
   local value
+
+  flag=${flag:-'SILENT'}
 
   if [[ "$1" =~ -h|--help ]]; then
     config_help "$1"
@@ -41,6 +44,8 @@ function config_main()
     complain "Invalid option: ${options_values['ERROR']}"
     return 22 # EINVAL
   fi
+
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
   parameters="${options_values['PARAMETERS']}"
   is_show_configurations="${options_values['IS_SHOW_CONFIGURATIONS']}"
@@ -100,7 +105,7 @@ function config_main()
     return 22 # EINVAL
   fi
 
-  set_config_value "$option" "$value" "$base_path"
+  set_config_value "$option" "$value" "$base_path" "$flag"
 }
 
 function validate_option_parameter()
@@ -179,6 +184,8 @@ function check_if_target_config_exist()
 #
 # @option: option name in kw config file
 # @value: value to set option to
+# @path: path to config file
+# @flag: flag to control the behavior of cmd_manager
 #
 # Return:
 # In case of success return 0, otherwise, return 22.
@@ -187,6 +194,9 @@ function set_config_value()
   local option="$1"
   local value="$2"
   local path="$3"
+  local flag="$4"
+
+  flag=${flag:-'SILENT'}
 
   path=${path:-"${PWD}/${KW_DIR}/${name}"}
 
@@ -194,13 +204,13 @@ function set_config_value()
   # work well if we deal with paths. Here we had to break the pattern a little
   # bit and use < instead of / after the s option to ensure that we accept
   # paths in the config option.$
-  sed --in-place --regexp-extended --follow-symlinks "s<(${option}=).*<\1${value}<" "${path}"
-  sed --in-place --regexp-extended --follow-symlinks "s<#\s*${option}<${option}<" "$path"
+  cmd_manager "$flag" "sed --in-place --regexp-extended --follow-symlinks \"s<(${option}=).*<\1${value}<\" \"${path}\""
+  cmd_manager "$flag" "sed --in-place --regexp-extended --follow-symlinks \"s<\#\s*${option}<${option}<\" \"${path}\""
 }
 
 function parse_config_options()
 {
-  local long_options='help,global,local,show'
+  local long_options='help,global,local,show,verbose'
   local short_options='h,g,l,s'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -215,9 +225,13 @@ function parse_config_options()
   options_values['SCOPE']='local'
   options_values['PARAMETERS']=''
   options_values['IS_SHOW_CONFIGURATIONS']=''
+  options_values['VERBOSE']=''
 
   # 'kw config' should list all configurations
   if [[ "$#" == 0 ]]; then
+    options_values['IS_SHOW_CONFIGURATIONS']=1
+  # 'kw config --verbose' should work as 'kw config'
+  elif [[ "$#" == 1 && "$1" == '--verbose' ]]; then
     options_values['IS_SHOW_CONFIGURATIONS']=1
   fi
 
@@ -239,6 +253,10 @@ function parse_config_options()
         ;;
       --show | -s)
         options_values['IS_SHOW_CONFIGURATIONS']=1
+        shift
+        ;;
+      --verbose)
+        options_values['VERBOSE']=1
         shift
         ;;
       --)
@@ -321,5 +339,6 @@ function config_help()
     '  config - Show config values' \
     '  config (-g | --global) <config.option value> - Change global config' \
     '  config (-l | --local) <config.option value> - Change local config' \
-    '  config (-s | --show) [config]... - Show all or specific current configurations'
+    '  config (-s | --show) [config]... - Show all or specific current configurations' \
+    '  config (--verbose) - Show a detailed output'
 }
