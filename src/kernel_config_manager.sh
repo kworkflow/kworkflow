@@ -226,6 +226,11 @@ function get_config_from_proc()
   local ret
   local -r CMD_LOAD_CONFIG_MODULE="modprobe -q configs && [ -s $PROC_CONFIG_PATH ]"
   local CMD_GET_CONFIG="zcat /proc/config.gz > $output"
+  local config_base_path="$PWD"
+
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
 
   [[ "$target" == 3 ]] && CMD_GET_CONFIG="zcat /proc/config.gz > /tmp/$output"
 
@@ -254,7 +259,7 @@ function get_config_from_proc()
 
       cmd_remotely "$CMD_GET_CONFIG" "$flag"
       [[ "$?" != 0 ]] && return 95 # Operation not supported
-      remote2host "$flag" "/tmp/$output" "$PWD"
+      remote2host "$flag" "/tmp/${output}" "$config_base_path"
       return 0
       ;;
   esac
@@ -282,6 +287,11 @@ function get_config_from_boot()
   local ip="${remote_parameters['REMOTE_IP']}"
   local port="${remote_parameters['REMOTE_PORT']}"
   local cmd
+  local config_base_path="$PWD"
+
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
 
   case "$target" in
     1) # VM
@@ -299,7 +309,7 @@ function get_config_from_boot()
       cmd_remotely "[ -f ${root}boot/config-$kernel_release ]" "$flag"
       [[ "$?" != 0 ]] && return 95 # ENOTSUP
 
-      remote2host "$flag" "${root}boot/config-$kernel_release" "$PWD"
+      remote2host "$flag" "${root}boot/config-$kernel_release" "$config_base_path"
       return 0
       ;;
   esac

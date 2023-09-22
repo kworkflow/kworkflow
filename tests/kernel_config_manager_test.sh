@@ -52,6 +52,8 @@ function tearDown()
 
   teardownDatabase
 
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
+
   cd "${original_dir}" || {
     fail "($LINENO) It was not possible to back to the kw folder"
     return
@@ -374,6 +376,27 @@ function test_get_config_from_proc()
   fi
 }
 
+function test_get_config_from_proc_inside_env_remote()
+{
+  local output
+  declare -la expected_cmd=()
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']='/tmp/something'
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
+
+  unset expected_cmd
+  declare -a expected_cmd=(
+    'ssh -p 3333 juca@127.0.0.1 sudo "[ -f proc/config.gz ]"'
+    'ssh -p 3333 juca@127.0.0.1 sudo "zcat /proc/config.gz > /tmp/.config"'
+    "rsync --info=progress2 -e 'ssh -p 3333' juca@127.0.0.1:/tmp/.config /tmp/something -LrlptD --rsync-path='sudo rsync'"
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' '.config' 3)
+  compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
+}
+
 function test_get_config_from_boot()
 {
   # shellcheck disable=SC2317
@@ -395,9 +418,24 @@ function test_get_config_from_boot()
   mk_fake_boot
   get_config_from_boot 'SILENT' '.config' 2
   assert_equals_helper 'We did not copy the target file' "$LINENO" 0 "$?"
+}
 
-  # REMOTE
-  # TODO: We need integration test to cover remote in this case
+function test_get_config_from_boot_inside_env_remote()
+{
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']='/tmp/something'
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  remote_parameters['REMOTE_USER']='juca'
+
+  unset expected_cmd
+  declare -a expected_cmd=(
+    'ssh -p 3333 juca@127.0.0.1 sudo "[ -f ./boot/config-ssh -p 3333 juca@127.0.0.1 sudo "uname -r" ]"'
+    "rsync --info=progress2 -e 'ssh -p 3333' juca@127.0.0.1:./boot/config-ssh -p 3333 juca@127.0.0.1 sudo \"uname -r\" /tmp/something -LrlptD --rsync-path='sudo rsync'"
+  )
+
+  output=$(get_config_from_boot 'TEST_MODE' '' 3)
+
+  compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
 }
 
 function test_get_config_from_defconfig()
