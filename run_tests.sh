@@ -107,7 +107,9 @@ if [[ "$#" -eq 0 ]]; then
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
   strip_path $files_list
-  run_tests
+  # Set the environment variable LANGUAGE to `en_US.UTF_8` to avoid the host
+  # locale settings from interfering in the tests.
+  LANGUAGE=en_US.UTF_8 run_tests
 elif [[ "$1" == 'list' ]]; then
   index=0
   files_list=$(find ./tests/ -name '*_test.sh')
@@ -118,7 +120,7 @@ elif [[ "$1" == 'list' ]]; then
   done
 elif [[ "$1" == 'test' ]]; then
   strip_path "${@:2}"
-  run_tests
+  LANGUAGE=en_US.UTF_8 run_tests
 else
   show_help
 fi
