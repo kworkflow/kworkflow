@@ -11,6 +11,7 @@ SYNOPSIS
 | *kw* (*k* | *kernel-config-manager*) [\--fetch [(-o | \--output) <filename>] [-f | \--force] [\--optimize] [\--remote [<remote>:<port>]]]:
 | *kw* (*k* | *kernel-config-manager*) [\--get <name> [-f | \--force]]
 | *kw* (*k* | *kernel-config-manager*) [(-r | \--remove) <name> [-f | \--force]]
+| *kw* (*k* | *kernel-config-manager*) [\--verbose]]
 
 DESCRIPTION
 ===========
@@ -53,6 +54,11 @@ OPTIONS
   and carry on any destructive operations. ``--output`` allows you to specify
   the config file name, and ``--optimize`` will run `make localmodconfig` in
   order to generate a config that's optimized for the target machine.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.
 
 EXAMPLES
 ========

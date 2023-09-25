@@ -325,6 +325,7 @@ _kw_kernel-config-manager()
   fi
 
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-s --save -r --remove -l --list --get --fetch)'{-s,--save}'[create a snapshot of the .config file inside the current dir in kw management]: : ' \
     '(-r --remove -s --save -l --list --get --fetch)'{-r,--remove}'[remove an existing .config file in kw management]: : ' \
     '(-l --list -s --save -r --remove --get --fetch)'{-l,--list}'[lists all the .config file versions available]' \
