@@ -45,7 +45,8 @@ function _kw_autocomplete()
   kw_options['m']="${kw_options['mantainers']}"
 
   kw_options['kernel-config-manager']='--force --save --description --list --get
-                                       --remove --fetch --output --optimize --remote'
+                                       --remove --fetch --output --optimize --remote
+                                       --verbose'
   kw_options['k']="${kw_options['kernel-config-manager']}"
 
   kw_options['config']='--local --global --show --help --verbose'

@@ -19,13 +19,15 @@ function kernel_config_manager_main()
   local name_config
   local description_config
   local force
-  local flag='SILENT'
+  local flag
   local optimize
   local user
   local remote
   local ip
   local port
   local env_name
+
+  flag=${flag:-'SILENT'}
 
   if [[ -z "$*" ]]; then
     list_configs
@@ -43,6 +45,8 @@ function kernel_config_manager_main()
     exit 22 # EINVAL
   fi
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
     options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${env_name}"
@@ -54,7 +58,7 @@ function kernel_config_manager_main()
   optimize="${options_values['OPTIMIZE']}"
 
   if [[ -n "${options_values['SAVE']}" ]]; then
-    save_config_file "$force" "$name_config" "$description_config"
+    save_config_file "$force" "$name_config" "$description_config" "$flag"
     return "$?"
   fi
 
@@ -64,12 +68,12 @@ function kernel_config_manager_main()
   fi
 
   if [[ -n "${options_values['GET']}" ]]; then
-    get_config "${options_values['GET']}" "$force"
+    get_config "${options_values['GET']}" "$force" "$flag"
     return "$?"
   fi
 
   if [[ -n "${options_values['REMOVE']}" ]]; then
-    remove_config "${options_values['REMOVE']}" "$force"
+    remove_config "${options_values['REMOVE']}" "$force" "$flag"
     return "$?"
   fi
 
@@ -394,6 +398,7 @@ function fetch_config()
   local config_base_path="$PWD"
 
   output=${output:-'.config'}
+  flag=${flag:-'SILENT'}
 
   if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
     config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
@@ -412,7 +417,8 @@ function fetch_config()
   # Folder to store files in case there's an interruption and we need to return
   # things to the state they were before or in case we need a place to store
   # files temporarily.
-  mkdir -p "${KW_CACHE_DIR}/config"
+  cmd="mkdir -p ${KW_CACHE_DIR}/config"
+  cmd_manager "$flag" "$cmd"
 
   if [[ -f "${config_base_path}/${output}" ]]; then
     if [[ -z "$force" && $(ask_yN "Do you want to overwrite ${output} in your current directory?") =~ "0" ]]; then
@@ -420,12 +426,14 @@ function fetch_config()
       return 125 #ECANCELED
     fi
 
-    cp "${config_base_path}/${output}" "${KW_CACHE_DIR}/config"
+    cmd="cp ${config_base_path}/${output} ${KW_CACHE_DIR}/config"
+    cmd_manager "$flag" "$cmd"
   fi
 
   # If --output is provided, we need to backup the current config file
   if [[ -f "${config_base_path}/.config" && "$output" != '.config' ]]; then
-    cp "${config_base_path}/.config" "${KW_CACHE_DIR}/config"
+    cmd="cp ${config_base_path}/.config ${KW_CACHE_DIR}/config"
+    cmd_manager "$flag" "$cmd"
   fi
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
@@ -493,10 +501,12 @@ function fetch_config()
       cmd_manager "$flag" "$cmd"
     fi
 
-    rm -f "${KW_CACHE_DIR}/lsmod"
+    cmd="rm -f ${KW_CACHE_DIR}/lsmod"
+    cmd_manager "$flag" "$cmd"
   fi
 
-  rm -rf "${KW_CACHE_DIR}/config"
+  cmd="rm -rf ${KW_CACHE_DIR}/config"
+  cmd_manager "$flag" "$cmd"
   success 'Successfully retrieved' "$output"
 }
 
@@ -585,11 +595,14 @@ function get_config()
 {
   local config_name="$1"
   local force="$2"
+  local flag="$3"
   local -r kernel_configs_dir="${KW_DATA_DIR}/configs"
   local -r msg='This operation will override the current .config file'
   local config_base_path="$PWD"
+  local cmd
 
   force=${force:-0}
+  flag=${flag:-'SILENT'}
 
   if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
     config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
@@ -598,9 +611,10 @@ function get_config()
   # If we does not have a local config, there's no reason to warn the user
   [[ ! -f "${config_base_path}/.config" ]] && force=1
 
-  basic_config_validations "$config_name" "$force" 'Get' "$msg"
+  basic_config_validations "$config_name" "$force" 'Get' "$msg" "$flag"
 
-  cp "${kernel_configs_dir}/${config_name}" "${config_base_path}/.config"
+  cmd="cp ${kernel_configs_dir}/${config_name} ${config_base_path}/.config"
+  cmd_manager "$flag" "$cmd"
   say "Current config file updated based on ${config_name}"
 }
 
@@ -646,7 +660,7 @@ function parse_kernel_config_manager_options()
   local long_options
   local options
 
-  long_options='save:,list,get:,remove:,force,description:,fetch,output:,optimize,remote:'
+  long_options='save:,list,get:,remove:,force,description:,fetch,output:,optimize,remote:,verbose'
   short_options='s:,l,r:,d:,f,o:'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -666,6 +680,7 @@ function parse_kernel_config_manager_options()
   options_values['GET']=''
   options_values['REMOVE']=''
   options_values['TARGET']="$LOCAL_TARGET"
+  options_values['VERBOSE']=''
 
   # Set basic default values
   if [[ -n ${deploy_config[default_deploy_target]} ]]; then
@@ -734,6 +749,10 @@ function parse_kernel_config_manager_options()
         options_values['TARGET']="$REMOTE_TARGET"
         shift 2
         ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --)
         shift
         ;;
@@ -768,7 +787,8 @@ function config_manager_help()
     '  kernel-config-manager (-s | --save) <name> [(-d | --description) <description>] [-f | --force] - Save a config' \
     '  kernel-config-manager (-l | --list) - List config files under kw management' \
     '  kernel-config-manager --get <name> [-f | --force] - Get a config labeled with <name>' \
-    '  kernel-config-manager (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>'
+    '  kernel-config-manager (-r | --remove) <name> [-f | --force] - Remove config labeled with <name>' \
+    '  kernel-config-manager (--verbose) - Show a detailed output'
 }
 
 load_build_config

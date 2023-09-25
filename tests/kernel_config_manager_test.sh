@@ -495,7 +495,7 @@ function test_fetch_config()
   }
 
   # Check error message when run optimize outside kernel structure
-  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' 1)
+  output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' 1 | tail -1)
   assert_equals_helper 'No fake kernel should be here' "$LINENO" \
     'This command should be run in a kernel tree.' "$output"
 
@@ -503,18 +503,22 @@ function test_fetch_config()
   mk_fake_kernel_root "$PWD"
 
   expected_output=(
+    "mkdir -p ${KW_CACHE_DIR}/config"
     # Note: since we are creating a faking /proc, we dropped '/'.
     'sudo modprobe -q configs && [ -s proc/config.gz ]'
     'zcat /proc/config.gz > .config'
     'make olddefconfig'
+    "rm -rf ${KW_CACHE_DIR}/config"
     'Successfully retrieved .config'
   )
   output=$(fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   expected_output=(
+    "mkdir -p ${KW_CACHE_DIR}/config"
     'zcat /proc/config.gz > .config'
     'make olddefconfig'
+    "rm -rf ${KW_CACHE_DIR}/config"
     'Successfully retrieved .config'
   )
 
@@ -527,10 +531,19 @@ function test_fetch_config()
   touch "$root/.config"
 
   # Say no to overwriting the file
-  output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
+  output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET" | tail -n 1)
   assert_equals_helper 'The operation should have been aborted' "$LINENO" 'Operation aborted' "$output"
 
   # Say yes to overwriting the file
+  expected_output=(
+    "mkdir -p ${KW_CACHE_DIR}/config"
+    "cp ${PWD}/.config ${KW_CACHE_DIR}/config"
+    'zcat /proc/config.gz > .config'
+    'make olddefconfig'
+    "rm -rf ${KW_CACHE_DIR}/config"
+    'Successfully retrieved .config'
+  )
+
   output=$(printf '%s\n' 'y' | fetch_config 'TEST_MODE' '' '' '' "$LOCAL_TARGET")
   compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
@@ -539,8 +552,11 @@ function test_fetch_config()
   compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 
   expected_output=(
+    "mkdir -p ${KW_CACHE_DIR}/config"
+    "cp ${PWD}/.config ${KW_CACHE_DIR}/config"
     'zcat /proc/config.gz > newconfig'
     'make olddefconfig'
+    "rm -rf ${KW_CACHE_DIR}/config"
     'Successfully retrieved newconfig'
   )
 
@@ -553,15 +569,18 @@ function test_fetch_config()
   mk_fake_kernel_root "$PWD"
 
   output=$(printf '%s\n' 'n' | fetch_config 'TEST_MODE' '' '' 1 "$LOCAL_TARGET")
-  assert_equals_helper 'The operation should have been aborted' "$LINENO" 'Operation aborted' "$output"
+  assert_equals_helper ' --remove' "$LINENO" 125 "$?"
 
   rm "$PWD/.config"
   mkdir "${root}proc"
   touch "${root}proc/config.gz"
   expected_output=(
+    "mkdir -p ${KW_CACHE_DIR}/config"
     'zcat /proc/config.gz > .config'
     'make olddefconfig'
     "make localmodconfig LSMOD=$KW_CACHE_DIR/lsmod"
+    "rm -f ${KW_CACHE_DIR}/lsmod"
+    "rm -rf ${KW_CACHE_DIR}/config"
     'Successfully retrieved .config'
   )
 
