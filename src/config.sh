@@ -194,8 +194,8 @@ function set_config_value()
   # work well if we deal with paths. Here we had to break the pattern a little
   # bit and use < instead of / after the s option to ensure that we accept
   # paths in the config option.$
-  sed -i -r "s<($option=).*<\1$value<" "$path"
-  sed -i -r "s<#\s*$option<$option<" "$path"
+  sed --in-place --regexp-extended --follow-symlinks "s<(${option}=).*<\1${value}<" "${path}"
+  sed --in-place --regexp-extended --follow-symlinks "s<#\s*${option}<${option}<" "$path"
 }
 
 function parse_config_options()
