@@ -81,6 +81,20 @@ function test_is_a_valid_config_invalid_parameters()
   assertEquals "($LINENO)" "$?" 95
 }
 
+function test_set_config_check_if_file_still_a_link_after_change()
+{
+  local output
+
+  # Create fake env
+  mkdir 'FAKE_ENV'
+  mv "${KW_CONFIG_BASE_PATH}/build.config" 'FAKE_ENV'
+  ln --symbolic --force "${KW_CONFIG_BASE_PATH}/FAKE_ENV/build.config" "${KW_CONFIG_BASE_PATH}/build.config"
+
+  set_config_value 'use_llvm' 'lala' "${KW_CONFIG_BASE_PATH}/build.config"
+  output=$(grep 'use_llvm' "${KW_CONFIG_BASE_PATH}/build.config")
+  assertTrue "($LINENO): Cache dir not created" '[[ -L  ${KW_CONFIG_BASE_PATH}/build.config ]]'
+}
+
 function test_set_config_value_changing_default_value()
 {
   local output
