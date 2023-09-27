@@ -1,0 +1,3 @@
+local some_commit_code
+
+some_commit_code='to test if the injection was successful'
