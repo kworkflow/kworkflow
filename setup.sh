@@ -9,6 +9,7 @@ SILENT=1
 VERBOSE=0
 FORCE=0
 SKIPCHECKS=0
+ENABLE_TRACING=0
 
 declare -r app_name='kw'
 
@@ -27,6 +28,7 @@ declare -r databasedir="$sharedir/database"
 declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
 declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
+declare -r tracingdir="${datadir}/tracing"
 declare -r dot_configs_dir="${datadir}/configs"
 
 ##
@@ -36,6 +38,7 @@ declare -r SRCDIR='src'
 declare -r MAN='documentation/man/'
 declare -r CONFIG_DIR='etc/'
 declare -r KW_CACHE_DIR="$cachedir"
+declare -r TRACING_CODE_EXCERPTS_DIR='tracing/code_excerpts'
 
 declare -r SOUNDS='sounds'
 declare -r DATABASE='database'
@@ -216,6 +219,7 @@ function usage()
   say '--force              Never prompt'
   say "--completely-remove  Remove $app_name and all files under its responsibility"
   say "--docs               Build $app_name's documentation as HTML pages into ./build"
+  say "--enable-tracing     Install ${app_name} with tracing enabled (use it with --install)"
 }
 
 function confirm_complete_removal()
@@ -323,13 +327,23 @@ function synchronize_files()
 
   # Copy kw main file
   mkdir -p "$binpath"
-  cmd_output_manager "cp $app_name $binpath" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
+  if [[ "$ENABLE_TRACING" == 0 ]]; then
+    cmd_output_manager "cp $app_name $binpath" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
+  else
+    sync_main_kw_file_with_tracing "$app_name" "$binpath" "$TRACING_CODE_EXCERPTS_DIR"
+    ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw main file with tracing enabled' "$?"
+  fi
 
   # Lib files
   mkdir -p "$libdir"
-  cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
+  if [[ "$ENABLE_TRACING" == 0 ]]; then
+    cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
+  else
+    sync_kw_lib_files_with_tracing "$SRCDIR" "$libdir"
+    ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw library files with tracing enabled' "$?"
+  fi
 
   # Sound files
   mkdir -p "$sounddir"
@@ -412,6 +426,12 @@ function synchronize_files()
   say "$SEPARATOR"
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
+
+  # Create ~/.local/kw/tracing for storing tracing reports of kw executions
+  if [[ "$ENABLE_TRACING" == 1 ]]; then
+    mkdir --parents "$tracingdir"
+  fi
+
   say "$app_name installed into $HOME"
 }
 
@@ -539,6 +559,11 @@ for arg; do
   fi
   if [ "$arg" = '--skip-checks' ]; then
     SKIPCHECKS=1
+    continue
+  fi
+  if [[ "$arg" = '--enable-tracing' ]]; then
+    include 'tracing/tracing.sh'
+    ENABLE_TRACING=1
     continue
   fi
   set -- "$@" "$arg"
