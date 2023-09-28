@@ -6,7 +6,7 @@ kw-diff
 
 SYNOPSIS
 ========
-*kw* (*df* | *diff*) <file1> <file2> [\--no-interactive]
+*kw* (*df* | *diff*) <file1> <file2> [\--no-interactive] [\--verbose]
 
 DESCRIPTION
 ===========
@@ -18,3 +18,8 @@ OPTIONS
 =======
 \--no-interactive:
   This option displays all diff in two columns at once.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.

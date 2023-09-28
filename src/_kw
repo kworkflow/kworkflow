@@ -228,8 +228,16 @@ _kw_device()
 _kw_df() { _kw_diff }
 _kw_diff()
 {
+  local verbose=''
+  local no_interactive=''
+  if [[ "$CURRENT" -gt 3 ]]; then
+    verbose='(--verbose)--verbose[enable verbose mode]'
+    no_interactive='--no-interactive[displays all diff in two columns at once]'
+  fi
+
   _arguments : \
-    '--no-interactive[displays all diff in two columns at once]' \
+    $verbose \
+    $no_interactive \
     '1: :_files' \
     '2: :_files'
 }

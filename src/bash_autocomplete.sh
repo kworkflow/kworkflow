@@ -32,7 +32,7 @@ function _kw_autocomplete()
 
   kw_options['bd']='--verbose'
 
-  kw_options['diff']='--no-interactive'
+  kw_options['diff']='--no-interactive --verbose'
   kw_options['df']="${kw_options['diff']}"
 
   kw_options['ssh']='--remote --script --command --verbose --help --send --get --to'
