@@ -113,7 +113,7 @@ function kw()
     diff | df)
       include "${KW_LIB_DIR}/diff.sh"
 
-      diff_manager "$@"
+      diff_main "$@"
       ;;
     ssh | s)
       (

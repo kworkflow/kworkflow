@@ -6,7 +6,7 @@ kw-diff
 
 SYNOPSIS
 ========
-*kw* (*df* | *diff*) [\--no-interactive] <file1> <file2>
+*kw* (*df* | *diff*) <file1> <file2> [\--no-interactive]
 
 DESCRIPTION
 ===========
