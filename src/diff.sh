@@ -9,6 +9,8 @@ function diff_main()
   local target_b="$2"
   local flag
 
+  flag=${flag:-'SILENT'}
+
   IFS=' ' read -r -a files <<< "${target_a} ${target_b}"
   for file in "${files[@]}"; do
     if [[ "$file" =~ -h|--help ]]; then
@@ -33,17 +35,19 @@ function diff_main()
   interactive="${options_values['INTERACTIVE']}"
   test_mode="${options_values['TEST_MODE']}"
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   if [[ "$test_mode" == 'TEST_MODE' ]]; then
     printf '%s %s %s\n' "$target_a" "$target_b" "$interactive"
     return 0
   fi
 
   if [[ -d "$target_a" && -d "$target_b" ]]; then
-    diff_folders "$target_a" "$target_b"
+    diff_folders "$target_a" "$target_b" "$flag"
     return "$?"
   fi
 
-  diff_side_by_side "$target_a" "$target_b" "$interactive"
+  diff_side_by_side "$target_a" "$target_b" "$interactive" "$flag"
 }
 
 # Show the diff result between folders in two columns equally divided.
@@ -118,7 +122,7 @@ function diff_side_by_side()
 # In case of successful return 0, otherwise, return 22.
 function parse_diff_options()
 {
-  local long_options='help,no-interactive'
+  local long_options='help,no-interactive,verbose'
   local short_options='h'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -131,6 +135,7 @@ function parse_diff_options()
 
   # Default values
   options_values['INTERACTIVE']=1
+  options_values['VERBOSE']=''
   options_values['TEST_MODE']=''
 
   eval "set -- $options"
@@ -143,6 +148,10 @@ function parse_diff_options()
         ;;
       --no-interactive)
         options_values['INTERACTIVE']=0
+        shift
+        ;;
+      --verbose)
+        options_values['VERBOSE']=1
         shift
         ;;
       test_mode)
@@ -169,5 +178,6 @@ function diff_help()
 
   printf '%s\n' 'kw diff:' \
     '  diff <file1> <file2>                  - interactive diff' \
-    '  diff <file1> <file2> --no-interactive - static diff'
+    '  diff <file1> <file2> --no-interactive - static diff' \
+    '  diff <file1> <file2> --verbose - show a detailed output'
 }
