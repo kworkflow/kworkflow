@@ -32,7 +32,7 @@ function _kw_autocomplete()
 
   kw_options['bd']='--verbose'
 
-  kw_options['diff']='--no-interactive'
+  kw_options['diff']='--no-interactive --help'
   kw_options['df']="${kw_options['diff']}"
 
   kw_options['ssh']='--remote --script --command --verbose --help'
@@ -61,7 +61,7 @@ function _kw_autocomplete()
   kw_options['report']='--day --week --month --year --output --statistics --pomodoro --all'
   kw_options['r']="${kw_options['report']}"
 
-  kw_options['device']='--local --remote --vm'
+  kw_options['device']='--local --remote --vm --help'
 
   kw_options['backup']='--restore --force --verbose --help'
 
@@ -73,7 +73,7 @@ function _kw_autocomplete()
                       --force --no-interactive --rfc --verbose --smtpuser --smtpserver
                       --smtpserverport --smtppass'
 
-  kw_options['env']='--list --create --use --exit-env --destroy --verbose'
+  kw_options['env']='--list --create --use --exit-env --destroy --verbose --help'
 
   kw_options['patch-hub']='--help'
 
@@ -81,6 +81,11 @@ function _kw_autocomplete()
                      --unload-module --conn-available --modes --verbose --help'
 
   kw_options['vm']='--mount --umount --up --alert --help'
+
+  kw_options['vars']='--help'
+
+  kw_options['codestyle']='--help'
+  kw_options['c']="${kw_options['codestyle']}"
 
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
 
