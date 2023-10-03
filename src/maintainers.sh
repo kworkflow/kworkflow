@@ -3,41 +3,6 @@ include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 declare -gA options_values
 
-# Prints the authors of a given file or files inside a given dir.
-#
-# @FILE_OR_DIR The argument is a file or directory path
-function print_files_authors()
-{
-  local FILE_OR_DIR=$1
-  local files=()
-  if [[ -d $FILE_OR_DIR ]]; then
-    for file in "$FILE_OR_DIR"/*; do
-      if [[ -f $file ]]; then
-        files+=("$file")
-      fi
-    done
-  elif [[ -f $FILE_OR_DIR ]]; then
-    files+=("$FILE_OR_DIR")
-  fi
-
-  local printed_authors_separator=false
-
-  for file in "${files[@]}"; do
-    authors=$(grep -oE 'MODULE_AUTHOR *\(.*\)' "$file" |
-      sed -E 's/(MODULE_AUTHOR *\( *\"|\" *\))//g' |
-      sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g')
-    if [[ -n $authors ]]; then
-      if [[ $printed_authors_separator = false ]]; then
-        say "$SEPARATOR"
-        say 'MODULE AUTHORS:'
-        printed_authors_separator=true
-      fi
-      say -n "$(basename "$file"): "
-      printf '%s\n' "$authors"
-    fi
-  done
-}
-
 # Executes get_maintainer with the given file or dir
 #
 # @raw_options String with all user options
@@ -86,25 +51,25 @@ function maintainers_main()
   update_patch=${options_values['UPDATE_PATCH']}
 
   # Check if is a valid path
-  if [[ ! -d $FILE_OR_DIR && ! -f $FILE_OR_DIR ]]; then
+  if [[ ! -d "$FILE_OR_DIR" && ! -f "$FILE_OR_DIR" ]]; then
     complain 'Invalid path'
     return 1
   fi
 
-  FILE_OR_DIR="$(realpath $FILE_OR_DIR)"
+  FILE_OR_DIR="$(realpath "${FILE_OR_DIR}")"
 
   # if given path is not a patchfile, add -f to get_maintainer.pl options
   if ! is_a_patch "$FILE_OR_DIR"; then
-    if "$update_patch"; then
+    if [[ -n "$update_patch" ]]; then
       complain 'Option --update-patch was passed but given path is not a patch.'
       return 1
     fi
     is_file_a_patch=false
-    script_options="$script_options -f"
+    script_options="${script_options} -f"
   fi
 
   # try to find kernel root at given path
-  kernel_root="$(find_kernel_root "$FILE_OR_DIR")"
+  kernel_root="$(find_kernel_root "${FILE_OR_DIR}")"
   if [[ -z "$kernel_root" ]]; then
     is_file_inside_kernel_tree=false
     # fallback: try to find kernel root at working path
@@ -120,7 +85,7 @@ function maintainers_main()
   # If file is not a patch and outside a kernel tree, it must be an user's
   # mistake. Although get_maintainer.pl can handle this, it's better to abort
   # because it is most likely a user's mistake. So better let the user know.
-  if ! $is_file_a_patch && ! $is_file_inside_kernel_tree; then
+  if ! "$is_file_a_patch" && ! "$is_file_inside_kernel_tree"; then
     complain 'The given file is not a patch and is outside a kernel tree.'
     return 1
   fi
@@ -130,10 +95,10 @@ function maintainers_main()
   cd "$original_working_dir" || exit_msg 'It was not possible to move back from kernel dir'
 
   say "$SEPARATOR"
-  if "$update_patch"; then
+  if [[ -n "$update_patch" ]]; then
     # Check if "To:" field is already present
     if grep -q -E '^To: .*'"$script_output" "$FILE_OR_DIR"; then
-      say "Maintainers already in 'To:' field of $(basename "$FILE_OR_DIR")"
+      say "Maintainers already in 'To:' field of $(basename "${FILE_OR_DIR}")"
       return 0
     elif grep -q -E '^To: ' "$FILE_OR_DIR"; then
       # append maintainers to existing "To:" field
@@ -141,15 +106,52 @@ function maintainers_main()
     else
       sed -E -i 's/(^Subject:.*)/To: '"$script_output"'\n\1/' "$FILE_OR_DIR"
     fi
-    say "Patch $(basename "$FILE_OR_DIR") updated with the following maintainers:"
+    say "Patch $(basename "${FILE_OR_DIR}") updated with the following maintainers:"
   else
     say 'HERE:'
   fi
   printf '%s\n' "$script_output"
 
-  if $print_authors; then
+  if [[ -n "$print_authors" ]]; then
     print_files_authors "$FILE_OR_DIR"
   fi
+}
+
+# Prints the authors of a given file or files inside a given dir.
+#
+# @FILE_OR_DIR The file or directory path for which authors should be printed.
+# If FILE_OR_DIR is a directory, it will process all files within the directory.
+# If FILE_OR_DIR is a file, it will process only that specific file.
+function print_files_authors()
+{
+  local FILE_OR_DIR="$1"
+  local files=()
+  if [[ -d "$FILE_OR_DIR" ]]; then
+    for file in "$FILE_OR_DIR"/*; do
+      if [[ -f "$file" ]]; then
+        files+=("$file")
+      fi
+    done
+  elif [[ -f "$FILE_OR_DIR" ]]; then
+    files+=("$FILE_OR_DIR")
+  fi
+
+  local printed_authors_separator=false
+
+  for file in "${files[@]}"; do
+    authors=$(grep -oE 'MODULE_AUTHOR *\(.*\)' "$file" |
+      sed -E 's/(MODULE_AUTHOR *\( *\"|\" *\))//g' |
+      sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g')
+    if [[ -n "$authors" ]]; then
+      if [[ "$printed_authors_separator" = false ]]; then
+        say "$SEPARATOR"
+        say 'MODULE AUTHORS:'
+        printed_authors_separator=true
+      fi
+      say -n "$(basename "${file}"): "
+      printf '%s\n' "$authors"
+    fi
+  done
 }
 
 function parse_maintainers_options()
@@ -167,19 +169,19 @@ function parse_maintainers_options()
 
   # Default values
   options_values['FILE_OR_DIR']='.'
-  options_values['PRINT_AUTHORS']=false
-  options_values['UPDATE_PATCH']=false
+  options_values['PRINT_AUTHORS']=''
+  options_values['UPDATE_PATCH']=''
 
-  eval "set -- $options"
+  eval "set -- ${options}"
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --authors | -a)
-        options_values['PRINT_AUTHORS']=true
+        options_values['PRINT_AUTHORS']=1
         shift
         ;;
       --update-patch | -u)
-        options_values['UPDATE_PATCH']=true
+        options_values['UPDATE_PATCH']=1
         shift
         ;;
       --) # End of options, beginning of arguments
@@ -190,7 +192,7 @@ function parse_maintainers_options()
         shift
         ;;
       *)
-        options_values['ERROR']="Unrecognized argument: $1"
+        options_values['ERROR']="Unrecognized argument: ${1}"
         return 22 # EINVAL
         shift
         ;;
