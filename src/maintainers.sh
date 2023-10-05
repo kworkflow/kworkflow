@@ -28,12 +28,16 @@ function maintainers_main()
   local update_patch=false
   local is_file_a_patch=true
   local is_file_inside_kernel_tree=true
+  local script_output
+  local flag
 
   local -r script='scripts/get_maintainer.pl'
   local script_options="${configurations[get_maintainer_opts]}"
 
   local -r original_working_dir=$PWD
   local kernel_root=''
+
+  flag=${flag:-'SILENT'}
 
   if [[ "$1" =~ -h|--help ]]; then
     maintainers_help "$1"
@@ -91,21 +95,26 @@ function maintainers_main()
   fi
 
   cd "$kernel_root" || exit_msg 'It was not possible to move to kernel root dir'
-  local -r script_output="$(eval perl "$script" "$script_options" "$FILE_OR_DIR")"
+  script_output="$(eval perl "$script" "$script_options" "$FILE_OR_DIR")"
   cd "$original_working_dir" || exit_msg 'It was not possible to move back from kernel dir'
 
   say "$SEPARATOR"
   if [[ -n "$update_patch" ]]; then
+    script_output_copy="${script_output//(/\\(}"
     # Check if "To:" field is already present
-    if grep -q -E '^To: .*'"$script_output" "$FILE_OR_DIR"; then
+    cmd_manager "$flag" "grep --quiet --extended-regexp '^To:.*${script_output_copy}' ${FILE_OR_DIR}"
+    if [[ "$?" == 0 ]]; then
       say "Maintainers already in 'To:' field of $(basename "${FILE_OR_DIR}")"
       return 0
-    elif grep -q -E '^To: ' "$FILE_OR_DIR"; then
-      # append maintainers to existing "To:" field
-      sed -E -i 's/(^To:.*)/\1, '"$script_output"'/' "$FILE_OR_DIR"
-    else
-      sed -E -i 's/(^Subject:.*)/To: '"$script_output"'\n\1/' "$FILE_OR_DIR"
     fi
+
+    cmd_manager "$flag" "grep --quiet --extended-regexp '^To: ' ${FILE_OR_DIR}"
+    if [[ "$?" == 0 ]]; then
+      cmd_manager "$flag" "sed --regexp-extended --in-place 's/(^To:.*)/\1, ${script_output_copy}/' ${FILE_OR_DIR}"
+    else
+      cmd_manager "$flag" "sed --regexp-extended --in-place 's/(^Subject:.*)/To: ${script_output_copy}\n\1/' ${FILE_OR_DIR}"
+    fi
+
     say "Patch $(basename "${FILE_OR_DIR}") updated with the following maintainers:"
   else
     say 'HERE:'
@@ -139,9 +148,9 @@ function print_files_authors()
   local printed_authors_separator=false
 
   for file in "${files[@]}"; do
-    authors=$(grep -oE 'MODULE_AUTHOR *\(.*\)' "$file" |
-      sed -E 's/(MODULE_AUTHOR *\( *\"|\" *\))//g' |
-      sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/, /g')
+    authors=$(grep --only-matching --extended-regexp 'MODULE_AUTHOR *\(.*\)' "$file" |
+      sed --regexp-extended 's/(MODULE_AUTHOR *\( *\"|\" *\))//g' |
+      sed --expression ':a' --expression 'N' --expression '$!ba' --expression 's/\n/, /g')
     if [[ -n "$authors" ]]; then
       if [[ "$printed_authors_separator" = false ]]; then
         say "$SEPARATOR"
