@@ -389,6 +389,7 @@ _kw_m() { _kw_maintainers }
 _kw_maintainers()
 {
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-a --authors)'{-a,--authors}'[prints the authors of the top-level target files (non-recursively)]' \
     '(-u --update-patch)'{-u,--update-patch}'[include a To: field in the header of the patch file]' \
     '1: :_files'
