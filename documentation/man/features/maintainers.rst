@@ -6,7 +6,7 @@ kw-maintainers
 
 SYNOPSIS
 ========
-*kw* (*m* | *maintainers*) [-a | \--authors] [-u | \--update-patch]
+*kw* (*m* | *maintainers*) [-a | \--authors] [-u | \--update-patch] [\--verbose]
                            [<dir> | <file>]
 
 DESCRIPTION
@@ -30,6 +30,9 @@ OPTIONS
   It will include a **To:** field in the header of the patch file with the
   contact of the maintainers (excluding the authors) associated with that
   patch.
+
+\--verbose:
+  Display commands executed under the hood.
 
 EXAMPLES
 ========

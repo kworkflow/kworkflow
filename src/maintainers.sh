@@ -54,6 +54,8 @@ function maintainers_main()
   print_authors=${options_values['PRINT_AUTHORS']}
   update_patch=${options_values['UPDATE_PATCH']}
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   # Check if is a valid path
   if [[ ! -d "$FILE_OR_DIR" && ! -f "$FILE_OR_DIR" ]]; then
     complain 'Invalid path'
@@ -94,9 +96,19 @@ function maintainers_main()
     return 1
   fi
 
-  cd "$kernel_root" || exit_msg 'It was not possible to move to kernel root dir'
+  cmd_manager "$flag" "cd ${kernel_root}"
+  if [[ "$?" != 0 ]]; then
+    exit_msg 'It was not possible to move to kernel root dir'
+    return 2 # ENOENT
+  fi
+
   script_output="$(eval perl "$script" "$script_options" "$FILE_OR_DIR")"
-  cd "$original_working_dir" || exit_msg 'It was not possible to move back from kernel dir'
+
+  cmd_manager "$flag" "cd ${original_working_dir}"
+  if [[ "$?" != 0 ]]; then
+    exit_msg 'It was not possible to move back from kernel dir'
+    return 2 # ENOENT
+  fi
 
   say "$SEPARATOR"
   if [[ -n "$update_patch" ]]; then
@@ -165,7 +177,7 @@ function print_files_authors()
 
 function parse_maintainers_options()
 {
-  local long_options='authors,update-patch'
+  local long_options='authors,update-patch,verbose'
   local short_options='a,u'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -180,6 +192,7 @@ function parse_maintainers_options()
   options_values['FILE_OR_DIR']='.'
   options_values['PRINT_AUTHORS']=''
   options_values['UPDATE_PATCH']=''
+  options_values['VERBOSE']=''
 
   eval "set -- ${options}"
 
@@ -191,6 +204,10 @@ function parse_maintainers_options()
         ;;
       --update-patch | -u)
         options_values['UPDATE_PATCH']=1
+        shift
+        ;;
+      --verbose)
+        options_values['VERBOSE']=1
         shift
         ;;
       --) # End of options, beginning of arguments
@@ -219,7 +236,8 @@ function maintainers_help()
   printf '%s\n' 'kw maintainers:' \
     '  maintainers [<dir> | <file>] - Shows maintainers of module' \
     '  maintainers (-a | --authors) - Also shows module authors' \
-    '  maintainers (-u | --update-patch) - Add maintainers to patch file header'
+    '  maintainers (-u | --update-patch) - Add maintainers to patch file header' \
+    '  maintainers (--verbose) - Show a detailed output'
 }
 
 load_kworkflow_config
