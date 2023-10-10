@@ -420,6 +420,7 @@ _kw_pomodoro()
   fi
 
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(-t --set-timer -c --check-timer -s --show-tags)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
     '(-c --check-timer -t --set-timer -s --show-tags)'{-c,--check-timer}'[shows information of each active Pomodoro timebox]' \
     '(-s --show-tags -c --check-timer -t --set-timer)'{-s,--show-tags}'[shows registered tags]' \

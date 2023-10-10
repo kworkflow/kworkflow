@@ -13,6 +13,10 @@ MAX_DESCRIPTION_LENGTH=512
 # Pomodoro manager function.
 function pomodoro_main()
 {
+  local flag
+
+  flag=${flag:-'SILENT'}
+
   if [[ -z "$*" ]]; then
     complain 'Please, provide an argument'
     pomodoro_help "$@"
@@ -26,22 +30,24 @@ function pomodoro_main()
     exit 22 # EINVAL
   fi
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   if [[ -n "${options_values[SHOW_TIMER]}" ]]; then
-    show_active_pomodoro_timebox
+    show_active_pomodoro_timebox "$flag"
     return 0
   fi
 
   if [[ -n "${options_values[SHOW_TAGS]}" ]]; then
-    show_tags
+    show_tags "$flag"
     return 0
   fi
 
   if [[ -n "${options_values['TAG']}" ]]; then
-    register_tag "${options_values['TAG']}"
+    register_tag "$flag" "${options_values['TAG']}"
   fi
 
   if [[ -n "${options_values['TIMER']}" ]]; then
-    timer_thread &
+    timer_thread "$flag" &
   fi
 }
 
@@ -49,6 +55,7 @@ function pomodoro_main()
 # tells the user the current status of his work section.
 function show_active_pomodoro_timebox()
 {
+  local flag="$1"
   local current_timestamp
   local start_date
   local start_time
@@ -78,6 +85,7 @@ function show_active_pomodoro_timebox()
 # Show registered tags with number identification.
 function show_tags()
 {
+  local flag="$1"
   local tags
 
   tags=$(select_from 'tag WHERE "active" IS 1' '"id" AS "ID", "name" AS "Name"' '.mode column' 'id')
@@ -95,9 +103,10 @@ function show_tags()
 # @tag: tag name
 function register_tag()
 {
-  local tag="$1"
+  local flag="$1"
+  local tag="$2"
 
-  if ! is_tag_already_registered "$tag"; then
+  if ! is_tag_already_registered "$flag" "$tag"; then
     insert_into 'tag' "('name')" "('${tag}')"
   fi
 }
@@ -112,7 +121,8 @@ function register_tag()
 # anything.
 function is_tag_already_registered()
 {
-  local tag_name="$1"
+  local flag="$1"
+  local tag_name="$2"
   local is_tag_registered=''
 
   is_tag_registered=$(select_from "tag WHERE name IS '${tag_name}'")
@@ -127,15 +137,15 @@ function is_tag_already_registered()
 # current timestamp and uses it to register itself in the Pomodoro log file.
 function timer_thread()
 {
+  local flag="$1"
   local timestamp
-  local flag
 
   timestamp=$(get_timestamp_sec)
 
   flag=${flag:-'SILENT'}
 
   if [[ -n "${options_values['TAG']}" ]]; then
-    register_data_for_report
+    register_data_for_report "$flag"
   fi
 
   cmd_manager "$flag" "sleep ${options_values['TIMER']}"
@@ -282,7 +292,7 @@ function format_text()
 
 function parse_pomodoro()
 {
-  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help'
+  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,verbose'
   local short_options='t:,c,s,g:,d:,h'
   local options
 
@@ -294,7 +304,7 @@ function parse_pomodoro()
     return 22 # EINVAL
   fi
 
-  eval "set -- $options"
+  eval "set -- ${options}"
 
   # Default values
   options_values['TIMER']=''
@@ -302,6 +312,7 @@ function parse_pomodoro()
   options_values['SHOW_TAGS']=
   options_values['TAG']=''
   options_values['DESCRIPTION']=''
+  options_values['VERBOSE']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -341,6 +352,10 @@ function parse_pomodoro()
         options_values['DESCRIPTION']=$(format_text "$2" 'description')
         shift 2
         ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --help | -h)
         pomodoro_help "$1"
         exit
@@ -364,7 +379,8 @@ function pomodoro_help()
     '  pomodoro (-c|--check-timer) - Show elapsed time' \
     '  pomodoro (-s|--show-tags) - Show registered tags' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> - Set timer with tag' \
-    '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> (-d|--description) <desc> - Set timer with tag and description'
+    '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> (-d|--description) <desc> - Set timer with tag and description' \
+    '  pomodoro (--verbose) - Show a detailed output'
 }
 
 load_notification_config

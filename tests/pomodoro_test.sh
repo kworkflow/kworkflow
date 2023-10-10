@@ -172,6 +172,9 @@ function test_parse_pomodoro()
   apostrophe="Let's try something with apostrophe (I'm, you're, we're)"
   parse_pomodoro '--set-timer' '1234s' '--tag' 'apostrophe' '--description' "$apostrophe"
   assert_equals_helper 'Wrong description' "$LINENO" "${options_values['DESCRIPTION']}" "$apostrophe"
+
+  parse_pomodoro '--verbose'
+  assert_equals_helper 'Show a detailed output' "$LINENO" "${options_values['VERBOSE']}" '1'
 }
 
 function test_register_data_for_report()
@@ -218,31 +221,31 @@ function test_register_tag()
     'tag 2'
   )
 
-  register_tag 'tag 1'
-  register_tag 'tag 2'
+  register_tag 'TEST_MODE' 'tag 1'
+  register_tag 'TEST_MODE' 'tag 2'
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name FROM tag ;")
 
   compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 
   # Try to register the same tag
-  register_tag 'tag 2'
+  register_tag 'TEST_MODE' 'tag 2'
   compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 
   # Try to register an empty tag
-  register_tag ''
+  register_tag 'TEST_MODE' ''
   compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 }
 
 function test_is_tag_already_registered()
 {
-  is_tag_already_registered 'Tag 0'
+  is_tag_already_registered 'TEST_MODE' 'Tag 0'
   assertNotEquals "$LINENO: We should not get a success" "$?" 0
 
-  is_tag_already_registered ''
+  is_tag_already_registered 'TEST_MODE' ''
   assertNotEquals "$LINENO: We should not get a success" "$?" 0
 
   sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO tag ('name') VALUES ('Tag 0') ;"
-  is_tag_already_registered 'Tag 0'
+  is_tag_already_registered 'TEST_MODE' 'Tag 0'
   assertEquals "$LINENO: We expect to find Tag 0" "$?" 0
 }
 
@@ -258,10 +261,10 @@ function test_get_tag_name()
   expected='Some tag'
   assert_equals_helper 'Should return same value if it is not a number' "$LINENO" "$expected" "$output"
 
-  register_tag 'tag 1'
-  register_tag 'tag 2'
-  register_tag 'tag 3'
-  register_tag 'tag 4'
+  register_tag 'TEST_MODE' 'tag 1'
+  register_tag 'TEST_MODE' 'tag 2'
+  register_tag 'TEST_MODE' 'tag 3'
+  register_tag 'TEST_MODE' 'tag 4'
 
   for i in {1..4}; do
     output=$(get_tag_name "$i")
