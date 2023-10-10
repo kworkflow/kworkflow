@@ -6,9 +6,9 @@ kw-pomodoro
 
 SYNOPSIS
 ========
-| *kw* (*p* | *pomodoro*) (-t | \--set-timer) <time>(h | m | s) [(-g | \--tag) <tag> [(-d | \--description) <desc>]]
-| *kw* (*p* | *pomodoro*) (-c | \--check-timer)
-| *kw* (*p* | *pomodoro*) (-s | \--show-tags)
+| *kw* (*p* | *pomodoro*) (-t | \--set-timer) <time>(h | m | s) [(-g | \--tag) <tag> [(-d | \--description) <desc>] [\--verbose]]
+| *kw* (*p* | *pomodoro*) (-c | \--check-timer) [\--verbose]
+| *kw* (*p* | *pomodoro*) (-s | \--show-tags) [\--verbose]
 
 DESCRIPTION
 ===========
@@ -54,6 +54,9 @@ OPTIONS
 
 -s, \--show-tags:
   This option shows all the registered tags.
+
+\--verbose:
+  Display commands executed under the hood.
 
 EXAMPLES
 ========
