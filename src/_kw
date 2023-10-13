@@ -449,6 +449,7 @@ _kw_r() { _kw_report }
 _kw_report()
 {
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(--month --week --day)--year=-[exhibits a yearly summary]:: : ' \
     '(--year --week --day)--month=-[exhibits a monthly summary]:: : ' \
     '(--year --month --day)--week=-[exhibits a weekly summary]:: : ' \

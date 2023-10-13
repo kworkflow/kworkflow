@@ -79,6 +79,9 @@ function test_parse_report_options()
   expected_result=$(get_today_info '+%Y')
   assert_equals_helper 'Get this year info' "$LINENO" "${options_values['YEAR']}" "$expected_result"
 
+  parse_report_options '--verbose'
+  assert_equals_helper 'Show a detailed output' "$LINENO" "${options_values['VERBOSE']}" '1'
+
   # Values with parameters
   ## Days
   ref_date='1999/03/03'
@@ -502,6 +505,7 @@ function test_save_data_to()
 {
   local output
   local expected
+  local expected_cmd
   local ret
   local yellow
   local green
@@ -555,7 +559,6 @@ function test_save_data_to()
   ret="$?"
   assert_equals_helper 'We expect a directory path to be valid' "$LINENO" 0 "$ret"
 
-  # Verifying that the correct message is displayed.
   expected="The report output was saved in: ${SHUNIT_TMPDIR}/report_output"
   assert_equals_helper 'We expect a valid message' "$LINENO" "$expected" "$output"
 

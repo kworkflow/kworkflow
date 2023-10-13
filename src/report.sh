@@ -33,6 +33,9 @@ normal_color=$(tput sgr0)
 function report_main()
 {
   local target_time
+  local flag
+
+  flag=${flag:-'SILENT'}
 
   if [[ "$1" =~ -h|--help ]]; then
     report_help "$1"
@@ -45,24 +48,26 @@ function report_main()
     return 22 # EINVAL
   fi
 
-  set_raw_data
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
+  set_raw_data "$flag"
 
   if [[ -n "${options_values['STATISTICS']}" ]]; then
     if [[ "${configurations[disable_statistics_data_track]}" == 'yes' ]]; then
       say 'You have "disable_statistics_data_track" marked as "yes"'
       say 'If you want to track statistics, change this option to "no"'
     fi
-    process_and_format_statistics_raw_data
+    process_and_format_statistics_raw_data "$flag"
   fi
 
   if [[ -n "${options_values['POMODORO']}" ]]; then
-    process_and_format_pomodoro_raw_data
+    process_and_format_pomodoro_raw_data "$flag"
   fi
 
   if [[ -z "${options_values['OUTPUT']}" ]]; then
-    show_report
+    show_report "flag"
   else
-    save_data_to "${options_values['OUTPUT']}"
+    save_data_to "${options_values['OUTPUT']}" "$flag"
   fi
 }
 
@@ -73,8 +78,11 @@ function report_main()
 # <ID>|<LABEL_NAME>|<STATUS>|<START_DATE>|<START_TIME>|<ELAPSED_TIME_IN_SECS>.
 function set_raw_data()
 {
+  local flag="$1"
   local date
   local regex_exp
+
+  flag=${flag:-'SILENT'}
 
   if [[ -n "${options_values['DAY']}" ]]; then
     target_period="day ${options_values['DAY']}"
@@ -96,11 +104,11 @@ function set_raw_data()
   fi
 
   if [[ -n "${options_values['STATISTICS']}" ]]; then
-    statistics_raw_data=$(get_raw_data_from_period_of_time 'statistics_report' "${regex_exp}")
+    statistics_raw_data=$(get_raw_data_from_period_of_time 'statistics_report' "$regex_exp" "$flag")
   fi
 
   if [[ -n "${options_values['POMODORO']}" ]]; then
-    pomodoro_raw_data=$(get_raw_data_from_period_of_time 'pomodoro_report' "${regex_exp}")
+    pomodoro_raw_data=$(get_raw_data_from_period_of_time 'pomodoro_report' "$regex_exp" "$flag")
   fi
 }
 
@@ -119,7 +127,10 @@ function get_raw_data_from_period_of_time()
 {
   local table_name="$1"
   local regex_exp="$2"
+  local flag="$3"
   local raw_data
+
+  flag=${flag:-'SILENT'}
 
   raw_data=$(select_from "${table_name} WHERE date REGEXP ${regex_exp}")
   printf '%s' "$raw_data"
@@ -137,11 +148,14 @@ function get_raw_data_from_period_of_time()
 # sets an error message in 'options_values['ERROR']'.
 function process_and_format_statistics_raw_data()
 {
+  local flag="$1"
   local num_of_operations
   local max_time
   local min_time
   local avg_time
   local aux
+
+  flag=${flag:-'SILENT'}
 
   if [[ -z "${statistics_raw_data}" ]]; then
     options_values['ERROR']="kw doesn't have any statistics of the target period: ${target_period}"
@@ -182,6 +196,7 @@ function process_and_format_statistics_raw_data()
 # sets an error message in 'options_values['ERROR']'.
 function process_and_format_pomodoro_raw_data()
 {
+  local flag="$1"
   local tag
   local start_date
   local start_time
@@ -196,6 +211,8 @@ function process_and_format_pomodoro_raw_data()
   local total_time_in_format_all_tags
   local number_of_sessions_all_tags
   local aux
+
+  flag=${flag:-'SILENT'}
 
   if [[ -z "${pomodoro_raw_data}" ]]; then
     options_values['ERROR']="kw doesn't have any Pomodoro data of the target period: ${target_period}"
@@ -256,6 +273,10 @@ function process_and_format_pomodoro_raw_data()
 # Prints the statistics report, the Pomodoro sessions report or both.
 function show_report()
 {
+  local flag="$1"
+
+  flag=${flag:-'SILENT'}
+
   if [[ -n "${options_values['STATISTICS']}" && -n "${statistics_raw_data}" ]]; then
     say "# Statistics Report: ${target_period}"
     printf '%20s %4s %8s %12s\n' 'Total' 'Max' 'Min' 'Average'
@@ -289,17 +310,21 @@ function show_report()
 function save_data_to()
 {
   local path="$1"
+  local flag="$2"
   local ret
 
-  touch "$path" 2> /dev/null
+  flag=${flag:-'SILENT'}
+
+  if [[ -d "$path" ]]; then
+    path="${path}/report_output"
+  fi
+
+  cmd_manager "$flag" "touch ${path} 2> /dev/null"
+
   ret="$?"
   if [[ "$ret" != 0 ]]; then
     complain "Failed to create ${path}, please check if this is a valid path"
     exit "$ret"
-  fi
-
-  if [[ -d "$path" ]]; then
-    path="${path}/report_output"
   fi
 
   show_report >> "$path"
@@ -310,7 +335,7 @@ function save_data_to()
 function parse_report_options()
 {
   local reference_count=0
-  local long_options='day::,week::,month::,year::,output:,statistics,pomodoro,all'
+  local long_options='day::,week::,month::,year::,output:,statistics,pomodoro,all,verbose'
   local short_options='o:,s,p,a'
   local options
 
@@ -328,6 +353,7 @@ function parse_report_options()
   options_values['OUTPUT']=''
   options_values['STATISTICS']=''
   options_values['POMODORO']=''
+  options_values['VERBOSE']=''
 
   eval "set -- $options"
 
@@ -402,6 +428,10 @@ function parse_report_options()
         options_values['POMODORO']=1
         shift
         ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --all | -a)
         options_values['STATISTICS']=1
         options_values['POMODORO']=1
@@ -447,7 +477,8 @@ function report_help()
     '  report [--week[=<year>/<month>/<day>]] - Display all the information for the specified week' \
     '  report [--month[=<year>/<month>]] - Display all the information for the specified month' \
     '  report [--year[=<year>]] - Display all the information for the specified year' \
-    '  report [--output <path>] - Save report to <path>'
+    '  report [--output <path>] - Save report to <path>' \
+    '  report [--verbose] - Show a detailed output'
 }
 
 load_kworkflow_config
