@@ -79,6 +79,9 @@ function test_parse_report_options()
   expected_result=$(get_today_info '+%Y')
   assert_equals_helper 'Get this year info' "$LINENO" "${options_values['YEAR']}" "$expected_result"
 
+  parse_report_options '--verbose'
+  assert_equals_helper 'Show a detailed output' "$LINENO" "${options_values['VERBOSE']}" '1'
+
   # Values with parameters
   ## Days
   ref_date='1999/03/03'

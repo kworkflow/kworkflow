@@ -59,7 +59,7 @@ function _kw_autocomplete()
   kw_options['pomodoro']='--set-timer --check-timer --show-tags --tag --description --help --verbose'
   kw_options['p']="${kw_options['pomodoro']}"
 
-  kw_options['report']='--day --week --month --year --output --statistics --pomodoro --all'
+  kw_options['report']='--day --week --month --year --output --statistics --pomodoro --all --verbose'
   kw_options['r']="${kw_options['report']}"
 
   kw_options['device']='--local --remote --vm'
