@@ -349,7 +349,7 @@ function get_motherboard()
   local cmd_name
   local cmd_vendor
   local fallback_name_cmd="cat /proc/cpuinfo | grep Model | cut --delimiter=':' -f2"
-  local fallback_vendor_cmd="cat /proc/cpuinfo | grep Hardware | cut --eliminate=':' -f2"
+  local fallback_vendor_cmd="cat /proc/cpuinfo | grep Hardware | cut --delimiter=':' -f2"
 
   flag=${flag:-'SILENT'}
   cmd_name='[ -f /sys/devices/virtual/dmi/id/board_name ] && cat /sys/devices/virtual/dmi/id/board_name'
