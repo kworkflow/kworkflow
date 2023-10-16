@@ -83,6 +83,8 @@ function setupGitRepository()
   declare -gr PATH_TO_GIT_REPOSITORY="${SHUNIT_TMPDIR}/git_repository"
   mkdir -p "$PATH_TO_GIT_REPOSITORY"
   git -C "$PATH_TO_GIT_REPOSITORY" init --initial-branch='master' --quiet
+  git -C "$PATH_TO_GIT_REPOSITORY" config user.name kw
+  git -C "$PATH_TO_GIT_REPOSITORY" config user.email kw@kw
 }
 
 function teardownGitRepository()
