@@ -61,6 +61,8 @@ function oneTimeSetUp()
   touch fs/some_file
   git init --quiet
   git add fs/some_file
+  git config user.name kw
+  git config user.email kw@kw
   git commit --quiet -m "Test message"
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back from temp directory"
