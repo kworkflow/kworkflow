@@ -77,9 +77,16 @@ Package install
 
 Update
 ------
-Every time you want to get a new version of `kw`, just pull from this
-repository and install kw again (`./setup.sh -i` removes legacy files and installs
-new ones).
+
+- Update using `kw self-update`:
+   The `kw self-update` feature allows you to update kw without having
+   to clone the project's repository and manually install `kw`. For more
+   information see :ref:`kw-self-update<self-update-doc>`.
+
+- Update manually:
+   You can update kw manually by pulling this repository and installing kw
+   again (`./setup.sh -i` removes legacy files and installs
+   new ones).
 
 Remove
 ------
