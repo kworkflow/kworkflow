@@ -946,6 +946,25 @@ function test_kernel_build_full_cleanup_inside_env()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
+function test_kernel_build_cflags()
+{
+  local expected_result
+  local output
+  local flag_name="-O3 -pipe -march=native"
+  build_config=()
+
+  parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
+
+  output=$(build_kernel_main 'TEST_MODE' --cflags "${flag_name}" | tail -n +1 | head -2)
+
+  declare -a expected_cmd=(
+    "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig"
+    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 KCFLAGS=\"${flag_name}\""
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
 function test_kernel_build_cflags_inside_env()
 {
   local expected_result
@@ -962,7 +981,7 @@ function test_kernel_build_cflags_inside_env()
 
   declare -a expected_cmd=(
     "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig O=${env_output}"
-    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 KCFLAGS=${flag_name} O=${env_output}"
+    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 KCFLAGS=\"${flag_name}\" O=${env_output}"
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
