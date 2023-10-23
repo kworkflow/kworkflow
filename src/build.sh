@@ -127,7 +127,7 @@ function build_kernel_main()
   command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}"
 
   if [[ -n "$cflags" ]]; then
-    command+=" KCFLAGS=${cflags}"
+    command+=" KCFLAGS=\"${cflags}\""
   fi
   command+="${output_kbuild_flag}${output_path}"
 
@@ -293,7 +293,7 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags:'
   local short_options='h,i,n,d,S:,w::,s:,c,f'
   local doc_type
   local file_name_size
