@@ -193,7 +193,7 @@ function list_patches()
   local ret
 
   if [[ -z "${_target_array_list}" ]]; then
-    create_message_box "${menu_title}" "${fallback_message}"
+    create_message_box 'Error' "${fallback_message}"
     screen_sequence['SHOW_SCREEN']='dashboard'
     return "$?"
   fi
