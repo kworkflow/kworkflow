@@ -79,9 +79,10 @@ dmesg. All the debug options are intended to support remote and local targets.
 COMMAND TO INTERACT WITH THE PUBLIC MAILING LISTS
 -------------------------------------------------
 
-Some projects like the Linux kernel are collaboratively developed using
-public mailing lists. kw has a feature that provides a friendly UI to these
-lists and also integrates other kw features to allow a unified kernel development.
+Some projects, like the Linux kernel, are collaboratively developed using public
+mailing lists. kw has a feature that provides a friendly UI to these lists and
+integrates other kw features to allow a unified kernel development with a focus
+on patch-reviewing.
 
   :ref:`kw-patch-hub<patch-hub-doc>`
 
