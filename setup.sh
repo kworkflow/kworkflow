@@ -51,6 +51,8 @@ function check_dependencies()
   local package_list=''
   local cmd=''
   local distro
+  local ret
+  local error_message=''
 
   distro=$(detect_distro '/')
 
@@ -81,8 +83,9 @@ function check_dependencies()
 
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies $package_list?") =~ '0' ]]; then
-        return 0
+      if [[ $(ask_yN "Can we install the following dependencies? ${package_list}") =~ '0' ]]; then
+        complain 'Aborting kw installation...'
+        exit 125 # ECANCELED
       fi
     fi
 
@@ -92,8 +95,19 @@ function check_dependencies()
     else
       eval "sudo $cmd"
     fi
-  fi
+    ret="$?"
 
+    # Installation failed...
+    if [[ "$ret" -ne 0 ]]; then
+      error_message='[ERROR]: Dependency installation failure: '
+      [[ "$ret" -eq 1 ]] && error_message+='Lacked sudo privileges to install the packages:'
+      [[ "$ret" -ne 1 ]] && error_message+='Something went wrong when installing the packages:'
+      error_message+=$'\n'"$package_list"
+      complain "$error_message"
+      exit "$ret"
+    fi
+
+  fi
 }
 
 function generate_documentation()
