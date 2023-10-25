@@ -14,9 +14,9 @@ function show_settings_screen()
   menu_list_string_array=(
     'Register/Unregister Mailing Lists'
     'Save Patches To'
-    'Kernel Tree Path'
-    'Kernel Tree Target Branch'
-    'Patchsets Per Page'
+    'Edit Kernel Tree Path'
+    'Edit Kernel Tree Target Branch'
+    'Edit Patchsets Per Page'
   )
   create_menu_options 'Settings' '' 'menu_list_string_array' '' '' 'Return'
   ret="$?"
