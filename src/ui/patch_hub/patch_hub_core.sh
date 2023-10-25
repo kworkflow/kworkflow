@@ -152,9 +152,20 @@ function show_registered_mailing_lists()
   local -a registered_mailing_lists
   local message_box
   local ret
+  local fallback_message
 
   # Load registered mailing lists from config file into array
   IFS=',' read -r -a registered_mailing_lists <<< "${lore_config['lists']}"
+
+  if [[ "${#registered_mailing_lists[@]}" -eq 0 ]]; then
+    fallback_message='kw could not find any registered mailing list.'$'\n'$'\n'
+    fallback_message+='Try to register mailing lists in the menu "Settings" -> '
+    fallback_message+='"Register/Unregister Mailing Lists"'
+
+    create_message_box 'Error' "${fallback_message}"
+    screen_sequence['SHOW_SCREEN']='dashboard'
+    return
+  fi
 
   message_box='Below, you can see the lore.kernel.org mailing lists that you have registered.'$'\n'
   message_box+='Select a mailing list to see the latest patchsets sent to it.'
