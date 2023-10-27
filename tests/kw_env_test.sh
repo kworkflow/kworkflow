@@ -20,6 +20,9 @@ setUp()
   # Create fake .kw folder
   mk_fake_kw_folder "$TEST_PATH"
 
+  # Copy strings
+  cp "${ORIGINAL_PATH}/etc/strings/env.txt" "$TEST_PATH"
+
   # Create a dummy kernel .config file
   cp "$STD_CONFIG_FILE" ./
 }
@@ -193,6 +196,36 @@ function test_use_target_env_invalid_env()
   options_values['USE']='lala'
   output=$(use_target_env)
   assertEquals "($LINENO) Env does not exists" "$?" 22
+}
+
+function test_validate_env_before_switch_invalid_case_with_config()
+{
+  # In this case we don't care about the user output for the test, for this
+  # reaon, move to dev/null
+  validate_env_before_switch > /dev/null
+  assertEquals "(${LINENO}) it should not allow switch to a new env due to .config file." "$?" 22
+}
+
+function test_validate_env_before_switch_invalid_case_with_object_file()
+{
+  # Remove the .cofig file
+  mv '.config' 'config'
+
+  # Create a fake object file
+  mkdir -p 'drivers/gpu/drm/'
+  touch 'drivers/gpu/drm/drm_atomic.o'
+
+  validate_env_before_switch > /dev/null
+  assertEquals "(${LINENO}) it should not allow switch to a new env due to object files." "$?" 22
+}
+
+function test_validate_env_before_switch_no_config_and_no_object_files()
+{
+  # Remove the .cofig file
+  mv '.config' 'config'
+
+  validate_env_before_switch > /dev/null
+  assertEquals "(${LINENO}) it should allow switch to a new env due to object files." "$?" 0
 }
 
 function test_parse_env_options()
