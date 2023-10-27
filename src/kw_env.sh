@@ -34,8 +34,12 @@ function env_main()
   fi
 
   if [[ -n "${options_values['USE']}" ]]; then
-    use_target_env
-    return "$?"
+    validate_env_before_switch
+    if [[ "$?" != 22 ]]; then
+      use_target_env
+      return "$?"
+    fi
+    return 22 # EINVAL
   fi
 
   if [[ -n "${options_values['DESTROY']}" ]]; then
@@ -52,6 +56,38 @@ function env_main()
     exit_env
     return "$?"
   fi
+}
+
+# If the env option is requested, it means the O= option from the kernel
+# makefile is used, and this option requires a clean kernel tree to work as
+# expected. This function checks if the current kernel tree is clean.
+#
+# Return:
+# Return 22 in case of error
+function validate_env_before_switch()
+{
+  local should_fail=0
+  local list_of_object_file
+
+  load_module_text "${KW_ETC_DIR}/strings/env.txt"
+
+  # Check if there is a .config file
+  [[ -f "${PWD}/.config" ]] && should_fail=1
+
+  # Check if there is any object file
+  list_of_object_file=$(find "${PWD}" -name '*.o')
+  [[ "$?" != 0 || -n ${list_of_object_file} ]] && should_fail=1
+
+  # Check for ko files
+  list_of_object_file=$(find "${PWD}" -name '*.ko')
+  [[ "$?" != 0 || -n ${list_of_object_file} ]] && should_fail=1
+
+  if [[ "$should_fail" == 1 ]]; then
+    complain "${module_text_dictionary[use_failure_explanation]}"
+    return 22 # EINVAL
+  fi
+
+  return 0
 }
 
 # When we switch between different kw envs we just change the symbolic links
