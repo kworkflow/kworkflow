@@ -1,0 +1,90 @@
+---
+- name: Configure Linux System
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Clone the Linux kernel repository
+      git:
+        repo: https://github.com/torvalds/linux
+        dest: /home/vagrant/linux
+        depth: 1
+
+    - name: Update system
+      apt:
+        update_cache: yes
+
+    - name: Install dependencies
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - grub
+        - libxml-xpath-perl
+        - dialog
+        - ccache
+        - pv
+        - git-email
+        - bc
+        - zstd
+        - lzop
+        - lzip
+        - python3-pip
+        - texlive-xetex
+        - librsvg2-bin
+        - latexmk
+        - dvipng
+        - graphviz
+        - imagemagick
+        - sphinx-doc
+        - dunst
+        - pulseaudio-utils
+        - python-pip
+        - python3-venv
+        - sqlite3
+        - libssl-dev
+        - libelf-dev
+        - python-pexpect
+
+    - name: Install and uninstall specific Python packages
+      pip:
+        name: "{{ item }}"
+      with_items:
+        - docutils==0.18
+        - docutils==0.20.1
+      when: item == "docutils==0.18"
+
+    - name: Change ownership of directories
+      file:
+        path: "{{ item.path }}"
+        owner: vagrant
+        group: vagrant
+        recurse: yes
+      loop:
+        - { path: /home/vagrant/linux }
+        - { path: /home/vagrant/kworkflow }
+
+    - name: Copy .config_changed
+      copy:
+        src: /shared/.config_changed
+        dest: /home/vagrant/linux/.config
+        owner: vagrant
+
+    - name: Clone kworkflow repository
+      git:
+        repo: https://github.com/kworkflow/kworkflow
+        dest: /home/vagrant/kworkflow
+
+    - name: Change branch to unstable
+      command: git checkout unstable
+      args:
+        chdir: /home/vagrant/kworkflow
+
+    - name: Install kworkflow
+      command: bash setup.sh -i --skip-checks
+      args:
+        chdir: /home/vagrant/kworkflow
+
+    - name: Run kworkflow build
+      command: /home/vagrant/kworkflow/kw build
+      args:
+        chdir: /home/vagrant/linux

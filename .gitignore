@@ -7,6 +7,7 @@ tests/.tmp_kw_config_loader_test
 tests/.tmp
 build/
 kcov_out/
+integration_tests/.vagrant
 
 # Pip virtualenv folder
 docs_virtual_env

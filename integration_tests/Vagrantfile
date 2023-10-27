@@ -1,0 +1,17 @@
+Vagrant.configure("2") do |config|
+  config.vm.define "debian" do |debian|
+    # Set the debian box
+    debian.vm.box = "generic/debian10"
+
+    # Installing Ansible
+    debian.vm.provision "shell", path: "scripts/ansible_install.sh"
+
+    # Executing Ansible within the VM
+    debian.vm.provision "shell",
+      inline: "ansible-playbook /shared/configure_kworkflow.yml"
+
+    # Sync shared files and disable the default sync folder
+    debian.vm.synced_folder "./shared", "/shared"
+    debian.vm.synced_folder ".", "/vagrant", disabled: true
+  end
+end
