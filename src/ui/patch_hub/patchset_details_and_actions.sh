@@ -100,6 +100,8 @@ function handle_download_action()
   local download_dir_path
   local output
   local message_box
+  local loading_pid
+  local ret
 
   create_directory_selection_screen "${lore_config['save_patches_to']}" 'Select directory to download .mbx file'
 
@@ -111,10 +113,13 @@ function handle_download_action()
         return
       fi
 
-      create_loading_screen_notification 'Downloading patchset'$'\n'"${_patchset['patchset_title']}"
+      create_async_loading_screen_notification 'Downloading patchset'$'\n'"${_patchset['patchset_title']}" &
+      loading_pid="$!"
 
       output=$(download_series "${_patchset['patchset_url']}" "$download_dir_path")
-      if [[ "$?" != 0 ]]; then
+      ret="$?"
+      stop_async_loading_screen_notification "$loading_pid"
+      if [[ "$ret" != 0 ]]; then
         create_message_box 'Error' 'Could not download patchset:'$'\n'"${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
       else
         message_box='Downloaded patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
@@ -145,16 +150,21 @@ function handle_bookmark_action()
   local -n _patchset="$1"
   local raw_patchset="$2"
   local output
+  local loading_pid
+  local ret
 
   output=$(download_series "${_patchset['patchset_url']}" "${lore_config['save_patches_to']}")
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
   fi
 
-  create_loading_screen_notification 'Bookmarking patchset'$'\n'"- ${_patchset['patchset_title']}"
+  create_async_loading_screen_notification 'Bookmarking patchset'$'\n'"- ${_patchset['patchset_title']}" &
+  loading_pid="$!"
 
   add_patchset_to_bookmarked_database "${raw_patchset}" "${lore_config['save_patches_to']}"
-  if [[ "$?" != 0 ]]; then
+  ret="$?"
+  stop_async_loading_screen_notification "$loading_pid"
+  if [[ "$ret" != 0 ]]; then
     create_message_box 'Error' 'Could not bookmark patchset'$'\n'"- ${_patchset['patchset_title']}"
   fi
 }

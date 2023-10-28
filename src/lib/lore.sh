@@ -412,10 +412,13 @@ function process_patchsets()
   local patch_url
   local count
   local line
+  local pids
+  local i
 
   shared_dir_for_parallelism=$(mktemp --directory)
   starting_index="$PATCHSETS_PROCESSED"
   count=0
+  i=0
 
   while IFS= read -r line; do
     if [[ "$line" =~ ^[[:space:]]href= ]]; then
@@ -425,6 +428,8 @@ function process_patchsets()
         # Process each patch in parallel
         thread_for_process_patch "$PATCHSETS_PROCESSED" "$shared_dir_for_parallelism" \
           "$processed_patchset" "$patch_url" "$patch_title" &
+        pids[i]="$!"
+        ((i++))
         ((PATCHSETS_PROCESSED++))
       fi
 
@@ -450,9 +455,12 @@ function process_patchsets()
     esac
 
     ((count++))
-
   done <<< "$pre_processed_patches"
-  wait
+
+  # Wait for specific PID to avoid interfering in other functionalities.
+  for pid in "${pids[@]}"; do
+    wait "$pid"
+  done
 
   for i in $(seq "$starting_index" "$((PATCHSETS_PROCESSED - 1))"); do
     list_of_mailinglist_patches["$i"]=$(< "${shared_dir_for_parallelism}/${i}")

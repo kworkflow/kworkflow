@@ -154,9 +154,18 @@ test_handle_bookmark_action()
   local output
 
   # shellcheck disable=SC2317
-  function create_loading_screen_notification()
+  function create_async_loading_screen_notification()
   {
-    return
+    while true; do
+      sleep 0.1
+    done
+  }
+
+  # shellcheck disable=SC2317
+  function stop_async_loading_screen_notification()
+  {
+    local loading_pid="$1"
+    kill -15 "$loading_pid"
   }
 
   # We need to mock download_series or else the test
