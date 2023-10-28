@@ -11,18 +11,22 @@ function show_lore_mailing_lists()
   local new_registered_lists
   local lore_config_path="${PWD}/.kw/lore.config"
   local ret
+  local loading_pid
 
   if [[ ! -f "${lore_config_path}" ]]; then
     lore_config_path="${KW_ETC_DIR}/lore.config"
   fi
 
-  create_loading_screen_notification 'Retrieving available mailing lists from lore.kernel.org'
+  create_async_loading_screen_notification 'Retrieving available mailing lists from lore.kernel.org' &
+  loading_pid="$!"
 
   # This call retrieves the available mailing lists archived on lore.kernel.org and
   # stores it in the `available_lore_mailing_lists` associative array.
   retrieve_available_mailing_lists
   convert_available_lore_mailing_lists_to_array 'available_lore_mailing_lists' 'available_lore_mailing_lists_array'
   get_lists_check_status 'available_lore_mailing_lists_array' 'lists_check_status' "${lore_config['lists']}"
+
+  stop_async_loading_screen_notification "$loading_pid"
 
   menu_title='Register/Unresgister Mailing Lists'
   # Add a message to the user in case there are no registered list.

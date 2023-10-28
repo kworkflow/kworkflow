@@ -12,11 +12,17 @@ function show_latest_patchsets_from_mailing_list()
   local ending_index
   local box_title
   local extra_label='Previous'
+  local loading_pid
+  local ret
 
-  create_loading_screen_notification "Loading patchsets from ${current_mailing_list} list"
+  create_async_loading_screen_notification "Loading patchsets from ${current_mailing_list} list" &
+  loading_pid="$!"
+
   # Query patches from mailing list, this info will be saved at `list_of_mailinglist_patches[@]`.
   fetch_latest_patchsets_from "$current_mailing_list" "$PAGE" "${lore_config['patchsets_per_page']}" "$additional_filters"
-  if [[ "$?" != 0 ]]; then
+  ret="$?"
+  stop_async_loading_screen_notification "$loading_pid"
+  if [[ "$ret" != 0 ]]; then
     create_message_box 'Error' "Couldn't fetch patchsets from ${current_mailing_list} list."
     if [[ -n "$additional_filters" ]]; then
       screen_sequence['SHOW_SCREEN']='dashboard'

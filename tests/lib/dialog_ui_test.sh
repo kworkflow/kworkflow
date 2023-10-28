@@ -155,6 +155,56 @@ function test_create_loading_screen_notification_use_all_options()
   assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${output}" "${expected_cmd}"
 }
 
+function test_create_async_loading_screen_notification_rely_on_some_default_options()
+{
+  local loading_message
+  local expected_cmd
+  local output_path
+  local output
+  local pid
+
+  loading_message='loading latest patchsets from amd-gfx'
+  expected_cmd="dialog --colors --infobox $'${loading_message} ⣾' '8' '60'"
+  expected_cmd+="dialog --colors --infobox $'${loading_message} ⣾' '8' '60'"
+  expected_cmd+="dialog --colors --infobox $'${loading_message} ⣽' '8' '60'"
+
+  output_path="${TMP_DIR}/async_loading_screen_output"
+  touch "$output_path"
+
+  create_async_loading_screen_notification "$loading_message" '' '' 'TEST_MODE' >> "$output_path" &
+  pid="$!"
+  sleep .3
+  stop_async_loading_screen_notification "$pid"
+
+  output=$(< "$output_path")
+  assert_equals_helper 'Expected async loading screen with some default options' "$LINENO" "$output" "$expected_cmd"
+}
+
+function test_create_async_loading_screen_notification_use_all_options()
+{
+  local loading_message
+  local expected_cmd
+  local output_path
+  local output
+  local pid
+
+  loading_message='loading latest patchsets from amd-gfx'
+  expected_cmd="dialog --colors --infobox $'${loading_message} ⣾' '1234' '2718281'"
+  expected_cmd+="dialog --colors --infobox $'${loading_message} ⣾' '1234' '2718281'"
+  expected_cmd+="dialog --colors --infobox $'${loading_message} ⣽' '1234' '2718281'"
+
+  output_path="${TMP_DIR}/async_loading_screen_output"
+  touch "$output_path"
+
+  create_async_loading_screen_notification "$loading_message" 1234 2718281 'TEST_MODE' >> "$output_path" &
+  pid="$!"
+  sleep .3
+  stop_async_loading_screen_notification "$pid"
+
+  output=$(< "$output_path")
+  assert_equals_helper 'Expected async loading screen with some default options' "$LINENO" "$output" "$expected_cmd"
+}
+
 function test_create_message_box_rely_on_some_default_options()
 {
   local box_title='Bookmarked patches'

@@ -207,7 +207,7 @@ function create_simple_checklist()
 #
 # Return:
 # There is no return. The function just displays the infobox and returns,
-# assuming the next command is going to delay its completionand that another
+# assuming the next command is going to delay its completion and that another
 # screen is going to clear the current (the infobox).
 function create_loading_screen_notification()
 {
@@ -239,6 +239,83 @@ function create_loading_screen_notification()
   [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && return 0
 
   run_dialog_command "$cmd" "$flag"
+}
+
+# Get the current spinner frame.
+#
+# @frame_offset: Offset corresponding to the current frame on the spin string.
+#
+# Return:
+# A frame of the spinner animation in string format.
+function spin_frame()
+{
+  local frame_offset="$1"
+  local LC_CTYPE=C
+  local spin='⣾⣽⣻⢿⡿⣟⣯⣷'
+  local char_width=3
+
+  frame_offset=$(((frame_offset) % ${#spin}))
+  printf "%s" "${spin:$frame_offset:$char_width}"
+}
+
+# Create simple async loading screen notification for delayed actions.
+#
+# The caller is required to use stop_async_loading_screen_notification() with
+# the pid of this function call afterwards to stop the loading screen.
+#
+# @loading_message: The message to be displayed to the user while loading.
+# @height: Menu height in lines size, the default value is 8.
+# @width: Menu width in column size, the default value is 60.
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
+function create_async_loading_screen_notification()
+{
+  local loading_message="$1"
+  local height="$2"
+  local width="$3"
+  local flag="$4"
+  local cmd
+  local frame_offset
+
+  frame_offset=0
+  flag=${flag:-'SILENT'}
+  height=${height:-8}
+  width=${width:-60}
+
+  # Escape all single quotes to avoid breaking arguments
+  loading_message=$(str_escape_single_quotes "$loading_message")
+
+  while true; do
+    # Add dialog layout if there is one
+    if [[ -n "$DIALOG_LAYOUT" ]]; then
+      cmd="DIALOGRC=${DIALOG_LAYOUT} "
+    fi
+    # We should not use --clear because this flushes the infobox
+    cmd+='dialog --colors'
+    spin="$(spin_frame $frame_offset)"
+    frame_offset=$((frame_offset + 3))
+
+    # Add Infobox screen
+    cmd+=" --infobox $'${loading_message} ${spin}'"
+    # Set height and width
+    cmd+=" '${height}' '${width}'"
+
+    sleep .1
+
+    [[ "$flag" == 'TEST_MODE' ]] && printf '%s' "$cmd" && continue
+
+    run_dialog_command "$cmd" "$flag"
+  done
+}
+
+# Kill async loading process
+#
+# @loading_pid: PID of the async loading process
+function stop_async_loading_screen_notification()
+{
+  local loading_pid="$1"
+
+  kill -15 "$loading_pid"
 }
 
 # Create simple message box. Can be used for displaying errors and notifications.
