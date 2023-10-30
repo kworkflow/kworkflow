@@ -12,6 +12,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # This is here just because git-email cannot be installed in the 
+      # Github CI otherwise.
+      - name: Add git-core PPA for git-email
+        run: |
+          sudo add-apt-repository ppa:git-core/ppa -y
+
       - name: Update the system
         run: |
           sudo apt update -y
