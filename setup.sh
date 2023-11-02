@@ -55,7 +55,6 @@ function check_dependencies()
   local cmd=''
   local distro
   local ret
-  local error_message=''
 
   distro=$(detect_distro '/')
 
@@ -102,11 +101,7 @@ function check_dependencies()
 
     # Installation failed...
     if [[ "$ret" -ne 0 ]]; then
-      error_message='[ERROR]: Dependency installation failure: '
-      [[ "$ret" -eq 1 ]] && error_message+='Lacked sudo privileges to install the packages:'
-      [[ "$ret" -ne 1 ]] && error_message+='Something went wrong when installing the packages:'
-      error_message+=$'\n'"$package_list"
-      complain "$error_message"
+      complain '[ERROR] Dependencies installation has failed. Aborting kw installation...'
       exit "$ret"
     fi
 
