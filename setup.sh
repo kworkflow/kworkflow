@@ -86,7 +86,7 @@ function check_dependencies()
 
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies? ${package_list}") =~ '0' ]]; then
+      if [[ $(ask_yN "The following packages are required: ${package_list}"$'\nMay we install them?') =~ '0' ]]; then
         complain 'Aborting kw installation...'
         exit 125 # ECANCELED
       fi
