@@ -6,7 +6,7 @@ kw-device
 
 SYNOPSIS
 ========
-*kw device* [\--local | \--remote [<remote>:<port>]]
+*kw device* [\--local | \--remote [<remote>:<port>] [\--verbose]
 
 DESCRIPTION
 ===========
@@ -26,3 +26,8 @@ OPTIONS
 
 \--remote [<remote>:<port>]:
   Show hardware information from remote machine.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug
+  messages to track its progress. This functionality is very useful during the
+  debugging process, allowing you to identify possible errors more easily.
