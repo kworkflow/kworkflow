@@ -62,7 +62,7 @@ function _kw_autocomplete()
   kw_options['report']='--day --week --month --year --output --statistics --pomodoro --all --verbose'
   kw_options['r']="${kw_options['report']}"
 
-  kw_options['device']='--local --remote --vm'
+  kw_options['device']='--local --remote --vm --verbose'
 
   kw_options['backup']='--restore --force --verbose --help'
 

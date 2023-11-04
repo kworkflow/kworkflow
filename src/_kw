@@ -220,6 +220,7 @@ _kw_deploy()
 _kw_device()
 {
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(--remote --vm)--local[show hardware information from host machine]' \
     '(--local --vm)--remote[show hardware information from a remote machine]: :' \
     '(--remote --vm)--vm[show hardware information from a virtual machine]'
