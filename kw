@@ -36,6 +36,19 @@ KW_STATE_DIR="${XDG_STATE_HOME:-"${HOME}/.local/state"}/${KWORKFLOW}"
 # ENV dir name
 ENV_DIR='envs'
 
+# Export external variables required by kworkflow
+export KWORKFLOW
+
+#INJECT_CODE_TRACING_SETUP
+
+# This is the one and only time a file will be sourced this way.
+# The include function (sourced from this file) should always be used for file sourcing.
+. "${KW_LIB_DIR}/lib/kw_include.sh" --source-only
+
+
+# Dev mode has to begin after sourcing lib/kw_include.sh
+# Otherwise, it is not possible to use helpers.
+
 ##BEGIN-DEV-MODE##
 KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
 KW_BASE_DIR="$(dirname "${KW_BIN}")"
@@ -50,17 +63,27 @@ if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
   KW_ETC_DIR="${KW_BASE_DIR}/etc"
   KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
   # KW_CACHE_DIR # use default cache folder
+
+  # include IO utilities
+  include "${KW_LIB_DIR}/lib/kwio.sh"
+
+  # Print a notice to the developers so he knows some envvars have been changed
+  # We redirect to stderror because this output would make tests fails if the developer is testing
+  say "[INFO]: Running kw in developer mode. Envvars set to the following:
+
+KW_CACHE_DIR =${KW_CACHE_DIR}
+KW_DATA_DIR=${KW_DATA_DIR}
+KW_DB_DIR=${KW_DB_DIR}
+KW_DOC_DIR=${KW_DOC_DIR}
+KW_ETC_DIR=${KW_ETC_DIR}
+KW_LIB_DIR=${KW_LIB_DIR}
+KW_MAN_DIR=${KW_MAN_DIR}
+KW_PLUGINS_DIR=${KW_PLUGINS_DIR}
+KW_SOUND_DIR=${KW_SOUND_DIR}
+" >&2
+
 fi
 ##END-DEV-MODE##
-
-# Export external variables required by kworkflow
-export KWORKFLOW
-
-#INJECT_CODE_TRACING_SETUP
-
-# This is the one and only time a file will be sourced this way.
-# The include function (sourced from this file) should always be used for file sourcing.
-. "${KW_LIB_DIR}/lib/kw_include.sh" --source-only
 
 include "${KW_LIB_DIR}/lib/signal_manager.sh"
 
