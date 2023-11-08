@@ -178,6 +178,7 @@ _kw_debug()
     '(-e --event -r --reset -l --list -t --ftrace -g --dmesg)'{-e,--event}'[events trace]: : ' \
     '(-t --ftrace -r --reset -l --list -e --event -g --dmesg)'{-t,--ftrace}'[ftrace trace]: : ' \
     '(-g --dmesg -r --reset -l --list -e --event -t --ftrace)'{-g,--dmesg}'[dmesg log]' \
+    '(--verbose)--verbose[enable verbose mode]' \
     '(--remote)--local[set local machine as target]' \
     '(--local)--remote[set remote machine as target]: : ' \
     $disable \

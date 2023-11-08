@@ -948,4 +948,21 @@ function test_get_git_repository_branches()
   teardownGitRepository
 }
 
+function test_show_verbose_no_verbose()
+{
+  local output
+
+  output=$(show_verbose 'TEST_MODE' 'it shoud not display anything')
+  assertEquals "($LINENO): Expected an empty string" '' "$output"
+}
+
+function test_show_verbose()
+{
+  local output
+  local cmd='some command'
+
+  output=$(show_verbose 'VERBOSE' "$cmd")
+  assertEquals "($LINENO): Expected an empty string" "$cmd" "$output"
+}
+
 invoke_shunit

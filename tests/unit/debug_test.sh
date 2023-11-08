@@ -517,19 +517,30 @@ function test_ftrace_debug()
 
   mkdir 'kw_debug'
 
+  declare -a expected_sequence=(
+    'touch kw_debug/ftrace'
+    "printf '\n' > kw_debug/ftrace"
+    "${expected_cmd_base} | tee kw_debug/ftrace"
+  )
+
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph: amdgpu_dm*' 'kw_debug')
-  expected_cmd="$expected_cmd_base | tee kw_debug/ftrace"
-  assert_equals_helper '[local] We expected a log file' "$LINENO" "$expected_cmd" "$output"
-  # Check if was created a ftrace file
-  assertTrue "($LINENO) Expected to find kw_debug/ftrace file" '[[ -f "$PWD/kw_debug/ftrace" ]]'
+  compare_array_values expected_sequence output "$LINENO"
 
+  declare -a expected_sequence=(
+    'touch kw_debug/ftrace'
+    "printf '\n' > kw_debug/ftrace"
+    "${expected_cmd_base} && cat ${trace_pipe} | tee kw_debug/ftrace"
+  )
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph: amdgpu_dm*' 'kw_debug' 1)
-  expected_cmd="$expected_cmd_base && cat $trace_pipe | tee kw_debug/ftrace"
-  assert_equals_helper '[local] We expected a log file' "$LINENO" "$expected_cmd" "$output"
+  compare_array_values expected_sequence output "$LINENO"
 
+  declare -a expected_sequence=(
+    'touch kw_debug/ftrace'
+    "printf '\n' > kw_debug/ftrace"
+    "${default_ssh} \"${expected_cmd_base} && cat ${trace_pipe}\" | tee kw_debug/ftrace"
+  )
   output=$(ftrace_debug 3 'TEST_MODE' 'function_graph: amdgpu_dm*' 'kw_debug' 1)
-  expected_cmd="$default_ssh \"$expected_cmd_base && cat $trace_pipe\" | tee kw_debug/ftrace"
-  assert_equals_helper '[remote] We expected a log file' "$LINENO" "$expected_cmd" "$output"
+  compare_array_values expected_sequence output "$LINENO"
 
   # Test cmd option; unfortunately, it is a horrible command sequence.
   expected_cmd="$expected_cmd_base"
@@ -541,12 +552,15 @@ function test_ftrace_debug()
   screen_command="screen -S $screen_id -X quit > /dev/null"
   expected_cmd+=" && $screen_command | tee kw_debug/ftrace"
   USER='MOCK'
-  declare -a expected_cmd_seq=(
+
+  declare -a expected_sequence=(
+    'touch kw_debug/ftrace'
+    "printf '\n' > kw_debug/ftrace"
     "$expected_cmd"
     "sudo cp /root/kw_2021_10_22-07_34_07 kw_debug/ftrace && sudo chown $USER:$USER kw_debug/ftrace"
   )
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*' 'kw_debug' '' './root/something')
-  compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
+  compare_command_sequence '' "$LINENO" 'expected_sequence' "$output"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"
@@ -646,24 +660,34 @@ function test_dmesg_debug()
 
   mkdir 'kw_debug'
 
+  declare -a expected_sequence=(
+    'touch kw_debug/dmesg'
+    "printf '\n' > kw_debug/dmesg"
+    "${std_dmesg} --nopager | tee kw_debug/dmesg"
+  )
   output=$(dmesg_debug 2 'TEST_MODE' 'kw_debug' '' '')
-  expected_cmd="$std_dmesg --nopager | tee kw_debug/dmesg"
-  assert_equals_helper '[local] We expected a log file' "$LINENO" "$expected_cmd" "$output"
+  compare_array_values expected_sequence output "$LINENO"
 
+  declare -a expected_sequence=(
+    'touch kw_debug/dmesg'
+    "printf '\n' > kw_debug/dmesg"
+    "${std_dmesg} --follow | tee kw_debug/dmesg"
+  )
   output=$(dmesg_debug 2 'TEST_MODE' 'kw_debug' 1 '')
-  expected_cmd="$std_dmesg --follow | tee kw_debug/dmesg"
-  assert_equals_helper '[local] Log file with follow' "$LINENO" "$expected_cmd" "$output"
-
-  # Check if was created a dmesg file
-  assertTrue "($LINENO) Expected to find kw_debug/dmesg file" '[[ -f "$PWD/kw_debug/dmesg" ]]'
+  compare_array_values expected_sequence output "$LINENO"
 
   remote_parameters['REMOTE_IP']='127.0.0.1'
   remote_parameters['REMOTE_PORT']='3333'
   remote_parameters['REMOTE_USER']='juca'
 
+  declare -a expected_sequence=(
+    'touch kw_debug/dmesg'
+    "printf '\n' > kw_debug/dmesg"
+    "${std_ssh} sudo \"${std_dmesg} --follow\" | tee kw_debug/dmesg"
+  )
+
   output=$(dmesg_debug 3 'TEST_MODE' 'kw_debug' 1 '')
-  expected_cmd="$std_ssh sudo \"$std_dmesg --follow\" | tee kw_debug/dmesg"
-  assert_equals_helper '[remote] Log file created' "$LINENO" "$expected_cmd" "$output"
+  compare_array_values expected_sequence output "$LINENO"
 
   # Check cmd option
   # Local
@@ -673,15 +697,24 @@ function test_dmesg_debug()
   assert_equals_helper '[local] dmesg with CMD' "$LINENO" "$expected_cmd" "$output"
 
   # --cmd "SOMETHING" --history
+  declare -a expected_sequence=(
+    'touch kw_debug/dmesg'
+    "printf '\n' > kw_debug/dmesg"
+    "dmesg --clear && ${igt_cmd_sample} && ${std_dmesg} --nopager | tee kw_debug/dmesg"
+  )
   output=$(dmesg_debug 2 'TEST_MODE' 'kw_debug' '' "$igt_cmd_sample")
-  expected_cmd="dmesg --clear && $igt_cmd_sample && $std_dmesg --nopager | tee kw_debug/dmesg"
-  assert_equals_helper '[local] dmesg with CMD' "$LINENO" "$expected_cmd" "$output"
+  compare_array_values expected_sequence output "$LINENO"
 
   # --cmd "SOMETHING" --follow --history
+  cmd_intermediary="screen -dmS kw_2021_10_22-07_34_07 ${igt_cmd_sample}"
+  declare -a expected_sequence=(
+    'touch kw_debug/dmesg'
+    "printf '\n' > kw_debug/dmesg"
+    "dmesg --clear && ${cmd_intermediary} && ${std_dmesg} --follow | tee kw_debug/dmesg"
+  )
+
   output=$(dmesg_debug 2 'TEST_MODE' 'kw_debug' 1 "$igt_cmd_sample")
-  cmd_intermediary="screen -dmS kw_2021_10_22-07_34_07 $igt_cmd_sample"
-  expected_cmd="dmesg --clear && $cmd_intermediary && $std_dmesg --follow | tee kw_debug/dmesg"
-  assert_equals_helper '[local] dmesg with CMD' "$LINENO" "$expected_cmd" "$output"
+  compare_array_values expected_sequence output "$LINENO"
 
   # Remote
   # --remote --cmd "SOMETHING"
@@ -691,14 +724,23 @@ function test_dmesg_debug()
 
   # --remote --cmd "SOMETHING" --history
   output=$(dmesg_debug 3 'TEST_MODE' 'kw_debug' '' "$igt_cmd_sample")
-  expected_cmd="$std_ssh sudo \"dmesg --clear && $igt_cmd_sample && $std_dmesg --nopager\" | tee kw_debug/dmesg"
-  assert_equals_helper '[remote]' "$LINENO" "$expected_cmd" "$output"
+  expected_cmd=
+  declare -a expected_sequence=(
+    'touch kw_debug/dmesg'
+    "printf '\n' > kw_debug/dmesg"
+    "${std_ssh} sudo \"dmesg --clear && ${igt_cmd_sample} && ${std_dmesg} --nopager\" | tee kw_debug/dmesg"
+  )
+  compare_array_values expected_sequence output "$LINENO"
 
   # --cmd "SOMETHING" --follow --history
+  cmd_intermediary="screen -dmS kw_2021_10_22-07_34_07 ${igt_cmd_sample}"
+  declare -a expected_sequence=(
+    'touch kw_debug/dmesg'
+    "printf '\n' > kw_debug/dmesg"
+    "${std_ssh} sudo \"dmesg --clear && ${cmd_intermediary} && ${std_dmesg} --follow\" | tee kw_debug/dmesg"
+  )
   output=$(dmesg_debug 3 'TEST_MODE' 'kw_debug' 1 "$igt_cmd_sample")
-  cmd_intermediary="screen -dmS kw_2021_10_22-07_34_07 $igt_cmd_sample"
-  expected_cmd="$std_ssh sudo \"dmesg --clear && $cmd_intermediary && $std_dmesg --follow\" | tee kw_debug/dmesg"
-  assert_equals_helper '[remote]' "$LINENO" "$expected_cmd" "$output"
+  compare_array_values expected_sequence output "$LINENO"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"
@@ -724,13 +766,9 @@ function test_event_debug()
   assert_equals_helper 'Invalid syntax' "$LINENO" "$ret" 22
 
   # List
-  output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm' '' '' '' 1)
-  ret="$?"
-  assert_equals_helper 'List' "$LINENO" "$ret" 0
-
   output=$(event_debug 2 'TEST_MODE' 'amdgpu_dm' '' '' '' 1)
   ret="$?"
-  assert_equals_helper 'List' "$LINENO" "$ret" 0
+  assert_equals_helper 'List' "$LINENO" 0 "$ret"
 
   # Simple case
   output=$(event_debug 3 'TEST_MODE' 'amdgpu_dm')
@@ -759,6 +797,8 @@ function test_event_debug()
   expected_cmd+=" && printf 'nop' > $FTRACE_CURRENT_PATH"
   expected_cmd+=" && screen -S kw_2021_10_22-07_34_07 -X quit"
   declare -a expected_cmd_seq=(
+    "touch kw_debug/event"
+    "printf '\n' > kw_debug/event"
     "$default_ssh sudo \" $expected_cmd\" | tee kw_debug/event"
     "rsync --info=progress2 -e 'ssh -p 3333' juca@127.0.0.1:${HOME}/kw_2021_10_22-07_34_07 kw_debug/event -LrlptD --rsync-path='sudo rsync'"
   )
