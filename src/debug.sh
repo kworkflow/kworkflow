@@ -63,6 +63,9 @@ function debug_main()
   follow="${options_values['FOLLOW']}"
   reset="${options_values['RESET']}"
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+  flag=${flag:-'SILENT'}
+
   # Base path for saving log files
   base_log_path=$(prepare_log_database "$keep_history")
 
@@ -85,7 +88,7 @@ function debug_main()
   fi
 
   if [[ -n "$reset" ]]; then
-    reset_debug "$target"
+    reset_debug "$target" "$flag"
     return "$?"
   fi
 
@@ -126,6 +129,7 @@ function list_debug()
   local flag="$3"
   local char_repetition
   local specific_event
+  local cmd
 
   # List all options
   if [[ "$list_target" == 1 ]]; then
@@ -138,8 +142,13 @@ function list_debug()
 
   char_repetition=$(str_count_char_repetition "$list_target" ':')
   if [[ "$char_repetition" -ge 1 ]]; then
-    specific_event=$(printf '%s' "$list_target" | cut -d ':' -f2)
-    list_target=$(printf '%s' "$list_target" | cut -d ':' -f1)
+    cmd="printf '%s' ${list_target} | cut -d ':' -f2"
+    show_verbose "$flag" "$cmd"
+    specific_event=$(cmd_manager "$flag" "$cmd")
+
+    cmd="printf '%s' ${list_target} | cut -d ':' -f1"
+    show_verbose "$flag" "$cmd"
+    list_target=$(cmd_manager "$flag" "$cmd")
   fi
 
   case "$list_target" in
@@ -238,8 +247,8 @@ function dmesg_debug()
 
   # Capture data
   if [[ -n "$base_log_path" ]]; then
-    touch "${base_log_path}/dmesg"
-    printf '\n' > "${base_log_path}/dmesg"
+    cmd_manager "$flag" "touch ${base_log_path}/dmesg"
+    cmd_manager "$flag" "printf '\n' > ${base_log_path}/dmesg"
     save_following_log="${base_log_path}/dmesg"
   fi
 
@@ -305,6 +314,7 @@ function event_debug()
   local screen_end_cmd
   local save_following_log
   local ret
+  local cmd
 
   convert_event_syntax_to_sys_path_hash "$event"
   ret="$?"
@@ -319,8 +329,12 @@ function event_debug()
 
   # Capture data
   if [[ -n "$base_log_path" ]]; then
-    touch "${base_log_path}/event"
-    printf '\n' > "${base_log_path}/event"
+    cmd="touch ${base_log_path}/event"
+    cmd_manager "$flag" "$cmd"
+
+    cmd="printf '\n' > ${base_log_path}/event"
+    cmd_manager "$flag" "$cmd"
+
     save_following_log="${base_log_path}/event"
   fi
 
@@ -372,7 +386,8 @@ function event_debug()
       fi
 
       if [[ -n "$list" ]]; then
-        list_output=$(cmd_remotely "$command" "$flag" "$remote" "$port" "$user")
+        show_verbose "$flag" "$command"
+        list_output=$(cmd_remotely "$command" 'SILENT' "$remote" "$port" "$user")
         show_list "$list_output" "$event"
         ret="$?"
         return "$ret"
@@ -407,10 +422,13 @@ function ftrace_list()
   local index=1
   local ret
   local cmd_list="cat ${TRACING_BASE_PATH}/available_tracers"
+  local cmd
 
   case "$target" in
     2) # LOCAL
-      raw_data=$(cmd_manager "$flag" "sudo -E ${cmd_list}")
+      cmd="sudo -E ${cmd_list}"
+      show_verbose "$flag" "$cmd"
+      raw_data=$(cmd_manager 'SILENT' "$cmd")
       ret="$?"
       ;;
     3 | 1) # REMOTE && VM
@@ -423,7 +441,8 @@ function ftrace_list()
         # TODO: We should check if the VM is up and running
       fi
 
-      raw_data=$(cmd_remotely "$cmd_list" "$flag" "$remote" "$port" "$user")
+      show_verbose "$flag" "$cmd_list"
+      raw_data=$(cmd_remotely "$cmd_list" 'SILENT' "$remote" "$port" "$user")
       ret="$?"
       ;;
   esac
@@ -474,8 +493,8 @@ function ftrace_debug()
 
   # Capture data
   if [[ -n "$base_log_path" ]]; then
-    touch "$base_log_path/ftrace"
-    printf '\n' > "$base_log_path/ftrace"
+    cmd_manager "$flag" "touch ${base_log_path}/ftrace"
+    cmd_manager "$flag" "printf '\n' > ${base_log_path}/ftrace"
     save_following_log="$base_log_path/ftrace"
   fi
 
@@ -894,7 +913,7 @@ function parser_debug_options()
   local long_options
   local transition_variables
 
-  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list::,follow,reset,help'
+  long_options='remote:,event:,ftrace:,dmesg,cmd:,local,history,disable,list::,follow,reset,help,verbose'
   short_options='r:,e:,t:,g,f,c:,k,d,l::,h'
 
   options=$(kw_parse "$short_options" "$long_options" "$@")
@@ -914,6 +933,7 @@ function parser_debug_options()
   options_values['DISABLE']=''
   options_values['LIST']=''
   options_values['FOLLOW']=''
+  options_values['VERBOSE']=''
 
   # Set default values
   if [[ -n ${deploy_config[default_deploy_target]} ]]; then
@@ -992,6 +1012,10 @@ function parser_debug_options()
         options_values['FOLLOW']=1
         shift
         ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --help | -h)
         debug_help "$1"
         exit
@@ -1029,6 +1053,7 @@ function debug_help()
     '  debug (--event | -e) [--disable] "<syntax>" - Trace specific event' \
     '  debug (--ftrace | -t) [--disable] "<syntax>" - Use ftrace to identify code path' \
     '  debug (--reset) - Reset debug values in the target machine' \
+    '  debug (--verbose) - Show a detailed output' \
     '  You can combine some of the above options'
 }
 

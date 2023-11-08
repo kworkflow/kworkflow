@@ -118,6 +118,14 @@ function cmd_manager()
   eval "$command_for_eval"
 }
 
+function show_verbose()
+{
+  local flag="$1"
+  local cmd="$2"
+
+  [[ "$flag" == 'VERBOSE' ]] && say "$cmd"
+}
+
 # Checks if a directory is a kernel tree root
 #
 # @DIR A directory path
