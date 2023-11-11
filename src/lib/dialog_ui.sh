@@ -911,22 +911,6 @@ function run_dialog_command()
   return "$ret"
 }
 
-# This function is responsible for handling the dialog exit.
-#
-# @exit_status: Exit code
-function handle_exit()
-{
-  local exit_status="$1"
-
-  # Handling stop
-  case "$exit_status" in
-    1 | 22 | 255) # Exit
-      clear
-      exit 0
-      ;;
-  esac
-}
-
 function prettify_string()
 {
   local fixed_text="$1"
