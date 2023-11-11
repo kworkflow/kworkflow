@@ -52,7 +52,7 @@ function patch_hub_main_loop()
   while true; do
     case "${screen_sequence['SHOW_SCREEN']}" in
       'dashboard')
-        dashboard_entry_menu
+        show_dashboard
         ret="$?"
         ;;
       'lore_mailing_lists')
@@ -89,10 +89,9 @@ function patch_hub_main_loop()
   done
 }
 
-# Build the bookmark screen. Developers may want to save some patch for
-# verification later, and the bookmark page address this requirement by
-# providing a list of patches saved by the developers.
-function dashboard_entry_menu()
+# Show Dashboard of patch-hub feature. This is the default starting state and main
+# menu of the feature.
+function show_dashboard()
 {
   local message_box
   local -a menu_list_string_array
