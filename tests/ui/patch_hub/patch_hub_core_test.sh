@@ -26,7 +26,7 @@ function tearDown()
   }
 }
 
-function test_dashboard_entry_menu_check_valid_options()
+function test_show_dashboard_check_valid_options()
 {
   # Mock Register list
   # shellcheck disable=SC2317
@@ -35,7 +35,7 @@ function test_dashboard_entry_menu_check_valid_options()
     menu_return_string=0
   }
 
-  dashboard_entry_menu
+  show_dashboard
   assert_equals_helper 'Expected register screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'registered_mailing_lists'
 
   # Mock bookmarked
@@ -45,11 +45,11 @@ function test_dashboard_entry_menu_check_valid_options()
     menu_return_string=1
   }
 
-  dashboard_entry_menu
+  show_dashboard
   assert_equals_helper 'Expected register screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'bookmarked_patches'
 }
 
-function test_dashboard_entry_menu_check_failed()
+function test_show_dashboard_check_failed()
 {
   local output
 
@@ -60,7 +60,7 @@ function test_dashboard_entry_menu_check_failed()
     return 22
   }
 
-  output=$(dashboard_entry_menu)
+  output=$(show_dashboard)
   assert_equals_helper 'Expected failure' "$LINENO" "$?" 22
 }
 
