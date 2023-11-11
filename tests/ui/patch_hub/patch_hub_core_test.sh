@@ -26,7 +26,7 @@ function tearDown()
   }
 }
 
-function test_show_dashboard_check_valid_options()
+function test_show_dashboard()
 {
   # Mock Register list
   # shellcheck disable=SC2317
@@ -47,21 +47,6 @@ function test_show_dashboard_check_valid_options()
 
   show_dashboard
   assert_equals_helper 'Expected register screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'bookmarked_patches'
-}
-
-function test_show_dashboard_check_failed()
-{
-  local output
-
-  # Mock failed scenario
-  # shellcheck disable=SC2317
-  function create_menu_options()
-  {
-    return 22
-  }
-
-  output=$(show_dashboard)
-  assert_equals_helper 'Expected failure' "$LINENO" "$?" 22
 }
 
 function test_list_patches_with_patches()

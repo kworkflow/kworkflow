@@ -109,9 +109,10 @@ function show_dashboard()
 
   create_menu_options 'Dashboard' "$message_box" 'menu_list_string_array'
   ret="$?"
+
+  # Exit
   if [[ "$ret" != 0 ]]; then
-    complain 'Something went wrong when kw tried to display the Dashboad screen.'
-    return "$ret"
+    handle_exit "$ret"
   fi
 
   case "$menu_return_string" in
