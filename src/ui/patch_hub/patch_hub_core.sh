@@ -236,7 +236,10 @@ function list_patches()
   esac
 }
 
-# This function is responsible for handling the dialog exit.
+# This function is responsible for exitting the current shell if necessary.
+# It is supposed to be called inside `patch_hub_main_loop`, once it enters
+# the infinite while loop that starts the execution of the FSM of the patch-hub
+# feature.
 #
 # @exit_status: Exit code
 function handle_exit()
