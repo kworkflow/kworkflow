@@ -797,12 +797,12 @@ function cleanup()
   local flag=${1:-'SILENT'}
   say 'Cleaning up temporary files...'
 
-  if [[ -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
-    cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/"*
+  if [[ -d "${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}" ]]; then
+    cmd_manager "$flag" "rm -rf ${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}/"*
   fi
 
-  if [[ -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/"*
+  if [[ -d "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}" ]]; then
+    cmd_manager "$flag" "rm -rf ${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}/"*
   fi
 
   say 'Exiting...'
