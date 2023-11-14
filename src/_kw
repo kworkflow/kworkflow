@@ -109,7 +109,8 @@ _kw_build()
 
 _kw_clear-cache()
 {
-  _nothing
+  _arguments : \
+    '(--verbose)--verbose[enable verbose mode]'
 }
 
 _kw_c() { _kw_codestyle }

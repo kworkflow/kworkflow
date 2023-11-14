@@ -124,6 +124,7 @@ function deploy_main()
   setup="${options_values['SETUP']}"
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+  flag=${flag:-'SILENT'}
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
@@ -792,10 +793,23 @@ function run_kernel_uninstall()
 # to the target machine. There is no need to keep those files in the user
 # machine, for this reason, this function is in charge of cleanup the temporary
 # files at the end.
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function cleanup()
 {
   local flag=${1:-'SILENT'}
+
+  parse_deploy_options "$@"
+  if [[ "$?" -gt 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    exit 22 # EINVAL
+  fi
+
   say 'Cleaning up temporary files...'
+
+  if [[ "$flag" == '--verbose' ]]; then
+    flag='VERBOSE'
+  fi
 
   if [[ -d "${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}" ]]; then
     cmd_manager "$flag" "rm -rf ${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}/"*
