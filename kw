@@ -242,7 +242,7 @@ function kw()
     clear-cache)
       include "${KW_LIB_DIR}/deploy.sh"
 
-      cleanup
+      cleanup "$@"
       ;;
     # Subsystems support
     drm)
