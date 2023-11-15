@@ -433,7 +433,8 @@ function process_patchsets()
   local pids
   local i
 
-  shared_dir_for_parallelism=$(mktemp --directory)
+  shared_dir_for_parallelism=$(create_shared_memory_dir)
+
   starting_index="$PATCHSETS_PROCESSED"
   count=0
   i=0

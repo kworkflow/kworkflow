@@ -95,6 +95,22 @@ function teardownGitRepository()
   fi
 }
 
+function setupKwSharedMemoryDefaultDir()
+{
+  KW_SHARED_MEMORY_DEFAULT_DIR="${SHUNIT_TMPDIR}/test/tmp_dir"
+  mkdir --parents "$KW_SHARED_MEMORY_DEFAULT_DIR"
+}
+
+function teardownSharedMemoryDefaultDir()
+{
+  is_safe_path_to_remove "$KW_SHARED_MEMORY_DEFAULT_DIR"
+  if [[ "$?" == 0 ]]; then
+    rm --recursive "$KW_SHARED_MEMORY_DEFAULT_DIR"
+  else
+    fail 'It was not possible to remove TMP_DIR in the specified directory'
+  fi
+}
+
 function test_is_kernel_root()
 {
   is_kernel_root "$SHUNIT_TMPDIR"
@@ -963,6 +979,28 @@ function test_show_verbose()
 
   output=$(show_verbose 'VERBOSE' "$cmd")
   assert_equals_helper 'Expected value of command' "$LINENO" "$cmd" "$output"
+}
+
+function test_check_if_create_shared_memory_dir_creates_dir_in_kw_shared_memory_default_dir()
+{
+  local output
+
+  setupKwSharedMemoryDefaultDir
+
+  output=$(create_shared_memory_dir)
+  assertTrue "${LINENO}: Did not create directory at ${output}" "[[ -d ${output} ]]"
+  assertTrue "${LINENO}: Did not create directory at KW_SHARED_MEMORY_DEFAULT_DIR" '[[ $output =~ $KW_SHARED_MEMORY_DEFAULT_DIR ]]'
+
+  teardownSharedMemoryDefaultDir
+}
+
+function test_check_if_create_shared_memory_dir_creates_dir_in_default_mktemp_dir()
+{
+  local output
+
+  output=$(create_shared_memory_dir)
+  assertTrue "${LINENO}: Did not create directory at ${output}" "[[ -d ${output} ]]"
+  assertTrue "${LINENO}: Did not create directory at /tmp/ dir" '[[ $output =~ /tmp/ ]]'
 }
 
 invoke_shunit
