@@ -4,6 +4,7 @@ include "${KW_LIB_DIR}/lib/kw_db.sh"
 include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 
 ENV_DIR='envs'
+KW_SHARED_MEMORY_DEFAULT_DIR='/dev/shm'
 
 # Array with compression programs accepted by tar
 declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
@@ -124,6 +125,24 @@ function show_verbose()
   local cmd="$2"
 
   [[ "$flag" == 'VERBOSE' ]] && say "$cmd"
+}
+
+# This function create the shared memory directory, if
+# @KW_SHARED_MEMORY_DEFAULT_DIR is not available, create it on '/tmp/' instead
+#
+# @KW_SHARED_MEMORY_DEFAULT_DIR is a global variable that sets the target
+# '/dev/shm' directory
+#
+# Returns:
+# Returns the path for the new directory
+function create_shared_memory_dir()
+{
+  if [[ -d "$KW_SHARED_MEMORY_DEFAULT_DIR" && -w "$KW_SHARED_MEMORY_DEFAULT_DIR" ]]; then
+    printf '%s' "$(mktemp --tmpdir="$KW_SHARED_MEMORY_DEFAULT_DIR" --directory)"
+    return
+  fi
+
+  printf '%s' "$(mktemp --directory)"
 }
 
 # Checks if a directory is a kernel tree root
