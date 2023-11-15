@@ -70,9 +70,6 @@ function generate_arch_temporary_root_file_system()
   local prefered_root_file_system="$6"
   local cmd=''
   local sudo_cmd
-  local template_path
-  local mkinitcpio_destination_path
-  local LOCAL_KW_ETC="${KW_ETC_DIR}/template_mkinitcpio.preset"
   # mkinitcpio still the default on ArchLinux
   local root_file_system_tool='mkinitcpio'
 
@@ -99,34 +96,16 @@ function generate_arch_temporary_root_file_system()
   # We do not support initramfs outside grub scope
   [[ "$bootloader_type" != 'GRUB' ]] && return
 
-  # Generate specific preset file
-  mkinitcpio_destination_path="${path_prefix}/etc/mkinitcpio.d/${name}.preset"
-  template_path="${KW_ETC_DIR}/template_mkinitcpio.preset"
-
-  case "$target" in
-    'local') # LOCAL_TARGET
-      sudo_cmd='sudo -E'
-      cmd="$sudo_cmd "
-      ;;
-    'remote') # REMOTE_TARGET
-      template_path="${REMOTE_KW_DEPLOY}/template_mkinitcpio.preset"
-      ;;
-  esac
+  [[ "$target" == 'local' ]] && sudo_cmd='sudo -E '
 
   # Step 2: Make sure that we are generating a consistent modules.dep and map
-  cmd="$sudo_cmd depmod --all $name"
+  cmd="${sudo_cmd}depmod --all ${name}"
   cmd_manager "$flag" "$cmd"
 
   # Step 3: Generate the initcpio file
   case "$root_file_system_tool" in
     'mkinitcpio')
-      # We will eval a command that uses sudo and redirection which can cause
-      # errors. To avoid problems, let's use bash -c
-      cmd="$sudo_cmd bash -c \""
-      cmd+="sed 's/NAME/${name}/g' '$template_path' > $mkinitcpio_destination_path\""
-      cmd_manager "$flag" "$cmd"
-
-      cmd="$sudo_cmd mkinitcpio --preset $name"
+      cmd="${sudo_cmd}mkinitcpio --generate /boot/initramfs-${name}.img --kernel ${name}"
       cmd_manager "$flag" "$cmd"
       ;;
     'dracut')
