@@ -575,12 +575,6 @@ function prepare_remote_dir()
 
   # Create temporary folder
   cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag"
-
-  # TODO: In some point, we need to move the below code to ArchLinux specific
-  # file
-  if [[ "$distro" == 'arch' ]]; then
-    cp2remote "$flag" "$KW_ETC_DIR/template_mkinitcpio.preset" "$REMOTE_KW_DEPLOY"
-  fi
 }
 
 # Create the temporary folder for local deploy.
