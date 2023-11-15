@@ -15,7 +15,6 @@ declare -ga required_packages=(
   'lzop'
   'zstd'
   'xz'
-  'os-prober'
   'rng-tools'
 )
 
