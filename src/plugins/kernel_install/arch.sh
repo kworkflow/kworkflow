@@ -42,10 +42,6 @@ function distro_pre_setup()
   cmd="${cmd_prefix}mv /etc/skel/.screenrc /tmp"
   cmd_manager "$flag" "$cmd"
 
-  # Restart pacman init, just in case...
-  cmd="${cmd_prefix}systemctl restart pacman-init.service"
-  cmd_manager "$flag" "$cmd"
-
   # As documented at https://wiki.archlinux.org/title/Pacman/Package_signing
   cmd="${cmd_prefix}pacman-key --init"
   cmd_manager "$flag" "$cmd"
