@@ -50,6 +50,8 @@ function kworkflow_man()
 
   if [[ -z "$feature" ]]; then
     feature='kw'
+  else
+    feature="kw-${feature}"
   fi
 
   if [[ -r "$doc/$feature.1" ]]; then
