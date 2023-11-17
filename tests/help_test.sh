@@ -19,16 +19,16 @@ function test_kworkflow_man()
   assertEquals "($LINENO) We expected kw general man." "$expect" "$output"
   rm "$SHUNIT_TMPDIR/kw.1"
 
-  touch "$SHUNIT_TMPDIR/feature.1"
-  expect="man -l $SHUNIT_TMPDIR/feature.1"
+  touch "$SHUNIT_TMPDIR/kw-feature.1"
+  expect="man -l $SHUNIT_TMPDIR/kw-feature.1"
   output=$(kworkflow_man 'feature' 'TEST_MODE')
   assertEquals "($LINENO) We expected feature specific man." "$expect" "$output"
   rm "$SHUNIT_TMPDIR/feature.1"
 
-  expect="Couldn't find the man page for error!"
+  expect="Couldn't find the man page for kw-error!"
   output=$(kworkflow_man 'error' 'TEST_MODE')
   ret="$?"
-  assertEquals "($LINENO) We expected an error." "$ret" "2"
+  assertEquals "($LINENO) We expected an error." "$ret" 2
   assertEquals "($LINENO) We expected an error message." "$expect" "$output"
 }
 
