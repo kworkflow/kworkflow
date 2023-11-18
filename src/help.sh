@@ -54,6 +54,11 @@ function kworkflow_man()
     feature="kw-${feature}"
   fi
 
+  if [[ -f "$KW_SYSTEM_WIDE_INSTALLATION" ]]; then
+    cmd_manager "$flag" "man ${feature}"
+    exit "$?"
+  fi
+
   if [[ -r "$doc/$feature.1" ]]; then
     cmd_manager "$flag" "man -l $doc/$feature.1"
     exit "$?"
