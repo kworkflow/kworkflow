@@ -54,7 +54,7 @@ function test_show_kernel_tree_message()
     rm -rf "${SHUNIT_TMPDIR:?}/${KWORKFLOW}/"
   fi
 
-  output=$(printf 'n' | init_kw)
+  output=$(printf 'n' | init_main)
   assertEquals "($LINENO):" 'This command should be run in a kernel tree.' "$output"
 }
 
@@ -63,7 +63,7 @@ function test_standard_init_check_variable_replacements()
   local output
   local kworkflow_content
 
-  output=$(init_kw)
+  output=$(init_main)
   kworkflow_content=$(grep "$USER" -o "$PATH_TO_KW_VM_CONFIG" | head -n 1)
   assertEquals "($LINENO): USERKW wasn't updated to $USER" "$USER" "$kworkflow_content"
 
@@ -77,10 +77,10 @@ function test_abort_init_update()
   local expected
 
   # First, create a config file
-  output=$(init_kw)
+  output=$(init_main)
 
   expect='Initialization aborted!'
-  output=$(printf '%s\n' 'n' | init_kw)
+  output=$(printf '%s\n' 'n' | init_main)
   assertEquals "($LINENO): The init proccess didn't abort correctly" "$expect" "$output"
 }
 
@@ -89,7 +89,7 @@ function test_use_arch_parameter()
   local output
   local kworkflow_content
 
-  output=$(init_kw --arch arm64)
+  output=$(init_main --arch arm64)
   kworkflow_content=$(grep arch= "$PATH_TO_KW_BUILD_CONFIG")
   assertEquals "($LINENO):" 'arch=arm64' "$kworkflow_content"
 }
@@ -108,7 +108,7 @@ function test_try_to_set_an_invalid_arch()
     "Initialized kworkflow directory in $SHUNIT_TMPDIR/$KWORKFLOW/$KW_DIR based on $USER data"
   )
 
-  output=$(init_kw --arch baroque)
+  output=$(init_main --arch baroque)
   kworkflow_content=$(grep arch= "$PATH_TO_KW_BUILD_CONFIG")
   compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 }
@@ -118,7 +118,7 @@ function test_force_unsupported_arch()
   local output
   local kworkflow_content
 
-  output=$(init_kw --arch baroque --force)
+  output=$(init_main --arch baroque --force)
   kworkflow_content=$(grep arch= "$PATH_TO_KW_BUILD_CONFIG")
   assertEquals "($LINENO):" 'arch=baroque' "$kworkflow_content"
 }
@@ -128,7 +128,7 @@ function test_set_remote()
   local output
   local kworkflow_content
 
-  output=$(init_kw --remote juca@123.456.789.123:2222)
+  output=$(init_main --remote juca@123.456.789.123:2222)
   kworkflow_content=$(grep ssh_user= "$PATH_TO_KW_CONFIG")
   assertEquals "($LINENO)" 'ssh_user=juca' "$kworkflow_content"
 
@@ -144,7 +144,7 @@ function test_try_to_set_wrong_arch()
   local output
   local expected_content
 
-  output=$(init_kw --remote ':8888')
+  output=$(init_main --remote ':8888')
 
   assertEquals "($LINENO)" 22 "$?"
 }
@@ -154,7 +154,7 @@ function test_set_default_target()
   local output
   local kworkflow_content
 
-  output=$(init_kw --target local)
+  output=$(init_main --target local)
   kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_DEPLOY_CONFIG")
   assertEquals "($LINENO)" 'default_deploy_target=local' "$kworkflow_content"
 }
@@ -164,7 +164,7 @@ function test_set_an_invalid_target()
   local output
   local kworkflow_content
 
-  output=$(init_kw --target dartboard | tail -n +1 | head -n 1)
+  output=$(init_main --target dartboard | tail -n +1 | head -n 1)
   kworkflow_content=$(grep default_deploy_target= "$PATH_TO_KW_CONFIG")
   assertEquals "($LINENO)" 'Target can only be vm, local or remote.' "$output"
 }
@@ -176,18 +176,18 @@ function test_force_wrong_etc_path()
 
   KW_ETC_DIR='break/on/purpose'
 
-  output=$(init_kw -f) # avoids the overwrite prompt
+  output=$(init_main -f) # avoids the overwrite prompt
   ret="$?"
   assertEquals "($LINENO): We forced an error and expected to catch it" 2 "$ret"
 }
 
 function test_get_template_name_noniteractive()
 {
-  options_values['TEMPLATE']=':x86-64'
+  options_values['TEMPLATE']='x86-64'
   get_template_name
   assertEquals "($LINENO)" 'x86-64' "${options_values['TEMPLATE']}"
 
-  options_values['TEMPLATE']=':rpi4-raspbian-64-cross-x86-arm'
+  options_values['TEMPLATE']='rpi4-raspbian-64-cross-x86-arm'
   get_template_name
 
   assertEquals "($LINENO)" 'rpi4-raspbian-64-cross-x86-arm' "${options_values['TEMPLATE']}"
@@ -270,12 +270,17 @@ function test_parse_init_options()
   unset options_values
   declare -gA options_values
   parse_init_options --template='rpi4-raspbian-64-cross-x86-arm'
-  assertEquals "($LINENO):" ':rpi4-raspbian-64-cross-x86-arm' "${options_values['TEMPLATE']}"
+  assertEquals "($LINENO):" 'rpi4-raspbian-64-cross-x86-arm' "${options_values['TEMPLATE']}"
 
   unset options_values
   declare -gA options_values
   parse_init_options --template
-  assertEquals "($LINENO):" ':' "${options_values['TEMPLATE']}"
+  assertEquals "($LINENO):" '' "${options_values['TEMPLATE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_init_options --verbose
+  assertEquals "($LINENO):" '1' "${options_values['VERBOSE']}"
 }
 
 invoke_shunit

@@ -6,7 +6,7 @@ declare -g LIB_MODULES_PATH='/lib/modules'
 declare -gA kw_package_metadata
 
 # ATTENTION:
-# This function follows the cmd_manager signature (src/kwlib.sh) because we
+# This function follows the cmd_manager signature (src/lib/kwlib.sh) because we
 # share the specific distro in the kw main code. However, when we deploy for a
 # remote machine, we need this function, and this is the reason that we added
 # this function.
@@ -45,10 +45,15 @@ function cmd_manager()
 
 function command_exists()
 {
-  local command="$1"
-  local package=${command%% *}
+  local cmd="$1"
+  local package=${cmd%% *}
 
   if [[ ! -x "$(command -v "$package")" ]]; then
+    # Fallback
+    # TODO: Right now, this fallback is a workaround that will work until some
+    # distro removes the r-x permission from /usr/sbin. We must find a more
+    # definitive solution to this problem.
+    [[ -x "/usr/sbin/${package}" ]] && return 0
     return 22 # EINVAL
   fi
   return 0
@@ -149,7 +154,7 @@ function is_filesystem_writable()
 # to write.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function make_root_partition_writable()
 {
   local flag="$1"
@@ -222,7 +227,12 @@ function distro_deploy_setup()
   # Install required packages
   printf -v package_list '%s ' "${required_packages[@]}"
 
-  install_package_cmd="$package_manager_cmd $package_list"
+  install_package_cmd="${package_manager_cmd} ${package_list}"
+
+  if [[ "$target" == 2 ]]; then
+    install_package_cmd="sudo -E ${install_package_cmd}"
+  fi
+
   cmd_manager "$flag" "$install_package_cmd"
 }
 
@@ -338,7 +348,7 @@ function reboot_machine()
 #
 # @kw_pkg_tar_name Expected full kw package name
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of failure, return an errno code:
@@ -381,7 +391,7 @@ function uncompress_kw_package()
 #
 # @kw_pkg_tar_name Expected full kw package name
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of failure, return an errno code.
@@ -423,7 +433,7 @@ function install_modules()
 # update. Also notice that in some cases we need to update the initramfs.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @name Kernel name used during the deploy
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @kernel_image_name Kernel binary file name
@@ -669,7 +679,7 @@ function install_kernel()
   # See shellcheck warning SC2024: sudo doesn't affect redirects. That
   # is why we use tee. Also note that the stdin is passed to the eval
   # inside cmd_manager.
-  cmd="grep -Fxq $name $INSTALLED_KERNELS_PATH"
+  cmd="${sudo_cmd}grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
   cmd_manager "$flag" "$cmd"
   if [[ "$?" != 0 ]]; then
     cmd="$sudo_cmd tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"

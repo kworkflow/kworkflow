@@ -22,6 +22,7 @@ function setUp()
   export DEPLOY_SCRIPT="$test_path/$kernel_install_path/deploy.sh"
   export KW_PLUGINS_DIR="$PWD/src/plugins"
   export REMOTE_KW_DEPLOY='/opt/kw'
+  export KW_STATUS_BASE_PATH="$SHUNIT_TMPDIR"
 
   KW_LIB_DIR="$PWD/$SAMPLES_DIR"
 
@@ -228,11 +229,19 @@ function test_setup_remote_ssh_with_passwordless()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_prepare_distro_for_deploy()
+function detect_filesystem_type_mock_ext4()
+{
+  printf '%s\n' 'ext4'
+}
+
+function test_prepare_distro_for_deploy_ext4()
 {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
   local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+
+  alias detect_filesystem_type='detect_filesystem_type_mock_ext4'
+
   cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
   cmd+=" --deploy-setup TEST_MODE"
 
@@ -256,44 +265,97 @@ function test_prepare_distro_for_deploy()
     '-> Basic distro set up'
     '' # Extra space for the \n
     'sudo -E mv /etc/skel/.screenrc /tmp'
-    'sudo -E systemctl restart pacman-init.service'
+    'sudo -E pacman-key --init'
     'sudo -E pacman-key --populate'
     'yes | sudo -E pacman -Syu'
-    'yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz os-prober rng-tools'
+    'sudo -E yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_update_status_log()
+function detect_filesystem_type_mock_btrfs()
+{
+  printf '%s\n' 'btrfs'
+}
+
+function btrfs_property_get_root_ro_mock()
+{
+  printf '%s' 'ro=false'
+}
+
+function test_prepare_distro_for_deploy_btrfs()
 {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
-  local log_date
-  local cmd
-  local expected_data
+  local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
+
+  alias detect_filesystem_type='detect_filesystem_type_mock_btrfs'
+  alias btrfs='btrfs_property_get_root_ro_mock'
+
+  cmd+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+  cmd+=" --deploy-setup TEST_MODE"
+
+  declare -a expected_cmd=(
+    '-> Basic distro set up'
+    '' # Extra space for the \n in the message
+    "$ssh_prefix \"$cmd 3\""
+  )
 
   # Remote
-  log_date=$(date)
-  cmd="\"printf '%s;%s\n' '3' '$log_date' >> $REMOTE_KW_DEPLOY/status\""
+  output=$(prepare_distro_for_deploy 3 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+
+  # Local - We need to force a specific distro
+  expected_cmd=()
+
+  # Let's change the detect ditro to point to Arch
+  alias detect_distro='detect_distro_arch_mock'
+  output=$(prepare_distro_for_deploy 2 'TEST_MODE')
+  expected_cmd=(
+    '-> Basic distro set up'
+    '' # Extra space for the \n
+    ''
+    'btrfs property get / ro | grep "ro=false" --silent'
+    'sudo -E mv /etc/skel/.screenrc /tmp'
+    'sudo -E pacman-key --init'
+    'sudo -E pacman-key --populate'
+    'yes | sudo -E pacman -Syu'
+    'sudo -E yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools'
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
+function test_update_status_log_remote_target()
+{
+  local output
+  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
+  local cmd
+
+  # Remote
+  cmd="\"printf '%s;%s\n' '3' 'TEST_MODE' >> ${KW_STATUS_BASE_PATH}/kw_status\""
   output=$(update_status_log 3 'TEST_MODE')
 
-  assert_equals_helper 'Status file remote' "$LINENO" "$ssh_prefix $cmd" "$output"
+  assert_equals_helper 'Status file remote' "$LINENO" "${ssh_prefix} ${cmd}" "$output"
+}
 
-  # Local
-  REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR"
-  update_status_log 2
-  output=$(cat "$SHUNIT_TMPDIR/status")
-  expected_data='2;12/31/2021-09:49:21'
+function test_update_status_log_local_target()
+{
+  local output
+  local expected_cmd
 
-  assert_equals_helper 'Status file data' "$LINENO" "$expected_data" "$output"
+  expected_cmd="printf '%s;%s\n' '2' 'TEST_MODE' | sudo -E tee --append ${KW_STATUS_BASE_PATH}/kw_status"
+  output=$(update_status_log 2 'TEST_MODE')
+
+  assert_equals_helper 'Local deploy command' "$LINENO" "$expected_cmd" "$output"
 }
 
 function test_check_setup_status()
 {
   local output
   local expected_cmd
-  local cmd_check="test -f $REMOTE_KW_DEPLOY/status"
+  local cmd_check="test -f ${KW_STATUS_BASE_PATH}/kw_status"
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
 
   # Remote
@@ -309,7 +371,7 @@ function test_check_setup_status()
   assert_equals_helper 'Wrong return value' "($LINENO)" 2 "$?"
 
   # 2. Success case
-  touch "$REMOTE_KW_DEPLOY/status"
+  touch "${KW_STATUS_BASE_PATH}/kw_status"
   check_setup_status 2
   assert_equals_helper 'Wrong return value' "($LINENO)" 0 "$?"
 }
@@ -559,6 +621,18 @@ function test_kernel_modules()
     fail "($LINENO) It was not possible to move back from temp directory"
     return
   }
+}
+
+function test_prepare_local_dir()
+{
+  declare -a expected_out=(
+    "rm --preserve-root=all --recursive --force ${KW_DEPLOY_TMP_FILE}"
+    "mkdir --parents ${KW_DEPLOY_TMP_FILE}"
+    "sudo -E mkdir --parents ${REMOTE_KW_DEPLOY}"
+  )
+
+  output=$(prepare_local_dir 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_out' "$output"
 }
 
 # This test validates the correct behavior of list kernel on a remote machine

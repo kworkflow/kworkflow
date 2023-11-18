@@ -1,13 +1,15 @@
 #!/bin/bash
 KW_LIB_DIR='src'
-. 'src/kw_include.sh' --source-only
-include "$KW_LIB_DIR/kwio.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+. 'src/lib/kw_include.sh' --source-only
+include "${KW_LIB_DIR}/lib/kwio.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kw_db.sh"
 
 SILENT=1
 VERBOSE=0
 FORCE=0
 SKIPCHECKS=0
+ENABLE_TRACING=0
 
 declare -r app_name='kw'
 
@@ -22,9 +24,11 @@ declare -r sharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r docdir="$sharedir/doc"
 declare -r mandir="$sharedir/man"
 declare -r sounddir="$sharedir/sound"
+declare -r databasedir="$sharedir/database"
 declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
 declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
 declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
+declare -r tracingdir="${datadir}/tracing"
 declare -r dot_configs_dir="${datadir}/configs"
 
 ##
@@ -34,19 +38,23 @@ declare -r SRCDIR='src'
 declare -r MAN='documentation/man/'
 declare -r CONFIG_DIR='etc/'
 declare -r KW_CACHE_DIR="$cachedir"
+declare -r TRACING_CODE_EXCERPTS_DIR='tracing/code_excerpts'
 
 declare -r SOUNDS='sounds'
+declare -r DATABASE='database'
 declare -r BASH_AUTOCOMPLETE='bash_autocomplete'
 declare -r DOCUMENTATION='documentation'
 
 declare -r CONFIGS_PATH='configs'
 
+declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
+
 function check_dependencies()
 {
   local package_list=''
-  local pip_package_list=''
   local cmd=''
   local distro
+  local ret
 
   distro=$(detect_distro '/')
 
@@ -77,8 +85,9 @@ function check_dependencies()
 
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following dependencies $package_list?") =~ '0' ]]; then
-        return 0
+      if [[ $(ask_yN "The following packages are required: ${package_list}"$'\nMay we install them?') =~ '0' ]]; then
+        complain 'Aborting kw installation...'
+        exit 125 # ECANCELED
       fi
     fi
 
@@ -88,24 +97,42 @@ function check_dependencies()
     else
       eval "sudo $cmd"
     fi
-  fi
+    ret="$?"
 
-  while IFS='' read -r package; do
-    python3 -c "import pkg_resources; pkg_resources.require('$package')" &> /dev/null
-    [[ "$?" != 0 ]] && pip_package_list="\"$package\" $pip_package_list"
-  done < "$DOCUMENTATION/dependencies/pip.dependencies"
-
-  if [[ -n "$pip_package_list" ]]; then
-    if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "Can we install the following pip dependencies $pip_package_list?") =~ '0' ]]; then
-        return 0
-      fi
+    # Installation failed...
+    if [[ "$ret" -ne 0 ]]; then
+      complain '[ERROR] Dependencies installation has failed. Aborting kw installation...'
+      exit "$ret"
     fi
 
-    # Install pip packages
-    cmd="pip install $pip_package_list"
-    eval "$cmd"
   fi
+}
+
+function generate_documentation()
+{
+  local ret
+
+  python3 -m venv "$DOCS_VIRTUAL_ENV"
+
+  # Activate python virtual env
+  source "${DOCS_VIRTUAL_ENV}/bin/activate"
+  say 'Creating python virtual env...'
+  cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+  eval "$cmd"
+  ret="$?"
+
+  if [[ "$ret" == 0 ]]; then
+    sphinx-build -nW -b html documentation/ build
+  else
+    complain 'Could not install pip dependencies'
+  fi
+  # Deactivate python virtual env
+  deactivate
+
+  if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+    rm --recursive "$DOCS_VIRTUAL_ENV"
+  fi
+  return "$ret"
 }
 
 # TODO
@@ -201,6 +228,7 @@ function usage()
   say '--force              Never prompt'
   say "--completely-remove  Remove $app_name and all files under its responsibility"
   say "--docs               Build $app_name's documentation as HTML pages into ./build"
+  say "--enable-tracing     Install ${app_name} with tracing enabled (use it with --install)"
 }
 
 function confirm_complete_removal()
@@ -308,13 +336,23 @@ function synchronize_files()
 
   # Copy kw main file
   mkdir -p "$binpath"
-  cmd_output_manager "cp $app_name $binpath" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
+  if [[ "$ENABLE_TRACING" == 0 ]]; then
+    cmd_output_manager "cp $app_name $binpath" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
+  else
+    sync_main_kw_file_with_tracing "$app_name" "$binpath" "$TRACING_CODE_EXCERPTS_DIR"
+    ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw main file with tracing enabled' "$?"
+  fi
 
   # Lib files
   mkdir -p "$libdir"
-  cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
+  if [[ "$ENABLE_TRACING" == 0 ]]; then
+    cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
+  else
+    sync_kw_lib_files_with_tracing "$SRCDIR" "$libdir"
+    ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw library files with tracing enabled' "$?"
+  fi
 
   # Sound files
   mkdir -p "$sounddir"
@@ -331,13 +369,32 @@ function synchronize_files()
 
   # man file
   mkdir -p "$mandir"
+
+  python3 -m venv "$DOCS_VIRTUAL_ENV"
+
+  # Activate python virtual env
+  source "${DOCS_VIRTUAL_ENV}/bin/activate"
+  say 'Creating python virtual env...'
+  cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+  eval "$cmd"
   cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
+  # Deactivate python virtual env
+  deactivate
+
+  if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+    rm -r "$DOCS_VIRTUAL_ENV"
+  fi
 
   # etc files
   mkdir -p "$etcdir"
   cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
+
+  # Database files
+  mkdir -p "${databasedir}"
+  cmd_output_manager "rsync --verbose --recursive ${DATABASE}/ ${databasedir}" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync --verbose --recursive ${DATABASE} ${databasedir}' failed" "$?"
 
   setup_global_config_file
 
@@ -345,11 +402,19 @@ function synchronize_files()
   mkdir -p "$datadir"
   mkdir -p "$datadir/statistics"
   mkdir -p "$datadir/configs"
+  if [[ -x "${databasedir}/migrate_legacy_data_20220101.sh" ]]; then
+    eval "${databasedir}/migrate_legacy_data_20220101.sh"
+  else
+    execute_sql_script "${databasedir}/kwdb.sql"
+    if [[ "$?" != 0 ]]; then
+      complain 'Creation of database schema has failed.'
+    fi
+  fi
 
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc
     if [[ -f "$HOME/.bashrc" || -L "$HOME/.bashrc" ]]; then
-      append_bashcompletion '.bashrc'
+      append_bashcompletion
       update_path
     else
       warning 'Unable to find a .bashrc file.'
@@ -359,9 +424,8 @@ function synchronize_files()
   if command_exists 'zsh'; then
     # Add tabcompletion to zshrc
     if [[ -f "${HOME}/.zshrc" || -L "${HOME}/.zshrc" ]]; then
-      safe_append '# Enable bash completion for zsh' "${HOME}/.zshrc"
-      safe_append 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
-      append_bashcompletion '.zshrc'
+      remove_legacy_zshcompletion
+      append_zshcompletion
       update_path '.zshrc'
     else
       warning 'Unable to find a .zshrc file.'
@@ -371,22 +435,49 @@ function synchronize_files()
   say "$SEPARATOR"
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
+
+  # Create ~/.local/kw/tracing for storing tracing reports of kw executions
+  if [[ "$ENABLE_TRACING" == 1 ]]; then
+    mkdir --parents "$tracingdir"
+  fi
+
   say "$app_name installed into $HOME"
-  warning ' -> For a better experience with kw, please, open a new terminal.'
 }
 
 function append_bashcompletion()
 {
-  local shellrc="$1"
+  safe_append "# ${app_name}" "${HOME}/.bashrc"
+  safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.bashrc"
+}
 
-  safe_append "# ${app_name}" "${HOME}/${shellrc}"
-  safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/${shellrc}"
+function remove_legacy_zshcompletion()
+{
+  safe_remove '# Enable bash completion for zsh' "${HOME}/.zshrc"
+  safe_remove 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
+  safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.zshrc"
+}
+
+function append_zshcompletion()
+{
+  safe_append "# ${app_name}" "${HOME}/.zshrc"
+  safe_append "export fpath=(${libdir} \$fpath)" "${HOME}/.zshrc"
+  safe_append 'autoload compinit && compinit -i' "${HOME}/.zshrc"
 }
 
 function safe_append()
 {
   if [[ $(grep -c -x "$1" "$2") == 0 ]]; then
     printf '%s\n' "$1" >> "$2"
+  fi
+}
+
+function safe_remove()
+{
+  local preprocessed_pattern
+  if [[ $(grep -c -x "$1" "$2") == 1 ]]; then
+    # Escape any foward slash as to not conflict with sed
+    preprocessed_pattern=$(printf '%s' "$1" | sed 's_/_\\/_g')
+    sed -i "/^${preprocessed_pattern}\$/d" "$2"
   fi
 }
 
@@ -425,6 +516,22 @@ function install_home()
   remove_legacy_git_from_kernel_config_manager
   # Update version based on the current branch
   update_version
+  # Show current environment in terminal
+  setup_bashrc_to_show_current_kw_env
+
+  warning ''
+  warning '-> For a better experience with kw, please, open a new terminal.'
+}
+
+function setup_bashrc_to_show_current_kw_env()
+{
+  local config_file_template="${etcdir}/kw_prompt_current_env_name.sh"
+
+  say ''
+  say ' Note: If you want to see kw env in the prompt, add something like the below line to your PS1:'
+  say ' PS1="${PS1/\\$/}" && PS1+="\$(kw_get_current_env_name)$ "'
+
+  safe_append "source ${config_file_template}" "${HOME}/.bashrc"
 }
 
 function setup_global_config_file()
@@ -463,6 +570,11 @@ for arg; do
     SKIPCHECKS=1
     continue
   fi
+  if [[ "$arg" = '--enable-tracing' ]]; then
+    include 'tracing/tracing.sh'
+    ENABLE_TRACING=1
+    continue
+  fi
   set -- "$@" "$arg"
 done
 
@@ -487,8 +599,7 @@ case "$1" in
     usage
     ;;
   --docs)
-    check_dependencies
-    sphinx-build -nW -b html documentation/ build
+    generate_documentation
     ;;
   *)
     complain 'Invalid number of arguments'

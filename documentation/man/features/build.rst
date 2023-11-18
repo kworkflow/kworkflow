@@ -16,6 +16,8 @@ SYNOPSIS
 | *kw* (*b* | *build*) [\--llvm] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-c | \--clean)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-f | \--full-cleanup)] [\--alert=(s | v | (sv | vs) | n)]
+| *kw* (*b* | *build*) [\--cflags]
+| *kw* (*b* | *build*) [\--verbose]
 
 DESCRIPTION
 ===========
@@ -83,6 +85,16 @@ OPTIONS
   build process, including configuration files and script output. This option also
   considers whether or not the user is using kw env.
 
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.
+
+\--cflags:
+  This function provides a flexible way to pass CFLAGS when compiling a custom kernel, allowing
+  you to customize and tune the build process to your specific needs. This is especially useful
+  for optimizing performance and controlling generated kernel behavior.
+
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.
     | **s** enables sound notification.
@@ -142,3 +154,7 @@ If you want to clean your kernel::
 If you want to reset the kernel tree to its default, `all config and script output will be removed`::
 
   kw b --full-cleanup
+
+If you want to use cflags::
+
+  kw b --cflags "-O3 -pipe -march=native"

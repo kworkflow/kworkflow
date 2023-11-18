@@ -1,7 +1,7 @@
 #!/bin/bash
 
 include './src/plugins/subsystems/drm/drm.sh'
-include './src/kwlib.sh'
+include './src/lib/kwlib.sh'
 include './tests/utils.sh'
 
 function setUp()
@@ -118,6 +118,9 @@ function test_drm_parser_options()
 
   parse_drm_options --gui-off
   assertEquals "($LINENO)" 1 "${options_values['GUI_OFF']}"
+
+  parse_drm_options --verbose
+  assertEquals "($LINENO)" 1 "${options_values['VERBOSE']}"
 
   parse_drm_options --conn-available
   assertEquals "($LINENO)" 1 "${options_values['CONN_AVAILABLE']}"

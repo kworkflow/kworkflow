@@ -6,86 +6,39 @@ include './tests/utils.sh'
 function oneTimeSetUp()
 {
   shopt -s expand_aliases
+}
+
+function setUp()
+{
+  options_values['TARGET']="$LOCAL_TARGET"
   remote_parameters['REMOTE_USER']='john'
+  remote_parameters['REMOTE_IP']='something'
+  remote_parameters['REMOTE_PORT']='2222'
 }
 
 declare -gA configurations
 configurations[ssh_user]=john
 
-function test_get_ram()
+function test_get_ram_from_vm()
 {
   local cmd
   local output
 
   vm_config[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
-  get_ram "$VM_TARGET"
+  options_values['TARGET']="$VM_TARGET"
+  get_ram
   assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
-
-  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep -o '[0-9]*'"
-  output=$(get_ram "$LOCAL_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
-
-  device_options['ip']='127.0.0.1'
-  device_options['port']='2222'
-  output=$(get_ram "$REMOTE_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Remote target RAM info gathering command did not match expectation' "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
 }
 
-function test_get_cpu()
-{
-  local output
-  declare -a expected_cmd=(
-    "lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1"
-    "lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'"
-  )
-
-  get_cpu "$VM_TARGET"
-  assert_equals_helper 'Failed to gather VM target CPU data' "($LINENO)" 'Virtual' "${device_info_data['cpu_model']}"
-
-  output=$(get_cpu "$LOCAL_TARGET" 'TEST_MODE')
-  compare_command_sequence 'Failed to gather local target CPU data' "$LINENO" 'expected_cmd' "$output"
-
-  declare -a expected_cmd=(
-    "ssh -p 2222 john@127.0.0.1 sudo \"lscpu | grep 'Model name:' | sed -r 's/Model name:\s+//g' | cut -d' ' -f1\""
-    "ssh -p 2222 john@127.0.0.1 sudo \"lscpu | grep MHz | sed -r 's/(CPU.*)/\t\t\1/'\""
-  )
-
-  device_options['ip']='127.0.0.1'
-  device_options['port']='2222'
-  output=$(get_cpu "$REMOTE_TARGET" 'TEST_MODE')
-  compare_command_sequence 'Failed to gather remote target CPU data' "$LINENO" 'expected_cmd' "$output"
-}
-
-function test_get_disk()
+function test_get_ram_from_local()
 {
   local cmd
   local output
 
-  vm_config[mount_point]='somewhere/to/mount'
-  cmd="df -h ${vm_config[mount_point]} | tail -n 1 | tr -s ' '"
-  output=$(get_disk "$VM_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Failed to gather VM target disk data' "($LINENO)" "$cmd" "$output"
-
-  cmd="df -h / | tail -n 1 | tr -s ' '"
-  output=$(get_disk "$LOCAL_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Failed to gather local target disk data' "($LINENO)" "$cmd" "$output"
-
-  device_options['ip']='127.0.0.1'
-  device_options['port']='2222'
-  output=$(get_disk "$REMOTE_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Failed to gather remote target disk data' "($LINENO)" "ssh -p 2222 john@127.0.0.1 sudo \"$cmd\"" "$output"
-}
-
-function test_get_motherboard()
-{
-  local output
-  declare -a expected_cmd=(
-    '[ -f /sys/devices/virtual/dmi/id/board_name ] && cat /sys/devices/virtual/dmi/id/board_name'
-    '[ -f /sys/devices/virtual/dmi/id/board_vendor ] && cat /sys/devices/virtual/dmi/id/board_vendor'
-  )
-
-  output=$(get_motherboard "$LOCAL_TARGET" 'TEST_MODE')
-  compare_command_sequence 'Failed to gather local target motherboard data' "$LINENO" 'expected_cmd' "$output"
+  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
+  options_values['TARGET']="$LOCAL_TARGET"
+  output=$(get_ram 'VERBOSE')
+  assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
 }
 
 function test_get_chassis()
@@ -124,7 +77,7 @@ function test_display_data()
     'Name: ABC123'
   )
 
-  device_options['target']="$LOCAL_TARGET"
+  options_values['target']="$LOCAL_TARGET"
   device_info_data['chassis']='Pizza Box'
   device_info_data['ram']='16777216'
   device_info_data['cpu_model']='A model'
@@ -139,6 +92,7 @@ function test_display_data()
   device_info_data['motherboard_vendor']='Vendor'
   device_info_data['motherboard_name']='ABC123'
   output=$(show_data)
+
   compare_command_sequence 'Failed to set target data' "$LINENO" 'expected_cmd' "$output"
 }
 
@@ -150,33 +104,6 @@ function detect_distro_mock()
 function which_distro_mock()
 {
   printf '%s\n' 'xpto'
-}
-
-function test_get_os()
-{
-  local output
-  local expected_cmd
-
-  # Check vm deploy calls the expected commands
-  vm_config[mount_point]='/somewhere/to/mount'
-  expected_cmd='cat /somewhere/to/mount/etc/os-release'
-  output=$(get_os "$VM_TARGET" 'TEST_MODE')
-  output=$(printf '%s\n' "$output" | head -n1)
-  assert_equals_helper 'Unexpected cmd while trying to gather vm target os-release data' "$LINENO" "$expected_cmd" "$output"
-
-  # Check local deploy calls the expected commands
-  expected_cmd='cat /etc/os-release'
-  output=$(get_os "$LOCAL_TARGET" 'TEST_MODE')
-  output=$(printf '%s\n' "$output" | head -n1)
-  assert_equals_helper 'Unexpected cmd while trying to gather local target os-release data' "$LINENO" "$expected_cmd" "$output"
-
-  # Check remote deploy calls the expected commands
-  expected_cmd='cat /etc/os-release'
-  output=$(get_os "$REMOTE_TARGET" 'TEST_MODE')
-  output=$(printf '%s\n' "$output" | head -n1)
-  assert_equals_helper 'Unexpected cmd while trying to gather local target os-release data' "$LINENO" "$expected_cmd" "$output"
-
-  #todo: Check if the vars from os-release are correctely parsed
 }
 
 function ps_mock()
@@ -191,31 +118,31 @@ function test_get_desktop_environment()
 
   # Check local deploy and some DE variations
   alias ps='ps_mock lxsession'
-  get_desktop_environment "$LOCAL_TARGET"
+  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
   assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'lxde' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock kde'
-  get_desktop_environment "$LOCAL_TARGET"
+  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
   assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'kde' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock mate'
-  get_desktop_environment "$LOCAL_TARGET"
+  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
   assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'mate' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock cinnamon'
-  get_desktop_environment "$LOCAL_TARGET"
+  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
   assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'cinnamon' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock openbox'
-  get_desktop_environment "$LOCAL_TARGET"
+  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
   assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'openbox' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock gnome-shell'
-  get_desktop_environment "$LOCAL_TARGET"
+  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
   assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'gnome' "${device_info_data['desktop_environment']}"
 
   alias ps='ps_mock something'
-  get_desktop_environment "$LOCAL_TARGET"
+  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
   assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'unidentified' "${device_info_data['desktop_environment']}"
 }
 
@@ -302,7 +229,7 @@ function test_get_gpu()
 
   # Check local deploy calls the expected commands
   declare -a expected_cmd=(
-    "lspci | grep -e VGA -e Display -e 3D | cut -d' ' -f1"
+    "lspci | grep --regexp=VGA --regexp=Display --regexp=3D | cut --delimiter=' ' -f1"
     'lspci -v -s 01:00.0'
     'lspci -v -s 00:02.0'
   )

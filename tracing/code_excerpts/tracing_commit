@@ -1,0 +1,15 @@
+# This file contains code to be injected into the main kw file located at the
+# root of the repository substituting the line `#INJECT_CODE_TRACING_COMMIT`.
+#
+# The injected code persist the data representing the tracing session to avoid
+# persisting data of incomplete sessions.
+
+# Create persistent directory where tracing session will be stored.
+mkdir --parents "$TRACING_SESSION_DIR"
+if [[ "$?" != 0 ]]; then
+  printf 'Error: could not create tracing directory %s\n' "$TRACING_SESSION_DIR"
+  exit 2
+fi
+
+# Commit tracing session
+cp --recursive "${TMP_TRACING_DIR}/." "$TRACING_SESSION_DIR"

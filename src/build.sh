@@ -1,8 +1,154 @@
-include "$KW_LIB_DIR/kwlib.sh"
-include "$KW_LIB_DIR/kwio.sh"
-include "$KW_LIB_DIR/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 
 declare -gA options_values
+
+# This function is responsible for manipulating kernel build operations such as
+# compile/cross-compile and menuconfig.
+#
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
+# @raw_options String with all user options
+#
+# Return:
+# In case of successful return 0, otherwise, return 22 or 125.
+function build_kernel_main()
+{
+  local flag="$1"
+  shift 1
+  local command
+  local start
+  local end
+  local cross_compile
+  local platform_ops
+  local menu_config
+  local doc_type
+  local optimizations
+  local cpu_scaling_factor
+  local parallel_cores
+  local warnings
+  local output_path
+  local llvm
+  local env_name
+  local clean
+  local output_kbuild_flag=''
+  local cflags
+
+  parse_build_options "$@"
+
+  if [[ "$?" -gt 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    build_help
+    exit 22 # EINVAL
+  fi
+
+  env_name=$(get_current_env_name)
+  if [[ "$?" == 0 ]]; then
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${env_name}"
+    output_kbuild_flag=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
+
+  cross_compile="${options_values['CROSS_COMPILE']}"
+  menu_config=${options_values['MENU_CONFIG']}
+  parallel_cores=${options_values['PARALLEL_CORES']}
+  doc_type=${options_values['DOC_TYPE']}
+  cpu_scaling_factor=${options_values['CPU_SCALING_FACTOR']}
+  warnings=${options_values['WARNINGS']}
+  output_path=${options_values['LOG_PATH']}
+  llvm=${options_values['USE_LLVM_TOOLCHAIN']}
+  clean=${options_values['CLEAN']}
+  full_cleanup=${options_values['FULL_CLEANUP']}
+  cflags=${options_values['CFLAGS']}
+
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+  flag=${flag:-'SILENT'}
+
+  if [[ -n "${options_values['INFO']}" ]]; then
+    build_info ''
+    exit
+  fi
+
+  if [[ -n "$warnings" ]]; then
+    warnings=" W=$warnings"
+  fi
+
+  if [[ -n "$output_path" ]]; then
+    output_path=" 2>&1 | tee $output_path"
+  fi
+
+  if [[ -n "$llvm" ]]; then
+    llvm='LLVM=1 '
+  fi
+
+  if [[ -n "$clean" ]]; then
+    build_clean "$flag" "$output_kbuild_flag"
+    return "$?"
+  fi
+
+  if [[ -n "$full_cleanup" ]]; then
+    full_cleanup "$flag" "$output_kbuild_flag"
+    return "$?"
+  fi
+
+  platform_ops=${options_values['ARCH']}
+
+  if [[ -n "$cross_compile" ]]; then
+    platform_ops="${platform_ops} CROSS_COMPILE=${cross_compile}"
+  fi
+
+  if [[ -n "$menu_config" ]]; then
+    build_menu_config "$flag" "$output_kbuild_flag" "$menu_config" "$platform_ops" "$llvm"
+    exit
+  fi
+
+  if ! is_kernel_root "$PWD"; then
+    complain 'Execute this command in a kernel tree.'
+    exit 125 # ECANCELED
+  fi
+
+  if command_exists nproc; then
+    parallel_cores="$(nproc --all)"
+  else
+    parallel_cores="$(grep -c ^processor /proc/cpuinfo)"
+  fi
+
+  optimizations="-j$((parallel_cores * cpu_scaling_factor / 100))"
+
+  if [[ -n "${options_values['CCACHE']}" ]]; then
+    [[ -n "$llvm" ]] && compiler='clang' || compiler='gcc'
+    optimizations="CC=\"ccache ${compiler} -fdiagnostics-color\" ${optimizations}"
+  fi
+
+  if [[ -n "$doc_type" ]]; then
+    build_doc "$flag" "$output_kbuild_flag" "$optimizations" "$doc_type" "$output_path"
+    return "$?"
+  fi
+
+  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}"
+
+  if [[ -n "$cflags" ]]; then
+    command+=" KCFLAGS=\"${cflags}\""
+  fi
+  command+="${output_kbuild_flag}${output_path}"
+
+  # Let's avoid menu question by default
+  cmd_manager "$flag" "make -j ${llvm}ARCH=${platform_ops} --silent olddefconfig${output_kbuild_flag}"
+
+  start=$(date +%s)
+  cmd_manager "$flag" "$command"
+  ret="$?"
+  end=$(date +%s)
+
+  runtime=$((end - start))
+
+  if [[ "$ret" != 0 ]]; then
+    statistics_manager 'build' "$start" "$runtime" 'failure'
+  else
+    statistics_manager 'build' "$start" "$runtime"
+  fi
+
+  return "$ret"
+}
 
 # This function retrieves and prints information related to the kernel that
 # will be compiled.
@@ -30,142 +176,38 @@ function build_info()
   fi
 }
 
-# This function is responsible for manipulating kernel build operations such as
-# compile/cross-compile and menuconfig.
-#
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
-# @raw_options String with all user options
-#
-# Return:
-# In case of successful return 0, otherwise, return 22 or 125.
-function kernel_build()
+# This function runs the make command under the hood, which in this
+# context is used to build and configure the linux kernel using the
+# "menuconfig" interface.
+function build_menu_config()
 {
   local flag="$1"
-  shift 1
-  local command
-  local start
-  local end
-  local cross_compile
-  local platform_ops
-  local menu_config
-  local doc_type
-  local optimizations
-  local cpu_scaling_factor
-  local parallel_cores
-  local warning
-  local output_path
-  local llvm
-  local env_name
-  local clean
-  local output_kbuild_flag=''
+  local env_path="$2"
+  local menu_config="$3"
+  local platform_ops="$4"
+  local llvm="$5"
+  local cmd
 
-  parse_build_options "$@"
+  flag=${flag:-'SILENT'}
 
-  if [[ "$?" -gt 0 ]]; then
-    complain "Invalid option: ${options_values['ERROR']}"
-    build_help
-    exit 22 # EINVAL
-  fi
+  cmd="make -j ${llvm}ARCH=${platform_ops} ${menu_config}${env_path}"
+  cmd_manager "$flag" "$cmd"
+}
 
-  env_name=$(get_current_env_name)
-  if [[ "$?" == 0 ]]; then
-    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${env_name}"
-    output_kbuild_flag=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
-  fi
+# This function builds kernel-doc, by default it will create htmldocs.
+function build_doc()
+{
+  local flag="$1"
+  local env_path="$2"
+  local optimizations="$3"
+  local doc_type="$4"
+  local output_path="$5"
+  local cmd
 
-  cross_compile="${options_values['CROSS_COMPILE']}"
-  menu_config=${options_values['MENU_CONFIG']}
-  parallel_cores=${options_values['PARALLEL_CORES']}
-  doc_type=${options_values['DOC_TYPE']}
-  cpu_scaling_factor=${options_values['CPU_SCALING_FACTOR']}
-  warnings=${options_values['WARNINGS']}
-  output_path=${options_values['LOG_PATH']}
-  llvm=${options_values['USE_LLVM_TOOLCHAIN']}
-  clean=${options_values['CLEAN']}
-  full_cleanup=${options_values['FULL_CLEANUP']}
+  flag=${flag:-'SILENT'}
 
-  if [[ -n "${options_values['INFO']}" ]]; then
-    build_info ''
-    exit
-  fi
-
-  if [[ -n "$warnings" ]]; then
-    warnings=" W=$warnings"
-  fi
-
-  if [[ -n "$output_path" ]]; then
-    output_path=" 2>&1 | tee $output_path"
-  fi
-
-  if [[ -n "$llvm" ]]; then
-    llvm='LLVM=1 '
-  fi
-
-  if [[ -n "$clean" ]]; then
-    build_clean "$flag"
-    return "$?"
-  fi
-
-  if [[ -n "$full_cleanup" ]]; then
-    full_cleanup "$flag" "$output_kbuild_flag"
-    return "$?"
-  fi
-
-  platform_ops=${options_values['ARCH']}
-
-  if [[ -n "$cross_compile" ]]; then
-    platform_ops="${platform_ops} CROSS_COMPILE=${cross_compile}"
-  fi
-
-  if [[ -n "$menu_config" ]]; then
-    command="make -j ${llvm}ARCH=${platform_ops} ${menu_config}${output_kbuild_flag}"
-    cmd_manager "$flag" "$command"
-    exit
-  fi
-
-  if ! is_kernel_root "$PWD"; then
-    complain 'Execute this command in a kernel tree.'
-    exit 125 # ECANCELED
-  fi
-
-  if command_exists nproc; then
-    parallel_cores="$(nproc --all)"
-  else
-    parallel_cores="$(grep -c ^processor /proc/cpuinfo)"
-  fi
-
-  optimizations="-j$((parallel_cores * cpu_scaling_factor / 100))"
-
-  if [[ -n "${options_values['CCACHE']}" ]]; then
-    [[ -n "$llvm" ]] && compiler='clang' || compiler='gcc'
-    optimizations="CC=\"ccache ${compiler} -fdiagnostics-color\" ${optimizations}"
-  fi
-
-  if [[ -n "$doc_type" ]]; then
-    command="make ${optimizations} ${doc_type}${output_path}${output_kbuild_flag}"
-    cmd_manager "$flag" "$command"
-    return
-  fi
-
-  command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}${output_path}${output_kbuild_flag}"
-
-  # Let's avoid menu question by default
-  cmd_manager "$flag" "make -j ${llvm}ARCH=${platform_ops} --silent olddefconfig${output_kbuild_flag}"
-
-  start=$(date +%s)
-  cmd_manager "$flag" "$command"
-  ret="$?"
-  end=$(date +%s)
-
-  runtime=$((end - start))
-
-  if [[ "$ret" != 0 ]]; then
-    statistics_manager 'build_failure' "$runtime"
-  else
-    statistics_manager 'build' "$runtime"
-  fi
-
-  return "$ret"
+  cmd="make ${optimizations} ${doc_type}${output_path}${env_path}"
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function runs the 'make clean' command under the hood, with
@@ -174,16 +216,19 @@ function kernel_build()
 #
 # @flag: Expecting a flag, by default, cmd_manager does not
 # expects flags and always show the command. For more details
-# see the function `cmd_manager` in `src/kwlib.sh`.
+# see the function `cmd_manager` in `src/lib/kwlib.sh`.
 #
 # @output_kbuild_flag: Will point to the current env path that
 # the user is using.
 function build_clean()
 {
   local flag="$1"
+  local env_path="$2"
   local cmd
 
-  cmd="make clean${output_kbuild_flag}"
+  flag=${flag:-'SILENT'}
+
+  cmd="make clean${env_path}"
   cmd_manager "$flag" "$cmd"
 }
 
@@ -195,6 +240,8 @@ function full_cleanup()
   local flag="$1"
   local env_path="$2"
   local cmd
+
+  flag=${flag:-'SILENT'}
 
   cmd="make distclean${env_path}"
   cmd_manager "$flag" "$cmd"
@@ -246,7 +293,7 @@ function load_build_config()
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags:'
   local short_options='h,i,n,d,S:,w::,s:,c,f'
   local doc_type
   local file_name_size
@@ -274,6 +321,8 @@ function parse_build_options()
   options_values['USE_LLVM_TOOLCHAIN']="${build_config[use_llvm]:-${configurations[use_llvm]}}"
   options_values['CLEAN']=''
   options_values['FULL_CLEANUP']=''
+  options_values['VERBOSE']=''
+  options_values['CFLAGS']="${build_config[cflags]}"
 
   # Check llvm option
   if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
@@ -322,6 +371,14 @@ function parse_build_options()
         ;;
       --full-cleanup | -f)
         options_values['FULL_CLEANUP']=1
+        shift
+        ;;
+      --cflags)
+        options_values['CFLAGS']="$2"
+        shift 2
+        ;;
+      --verbose)
+        options_values['VERBOSE']=1
         shift
         ;;
       --doc | -d)
@@ -379,7 +436,9 @@ function build_help()
     '  build (-s | --save-log-to) <path> - Save compilation log to path' \
     '  build (--llvm) - Enable use of the LLVM toolchain' \
     '  build (-c | --clean) - Clean option integrated into env' \
-    '  build (-f | --full-cleanup) - Reset the kernel tree to its default option integrated into env'
+    '  build (-f | --full-cleanup) - Reset the kernel tree to its default option integrated into env' \
+    '  build (--cflags) - Customize kernel compilation with specific flags' \
+    '  build (--verbose) - Show a detailed output'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well

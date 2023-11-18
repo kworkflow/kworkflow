@@ -3,9 +3,9 @@
 # It's also able to verify if the configurations required to use git send-email
 # are set.
 
-include "$KW_LIB_DIR/kw_config_loader.sh"
-include "$KW_LIB_DIR/kwlib.sh"
-include "$KW_LIB_DIR/kw_string.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kw_string.sh"
 
 # Hash containing user options
 declare -gA options_values
@@ -23,6 +23,10 @@ declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
 #shellcheck disable=SC2119
 function mail_main()
 {
+  local flag
+
+  flag=${flag:-'SILENT'}
+
   if [[ "$1" =~ -h|--help ]]; then
     mail_help "$1"
     exit 0
@@ -35,8 +39,10 @@ function mail_main()
     return 22 # EINVAL
   fi
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   if [[ -n "${options_values['SEND']}" ]]; then
-    mail_send
+    mail_send "$flag"
     return 0
   fi
 
@@ -59,12 +65,12 @@ function mail_main()
   fi
 
   if [[ -n "${options_values['INTERACTIVE']}" ]]; then
-    interactive_setup
+    interactive_setup "$flag"
     exit
   fi
 
   if [[ "${options_values['SETUP']}" == 1 ]]; then
-    mail_setup
+    mail_setup "$flag"
     exit
   fi
 
@@ -211,6 +217,8 @@ function generate_kernel_recipients()
   local patch_cache="${KW_CACHE_DIR}/patches"
   local cover_letter_to="${patch_cache}/to/cover-letter"
   local cover_letter_cc="${patch_cache}/cc/cover-letter"
+  local default_to_recipients="${mail_config[default_to_recipients]}"
+  local default_cc_recipients="${mail_config[default_cc_recipients]}"
   local get_maintainer_cmd="perl ${kernel_root}/scripts/get_maintainer.pl"
   get_maintainer_cmd+=" --nogit --nogit-fallback --no-r --no-n --multiline"
   get_maintainer_cmd+=" --nokeywords --norolestats --remove-duplicates"
@@ -225,6 +233,14 @@ function generate_kernel_recipients()
 
     to="$(eval "$get_maintainer_cmd --no-l $patch_path")"
     cc="$(eval "$get_maintainer_cmd --no-m $patch_path")"
+
+    if [[ -n "$default_to_recipients" ]]; then
+      to=$(add_recipients "$to" "$default_to_recipients")
+    fi
+
+    if [[ -n "$default_cc_recipients" ]]; then
+      cc=$(add_recipients "$cc" "$default_cc_recipients")
+    fi
 
     if [[ -n "$blocked" ]]; then
       to="$(remove_blocked_recipients "$to" "$blocked")"
@@ -242,6 +258,29 @@ function generate_kernel_recipients()
 
   cc_list="$(sort -u "$cover_letter_cc")"
   printf '%s\n' "$cc_list" > "$cover_letter_cc"
+}
+
+# This function add recipients to a list of initial recipients.
+#
+# @initial_recipients: List of initial recipients separated by newline
+# @additional_recipients: List of additional recipients separated by comma
+#
+# Return:
+# Outputs the added list of recipients.
+function add_recipients()
+{
+  local initial_recipients="$1"
+  local additional_recipients="$2"
+  local recipients
+
+  [[ -n "$initial_recipients" ]] && recipients="$initial_recipients"$'\n'
+
+  IFS=',' read -r -a additional_recipients_list <<< "$additional_recipients"
+  for recipient in "${additional_recipients_list[@]}"; do
+    recipients+="$recipient"$'\n'
+  done
+
+  printf '%s' "$recipients"
 }
 
 # This function filters out any unwanted recipients from the auto generated
@@ -912,8 +951,9 @@ function parse_mail_options()
   local patch_version=''
   local commit_count=''
   local short_options='s,t,f,v:,i,l,n,'
-  local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,'
+  local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,verbose,'
   long_options+='template::,interactive,no-interactive,list,private,rfc,'
+  local pass_option_to_send_email
 
   long_options+='email:,name:,'
   long_options+='smtpuser:,smtpencryption:,smtpserver:,smtpserverport:,smtppass:,'
@@ -949,6 +989,7 @@ function parse_mail_options()
   options_values['RFC']=''
   options_values['COMMIT_RANGE']=''
   options_values['PRIVATE']=''
+  options_values['VERBOSE']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -1049,6 +1090,10 @@ function parse_mail_options()
         options_values['PATCH_VERSION']="$1$2"
         shift 2
         ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --)
         shift
         # if a reference is passed after the -- we need to account for it
@@ -1056,7 +1101,15 @@ function parse_mail_options()
           commit_count="${BASH_REMATCH[0]}"
           options_values['COMMIT_RANGE']+="$commit_count "
         fi
-        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$* ${options_values['PATCH_VERSION']}")"
+        # TODO: find a better way to handle spaces inside pass_option_to_send_email
+        for i in "$@"; do
+          if [[ "${i}" =~ " " ]]; then
+            pass_option_to_send_email+=" ${i@Q}"
+          else
+            pass_option_to_send_email+=" ${i}"
+          fi
+        done
+        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$pass_option_to_send_email ${options_values['PATCH_VERSION']}")"
         options_values['COMMIT_RANGE']+="$(find_commit_references "${options_values['PASS_OPTION_TO_SEND_EMAIL']}")"
         rev_ret="$?"
         shift "$#"
@@ -1094,7 +1147,8 @@ function mail_help()
     '  mail (-i | --interactive) - Setup interactively' \
     '  mail (-l | --list) - List the configurable options' \
     '  mail --verify - Check if required configurations are set' \
-    '  mail --template[=<template>] [-n] - Set send-email configs based on <template>'
+    '  mail --template[=<template>] [-n] - Set send-email configs based on <template>' \
+    '  mail --verbose - Show a detailed output'
 }
 
 load_mail_config

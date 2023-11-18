@@ -1,6 +1,6 @@
-. "${KW_LIB_DIR}/kw_config_loader.sh" --source-only
-. "${KW_LIB_DIR}/remote.sh" --source-only
-. "${KW_LIB_DIR}/kwlib.sh" --source-only
+. "${KW_LIB_DIR}/lib/kw_config_loader.sh" --source-only
+. "${KW_LIB_DIR}/lib/remote.sh" --source-only
+. "${KW_LIB_DIR}/lib/kwlib.sh" --source-only
 
 declare -gr UNLOAD='UNLOAD'
 declare -gA options_values
@@ -17,6 +17,7 @@ function drm_main()
   local load_module
   local unload_module
   local test_mode
+  local flag
 
   if [[ "$*" =~ -h|--help ]]; then
     drm_help "$*"
@@ -41,6 +42,8 @@ function drm_main()
   unload_module="${options_values['UNLOAD_MODULE']}"
   remote="${remote_parameters['REMOTE']}"
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   if [[ "$target" == "$REMOTE_TARGET" ]]; then
     # Check connection before try to work with remote
     is_ssh_connection_configured "$flag"
@@ -51,30 +54,30 @@ function drm_main()
   fi
 
   if [[ -n "$load_module" ]]; then
-    module_control 'LOAD' "$target" "$remote" "$load_module"
+    module_control 'LOAD' "$target" "$remote" "$load_module" "$flag"
     if [[ "$?" != 0 ]]; then
       return 22
     fi
   fi
 
   if [[ "$gui_on" == 1 ]]; then
-    gui_control 'ON' "$target" "$remote"
+    gui_control 'ON' "$target" "$remote" "$flag"
   elif [[ "$gui_off" == 1 ]]; then
-    gui_control 'OFF' "$target" "$remote"
+    gui_control 'OFF' "$target" "$remote" "$flag"
   fi
 
   if [[ -n "$unload_module" ]]; then
     # For unload DRM drivers, we need to make sure that we turn off user GUI
     [[ "$gui_off" != 1 ]] && gui_control 'OFF' "$target" "$remote"
-    module_control 'UNLOAD' "$target" "$remote" "$unload_module"
+    module_control 'UNLOAD' "$target" "$remote" "$unload_module" "$flag"
   fi
 
   if [[ "$conn_available" == 1 ]]; then
-    get_available_connectors "$target" "$remote"
+    get_available_connectors "$target" "$remote" "$flag"
   fi
 
   if [[ "$modes_available" == 1 ]]; then
-    get_supported_mode_per_connector "$target" "$remote"
+    get_supported_mode_per_connector "$target" "$remote" "$flag"
   fi
 
   if [[ "$help_opt" == 1 ]]; then
@@ -89,7 +92,7 @@ function drm_main()
 # @target Target can be LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
 # @parameters String passed via --[un]load-module=
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`.
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`.
 function module_control()
 {
   local operation="$1"
@@ -100,6 +103,8 @@ function module_control()
   local module_cmd=""
   local remote
   local port
+
+  flag=${flag:-'SILENT'}
 
   module_cmd=$(convert_module_info "$operation" "$parameters")
   if [[ "$?" != 0 ]]; then
@@ -191,7 +196,7 @@ function convert_module_info()
 #            other output turn off (we use "OFF" for keeping the symmetry).
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`.
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`.
 function gui_control()
 {
   local operation="$1"
@@ -203,6 +208,8 @@ function gui_control()
   local isolate_target
   local remote
   local port
+
+  flag=${flag:-'SILENT'}
 
   if [[ "$operation" == 'ON' ]]; then
     isolate_target='graphical.target'
@@ -241,7 +248,7 @@ function get_available_connectors()
 {
   local target="$1"
   local unformatted_remote="$2"
-  local flag=${3:-'SILENT'}
+  local flag="$3"
   local target_label
   local card
   local key
@@ -252,6 +259,8 @@ function get_available_connectors()
   local port
   local find_conn_cmd
   declare -A cards
+
+  flag=${flag:-'SILENT'}
 
   case "$target" in
     2) # LOCAL TARGET
@@ -308,9 +317,12 @@ function get_supported_mode_per_connector()
 {
   local target="$1"
   local unformatted_remote="$2"
+  local flag="$3"
   local cmd
   local port
   local remote
+
+  flag=${flag:-'SILENT'}
 
   cmd="for f in $SYSFS_CLASS_DRM/*/modes;"' do c=$(< $f) && [[ ! -z $c ]] && printf "%s\n" "$f:" "$c" ""; done'
 
@@ -339,7 +351,7 @@ function get_supported_mode_per_connector()
 
 function parse_drm_options()
 {
-  local long_options='remote:,local,gui-on,gui-off,load-module:,unload-module:,help'
+  local long_options='remote:,local,gui-on,gui-off,load-module:,unload-module:,help,verbose'
   long_options+=',conn-available,modes'
   local short_options='h'
   local raw_options="$*"
@@ -363,7 +375,7 @@ function parse_drm_options()
   options_values['UNLOAD_MODULE']=''
   options_values['CONN_AVAILABLE']=''
   options_values['MODES_AVAILABLE']=''
-  options_values['VERBOSE']='SILENT'
+  options_values['VERBOSE']=''
 
   populate_remote_info ''
   if [[ "$?" == 22 ]]; then
@@ -433,8 +445,8 @@ function parse_drm_options()
         options_values['MODES_AVAILABLE']=1
         shift
         ;;
-      --verbose | -v)
-        options_values['VERBOSE']=''
+      --verbose)
+        options_values['VERBOSE']=1
         shift
         ;;
       --help | -h)
@@ -469,6 +481,7 @@ function drm_help()
     '  drm [--local | --remote [<remote>:<port>]] --gui-on' \
     '  drm [--local | --remote [<remote>:<port>]] --gui-off' \
     '  drm [--local | --remote [<remote>:<port>]] --conn-available' \
+    '  drm [--local | --remote [<remote>:<port>]] --verbose' \
     '  drm [--local | --remote [<remote>:<port>]] --modes'
 }
 

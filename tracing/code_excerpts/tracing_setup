@@ -1,0 +1,28 @@
+# This file contains code to be injected into the main kw file located at the
+# root of the repository substituting the line `#INJECT_CODE_TRACING_SETUP`.
+#
+# The injected code sets up variables to be used for the tracing of a kw execution
+# as well as creates a temporary directory for the tracing data.
+
+# Define directory to store tracing reports of kw executions
+KW_TRACING_DIR="${KW_DATA_DIR}/tracing"
+
+# Total number of threads that were launched by background executions.
+declare -g TOTAL_NUMBER_OF_THREADS=0
+
+# Number that identifies the current thread.
+declare -g THREAD_NUMBER=0
+
+# Path to directory that will persistently store the tracing data.
+declare -g TRACING_SESSION_DIR
+TRACING_SESSION_DIR="${KW_TRACING_DIR}/$(date '+%Y-%m-%d_%H-%M-%S')"
+
+# Path to directory that will temporarily store the tracing data.
+declare -g TMP_TRACING_DIR
+
+# Create temporary directory in shared memory to reduce IO overhead of tracing
+TMP_TRACING_DIR=$(mktemp --directory --tmpdir=/dev/shm)
+if [[ "$?" != 0 ]]; then
+  printf 'Error: could not create temporary directory for tracing\n'
+  exit 2
+fi

@@ -6,7 +6,7 @@ kw-explore
 
 SYNOPSIS
 ========
-*kw* (*e* | *explore*) [(-l | \--log) | (-g | \--grep) | (-a | \--all)]
+*kw* (*e* | *explore*) [(-l | \--log) | (-g | \--grep) | (-a | \--all) | \--verbose]
                        [(-c | \--only-source) | (-H | \--only-header)] <expr>
                        [-p] [<dir> | <file>]
 
@@ -44,3 +44,6 @@ OPTIONS
 
 -H | \--only-header:
   With this option, it is possible to show only the results from the header.
+
+\--verbose:
+  Verbose mode allows the user to see the commands executed under the hood.

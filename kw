@@ -4,33 +4,43 @@ KWORKFLOW=${KWORKFLOW:-'kw'}
 
 # Global paths
 
-# Kw shell files
-if [[ -f '/usr/bin/kw' ]]; then
+# If kw gets installed in the system instead of the user's home, the main
+# binary will be available at /usr/bin. Let's use it to update the global
+# paths.
+KW_SYSTEM_WIDE_INSTALLATION='/usr/bin/kw'
+
+# Share files
+KW_SHARE_DIR="${XDG_DATA_HOME:-"${HOME}/.local/share"}/${KWORKFLOW}"
+KW_DOC_DIR="${KW_SHARE_DIR}/doc"
+KW_MAN_DIR="${KW_SHARE_DIR}/man"
+KW_SOUND_DIR="${KW_SHARE_DIR}/sound"
+KW_DB_DIR="${KW_SHARE_DIR}/database"
+
+# Configuration files
+KW_ETC_DIR="${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}"
+
+# Set system-wide path
+if [[ -f "$KW_SYSTEM_WIDE_INSTALLATION" ]]; then
   KW_LIB_DIR='/usr/share/kw'
+  KW_SOUND_DIR='/usr/share/sounds/kw'
+  KW_DOC_DIR='/usr/share/doc/kw/html/'
+  KW_SOUND_DIR='/usr/share/sounds/kw'
+  KW_ETC_DIR='/etc/kw'
 else
   KW_LIB_DIR="${KW_LIB_DIR:-"${HOME}/.local/lib"}/${KWORKFLOW}"
 fi
 
-KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"$KW_LIB_DIR/plugins"}"
-
-# Share files
-KW_SHARE_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
-KW_DOC_DIR="$KW_SHARE_DIR/doc"
-KW_MAN_DIR="$KW_SHARE_DIR/man"
-KW_SOUND_DIR="$KW_SHARE_DIR/sound"
+KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"${KW_LIB_DIR}/plugins"}"
 
 # User specific data files (currently this collapses with the share dir,
 # but would not for a system-wide installation)
-KW_DATA_DIR="${XDG_DATA_HOME:-"$HOME/.local/share"}/$KWORKFLOW"
-
-# Configuration files
-KW_ETC_DIR="${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW"
+KW_DATA_DIR="${XDG_DATA_HOME:-"${HOME}/.local/share"}/${KWORKFLOW}"
 
 # Cache folder
-KW_CACHE_DIR="${XDG_CACHE_HOME:-"$HOME/.cache"}/$KWORKFLOW"
+KW_CACHE_DIR="${XDG_CACHE_HOME:-"${HOME}/.cache"}/${KWORKFLOW}"
 
 # State files
-KW_STATE_DIR="${XDG_STATE_HOME:-"$HOME/.local/state"}/$KWORKFLOW"
+KW_STATE_DIR="${XDG_STATE_HOME:-"${HOME}/.local/state"}/${KWORKFLOW}"
 
 # ENV dir name
 ENV_DIR='envs'
@@ -38,13 +48,14 @@ ENV_DIR='envs'
 ##BEGIN-DEV-MODE##
 KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
 KW_BASE_DIR="$(dirname "${KW_BIN}")"
-if [ -f "${KW_BASE_DIR}/src/kwlib.sh" ]; then
+if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
   # running from source directory
   KW_LIB_DIR="${KW_BASE_DIR}/src"
   # KW_DATA_DIR # use default data folder
   KW_DOC_DIR="${KW_BASE_DIR}/documentation"
   KW_MAN_DIR="${KW_BASE_DIR}/documentation/man"
   KW_SOUND_DIR="${KW_BASE_DIR}/sound"
+  KW_DB_DIR="${KW_BASE_DIR}/database"
   KW_ETC_DIR="${KW_BASE_DIR}/etc"
   KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
   # KW_CACHE_DIR # use default cache folder
@@ -53,11 +64,14 @@ fi
 
 # Export external variables required by kworkflow
 export KWORKFLOW
+
+#INJECT_CODE_TRACING_SETUP
+
 # This is the one and only time a file will be sourced this way.
 # The include function (sourced from this file) should always be used for file sourcing.
-. "$KW_LIB_DIR/kw_include.sh" --source-only
+. "${KW_LIB_DIR}/lib/kw_include.sh" --source-only
 
-include "$KW_LIB_DIR"/signal_manager.sh
+include "${KW_LIB_DIR}/lib/signal_manager.sh"
 
 function kw()
 {
@@ -71,17 +85,17 @@ function kw()
   case "$action" in
     init)
       (
-        include "$KW_LIB_DIR/init.sh"
+        include "${KW_LIB_DIR}/init.sh"
 
-        init_kw "$@"
+        init_main "$@"
         return "$?"
       )
       ;;
     build | b)
       (
-        include "$KW_LIB_DIR/build.sh"
+        include "${KW_LIB_DIR}/build.sh"
 
-        kernel_build '' "$@"
+        build_kernel_main '' "$@"
         local ret="$?"
         alert_completion 'kw build' "$1"
         return "$ret"
@@ -89,7 +103,7 @@ function kw()
       ;;
     deploy | d)
       (
-        include "$KW_LIB_DIR/deploy.sh"
+        include "${KW_LIB_DIR}/deploy.sh"
 
         deploy_main '' "$@"
         local ret="$?"
@@ -99,23 +113,23 @@ function kw()
       ;;
     bd)
       (
-        include "$KW_LIB_DIR/deploy.sh"
-        include "$KW_LIB_DIR/build.sh"
+        include "${KW_LIB_DIR}/deploy.sh"
+        include "${KW_LIB_DIR}/build.sh"
 
-        kernel_build && deploy_main 1 "$@"
+        build_kernel_main && deploy_main 1 "$@"
         local ret="$?"
         alert_completion 'kw bd' "$1"
         return "$ret"
       )
       ;;
     diff | df)
-      include "$KW_LIB_DIR/diff.sh"
+      include "${KW_LIB_DIR}/diff.sh"
 
-      diff_manager "$@"
+      diff_main "$@"
       ;;
     ssh | s)
       (
-        include "${KW_LIB_DIR}/kw_config_loader.sh"
+        include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
         include "${KW_LIB_DIR}/kw_ssh.sh"
 
         kw_ssh_main "$@"
@@ -123,14 +137,14 @@ function kw()
       ;;
     vars)
       (
-        include "$KW_LIB_DIR/kw_config_loader.sh"
+        include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 
         show_variables_main "$@"
       )
       ;;
     codestyle | c)
       (
-        include "$KW_LIB_DIR/checkpatch_wrapper.sh"
+        include "${KW_LIB_DIR}/checkpatch_wrapper.sh"
 
         execute_checkpatch "$@"
       )
@@ -151,99 +165,71 @@ function kw()
       ;;
     kernel-config-manager | k)
       (
-        include "$KW_LIB_DIR/kernel_config_manager.sh"
+        include "${KW_LIB_DIR}/kernel_config_manager.sh"
 
         kernel_config_manager_main "$@"
       )
       ;;
     config | g)
       (
-        include "$KW_LIB_DIR/config.sh"
+        include "${KW_LIB_DIR}/config.sh"
 
         config_main "$@"
       )
       ;;
     remote)
       (
-        include "$KW_LIB_DIR/kw_remote.sh"
+        include "${KW_LIB_DIR}/kw_remote.sh"
 
         remote_main "$@"
       )
       ;;
-    help | --help)
-      (
-        include "$KW_LIB_DIR/help.sh"
-
-        kworkflow_man
-      )
-      ;;
-    h | -h)
-      (
-        include "$KW_LIB_DIR/help.sh"
-
-        kworkflow_help
-      )
-      ;;
     explore | e)
       (
-        include "$KW_LIB_DIR/explore.sh"
+        include "${KW_LIB_DIR}/explore.sh"
 
         explore_main "$@"
         return "$?"
       )
       ;;
-    man)
-      (
-        include "$KW_LIB_DIR/help.sh"
-
-        kworkflow_man "$@"
-      )
-      ;;
-    version | --version | -v)
-      (
-        include "$KW_LIB_DIR/help.sh"
-
-        kworkflow_version
-      )
-      ;;
     pomodoro | p)
       (
-        include "$KW_LIB_DIR/pomodoro.sh"
+        include "${KW_LIB_DIR}/pomodoro.sh"
 
-        pomodoro "$@"
+        pomodoro_main "$@"
       )
       ;;
     report | r)
       (
-        include "$KW_LIB_DIR/report.sh"
+        include "${KW_LIB_DIR}/report.sh"
 
         report_main "$@"
       )
       ;;
     device)
       (
-        include "$KW_LIB_DIR/device_info.sh"
+        include "${KW_LIB_DIR}/device_info.sh"
 
-        device_info "$@"
+        device_main "$@"
       )
       ;;
     backup)
       (
-        include "$KW_LIB_DIR/backup.sh"
+        include "${KW_LIB_DIR}/backup.sh"
 
         backup "$@"
       )
       ;;
     debug)
       (
-        include "$KW_LIB_DIR/debug.sh"
+        include "${KW_LIB_DIR}/debug.sh"
 
         debug_main "$@"
       )
       ;;
     mail)
       (
-        include "$KW_LIB_DIR/mail.sh"
+        include "${KW_LIB_DIR}/mail.sh"
 
         mail_main "$@"
       )
@@ -255,17 +241,17 @@ function kw()
         env_main "$@"
       )
       ;;
-    upstream-patches-ui)
+    patch-hub)
       (
-        include "${KW_LIB_DIR}/upstream_patches_ui.sh"
+        include "${KW_LIB_DIR}/patch_hub.sh"
 
-        upstream_patches_ui_main "$@"
+        patch_hub_main "$@"
       )
       ;;
     clear-cache)
-      include "$KW_LIB_DIR/deploy.sh"
+      include "${KW_LIB_DIR}/deploy.sh"
 
-      cleanup
+      cleanup "$@"
       ;;
     # Subsystems support
     drm)
@@ -283,10 +269,37 @@ function kw()
         vm_main "$@"
       )
       ;;
+    version | --version | -v)
+      (
+        include "${KW_LIB_DIR}/help.sh"
 
+        kworkflow_version
+      )
+      ;;
+    man)
+      (
+        include "${KW_LIB_DIR}/help.sh"
+
+        kworkflow_man "$@"
+      )
+      ;;
+    help | --help)
+      (
+        include "${KW_LIB_DIR}/help.sh"
+
+        kworkflow_man
+      )
+      ;;
+    h | -h)
+      (
+        include "${KW_LIB_DIR}/help.sh"
+
+        kworkflow_help
+      )
+      ;;
     *)
       (
-        include "$KW_LIB_DIR/help.sh"
+        include "${KW_LIB_DIR}/help.sh"
 
         complain 'Invalid option'
         kworkflow_help
@@ -294,6 +307,8 @@ function kw()
       )
       ;;
   esac
+
+  #INJECT_CODE_TRACING_COMMIT
 }
 
 kw "$@"

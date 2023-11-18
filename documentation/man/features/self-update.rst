@@ -6,8 +6,8 @@ kw-self-update
 
 SYNOPSIS
 ========
-| *kw* (*u* | *self-update*)
-| *kw* (*u* | *self-update*) [(-u | --unstable)]
+| *kw* (*u* | *self-update*) [\--verbose]
+| *kw* (*u* | *self-update*) [(-u | --unstable)] [\--verbose]
 | *kw* (*u* | *self-update*) [(-h | --help)]
 
 DESCRIPTION
@@ -28,6 +28,11 @@ OPTIONS
 
 \--help:
   Show this man page
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.
 
 EXAMPLES
 ========

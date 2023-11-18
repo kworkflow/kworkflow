@@ -6,10 +6,10 @@ kw-report
 
 SYNOPSIS
 ========
-| *kw* (*r* | *report*) [\--year [<year>]] [\--output <file-path>]
-| *kw* (*r* | *report*) [\--month [<year>/<month>]] [\--output <file-path>]
-| *kw* (*r* | *report*) [\--week [<year>/<month>/<day>]] [\--output <file-path>]
-| *kw* (*r* | *report*) [\--day [<year>/<month>/<day>]] [\--output <file-path>]
+| *kw* (*r* | *report*) [\--year [<year>]] [\--output <file-path> ] [\--verbose]
+| *kw* (*r* | *report*) [\--month [<year>/<month>]] [\--output <file-path>] [\--verbose]
+| *kw* (*r* | *report*) [\--week [<year>/<month>/<day>]] [\--output <file-path>] [\--verbose]
+| *kw* (*r* | *report*) [\--day [<year>/<month>/<day>]] [\--output <file-path>] [\--verbose]
 
 DESCRIPTION
 ===========
@@ -71,6 +71,9 @@ OPTIONS
 
 \--output <file-path>:
   Save the output of the report to *<file-path>*.
+
+\--verbose:
+  Display commands executed under the hood.
 
 EXAMPLES
 ========

@@ -1,6 +1,6 @@
-include "${KW_LIB_DIR}/kwlib.sh"
-include "${KW_LIB_DIR}/kwio.sh"
-include "${KW_LIB_DIR}/kw_string.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
+include "${KW_LIB_DIR}/lib/kw_string.sh"
 
 declare -gA options_values
 
@@ -26,14 +26,20 @@ function env_main()
     exit 22 # EINVAL
   fi
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   if [[ -n "${options_values['CREATE']}" ]]; then
     create_new_env
     return "$?"
   fi
 
   if [[ -n "${options_values['USE']}" ]]; then
-    use_target_env
-    return "$?"
+    validate_env_before_switch
+    if [[ "$?" != 22 ]]; then
+      use_target_env
+      return "$?"
+    fi
+    return 22 # EINVAL
   fi
 
   if [[ -n "${options_values['DESTROY']}" ]]; then
@@ -52,6 +58,38 @@ function env_main()
   fi
 }
 
+# If the env option is requested, it means the O= option from the kernel
+# makefile is used, and this option requires a clean kernel tree to work as
+# expected. This function checks if the current kernel tree is clean.
+#
+# Return:
+# Return 22 in case of error
+function validate_env_before_switch()
+{
+  local should_fail=0
+  local list_of_object_file
+
+  load_module_text "${KW_ETC_DIR}/strings/env.txt"
+
+  # Check if there is a .config file
+  [[ -f "${PWD}/.config" ]] && should_fail=1
+
+  # Check if there is any object file
+  list_of_object_file=$(find "${PWD}" -name '*.o')
+  [[ "$?" != 0 || -n ${list_of_object_file} ]] && should_fail=1
+
+  # Check for ko files
+  list_of_object_file=$(find "${PWD}" -name '*.ko')
+  [[ "$?" != 0 || -n ${list_of_object_file} ]] && should_fail=1
+
+  if [[ "$should_fail" == 1 ]]; then
+    complain "${module_text_dictionary[use_failure_explanation]}"
+    return 22 # EINVAL
+  fi
+
+  return 0
+}
+
 # When we switch between different kw envs we just change the symbolic links
 # for pointing to the target env.
 #
@@ -62,6 +100,9 @@ function use_target_env()
   local target_env="${options_values['USE']}"
   local local_kw_configs="${PWD}/.kw"
   local tmp_trash
+  local cmd
+
+  flag=${flag:-'SILENT'}
 
   if [[ ! -d "${local_kw_configs}/${ENV_DIR}/${target_env}" ]]; then
     return 22 # EINVAL
@@ -76,14 +117,17 @@ function use_target_env()
       # Check if the config file exists before trying to remove it.
       [[ ! -f "${local_kw_configs}/${config}.config" ]] && continue
 
-      mv "${local_kw_configs}/${config}.config" "$tmp_trash"
+      cmd="mv ${local_kw_configs}/${config}.config ${tmp_trash}"
+      cmd_manager "$flag" "$cmd"
     fi
 
     # Create symbolic link
-    ln --symbolic --force "${local_kw_configs}/${ENV_DIR}/${target_env}/${config}.config" "${local_kw_configs}/${config}.config"
+    cmd="ln --symbolic --force ${local_kw_configs}/${ENV_DIR}/${target_env}/${config}.config ${local_kw_configs}/${config}.config"
+    cmd_manager "$flag" "$cmd"
   done
 
-  touch "${local_kw_configs}/${ENV_CURRENT_FILE}"
+  cmd="touch ${local_kw_configs}/${ENV_CURRENT_FILE}"
+  cmd_manager "$flag" "$cmd"
   printf '%s\n' "$target_env" > "${local_kw_configs}/${ENV_CURRENT_FILE}"
 }
 
@@ -93,6 +137,9 @@ function exit_env()
 {
   local current_env
   local local_kw_configs="${PWD}/.kw"
+  local cmd
+
+  flag=${flag:-'SILENT'}
 
   if [[ ! -f "${local_kw_configs}/${ENV_CURRENT_FILE}" ]]; then
     say 'You are not using any env at the moment'
@@ -108,15 +155,17 @@ function exit_env()
       # will be copied to the .kw folder. We will only need the original files of the
       # current env, the symlinks will be removed as they only point to these original files.
       if [[ -L "${local_kw_configs}/${config}.config" ]]; then
-        rm "${local_kw_configs}/${config}.config"
+        cmd="rm ${local_kw_configs}/${config}.config"
+        cmd_manager "$flag" "$cmd"
       fi
 
       # Check if the config file exists before trying to copy it.
       [[ ! -f "${local_kw_configs}/${ENV_DIR}/${current_env}/${config}.config" ]] && continue
-
-      cp "${local_kw_configs}/${ENV_DIR}/${current_env}/${config}.config" "${local_kw_configs}"
+      cmd="cp ${local_kw_configs}/${ENV_DIR}/${current_env}/${config}.config ${local_kw_configs}"
+      cmd_manager "$flag" "$cmd"
     done
-    rm "${local_kw_configs}/${ENV_CURRENT_FILE}"
+    cmd="rm ${local_kw_configs}/${ENV_CURRENT_FILE}"
+    cmd_manager "$flag" "$cmd"
     success 'You left the environment feature.'
   fi
 }
@@ -138,6 +187,9 @@ function create_new_env()
   local current_env_name
   local output
   local ret
+  local cmd
+
+  flag=${flag:-'SILENT'}
 
   if [[ ! -d "$local_kw_configs" || ! -f "$local_kw_build_config" || ! -f "$local_kw_deploy_config" ]]; then
     complain 'It looks like that you did not setup kw in this repository.'
@@ -146,7 +198,8 @@ function create_new_env()
   fi
 
   # Create envs folder
-  mkdir -p "${local_kw_configs}/${ENV_DIR}"
+  cmd="mkdir -p ${local_kw_configs}/${ENV_DIR}"
+  cmd_manager "$flag" "$cmd"
 
   # Check if the env name was not created
   output=$(find "${local_kw_configs}/${ENV_DIR}" -type d -name "$env_name")
@@ -157,37 +210,45 @@ function create_new_env()
   fi
 
   # Create env folder
-  mkdir -p "${local_kw_configs}/${ENV_DIR}/${env_name}"
+  cmd="mkdir -p ${local_kw_configs}/${ENV_DIR}/${env_name}"
+  cmd_manager "$flag" "$cmd"
 
   # Copy local configs
   for config in "${config_file_list[@]}"; do
     if [[ ! -e "${local_kw_configs}/${config}.config" ]]; then
       say "${config}.config does not exist. Creating a default one."
-      cp "${KW_ETC_DIR}/${config}.config" "${local_kw_configs}/${ENV_DIR}/${env_name}"
+      cmd="cp ${KW_ETC_DIR}/${config}.config ${local_kw_configs}/${ENV_DIR}/${env_name}"
+      cmd_manager "$flag" "$cmd"
     else
-      cp "${local_kw_configs}/${config}.config" "${local_kw_configs}/${ENV_DIR}/${env_name}"
+      cmd="cp ${local_kw_configs}/${config}.config ${local_kw_configs}/${ENV_DIR}/${env_name}"
+      cmd_manager "$flag" "$cmd"
     fi
   done
 
   # Handle build and config folder
-  mkdir -p "${cache_build_path}/${ENV_DIR}/${env_name}"
+  cmd="mkdir -p ${cache_build_path}/${ENV_DIR}/${env_name}"
+  cmd_manager "$flag" "$cmd"
 
   current_env_name=$(get_current_env_name)
   ret="$?"
   # If we already have an env, we should copy the config file from it.
   if [[ "$ret" == 0 ]]; then
-    cp "${cache_build_path}/${ENV_DIR}/${current_env_name}/.config" "${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd="cp ${cache_build_path}/${ENV_DIR}/${current_env_name}/.config ${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd_manager "$flag" "$cmd"
     return
   elif [[ -f "${PWD}/.config" ]]; then
-    cp "${PWD}/.config" "${cache_build_path}/${ENV_DIR}/${env_name}"
+    cmd="cp ${PWD}/.config ${cache_build_path}/${ENV_DIR}/${env_name}"
+    cmd_manager "$flag" "$cmd"
     return
   fi
 
   warning "You don't have a config file, get it from default paths"
   if [[ -e /proc/config.gz ]]; then
-    zcat /proc/config.gz > "${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd="zcat /proc/config.gz > ${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd_manager "$flag" "$cmd"
   elif [[ -e "/boot/config-$(uname -r)" ]]; then
-    cp "/boot/config-$(uname -r)" "${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd="cp /boot/config-$(uname -r) ${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd_manager "$flag" "$cmd"
   else
     warning 'kw was not able to find any valid config file for the new env'
     return 22 # EINVAL
@@ -201,6 +262,9 @@ function destroy_env()
   local cache_build_path="$KW_CACHE_DIR"
   local current_env
   local env_name=${options_values['DESTROY']}
+  local cmd
+
+  flag=${flag:-'SILENT'}
 
   if [[ ! -d "$local_kw_configs" ]]; then
     complain 'It looks like that you did not setup kw in this repository.'
@@ -224,7 +288,8 @@ function destroy_env()
     fi
   fi
 
-  rm -rf "${local_kw_configs:?}/${ENV_DIR}/${env_name}" && rm -rf "${cache_build_path:?}/${ENV_DIR}/${env_name}"
+  cmd="rm -rf ${local_kw_configs:?}/${ENV_DIR}/${env_name} && rm -rf ${cache_build_path:?}/${ENV_DIR}/${env_name}"
+  cmd_manager "$flag" "$cmd"
   success "The \"${env_name}\" environment has been destroyed."
 }
 
@@ -266,7 +331,7 @@ function list_env_available_envs()
 
 function parse_env_options()
 {
-  local long_options='help,list,create:,use:,exit-env,destroy:'
+  local long_options='help,list,create:,use:,exit-env,destroy:,verbose'
   local short_options='h,l,c:,u:,e,d:'
   local count
 
@@ -284,6 +349,7 @@ function parse_env_options()
   options_values['USE']=''
   options_values['EXIT_ENV']=''
   options_values['DESTROY']=''
+  options_values['VERBOSE']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -322,6 +388,10 @@ function parse_env_options()
         options_values['DESTROY']="$2"
         shift 2
         ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --)
         shift
         ;;
@@ -345,5 +415,6 @@ function env_help()
     '  env [-u | --use] <NAME> - Use some specific env' \
     '  env (-c | --create) - Create a new environment' \
     '  env (-e | --exit-env) - Exit environment mode' \
-    '  env (-d | --destroy) - Destroy an environment'
+    '  env (-d | --destroy) - Destroy an environment' \
+    '  env (--verbose) - Show a detailed output'
 }

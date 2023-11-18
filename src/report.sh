@@ -1,23 +1,41 @@
-# kw keeps track of some data operations; the most prominent example is the
-# Pomodoro feature. This file intends to keep all procedures related to data
-# processing that will end up as a report for the user.
+# kw keeps track of some data operations; at the moment kw tracks
+# Pomodoro sessions (kw pomodoro) and overall statistics. This file
+# intends to keep all procedures related to data fetching, processing,
+# formatting and outputting to display a report to the user.
 
-include "$KW_LIB_DIR/kw_config_loader.sh"
-include "$KW_LIB_DIR/kw_time_and_date.sh"
-include "$KW_LIB_DIR/kwlib.sh"
-include "$KW_LIB_DIR/kw_string.sh"
-include "$KW_LIB_DIR/statistics.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kw_string.sh"
+include "${KW_LIB_DIR}/lib/statistics.sh"
+include "${KW_LIB_DIR}/lib/kw_db.sh"
 
-declare -g KW_POMODORO_DATA="$KW_DATA_DIR/pomodoro"
 declare -gA options_values
-declare -gA tags_details
-declare -gA tags_metadata
-declare -g statistics_data
+declare -g target_period
+
+# Statistics data structures
+declare -g statistics_raw_data
+declare -gA statistics=(['deploy']='' ['build']='' ['list']='' ['uninstall']='' ['modules_deploy']='')
+
+# Pomodoro data structures
+declare -g pomodoro_raw_data
+declare -gA pomodoro_sessions
+declare -gA pomodoro_metadata
+
+# Colors for printing
+declare -g yellow_color
+declare -g green_color
+declare -g normal_color
+yellow_color=$(tput setaf 3)
+green_color=$(tput setaf 2)
+normal_color=$(tput sgr0)
 
 function report_main()
 {
   local target_time
-  local ret
+  local flag
+
+  flag=${flag:-'SILENT'}
 
   if [[ "$1" =~ -h|--help ]]; then
     report_help "$1"
@@ -30,306 +48,257 @@ function report_main()
     return 22 # EINVAL
   fi
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
+  set_raw_data "$flag"
+
   if [[ -n "${options_values['STATISTICS']}" ]]; then
-    run_statistics
+    if [[ "${configurations[disable_statistics_data_track]}" == 'yes' ]]; then
+      say 'You have "disable_statistics_data_track" marked as "yes"'
+      say 'If you want to track statistics, change this option to "no"'
+    fi
+    process_and_format_statistics_raw_data "$flag"
   fi
 
   if [[ -n "${options_values['POMODORO']}" ]]; then
-    run_pomodoro
+    process_and_format_pomodoro_raw_data "$flag"
   fi
 
   if [[ -z "${options_values['OUTPUT']}" ]]; then
-    [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time"
-    [[ -n "${options_values['STATISTICS']}" ]] && show_statistics
+    show_report "flag"
   else
-    save_data_to "${options_values['OUTPUT']}"
+    save_data_to "${options_values['OUTPUT']}" "$flag"
   fi
 }
 
-# Call the statistics based on the options_values
-function run_statistics()
+# This function sets raw data for the statistics and Pomodoro report. The function
+# stores the raw data in a global variable named '<statistics/pomodoro>_raw_data'.
+# The format of the raw data is the same as the returned by the local database. For
+# example, in the case of the 'statistics_report' table, the format will be
+# <ID>|<LABEL_NAME>|<STATUS>|<START_DATE>|<START_TIME>|<ELAPSED_TIME_IN_SECS>.
+function set_raw_data()
 {
-  if [[ "${configurations[disable_statistics_data_track]}" == 'yes' ]]; then
-    say 'You have disable_statistics_data_track marked as "yes"'
-    say 'If you want to see the statistics, change this option to "no"'
-    return
-  fi
+  local flag="$1"
+  local date
+  local regex_exp
+
+  flag=${flag:-'SILENT'}
 
   if [[ -n "${options_values['DAY']}" ]]; then
-    statistics_data=$(day_statistics "${options_values['DAY']}")
+    target_period="day ${options_values['DAY']}"
+    date=$(printf '%s' "${options_values['DAY']}" | sed 's/\//-/g')
+    regex_exp="'^${date}$'"
   elif [[ -n "${options_values['WEEK']}" ]]; then
-    statistics_data=$(week_statistics "${options_values['WEEK']}")
+    target_period='week of day '
+    target_period+=$(printf '%s' "${options_values['WEEK']}" | cut -d '|' -f1)
+    date=$(printf '%s' "${options_values['WEEK']}" | sed 's/\//-/g')
+    regex_exp="'^${date}$'"
   elif [[ -n "${options_values['MONTH']}" ]]; then
-    statistics_data=$(month_statistics "${options_values['MONTH']}")
+    target_period="month ${options_values['MONTH']}"
+    date=$(printf '%s' "${options_values['MONTH']}" | sed 's/\//-/g')
+    regex_exp="'^${date}-[0-3][0-9]$'"
   elif [[ -n "${options_values['YEAR']}" ]]; then
-    statistics_data=$(year_statistics "${options_values['YEAR']}")
+    target_period="year ${options_values['YEAR']}"
+    date="${options_values['YEAR']}"
+    regex_exp="'^${date}-[0-1][0-9]-[0-3][0-9]$'"
+  fi
+
+  if [[ -n "${options_values['STATISTICS']}" ]]; then
+    statistics_raw_data=$(get_raw_data_from_period_of_time 'statistics_report' "$regex_exp" "$flag")
+  fi
+
+  if [[ -n "${options_values['POMODORO']}" ]]; then
+    pomodoro_raw_data=$(get_raw_data_from_period_of_time 'pomodoro_report' "$regex_exp" "$flag")
   fi
 }
 
-function show_statistics()
-{
-  printf "# Statistics: %s\n" "$date"
-  printf "%s\n\n" "$statistics_data"
-}
-
-function run_pomodoro()
-{
-  if [[ -n "${options_values['DAY']}" ]]; then
-    target_time="${options_values['DAY']}"
-    grouping_day_data "$target_time"
-  elif [[ -n "${options_values['WEEK']}" ]]; then
-    target_time="${options_values['WEEK']}"
-    grouping_week_data "$target_time"
-  elif [[ -n "${options_values['MONTH']}" ]]; then
-    target_time="${options_values['MONTH']}"
-    grouping_month_data "$target_time"
-  elif [[ -n "${options_values['YEAR']}" ]]; then
-    target_time="${options_values['YEAR']}"
-    grouping_year_data "$target_time"
-  fi
-}
-
-# Convert time labels in the format INTEGER[s|m|h] to an entire label that can
-# be used inside the command date.
+# This function is responsible for getting all raw data related to a given
+# table from a target period of time. The table name and the period of time
+# are passed as arguments. This function is the interface with the local
+# database.
 #
-# @timebox Time box in the format INTEGER[s|m|h]
+# @table_name: Name of the table in the database
+# @regex_exp:  Regex expression for the target period of time
 #
 # Return:
-# Expanded label in the format INTEGER [seconds|minutes|hours].
-function expand_time_labels()
+# Raw output from database query related to a given table from a target period
+# of time.
+function get_raw_data_from_period_of_time()
 {
-  local timebox="$1"
-  local time_type
-  local time_value
-  local time_label
+  local table_name="$1"
+  local regex_exp="$2"
+  local flag="$3"
+  local raw_data
 
-  timebox=$(str_strip "$timebox")
+  flag=${flag:-'SILENT'}
 
-  [[ -z "$timebox" ]] && return 22 # EINVAL
-
-  time_type=$(last_char "$timebox")
-  if [[ ! "$time_type" =~ h|m|s ]]; then
-    time_type='s'
-    timebox="$timebox$time_type"
-  fi
-
-  time_value=$(chop "$timebox")
-  if ! str_is_a_number "$time_value"; then
-    return 22 # EINVAL
-  fi
-
-  case "$time_type" in
-    h)
-      time_label="$time_value hours"
-      ;;
-    m)
-      time_label="$time_value minutes"
-      ;;
-    s)
-      time_label="$time_value seconds"
-      ;;
-  esac
-
-  printf '%s\n' "$time_label"
+  raw_data=$(select_from "${table_name} WHERE date REGEXP ${regex_exp}")
+  printf '%s' "$raw_data"
 }
 
-function timebox_to_sec()
-{
-  local timebox="$1"
-  local time_type
-  local time_value
-
-  time_type=$(last_char "$timebox")
-  time_value=$(chop "$timebox")
-
-  case "$time_type" in
-    h)
-      time_value=$((3600 * time_value))
-      ;;
-    m)
-      time_value=$((60 * time_value))
-      ;;
-    s)
-      true # Do nothing
-      ;;
-  esac
-
-  printf '%s\n' "$time_value"
-}
-
-# Group day data in the tags_details and tags_metadata. Part of the process
-# includes pre-processing raw data in something good to be displayed for users.
+# This function process raw data specific from the 'statistics_report' table.
+# A processed data (for a given command) consists of a string in the format
+# '<NUM OF OPERATIONS> <MAX TIME> <MIN TIME> <AVG TIME>'.
+# It also formats the processed data for printing.
+# The processed and formatted results are stored in the 'statistics' global
+# associative array in their respective command.
 #
-# @day: Day in the format YYYY/MM/DD
-function grouping_day_data()
+# Return:
+# In case there is no statistics raw data to process, returns 2 (ENOENT) and
+# sets an error message in 'options_values['ERROR']'.
+function process_and_format_statistics_raw_data()
 {
-  local day="$*"
-  local day_path
-  local details
-  local start_time
-  local end_time
-  local timebox
-  local time_label
-  local timebox_sec
-  local total_time_box_sec=0
-  local total_repetition=0
-  local -A date_printed
+  local flag="$1"
+  local num_of_operations
+  local max_time
+  local min_time
+  local avg_time
+  local aux
 
-  day_path=$(join_path "$KW_POMODORO_DATA" "$day")
-  if [[ ! -f "$day_path" ]]; then
+  flag=${flag:-'SILENT'}
+
+  if [[ -z "${statistics_raw_data}" ]]; then
+    options_values['ERROR']="kw doesn't have any statistics of the target period: ${target_period}"
     return 2 # ENOENT
   fi
 
-  # details, total focus time
-  while read -r line; do
-    tag=$(printf '%s\n' "$line" | cut -d ',' -f1)
-    timebox=$(printf '%s\n' "$line" | cut -d ',' -f2)
-    start_time=$(printf '%s\n' "$line" | cut -d ',' -f3)
-    details=$(printf '%s\n' "$line" | cut -d ',' -f1,2,3 --complement)
+  for command in "${!statistics[@]}"; do
+    values=$(printf '%s\n' "${statistics_raw_data}" | grep "|${command}|" | cut -d '|' -f6)
+    [[ -z "$values" ]] && continue
 
-    time_label=$(expand_time_labels "$timebox")
-    [[ "$?" != 0 ]] && continue
+    # Calculate values
+    num_of_operations=$(calculate_total_of_data "$values")
+    max_time=$(max_value "$values")
+    min_time=$(min_value "$values" "${max_time}")
+    avg_time=$(calculate_average "$values")
 
-    if [[ ! -v date_printed["$tag"] ]]; then
-      date_printed["$tag"]=1
-      tags_details["$tag"]+=" - $day"$'\n'
-    fi
-
-    end_time=$(date --date="$start_time $time_label" +%H:%M:%S)
-
-    [[ -n "$details" ]] && details=": $details"
-    tags_details["$tag"]+="   * [$start_time-$end_time][$timebox]$details"$'\n'
-
-    # Preparing metadata: total timebox in sec, total repetition
-    timebox_sec=$(timebox_to_sec "$timebox")
-    total_time_box_sec=$(printf '%s\n' "${tags_metadata["$tag"]}" | cut -d ',' -f1)
-    total_repetition=$(printf '%s\n' "${tags_metadata["$tag"]}" | cut -d ',' -f2)
-
-    timebox_sec=$((timebox_sec + total_time_box_sec))
-    total_repetition=$((total_repetition + 1))
-
-    tags_metadata["$tag"]="$timebox_sec,$total_repetition"
-  done < "$day_path"
-}
-
-# This function groups all week days data.
-#
-# @first_day_of_the_week: First day of the target week
-function grouping_week_data()
-{
-  local first_day_of_the_week="$*"
-  local day_path
-
-  for ((i = 0; i < 7; i++)); do
-    day=$(date --date="${first_day_of_the_week} +${i} day" +%Y/%m/%d)
-    day_path=$(join_path "$KW_POMODORO_DATA" "$day")
-    [[ ! -f "$day_path" ]] && continue
-    grouping_day_data "$day"
+    ## Format values
+    max_time=$(secs_to_arbitrarily_long_hours_mins_secs "${max_time}")
+    min_time=$(secs_to_arbitrarily_long_hours_mins_secs "${min_time}")
+    avg_time=$(secs_to_arbitrarily_long_hours_mins_secs "${avg_time}")
+    aux="${num_of_operations} ${max_time} ${min_time} ${avg_time}"
+    #shellcheck disable=SC2086
+    statistics["$command"]=$(printf '%-14s %5d %s %s %s\n' "${command^}" $aux)
   done
 }
 
-# This function groups all month days data.
+# This function process raw data specific from the 'pomodoro_report' table.
+# For every tag, the function processes a list of sessions with the values
+# start date, start time, end time, duration in format and description (if
+# present). It also formats the information for printing and stores it in
+# in the 'pomodoro_sessions[<tag>]' global associative array.
+# Total focus time and number of sessions is also processed and formatted.
+# These are stored in the 'pomodoro_metadata[<tag>]' global associative array,
+# including an all tag summary.
 #
-# @target_month: First day of the target month
-function grouping_month_data()
+# Return:
+# In case there is no statistics raw data to process, returns 2 (ENOENT) and
+# sets an error message in 'options_values['ERROR']'.
+function process_and_format_pomodoro_raw_data()
 {
-  local target_month="$*"
-  local month_total_days
-  local day_path
-  local year
-  local month
-  local current_day
+  local flag="$1"
+  local tag
+  local start_date
+  local start_time
+  local end_time
+  local duration
+  local duration_in_format
+  local description
+  local total_time_in_secs
+  local total_time_in_format
+  local number_of_sessions
+  local total_time_in_secs_all_tags
+  local total_time_in_format_all_tags
+  local number_of_sessions_all_tags
+  local aux
 
-  year=$(printf '%s\n' "$target_month" | cut -d '/' -f1)
-  month=$(printf '%s\n' "$target_month" | cut -d '/' -f2)
-  month_total_days=$(days_in_the_month "$month" "$year")
+  flag=${flag:-'SILENT'}
 
-  for ((day = 1; day <= month_total_days; day++)); do
-    current_day="$target_month/"$(printf '%02d\n' "$day")
-    day_path=$(join_path "$KW_POMODORO_DATA" "$current_day")
-    [[ ! -f "$day_path" ]] && continue
-    grouping_day_data "$current_day"
+  if [[ -z "${pomodoro_raw_data}" ]]; then
+    options_values['ERROR']="kw doesn't have any Pomodoro data of the target period: ${target_period}"
+    return 2 # ENOENT
+  fi
+
+  while read -r entry; do
+    tag=$(printf '%s' "$entry" | cut -d '|' -f3)
+    start_date=$(printf '%s' "$entry" | cut -d '|' -f4)
+    start_time=$(printf '%s' "$entry" | cut -d '|' -f5)
+    duration=$(printf '%s' "$entry" | cut -d '|' -f6)
+    description=$(printf '%s' "$entry" | cut -d '|' -f7)
+
+    # Process end time and duration in HH:MM:SS format
+    end_time=$(date --date="${start_time} ${duration} seconds" '+%H:%M:%S')
+    duration_in_format=$(secs_to_arbitrarily_long_hours_mins_secs "$duration")
+
+    # Add formatted entry to tag sessions
+    # TODO: See if there aren't better formattings/colorings
+    aux="    (${yellow_color}${start_date} ${green_color}${start_time}->${end_time}${normal_color}) "
+    aux+="[Duration ${duration_in_format}]: ${description}"$'\n'
+    pomodoro_sessions["$tag"]+="$aux"
+
+    # Increment tag sessions number and add to net focus time
+    total_time_in_secs=$(printf '%s' "${pomodoro_metadata["$tag"]}" | cut -d ',' -f1)
+    number_of_sessions=$(printf '%s' "${pomodoro_metadata["$tag"]}" | cut -d ',' -f2)
+    total_time_in_secs=$((total_time_in_secs + duration))
+    number_of_sessions=$((number_of_sessions + 1))
+    pomodoro_metadata["$tag"]="${total_time_in_secs},${number_of_sessions}"
+  done <<< "${pomodoro_raw_data}"
+
+  for tag in "${!pomodoro_metadata[@]}"; do
+    # Add this tag sessions number and net focus time to all tags summary
+    total_time_in_secs=$(printf '%s' "${pomodoro_metadata["$tag"]}" | cut -d ',' -f1)
+    number_of_sessions=$(printf '%s' "${pomodoro_metadata["$tag"]}" | cut -d ',' -f2)
+    total_time_in_secs_all_tags=$(printf '%s' "${pomodoro_metadata['ALL_TAGS']}" | cut -d ',' -f1)
+    number_of_sessions_all_tags=$(printf '%s' "${pomodoro_metadata['ALL_TAGS']}" | cut -d ',' -f2)
+    total_time_in_secs_all_tags=$((total_time_in_secs_all_tags + total_time_in_secs))
+    number_of_sessions_all_tags=$((number_of_sessions_all_tags + number_of_sessions))
+    pomodoro_metadata['ALL_TAGS']="${total_time_in_secs_all_tags},${number_of_sessions_all_tags}"
+
+    # Format and update metadata for this individual tag
+    total_time_in_format=$(secs_to_arbitrarily_long_hours_mins_secs "${total_time_in_secs}")
+    pomodoro_metadata["$tag"]="- Total focus time: ${total_time_in_format}"$'\n'
+    pomodoro_metadata["$tag"]+="- Number of sessions: ${number_of_sessions}"
   done
+
+  # Format and update metadata for all tags summary
+  total_time_in_format_all_tags=$(secs_to_arbitrarily_long_hours_mins_secs "${total_time_in_secs_all_tags}")
+  pomodoro_metadata['ALL_TAGS']="- Total focus time from all tags: ${total_time_in_format_all_tags}"$'\n'
+  pomodoro_metadata['ALL_TAGS']+="- Number of sessions from all tags: ${number_of_sessions_all_tags}"
 }
 
-# This function groups data for an entire year.
+# The processed and formatted information that composes the report for
+# both statistics and Pomodoro sessions is printed using this function.
 #
-# @target_year: Target year
-function grouping_year_data()
+# Return:
+# Prints the statistics report, the Pomodoro sessions report or both.
+function show_report()
 {
-  local target_year="$*"
-  local month_path
-  local target_day
-  local current_day
-  local current_month
-  local full_day_path
-  local month_total_days
+  local flag="$1"
 
-  for ((month = 1; month <= 12; month++)); do
-    current_month=$(printf '%02d\n' "$month")
-    month_total_days=$(days_in_the_month "$month" "$target_year")
-    month_path=$(join_path "$target_year" "$current_month")
-    for ((day = 1; day <= month_total_days; day++)); do
-      current_day=$(printf '%02d\n' "$day")
-      target_day=$(join_path "$month_path" "$current_day")
-      full_day_path=$(join_path "$KW_POMODORO_DATA" "$target_day")
-      [[ ! -f "$full_day_path" ]] && continue
-      grouping_day_data "$target_day"
+  flag=${flag:-'SILENT'}
+
+  if [[ -n "${options_values['STATISTICS']}" && -n "${statistics_raw_data}" ]]; then
+    say "# Statistics Report: ${target_period}"
+    printf '%20s %4s %8s %12s\n' 'Total' 'Max' 'Min' 'Average'
+    for command in "${!statistics[@]}"; do
+      [[ -n "${statistics["$command"]}" ]] && printf '%s\n' "${statistics["$command"]}"
     done
-  done
-}
+    printf '\n'
+  elif [[ -n "${options_values['STATISTICS']}" ]]; then
+    warning "${options_values['ERROR']}"
+  fi
 
-function calculate_total_work_hours()
-{
-  local work_hours_sec="$1"
-  local hours
-  local minutes
-  local seconds
-
-  hours=$((work_hours_sec / 3600))
-  minutes=$((work_hours_sec % 3600 / 60))
-  seconds=$((work_hours_sec % 60))
-
-  printf '%02d:%02d:%02d' "$hours" "$minutes" "$seconds"
-}
-
-# Show report data after processing.
-function show_data
-{
-  local date="$*"
-  local total_time=0
-  local total_repetition
-  local tag_time
-  local tag_repetition=0
-  local total_focus_time=0
-  local total_focus_hours
-
-  printf '%s\n' "# Report: $date"
-
-  for tag in "${!tags_metadata[@]}"; do
-    tag_time=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f1)
-    tag_repetition=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f2)
-
-    total_focus_time=$((tag_time + total_focus_time))
-    total_repetition=$((total_repetition + tag_repetition))
-  done
-
-  total_focus_hours=$(calculate_total_work_hours "$total_focus_time")
-  printf '%s\n' " * Total hours of focus: ${total_focus_hours}"
-  printf '%s\n\n' " * Total focus session(s): $total_repetition"
-
-  for tag in "${!tags_details[@]}"; do
-    printf '%s\n' "## $tag"
-    total_time=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f1)
-    total_repetition=$(printf '%s\n' "${tags_metadata[$tag]}" | cut -d ',' -f2)
-
-    total_time=$(calculate_total_work_hours "$total_time")
-    printf '%s\n' " - Total focus time: $total_time" \
-      " - Total repetitions: $total_repetition" \
-      '' \
-      'Summary:' \
-      "${tags_details[$tag]}"
-  done
+  if [[ -n "${options_values['POMODORO']}" && -n "${pomodoro_raw_data}" ]]; then
+    say "# Pomodoro Report: ${target_period}"
+    printf '%s\n\n' "${pomodoro_metadata['ALL_TAGS']}"
+    for tag in "${!pomodoro_sessions[@]}"; do
+      say "## ${tag}"
+      printf '%s\n' "${pomodoro_metadata["$tag"]}"
+      printf '%s\n%s\n' '- Sessions:' "${pomodoro_sessions["$tag"]}"
+    done
+  elif [[ -n "${options_values['POMODORO']}" ]]; then
+    warning "${options_values['ERROR']}"
+  fi
 }
 
 # Save report output to a file.
@@ -341,36 +310,32 @@ function show_data
 function save_data_to()
 {
   local path="$1"
+  local flag="$2"
   local ret
 
-  touch "$path" 2> /dev/null
+  flag=${flag:-'SILENT'}
+
+  if [[ -d "$path" ]]; then
+    path="${path}/report_output"
+  fi
+
+  cmd_manager "$flag" "touch ${path} 2> /dev/null"
+
   ret="$?"
   if [[ "$ret" != 0 ]]; then
-    complain "Failed to create $path, please check if this is a valid path"
+    complain "Failed to create ${path}, please check if this is a valid path"
     exit "$ret"
   fi
 
-  if [[ -d "$path" ]]; then
-    output='report_output'
-
-    [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "${path}/${output}"
-    [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "${path}/${output}"
-
-    success -n "The report output was saved in: "
-    success "${path}/${output}" | tr -s '/'
-  else
-    [[ -n "${options_values['POMODORO']}" ]] && show_data "$target_time" >> "$path"
-    [[ -n "${options_values['STATISTICS']}" ]] && show_statistics >> "$path"
-
-    success -n "The report output was saved in: "
-    success "${path}" | tr -s '/'
-  fi
+  show_report >> "$path"
+  success -n "The report output was saved in: "
+  success "${path}" | tr -s '/'
 }
 
 function parse_report_options()
 {
   local reference_count=0
-  local long_options='day::,week::,month::,year::,output:,statistics,pomodoro,all'
+  local long_options='day::,week::,month::,year::,output:,statistics,pomodoro,all,verbose'
   local short_options='o:,s,p,a'
   local options
 
@@ -388,6 +353,7 @@ function parse_report_options()
   options_values['OUTPUT']=''
   options_values['STATISTICS']=''
   options_values['POMODORO']=''
+  options_values['VERBOSE']=''
 
   eval "set -- $options"
 
@@ -409,13 +375,14 @@ function parse_report_options()
         ;;
       --week)
         if [[ -n "$2" ]]; then
-          options_values['WEEK']=$(get_week_beginning_day "$2")
+          date --date "$2" > /dev/null 2>&1
           if [[ "$?" != 0 ]]; then
             complain "$2 is an invalid date"
             return 22 # EINVAL
           fi
+          options_values['WEEK']=$(get_days_of_week "$2")
         else
-          options_values['WEEK']=$(get_week_beginning_day)
+          options_values['WEEK']=$(get_days_of_week)
         fi
 
         reference_count+=1
@@ -461,6 +428,10 @@ function parse_report_options()
         options_values['POMODORO']=1
         shift
         ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
       --all | -a)
         options_values['STATISTICS']=1
         options_values['POMODORO']=1
@@ -471,8 +442,8 @@ function parse_report_options()
         ;;
       *)
         options_values['ERROR']="Unrecognized argument: $1"
-        return 22 # EINVAL
         shift
+        return 22 # EINVAL
         ;;
     esac
   done
@@ -506,7 +477,8 @@ function report_help()
     '  report [--week[=<year>/<month>/<day>]] - Display all the information for the specified week' \
     '  report [--month[=<year>/<month>]] - Display all the information for the specified month' \
     '  report [--year[=<year>]] - Display all the information for the specified year' \
-    '  report [--output <path>] - Save report to <path>'
+    '  report [--output <path>] - Save report to <path>' \
+    '  report [--verbose] - Show a detailed output'
 }
 
 load_kworkflow_config

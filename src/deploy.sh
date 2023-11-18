@@ -18,14 +18,15 @@
 
 declare ENV_DIR='envs'
 
-include "$KW_LIB_DIR/kw_config_loader.sh"
-include "$KW_LIB_DIR/remote.sh"
-include "$KW_LIB_DIR/signal_manager.sh"
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/remote.sh"
+include "${KW_LIB_DIR}/lib/signal_manager.sh"
 
 # To make the deploy to a remote machine straightforward, we create a directory
 # on the host that will be used for centralizing files required for the new
 # deploy.
 REMOTE_KW_DEPLOY='/opt/kw'
+KW_STATUS_BASE_PATH='/boot'
 KW_DEPLOY_TMP_FILE='/tmp/kw'
 REMOTE_INTERACE_CMD_PREFIX="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
 
@@ -123,6 +124,7 @@ function deploy_main()
   setup="${options_values['SETUP']}"
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+  flag=${flag:-'SILENT'}
 
   signal_manager 'cleanup' || warning 'Was not able to set signal handler'
 
@@ -133,10 +135,16 @@ function deploy_main()
     say 'Available kernels:'
     start=$(date +%s)
     run_list_installed_kernels "$flag" "$single_line" "$target" "$list_all"
+    ret="$?"
     end=$(date +%s)
-
     runtime=$((end - start))
-    statistics_manager 'list' "$runtime"
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'list' "$start" "$runtime"
+    else
+      statistics_manager 'list' "$start" "$runtime" 'failure'
+    fi
+
     exit "$?"
   fi
 
@@ -144,10 +152,16 @@ function deploy_main()
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
     run_kernel_uninstall "$target" "$reboot" "$uninstall" "$flag" "$uninstall_force"
+    ret="$?"
     end=$(date +%s)
-
     runtime=$((end - start))
-    statistics_manager 'uninstall' "$runtime"
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'uninstall' "$start" "$runtime"
+    else
+      statistics_manager 'uninstall' "$start" "$runtime" 'failure'
+    fi
+
     return "$?"
   fi
 
@@ -235,21 +249,27 @@ function deploy_main()
     # Update name: release + alias
     run_kernel_install "$return_tar_path" "$kernel_binary_image_name" "$flag"
     ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      end=$(date +%s)
-      runtime=$((runtime + (end - start)))
-      statistics_manager 'deploy_failure' "$runtime"
+    end=$(date +%s)
+    runtime=$((end - start))
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'deploy' "$start" "$runtime"
+    else
+      statistics_manager 'deploy' "$start" "$runtime" 'failure'
       exit "$ret"
     fi
-    end=$(date +%s)
-    runtime=$((runtime + (end - start)))
-    statistics_manager 'deploy' "$runtime"
   else # Only module deploy
     start=$(date +%s)
     modules_install "$target" "$return_tar_path" "$flag"
+    ret="$?"
     end=$(date +%s)
     runtime=$((end - start))
-    statistics_manager 'Modules_deploy' "$runtime"
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'modules_deploy' "$start" "$runtime"
+    else
+      statistics_manager 'modules_deploy' "$start" "$runtime" 'failure'
+    fi
   fi
 
   #shellcheck disable=SC2119
@@ -260,7 +280,7 @@ function deploy_main()
 # the root user.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # If everything is alright, it returns 0, otherwise, it can return:
@@ -307,7 +327,7 @@ function setup_remote_ssh_with_passwordless()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function prepare_distro_for_deploy()
 {
   local target="$1"
@@ -343,25 +363,33 @@ function prepare_distro_for_deploy()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function update_status_log()
 {
   local target="$1"
   local flag="$2"
+  local cmd=''
   local log_date=''
-  local status_cmd=''
+  local metadata_string=''
+  local kw_status_path=''
 
   flag=${flag:-'SILENT'}
 
   log_date=$(date +'%m/%d/%Y-%H:%M:%S')
-  status_cmd="printf '%s;%s\n' '$target' '$log_date' >> $REMOTE_KW_DEPLOY/status"
+
+  [[ "$flag" == 'TEST_MODE' ]] && log_date='TEST_MODE'
+
+  metadata_string="printf '%s;%s\n' '${target}' '${log_date}'"
+  kw_status_path="${KW_STATUS_BASE_PATH}/kw_status"
 
   case "$target" in
     2) # LOCAL_TARGET
-      cmd_manager "$flag" "$status_cmd"
+      cmd="${metadata_string} | sudo -E tee --append ${kw_status_path}"
+      cmd_manager "${flag}" "${cmd}"
       ;;
     3) # REMOTE_TARGET
-      cmd_remotely "$status_cmd" "$flag"
+      cmd="${metadata_string} >> ${kw_status_path}"
+      cmd_remotely "$cmd" "$flag"
       ;;
   esac
 }
@@ -373,7 +401,7 @@ function update_status_log()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Return 0 if the setup was done before, or 2 if not.
@@ -381,7 +409,7 @@ function check_setup_status()
 {
   local target="$1"
   local flag="$2"
-  local cmd="test -f $REMOTE_KW_DEPLOY/status"
+  local cmd="test -f ${KW_STATUS_BASE_PATH}/kw_status"
   local ret
 
   flag=${flag:-'SILENT'}
@@ -409,7 +437,7 @@ function check_setup_status()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Return 0 in case of success, otherwise, it return a code error
@@ -548,18 +576,12 @@ function prepare_remote_dir()
 
   # Create temporary folder
   cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag"
-
-  # TODO: In some point, we need to move the below code to ArchLinux specific
-  # file
-  if [[ "$distro" == 'arch' ]]; then
-    cp2remote "$flag" "$KW_ETC_DIR/template_mkinitcpio.preset" "$REMOTE_KW_DEPLOY"
-  fi
 }
 
 # Create the temporary folder for local deploy.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of success return 0, otherwise it may return:
@@ -592,6 +614,16 @@ function prepare_local_dir()
   if [[ "$ret" != 0 ]]; then
     return 22 # EINVAL
   fi
+
+  # Create /opt/kw folder
+  # TODO: Rename REMOTE_KW_DEPLOY to something more generic since it is used
+  # for local or remote. Keep in mind that you'll need to replace
+  # REMOTE_KW_DEPLOY in this file and in the plugins/kernel_install.
+  cmd_manager "$flag" "sudo -E mkdir --parents ${REMOTE_KW_DEPLOY}"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return 22 # EINVAL
+  fi
 }
 
 # This function list all the available kernels in a VM, local, and remote
@@ -600,7 +632,7 @@ function prepare_local_dir()
 # Kernels.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @single_line If this option is set to 1 this function will display all
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
@@ -633,7 +665,7 @@ function run_list_installed_kernels()
       ;;
   esac
 
-  return 0
+  return "$?"
 }
 
 # Before we start the deploy, we need to collect some basic info to ensure the
@@ -642,7 +674,7 @@ function run_list_installed_kernels()
 #
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Populate target_deploy_info
@@ -695,7 +727,7 @@ function collect_target_info_for_deploy()
 # @reboot If this value is equal 1, it means reboot machine after kernel
 #         installation.
 # @kernels_target_list String containing kernels name separated by comma
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 # @force If this value is equal to 1, try to uninstall kernels even if they are
 #        not managed by kw
 #
@@ -755,17 +787,30 @@ function run_kernel_uninstall()
 # to the target machine. There is no need to keep those files in the user
 # machine, for this reason, this function is in charge of cleanup the temporary
 # files at the end.
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function cleanup()
 {
   local flag=${1:-'SILENT'}
-  say 'Cleaning up temporary files...'
 
-  if [[ -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" ]]; then
-    cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/"*
+  parse_deploy_options "$@"
+  if [[ "$?" -gt 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    exit 22 # EINVAL
   fi
 
-  if [[ -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
-    cmd_manager "$flag" "rm -rf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/"*
+  say 'Cleaning up temporary files...'
+
+  if [[ "$flag" == '--verbose' ]]; then
+    flag='VERBOSE'
+  fi
+
+  if [[ -d "${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}" ]]; then
+    cmd_manager "$flag" "rm -rf ${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}/"*
+  fi
+
+  if [[ -d "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}" ]]; then
+    cmd_manager "$flag" "rm -rf ${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}/"*
   fi
 
   say 'Exiting...'
@@ -779,7 +824,7 @@ function cleanup()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @return_tar_path
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Note:
 # This function supposes that prepare_host_deploy_dir and prepare_remote_dir
@@ -817,7 +862,7 @@ function modules_install()
 #
 # @install_to Target path to install the output of the command `make
 #             modules_install`.
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 function modules_install_to()
 {
   local install_to="$1"
@@ -941,7 +986,7 @@ function get_kernel_binary_name()
 # @kernel_name: Kernel name set by the user.
 # @cache_base_kw_pkg_store_path: Cache folder path.
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return
 # In case of success return 0, otherwise return an error code.
@@ -989,7 +1034,7 @@ function get_config_file_for_deploy()
 # @base_kernel_image_path: Base bath to the kernel binary in the kernel tree
 # @base_kw_deploy_store_path: Path to store the binary file to be deployed
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of error return an errno code
@@ -1040,7 +1085,7 @@ function get_kernel_image_for_deploy()
 # @base_kw_deploy_store_path: Path to store the binary file to be deployed
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 function get_dts_and_dtb_files_for_deploy()
 {
   local arch="$1"
@@ -1102,7 +1147,7 @@ function create_pkg_metadata_file_for_deploy()
 # those files.
 #
 # @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/kwlib.sh` function `cmd_manager`
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @kernel_img_name Kernel image file name, e.g., bzImage or Image.
 # @name Kernel name used during the deploy

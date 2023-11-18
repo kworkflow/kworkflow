@@ -24,6 +24,7 @@ check:
    content/tests
    content/codingstyle
    content/developmentworkflow
+   content/tracingandprofiling
 
 Kw code doc
 ===========

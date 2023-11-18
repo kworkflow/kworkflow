@@ -1,0 +1,6 @@
+entry,foo,0
+return,foo,2345
+entry,bar,12345
+return,bar,212345
+entry,foobar,1111111
+return,foobar,2222222

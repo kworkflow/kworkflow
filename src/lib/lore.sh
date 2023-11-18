@@ -2,12 +2,12 @@
 # kernel lore archives. it handles fecthing, listing and downloading of patches
 # sent to the public mailing lists.
 
-include "${KW_LIB_DIR}/kwlib.sh"
-include "${KW_LIB_DIR}/kw_string.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/web.sh"
 
 # Lore base URL
-declare -gr LORE_URL='https://lore.kernel.org/'
+declare -gr LORE_URL='https://lore.kernel.org'
 
 # Lore cache directory
 declare -g CACHE_LORE_DIR="${KW_CACHE_DIR}/lore"
@@ -18,12 +18,39 @@ declare -gr MAILING_LISTS_PAGE='lore_main_page.html'
 # Path to mailing list file to be parsed
 declare -g LIST_PAGE_PATH="${CACHE_LORE_DIR}/${MAILING_LISTS_PAGE}"
 
+# Directory for storing every data related to lore
+declare -g LORE_DATA_DIR="${KW_DATA_DIR}/lore"
+
+# File name for the lore bookmarked series
+declare -gr LORE_BOOKMARKED_SERIES='lore_bookmarked_series'
+
+# Path to bookmarked series file
+declare -g BOOKMARKED_SERIES_PATH="${LORE_DATA_DIR}/${LORE_BOOKMARKED_SERIES}"
+
 # List of lore mailing list tracked by the user
 declare -gA available_lore_mailing_lists
 
 # TODO: Find a better way to deal with this
 # Special character used for separate data.
 declare -gr SEPARATOR_CHAR='Æ'
+
+# Number of patchsets processed current lore fetch session.
+# Also, the size of `list_of_mailinglist_patches`.
+declare -g PATCHSETS_PROCESSED=0
+
+# Any query to the lore servers is paginated and the maximum number of individual
+# messages returned is 200. This variable represents this value.
+declare -gr LORE_PAGE_SIZE=200
+
+# Lore servers accepts a parameter `o` in the query string. This parameter defines
+# the 'minimum index' of the query response. In other words, if a query matches N
+# messages, say N=500, adding `o=200` to the query string results in the response
+# from the server containing the messages of indexes 201 to 400, for example (if
+# `o=400` the response would have messages 401 to 500). This variable stores the
+# 'minimum index' of the current lore fetch session. Note that this is actually a
+# minimum exclusive (minorant) as the message of index `MIN_INDEX` isn't included
+# in the response (neither the message of index 0 exists).
+declare -g MIN_INDEX=0
 
 # This is a global array that kw uses to store the list of new patches from a
 # target mailing list. After kw parses the data from lore, we will have a list
@@ -35,6 +62,26 @@ declare -gr SEPARATOR_CHAR='Æ'
 # can be a ',' but by default, we use 'Æ'. We used ',' in the example for make
 # it easy to undertand.
 declare -ag list_of_mailinglist_patches
+
+# This function creates the directory used by kw for any lore related data.
+#
+# Return:
+# Returns 0 if the lore data directory was created successfully and the failing
+# status code otherwise (probably 111 EACCESS).
+function create_lore_data_dir()
+{
+  local ret
+
+  [[ -d "${LORE_DATA_DIR}" ]] && return
+
+  mkdir -p "${LORE_DATA_DIR}"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Could not create lore data dir in ${LORE_DATA_DIR}"
+  fi
+
+  return "$ret"
+}
 
 function setup_cache()
 {
@@ -242,77 +289,151 @@ function process_name()
   printf '%s' "${full_name[1]} ${full_name[0]}"
 }
 
-function reset_list_of_mailinglist_patches()
+# This function resets all data structures that represent the current lore
+# fetch session. A lore fetch session is constituted by an array with the
+# latest patchsets of a lore public mailing list ordered, the number of patchsets
+# processed (the size of the array), and the minimum exclusive index of the
+# response (see `MIN_INDEX` declaration).
+function reset_current_lore_fetch_session()
 {
   list_of_mailinglist_patches=()
+  PATCHSETS_PROCESSED=0
+  MIN_INDEX=0
 }
 
-# This is the core function responsible for parsing the XML file containing the
-# new patches to be converted to the internal format used by kw. Basically, we
-# want to convert the XML file to this format:
+# This function composes a query URL to a public mailing list archived
+# on lore.kernel.org and verifies if the link is valid. A request to the
+# URL composed by this function returns an XML file with only patches
+# ordered by their 'updated' attribute.
 #
-#  name, email, patch version, total patches, patch title, message-id
+# The function allows the addition of optional filters by the `additional_filters`
+# argument. This argument has to comply with the format of lore API search (see
+# https://lore.kernel.org/amd-gfx/_/text/help/).
 #
-# Notice that this function only cares about new patches; for this reason, we
-# only register the first patch as part of the list. Finally, it is worth
-# highlighting the parse steps used in this function:
+# @target_mailing_list: String with valid public mailing list name
+# @min_index: Minimum exclusive index of patches to be contained in server response
+# @additional_filters: Optional additional filters of query
 #
-#  1. Use xpath to extract: name, email, title, and message-id.
-#  2. The xpath output will keep the HTML attribute href for the message-id. By
-#     using this approach, we can know the end of the patch data.
-#  3. When we find the end of the data, we compress everything in a single line
-#     separated by SEPARATOR_CHAR and add it to the array list.
-#
-# @target_mailing_list A string name that matches the mailing list name
-#   registered to lore
-#
-# TODO:
-# - Can we make it easier to read?
-# - Can we simplify it?
-# - Can we make this function more reliable?
-# - Can we consider this function as our Model?
-function processing_new_patches()
+# Return:
+# Returns 22 in case the URL produced is invalid or `@target_mailing_list`
+# is empty. In case the URL produced is valid, the function returns 0 and
+# outputs the query URL.
+function compose_lore_query_url_with_verification()
 {
   local target_mailing_list="$1"
-  local raw_list_path
-  local pre_processed
+  local min_index="$2"
+  local additional_filters="$3"
+  local query_filter
+  local query_url
+
+  if [[ -z "$target_mailing_list" || -z "$min_index" ]]; then
+    return 22 # EINVAL
+  fi
+
+  # TODO: Add verification for `@target_mailing_list`.
+
+  # Verifying if minimum index is valid, i.e., is an integer
+  if [[ ! "$min_index" =~ ^-?[0-9]+$ ]]; then
+    return 22 # EINVAL
+  fi
+
+  # TODO: We need to use the query prefix 's:Re:' to filter out replies and match
+  # only real patches. Are we filtering possible patches? If no, can we filter more
+  # messages to obtain a lighter response file?
+  query_filter="?x=A&o=${min_index}&q=rt:..+AND+NOT+s:Re"
+  [[ -n "$additional_filters" ]] && query_filter+="+AND+${additional_filters}"
+  query_url="${LORE_URL}/${target_mailing_list}/${query_filter}"
+  printf '%s' "$query_url"
+}
+
+# This function pre-processes an XML file containing a list of patches, extracting
+# just the metadata needed to process an XML element representing a patch. The `xpath`
+# command is used to capture the desired fields for each patch. A simplified example
+# of an XML element representing a patch is:
+#   <entry>
+#     <author>
+#       <name>David Tadokoro</name>
+#       <email>davidbtadokoro@usp.br</email>
+#     </author>
+#     <title>[PATCH] drm/amdkfd: Fix memory allocation</title>
+#     <updated>2023-08-09T21:27:00Z</updated>
+#     <link href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"/>
+#   </entry>
+#
+# The pre-processed version of this example element would be:
+#   David Tadokoro
+#   davidbtadokoro@usp.br
+#   [PATCH] drm/amdkfd: Fix memory allocation
+#    href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"
+#
+# @xml_file_path: Path to XML file
+#
+# Return:
+# The status code is the same as the `xpath` command and the pre-processed XML file
+# is outputted to the standard output
+function pre_process_xml_result()
+{
+  local xml_file_path="$1"
+  local xpath_query
+  local raw_xml
   local -r NAME_EXP='//entry/author/name/text()'
   local -r EMAIL_EXP='//entry/author/email/text()'
   local -r TITLE_EXP='//entry/title/text()'
   local -r LINK_EXP='//entry/link/@href'
-  local xpath_query
-  local count=0
-  local index=0
-  local title
-  local url_filter='?q=d:2.day.ago..+AND+NOT+s:Re&x=A'
-  local default_url="${LORE_URL}${target_mailing_list}/${url_filter}"
-  local shared_dir_for_parallelism
-  local list_patches_file_name="list-patches-${target_mailing_list}.xml"
 
-  download "$default_url" "$list_patches_file_name" "$CACHE_LORE_DIR" "$flag" || return "$?"
-
-  raw_list_path="${CACHE_LORE_DIR}/${list_patches_file_name}"
-
+  raw_xml=$(< "$xml_file_path")
   xpath_query="${NAME_EXP}|${EMAIL_EXP}|${TITLE_EXP}|${LINK_EXP}"
+  printf '%s' "$raw_xml" | xpath -q -e "$xpath_query"
+}
 
-  pre_processed=$(< "$raw_list_path")
-  pre_processed=$(printf '%s' "$pre_processed" | xpath -q -e "$xpath_query")
+# This function converts a list of patches into a list of patchsets stored
+# in the `list_of_mailinglist_patches` array. A patchset differs from a
+# single patch, because the first includes all patches in a series of patches
+# which can have different version. For each multipart patchset, the first patch
+# is either a cover letter or a actual patch and is the representative of the
+# patchset. This patch metadata is the one stored in `list_of_mailinglist_patches`.
+#
+# @pre_processed_patches: String containing a list of pre-processed patches
+# TODO:
+# - The function `is_introduction_patch` basically filters which patch is a
+#   representative of the patchset by the message-ID. Some valid representatives
+#   are wrongly filtered out, because of what the function considers a message-ID
+#   from a representative.
+# - The function `extract_metadata_from_patch_title` called by `thread_for_process_patch`
+#   counts the cover letter as a patch which results in patchsets with cover letters
+#   having one more patch than in reality.
+function process_patchsets()
+{
+  local pre_processed_patches="$1"
+  local shared_dir_for_parallelism
+  local processed_patchset
+  local starting_index
+  local patch_title
+  local patch_url
+  local count
+  local line
+  local pids
+  local i
 
-  # Converting to:
-  #  Author, email, version, total patches, patch title, link
-  shared_dir_for_parallelism=$(mktemp -d)
+  shared_dir_for_parallelism=$(mktemp --directory)
+  starting_index="$PATCHSETS_PROCESSED"
+  count=0
+  i=0
+
   while IFS= read -r line; do
-    if [[ "$line" =~ href ]]; then
-      message_id_link=$(str_get_value_under_double_quotes "$line")
+    if [[ "$line" =~ ^[[:space:]]href= ]]; then
+      patch_url=$(str_get_value_under_double_quotes "$line")
 
-      if is_introduction_patch "$message_id_link"; then
+      if is_introduction_patch "$patch_url"; then
         # Process each patch in parallel
-        thread_for_process_patch "$index" "$shared_dir_for_parallelism" \
-          "$processed_line" "$message_id_link" "$title" &
-        ((index++))
+        thread_for_process_patch "$PATCHSETS_PROCESSED" "$shared_dir_for_parallelism" \
+          "$processed_patchset" "$patch_url" "$patch_title" &
+        pids[i]="$!"
+        ((i++))
+        ((PATCHSETS_PROCESSED++))
       fi
 
-      processed_line=''
+      processed_patchset=''
       count=0
       continue
     fi
@@ -323,138 +444,513 @@ function processing_new_patches()
     # save the title in a separated variable for later processing.
     case "$count" in
       0) # NAME
-        processed_line="$(process_name "$line")${SEPARATOR_CHAR}"
+        processed_patchset="$(process_name "$line")${SEPARATOR_CHAR}"
         ;;
       1) # EMAIL
-        processed_line+="${line}${SEPARATOR_CHAR}"
+        processed_patchset+="${line}${SEPARATOR_CHAR}"
         ;;
       2) # TITLE
-        title="$line"
+        patch_title="$line"
         ;;
     esac
 
     ((count++))
+  done <<< "$pre_processed_patches"
 
-  done <<< "$pre_processed"
-  wait
+  # Wait for specific PID to avoid interfering in other functionalities.
+  for pid in "${pids[@]}"; do
+    wait "$pid"
+  done
 
-  # From the last interaction, we have one extra index that does not exist
-  ((index--))
-
-  for i in $(seq 0 "$index"); do
+  for i in $(seq "$starting_index" "$((PATCHSETS_PROCESSED - 1))"); do
     list_of_mailinglist_patches["$i"]=$(< "${shared_dir_for_parallelism}/${i}")
   done
 }
 
-# This function is the bridge between the parsed data and the dialog interface
-# since it invokes the function responsible for handling lore data and
-# converting it to something that dialog can handle.
+# This function is primarily a mediator to manage the complex action of fetching
+# the lastest patchsets from a public mailing list archived on lore.kernel.org.
+# The fetching of patchsets has 3 steps:
+#  1. Build a lore query URL to match only messages that are patches from a given
+#     list from `MIN_INDEX` onward.
+#  2. Make a request to the URL built in step 1 to obtain a list of patches ordered
+#     by the recieved time on the lore.kernel.org servers.
+#  3. Process the list of patches to a list of patchsets stored in the
+#     `list_of_mailinglist_patches` array.
 #
-# @target_mailing_list A string name that matches the mailing list name
+# In case the number of patchsets in `list_of_mailinglist_patches` is less than
+# `page` times `patchsets_per_page`, update `MIN_INDEX` and repeat steps 1 to 3.
+#
+# This function considers the totality of ordered patchsets in chunks of the same
+# size named pages. The `page` argument indicates until which page of the latest
+# patchsets should the fetch occur.
+#
+# Each entry in `list_of_mailinglist_patches` has the following patchset metadata
+# separated by `SEPARATOR_CHAR`:
+#   author name, author email, patchset version, number of patches, patch title, message-ID
+#
+# @target_mailing_list: A string name that matches the mailing list name
 #   registered to lore
-# @_dialog_array An array reference to be populated inside this function
+# @page: Positive integer that represents until what page of latest patchsets the fetch
+#   should occur
+# @patchsets_per_page: Number of patchsets per page
+# @additional_filters: Optional additional filters of query
+# @flag: Flag to control function output
 #
-# TODO:
-# - Is this the equivalent to a controller?
-function get_patches_from_mailing_list()
+# Return:
+# If either step 1 or 2 fails, returns the error code from these steps, and 0, otherwise.
+# If the fetch has failed (i.e. the returned file is an HTML), return 22 (ENOENT).
+function fetch_latest_patchsets_from()
 {
   local target_mailing_list="$1"
-  local -n _dialog_array="$2"
-  local raw_string
-  local count=1
-  local index=0
-  local patch_version
-  local total_patches
-  local patch_title
-  local tmp_data
+  local page="$2"
+  local patchsets_per_page="$3"
+  local additional_filters="$4"
+  local flag="$5"
+  local raw_xml
+  local lore_query_url
+  local xml_result_file_name
+  local pre_processed_patches
+  local xml_result_file_name
+  local lore_query_url
+  local raw_xml
+  local ret
 
-  reset_list_of_mailinglist_patches
+  flag=${flag:-'SILENT'}
+  xml_result_file_name="${target_mailing_list}-patches.xml"
 
-  processing_new_patches "$target_mailing_list"
+  while [[ "$PATCHSETS_PROCESSED" -lt "$((page * patchsets_per_page))" ]]; do
+    # Building URL for querying lore servers for a xml file with patches.
+    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$MIN_INDEX" "$additional_filters")
+    ret="$?"
+    [[ "$ret" != 0 ]] && return "$ret"
 
-  # Format data for printing
-  for element in "${list_of_mailinglist_patches[@]}"; do
-    IFS="${SEPARATOR_CHAR}" read -r -a columns <<< "$element"
-    patch_version="${columns[2]}"
-    total_patches="${columns[3]}"
-    patch_title="${columns[4]}"
+    # Request xml file with patches.
+    download "$lore_query_url" "$xml_result_file_name" "$CACHE_LORE_DIR" "$flag"
+    ret="$?"
+    [[ "$ret" != 0 ]] && return "$ret"
 
-    # convert_title_to_patch_name "$patch_title"
+    # If the returned file is an HTML, then the fetch has failed and we should signal the caller.
+    if is_html_file "${CACHE_LORE_DIR}/${xml_result_file_name}"; then
+      return 22 # ENOENT
+    fi
 
-    tmp_data=$(printf 'V%-2s |#%-3s| %-100s' "$patch_version" "$total_patches" "$patch_title")
-    _dialog_array["$index"]="$tmp_data"
-    ((index++))
+    raw_xml=$(< "${CACHE_LORE_DIR}/${xml_result_file_name}")
+
+    # If the resulting file doesn't contain any patches, it will be an "empty" XML with
+    # just '</feed>' and we can stop the fetch. This is different from a failed fetch
+    # and can be considered a heuristic.
+    if [[ "$raw_xml" == '</feed>' ]]; then
+      break
+    fi
+
+    # Processing patches into patchsets that will be stored in `list_of_mailinglist_patches`.
+    pre_processed_patches=$(pre_process_xml_result "${CACHE_LORE_DIR}/${xml_result_file_name}")
+    # TODO: Is passing `pre_processed_patches` (huge string) as argument a possible bottleneck?
+    process_patchsets "$pre_processed_patches"
+
+    # Update minimum exclusive index.
+    MIN_INDEX=$((MIN_INDEX + LORE_PAGE_SIZE))
   done
 }
 
-function title_to_path()
+# This function formats a range of patchsets metadata from `list_of_mailinglist_patches`
+# into an array reference passed as argument. The format of the metadata follows the
+# pattern:
+#
+#  V <version_of_patchset> | #<number_of_patches> | <patchset_title>
+#
+# @_formatted_patchsets_list: Array reference to output formatted range of patchsets metadata
+# @starting_index: Starting index of range from `list_of_mailinglist_patches`
+# @ending_index: Ending index of range `list_of_mailinglist_patches`
+function format_patchsets()
 {
-  local title="$1"
-  local file_name
+  local -n _formatted_patchsets_list="$1"
+  local starting_index="$2"
+  local ending_index="$3"
+  declare -A patchset
 
-  # Replace space in favor of _
-  file_name="${title// /_}"
-
-  # Replace .
-  file_name="${file_name//./_}"
-
-  # Replace special character
-  file_name="${file_name//[&*+%!:,]/}"
-
-  # Replace /
-  file_name="${file_name//[\/\\]/-}"
-
-  printf '%s' "$file_name"
+  for i in $(seq "$starting_index" "$ending_index"); do
+    parse_raw_patchset_data "${list_of_mailinglist_patches["$i"]}" 'patchset'
+    _formatted_patchsets_list["$i"]=$(printf 'V%-2s |#%-3s|' "${patchset['patchset_version']}" "${patchset['total_patches']}")
+    _formatted_patchsets_list["$i"]+=$(printf ' %-100s' "${patchset['patchset_title']}")
+  done
 }
 
-function convert_title_to_patch_name()
+# This function outputs the starting index in the `list_of_mailinglist_patches` array of a given
+# page, i.e., if the patchsets of the page 2 are from `list_of_mailinglist_patches[30]` until
+# `list_of_mailinglist_patches[59]`, this function outputs '30'.
+#
+# @page: Number of the target page.
+# @patchsets_per_page: Number of patchsets per page
+function get_page_starting_index()
 {
-  local title="$1"
-  local index="$2"
-  local file_name
+  local page="$1"
+  local patchsets_per_page="$2"
+  local starting_index
 
-  file_name=$(title_to_path "$title")
-
-  if [[ -n "$index" ]]; then
-    printf '%04d-%s\n' "$index" "${file_name}.mbox"
-    return
+  starting_index=$(((page - 1) * patchsets_per_page))
+  # Avoid an starting index greater than the max index of `list_of_mailinglist_patches`
+  if [[ "$starting_index" -gt "$((${#list_of_mailinglist_patches[@]} - 1))" ]]; then
+    starting_index=$((${#list_of_mailinglist_patches[@]} - 1))
   fi
-
-  printf '%s\n' "${file_name}.mbox"
+  printf '%s' "$starting_index"
 }
 
-function url_update_patch_number()
+# This function outputs the ending index in the `list_of_mailinglist_patches` array of a given
+# page, i.e., if the patchsets of the page 2 are from `list_of_mailinglist_patches[30]` until
+# `list_of_mailinglist_patches[59]`, this function outputs '59'.
+#
+# @page: Number of the target page
+# @patchsets_per_page: Number of patchsets per page
+function get_page_ending_index()
 {
-  local url="$1"
-  local new_number="$2"
+  local page="$1"
+  local patchsets_per_page="$2"
+  local ending_index
 
-  url="${url/-[0-9]*-/-$link_ref-}"
-
-  printf '%s' "$url"
+  ending_index=$(((page * patchsets_per_page) - 1))
+  # Avoid an ending index greater than the max index of `list_of_mailinglist_patches`
+  if [[ "$ending_index" -gt "$((${#list_of_mailinglist_patches[@]} - 1))" ]]; then
+    ending_index=$((${#list_of_mailinglist_patches[@]} - 1))
+  fi
+  printf '%s' "$ending_index"
 }
 
+# This function downloads a patch series in a .mbx format to a given directory
+# using a series URL. The series URL should be the concatenation of the lore URL, the
+# target mailing list, and the message ID. Below is an example of such a URL:
+#   https://lore.kernel.org/some-list/2367462342.4535535-1-email@email.com/
+# The output filename is '<message ID>.mbx'. This function uses the `b4` tool underneath
+# to delegate the process of fetching and downloading the series. The file generated is
+# ready to be applied into a git tree, containing just the patches in the right order,
+# without the cover letter.
+#
+# @series_url: The URL of the series
+# @save_to: Path to the target output directory
+# @flag: Flag to control function output
+#
+# Return:
+# Return 0 if the thread was successfully downloaded, 22 if the series URL or the output
+# directory passed as arguments is empty and the error code of `b4` in case it fails.
 function download_series()
 {
-  local total_patches="$1"
-  local first_message_id="$2"
-  local save_to="$3"
-  local title="$4"
-  local total=0
-  local link_ref=0
-  local url
-  local patch_file_name
+  local series_url="$1"
+  local save_to="$2"
+  local flag="$3"
+  local series_filename
+  local cmd
+  local ret
 
-  mkdir -p "$save_to"
+  flag=${flag:-'SILENT'}
 
-  url=$(replace_http_by_https "$first_message_id")
+  # Safety checking
+  if [[ -z "$series_url" || -z "$save_to" ]]; then
+    return 22 # EINVAL
+  fi
 
-  until ! is_the_link_valid "$url"; do
-    ((total++))
-    ((link_ref++))
+  # Create the output directory if it doesn't exists
+  cmd_manager "$flag" "mkdir --parents '${save_to}'"
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    complain "Couldn't create directory in ${save_to}"
+    return "$ret"
+  fi
 
-    url=$(url_update_patch_number "$url" "$link_ref")
-    patch_file_name=$(convert_title_to_patch_name "$title" "$link_ref")
-    download "${url}raw" "$patch_file_name" "${save_to}" &
-  done
-  wait
+  # Although, by default, b4 uses the message-ID as the output name, we should assure it
+  series_filename=$(extract_message_id_from_url "$series_url")
+
+  # For safe-keeping, check the protocol used
+  series_url=$(replace_http_by_https "$series_url")
+
+  # Issue the command to download the series
+  cmd="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '${series_filename}.mbx'"
+  cmd_manager "$flag" "$cmd"
+  ret="$?"
+  if [[ "$ret" == 1 ]]; then
+    # Unfortunately, unknown message-ID and invalid outdir errors are the same (errno #1)
+    complain 'An error occurred during the execution of b4'
+    complain "b4 command: ${cmd}"
+  elif [[ "$ret" == 2 ]]; then
+    complain 'b4 unrecognized arguments'
+    complain "b4 command: ${cmd}"
+  else
+    printf '%s/%s.mbx' "$save_to" "$series_filename"
+  fi
+
+  return "$ret"
+}
+
+# This function deletes a patch series from the local storage
+#
+# @download_dir_path: The path to the directory where the series was stored
+# @series_url: The URL of the series
+# @flag: Flag to control function output
+#
+# Return:
+# Return 0 if the target file was found and deleted succesfully and 2 (ENOENT),
+# otherwise.
+function delete_series_from_local_storage()
+{
+  local download_dir_path="$1"
+  local series_url="$2"
+  local flag="$3"
+  local series_filename
+
+  flag=${flag:-'SILENT'}
+
+  series_filename=$(extract_message_id_from_url "$series_url")
+
+  if [[ -f "${download_dir_path}/${series_filename}.mbx" ]]; then
+    cmd_manager "$flag" "rm ${download_dir_path}/${series_filename}.mbx"
+  else
+    return 2 # ENOENT
+  fi
+}
+
+# This function creates the lore bookmarked series file if it doesn't
+# already exists
+#
+# Return:
+# Returns 0 if the file is created successfully, and the return value of
+# create_lore_data_dir in case it isn't 0.
+function create_lore_bookmarked_file()
+{
+  local ret
+
+  create_lore_data_dir
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    return "$ret"
+  fi
+
+  [[ -f "${BOOKMARKED_SERIES_PATH}" ]] && return
+  touch "${BOOKMARKED_SERIES_PATH}"
+}
+
+# This function adds an entry of a patchset instance to the local bookmarked database managed
+# by kw. An entry of a patchset on the database represents an instance of the patchset entity
+# that also has a timestamp indicating when the patchset was bookmarked and, optionally, a path
+# to a directory where the .mbx file of the instance is stored. The ID (primary key) of an entry
+# is its lore.kernel.org URL, which uniquely identifies a patchset in the public inbox.
+#
+# Note that the function assumes that the `@raw_patchset` passed as argument contains the
+# necessary attributes and is correctly formatted, leaving this responsability to the caller.
+#
+# @raw_patchset: Raw data of patchset in the same format as list_of_mailinglist_patches
+#   to be added to the local bookmarked database
+# @download_dir_path: The directory where the patchset .mbx was saved
+function add_patchset_to_bookmarked_database()
+{
+  local raw_patchset="$1"
+  local download_dir_path="$2"
+  local timestamp
+  local count
+
+  create_lore_bookmarked_file
+
+  timestamp=$(date '+%Y/%m/%d %H:%M')
+
+  count=$(grep --count "${raw_patchset}" "${BOOKMARKED_SERIES_PATH}")
+  if [[ "$count" == 0 ]]; then
+    {
+      printf '%s%s' "${raw_patchset}" "${SEPARATOR_CHAR}"
+      printf '%s%s' "${download_dir_path}" "${SEPARATOR_CHAR}"
+      printf '%s\n' "$timestamp"
+    } >> "${BOOKMARKED_SERIES_PATH}"
+  fi
+}
+
+# This function removes a patchset from the local bookmark database by its URL.
+#
+# @patchset_url: The URL of the patchset that identifies the entry in the local
+#   bookmarked database
+#
+# Return:
+# Returns 2 (ENOENT) if there is no local bookmark database file and the status
+# code of the last command (sed), otherwise.
+function remove_patchset_from_bookmark_by_url()
+{
+  local patchset_url="$1"
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  # Escape forward slashes in the URL
+  patchset_url=$(printf '%s' "$patchset_url" | sed 's/\//\\\//g')
+
+  # Remove patchset entry
+  sed --in-place "/${patchset_url}/d" "${BOOKMARKED_SERIES_PATH}"
+}
+
+# This function removes a series from the local bookmark database by its index
+# in the database.
+#
+# @series_index: The index in the local bookmark database
+#
+# Return:
+# Returns 2 (ENOENT) if there is no local bookmark database file and the status
+# code of the last command (sed), otherwise.
+function remove_series_from_bookmark_by_index()
+{
+  local series_index="$1"
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  sed --in-place "${series_index}d" "${BOOKMARKED_SERIES_PATH}"
+}
+
+# This function populates an array passed as argument with all the bookmarked
+# series. Each element will detain the information to be displayed in the bookmarked
+# patches screen.
+#
+# @_bookmarked_series: An array reference to be populated with all the bookmarked
+#   series.
+#
+# TODO:
+# - Better decide which information will be shown in the bookmarked patches screen
+function get_bookmarked_series()
+{
+  local -n _bookmarked_series="$1"
+  declare -A series
+  local index=0
+  local timestamp
+  local patch_title
+  local patch_author
+  local tmp_data
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  _bookmarked_series=()
+
+  while IFS='' read -r raw_patchset; do
+    parse_raw_patchset_data "${raw_patchset}" 'series'
+    tmp_data=$(printf ' %s | %-70s | %s' "${series['timestamp']}" "${series['patchset_title']}" "${series['patchset_author']}")
+    _bookmarked_series["$index"]="${tmp_data}"
+    ((index++))
+  done < "${BOOKMARKED_SERIES_PATH}"
+}
+
+# This function gets a series from the local bookmark database by its index
+# in the database.
+#
+# @series_index: The index in the local bookmark database
+#
+# Return:
+# Return the bookmarked series raw data.
+#
+# TODO:
+# - Find an alternative way to identify a series, this one may not be the most
+#   reliable.
+function get_bookmarked_series_by_index()
+{
+  local series_index="$1"
+  local target_patch
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    return 2 # ENOENT
+  fi
+
+  target_patch=$(sed "${series_index}!d" "${BOOKMARKED_SERIES_PATH}")
+
+  printf '%s' "${target_patch}"
+}
+
+# This function parses raw data that represents a patchset instance into
+# an associative array passed as reference. This function assumes that the
+# raw data has attributes in the following order:
+#   patchset_author, author_email, patchset_version, total_patches, patchset_title,
+#   patchset_url, download_dir_path, timestamp.
+#
+# Note that the function doesn't verifies if the attributes are non-empty or
+# valid (i.e. represent a valid patchset instance), passing the responsability to
+# the caller.
+#
+# @raw_patchset: Raw data of patchset in the same format as list_of_mailinglist_patches
+function parse_raw_patchset_data()
+{
+  local raw_patchset="$1"
+  local -n _patchset="$2"
+  local columns
+
+  IFS="${SEPARATOR_CHAR}" read -ra columns <<< "${raw_patchset}"
+  _patchset['patchset_author']="${columns[0]}"
+  _patchset['author_email']="${columns[1]}"
+  _patchset['patchset_version']="${columns[2]}"
+  _patchset['total_patches']="${columns[3]}"
+  _patchset['patchset_title']="${columns[4]}"
+  _patchset['patchset_url']="${columns[5]}"
+  _patchset['download_dir_path']="${columns[6]}"
+  _patchset['timestamp']="${columns[7]}"
+}
+
+# This function gets the bookmark status of a patchset, 0 being not in the local
+# bookmarked database and 1 being in the local bookmarked database.
+#
+# @patchset_url: The URL of the patchset that identifies the entry in the local
+#   bookmarked database
+function get_patchset_bookmark_status()
+{
+  local patchset_url="$1"
+  local count
+
+  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+    create_lore_bookmarked_file
+  fi
+
+  count=$(grep --count "$patchset_url" "${BOOKMARKED_SERIES_PATH}")
+  if [[ "$count" == 0 ]]; then
+    printf '%s' 0
+  else
+    printf '%s' 1
+  fi
+}
+
+# Every patch series has a message-ID that identifies it in a given public
+# mailing list. This function extracts the message-ID of an URL passed as
+# arguments. The function assumes that the URL passed follows the pattern:
+#   https://lore.kernel.org/<public-mailing-list>/<message-ID>
+#
+# @series_url: The URL of the series
+#
+# Return:
+# Returns 22 (EINVAL) in case the URL passed as argument is empty and 0,
+# otherwise.
+function extract_message_id_from_url()
+{
+  local series_url="$1"
+  local message_id
+
+  if [[ -z "$series_url" ]]; then
+    return 22 # EINVAL
+  fi
+
+  message_id=$(printf '%s' "$series_url" | cut --delimiter '/' -f5)
+  printf '%s' "$message_id"
+}
+
+# This function sets a configuration in a 'lore.config' file.
+#
+# @setting: Name of the setting to be updated
+# @new_value: New value to be set
+# @lore_config_path: Path to the target 'lore.config' file
+#
+# Return:
+# Returns 2 (ENOENT) if `@lore_config_path` doesn't exist and 0, otherwise.
+function save_new_lore_config()
+{
+  local setting="$1"
+  local new_value="$2"
+  local lore_config_path="$3"
+
+  if [[ ! -f "$lore_config_path" ]]; then
+    complain "${lore_config_path}: file doesn't exists"
+    return 2 # ENOENT
+  fi
+
+  sed --in-place --regexp-extended "s<(${setting}=).*<\1${new_value}<" "$lore_config_path"
 }

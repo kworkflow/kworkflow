@@ -218,7 +218,7 @@ function test_kernel_build_cross_compilation_flags()
   parse_configuration "$SAMPLES_DIR/build_no_llvm.config" build_config
 
   # For CI: The tail and head command remove statistics output
-  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' | tail -n +1 | head -2)
 
   declare -a expected_cmd=(
     'make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig'
@@ -233,7 +233,7 @@ function test_kernel_build_menu_cross_compilation_flags()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --menu)
+  output=$(build_kernel_main 'TEST_MODE' --menu)
   expected_result='make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig'
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -246,7 +246,7 @@ function test_kernel_build_clean()
   build_config=()
   parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' --clean 2> /dev/null)
+  output=$(build_kernel_main 'TEST_MODE' --clean 2> /dev/null)
   expected_result='make clean'
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -259,7 +259,7 @@ function test_kernel_build_full_cleanup()
   build_config=()
   parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' --full-cleanup 2> /dev/null)
+  output=$(build_kernel_main 'TEST_MODE' --full-cleanup 2> /dev/null)
   expected_result='make distclean'
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -272,7 +272,7 @@ function test_kernel_build_html_doc()
   build_config=()
   parse_configuration "$SAMPLES_DIR/build_no_log.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' --doc)
+  output=$(build_kernel_main 'TEST_MODE' --doc)
   expected_result="make -j${PARALLEL_CORES} htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -285,7 +285,7 @@ function test_kernel_build_html_doc_with_ccache()
   build_config=()
   parse_configuration "$SAMPLES_DIR/build_no_log.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' --doc --ccache)
+  output=$(build_kernel_main 'TEST_MODE' --doc --ccache)
   expected_result="make CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -295,7 +295,7 @@ function test_kernel_build_html_doc_with_save_log_option()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --doc --save-log-to docs.out)
+  output=$(build_kernel_main 'TEST_MODE' --doc --save-log-to docs.out)
   expected_result="make -j${PARALLEL_CORES} htmldocs 2>&1 | tee docs.out"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -305,7 +305,7 @@ function test_kernel_build_invalid_flag()
   local output
   local ret
 
-  output=$(kernel_build 'TEST_MODE' --notvalid 2> /dev/null)
+  output=$(build_kernel_main 'TEST_MODE' --notvalid 2> /dev/null)
   ret="$?"
   assertEquals "($LINENO)" "$ret" 22
 }
@@ -320,7 +320,7 @@ function test_kernel_build_outside_kernel_repository()
     return
   }
 
-  output=$(kernel_build 'TEST_MODE')
+  output=$(build_kernel_main 'TEST_MODE')
   ret="$?"
   assert_equals_helper 'We expected an error' "($LINENO)" "$ret" 125
 
@@ -352,7 +352,7 @@ function test_kernel_build_x86()
   }
 
   # For CI: The tail and head command remove statistics output
-  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make -j$PARALLEL_CORES ARCH=x86_64"
@@ -395,6 +395,9 @@ function test_parse_build_options_check_options_values()
 
   assert_equals_helper 'Default CLEAN did not match expectation' \
     "($LINENO)" '' "${options_values['CLEAN']}"
+
+  assert_equals_helper 'Default VERBOSE did not match expectation' \
+    "($LINENO)" '' "${options_values['VERBOSE']}"
 }
 
 function test_parse_build_options()
@@ -506,6 +509,12 @@ function test_parse_build_options()
   assert_equals_helper 'Could not set build option FULL_CLEANUP' \
     "($LINENO)" 1 "${options_values['FULL_CLEANUP']}"
 
+  # VERBOSE
+  options_values=()
+  parse_build_options --verbose
+  assert_equals_helper 'Could not set build option VERBOSE' \
+    "($LINENO)" 1 "${options_values['VERBOSE']}"
+
   # Unsopported option
   output="$(parse_build_options --mispelled 2>&1)"
   assertEquals "($LINENO)" 22 "$?"
@@ -526,14 +535,14 @@ function test_build_info()
     "$version_output"
   )
 
-  output=$(kernel_build 'TEST_MODE' '--info')
+  output=$(build_kernel_main 'TEST_MODE' '--info')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Change modules
   modules='Total modules to be compiled: 5'
   cp "${original_dir}/tests/samples/.config" '.config'
   expected_cmd[3]="$modules"
-  output=$(kernel_build 'TEST_MODE' '--info')
+  output=$(build_kernel_main 'TEST_MODE' '--info')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
@@ -542,7 +551,7 @@ function test_kernel_build_only_cpu_scaling_option()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --cpu-scaling 50 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make -j${SCALING} ARCH=x86_64"
@@ -555,7 +564,7 @@ function test_kernel_build_cpu_scaling_and_warning()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make -j${SCALING} ARCH=x86_64 W=123"
@@ -568,7 +577,7 @@ function test_kernel_build_cpu_scaling_with_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
@@ -582,7 +591,7 @@ function test_kernel_build_cpu_scaling_llvm()
   local output
 
   build_config['USE_LLVM_TOOLCHAIN']='yes'
-  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --llvm | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --cpu-scaling 50 --llvm | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make -j$SCALING LLVM=1 ARCH=x86_64"
@@ -595,7 +604,7 @@ function test_kernel_build_warning_and_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make -j${PARALLEL_CORES} ARCH=x86_64 W=123 2>&1 | tee log.out"
@@ -609,21 +618,21 @@ function test_kernel_build_kernel_ccache_cpu_scaling_warning()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 
-  output=$(kernel_build 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} ARCH=x86_64 W=123 2>&1 | tee log.out"
@@ -636,7 +645,7 @@ function test_kernel_build_kernel_ccache_cpu_scaling_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
@@ -649,7 +658,7 @@ function test_kernel_build_ccache_warning_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} ARCH=x86_64 W=123 2>&1 | tee log.out"
@@ -662,7 +671,7 @@ function test_kernel_build_with_llvm_warning()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --llvm --warnings 123 | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --llvm --warnings 123 | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 W=123"
@@ -675,7 +684,7 @@ function test_kernel_build_with_llvm_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --llvm --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --llvm --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 2>&1 | tee log.out"
@@ -688,7 +697,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --llvm | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --llvm | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64"
@@ -701,7 +710,7 @@ function test_kernel_build_ccache_cpu_scaling_warning()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123"
@@ -714,7 +723,7 @@ function test_kernel_build_ccache_cpu_scaling_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
@@ -727,7 +736,7 @@ function test_kernel_build_ccache_llvm_warning()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --llvm --warnings 123 | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --llvm --warnings 123 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 W=123"
@@ -740,23 +749,10 @@ function test_kernel_build_ccache_llvm_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --llvm --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --llvm --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 2>&1 | tee log.out"
-  )
-  compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
-}
-
-function test_kernel_build_ccache_llvm_save_log_to()
-{
-  local expected_result
-  local output
-
-  output=$(kernel_build 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
-  declare -a expected_result=(
-    'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} ARCH=x86_64 W=123 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -766,7 +762,7 @@ function test_kernel_cpu_scaling_llvm_warning()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --llvm --warnings 123 | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --cpu-scaling 50 --llvm --warnings 123 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make -j${SCALING} LLVM=1 ARCH=x86_64 W=123"
@@ -779,7 +775,7 @@ function test_kernel_cpu_scaling_llvm_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --llvm --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --cpu-scaling 50 --llvm --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make -j${SCALING} LLVM=1 ARCH=x86_64 2>&1 | tee log.out"
@@ -792,7 +788,7 @@ function test_kernel_cpu_scaling_warning_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --cpu-scaling 50 --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make -j${SCALING} ARCH=x86_64 W=123 2>&1 | tee log.out"
@@ -805,7 +801,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm_warning()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --llvm --warnings 123 | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --llvm --warnings 123 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64 W=123"
@@ -818,7 +814,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --llvm --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --llvm --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64 2>&1 | tee log.out"
@@ -831,7 +827,7 @@ function test_kernel_build_ccache_cpu_scaling_warning_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123 2>&1 | tee log.out"
@@ -844,7 +840,7 @@ function test_kernel_build_ccache_llvm_warning_save_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --ccache --llvm --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --ccache --llvm --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 W=123 2>&1 | tee log.out"
@@ -857,7 +853,7 @@ function test_kernel_build_cpu_scaling_llvm_warning_sava_log_to()
   local expected_result
   local output
 
-  output=$(kernel_build 'TEST_MODE' --cpu-scaling 50 --llvm --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' --cpu-scaling 50 --llvm --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
     "make -j$SCALING LLVM=1 ARCH=x86_64 W=123 2>&1 | tee log.out"
@@ -876,11 +872,11 @@ function test_kernel_build_inside_an_env()
 
   parse_configuration "$SAMPLES_DIR/build_no_llvm.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' | tail -n +1 | head -2)
+  output=$(build_kernel_main 'TEST_MODE' | tail -n +1 | head -2)
 
   declare -a expected_cmd=(
     "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig O=${env_output}"
-    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 2>&1 | tee ./log O=${env_output}"
+    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 O=${env_output} 2>&1 | tee ./log"
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
@@ -897,7 +893,7 @@ function test_kernel_build_html_doc_inside_env()
 
   parse_configuration "$SAMPLES_DIR/build_no_log.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' --doc)
+  output=$(build_kernel_main 'TEST_MODE' --doc)
   expected_result="make -j${PARALLEL_CORES} htmldocs O=${env_output}"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -913,7 +909,7 @@ function test_kernel_build_menu_inside_env()
 
   parse_configuration "$SAMPLES_DIR/build_no_log.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' --menu)
+  output=$(build_kernel_main 'TEST_MODE' --menu)
   expected_result="make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- nconfig O=${env_output}"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -929,7 +925,7 @@ function test_kernel_build_clean_inside_env()
 
   parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' --clean 2> /dev/null)
+  output=$(build_kernel_main 'TEST_MODE' --clean 2> /dev/null)
   expected_result="make clean O=${env_output}"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
@@ -945,9 +941,50 @@ function test_kernel_build_full_cleanup_inside_env()
 
   parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
 
-  output=$(kernel_build 'TEST_MODE' --full-cleanup 2> /dev/null)
+  output=$(build_kernel_main 'TEST_MODE' --full-cleanup 2> /dev/null)
   expected_result="make distclean O=${env_output}"
   assertEquals "($LINENO)" "$expected_result" "$output"
+}
+
+function test_kernel_build_cflags()
+{
+  local expected_result
+  local output
+  local flag_name="-O3 -pipe -march=native"
+  build_config=()
+
+  parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
+
+  output=$(build_kernel_main 'TEST_MODE' --cflags "${flag_name}" | tail -n +1 | head -2)
+
+  declare -a expected_cmd=(
+    "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig"
+    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 KCFLAGS=\"${flag_name}\""
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
+function test_kernel_build_cflags_inside_env()
+{
+  local expected_result
+  local output
+  local flag_name='DMY_BEAUTIFUL_FLAG'
+  local env_output="${KW_CACHE_DIR}/envs/fake_env"
+  build_config=()
+
+  mk_fake_kw_env
+
+  parse_configuration "${SAMPLES_DIR}/build_no_log.config" build_config
+
+  output=$(build_kernel_main 'TEST_MODE' --cflags ${flag_name} | tail -n +1 | head -2)
+
+  declare -a expected_cmd=(
+    "make -j ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- --silent olddefconfig O=${env_output}"
+    "make -j${PARALLEL_CORES} ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- W=2 KCFLAGS=\"${flag_name}\" O=${env_output}"
+  )
+
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
 invoke_shunit

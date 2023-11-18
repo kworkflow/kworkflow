@@ -2,10 +2,10 @@
 # the KW_DATA_DIR directory. These files are configs, pomodoro reports and
 # kw usage statistics.
 
-include "$KW_LIB_DIR/kwlib.sh"
-include "$KW_LIB_DIR/kw_string.sh"
-include "$KW_LIB_DIR/kwio.sh"
-include "$KW_LIB_DIR/kw_time_and_date.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kw_string.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
+include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 
 declare -gA options_values
 decompress_path="$KW_CACHE_DIR/tmp-kw-backup"
@@ -14,19 +14,25 @@ decompress_path="$KW_CACHE_DIR/tmp-kw-backup"
 # recieves an argument and call other functions based on that.
 function backup()
 {
+  local flag
+
+  flag=${flag:-'SILENT'}
+
   parse_backup_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
     return 22 # EINVAL
   fi
 
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
   if [[ -n "${options_values['BACKUP_PATH']}" ]]; then
-    create_backup "${options_values['BACKUP_PATH']}"
+    create_backup "${options_values['BACKUP_PATH']}" "$flag"
     return
   fi
 
   if [[ -n "${options_values['RESTORE_PATH']}" ]]; then
-    restore_backup "${options_values['RESTORE_PATH']}"
+    restore_backup "${options_values['RESTORE_PATH']}" "$flag"
     return
   fi
 }
@@ -74,6 +80,7 @@ function restore_backup()
   local ret
   local config_file
   local difference
+  local cmd
 
   flag=${flag:-'SILENT'}
 
@@ -85,7 +92,8 @@ function restore_backup()
   if [[ -n "${options_values['FORCE']}" ]]; then
     decompress_path="$KW_DATA_DIR"
   else
-    mkdir -p "$decompress_path"
+    cmd="mkdir -p ${decompress_path}"
+    cmd_manager "$flag" "$cmd"
   fi
   extract_tarball "$path" "$decompress_path" 'gzip' "$flag"
 
@@ -96,9 +104,8 @@ function restore_backup()
   fi
 
   if [[ -z "${options_values['FORCE']}" ]]; then
-    restore_config
-    restore_pomodoro
-    restore_statistics
+    restore_database "$flag"
+    restore_config_files "$flag"
   fi
 
   success "Backup restored at $KW_DATA_DIR"
@@ -108,24 +115,33 @@ function restore_backup()
 #
 function restore_config()
 {
+  local flag="$1"
   local config_file
+  local cmd
+
+  flag=${flag:-'SILENT'}
 
   if [[ -d "$decompress_path/"configs ]]; then
-    mkdir -p "$KW_DATA_DIR/configs/configs"
-    mkdir -p "$KW_DATA_DIR/configs/metadata"
+    cmd="mkdir -p ${KW_DATA_DIR}/configs/configs"
+    cmd_manager "$flag" "$cmd"
+    cmd="mkdir -p ${KW_DATA_DIR}/configs/metadata"
+    cmd_manager "$flag" "$cmd"
 
     for file in "$decompress_path/"configs/configs/*; do
       config_file="$(get_file_name_from_path "$file")"
       if [[ -f "$KW_DATA_DIR/configs/configs/$config_file" ]] &&
         ! cmp -s "$KW_DATA_DIR/configs/configs/$config_file" "$file"; then
         complain "It looks like that the file $config_file differs from the backup version."
-        diff -u --color=always "$KW_DATA_DIR/configs/configs/$config_file" "$file"
+        cmd="diff -u --color=always ${KW_DATA_DIR}/configs/configs/${config_file} ${file}"
+        cmd_manager "$flag" "$cmd"
         if [[ $(ask_yN 'Do you want to replace it and its metadata?') =~ "0" ]]; then
           continue
         fi
       fi
-      cp -r "$decompress_path/configs/configs/$config_file" "$KW_DATA_DIR/configs/configs"
-      cp -r "$decompress_path/configs/metadata/$config_file" "$KW_DATA_DIR/configs/metadata"
+      cmd="cp -r ${decompress_path}/configs/configs/${config_file} ${KW_DATA_DIR}/configs/configs"
+      cmd_manager "$flag" "$cmd"
+      cmd="cp -r ${decompress_path}/configs/metadata/${config_file} ${KW_DATA_DIR}/configs/metadata"
+      cmd_manager "$flag" "$cmd"
     done
   fi
 }
@@ -133,18 +149,24 @@ function restore_config()
 function restore_data_from_dir()
 {
   local dir="$1"
+  local flag="$2"
   local decision
   local year
   local month
   local day
   local difference
+  local cmd
+
+  flag=${flag:-'SILENT'}
 
   for year_dir in "$decompress_path/$dir/"*/; do
     year="$(str_remove_prefix "$year_dir" "$decompress_path/$dir/")"
-    mkdir -p "$KW_DATA_DIR/$dir/$year"
+    cmd="mkdir -p ${KW_DATA_DIR}/${dir}/${year}"
+    cmd_manager "$flag" "$cmd"
     for month_dir in "$year_dir"*; do
       month="$(str_remove_prefix "$month_dir" "$decompress_path/$dir/$year")"
-      mkdir -p "$KW_DATA_DIR/$dir/$year$month"
+      cmd="mkdir -p ${KW_DATA_DIR}/${dir}/${year}${month}"
+      cmd_manager "$flag" "$cmd"
       for day_file in "$month_dir"/*; do
         day="$(str_remove_prefix "$day_file" "$decompress_path/$dir/$year$month/")"
         if [[ -f "$KW_DATA_DIR/$dir/$year$month/$day" ]] &&
@@ -160,7 +182,8 @@ function restore_data_from_dir()
 
           case "$decision" in
             1)
-              cp "$day_file" "$KW_DATA_DIR/$dir/$year$month/$day"
+              cmd="cp ${day_file} ${KW_DATA_DIR}/${dir}/${year}${month}/${day}"
+              cmd_manager "$flag" "$cmd"
               continue
               ;;
             2)
@@ -173,7 +196,8 @@ function restore_data_from_dir()
               ;;
           esac
         fi
-        cp "$day_file" "$KW_DATA_DIR/$dir/$year$month/$day"
+        cmd="cp ${day_file} ${KW_DATA_DIR}/${dir}/${year}${month}/${day}"
+        cmd_manager "$flag" "$cmd"
       done
     done
   done
@@ -181,11 +205,15 @@ function restore_data_from_dir()
 
 function restore_pomodoro()
 {
+  local flag="$1"
   local decision
   local difference
+  local cmd
+
+  flag=${flag:-'SILENT'}
 
   if [[ -d "$decompress_path/pomodoro" ]]; then
-    restore_data_from_dir 'pomodoro'
+    restore_data_from_dir 'pomodoro' "$flag"
 
     if [[ -f "$decompress_path/pomodoro/tags" ]]; then
       if [[ -f "$KW_DATA_DIR/pomodoro/tags" ]] &&
@@ -200,7 +228,8 @@ function restore_pomodoro()
         fi
         case "$decision" in
           1)
-            cp "$decompress_path/pomodoro/tags" "$KW_DATA_DIR/pomodoro/tags"
+            cmd="cp ${decompress_path}/pomodoro/tags ${KW_DATA_DIR}/pomodoro/tags"
+            cmd_manager "$flag" "$cmd"
             ;;
           2)
             return
@@ -212,7 +241,8 @@ function restore_pomodoro()
         esac
         return
       fi
-      cp "$decompress_path/pomodoro/tags" "$KW_DATA_DIR/pomodoro/tags"
+      cmd="cp ${decompress_path}/pomodoro/tags ${KW_DATA_DIR}/pomodoro/tags"
+      cmd_manager "$flag" "$cmd"
     fi
   fi
 }
@@ -224,11 +254,74 @@ function restore_statistics()
   fi
 }
 
+# This function restores the kw SQLite database from `KW_DATA_DIR`.
+#
+# @flag: Flag to control function output
+function restore_database()
+{
+  local flag="$1"
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  if [[ -f "${decompress_path}/kw.db" ]]; then
+    cmd="cp ${decompress_path}/kw.db ${KW_DATA_DIR}/kw.db"
+    cmd_manager "$flag" "$cmd"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain "Couldn't restore database from ${decompress_path}/kw.db to ${KW_DATA_DIR}/kw.db"
+      exit "$ret"
+    fi
+  fi
+}
+
+# This function restores the kernel config files from `KW_DATA_DIR`.
+#
+# @flag: Flag to control function output
+function restore_config_files()
+{
+  local flag="$1"
+  local config_file_paths
+  local config_filename
+  local cmd
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  # Only get config file paths that are direct children of `configs` in backup.
+  # We sort the paths to avoid flaky tests.
+  config_file_paths=$(find "${decompress_path}/configs" -maxdepth 1 -type f | sort --dictionary-order)
+
+  if [[ -n "$config_file_paths" ]]; then
+    if [[ ! -d "${KW_DATA_DIR}/configs" ]]; then
+      cmd="mkdir --parents ${KW_DATA_DIR}/configs"
+      cmd_manager "$flag" "$cmd"
+      ret="$?"
+      if [[ "$ret" != 0 ]]; then
+        complain "Couldn't create ${KW_DATA_DIR}/configs"
+        exit "$ret"
+      fi
+    fi
+
+    while IFS=$'\n' read -r config_file_path; do
+      config_filename="${config_file_path##*/}" # get just the file name
+      cmd="cp ${config_file_path} ${KW_DATA_DIR}/configs/${config_filename}"
+      cmd_manager "$flag" "$cmd"
+      ret="$?"
+      if [[ "$ret" != 0 ]]; then
+        complain "Couldn't copy ${config_file_path} to ${KW_DATA_DIR}/configs/${config_filename}"
+        exit "$ret"
+      fi
+    done <<< "$config_file_paths"
+  fi
+}
+
 # This function parses the arguments provided to 'kw backup', validates them,
 # and populates the options_values variable accordingly.
 function parse_backup_options()
 {
-  local long_options='help,restore:,force'
+  local long_options='help,restore:,force,verbose'
   local short_options='h,r:,f'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -243,6 +336,7 @@ function parse_backup_options()
   options_values['RESTORE_PATH']=''
   options_values['BACKUP_PATH']=''
   options_values['FORCE']=''
+  options_values['VERBOSE']=''
 
   eval "set -- $options"
 
@@ -262,6 +356,10 @@ function parse_backup_options()
         ;;
       --force | -f)
         options_values['FORCE']=1
+        shift
+        ;;
+      --verbose)
+        options_values['VERBOSE']=1
         shift
         ;;
       --)
@@ -284,5 +382,6 @@ function backup_help()
   fi
   printf '%s\n' 'kw backup:' \
     '  backup (<path>) - Create a compressed file containing kw data' \
-    '  backup (-r | --restore) <path> [(-f | --force)] - Extract a tar.gz file into kw data directory'
+    '  backup (-r | --restore) <path> [(-f | --force)] - Extract a tar.gz file into kw data directory' \
+    '  backup (--verbose) - Show a detailed output'
 }

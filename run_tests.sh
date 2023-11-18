@@ -1,8 +1,8 @@
 #!/bin/bash
 
-. ./src/kw_include.sh --source-only
+. ./src/lib/kw_include.sh --source-only
 include './tests/utils.sh'
-include './src/kwio.sh'
+include './src/lib/kwio.sh'
 
 function show_help()
 {
@@ -63,7 +63,7 @@ function run_tests()
   local test_failure_list=''
 
   for current_test in "${TESTS[@]}"; do
-    target=$(find ./tests -name "$current_test*.sh")
+    target=$(find ./tests -name "${current_test}*.sh" | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
     if [[ -f "$target" ]]; then
       say "Running test [${current_test}]"
       say "$SEPARATOR"
@@ -103,11 +103,13 @@ function strip_path()
 check_files="$?"
 #shellcheck disable=SC2086
 if [[ "$#" -eq 0 ]]; then
-  files_list=$(find ./tests -name '*_test.sh' | grep -Ev 'samples/.*|/shunit2/')
+  files_list=$(find ./tests -name '*_test.sh' | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
   strip_path $files_list
-  run_tests
+  # Set the environment variable LANGUAGE to `en_US.UTF_8` to avoid the host
+  # locale settings from interfering in the tests.
+  LANGUAGE=en_US.UTF_8 run_tests
 elif [[ "$1" == 'list' ]]; then
   index=0
   files_list=$(find ./tests/ -name '*_test.sh')
@@ -118,7 +120,7 @@ elif [[ "$1" == 'list' ]]; then
   done
 elif [[ "$1" == 'test' ]]; then
   strip_path "${@:2}"
-  run_tests
+  LANGUAGE=en_US.UTF_8 run_tests
 else
   show_help
 fi

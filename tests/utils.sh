@@ -33,6 +33,11 @@ LOCAL_TO_DEPLOY_DIR="to_deploy"
 LOCAL_REMOTE_DIR="remote"
 KERNEL_INSTALL_PLUGIN_PATH="src/plugins/kernel_install/"
 
+# Colors
+readonly KW_COLOR_NONE='\033[0m'
+readonly KW_COLOR_RED='\033[1;31m'
+readonly KW_COLOR_GREEN='\033[1;32m'
+
 function init_env()
 {
   unset -v KW_LIB_DIR KWORKFLOW
@@ -91,7 +96,7 @@ function assertFileEquals()
 }
 
 # Receives a path and creates a fake kernel root in it. The goal is to make this
-# path recognizable by src/kwlib.sh:is_kernel_root().
+# path recognizable by src/lib/kwlib.sh:is_kernel_root().
 function mk_fake_kernel_root()
 {
   local -r path="$1"
@@ -304,10 +309,12 @@ function compare_command_sequence()
 
   while read -r f; do
     if [[ "${expected_res[$count]}" != "${f}" ]]; then
-      fail "line $line, statement $count: $msg
-Expected: \"${expected_res[$count]}\"
-but got:  \"${f}\"
-"
+      if ! fail &> /dev/null; then
+        printf '%bASSERT:%b line %s, statement %d: %s\n  %bExpected:%b %b\"%s\"%b\n  %b but got:%b %b\"%s\"%b\n' \
+          "$KW_COLOR_RED" "$KW_COLOR_NONE" "$line" "$count" "${msg}" \
+          "$KW_COLOR_GREEN" "$KW_COLOR_NONE" "$KW_COLOR_GREEN" "${expected_res[$count]}" "$KW_COLOR_NONE" \
+          "$KW_COLOR_RED" "$KW_COLOR_NONE" "$KW_COLOR_RED" "${f}" "$KW_COLOR_NONE"
+      fi
     fi
     ((count++))
   done <<< "$result_to_compare"
@@ -378,16 +385,18 @@ function assert_equals_helper()
 {
   local msg="$1"
   local line="$2"
-  # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
-  # shellcheck disable=SC2178
   local expected="$3"
   local result_to_compare="$4"
 
   line=${line:-'Unknown line'}
 
-  # See bugs section in github.com/koalaman/shellcheck/wiki/SC2178
-  # shellcheck disable=2128
-  assertEquals "line $line: $msg" "$result_to_compare" "$expected"
+  if ! assertEquals "$expected" "$result_to_compare" &> /dev/null; then
+    printf '%bASSERT:%b line %s: %s\n  %bExpected Result:%b %b%s%b\n  %b  Actual Result:%b %b%s%b\n' \
+      "$KW_COLOR_RED" "$KW_COLOR_NONE" "$line" "${msg}" \
+      "$KW_COLOR_GREEN" "$KW_COLOR_NONE" "$KW_COLOR_GREEN" "${expected}" "$KW_COLOR_NONE" \
+      "$KW_COLOR_RED" "$KW_COLOR_NONE" "$KW_COLOR_RED" "${result_to_compare}" "$KW_COLOR_NONE"
+    return "$?"
+  fi
 }
 
 # Create an invalid file path

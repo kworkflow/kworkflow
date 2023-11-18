@@ -288,6 +288,10 @@ function test_mail_parser()
   assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
   assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['COMMIT_RANGE']}" '-1 HEAD^'
 
+  parse_mail_options -- --subject-prefix="PATCH i-g-t" HEAD^
+  expected="'--subject-prefix=PATCH i-g-t' HEAD^"
+  assert_equals_helper 'Set passthrough options with space' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+
   parse_mail_options -375
   expected='-375'
   assert_equals_helper 'Set commit count option' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
@@ -303,6 +307,9 @@ function test_mail_parser()
 
   parse_mail_options '--send'
   assert_equals_helper 'Set send flag' "$LINENO" "${options_values['SEND']}" 1
+
+  parse_mail_options '--verbose'
+  assert_equals_helper 'Set verbose option' "$LINENO" "${options_values['VERBOSE']}" 1
 
   parse_mail_options '--private'
   expected='--suppress-cc=all'
@@ -1076,6 +1083,35 @@ function test_mail_list()
     fail "($LINENO): Failed to move back to original dir"
     exit "$ret"
   }
+}
+
+function test_add_recipients()
+{
+  local initial_recipients
+  local additional_recipients
+  local output
+  local expected
+
+  initial_recipients=''
+  additional_recipients=''
+  output=$(add_recipients "$initial_recipients" "$additional_recipients")
+  expected=''
+  assert_equals_helper 'No recipients should output nothing' "$LINENO" "$expected" "$output"
+
+  initial_recipients='recipient1@email.com'$'\n'
+  initial_recipients+='recipient2@email.com'$'\n'
+  initial_recipients+='recipient3@email.com'$'\n'
+  initial_recipients+='recipient4@email.com'
+  output=$(add_recipients "$initial_recipients" "$additional_recipients")
+  expected="$initial_recipients"
+  assert_equals_helper 'No additional recipients should output initial recipients' "$LINENO" "$expected" "$output"
+
+  additional_recipients='additional1@email.com,additional2@email.com'
+  output=$(add_recipients "$initial_recipients" "$additional_recipients")
+  expected="$initial_recipients"$'\n'
+  expected+='additional1@email.com'$'\n'
+  expected+='additional2@email.com'
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
 invoke_shunit

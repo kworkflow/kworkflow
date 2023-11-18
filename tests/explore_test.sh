@@ -219,6 +219,11 @@ function test_parse_explore_options()
 
   unset options_values
   declare -gA options_values
+  parse_explore_options --verbose
+  assertEquals "($LINENO)" '1' "${options_values['VERBOSE']}"
+
+  unset options_values
+  declare -gA options_values
   parse_explore_options -c 'something'
   ret="$?"
   assertEquals "($LINENO)" '0' "$ret"

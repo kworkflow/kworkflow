@@ -2,7 +2,7 @@
 
 # We load utils in the oneTimeSetUp() to ensure we can replace some kw functions
 include './tests/utils.sh'
-include './src/kwio.sh'
+include './src/lib/kwio.sh'
 
 declare -r TEST_ROOT_PATH="$PWD"
 
@@ -588,7 +588,7 @@ function test_install_kernel_local()
     "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'run_bootloader_update_mock'
-    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+    "sudo -E grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
     'sudo -E reboot'
   )
 
@@ -620,6 +620,25 @@ function test_distro_deploy_setup()
   output=$(distro_deploy_setup 'TEST_MODE')
 
   expected_cmd="$package_manager_cmd ${required_packages[*]} "
+
+  assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_distro_deploy_setup_local()
+{
+  local output
+  local expected_cmd
+
+  package_manager_cmd='yes | some_package_manager'
+  required_packages=(
+    'abc'
+    'def'
+    'xpto'
+  )
+
+  output=$(distro_deploy_setup 'TEST_MODE' 2)
+
+  expected_cmd="sudo -E ${package_manager_cmd} ${required_packages[*]} "
 
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
 }

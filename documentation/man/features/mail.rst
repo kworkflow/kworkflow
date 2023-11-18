@@ -12,6 +12,8 @@ SYNOPSIS
 | *kw mail* (-l | \--list)
 | *kw mail* \--verify [\--local | \--global]
 | *kw mail* \--template[=<template>] [-n | \--no-interactive] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
+| *kw mail* \--verbose
+
 
 DESCRIPTION
 ===========
@@ -28,6 +30,11 @@ the union of the recipients of each patch as the recipients of the cover-letter.
   You can block certain e-mail addresses from being automatically added to the
   recipients list of the patches using the *blocked_emails* option in the
   *kworkflow.config* file.
+
+.. note::
+  You can add To\: and CC\: recipients to be included by default using the
+  *default_to_recipients* and *default_cc_recipients* configurations, respectively,
+  in the *mail.config* file.
 
 .. note::
   Any option recognized by ``git send-email`` can be passed directly to it if
@@ -115,6 +122,11 @@ OPTIONS
 
 -l, \--list:
   Lists the settings that mail uses.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug messages to track
+  its progress. This functionality is very useful during the debugging process, allowing
+  you to identify possible errors more easily.
 
 EXAMPLES
 ========

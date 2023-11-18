@@ -1,0 +1,1052 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 1/11] drm/amd/display: Work around bad DPCD state on link
+ loss
+From: Ilya Bakoulin <ilya.bakoulin@amd.com>
+Date: Thu, 22 Jun 2023 15:57:25 -0600
+Message-Id: <20230622215735.2026220-2-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+[Why]
+This display doesn't properly indicate link loss through DPCD bits such
+as CR_DONE / CHANNEL_EQ_DONE / SYMBOL_LOCKED / INTERLANE_ALIGN_DONE,
+which all remain set.
+
+In addition, DPCD200Eh doesn't match the value of DPCD204h in all cases.
+
+For these reasons, we can miss re-training the link, since we don't
+properly detect link loss with this display.
+
+[Why]
+Add display-specific workaround to read DPCD204h, so that we can detect
+link loss based on 128b132b-specific status bits in this register.
+
+Reviewed-by: Wenjing Liu <wenjing.liu@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Ilya Bakoulin <ilya.bakoulin@amd.com>
+---
+ drivers/gpu/drm/amd/display/dc/dc.h           |  1 +
+ .../dc/link/protocols/link_dp_irq_handler.c   | 26 +++++++++++++++++++
+ 2 files changed, 27 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/dc.h b/drivers/gpu/drm/amd/display/dc/dc.h
+index ea0b78ef351d..24f580bdac6a 100644
+--- a/drivers/gpu/drm/amd/display/dc/dc.h
++++ b/drivers/gpu/drm/amd/display/dc/dc.h
+@@ -1525,6 +1525,7 @@ struct dc_link {
+ 		bool dpia_forced_tbt3_mode;
+ 		bool dongle_mode_timing_override;
+ 		bool blank_stream_on_ocs_change;
++		bool read_dpcd204h_on_irq_hpd;
+ 	} wa_flags;
+ 	struct link_mst_stream_allocation_table mst_stream_alloc_table;
+ 
+diff --git a/drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_irq_handler.c b/drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_irq_handler.c
+index b1b11eb0f9bb..ef8739df91bc 100644
+--- a/drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_irq_handler.c
++++ b/drivers/gpu/drm/amd/display/dc/link/protocols/link_dp_irq_handler.c
+@@ -208,6 +208,25 @@ void dp_handle_link_loss(struct dc_link *link)
+ 	}
+ }
+ 
++static void read_dpcd204h_on_irq_hpd(struct dc_link *link, union hpd_irq_data *irq_data)
++{
++	enum dc_status retval;
++	union lane_align_status_updated dpcd_lane_status_updated;
++
++	retval = core_link_read_dpcd(
++			link,
++			DP_LANE_ALIGN_STATUS_UPDATED,
++			&dpcd_lane_status_updated.raw,
++			sizeof(union lane_align_status_updated));
++
++	if (retval == DC_OK) {
++		irq_data->bytes.lane_status_updated.bits.EQ_INTERLANE_ALIGN_DONE_128b_132b =
++				dpcd_lane_status_updated.bits.EQ_INTERLANE_ALIGN_DONE_128b_132b;
++		irq_data->bytes.lane_status_updated.bits.CDS_INTERLANE_ALIGN_DONE_128b_132b =
++				dpcd_lane_status_updated.bits.CDS_INTERLANE_ALIGN_DONE_128b_132b;
++	}
++}
++
+ enum dc_status dp_read_hpd_rx_irq_data(
+ 	struct dc_link *link,
+ 	union hpd_irq_data *irq_data)
+@@ -249,6 +268,13 @@ enum dc_status dp_read_hpd_rx_irq_data(
+ 		irq_data->bytes.lane23_status.raw = tmp[DP_LANE2_3_STATUS_ESI - DP_SINK_COUNT_ESI];
+ 		irq_data->bytes.lane_status_updated.raw = tmp[DP_LANE_ALIGN_STATUS_UPDATED_ESI - DP_SINK_COUNT_ESI];
+ 		irq_data->bytes.sink_status.raw = tmp[DP_SINK_STATUS_ESI - DP_SINK_COUNT_ESI];
++
++		/*
++		 * This display doesn't have correct values in DPCD200Eh.
++		 * Read and check DPCD204h instead.
++		 */
++		if (link->wa_flags.read_dpcd204h_on_irq_hpd)
++			read_dpcd204h_on_irq_hpd(link, irq_data);
+ 	}
+ 
+ 	return retval;
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 2/11] drm/amd/display: Remove asserts
+From: Hong-lu Cheng <hong-lu.cheng@amd.com>
+Date: Thu, 22 Jun 2023 15:57:26 -0600
+Message-Id: <20230622215735.2026220-3-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+[why]
+Endless assert caused by LinesInDETChroma=0.
+
+[how]
+Don't floor for LinesInDETChroma=0
+
+Reviewed-by: Jun Lei <jun.lei@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Hong-lu Cheng <hong-lu.cheng@amd.com>
+---
+ .../display/dc/dml/dcn20/display_mode_vba_20.c   | 16 ++++++++++------
+ 1 file changed, 10 insertions(+), 6 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/dml/dcn20/display_mode_vba_20.c b/drivers/gpu/drm/amd/display/dc/dml/dcn20/display_mode_vba_20.c
+index 6266b0788387..7bf4bb7ad044 100644
+--- a/drivers/gpu/drm/amd/display/dc/dml/dcn20/display_mode_vba_20.c
++++ b/drivers/gpu/drm/amd/display/dc/dml/dcn20/display_mode_vba_20.c
+@@ -4356,12 +4356,16 @@ void dml20_ModeSupportAndSystemConfigurationFull(struct display_mode_lib *mode_l
+ 						locals->PSCL_FACTOR[k] / locals->ReturnBWPerState[i][0],
+ 						locals->EffectiveLBLatencyHidingSourceLinesLuma),
+ 						locals->SwathHeightYPerState[i][j][k]);
+-
+-				locals->EffectiveDETLBLinesChroma = dml_floor(locals->LinesInDETChroma + dml_min(
+-						locals->LinesInDETChroma * locals->RequiredDISPCLK[i][j] * locals->BytePerPixelInDETC[k] *
+-						locals->PSCL_FACTOR_CHROMA[k] / locals->ReturnBWPerState[i][0],
+-						locals->EffectiveLBLatencyHidingSourceLinesChroma),
+-						locals->SwathHeightCPerState[i][j][k]);
++				if (locals->LinesInDETChroma) {
++					locals->EffectiveDETLBLinesChroma = dml_floor(locals->LinesInDETChroma +
++						    dml_min(locals->LinesInDETChroma * locals->RequiredDISPCLK[i][j] *
++						    locals->BytePerPixelInDETC[k] *
++							locals->PSCL_FACTOR_CHROMA[k] / locals->ReturnBWPerState[i][0],
++							locals->EffectiveLBLatencyHidingSourceLinesChroma),
++							locals->SwathHeightCPerState[i][j][k]);
++				} else {
++					locals->EffectiveDETLBLinesChroma = 0;
++				}
+ 
+ 				if (locals->BytePerPixelInDETC[k] == 0) {
+ 					locals->UrgentLatencySupportUsPerState[i][j][k] = locals->EffectiveDETLBLinesLuma * (locals->HTotal[k] / locals->PixelClock[k])
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 3/11] drm/amd/display: program DPP shaper and 3D LUT if
+ updated
+From: Melissa Wen <mwen@igalia.com>
+Date: Thu, 22 Jun 2023 15:57:27 -0600
+Message-Id: <20230622215735.2026220-4-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+If shaper and 3D LUT data updates, lut_3d bit in update_flag is updated
+and we need to call set_input_transfer_func to program DPP shaper and 3D
+LUTs. Small cleanup of code style in the related if-condition.
+
+Reviewed-by: Krunoslav Kovac <krunoslav.kovac@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Melissa Wen <mwen@igalia.com>
+---
+ drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c b/drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c
+index eaf9e9ccad2a..4c8aa3dfb959 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c
+@@ -1764,8 +1764,9 @@ static void dcn20_program_pipe(
+ 		hws->funcs.set_hdr_multiplier(pipe_ctx);
+ 
+ 	if (pipe_ctx->update_flags.bits.enable ||
+-			pipe_ctx->plane_state->update_flags.bits.in_transfer_func_change ||
+-			pipe_ctx->plane_state->update_flags.bits.gamma_change)
++	    pipe_ctx->plane_state->update_flags.bits.in_transfer_func_change ||
++	    pipe_ctx->plane_state->update_flags.bits.gamma_change ||
++	    pipe_ctx->plane_state->update_flags.bits.lut_3d)
+ 		hws->funcs.set_input_transfer_func(dc, pipe_ctx, pipe_ctx->plane_state);
+ 
+ 	/* dcn10_translate_regamma_to_hw_format takes 750us to finish
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 4/11] drm/amd/display: Fix the delta clamping for shaper
+ LUT
+From: Harry Wentland <harry.wentland@amd.com>
+Date: Thu, 22 Jun 2023 15:57:28 -0600
+Message-Id: <20230622215735.2026220-5-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+The shaper LUT requires a 10-bit value of the delta between segments. We
+were using dc_fixpt_clamp_u0d10() to do that but it doesn't do what we
+want it to do. It will preserve 10-bit precision after the decimal
+point, but that's not quite what we want. We want 14-bit precision and
+discard the 4 most-significant bytes.
+
+To do that we'll do dc_fixpt_clamp_u0d14() & 0x3ff instead.
+
+Reviewed-by: Krunoslav Kovac <krunoslav.kovac@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Harry Wentland <harry.wentland@amd.com>
+---
+ .../amd/display/dc/dcn10/dcn10_cm_common.c    | 19 +++++++++++++++----
+ .../amd/display/dc/dcn10/dcn10_cm_common.h    |  1 +
+ .../amd/display/dc/dcn10/dcn10_hw_sequencer.c |  2 +-
+ .../drm/amd/display/dc/dcn20/dcn20_hwseq.c    |  6 +++---
+ .../drm/amd/display/dc/dcn30/dcn30_dwb_cm.c   |  2 +-
+ .../drm/amd/display/dc/dcn30/dcn30_hwseq.c    |  2 +-
+ .../drm/amd/display/dc/dcn32/dcn32_hwseq.c    |  6 +++---
+ 7 files changed, 25 insertions(+), 13 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_cm_common.c b/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_cm_common.c
+index 7a00fe525dfb..3538973bd0c6 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_cm_common.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_cm_common.c
+@@ -308,7 +308,10 @@ bool cm_helper_convert_to_custom_float(
+ #define NUMBER_REGIONS     32
+ #define NUMBER_SW_SEGMENTS 16
+ 
+-bool cm_helper_translate_curve_to_hw_format(
++#define DC_LOGGER \
++		ctx->logger
++
++bool cm_helper_translate_curve_to_hw_format(struct dc_context *ctx,
+ 				const struct dc_transfer_func *output_tf,
+ 				struct pwl_params *lut_params, bool fixpoint)
+ {
+@@ -482,10 +485,18 @@ bool cm_helper_translate_curve_to_hw_format(
+ 		rgb->delta_green = dc_fixpt_sub(rgb_plus_1->green, rgb->green);
+ 		rgb->delta_blue  = dc_fixpt_sub(rgb_plus_1->blue,  rgb->blue);
+ 
++
+ 		if (fixpoint == true) {
+-			rgb->delta_red_reg   = dc_fixpt_clamp_u0d10(rgb->delta_red);
+-			rgb->delta_green_reg = dc_fixpt_clamp_u0d10(rgb->delta_green);
+-			rgb->delta_blue_reg  = dc_fixpt_clamp_u0d10(rgb->delta_blue);
++			uint32_t red_clamp = dc_fixpt_clamp_u0d14(rgb->delta_red);
++			uint32_t green_clamp = dc_fixpt_clamp_u0d14(rgb->delta_green);
++			uint32_t blue_clamp = dc_fixpt_clamp_u0d14(rgb->delta_blue);
++
++			if (red_clamp >> 10 || green_clamp >> 10 || blue_clamp >> 10)
++				DC_LOG_WARNING("Losing delta precision while programming shaper LUT.");
++
++			rgb->delta_red_reg   = red_clamp & 0x3ff;
++			rgb->delta_green_reg = green_clamp & 0x3ff;
++			rgb->delta_blue_reg  = blue_clamp & 0x3ff;
+ 			rgb->red_reg         = dc_fixpt_clamp_u0d14(rgb->red);
+ 			rgb->green_reg       = dc_fixpt_clamp_u0d14(rgb->green);
+ 			rgb->blue_reg        = dc_fixpt_clamp_u0d14(rgb->blue);
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_cm_common.h b/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_cm_common.h
+index 3b8cd7410498..0a68b63d6126 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_cm_common.h
++++ b/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_cm_common.h
+@@ -106,6 +106,7 @@ bool cm_helper_convert_to_custom_float(
+ 		bool fixpoint);
+ 
+ bool cm_helper_translate_curve_to_hw_format(
++		struct dc_context *ctx,
+ 		const struct dc_transfer_func *output_tf,
+ 		struct pwl_params *lut_params, bool fixpoint);
+ 
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_hw_sequencer.c b/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_hw_sequencer.c
+index 20a1582be0b1..a50309039d08 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_hw_sequencer.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn10/dcn10_hw_sequencer.c
+@@ -1843,7 +1843,7 @@ bool dcn10_set_output_transfer_func(struct dc *dc, struct pipe_ctx *pipe_ctx,
+ 	/* dcn10_translate_regamma_to_hw_format takes 750us, only do it when full
+ 	 * update.
+ 	 */
+-	else if (cm_helper_translate_curve_to_hw_format(
++	else if (cm_helper_translate_curve_to_hw_format(dc->ctx,
+ 			stream->out_transfer_func,
+ 			&dpp->regamma_params, false)) {
+ 		dpp->funcs->dpp_program_regamma_pwl(
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c b/drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c
+index 4c8aa3dfb959..4492bc2392b6 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn20/dcn20_hwseq.c
+@@ -867,7 +867,7 @@ bool dcn20_set_output_transfer_func(struct dc *dc, struct pipe_ctx *pipe_ctx,
+ 			params = &stream->out_transfer_func->pwl;
+ 		else if (pipe_ctx->stream->out_transfer_func->type ==
+ 			TF_TYPE_DISTRIBUTED_POINTS &&
+-			cm_helper_translate_curve_to_hw_format(
++			cm_helper_translate_curve_to_hw_format(dc->ctx,
+ 			stream->out_transfer_func,
+ 			&mpc->blender_params, false))
+ 			params = &mpc->blender_params;
+@@ -896,7 +896,7 @@ bool dcn20_set_blend_lut(
+ 		if (plane_state->blend_tf->type == TF_TYPE_HWPWL)
+ 			blend_lut = &plane_state->blend_tf->pwl;
+ 		else if (plane_state->blend_tf->type == TF_TYPE_DISTRIBUTED_POINTS) {
+-			cm_helper_translate_curve_to_hw_format(
++			cm_helper_translate_curve_to_hw_format(plane_state->ctx,
+ 					plane_state->blend_tf,
+ 					&dpp_base->regamma_params, false);
+ 			blend_lut = &dpp_base->regamma_params;
+@@ -918,7 +918,7 @@ bool dcn20_set_shaper_3dlut(
+ 		if (plane_state->in_shaper_func->type == TF_TYPE_HWPWL)
+ 			shaper_lut = &plane_state->in_shaper_func->pwl;
+ 		else if (plane_state->in_shaper_func->type == TF_TYPE_DISTRIBUTED_POINTS) {
+-			cm_helper_translate_curve_to_hw_format(
++			cm_helper_translate_curve_to_hw_format(plane_state->ctx,
+ 					plane_state->in_shaper_func,
+ 					&dpp_base->shaper_params, true);
+ 			shaper_lut = &dpp_base->shaper_params;
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_dwb_cm.c b/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_dwb_cm.c
+index 6a3d3a0ec0a3..701c7d8bc038 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_dwb_cm.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_dwb_cm.c
+@@ -280,7 +280,7 @@ bool dwb3_ogam_set_input_transfer_func(
+ 	dwb_ogam_lut = kzalloc(sizeof(*dwb_ogam_lut), GFP_KERNEL);
+ 
+ 	if (dwb_ogam_lut) {
+-		cm_helper_translate_curve_to_hw_format(
++		cm_helper_translate_curve_to_hw_format(dwbc->ctx,
+ 			in_transfer_func_dwb_ogam,
+ 			dwb_ogam_lut, false);
+ 
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_hwseq.c b/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_hwseq.c
+index b9753867d97b..bf8864bc8a99 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_hwseq.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_hwseq.c
+@@ -106,7 +106,7 @@ static bool dcn30_set_mpc_shaper_3dlut(struct pipe_ctx *pipe_ctx,
+ 		if (stream->func_shaper->type == TF_TYPE_HWPWL) {
+ 			shaper_lut = &stream->func_shaper->pwl;
+ 		} else if (stream->func_shaper->type == TF_TYPE_DISTRIBUTED_POINTS) {
+-			cm_helper_translate_curve_to_hw_format(stream->func_shaper,
++			cm_helper_translate_curve_to_hw_format(stream->ctx, stream->func_shaper,
+ 							       &dpp_base->shaper_params, true);
+ 			shaper_lut = &dpp_base->shaper_params;
+ 		}
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c b/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c
+index e5bd76c6b1d3..526e89ef9cdc 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c
+@@ -448,7 +448,7 @@ bool dcn32_set_mpc_shaper_3dlut(
+ 		if (stream->func_shaper->type == TF_TYPE_HWPWL)
+ 			shaper_lut = &stream->func_shaper->pwl;
+ 		else if (stream->func_shaper->type == TF_TYPE_DISTRIBUTED_POINTS) {
+-			cm_helper_translate_curve_to_hw_format(
++			cm_helper_translate_curve_to_hw_format(stream->ctx,
+ 					stream->func_shaper,
+ 					&dpp_base->shaper_params, true);
+ 			shaper_lut = &dpp_base->shaper_params;
+@@ -484,7 +484,7 @@ bool dcn32_set_mcm_luts(
+ 		if (plane_state->blend_tf->type == TF_TYPE_HWPWL)
+ 			lut_params = &plane_state->blend_tf->pwl;
+ 		else if (plane_state->blend_tf->type == TF_TYPE_DISTRIBUTED_POINTS) {
+-			cm_helper_translate_curve_to_hw_format(
++			cm_helper_translate_curve_to_hw_format(plane_state->ctx,
+ 					plane_state->blend_tf,
+ 					&dpp_base->regamma_params, false);
+ 			lut_params = &dpp_base->regamma_params;
+@@ -499,7 +499,7 @@ bool dcn32_set_mcm_luts(
+ 		else if (plane_state->in_shaper_func->type == TF_TYPE_DISTRIBUTED_POINTS) {
+ 			// TODO: dpp_base replace
+ 			ASSERT(false);
+-			cm_helper_translate_curve_to_hw_format(
++			cm_helper_translate_curve_to_hw_format(plane_state->ctx,
+ 					plane_state->in_shaper_func,
+ 					&dpp_base->shaper_params, true);
+ 			lut_params = &dpp_base->shaper_params;
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 5/11] drm/amd/display: Limit new fast update path to addr
+ and gamma / color
+From: Alvin Lee <alvin.lee2@amd.com>
+Date: Thu, 22 Jun 2023 15:57:29 -0600
+Message-Id: <20230622215735.2026220-6-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+[Description]
+- We want to limit the new fast update path to address and gamma updates
+  only.
+- Add a check in dc_update_planes_and_stream to only take the new fast
+  update path if we only have the specific fast updates defined.
+
+Reviewed-by: Jun Lei <jun.lei@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Alvin Lee <alvin.lee2@amd.com>
+---
+ drivers/gpu/drm/amd/display/dc/core/dc.c | 94 +++++++++++++++++++++++-
+ drivers/gpu/drm/amd/display/dc/dc.h      | 10 +++
+ 2 files changed, 102 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/core/dc.c b/drivers/gpu/drm/amd/display/dc/core/dc.c
+index f413998ff253..b97c4dfa5098 100644
+--- a/drivers/gpu/drm/amd/display/dc/core/dc.c
++++ b/drivers/gpu/drm/amd/display/dc/core/dc.c
+@@ -4243,6 +4243,90 @@ static void update_seamless_boot_flags(struct dc *dc,
+ 	}
+ }
+ 
++static void populate_fast_updates(struct dc_fast_update *fast_update,
++		struct dc_surface_update *srf_updates,
++		struct dc_stream_update *stream_update)
++{
++	if (srf_updates) {
++		fast_update->flip_addr = srf_updates->flip_addr;
++		fast_update->gamma = srf_updates->gamma;
++		fast_update->gamut_remap_matrix = srf_updates->gamut_remap_matrix;
++		fast_update->input_csc_color_matrix = srf_updates->input_csc_color_matrix;
++		fast_update->coeff_reduction_factor = srf_updates->coeff_reduction_factor;
++	}
++	if (stream_update) {
++		fast_update->out_transfer_func = stream_update->out_transfer_func;
++		fast_update->output_csc_transform = stream_update->output_csc_transform;
++	}
++}
++
++static bool fast_updates_exist(struct dc_fast_update *fast_update)
++{
++	if (fast_update->flip_addr ||
++			fast_update->gamma ||
++			fast_update->gamut_remap_matrix ||
++			fast_update->input_csc_color_matrix ||
++			fast_update->coeff_reduction_factor ||
++			fast_update->out_transfer_func ||
++			fast_update->output_csc_transform)
++		return true;
++
++	return false;
++}
++
++static bool full_update_required(struct dc_surface_update *srf_updates,
++		struct dc_stream_update *stream_update)
++{
++	if (srf_updates &&
++			(srf_updates->plane_info ||
++			srf_updates->scaling_info ||
++			(srf_updates->hdr_mult.value &&
++			srf_updates->hdr_mult.value != srf_updates->surface->hdr_mult.value) ||
++			srf_updates->in_transfer_func ||
++			srf_updates->func_shaper ||
++			srf_updates->lut3d_func ||
++			srf_updates->blend_tf))
++		return true;
++
++	if (stream_update &&
++			(((stream_update->src.height != 0 && stream_update->src.width != 0) ||
++			(stream_update->dst.height != 0 && stream_update->dst.width != 0) ||
++			stream_update->integer_scaling_update) ||
++			stream_update->hdr_static_metadata ||
++			stream_update->abm_level ||
++			stream_update->periodic_interrupt ||
++			stream_update->vrr_infopacket ||
++			stream_update->vsc_infopacket ||
++			stream_update->vsp_infopacket ||
++			stream_update->hfvsif_infopacket ||
++			stream_update->vtem_infopacket ||
++			stream_update->adaptive_sync_infopacket ||
++			stream_update->dpms_off ||
++			stream_update->allow_freesync ||
++			stream_update->vrr_active_variable ||
++			stream_update->vrr_active_fixed ||
++			stream_update->gamut_remap ||
++			stream_update->output_color_space ||
++			stream_update->dither_option ||
++			stream_update->wb_update ||
++			stream_update->dsc_config ||
++			stream_update->mst_bw_update ||
++			stream_update->func_shaper ||
++			stream_update->lut3d_func ||
++			stream_update->pending_test_pattern ||
++			stream_update->crtc_timing_adjust))
++		return true;
++
++	return false;
++}
++
++static bool fast_update_only(struct dc_fast_update *fast_update,
++		struct dc_surface_update *srf_updates,
++		struct dc_stream_update *stream_update)
++{
++	return fast_updates_exist(fast_update) && !full_update_required(srf_updates, stream_update);
++}
++
+ bool dc_update_planes_and_stream(struct dc *dc,
+ 		struct dc_surface_update *srf_updates, int surface_count,
+ 		struct dc_stream_state *stream,
+@@ -4252,6 +4336,7 @@ bool dc_update_planes_and_stream(struct dc *dc,
+ 	enum surface_update_type update_type;
+ 	int i;
+ 	struct mall_temp_config mall_temp_config;
++	struct dc_fast_update fast_update = {0};
+ 
+ 	/* In cases where MPO and split or ODM are used transitions can
+ 	 * cause underflow. Apply stream configuration with minimal pipe
+@@ -4260,6 +4345,7 @@ bool dc_update_planes_and_stream(struct dc *dc,
+ 	bool force_minimal_pipe_splitting;
+ 	bool is_plane_addition;
+ 
++	populate_fast_updates(&fast_update, srf_updates, stream_update);
+ 	force_minimal_pipe_splitting = could_mpcc_tree_change_for_active_pipes(
+ 			dc,
+ 			stream,
+@@ -4310,7 +4396,8 @@ bool dc_update_planes_and_stream(struct dc *dc,
+ 	}
+ 
+ 	update_seamless_boot_flags(dc, context, surface_count, stream);
+-	if (!dc->debug.enable_legacy_fast_update && update_type == UPDATE_TYPE_FAST) {
++	if (fast_update_only(&fast_update, srf_updates, stream_update) &&
++			!dc->debug.enable_legacy_fast_update) {
+ 		commit_planes_for_stream_fast(dc,
+ 				srf_updates,
+ 				surface_count,
+@@ -4367,7 +4454,9 @@ void dc_commit_updates_for_stream(struct dc *dc,
+ 	struct dc_state *context;
+ 	struct dc_context *dc_ctx = dc->ctx;
+ 	int i, j;
++	struct dc_fast_update fast_update = {0};
+ 
++	populate_fast_updates(&fast_update, srf_updates, stream_update);
+ 	stream_status = dc_stream_get_status(stream);
+ 	context = dc->current_state;
+ 
+@@ -4453,7 +4542,8 @@ void dc_commit_updates_for_stream(struct dc *dc,
+ 	TRACE_DC_PIPE_STATE(pipe_ctx, i, MAX_PIPES);
+ 
+ 	update_seamless_boot_flags(dc, context, surface_count, stream);
+-	if (!dc->debug.enable_legacy_fast_update && update_type == UPDATE_TYPE_FAST) {
++	if (fast_update_only(&fast_update, srf_updates, stream_update) &&
++			!dc->debug.enable_legacy_fast_update) {
+ 		commit_planes_for_stream_fast(dc,
+ 				srf_updates,
+ 				surface_count,
+diff --git a/drivers/gpu/drm/amd/display/dc/dc.h b/drivers/gpu/drm/amd/display/dc/dc.h
+index 24f580bdac6a..90e71c3e766f 100644
+--- a/drivers/gpu/drm/amd/display/dc/dc.h
++++ b/drivers/gpu/drm/amd/display/dc/dc.h
+@@ -1264,6 +1264,16 @@ struct dc_scaling_info {
+ 	struct scaling_taps scaling_quality;
+ };
+ 
++struct dc_fast_update {
++	const struct dc_flip_addrs *flip_addr;
++	const struct dc_gamma *gamma;
++	const struct colorspace_transform *gamut_remap_matrix;
++	const struct dc_csc_transform *input_csc_color_matrix;
++	const struct fixed31_32 *coeff_reduction_factor;
++	struct dc_transfer_func *out_transfer_func;
++	struct dc_csc_transform *output_csc_transform;
++};
++
+ struct dc_surface_update {
+ 	struct dc_plane_state *surface;
+ 
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 6/11] drm/amd/display: Remove Phantom Pipe Check When
+ Calculating K1 and K2
+From: Austin Zheng <austin.zheng@amd.com>
+Date: Thu, 22 Jun 2023 15:57:30 -0600
+Message-Id: <20230622215735.2026220-7-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+[Why]
+K1 and K2 not being setting properly when subVP is active.
+
+[How]
+Have phantom pipes use the same programing as the main pipes without
+checking the paired stream
+
+Cc: stable@vger.kernel.org
+Reviewed-by: Alvin Lee <alvin.lee2@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Austin Zheng <austin.zheng@amd.com>
+---
+ drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c b/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c
+index 526e89ef9cdc..d52d5feeb311 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_hwseq.c
+@@ -1147,10 +1147,6 @@ unsigned int dcn32_calculate_dccg_k1_k2_values(struct pipe_ctx *pipe_ctx, unsign
+ 	unsigned int odm_combine_factor = 0;
+ 	bool two_pix_per_container = false;
+ 
+-	// For phantom pipes, use the same programming as the main pipes
+-	if (pipe_ctx->stream->mall_stream_config.type == SUBVP_PHANTOM) {
+-		stream = pipe_ctx->stream->mall_stream_config.paired_stream;
+-	}
+ 	two_pix_per_container = optc2_is_two_pixels_per_containter(&stream->timing);
+ 	odm_combine_factor = get_odm_config(pipe_ctx, NULL);
+ 
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 7/11] drm/amd/display: For new fast update path, loop
+ through each surface
+From: Alvin Lee <alvin.lee2@amd.com>
+Date: Thu, 22 Jun 2023 15:57:31 -0600
+Message-Id: <20230622215735.2026220-8-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+[Description]
+- Previous implementation didn't consider multiple surfaces in a flip
+- Loop through each surface in each flip to ensure the update path is
+  correct
+
+Reviewed-by: Samson Tam <samson.tam@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Alvin Lee <alvin.lee2@amd.com>
+---
+ drivers/gpu/drm/amd/display/dc/core/dc.c | 86 ++++++++++++++----------
+ 1 file changed, 52 insertions(+), 34 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/core/dc.c b/drivers/gpu/drm/amd/display/dc/core/dc.c
+index b97c4dfa5098..68eabb5f3a39 100644
+--- a/drivers/gpu/drm/amd/display/dc/core/dc.c
++++ b/drivers/gpu/drm/amd/display/dc/core/dc.c
+@@ -4245,48 +4245,64 @@ static void update_seamless_boot_flags(struct dc *dc,
+ 
+ static void populate_fast_updates(struct dc_fast_update *fast_update,
+ 		struct dc_surface_update *srf_updates,
++		int surface_count,
+ 		struct dc_stream_update *stream_update)
+ {
+-	if (srf_updates) {
+-		fast_update->flip_addr = srf_updates->flip_addr;
+-		fast_update->gamma = srf_updates->gamma;
+-		fast_update->gamut_remap_matrix = srf_updates->gamut_remap_matrix;
+-		fast_update->input_csc_color_matrix = srf_updates->input_csc_color_matrix;
+-		fast_update->coeff_reduction_factor = srf_updates->coeff_reduction_factor;
+-	}
++	int i = 0;
++
+ 	if (stream_update) {
+-		fast_update->out_transfer_func = stream_update->out_transfer_func;
+-		fast_update->output_csc_transform = stream_update->output_csc_transform;
++		fast_update[0].out_transfer_func = stream_update->out_transfer_func;
++		fast_update[0].output_csc_transform = stream_update->output_csc_transform;
++	}
++
++	for (i = 0; i < surface_count; i++) {
++		fast_update[i].flip_addr = srf_updates[i].flip_addr;
++		fast_update[i].gamma = srf_updates[i].gamma;
++		fast_update[i].gamut_remap_matrix = srf_updates[i].gamut_remap_matrix;
++		fast_update[i].input_csc_color_matrix = srf_updates[i].input_csc_color_matrix;
++		fast_update[i].coeff_reduction_factor = srf_updates[i].coeff_reduction_factor;
+ 	}
+ }
+ 
+-static bool fast_updates_exist(struct dc_fast_update *fast_update)
++static bool fast_updates_exist(struct dc_fast_update *fast_update, int surface_count)
+ {
+-	if (fast_update->flip_addr ||
+-			fast_update->gamma ||
+-			fast_update->gamut_remap_matrix ||
+-			fast_update->input_csc_color_matrix ||
+-			fast_update->coeff_reduction_factor ||
+-			fast_update->out_transfer_func ||
+-			fast_update->output_csc_transform)
++	int i;
++
++	if (fast_update[0].out_transfer_func ||
++		fast_update[0].output_csc_transform)
+ 		return true;
+ 
++	for (i = 0; i < surface_count; i++) {
++		if (fast_update[i].flip_addr ||
++				fast_update[i].gamma ||
++				fast_update[i].gamut_remap_matrix ||
++				fast_update[i].input_csc_color_matrix ||
++				fast_update[i].coeff_reduction_factor)
++			return true;
++	}
++
+ 	return false;
+ }
+ 
+ static bool full_update_required(struct dc_surface_update *srf_updates,
++		int surface_count,
+ 		struct dc_stream_update *stream_update)
+ {
+-	if (srf_updates &&
+-			(srf_updates->plane_info ||
+-			srf_updates->scaling_info ||
+-			(srf_updates->hdr_mult.value &&
+-			srf_updates->hdr_mult.value != srf_updates->surface->hdr_mult.value) ||
+-			srf_updates->in_transfer_func ||
+-			srf_updates->func_shaper ||
+-			srf_updates->lut3d_func ||
+-			srf_updates->blend_tf))
+-		return true;
++
++	int i;
++
++	for (i = 0; i < surface_count; i++) {
++		if (srf_updates &&
++				(srf_updates[i].plane_info ||
++				srf_updates[i].scaling_info ||
++				(srf_updates[i].hdr_mult.value &&
++				srf_updates[i].hdr_mult.value != srf_updates->surface->hdr_mult.value) ||
++				srf_updates[i].in_transfer_func ||
++				srf_updates[i].func_shaper ||
++				srf_updates[i].lut3d_func ||
++				srf_updates[i].blend_tf))
++			return true;
++	}
+ 
+ 	if (stream_update &&
+ 			(((stream_update->src.height != 0 && stream_update->src.width != 0) ||
+@@ -4322,9 +4338,11 @@ static bool full_update_required(struct dc_surface_update *srf_updates,
+ 
+ static bool fast_update_only(struct dc_fast_update *fast_update,
+ 		struct dc_surface_update *srf_updates,
++		int surface_count,
+ 		struct dc_stream_update *stream_update)
+ {
+-	return fast_updates_exist(fast_update) && !full_update_required(srf_updates, stream_update);
++	return fast_updates_exist(fast_update, surface_count)
++			&& !full_update_required(srf_updates, surface_count, stream_update);
+ }
+ 
+ bool dc_update_planes_and_stream(struct dc *dc,
+@@ -4336,7 +4354,7 @@ bool dc_update_planes_and_stream(struct dc *dc,
+ 	enum surface_update_type update_type;
+ 	int i;
+ 	struct mall_temp_config mall_temp_config;
+-	struct dc_fast_update fast_update = {0};
++	struct dc_fast_update fast_update[MAX_SURFACES] = {0};
+ 
+ 	/* In cases where MPO and split or ODM are used transitions can
+ 	 * cause underflow. Apply stream configuration with minimal pipe
+@@ -4345,7 +4363,7 @@ bool dc_update_planes_and_stream(struct dc *dc,
+ 	bool force_minimal_pipe_splitting;
+ 	bool is_plane_addition;
+ 
+-	populate_fast_updates(&fast_update, srf_updates, stream_update);
++	populate_fast_updates(fast_update, srf_updates, surface_count, stream_update);
+ 	force_minimal_pipe_splitting = could_mpcc_tree_change_for_active_pipes(
+ 			dc,
+ 			stream,
+@@ -4396,7 +4414,7 @@ bool dc_update_planes_and_stream(struct dc *dc,
+ 	}
+ 
+ 	update_seamless_boot_flags(dc, context, surface_count, stream);
+-	if (fast_update_only(&fast_update, srf_updates, stream_update) &&
++	if (fast_update_only(fast_update, srf_updates, surface_count, stream_update) &&
+ 			!dc->debug.enable_legacy_fast_update) {
+ 		commit_planes_for_stream_fast(dc,
+ 				srf_updates,
+@@ -4454,9 +4472,9 @@ void dc_commit_updates_for_stream(struct dc *dc,
+ 	struct dc_state *context;
+ 	struct dc_context *dc_ctx = dc->ctx;
+ 	int i, j;
+-	struct dc_fast_update fast_update = {0};
++	struct dc_fast_update fast_update[MAX_SURFACES] = {0};
+ 
+-	populate_fast_updates(&fast_update, srf_updates, stream_update);
++	populate_fast_updates(fast_update, srf_updates, surface_count, stream_update);
+ 	stream_status = dc_stream_get_status(stream);
+ 	context = dc->current_state;
+ 
+@@ -4542,7 +4560,7 @@ void dc_commit_updates_for_stream(struct dc *dc,
+ 	TRACE_DC_PIPE_STATE(pipe_ctx, i, MAX_PIPES);
+ 
+ 	update_seamless_boot_flags(dc, context, surface_count, stream);
+-	if (fast_update_only(&fast_update, srf_updates, stream_update) &&
++	if (fast_update_only(fast_update, srf_updates, surface_count, stream_update) &&
+ 			!dc->debug.enable_legacy_fast_update) {
+ 		commit_planes_for_stream_fast(dc,
+ 				srf_updates,
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 8/11] drm/amd/display: Add monitor specific edid quirk
+From: Aurabindo Pillai <aurabindo.pillai@amd.com>
+Date: Thu, 22 Jun 2023 15:57:32 -0600
+Message-Id: <20230622215735.2026220-9-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Disable FAMS on a Samsung Odyssey G9 monitor. Experiments show that this
+monitor does not work well under some use cases, and is likely
+implementation specific bug on the monitor's firmware.
+
+Cc: stable@vger.kernel.org
+Reviewed-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Aurabindo Pillai <aurabindo.pillai@amd.com>
+---
+ .../amd/display/amdgpu_dm/amdgpu_dm_helpers.c | 26 +++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_helpers.c b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_helpers.c
+index cd20cfc04996..d9a482908380 100644
+--- a/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_helpers.c
++++ b/drivers/gpu/drm/amd/display/amdgpu_dm/amdgpu_dm_helpers.c
+@@ -44,6 +44,30 @@
+ #include "dm_helpers.h"
+ #include "ddc_service_types.h"
+ 
++static u32 edid_extract_panel_id(struct edid *edid)
++{
++	return (u32)edid->mfg_id[0] << 24   |
++	       (u32)edid->mfg_id[1] << 16   |
++	       (u32)EDID_PRODUCT_ID(edid);
++}
++
++static void apply_edid_quirks(struct edid *edid, struct dc_edid_caps *edid_caps)
++{
++	uint32_t panel_id = edid_extract_panel_id(edid);
++
++	switch (panel_id) {
++	/* Workaround for some monitors which does not work well with FAMS */
++	case drm_edid_encode_panel_id('S', 'A', 'M', 0x0E5E):
++	case drm_edid_encode_panel_id('S', 'A', 'M', 0x7053):
++	case drm_edid_encode_panel_id('S', 'A', 'M', 0x71AC):
++		DRM_DEBUG_DRIVER("Disabling FAMS on monitor with panel id %X\n", panel_id);
++		edid_caps->panel_patch.disable_fams = true;
++		break;
++	default:
++		return;
++	}
++}
++
+ /* dm_helpers_parse_edid_caps
+  *
+  * Parse edid caps
+@@ -115,6 +139,8 @@ enum dc_edid_status dm_helpers_parse_edid_caps(
+ 	else
+ 		edid_caps->speaker_flags = DEFAULT_SPEAKER_LOCATION;
+ 
++	apply_edid_quirks(edid_buf, edid_caps);
++
+ 	kfree(sads);
+ 	kfree(sadb);
+ 
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 9/11] drm/amd/display: Create debugging mechanism for
+ Gaming FAMS
+From: Gianna Binder <gianna.binder@amd.com>
+Date: Thu, 22 Jun 2023 15:57:33 -0600
+Message-Id: <20230622215735.2026220-10-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+[WHY]
+To enable FAMS even during gaming sessions.
+
+[HOW]
+By leveraging a new dc.debug parameter.
+
+Reviewed-by: Felipe Clark <felipe.clark@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Gianna Binder <gianna.binder@amd.com>
+---
+ drivers/gpu/drm/amd/display/dc/dc.h                           | 1 +
+ drivers/gpu/drm/amd/display/dc/dcn30/dcn30_resource.c         | 3 +--
+ drivers/gpu/drm/amd/display/dc/dcn32/dcn32_resource_helpers.c | 3 +--
+ 3 files changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/dc.h b/drivers/gpu/drm/amd/display/dc/dc.h
+index 90e71c3e766f..110ef14445d9 100644
+--- a/drivers/gpu/drm/amd/display/dc/dc.h
++++ b/drivers/gpu/drm/amd/display/dc/dc.h
+@@ -850,6 +850,7 @@ struct dc_debug_options {
+ 	/* Enable dmub aux for legacy ddc */
+ 	bool enable_dmub_aux_for_legacy_ddc;
+ 	bool disable_fams;
++	bool disable_fams_gaming;
+ 	/* FEC/PSR1 sequence enable delay in 100us */
+ 	uint8_t fec_enable_delay_in100us;
+ 	bool enable_driver_sequence_debug;
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_resource.c b/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_resource.c
+index a8cb066bc138..abe4c12a10b5 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_resource.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn30/dcn30_resource.c
+@@ -1987,11 +1987,10 @@ bool dcn30_can_support_mclk_switch_using_fw_based_vblank_stretch(struct dc *dc,
+ 	if (!is_refresh_rate_support_mclk_switch_using_fw_based_vblank_stretch(context))
+ 		return false;
+ 
+-	// check if freesync enabled
+ 	if (!context->streams[0]->allow_freesync)
+ 		return false;
+ 
+-	if (context->streams[0]->vrr_active_variable)
++	if (context->streams[0]->vrr_active_variable && dc->debug.disable_fams_gaming)
+ 		return false;
+ 
+ 	context->streams[0]->fpo_in_use = true;
+diff --git a/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_resource_helpers.c b/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_resource_helpers.c
+index a9c41ef0751f..5be242a1b82c 100644
+--- a/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_resource_helpers.c
++++ b/drivers/gpu/drm/amd/display/dc/dcn32/dcn32_resource_helpers.c
+@@ -595,11 +595,10 @@ struct dc_stream_state *dcn32_can_support_mclk_switch_using_fw_based_vblank_stre
+ 	if (!is_refresh_rate_support_mclk_switch_using_fw_based_vblank_stretch(fpo_candidate_stream, fpo_vactive_margin_us))
+ 		return NULL;
+ 
+-	// check if freesync enabled
+ 	if (!fpo_candidate_stream->allow_freesync)
+ 		return NULL;
+ 
+-	if (fpo_candidate_stream->vrr_active_variable)
++	if (fpo_candidate_stream->vrr_active_variable && dc->debug.disable_fams_gaming)
+ 		return NULL;
+ 
+ 	return fpo_candidate_stream;
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 10/11] drm/amd/display: Take full update path if number of
+ planes changed
+From: Alvin Lee <alvin.lee2@amd.com>
+Date: Thu, 22 Jun 2023 15:57:34 -0600
+Message-Id: <20230622215735.2026220-11-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+[Description]
+- A full update is required if the number of planes for a given
+  stream changes
+- The new fast update path only checked for stream and plane updates,
+  but there could be a plane addition or removal without one of the
+  stream and plane updates triggering a full update
+- Add an explicit check for number of planes changing for a full update
+
+Reviewed-by: Samson Tam <samson.tam@amd.com>
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Alvin Lee <alvin.lee2@amd.com>
+---
+ drivers/gpu/drm/amd/display/dc/core/dc.c | 19 ++++++++++++++-----
+ 1 file changed, 14 insertions(+), 5 deletions(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/core/dc.c b/drivers/gpu/drm/amd/display/dc/core/dc.c
+index 68eabb5f3a39..d133e4186a52 100644
+--- a/drivers/gpu/drm/amd/display/dc/core/dc.c
++++ b/drivers/gpu/drm/amd/display/dc/core/dc.c
+@@ -4286,10 +4286,12 @@ static bool fast_updates_exist(struct dc_fast_update *fast_update, int surface_c
+ 
+ static bool full_update_required(struct dc_surface_update *srf_updates,
+ 		int surface_count,
+-		struct dc_stream_update *stream_update)
++		struct dc_stream_update *stream_update,
++		struct dc_stream_state *stream)
+ {
+ 
+ 	int i;
++	struct dc_stream_status *stream_status;
+ 
+ 	for (i = 0; i < surface_count; i++) {
+ 		if (srf_updates &&
+@@ -4333,16 +4335,23 @@ static bool full_update_required(struct dc_surface_update *srf_updates,
+ 			stream_update->crtc_timing_adjust))
+ 		return true;
+ 
++	if (stream) {
++		stream_status = dc_stream_get_status(stream);
++		if (stream_status == NULL || stream_status->plane_count != surface_count)
++			return true;
++	}
++
+ 	return false;
+ }
+ 
+ static bool fast_update_only(struct dc_fast_update *fast_update,
+ 		struct dc_surface_update *srf_updates,
+ 		int surface_count,
+-		struct dc_stream_update *stream_update)
++		struct dc_stream_update *stream_update,
++		struct dc_stream_state *stream)
+ {
+ 	return fast_updates_exist(fast_update, surface_count)
+-			&& !full_update_required(srf_updates, surface_count, stream_update);
++			&& !full_update_required(srf_updates, surface_count, stream_update, stream);
+ }
+ 
+ bool dc_update_planes_and_stream(struct dc *dc,
+@@ -4414,7 +4423,7 @@ bool dc_update_planes_and_stream(struct dc *dc,
+ 	}
+ 
+ 	update_seamless_boot_flags(dc, context, surface_count, stream);
+-	if (fast_update_only(fast_update, srf_updates, surface_count, stream_update) &&
++	if (fast_update_only(fast_update, srf_updates, surface_count, stream_update, stream) &&
+ 			!dc->debug.enable_legacy_fast_update) {
+ 		commit_planes_for_stream_fast(dc,
+ 				srf_updates,
+@@ -4560,7 +4569,7 @@ void dc_commit_updates_for_stream(struct dc *dc,
+ 	TRACE_DC_PIPE_STATE(pipe_ctx, i, MAX_PIPES);
+ 
+ 	update_seamless_boot_flags(dc, context, surface_count, stream);
+-	if (fast_update_only(fast_update, srf_updates, surface_count, stream_update) &&
++	if (fast_update_only(fast_update, srf_updates, surface_count, stream_update, stream) &&
+ 			!dc->debug.enable_legacy_fast_update) {
+ 		commit_planes_for_stream_fast(dc,
+ 				srf_updates,
+-- 
+2.39.2
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 11/11] drm/amd/display: 3.2.241
+From: Aric Cyr <aric.cyr@amd.com>
+Date: Thu, 22 Jun 2023 15:57:35 -0600
+Message-Id: <20230622215735.2026220-12-Rodrigo.Siqueira@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+This version brings along the following:
+
+- Improve debugging mechanism for Gaming FAMS
+- Add monitor specific edid quirks
+- Fixes for Phantom pipe
+- Fixes for Shapper LUT
+- Clean up asserts
+
+Acked-by: Rodrigo Siqueira <rodrigo.siqueira@amd.com>
+Signed-off-by: Aric Cyr <aric.cyr@amd.com>
+---
+ drivers/gpu/drm/amd/display/dc/dc.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/amd/display/dc/dc.h b/drivers/gpu/drm/amd/display/dc/dc.h
+index 110ef14445d9..63948170fd6d 100644
+--- a/drivers/gpu/drm/amd/display/dc/dc.h
++++ b/drivers/gpu/drm/amd/display/dc/dc.h
+@@ -45,7 +45,7 @@ struct aux_payload;
+ struct set_config_cmd_payload;
+ struct dmub_notification;
+ 
+-#define DC_VER "3.2.240"
++#define DC_VER "3.2.241"
+ 
+ #define MAX_SURFACES 3
+ #define MAX_PLANES 6
+-- 
+2.39.2
+

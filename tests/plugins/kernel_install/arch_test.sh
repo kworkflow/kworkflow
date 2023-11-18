@@ -2,7 +2,7 @@
 
 include './src/plugins/kernel_install/utils.sh'
 include './src/plugins/kernel_install/arch.sh'
-include './src/kwio.sh'
+include './src/lib/kwio.sh'
 include './tests/utils.sh'
 
 function setUp()
@@ -40,9 +40,8 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
   # Local
   sudo_cmd='sudo -E'
   declare -a cmd_sequence=(
-    "$sudo_cmd depmod --all $name"
-    "sudo -E bash -c \"sed 's/NAME/$name/g' '$KW_ETC_DIR/template_mkinitcpio.preset' > /etc/mkinitcpio.d/$name.preset\""
-    "$sudo_cmd mkinitcpio --preset $name"
+    "${sudo_cmd} depmod --all ${name}"
+    "${sudo_cmd} mkinitcpio --generate /boot/initramfs-${name}.img --kernel ${name}"
   )
 
   output="$(
@@ -65,9 +64,8 @@ function test_generate_arch_temporary_root_file_system_remote_and_mkinitcpio()
 
   # Remote
   declare -a cmd_sequence=(
-    "depmod --all $name"
-    "bash -c \"sed 's/NAME/$name/g' '$REMOTE_KW_DEPLOY/template_mkinitcpio.preset' > /etc/mkinitcpio.d/$name.preset\""
-    "mkinitcpio --preset $name"
+    "depmod --all ${name}"
+    "mkinitcpio --generate /boot/initramfs-${name}.img --kernel ${name}"
   )
 
   output="$(

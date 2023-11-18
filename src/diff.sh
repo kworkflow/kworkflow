@@ -1,17 +1,17 @@
-include "$KW_LIB_DIR/kwio.sh"
-include "$KW_LIB_DIR/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 
-# Hash containing user options
-declare -gA diff_options
+declare -gA options_values
 
-function diff_manager()
+function diff_main()
 {
-  local files_paths=${*: -2}
-  local interactive
-  local target_1
-  local target_2
+  local target_a="$1"
+  local target_b="$2"
+  local flag
 
-  IFS=' ' read -r -a files <<< "$files_paths"
+  flag=${flag:-'SILENT'}
+
+  IFS=' ' read -r -a files <<< "${target_a} ${target_b}"
   for file in "${files[@]}"; do
     if [[ "$file" =~ -h|--help ]]; then
       diff_help "$file"
@@ -19,87 +19,42 @@ function diff_manager()
     fi
 
     if [[ ! -e "$file" ]]; then
-      complain "Invalid path: $file"
+      complain "Invalid path: ${file}"
       diff_help
       return 2 # ENOENT
     fi
   done
 
-  target_1="${files[0]}"
-  target_2="${files[1]}"
-
-  # Drop files
-  set -- "${@:1:$#-2}"
-
-  diff_parser_options "$@"
-  if [[ "$?" -gt 0 ]]; then
-    complain "Invalid option: ${diff_options['ERROR']}"
-    return 22
+  parse_diff_options "$@"
+  if [[ $? -gt 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    diff_help
+    exit 22 # EINVAL
   fi
 
-  if [[ "${diff_options['HELP']}" == 1 ]]; then
-    diff_help "$@"
-    return 0
-  fi
+  interactive="${options_values['INTERACTIVE']}"
+  test_mode="${options_values['TEST_MODE']}"
 
-  interactive="${diff_options['INTERACTIVE']}"
-  test_mode="${diff_options['TEST_MODE']}"
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
   if [[ "$test_mode" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$target_1 $target_2 $interactive"
+    printf '%s %s %s\n' "$target_a" "$target_b" "$interactive"
     return 0
   fi
 
-  if [[ -d "$target_1" && -d "$target_2" ]]; then
-    diff_folders "$target_1" "$target_2"
+  if [[ -d "$target_a" && -d "$target_b" ]]; then
+    diff_folders "$target_a" "$target_b" "$flag"
     return "$?"
   fi
 
-  diff_side_by_side "$target_1" "$target_2" "$interactive"
-}
-
-# This function gets raw data and based on that fill out the options values to
-# be used in another function.
-#
-# @raw_options String with all user options
-#
-# Return:
-# In case of successful return 0, otherwise, return 22.
-function diff_parser_options()
-{
-  local raw_options="$*"
-
-  diff_options['INTERACTIVE']=1
-  diff_options['HELP']=0
-
-  IFS=' ' read -r -a options <<< "$raw_options"
-  for option in "${options[@]}"; do
-    case "$option" in
-      --no-interactive)
-        diff_options['INTERACTIVE']=0
-        continue
-        ;;
-      --help | -h)
-        diff_options['HELP']=1
-        continue
-        ;;
-      test_mode)
-        diff_options['TEST_MODE']='TEST_MODE'
-        ;;
-      *)
-        diff_options['ERROR']="$option"
-        return 22
-        ;;
-    esac
-  done
-
+  diff_side_by_side "$target_a" "$target_b" "$interactive" "$flag"
 }
 
 # Show the diff result between folders in two columns equally divided.
 #
 # @folder_1 Path to the first folder
 # @folder_2 Path to the second folder
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # In case of success, return 0, otherwise, return 22.
@@ -130,7 +85,7 @@ function diff_folders()
 # @file_2 Path to the second file
 # @interactive If set to 1, it interactively displays the diff, otherwise, it
 #              just prints all diff at once.
-# @flag How to display a command, see `src/kwlib.sh` function `cmd_manager`
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 function diff_side_by_side()
 {
   local file_1="$1"
@@ -144,30 +99,85 @@ function diff_side_by_side()
   # specify dummy terminal option to manage that
   [[ "$TERM" == '' || "$TERM" == 'dumb' ]] && TPUTTERM=' -T xterm-256color'
   columns=$(eval tput"${TPUTTERM}" cols)
-  diff_cmd="diff -y --color=always --width=$columns"
-  flag=${flag:-''}
+  diff_cmd="diff -y --color=always --width=${columns}"
+  flag=${flag:-'SILENT'}
 
   if [[ ! -f "$file_1" || ! -f "$file_2" ]]; then
-    complain "Make sure that $file_1 and $file_2 are a valid files"
+    diff_help
     return 22 # EINVAL
   fi
 
   diff_cmd="$diff_cmd $file_1 $file_2"
   if [[ "$interactive" == 1 ]]; then
-    diff_cmd="$diff_cmd | less -R"
+    diff_cmd="${diff_cmd} | less --RAW-CONTROL-CHARS"
   fi
 
   cmd_manager "$flag" "$diff_cmd"
 }
 
+# This function gets raw data and based on that fill out the options values to
+# be used in another function.
+#
+# Return:
+# In case of successful return 0, otherwise, return 22.
+function parse_diff_options()
+{
+  local long_options='help,no-interactive,verbose'
+  local short_options='h'
+
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw diff' "$short_options" \
+      "$long_options" "$@")"
+    return 22 # EINVAL
+  fi
+
+  # Default values
+  options_values['INTERACTIVE']=1
+  options_values['VERBOSE']=''
+  options_values['TEST_MODE']=''
+
+  eval "set -- $options"
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --help | -h)
+        diff_help "$1"
+        exit
+        ;;
+      --no-interactive)
+        options_values['INTERACTIVE']=0
+        shift
+        ;;
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
+      test_mode)
+        options_values['TEST_MODE']='TEST_MODE'
+        shift
+        ;;
+      --)
+        shift
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+}
+
 function diff_help()
 {
-  if [[ "$*" =~ --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
+  if [[ "$1" == --help ]]; then
+    include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'diff'
     return
   fi
+
   printf '%s\n' 'kw diff:' \
     '  diff <file1> <file2>                  - interactive diff' \
-    '  diff --no-interactive <file1> <file2> - static diff'
+    '  diff <file1> <file2> --no-interactive - static diff' \
+    '  diff <file1> <file2> --verbose - show a detailed output'
 }

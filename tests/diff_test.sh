@@ -12,7 +12,7 @@ function test_diff_side_by_side()
 
   [[ "$TERM" == '' || "$TERM" == 'dumb' ]] && TPUTTERM=' -T xterm-256color'
   columns=$(eval tput"${TPUTTERM}" cols)
-  diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2 | less -R"
+  diff_cmd="diff -y --color=always --width=$columns $file_1 $file_2 | less --RAW-CONTROL-CHARS"
 
   declare -a expected_cmd=(
     "$diff_cmd"
@@ -41,12 +41,12 @@ function test_diff_side_by_side()
 
 function test_diff_folders()
 {
-  local folder_1="${SAMPLES_DIR}/db_files"
+  local folder_1="${SAMPLES_DIR}/external"
   local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
 
   # TODO: We need to investigate this LANG part. Ideally, we don't want it here
   output=$(LANG=en_US.UTF-8 diff_folders "$folder_1" "$folder_2")
-  assertEquals "$output" "Only in ${folder_1}: init.sql"$'\n'"Only in ${folder_1}: insert.sql"
+  assertEquals "$output" "Only in ${folder_1}: get_maintainer.pl"
 }
 
 function test_diff_folders_no_difference()
@@ -70,22 +70,22 @@ function test_diff_folders_invalid_path()
   assertEquals "($LINENO) Expected 22" 22 "$?"
 }
 
-function test_diff_manager()
+function test_diff_main()
 {
   local file_1="$SAMPLES_DIR/MAINTAINERS"
   local file_2="$SAMPLES_DIR/dmesg"
 
-  output=$(diff_manager 'file_1' 'file_2')
+  output=$(diff_main 'file_1' 'file_2')
   ret="$?"
   assertEquals "($LINENO) Expected 2" '2' "$ret"
 
   expected_result="$file_1 $file_2 1"
-  output=$(diff_manager 'test_mode' "$file_1" "$file_2")
+  output=$(diff_main "$file_1" "$file_2" 1 'test_mode')
   ret="$?"
   assertEquals "($LINENO) Default option:" "$expected_result" "$output"
 
   expected_result="$file_1 $file_2 0"
-  output=$(diff_manager 'test_mode' '--no-interactive' "$file_1" "$file_2")
+  output=$(diff_main "$file_1" "$file_2" 0 '--no-interactive' 'test_mode')
   ret="$?"
   assertEquals "($LINENO) Default option:" "$expected_result" "$output"
 }

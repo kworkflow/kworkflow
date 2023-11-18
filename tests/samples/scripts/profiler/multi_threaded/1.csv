@@ -1,0 +1,6 @@
+entry,rec,0
+entry,rec,500000
+entry,rec,1000000
+return,rec,2000000
+return,rec,4050000
+return,rec,6230000

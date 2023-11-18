@@ -1,6 +1,5 @@
 git
 tar
-python3-docutils
 pulseaudio-utils
 dunst
 graphviz
@@ -8,8 +7,6 @@ texlive-dvipng
 latexmk
 librsvg2
 texlive-xetex
-python3-sphinx
-python3-pip
 bzip2
 lzip
 xz
@@ -23,3 +20,7 @@ ccache
 patch
 sqlite
 dialog
+curl
+perl-XML-XPath
+coreutils
+b4

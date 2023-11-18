@@ -607,8 +607,8 @@ function test_ftrace_list()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Let's reload cmd_manager
-  source 'src/kwlib.sh' --source-only
-  source 'src/remote.sh' --source-only
+  source 'src/lib/kwlib.sh' --source-only
+  source 'src/lib/remote.sh' --source-only
 }
 
 function test_dmesg_debug()

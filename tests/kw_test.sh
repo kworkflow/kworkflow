@@ -26,7 +26,7 @@ function test_check_kworkflow_global_variable()
 
 function test_set_KW_LIB_DIR_in_dev_mode()
 {
-  lib="${KW_LIB_DIR}/kwlib.sh"
+  lib="${KW_LIB_DIR}/lib/kwlib.sh"
   test -f "${lib}" || fail "kwlib.sh not found (${lib} not found)!"
 }
 

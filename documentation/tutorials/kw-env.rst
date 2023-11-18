@@ -59,8 +59,35 @@ Switch between envs
 
 Let's say that you want to switch from one config to another, you can just use::
 
- kw env --use X86_32_CONFIG_TO_TEST_MACHINE_P]
+ kw env --use X86_32_CONFIG_TO_TEST_MACHINE_P
 
 If you want to check if everything looks correct, you can use::
 
  kw vars
+
+How to customize your bash terminal to display the current environment
+----------------------------------------------------------------------
+
+This feature lets users view the current kw environment (if you have one) in their
+bash terminal via the PS1 variable. It is especially useful when working with multiple
+kw envs, as it helps you stay aware of the context you are working in.
+
+To enable this functionality, follow these steps:
+
+If you did not install kw yet, run the below command; otherwise, go to the next step::
+
+  ./setup -i
+
+Enable the functionality to show the current environment
+in the bash terminal by running the following command::
+
+  ./setup -s
+
+Once enabled, you need to add the following line to the .bashrc file::
+
+  PS1="${PS1/\\$/}" && PS1+="\$(kw_get_current_env_name)$ "
+
+.. note::
+    If you have modified the PS1 variable in the .bashrc file, you will need to adapt
+    it to work correctly. You can simply call the ``kw_get_current_env_name`` function
+    on PS1 to display the current environment being used in kworkflow.
