@@ -45,7 +45,7 @@ KW_STATE_DIR="${XDG_STATE_HOME:-"${HOME}/.local/state"}/${KWORKFLOW}"
 # ENV dir name
 ENV_DIR='envs'
 
-##BEGIN-DEV-MODE##
+##BEGIN-REPO-MODE##
 KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
 KW_BASE_DIR="$(dirname "${KW_BIN}")"
 if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
@@ -60,7 +60,7 @@ if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
   KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
   # KW_CACHE_DIR # use default cache folder
 fi
-##END-DEV-MODE##
+##END-REPO-MODE##
 
 # Export external variables required by kworkflow
 export KWORKFLOW
