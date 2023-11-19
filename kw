@@ -45,11 +45,13 @@ KW_STATE_DIR="${XDG_STATE_HOME:-"${HOME}/.local/state"}/${KWORKFLOW}"
 # ENV dir name
 ENV_DIR='envs'
 
-##BEGIN-DEV-MODE##
+##BEGIN-REPO-MODE##
 KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
 KW_BASE_DIR="$(dirname "${KW_BIN}")"
+KW_REPO_MODE='n'
 if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
   # running from source directory
+  KW_REPO_MODE='y'
   KW_LIB_DIR="${KW_BASE_DIR}/src"
   # KW_DATA_DIR # use default data folder
   KW_DOC_DIR="${KW_BASE_DIR}/documentation"
@@ -60,7 +62,7 @@ if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
   KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
   # KW_CACHE_DIR # use default cache folder
 fi
-##END-DEV-MODE##
+##END-REPO-MODE##
 
 # Export external variables required by kworkflow
 export KWORKFLOW
@@ -72,6 +74,25 @@ export KWORKFLOW
 . "${KW_LIB_DIR}/lib/kw_include.sh" --source-only
 
 include "${KW_LIB_DIR}/lib/signal_manager.sh"
+
+# Print a notice message if on REPO mode
+if [[ "${KW_REPO_MODE}" == 'y' ]]; then
+  repo_mode_msg=''
+  repo_mode_msg+="${SEPARATOR}"$'\n'
+  repo_mode_msg+='[INFO]: Running kw using repository executable.'$'\n'$'\n'
+  repo_mode_msg+='KW environment variables are set to the following:'$'\n'$'\n'
+  repo_mode_msg+=$'\t'"KW_CACHE_DIR=${KW_CACHE_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_DATA_DIR=${KW_DATA_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_DB_DIR=${KW_DB_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_DOC_DIR=${KW_DOC_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_ETC_DIR=${KW_ETC_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_LIB_DIR=${KW_LIB_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_MAN_DIR=${KW_MAN_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_PLUGINS_DIR=${KW_PLUGINS_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_SOUND_DIR=${KW_SOUND_DIR}"$'\n'$'\n'
+  repo_mode_msg+="${SEPARATOR}"
+  say "${repo_mode_msg}"
+fi
 
 function kw()
 {

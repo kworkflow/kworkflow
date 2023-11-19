@@ -3,6 +3,57 @@
 include './src/diff.sh'
 include './tests/utils.sh'
 
+function test_diff_main()
+{
+  local file_1="$SAMPLES_DIR/MAINTAINERS"
+  local file_2="$SAMPLES_DIR/dmesg"
+
+  output=$(diff_main 'file_1' 'file_2')
+  ret="$?"
+  assertEquals "($LINENO) Expected 2" '2' "$ret"
+
+  expected_result="$file_1 $file_2 1"
+  output=$(diff_main "$file_1" "$file_2" 1 'test_mode')
+  ret="$?"
+  assertEquals "($LINENO) Default option:" "$expected_result" "$output"
+
+  expected_result="$file_1 $file_2 0"
+  output=$(diff_main "$file_1" "$file_2" 0 '--no-interactive' 'test_mode')
+  ret="$?"
+  assertEquals "($LINENO) Default option:" "$expected_result" "$output"
+}
+
+function test_diff_folders()
+{
+  local folder_1="${SAMPLES_DIR}/external"
+  local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
+
+  # TODO: We need to investigate this LANG part. Ideally, we don't want it here
+  output=$(LANG=en_US.UTF-8 diff_folders "$folder_1" "$folder_2")
+  assertEquals "$output" "Only in ${folder_1}: get_maintainer.pl"
+}
+
+function test_diff_folders_no_difference()
+{
+  local folder_1="${SAMPLES_DIR}/db_files"
+  local folder_2="${SAMPLES_DIR}/db_files"
+
+  output=$(diff_folders "$folder_1" "$folder_2")
+  assertEquals "$output" ""
+}
+
+function test_diff_folders_invalid_path()
+{
+  local folder_1="${SAMPLES_DIR}/db_files"
+  local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
+
+  output=$(diff_folders 'an_invalid_file' "$folder_2")
+  assertEquals "($LINENO) Expected 22" 22 "$?"
+
+  output=$(diff_folders 'an_invalid_file' 'another_invalid_file')
+  assertEquals "($LINENO) Expected 22" 22 "$?"
+}
+
 function test_diff_side_by_side()
 {
   local file_1="$SAMPLES_DIR/MAINTAINERS"
@@ -39,55 +90,34 @@ function test_diff_side_by_side()
 
 }
 
-function test_diff_folders()
+function test_parse_diff_options()
 {
-  local folder_1="${SAMPLES_DIR}/external"
-  local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
+  # shellcheck disable=SC2317
+  function reset_options_values()
+  {
+    unset options_values
+    declare -gA options_values
+  }
 
-  # TODO: We need to investigate this LANG part. Ideally, we don't want it here
-  output=$(LANG=en_US.UTF-8 diff_folders "$folder_1" "$folder_2")
-  assertEquals "$output" "Only in ${folder_1}: get_maintainer.pl"
-}
+  reset_options_values
+  parse_diff_options
+  assert_equals_helper 'Expect diff help message' \
+    "($LINENO):" '0' $?
 
-function test_diff_folders_no_difference()
-{
-  local folder_1="${SAMPLES_DIR}/db_files"
-  local folder_2="${SAMPLES_DIR}/db_files"
+  reset_options_values
+  parse_diff_options --no-interactive
+  assert_equals_helper 'Set no interactivity' \
+    "($LINENO):" '0' "${options_values['INTERACTIVE']}"
 
-  output=$(diff_folders "$folder_1" "$folder_2")
-  assertEquals "$output" ""
-}
+  reset_options_values
+  parse_diff_options --verbose
+  assert_equals_helper 'Set verbose mode' \
+    "($LINENO):" '1' "${options_values['VERBOSE']}"
 
-function test_diff_folders_invalid_path()
-{
-  local folder_1="${SAMPLES_DIR}/db_files"
-  local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
-
-  output=$(diff_folders 'an_invalid_file' "$folder_2")
-  assertEquals "($LINENO) Expected 22" 22 "$?"
-
-  output=$(diff_folders 'an_invalid_file' 'another_invalid_file')
-  assertEquals "($LINENO) Expected 22" 22 "$?"
-}
-
-function test_diff_main()
-{
-  local file_1="$SAMPLES_DIR/MAINTAINERS"
-  local file_2="$SAMPLES_DIR/dmesg"
-
-  output=$(diff_main 'file_1' 'file_2')
-  ret="$?"
-  assertEquals "($LINENO) Expected 2" '2' "$ret"
-
-  expected_result="$file_1 $file_2 1"
-  output=$(diff_main "$file_1" "$file_2" 1 'test_mode')
-  ret="$?"
-  assertEquals "($LINENO) Default option:" "$expected_result" "$output"
-
-  expected_result="$file_1 $file_2 0"
-  output=$(diff_main "$file_1" "$file_2" 0 '--no-interactive' 'test_mode')
-  ret="$?"
-  assertEquals "($LINENO) Default option:" "$expected_result" "$output"
+  reset_options_values
+  parse_diff_options test_mode
+  assert_equals_helper 'Set test mode' \
+    "($LINENO):" 'TEST_MODE' "${options_values['TEST_MODE']}"
 }
 
 invoke_shunit
