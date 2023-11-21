@@ -228,7 +228,7 @@ function test_select_from()
   local entries
 
   # invalid
-  output=$(select_from table columns '' '' 'wrong/path/invalid_db.db')
+  output=$(select_from table columns '' '' '' 'wrong/path/invalid_db.db')
   ret="$?"
   expected='Database does not exist'
   assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 2

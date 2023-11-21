@@ -132,7 +132,9 @@ function get_raw_data_from_period_of_time()
 
   flag=${flag:-'SILENT'}
 
-  raw_data=$(select_from "${table_name} WHERE date REGEXP ${regex_exp}")
+  [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
+
+  raw_data=$(select_from "${table_name} WHERE date REGEXP ${regex_exp}" '' '' '' "$flag")
   printf '%s' "$raw_data"
 }
 

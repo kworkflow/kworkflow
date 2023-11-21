@@ -179,6 +179,7 @@ function remove_from()
 
 # This function gets the values in the table of given database
 #
+# @flag:      Flag to control function output
 # @table:     Table to select info from
 # @columns:   Columns of the table to get
 # @pre_cmd:   Pre command to execute
@@ -195,10 +196,12 @@ function select_from()
   local columns="${2:-"*"}"
   local pre_cmd="$3"
   local order_by="$4"
-  local db="${5:-"$DB_NAME"}"
-  local db_folder="${6:-"$KW_DATA_DIR"}"
+  local flag=${5:-'SILENT'}
+  local db="${6:-$DB_NAME}"
+  local db_folder="${7:-$KW_DATA_DIR}"
   local db_path
   local query
+  local cmd
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -216,7 +219,9 @@ function select_from()
   if [[ -n "${order_by}" ]]; then
     query="SELECT $columns FROM $table ORDER BY ${order_by} ;"
   fi
-  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" -cmd "$pre_cmd" "$db_path" -batch "$query"
+
+  cmd="sqlite3 -init ${KW_DB_DIR}/pre_cmd.sql -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function takes arguments and assembles them into the correct format to
