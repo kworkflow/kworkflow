@@ -30,7 +30,7 @@ function kernel_config_manager_main()
   flag=${flag:-'SILENT'}
 
   if [[ -z "$*" ]]; then
-    list_configs
+    list_configs "$flag"
     return "$?"
   fi
 
@@ -63,7 +63,7 @@ function kernel_config_manager_main()
   fi
 
   if [[ -n "${options_values['LIST']}" ]]; then
-    list_configs
+    list_configs "$flag"
     return "$?"
   fi
 
@@ -126,8 +126,10 @@ function save_config_file()
     return 2 # ENOENT
   fi
 
+  [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
+
   # Checks if there is already an entry for that kernel config file in the database
-  is_on_database="$(select_from "kernel_config WHERE name IS '${config_name}'")"
+  is_on_database="$(select_from "kernel_config WHERE name IS '${config_name}'" '' '' '' "$flag")"
   if [[ -n "${is_on_database}" && "$force" != 1 ]]; then
     warning "Kernel config file named '${config_name}' already exists."
     if [[ $(ask_yN "Do you want to overwrite it?") =~ '0' ]]; then
@@ -514,9 +516,12 @@ function fetch_config()
 # managed by kw.
 function list_configs()
 {
+  local flag="${1:-SILENT}"
   local configs
 
-  configs="$(select_from 'kernel_config' 'name AS "Name", description AS "Description", last_updated_datetime AS "Last updated"' '.mode column')"
+  [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
+
+  configs="$(select_from 'kernel_config' 'name AS \"Name\", description AS \"Description\", last_updated_datetime AS \"Last updated\"' '.mode column' '' "$flag")"
 
   if [[ -z "$configs" ]]; then
     say 'There are no .config files managed by kw'
@@ -555,7 +560,9 @@ function basic_config_validations()
     exit 2 # ENOENT
   fi
 
-  query_output=$(select_from "kernel_config WHERE name IS '${config_name}'")
+  [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
+
+  query_output="$(select_from "kernel_config WHERE name IS '${config_name}'" '' '' '' "$flag")"
   if [[ -z "${query_output}" ]]; then
     complain "Couldn't find config in database named: ${config_name}"
     # Ask user what to do with hanging local .config
@@ -636,7 +643,7 @@ function remove_config()
   local -r msg="This operation will remove ${config_name} from kw management"
   local ret
 
-  basic_config_validations "$config_name" "$force" 'Remove' "$msg"
+  basic_config_validations "$config_name" "$force" 'Remove' "$msg" "$flag"
 
   if is_safe_path_to_remove "${kernel_configs_dir}/${config_name}"; then
     cmd_manager "$flag" "rm ${kernel_configs_dir}/${config_name}"
