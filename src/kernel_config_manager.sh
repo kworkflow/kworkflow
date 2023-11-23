@@ -175,7 +175,7 @@ function save_config_file()
   datetime=$(date '+%Y-%m-%d %H:%M:%S')
   values=("$config_name" "$description" "${kernel_configs_dir}/${config_name}" "$datetime")
   rows="$(format_values_db 4 "${values[@]}")"
-  replace_into '"kernel_config"' "$database_columns" "$rows"
+  replace_into '"kernel_config"' "$database_columns" "$rows" '' "$flag"
   ret="$?"
 
   if [[ "$ret" -gt 0 ]]; then
