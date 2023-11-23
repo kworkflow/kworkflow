@@ -117,8 +117,10 @@ function replace_into()
   local columns="$2"
   local rows="$3"
   local db="${4:-"$DB_NAME"}"
-  local db_folder="${5:-"$KW_DATA_DIR"}"
+  local flag=${5:-'SILENT'}
+  local db_folder="${6:-"$KW_DATA_DIR"}"
   local db_path
+  local cmd
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -134,7 +136,8 @@ function replace_into()
 
   [[ -n "$columns" && ! "$columns" =~ ^\(.*\)$ ]] && columns="($columns)"
 
-  sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" "${db_path}" -batch "REPLACE INTO ${table} ${columns} VALUES ${rows};"
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"REPLACE INTO ${table} ${columns} VALUES ${rows};\""
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function removes every matching row from a given table.
