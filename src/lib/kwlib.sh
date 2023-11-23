@@ -382,6 +382,7 @@ function statistics_manager()
   local start_datetime_in_secs="$2"
   local elapsed_time_in_secs="$3"
   local status=${4:-'success'}
+  local flag=${5:-'SILENT'}
   local start_datetime
   local start_date
   local start_time
@@ -401,7 +402,7 @@ function statistics_manager()
 
   row=$(format_values_db 5 "$label_name" "$status" "$start_date" "$start_time" "$elapsed_time_in_secs")
 
-  insert_into '"statistics_report"' "$database_columns" "$row"
+  insert_into '"statistics_report"' "$database_columns" "$row" '' "$flag"
 }
 
 # This function checks if a certain command can be run

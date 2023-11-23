@@ -142,9 +142,9 @@ function build_kernel_main()
   runtime=$((end - start))
 
   if [[ "$ret" != 0 ]]; then
-    statistics_manager 'build' "$start" "$runtime" 'failure'
+    statistics_manager 'build' "$start" "$runtime" 'failure' "$flag"
   else
-    statistics_manager 'build' "$start" "$runtime"
+    statistics_manager 'build' "$start" "$runtime" '' "$flag"
   fi
 
   return "$ret"

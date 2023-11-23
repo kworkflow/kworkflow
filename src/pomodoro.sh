@@ -112,7 +112,7 @@ function register_tag()
   local tag="$2"
 
   if ! is_tag_already_registered "$flag" "$tag"; then
-    insert_into 'tag' "('name')" "('${tag}')"
+    insert_into 'tag' "('name')" "('${tag}')" '' "$flag"
   fi
 }
 
@@ -166,6 +166,7 @@ function timer_thread()
 # the description (if there is one) in the local database.
 function register_data_for_report()
 {
+  local flag=${1:-'SILENT'}
   local start_date
   local start_time
   local duration
@@ -184,7 +185,7 @@ function register_data_for_report()
 
   # Format the data and insert it into the database
   formatted_data="$(format_values_db 5 "${values[@]}")"
-  insert_into '"pomodoro_report"' "$columns" "${formatted_data}"
+  insert_into '"pomodoro_report"' "$columns" "${formatted_data}" '' "$flag"
 }
 
 # This function checks if the time passed as argument is a valid one, i.e, is
