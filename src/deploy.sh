@@ -140,9 +140,9 @@ function deploy_main()
     runtime=$((end - start))
 
     if [[ "$ret" == 0 ]]; then
-      statistics_manager 'list' "$start" "$runtime"
+      statistics_manager 'list' "$start" "$runtime" '' "$flag"
     else
-      statistics_manager 'list' "$start" "$runtime" 'failure'
+      statistics_manager 'list' "$start" "$runtime" 'failure' "$flag"
     fi
 
     exit "$?"
@@ -157,9 +157,9 @@ function deploy_main()
     runtime=$((end - start))
 
     if [[ "$ret" == 0 ]]; then
-      statistics_manager 'uninstall' "$start" "$runtime"
+      statistics_manager 'uninstall' "$start" "$runtime" '' "$flag"
     else
-      statistics_manager 'uninstall' "$start" "$runtime" 'failure'
+      statistics_manager 'uninstall' "$start" "$runtime" 'failure' "$flag"
     fi
 
     return "$?"
@@ -253,9 +253,9 @@ function deploy_main()
     runtime=$((end - start))
 
     if [[ "$ret" == 0 ]]; then
-      statistics_manager 'deploy' "$start" "$runtime"
+      statistics_manager 'deploy' "$start" "$runtime" '' "$flag"
     else
-      statistics_manager 'deploy' "$start" "$runtime" 'failure'
+      statistics_manager 'deploy' "$start" "$runtime" 'failure' "$flag"
       exit "$ret"
     fi
   else # Only module deploy
@@ -266,9 +266,9 @@ function deploy_main()
     runtime=$((end - start))
 
     if [[ "$ret" == 0 ]]; then
-      statistics_manager 'modules_deploy' "$start" "$runtime"
+      statistics_manager 'modules_deploy' "$start" "$runtime" '' "$flag"
     else
-      statistics_manager 'modules_deploy' "$start" "$runtime" 'failure'
+      statistics_manager 'modules_deploy' "$start" "$runtime" 'failure' "$flag"
     fi
   fi
 

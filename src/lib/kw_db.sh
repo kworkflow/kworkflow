@@ -75,8 +75,10 @@ function insert_into()
   local entries="$2"
   local values="$3"
   local db="${4:-"$DB_NAME"}"
-  local db_folder="${5:-"$KW_DATA_DIR"}"
+  local flag=${5:-'SILENT'}
+  local db_folder="${6:-$KW_DATA_DIR}"
   local db_path
+  local cmd
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -92,7 +94,8 @@ function insert_into()
 
   [[ -n "$entries" && ! "$entries" =~ ^\(.*\)$ ]] && entries="($entries)"
 
-  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -batch "INSERT INTO $table $entries VALUES $values;"
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"INSERT INTO ${table} ${entries} VALUES ${values};\""
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function updates or insert rows into table of given database,
