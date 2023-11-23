@@ -158,6 +158,7 @@ function remove_from()
   local -n _condition_array="$2"
   local db="${3:-"${DB_NAME}"}"
   local db_folder="${4:-"${KW_DATA_DIR}"}"
+  local flag=${5:-'SILENT'}
   local where_clause=''
   local db_path
 
@@ -180,7 +181,8 @@ function remove_from()
   # Remove trailing ' AND '
   where_clause="${where_clause::-5}"
 
-  sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" "${db_path}" -batch "DELETE FROM ${table} WHERE ${where_clause};"
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"DELETE FROM ${table} WHERE ${where_clause};\""
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function gets the values in the table of given database

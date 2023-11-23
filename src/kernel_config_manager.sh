@@ -654,7 +654,7 @@ function remove_config()
   fi
 
   condition_array=(['name']="${config_name}")
-  remove_from '"kernel_config"' 'condition_array'
+  remove_from '"kernel_config"' 'condition_array' '' '' "$flag"
 
   say "The ${config_name} config file was removed from kw management"
 }
