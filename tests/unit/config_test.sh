@@ -36,6 +36,13 @@ function tearDown()
   rm -rf "${KW_CONFIG_BASE_PATH}"
 }
 
+# Show configurations WITHOUT the prefixes [GLOBAL]/[LOCAL].
+# The tests do not expect the output to have source indicators prefixes.
+function show_raw_configurations()
+{
+  show_configurations "$@" | sed 's;\[[A-Z ]\+\] ;;'
+}
+
 function test_is_config_file_valid()
 {
   is_config_file_valid 'invalid'
@@ -161,8 +168,8 @@ function test_parse_config_options()
 
   reset_options_values
   parse_config_options
-  assert_equals_helper 'Expected local as a default scope' \
-    "($LINENO)" 'local' "${options_values['SCOPE']}"
+  assert_equals_helper 'Expected empty string as a default scope' \
+    "($LINENO)" '' "${options_values['SCOPE']}"
 
   # test default options
   reset_options_values
@@ -200,7 +207,7 @@ function test_show_configurations_without_parameters()
     return
   }
 
-  output=$(show_configurations)
+  output=$(show_raw_configurations)
 
   assert_line_match "$LINENO" 'vm.virtualizer=libvirt' "$output"
   assert_line_match "$LINENO" 'vm.mount_point=/home/lala' "$output"
@@ -258,7 +265,7 @@ function test_show_configurations_with_parameters()
     return
   }
 
-  output=$(show_configurations 'vm notification')
+  output=$(show_raw_configurations 'vm notification')
 
   assert_line_match "$LINENO" 'vm.virtualizer=libvirt' "$output"
   assert_line_match "$LINENO" 'vm.mount_point=/home/lala' "$output"
