@@ -576,6 +576,23 @@ function test_process_patchsets()
   test_second_process_patchset
 }
 
+function test_process_patchsets_repeated_patches()
+{
+  local pre_processed_patches_sample
+  local expected
+
+  # Clear number of patchsets processed and data structure with patchsets
+  reset_current_lore_fetch_session
+
+  # Process list of repeated pre processed patches
+  pre_processed_patches_sample=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-repeated")
+  process_patchsets "$pre_processed_patches_sample"
+  assert_equals_helper 'Repeated patches should not be processed again' "$LINENO" 1 "$PATCHSETS_PROCESSED"
+
+  expected='David BowieÆmajor.tom@rock.ukÆXÆXÆ[RFC PATCH v12] Introduce Ziggy StardustÆhttp://lore.kernel.org/rock/introduction'
+  assert_equals_helper 'Wrong processed patchset (index 0)' "$LINENO" "$expected" "${list_of_mailinglist_patches[0]}"
+}
+
 function test_reset_current_lore_fetch_session()
 {
   list_of_mailinglist_patches[0]=1
@@ -584,10 +601,16 @@ function test_reset_current_lore_fetch_session()
   PATCHSETS_PROCESSED=3
   MIN_INDEX=200
 
+  declare -Ag processed_patchsets
+  processed_patchsets['patch_1']=1
+  processed_patchsets['patch_2']=1
+  processed_patchsets['patch_3']=1
+
   reset_current_lore_fetch_session 2
   assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
   assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
   assert_equals_helper 'Should reset `MIN_INDEX`' "$LINENO" 0 "$MIN_INDEX"
+  assert_equals_helper 'Should reset `processed_patchsets`' "$LINENO" 0 "${#processed_patchsets[@]}"
 }
 
 function test_format_patchsets()
