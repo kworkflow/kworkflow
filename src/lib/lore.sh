@@ -63,6 +63,10 @@ declare -g MIN_INDEX=0
 # it easy to undertand.
 declare -ag list_of_mailinglist_patches
 
+# This associative array stores the current processed patchsets and it is used
+# to check if a given patchset was already processed.
+declare -Ag processed_patchsets
+
 # This function creates the directory used by kw for any lore related data.
 #
 # Return:
@@ -317,6 +321,8 @@ function reset_current_lore_fetch_session()
   list_of_mailinglist_patches=()
   PATCHSETS_PROCESSED=0
   MIN_INDEX=0
+  unset processed_patchsets
+  declare -Ag processed_patchsets
 }
 
 # This function composes a query URL to a public mailing list archived
@@ -443,13 +449,14 @@ function process_patchsets()
     if [[ "$line" =~ ^[[:space:]]href= ]]; then
       patch_url=$(str_get_value_under_double_quotes "$line")
 
-      if is_introduction_patch "$patch_url"; then
-        # Process each patch in parallel
+      if [[ "${processed_patchsets["$patch_url"]}" != 1 ]] && is_introduction_patch "$patch_url"; then
+        # Processes each patch in parallel
         thread_for_process_patch "$PATCHSETS_PROCESSED" "$shared_dir_for_parallelism" \
           "$processed_patchset" "$patch_url" "$patch_title" &
         pids[i]="$!"
         ((i++))
         ((PATCHSETS_PROCESSED++))
+        processed_patchsets["$patch_url"]=1
       fi
 
       processed_patchset=''
