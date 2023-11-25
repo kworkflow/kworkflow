@@ -1,6 +1,6 @@
-============
-kw-codestyle
-============
+=================================
+kw-codestyle - Checkpatch wrapper
+=================================
 
 .. _codestyle-doc:
 

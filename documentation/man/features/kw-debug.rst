@@ -4,6 +4,10 @@ kw-debug
 
 .. _debug-doc:
 
+------------
+Kernel debug
+------------
+
 SYNOPSIS
 ========
 | *kw* *debug* [(-e | \--event) <event-syntax> [(-d | \--disable)] [(-k | \--history)] [(-f | \--follow)] ]

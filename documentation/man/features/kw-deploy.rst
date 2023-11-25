@@ -4,6 +4,10 @@ kw-deploy
 
 .. _deploy-doc:
 
+-------------
+Deploy kernel
+-------------
+
 SYNOPSIS
 ========
 *kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local]
