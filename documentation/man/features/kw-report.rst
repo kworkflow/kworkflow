@@ -1,8 +1,9 @@
-=========
-kw-report
-=========
+================================
+kw-report - Display user reports
+================================
 
 .. _report-doc:
+
 
 SYNOPSIS
 ========

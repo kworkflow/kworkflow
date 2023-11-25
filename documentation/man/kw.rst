@@ -1,12 +1,8 @@
-=====
- kw
-=====
+===============================================
+ kw - Inglorious kernel developer workflow tool
+===============================================
 
 .. _manual:
-
------------------------------------------
-Inglorious kernel developer workflow tool
------------------------------------------
 
 :Author: Rodrigo Siqueira <rodrigosiqueiramelo@gmail.com>
 :Author: Matheus Tavares <matheus.bernardino@usp.br>
