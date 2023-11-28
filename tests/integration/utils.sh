@@ -202,3 +202,14 @@ container_copy()
     fail "(${LINENO}): Failed to copy host files to the container."
   fi
 }
+
+# inspect the container
+container_inspect()
+{
+  # shellcheck disable=SC2068
+  podman container inspect $@
+
+  if [[ "$?" -ne 0 ]]; then
+    fail "(${LINENO}): Failed to inspect the container."
+  fi
+}
