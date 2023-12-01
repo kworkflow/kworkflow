@@ -358,8 +358,18 @@ function parse_configuration()
   if [ ! -f "$config_path" ]; then
     return 22 # 22 means Invalid argument - EINVAL
   fi
+
+  # The `read` command will read all the characters untill it  finds  a  newline
+  # character and then write those characters onto the given variable  (in  this
+  # case, the `line` variable). If it does not find a newline `\n` character, it
+  # will exit with status code 1. This  evaluates  to  false,  which  means  the
+  # shellscript exits the loop. Therefore, if the last line  is  not  empty  but
+  # misses the newline character, the loop won't be  run  and  the  last  config
+  # option won't be read. We handle this edge case by checking if  line  is  not
+  # empty and proceeding to run the loop once more if necessary.
+  #
   # shellcheck disable=SC2162
-  while read line; do
+  while read line || [[ -n "$line" ]]; do
     # Line started with # or that are blank should be ignored
     [[ "$line" =~ ^# || "$line" =~ ^$ ]] && continue
 
