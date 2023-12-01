@@ -149,6 +149,36 @@ function test_parse_configuration_standard_config()
   assert_configurations_helper configurations expected_configurations "$LINENO"
 }
 
+function test_parse_configuration_file_without_final_newline()
+{
+  local config_key
+  local config_val
+  local config_ref
+  local config_file
+
+  # the configuration we will test, for the build module
+  declare -A expected_configurations=(
+    [arch]='amd'
+    [cpu_scaling_factor]='75'
+    [cflags]='-Wall'
+  )
+  config_ref='build_config'
+  config_file="${TMPDIR_KW_FOLDER}/build.config"
+
+  # manually put the contents onto the file to ensure no newline at the end
+  (for config_key in "${!expected_configurations[@]}"; do
+    config_val="${expected_configurations[$config_key]}"
+
+    # The newline character comes before the config  option  purposefully.  This
+    # will put each option in a different line,  but  the  last  line  won't  be
+    # followed by the newline character, which is what we want to test.
+    printf '\n%s=%s' "$config_key" "$config_val"
+  done) > "$config_file"
+
+  parse_configuration "$config_file" "$config_ref"
+  assert_configurations_helper "$config_ref" expected_configurations
+}
+
 # To test the order of config file loading, we will put a file named
 # kworkflow.config in each place, in order, and remove the previous one.
 # The order is: PWD, XDG_CONFIG_HOME, XDG_CONFIG_DIRS, KW_ETC_DIR
@@ -307,7 +337,18 @@ function test_show_variables_main_correctness()
   )
 
   output="$(show_variables_main | grep -E '^\s{3,}')"
-  while read -r line; do
+
+  # The `read` command will read all the characters untill it  finds  a  newline
+  # character and then write those characters onto the given variable  (in  this
+  # case, the `line` variable). If it does not find a newline `\n` character, it
+  # will exit with status code 1. This  evaluates  to  false,  which  means  the
+  # shellscript exits the loop. Therefore, if the last line  is  not  empty  but
+  # misses the newline character, the loop won't be  run  and  the  last  config
+  # option won't be read. We handle this edge case by checking if  line  is  not
+  # empty and proceeding to run the loop once more if necessary.
+  #
+  # shellcheck disable=SC2162
+  while read -r line || [[ -n "$line" ]]; do
     option="$(printf '%s\n' "$line" | sed -E 's/.*\((\S*)\).*/\1/')"
     value=$(printf '%s\n' "$line" | sed -E 's/.*: (.*)/\1/')
     if [[ "${configurations[$option]}" != "$value" ]]; then
