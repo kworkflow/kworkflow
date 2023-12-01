@@ -8,6 +8,7 @@ DEPLOY_CONFIG_FILENAME='deploy.config'
 VM_CONFIG_FILENAME='vm.config'
 MAIL_CONFIG_FILENAME='mail.config'
 MAIL_CONFIG_FILENAME='lore.config'
+REMOTE_CONFIG_FILENAME='remote.config'
 KW_DIR='.kw'
 
 # Basic targets
@@ -42,6 +43,11 @@ declare -gA vm_config_local
 declare -gA mail_config
 declare -gA mail_config_global
 declare -gA mail_config_local
+
+# SSH configuration
+declare -gA remote_config
+declare -gA remote_config_global
+declare -gA remote_config_local
 
 # Notification configuration
 declare -gA notification_config
@@ -98,7 +104,7 @@ function show_variables_main()
     [build]='Kernel build options'
     [deploy]='Kernel deploy options'
     [mail]='Send-email options'
-    [ssh]='SSH options'
+    [remote]='SSH options'
     [vm]='VM options'
     [notification]='Notification options'
     [misc]='Miscellaneous options'
@@ -108,7 +114,7 @@ function show_variables_main()
   groups=(
     'deploy'
     'mail'
-    'ssh'
+    'remote'
     'vm'
     'notification'
     'misc'
@@ -132,6 +138,10 @@ function show_variables_main()
         ;;
       'mail')
         show_mail_variables "$@"
+        continue
+        ;;
+      'remote')
+        show_remote_variables "$@"
         continue
         ;;
       'notification')
@@ -265,6 +275,33 @@ function show_mail_variables()
   printf '%s\n' "  kw mail options:"
   local -n descriptions="mail"
   print_array mail_config mail
+}
+
+function show_remote_variables()
+{
+  local test_mode=0
+  local has_local_remote_config='No'
+
+  [[ -f "${PWD}/${KW_DIR}/${REMOTE_CONFIG_FILENAME}" ]] && has_local_remote_config='Yes'
+
+  say 'kw remote configuration variables:'
+  printf '%s\n' "  Default remote: $has_local_remote_config"
+
+  if [[ "$1" == 'TEST_MODE' ]]; then
+    test_mode=1
+  fi
+
+  local -Ar remote=(
+    [remote_user]='SSH user'
+    [remote_ip]='SSH address'
+    [remote_port]='SSH port'
+    [remote_configfile]='SSH configuration file'
+    [hostname]='Hostname of the target in the SSH configuration file'
+  )
+
+  printf '%s\n' "  kw remote options:"
+  local -n descriptions="remote"
+  print_array remote_config remote
 }
 
 function show_vm_variables()
@@ -402,6 +439,9 @@ function load_configuration()
     'mail')
       target_array='mail_config'
       ;;
+    'remote')
+      target_array='remote_config'
+      ;;
     'notification')
       target_array='notification_config'
       ;;
@@ -470,6 +510,11 @@ load_mail_config()
   load_configuration 'mail'
 }
 
+load_remote_config()
+{
+  load_configuration 'remote'
+}
+
 load_kworkflow_config()
 {
   load_configuration 'kworkflow'
@@ -492,6 +537,7 @@ load_all_config()
   load_deploy_config
   load_build_config
   load_mail_config
+  load_remote_config
   load_lore_config
   load_vm_config
 }
