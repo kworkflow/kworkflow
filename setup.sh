@@ -9,6 +9,7 @@ SILENT=1
 VERBOSE=0
 FORCE=0
 SKIPCHECKS=0
+SKIPDOCS=0
 ENABLE_TRACING=0
 
 declare -r app_name='kw'
@@ -224,6 +225,7 @@ function usage()
   say "--install   | -i     Install $app_name"
   say "--uninstall | -u     Uninstall $app_name"
   say '--skip-checks        Skip checks (use this when packaging)'
+  say '--skip-docs          Skip creation of man pages (use this when installing)'
   say '--verbose            Explain what is being done'
   say '--force              Never prompt'
   say "--completely-remove  Remove $app_name and all files under its responsibility"
@@ -368,22 +370,24 @@ function synchronize_files()
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
 
   # man file
-  mkdir -p "$mandir"
+  if [[ "$SKIPDOCS" == 0 ]]; then
+    mkdir -p "$mandir"
 
-  python3 -m venv "$DOCS_VIRTUAL_ENV"
+    python3 -m venv "$DOCS_VIRTUAL_ENV"
 
-  # Activate python virtual env
-  source "${DOCS_VIRTUAL_ENV}/bin/activate"
-  say 'Creating python virtual env...'
-  cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
-  eval "$cmd"
-  cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
-  # Deactivate python virtual env
-  deactivate
+    # Activate python virtual env
+    source "${DOCS_VIRTUAL_ENV}/bin/activate"
+    say 'Creating python virtual env...'
+    cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+    eval "$cmd"
+    cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
+    # Deactivate python virtual env
+    deactivate
 
-  if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
-    rm -r "$DOCS_VIRTUAL_ENV"
+    if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+      rm -r "$DOCS_VIRTUAL_ENV"
+    fi
   fi
 
   # etc files
@@ -568,6 +572,10 @@ for arg; do
   fi
   if [ "$arg" = '--skip-checks' ]; then
     SKIPCHECKS=1
+    continue
+  fi
+  if [[ "$arg" = '--skip-docs' ]]; then
+    SKIPDOCS=1
     continue
   fi
   if [[ "$arg" = '--enable-tracing' ]]; then
