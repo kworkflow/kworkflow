@@ -165,7 +165,7 @@ function kw()
       ;;
     codestyle | c)
       (
-        include "${KW_LIB_DIR}/checkpatch_wrapper.sh"
+        include "${KW_LIB_DIR}/codestyle.sh"
 
         execute_checkpatch "$@"
       )

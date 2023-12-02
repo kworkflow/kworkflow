@@ -1,6 +1,6 @@
 #!/bin/bash
 
-include './src/checkpatch_wrapper.sh'
+include './src/codestyle.sh'
 include './tests/unit/utils.sh'
 
 # Those variables hold the last line execute_checkpatch prints in a code that is
