@@ -14,7 +14,9 @@ function oneTimeSetUp()
   mkdir -p "$CACHE_LORE_DIR"
   mkdir -p "${LORE_DATA_DIR}"
 
-  cp "${SAMPLES_DIR}/web/reduced_lore_main_page.html" "${CACHE_LORE_DIR}/lore_main_page.html"
+  cp "${SAMPLES_DIR}/web/reduced_lore_page_0.html" "${CACHE_LORE_DIR}/lore_page_0.html"
+  cp "${SAMPLES_DIR}/web/reduced_lore_page_1.html" "${CACHE_LORE_DIR}/lore_page_1.html"
+  cp "${SAMPLES_DIR}/web/reduced_lore_page_2.html" "${CACHE_LORE_DIR}/lore_page_2.html"
   cp "${SAMPLES_DIR}/lore_sample.config" "${SHUNIT_TMPDIR}/lore.config"
   cp "${SAMPLES_DIR}/lore/query_result_sample.xml" "${SHUNIT_TMPDIR}/query_result_sample.xml"
 }
@@ -54,6 +56,10 @@ function test_retrieve_available_mailing_lists()
     ['linux-pm']='Linux-PM Archive on lore.kernel.org'
     ['amd-gfx']='AMD-GFX Archive on lore.kernel.org'
     ['dri-devel']='dri-devel Archive on lore.kernel.org'
+    ["oe-linux-nfc"]='NFC on Linux'
+    ['linux-nfc']='Linux-NFC Archive on lore.kernel.org'
+    ['linux-x11']='Linux X11 Discussion Archive on lore.kernel.org'
+    ['ultralinux']='Ultralinux archive on lore.kernel.org'
   )
 
   retrieve_available_mailing_lists 'TEST_MODE' &> /dev/null
