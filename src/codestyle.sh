@@ -5,41 +5,47 @@
 include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 
+declare -gA options_values
+
 # Runs checkpatch in the given path, which might be a file or directory.
 #
 # @FILE_OR_DIR_CHECK Target path for running checkpatch script
-function execute_checkpatch()
+function codestyle_main()
 {
-  local FILE_OR_DIR_CHECK="$1"
-  local flag="$2"
+  local path
+  local flag
+  local checkpatch_options="${configurations[checkpatch_opts]}"
+  local -r original_working_dir="$PWD"
+  local kernel_root
+  local checkpatch
+  local cmd_script
 
-  if [[ "$FILE_OR_DIR_CHECK" =~ ^-h|^--help ]]; then
-    codestyle_help "$1"
-    return 0
+  parse_codestyle_options "$@"
+  if [[ "$?" != 0 ]]; then
+    complain "Invalid option: ${options_values['ERROR']}"
+    return 22 # EINVAL
   fi
+
+  flag=${options_values['TEST_MODE']}
+  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
+  flag=${flag:-'SILENT'}
   # TODO: Note that codespell file is not specified yet because of the poluted
   # output. It could be nice if we can add another option just for this sort
   # of check.
 
-  local options="${configurations[checkpatch_opts]}"
-  local -r original_working_dir="$PWD"
-  local kernel_root
-  local cmd_script
-
-  FILE_OR_DIR_CHECK=${FILE_OR_DIR_CHECK:-'.'}
-  flag=${flag:-'SILENT'}
-
-  # Check if is a valid path
-  if [[ ! -d "$FILE_OR_DIR_CHECK" && ! -f "$FILE_OR_DIR_CHECK" ]]; then
-    complain 'Invalid path'
+  path="${options_values['PATH']}"
+  path=${path:-'.'}
+  if [[ ! -d "$path" && ! -f "$path" ]]; then
+    complain "Invalid path: ${path}"
     return 2 # ENOENT
   fi
 
   # Get realpath for using inside checkpatch
-  FILE_OR_DIR_CHECK="$(realpath "$FILE_OR_DIR_CHECK")"
+  path="$(realpath "$path")"
 
   # Try to find kernel root at given path
-  kernel_root="$(find_kernel_root "$FILE_OR_DIR_CHECK")"
+  kernel_root="$(find_kernel_root "$path")"
   if [[ -z "$kernel_root" ]]; then
     # Fallback: try to find kernel root at working path
     kernel_root="$(find_kernel_root "$original_working_dir")"
@@ -52,19 +58,20 @@ function execute_checkpatch()
   fi
 
   # Build a list of file to apply check patch
-  FLIST=$(find "$FILE_OR_DIR_CHECK" -type f ! -name '*\.mod\.c' | grep "\.[ch]$")
+  FLIST=$(find "$path" -type f ! -name '*\.mod\.c' | grep "\.[ch]$")
 
-  say "Running checkpatch.pl on: $FILE_OR_DIR_CHECK"
+  say "Running checkpatch.pl on: ${path}"
   say "$SEPARATOR"
 
   # Define different rules for patch and files
-  if is_a_patch "$FILE_OR_DIR_CHECK"; then
-    FLIST="$FILE_OR_DIR_CHECK"
+  if is_a_patch "$path"; then
+    FLIST="$path"
   else
-    options="--terse $options --file"
+    checkpatch_options="--terse ${checkpatch_options} --file"
   fi
 
-  cmd_script="perl scripts/checkpatch.pl $options"
+  checkpatch=$(join_path "$kernel_root" 'scripts/checkpatch.pl')
+  cmd_script="perl ${checkpatch} ${checkpatch_options}"
 
   for current_file in $FLIST; do
     file="$current_file"
@@ -74,12 +81,58 @@ function execute_checkpatch()
       continue
     fi
 
-    cd "$kernel_root" || exit_msg 'It was not possible to move to kernel root dir'
-
     cmd_manager "$flag" "$cmd_script $file"
     [[ "$?" != 0 ]] && say "$SEPARATOR"
+  done
+}
 
-    cd "$original_working_dir" || exit_msg 'It was not possible to move back from kernel dir'
+# This function gets raw data and based on that fill out the options values to
+# be used in another function.
+#
+# Return:
+# In case of successful return 0, otherwise, return 22.
+function parse_codestyle_options()
+{
+  local long_options='verbose,help'
+  local short_options='h'
+  local options
+
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw diff' "$short_options" \
+      "$long_options" "$@")"
+    return 22 # EINVAL
+  fi
+
+  # Default values
+  options_values['VERBOSE']=''
+  options_values['TEST_MODE']=''
+
+  eval "set -- $options"
+
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --verbose)
+        options_values['VERBOSE']=1
+        shift
+        ;;
+      TEST_MODE)
+        options_values['TEST_MODE']='TEST_MODE'
+        shift
+        ;;
+      --help | -h)
+        codestyle_help "$1"
+        exit
+        ;;
+      --)
+        shift
+        ;;
+      *)
+        options_values['PATH']="$1"
+        shift
+        ;;
+    esac
   done
 }
 
@@ -91,7 +144,8 @@ function codestyle_help()
     return
   fi
   printf '%s\n' 'kw codestyle:' \
-    '  codestyle [<dir>|<file>|<patch>] - Use checkpatch on target'
+    '  codestyle [<dir>|<file>|<patch>] - Use checkpatch on target' \
+    '  codestyle (--verbose) [<dir>|<file>|<patch>] - Show detailed output'
 }
 
 load_kworkflow_config

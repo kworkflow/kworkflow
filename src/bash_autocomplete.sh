@@ -85,6 +85,9 @@ function _kw_autocomplete()
 
   kw_options['clear-cache']='--verbose'
 
+  kw_options['codestyle']='--verbose --help'
+  kw_options['c']="${kw_options['codestyle']}"
+
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
 
   # TODO:
