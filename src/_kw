@@ -117,6 +117,9 @@ _kw_c() { _kw_codestyle }
 _kw_codestyle()
 {
   _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
+    '(--help)--help[check man page for command]' \
+    '(-h)-h[print command arguments]' \
     '(*): :_files'
 }
 

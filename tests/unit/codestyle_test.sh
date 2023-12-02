@@ -3,7 +3,7 @@
 include './src/codestyle.sh'
 include './tests/unit/utils.sh'
 
-# Those variables hold the last line execute_checkpatch prints in a code that is
+# Those variables hold the last line codestyle_main prints in a code that is
 # correct, has 1 warning, has 1 erros and has 1 check, respectively. The sample
 # codes used in this test are in tests/unit/samples/
 
@@ -24,7 +24,7 @@ function test_invalid_path()
 
   build_fake_path=$(create_invalid_file_path)
 
-  output=$(execute_checkpatch "$build_fake_path")
+  output=$(codestyle_main "$build_fake_path")
   ret="$?"
   assertEquals 'We forced an invalid path and we expect an error' '2' "$ret"
 }
@@ -38,7 +38,7 @@ function test_no_kernel_directory()
   # basic setup but we rebuild it at the end of the test
   oneTimeTearDown
 
-  output=$(execute_checkpatch "$sample_one")
+  output=$(codestyle_main "$sample_one")
   ret="$?"
   assertFalse 'We forced an invalid path and we expect an error' '[[ $ret != 22 ]]'
 
@@ -51,7 +51,7 @@ function test_multiple_files_output()
   local array=()
   local output
 
-  output=$(execute_checkpatch "$SHUNIT_TMPDIR/samples" 2>&1)
+  output=$(codestyle_main "$SHUNIT_TMPDIR/samples" 2>&1)
 
   # Reference: https://www.tutorialkart.com/bash-shell-scripting/bash-split-string/
   s="$output$delimiter"
@@ -66,11 +66,11 @@ function test_multiple_files_output()
   assertFalse 'We could not find more then two SEPARATOR sequence' '[[ $size -lt "3" ]]'
 }
 
-function test_run_checkpatch_in_a_path()
+function test_run_codestyle_in_a_path()
 {
-  local cmd='perl scripts/checkpatch.pl --no-tree --color=always --strict'
-  local patch_path="$TMP_TEST_DIR/samples/test.patch"
-  local patch_path="$SHUNIT_TMPDIR/samples/test.patch"
+  local cmd="perl ${SHUNIT_TMPDIR}/scripts/checkpatch.pl --no-tree --color=always --strict"
+  local patch_path="${TMP_TEST_DIR}/samples/test.patch"
+  local patch_path="${SHUNIT_TMPDIR}/samples/test.patch"
   local output
   local real_path
   local base_msg
@@ -84,14 +84,14 @@ function test_run_checkpatch_in_a_path()
     "$cmd $real_path"
   )
 
-  output=$(execute_checkpatch "$patch_path" 'TEST_MODE' 2>&1)
+  output=$(codestyle_main "$patch_path" 'TEST_MODE' 2>&1)
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_run_checkpatch_in_a_file()
+function test_run_codestyle_in_a_file()
 {
-  local cmd='perl scripts/checkpatch.pl --terse --no-tree --color=always --strict --file'
-  local patch_path="$SHUNIT_TMPDIR/samples/codestyle_correct.c"
+  local cmd="perl ${SHUNIT_TMPDIR}/scripts/checkpatch.pl --terse --no-tree --color=always --strict --file"
+  local patch_path="${SHUNIT_TMPDIR}/samples/codestyle_correct.c"
   local output
   local real_path
   local base_msg
@@ -105,7 +105,7 @@ function test_run_checkpatch_in_a_file()
     "$cmd $real_path"
   )
 
-  output=$(execute_checkpatch "$patch_path" 'TEST_MODE' 2>&1)
+  output=$(codestyle_main "$patch_path" 'TEST_MODE' 2>&1)
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 

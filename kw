@@ -167,7 +167,7 @@ function kw()
       (
         include "${KW_LIB_DIR}/codestyle.sh"
 
-        execute_checkpatch "$@"
+        codestyle_main "$@"
       )
       ;;
     self-update | u)
