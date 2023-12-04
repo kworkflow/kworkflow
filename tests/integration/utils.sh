@@ -188,3 +188,17 @@ function container_exec()
     fail "(${LINENO}): Failed to execute the command in the container."
   fi
 }
+
+# copy local file to container
+container_copy()
+{
+  local container="$1"
+  local src="$2"
+  local dst="$3"
+
+  podman container cp "${src}" "${container}":"${dst}"
+
+  if [[ "$?" -ne 0 ]]; then
+    fail "(${LINENO}): Failed to copy host files to the container."
+  fi
+}
