@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:thr="http://purl.org/syndication/thread/1.0">
+	<entry>
+		<author>
+			<name>Gilberto Gil</name>
+			<email>gil.gil@mpb.br</email>
+		</author>
+		<title>[PATCH v3] Add Palco to MPB</title>
+		<updated>2023-08-09T21:27:00Z</updated>
+		<link href="http://lore.kernel.org/mpb/introduction"/>
+		<id>urn:uuid:2f9fa3da-2057-86a4-aa20-9ad0239ff7a3</id>
+		<content type="xhtml">
+			...
+		</content>
+	</entry>
+	<entry>
+		<author>
+			<name>Tim Maia</name>
+			<email>tim.maia@soul.br</email>
+		</author>
+		<title type="html">[PATCH 3/9] tim-maia/racional: Add Bom Senso to album</title>
+		<updated>2023-08-09T19:10:26Z</updated>
+		<link href="http://lore.kernel.org/soul/sequel"/>
+		<id>urn:uuid:66fe77b1-55ad-6670-73ee-54e933cf5f63</id>
+		<thr:in-reply-to ref="urn:uuid:b09294a9-df54-a8b1-cf19-6f58c2febdd3" href="http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/"/>
+		<content type="xhtml">
+			...
+		</content>
+	</entry>
+	<entry>
+		<author>
+			<name>David Bowie</name>
+			<email>major.tom@rock.uk</email>
+		</author>
+		<title type="html">[RFC PATCH v12] Introduce Ziggy Stardust</title>
+		<updated>2023-08-09T19:10:22Z</updated>
+		<link href="http://lore.kernel.org/rock/introduction"/>
+		<id>urn:uuid:b09294a9-df54-a8b1-cf19-6f58c2febdd3</id>
+		<content type="xhtml">
+			...
+		</content>
+	</entry>
+</feed>
