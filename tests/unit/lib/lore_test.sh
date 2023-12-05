@@ -18,7 +18,7 @@ function oneTimeSetUp()
   cp "${SAMPLES_DIR}/web/reduced_lore_page_1.html" "${CACHE_LORE_DIR}/lore_page_1.html"
   cp "${SAMPLES_DIR}/web/reduced_lore_page_2.html" "${CACHE_LORE_DIR}/lore_page_2.html"
   cp "${SAMPLES_DIR}/lore_sample.config" "${SHUNIT_TMPDIR}/lore.config"
-  cp "${SAMPLES_DIR}/lore/query_result_sample.xml" "${SHUNIT_TMPDIR}/query_result_sample.xml"
+  cp --recursive "${SAMPLES_DIR}/lore/." "${SHUNIT_TMPDIR}/samples"
 }
 
 function setUp()
@@ -510,52 +510,96 @@ function test_pre_process_xml_result()
   local output
   local expected
 
-  output=$(pre_process_xml_result "${SHUNIT_TMPDIR}/query_result_sample.xml")
-  expected='David Tadokoro'$'\n'
-  expected+='davidbtadokoro@usp.br'$'\n'
-  expected+='[PATCH] drm/amdkfd: Add missing tba_hi programming on aldebaran'$'\n'
-  expected+=' href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"'$'\n'
-  expected+='Rodrigo Siqueira'$'\n'
-  expected+='rodrigo.siqueira@amd.com'$'\n'
-  expected+='[PATCH] Revert "drm/amd/pm: resolve reboot exception for si oland"'$'\n'
-  expected+=' href="http://lore.kernel.org/amd-gfx/20230809190956.435068-2-rodrigo.siqueira@amd.com/"'$'\n'
-  expected+='Rodrigo Siqueira'$'\n'
-  expected+='rodrigo.siqueira@amd.com'$'\n'
-  expected+='[PATCH] drm/amdgpu: don'"'"'t allow userspace to create a doorbell BO'$'\n'
-  expected+=' href="http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/"'
+  output=$(pre_process_xml_result "${SHUNIT_TMPDIR}/samples/query_result_sample-1.xml")
+  expected=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-1")
   assert_equals_helper 'Wrong pre-processed result' "$LINENO" "$expected" "$output"
 }
 
-function test_process_patchsets()
+function test_process_patchsets_single_batch()
 {
-  local pre_processed_patches
+  local pre_processed_patches_sample
   local expected
 
-  pre_processed_patches='David Tadokoro'$'\n'
-  pre_processed_patches+='davidbtadokoro@usp.br'$'\n'
-  pre_processed_patches+='[PATCH] drm/amdkfd: Add missing tba_hi programming on aldebaran'$'\n'
-  pre_processed_patches+=' href="http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/"'$'\n'
-  pre_processed_patches+='Rodrigo Siqueira'$'\n'
-  pre_processed_patches+='rodrigo.siqueira@amd.com'$'\n'
-  pre_processed_patches+='[PATCH] Revert "drm/amd/pm: resolve reboot exception for si oland"'$'\n'
-  pre_processed_patches+=' href="http://lore.kernel.org/amd-gfx/20230809190956.435068-2-rodrigo.siqueira@amd.com/"'$'\n'
-  pre_processed_patches+='Rodrigo Siqueira'$'\n'
-  pre_processed_patches+='rodrigo.siqueira@amd.com'$'\n'
-  pre_processed_patches+='[PATCH] drm/amdgpu: don'"'"'t allow userspace to create a doorbell BO'$'\n'
-  pre_processed_patches+=' href="http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/"'
+  # shellcheck disable=SC2317
+  function is_introduction_patch()
+  {
+    local patch_url="$1"
+    [[ "$patch_url" =~ introduction ]] && return 0
+    return 1
+  }
 
-  list_of_mailinglist_patches=()
-  process_patchsets "$pre_processed_patches"
+  # shellcheck disable=SC2317
+  function extract_metadata_from_patch_title()
+  {
+    local patch_title="${1}${SEPARATOR_CHAR}"
+    local patch_url="$2"
+    local patchset_version="X${SEPARATOR_CHAR}"
+    local total_patches="X${SEPARATOR_CHAR}"
 
-  assert_equals_helper 'There should be only 2 patchsets in the array' "$LINENO" 2 "${#list_of_mailinglist_patches[@]}"
+    printf '%s%s%s%s' "$patchset_version" "$total_patches" "$patch_title" "$patch_url"
+  }
 
-  expected='David TadokoroÆdavidbtadokoro@usp.brÆ1Æ1Ædrm/amdkfd: Add missing tba_hi programming on aldebaranÆ'
-  expected+='http://lore.kernel.org/amd-gfx/20230809212615.137674-1-davidbtadokoro@usp.br/'
-  assert_equals_helper 'Wrong patchset at index 0' "$LINENO" "$expected" "${list_of_mailinglist_patches[0]}"
+  # Clear number of patchsets processed and data structure with patchsets
+  reset_current_lore_fetch_session
 
-  expected='Rodrigo SiqueiraÆrodrigo.siqueira@amd.comÆ1Æ1Ædrm/amdgpu: don'"'"'t allow userspace to create a doorbell BOÆ'
-  expected+='http://lore.kernel.org/amd-gfx/20230809190956.435068-1-rodrigo.siqueira@amd.com/'
-  assert_equals_helper 'Wrong patchset at index 1' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
+  # Process single batch
+  pre_processed_patches_sample=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-1")
+  process_patchsets "$pre_processed_patches_sample"
+
+  assert_equals_helper 'Wrong number of patchsets processed' "$LINENO" 2 "$PATCHSETS_PROCESSED"
+
+  expected='Gilberto GilÆgil.gil@mpb.brÆXÆXÆ[PATCH v3] Add Palco to MPBÆhttp://lore.kernel.org/mpb/introduction'
+  assert_equals_helper 'Wrong processed patchset (index 0)' "$LINENO" "$expected" "${list_of_mailinglist_patches[0]}"
+
+  expected='David BowieÆmajor.tom@rock.ukÆXÆXÆ[RFC PATCH v12] Introduce Ziggy StardustÆhttp://lore.kernel.org/rock/introduction'
+  assert_equals_helper 'Wrong processed patchset (index 1)' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
+}
+
+function test_process_patchsets_multiple_batches()
+{
+  local pre_processed_patches_sample
+  local expected
+
+  # shellcheck disable=SC2317
+  function is_introduction_patch()
+  {
+    local patch_url="$1"
+    [[ "$patch_url" =~ introduction ]] && return 0
+    return 1
+  }
+
+  # shellcheck disable=SC2317
+  function extract_metadata_from_patch_title()
+  {
+    local patch_title="${1}${SEPARATOR_CHAR}"
+    local patch_url="$2"
+    local patchset_version="X${SEPARATOR_CHAR}"
+    local total_patches="X${SEPARATOR_CHAR}"
+
+    printf '%s%s%s%s' "$patchset_version" "$total_patches" "$patch_title" "$patch_url"
+  }
+
+  # Clear number of patchsets processed and data structure with patchsets
+  reset_current_lore_fetch_session
+
+  # Process first batch
+  pre_processed_patches_sample=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-1")
+  process_patchsets "$pre_processed_patches_sample"
+
+  # Process second batch
+  pre_processed_patches_sample=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-2")
+  process_patchsets "$pre_processed_patches_sample"
+
+  assert_equals_helper 'Wrong number of patchsets processed' "$LINENO" 3 "$PATCHSETS_PROCESSED"
+
+  expected='Gilberto GilÆgil.gil@mpb.brÆXÆXÆ[PATCH v3] Add Palco to MPBÆhttp://lore.kernel.org/mpb/introduction'
+  assert_equals_helper 'Wrong processed patchset (index 0)' "$LINENO" "$expected" "${list_of_mailinglist_patches[0]}"
+
+  expected='David BowieÆmajor.tom@rock.ukÆXÆXÆ[RFC PATCH v12] Introduce Ziggy StardustÆhttp://lore.kernel.org/rock/introduction'
+  assert_equals_helper 'Wrong processed patchset (index 1)' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
+
+  expected='Seu JorgeÆseu.jorge@samba-pop.brÆXÆXÆ[RFC] Release Músicas para Churrasco Vol.1Æhttp://lore.kernel.org/samba-pop/introduction'
+  assert_equals_helper 'Wrong processed patchset (index 2)' "$LINENO" "$expected" "${list_of_mailinglist_patches[2]}"
 }
 
 function test_reset_current_lore_fetch_session()
