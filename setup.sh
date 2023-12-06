@@ -64,7 +64,7 @@ function check_dependencies()
       installed=$(pacman -Ql "$package" &> /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/arch.dependencies"
-    cmd="pacman -S $package_list"
+    cmd="pacman -Sy --noconfirm $package_list"
   elif [[ "$distro" =~ 'debian' ]]; then
     while IFS='' read -r package; do
       installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
