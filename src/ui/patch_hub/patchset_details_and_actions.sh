@@ -122,8 +122,8 @@ function handle_download_action()
       if [[ "$ret" != 0 ]]; then
         create_message_box 'Error' 'Could not download patchset:'$'\n'"${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
       else
-        message_box='Downloaded patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
-        message_box+='Filepath:'$'\n'"$output"
+        message_box='Bookmarked patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+        message_box+='Downloaded mbox file to:'$'\n'"$output"
         create_message_box 'Success' "$message_box"
       fi
       ;;
@@ -167,6 +167,10 @@ function handle_bookmark_action()
   if [[ "$ret" != 0 ]]; then
     create_message_box 'Error' 'Could not bookmark patchset'$'\n'"- ${_patchset['patchset_title']}"
   fi
+
+  message_box='Downloaded patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+  message_box+='Filepath:'$'\n'"$output"
+  create_message_box 'Success' "$message_box"
 }
 
 # Handler of the 'remove bookmark' action. This function removes the patchset
@@ -186,4 +190,7 @@ function handle_remove_bookmark_action()
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' 'Could not unbookmark patchset'$'\n'"- ${_patchset['patchset_title']}"
   fi
+
+  message_box='Removed bookmark from patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+  create_message_box 'Success' "$message_box"
 }
