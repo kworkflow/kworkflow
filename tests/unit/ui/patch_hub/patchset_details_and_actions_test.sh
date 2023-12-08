@@ -154,6 +154,12 @@ test_handle_bookmark_action()
   local output
 
   # shellcheck disable=SC2317
+  function create_message_box()
+  {
+    return 0
+  }
+
+  # shellcheck disable=SC2317
   function create_async_loading_screen_notification()
   {
     while true; do
@@ -188,6 +194,12 @@ test_handle_remove_bookmark_action()
   declare -A lore_config
   local mbx_file_path
   local output
+
+  # shellcheck disable=SC2317
+  function create_message_box()
+  {
+    return 0
+  }
 
   patchset['patchset_url']='https://lore.kernel.org/amd-gfx/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com/'
   lore_config['save_patches_to']="$SHUNIT_TMPDIR"
