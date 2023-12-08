@@ -54,17 +54,17 @@ function kworkflow_man()
     feature="kw-${feature}"
   fi
 
+  if [[ -r "${doc}/${feature}.1" ]]; then
+    cmd_manager "$flag" "man -l ${doc}/${feature}.1"
+    exit "$?"
+  fi
+
   if [[ -f "$KW_SYSTEM_WIDE_INSTALLATION" ]]; then
     cmd_manager "$flag" "man ${feature}"
     exit "$?"
   fi
 
-  if [[ -r "$doc/$feature.1" ]]; then
-    cmd_manager "$flag" "man -l $doc/$feature.1"
-    exit "$?"
-  fi
-
-  complain "Couldn't find the man page for $feature!"
+  complain "Couldn't find the man page for ${feature}!"
   exit 2 # ENOENT
 }
 

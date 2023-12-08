@@ -11,6 +11,7 @@ VERBOSE=0
 FORCE=0
 SKIPCHECKS=0
 SKIPDOCS=0
+SYSTEMWIDE=0
 ENABLE_TRACING=0
 
 declare -r app_name='kw'
@@ -19,37 +20,34 @@ declare -r app_name='kw'
 ## Following are the install paths
 ##
 # Paths used during the installation process
-declare -r kwbinpath="$HOME/.local/bin/$app_name"
-declare -r binpath="$HOME/.local/bin"
-declare -r libdir="$HOME/.local/lib/$app_name"
-declare -r sharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
-declare -r docdir="$sharedir/doc"
-declare -r mandir="$sharedir/man"
-declare -r sounddir="$sharedir/sound"
-declare -r databasedir="$sharedir/database"
-declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
-declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
-declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
-declare -r tracingdir="${datadir}/tracing"
-declare -r dot_configs_dir="${datadir}/configs"
+declare BINDIR="${HOME}/.local/bin"
+declare LIBDIR="${HOME}/.local/lib/${app_name}"
+declare KWBINPATH="${BINDIR}/${app_name}"
+declare ETCDIR="${XDG_CONFIG_HOME:-"${HOME}/.config"}/${app_name}"
+declare SHAREDIR="${XDG_DATA_HOME:-"${HOME}/.local/share"}/${app_name}"
+declare DOCDIR="${SHAREDIR}/doc"
+declare MANDIR="${SHAREDIR}/man"
+declare SOUNDDIR="${SHAREDIR}/sound"
+declare DATABASEDIR="${SHAREDIR}/database"
+declare -r DATADIR="${XDG_DATA_HOME:-"${HOME}/.local/share"}/${app_name}"
+declare -r CACHEDIR="${XDG_CACHE_HOME:-"${HOME}/.cache/"}/${app_name}"
+declare -r TRACINGDIR="${DATADIR}/tracing"
+declare -r DOTCONFIGDIR="${DATADIR}/configs"
 
 ##
 ## Source code references
 ##
-declare -r SRCDIR='src'
-declare -r MAN='documentation/man/'
-declare -r CONFIG_DIR='etc/'
-declare -r KW_CACHE_DIR="$cachedir"
-declare -r TRACING_CODE_EXCERPTS_DIR='tracing/code_excerpts'
-
-declare -r SOUNDS='sounds'
-declare -r DATABASE='database'
 declare -r BASH_AUTOCOMPLETE='bash_autocomplete'
-declare -r DOCUMENTATION='documentation'
-
+declare -r CONFIG_DIR='etc/'
 declare -r CONFIGS_PATH='configs'
-
+declare -r DATABASE='database'
 declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
+declare -r DOCUMENTATION='documentation'
+declare -r KW_CACHE_DIR="$CACHEDIR"
+declare -r MAN='documentation/man/'
+declare -r SOUNDS='sounds'
+declare -r SRCDIR='src'
+declare -r TRACING_CODE_EXCERPTS_DIR='tracing/code_excerpts'
 
 function check_dependencies()
 {
@@ -167,9 +165,14 @@ function update_path()
 {
   local shellrc=${1:-'.bashrc'}
 
+  # there is no need to update the path if the installation is system wide
+  if [[ "${SYSTEMWIDE}" == 1 ]]; then
+    return
+  fi
+
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
   for path in "${ALL_PATHS[@]}"; do
-    [[ "$path" -ef "$binpath" ]] && return
+    [[ "$path" -ef "$BINDIR" ]] && return
   done
 
   safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "${HOME}/${shellrc}"
@@ -198,21 +201,21 @@ function cmd_output_manager()
 # TODO: Remove me one day
 # KW used git to track saved configs from kernel-config-manager.
 # It changed so this function removes the unused .git folder from
-# the dot_configs_dir
+# the DOTCONFIGDIR
 function remove_legacy_git_from_kernel_config_manager()
 {
   local -r original_path="$PWD"
 
-  [[ ! -d "${dot_configs_dir}"/.git ]] && return
+  [[ ! -d "${DOTCONFIGDIR}"/.git ]] && return
 
-  if pushd "$dot_configs_dir" &> /dev/null; then
+  if pushd "$DOTCONFIGDIR" &> /dev/null; then
     rm -rf .git/
     popd &> /dev/null || {
-      complain "Could not return to original path from dot_configs_dir=$dot_configs_dir"
+      complain "Could not return to original path from DOTCONFIGDIR=$DOTCONFIGDIR"
       exit 1
     }
   else
-    complain 'Could not cd to dot_configs_dir'
+    complain 'Could not cd to DOTCONFIGDIR'
     return
   fi
 }
@@ -223,14 +226,15 @@ function usage()
   say ''
   say 'Where option may be one of the following:'
   say '--help               | -h    Display this usage message'
-  say "--install            | -i    Install $app_name"
-  say "--uninstall          | -u    Uninstall $app_name"
+  say "--install            | -i    Install ${app_name}"
+  say "--uninstall          | -u    Uninstall ${app_name}"
+  say "--system             | -s    Install or uninstall ${app_name} system wide"
   say '--skip-checks        | -C    Skip checks (use this when packaging)'
   say '--skip-docs          | -D    Skip creation of man pages (use this when installing)'
   say '--verbose            | -v    Explain what is being done'
   say '--force              | -f    Never prompt'
-  say "--completely-remove  | -r    Remove $app_name and all files under its responsibility"
-  say "--docs               | -d    Build $app_name's documentation as HTML pages into ./build"
+  say "--completely-remove  | -r    Remove ${app_name} and all files under its responsibility"
+  say "--docs               | -d    Build ${app_name}'s documentation as HTML pages into ./build"
   say "--enable-tracing     | -t    Install ${app_name} with tracing enabled (use it with --install)"
 }
 
@@ -238,7 +242,7 @@ function confirm_complete_removal()
 {
   warning 'This operation will completely remove all files related to kw,'
   warning 'including the kernel '.config' files under its controls.'
-  if [[ $(ask_yN 'Do you want to proceed?') =~ '0' ]]; then
+  if [[ "$FORCE" == 0 && $(ask_yN 'Do you want to proceed?') =~ '0' ]]; then
     exit 0
   fi
 }
@@ -251,8 +255,8 @@ function legacy_folders()
 
   if [[ -d "$HOME/.kw" ]]; then
     say 'Found an obsolete installation of kw:'
-    say "Moving files in $HOME/.kw/ to $datadir..."
-    rsync -a "$HOME/.kw/" "$datadir"
+    say "Moving files in $HOME/.kw/ to $DATADIR..."
+    rsync -a "$HOME/.kw/" "$DATADIR"
 
     rm -rf "$HOME/.kw"
   fi
@@ -265,8 +269,8 @@ function legacy_folders()
 
   # Legacy global config
   if [[ -d "$prefix/etc/kw/" ]]; then
-    say "Moving $prefix/etc/kw to $etcdir..."
-    rsync -a "$prefix/etc/kw/" "$etcdir"
+    say "Moving $prefix/etc/kw to $ETCDIR..."
+    rsync -a "$prefix/etc/kw/" "$ETCDIR"
     # We already check "$prefix"
     # shellcheck disable=SC2115
     rm -rf "$prefix/etc"
@@ -278,6 +282,7 @@ function clean_legacy()
 {
   local completely_remove="$1"
   local toDelete="$app_name"
+  local manfiles=''
   local trash
 
   trash=$(mktemp -d)
@@ -285,26 +290,29 @@ function clean_legacy()
   eval "sed -i '/\<$toDelete\>/d' $HOME/.bashrc"
 
   # Remove kw binary
-  [[ -f "$kwbinpath" ]] && mv "$kwbinpath" "$trash"
+  [[ -f "$KWBINPATH" ]] && mv "$KWBINPATH" "${trash}/kw"
 
   # Remove kw libriary
-  [[ -d "$libdir" ]] && mv "$libdir" "$trash/lib"
+  [[ -d "$LIBDIR" ]] && mv "$LIBDIR" "${trash}/lib"
 
   # Remove doc dir
-  [[ -d "$docdir" ]] && mv "$docdir" "$trash"
+  [[ -d "$DOCDIR" ]] && mv "$DOCDIR" "${trash}/doc"
 
   # Remove man
-  [[ -d "$mandir" ]] && mv "$mandir" "$trash"
+  [[ -d "$MANDIR" ]] && manfiles="$MANDIR"
+  [[ "${SYSTEMWIDE}" == 1 ]] && manfiles=$(find "$MANDIR" -maxdepth 1 -type f -name 'kw-*')
+  [[ -n "$manfiles" ]] && mv "$manfiles" "${trash}/man"
 
   # Remove sound files
-  [[ -d "$sounddir" ]] && mv "$sounddir" "$trash/sound"
+  [[ -d "$SOUNDDIR" ]] && mv "$SOUNDDIR" "${trash}/sound"
 
   # Remove etc files
-  [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
+  [[ -d "$ETCDIR" ]] && mv "$ETCDIR" "${trash}/etc"
 
   # Completely remove user data
   if [[ "$completely_remove" =~ '-d' ]]; then
-    mv "$datadir" "$trash/userdata"
+    mv "${DATADIR}" "${trash}/userdata"
+    mv "${CACHEDIR}" "${trash}/cache"
     return 0
   fi
 
@@ -338,41 +346,41 @@ function synchronize_files()
   [[ "$VERBOSE" == 1 ]] && verbose=1
 
   # Copy kw main file
-  mkdir -p "$binpath"
+  mkdir -p "$BINDIR"
   if [[ "$ENABLE_TRACING" == 0 ]]; then
-    cmd_output_manager "cp $app_name $binpath" "$verbose"
-    ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
+    cmd_output_manager "cp $app_name $BINDIR" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $BINDIR' failed" "$?"
   else
-    sync_main_kw_file_with_tracing "$app_name" "$binpath" "$TRACING_CODE_EXCERPTS_DIR"
+    sync_main_kw_file_with_tracing "$app_name" "$BINDIR" "$TRACING_CODE_EXCERPTS_DIR"
     ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw main file with tracing enabled' "$?"
   fi
 
   # Lib files
-  mkdir -p "$libdir"
+  mkdir -p "$LIBDIR"
   if [[ "$ENABLE_TRACING" == 0 ]]; then
-    cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
-    ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
+    cmd_output_manager "rsync -vr $SRCDIR/ $LIBDIR" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $LIBDIR' failed" "$?"
   else
-    sync_kw_lib_files_with_tracing "$SRCDIR" "$libdir"
+    sync_kw_lib_files_with_tracing "$SRCDIR" "$LIBDIR"
     ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw library files with tracing enabled' "$?"
   fi
 
   # Sound files
-  mkdir -p "$sounddir"
-  cmd_output_manager "rsync -vr $SOUNDS/ $sounddir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sounddir' failed" "$?"
+  mkdir -p "$SOUNDDIR"
+  cmd_output_manager "rsync -vr $SOUNDS/ $SOUNDDIR" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $SOUNDDIR' failed" "$?"
   ## TODO: Remove me one day
   # Old kworkflow.config uses complete.wav instead of bell
-  ln -s "$sounddir/bell.wav" "$sounddir/complete.wav"
+  ln -s "$SOUNDDIR/bell.wav" "$SOUNDDIR/complete.wav"
 
   # Documentation files
-  mkdir -p "$docdir"
-  cmd_output_manager "rsync -vr $DOCUMENTATION/ $docdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
+  mkdir -p "$DOCDIR"
+  cmd_output_manager "rsync -vr $DOCUMENTATION/ $DOCDIR" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $DOCDIR' failed" "$?"
 
   # man file
   if [[ "$SKIPDOCS" == 0 ]]; then
-    mkdir -p "$mandir"
+    mkdir -p "$MANDIR"
 
     python3 -m venv "$DOCS_VIRTUAL_ENV"
 
@@ -381,8 +389,8 @@ function synchronize_files()
     say 'Creating python virtual env...'
     cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
     eval "$cmd"
-    cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
-    ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
+    cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $MANDIR" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $MANDIR' failed" "$?"
     # Deactivate python virtual env
     deactivate
 
@@ -392,25 +400,25 @@ function synchronize_files()
   fi
 
   # etc files
-  mkdir -p "$etcdir"
-  cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
+  mkdir -p "$ETCDIR"
+  cmd_output_manager "rsync -vr $CONFIG_DIR/ $ETCDIR" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $ETCDIR $verbose' failed" "$?"
 
   # Database files
-  mkdir -p "${databasedir}"
-  cmd_output_manager "rsync --verbose --recursive ${DATABASE}/ ${databasedir}" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync --verbose --recursive ${DATABASE} ${databasedir}' failed" "$?"
+  mkdir -p "${DATABASEDIR}"
+  cmd_output_manager "rsync --verbose --recursive ${DATABASE}/ ${DATABASEDIR}" "$verbose"
+  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync --verbose --recursive ${DATABASE} ${DATABASEDIR}' failed" "$?"
 
   setup_global_config_file
 
   # User data
-  mkdir -p "$datadir"
-  mkdir -p "$datadir/statistics"
-  mkdir -p "$datadir/configs"
-  if [[ -x "${databasedir}/migrate_legacy_data_20220101.sh" ]]; then
-    eval "${databasedir}/migrate_legacy_data_20220101.sh"
+  mkdir -p "$DATADIR"
+  mkdir -p "$DATADIR/statistics"
+  mkdir -p "$DATADIR/configs"
+  if [[ -x "${DATABASEDIR}/migrate_legacy_data_20220101.sh" ]]; then
+    eval "${DATABASEDIR}/migrate_legacy_data_20220101.sh"
   else
-    execute_sql_script "${databasedir}/kwdb.sql"
+    execute_sql_script "${DATABASEDIR}/kwdb.sql"
     if [[ "$?" != 0 ]]; then
       complain 'Creation of database schema has failed.'
     fi
@@ -439,33 +447,37 @@ function synchronize_files()
 
   say "$SEPARATOR"
   # Create ~/.cache/kw for support some of the operations
-  mkdir -p "$cachedir"
+  mkdir -p "$CACHEDIR"
 
   # Create ~/.local/kw/tracing for storing tracing reports of kw executions
   if [[ "$ENABLE_TRACING" == 1 ]]; then
-    mkdir --parents "$tracingdir"
+    mkdir --parents "$TRACINGDIR"
   fi
 
-  say "$app_name installed into $HOME"
+  if [[ "$SYSTEMWIDE" == 1 ]]; then
+    say "${app_name} installed system-wide."
+  else
+    say "${app_name} installed into ${HOME}."
+  fi
 }
 
 function append_bashcompletion()
 {
   safe_append "# ${app_name}" "${HOME}/.bashrc"
-  safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.bashrc"
+  safe_append "source ${LIBDIR}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.bashrc"
 }
 
 function remove_legacy_zshcompletion()
 {
   safe_remove '# Enable bash completion for zsh' "${HOME}/.zshrc"
   safe_remove 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
-  safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.zshrc"
+  safe_remove "source ${LIBDIR}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.zshrc"
 }
 
 function append_zshcompletion()
 {
   safe_append "# ${app_name}" "${HOME}/.zshrc"
-  safe_append "export fpath=(${libdir} \$fpath)" "${HOME}/.zshrc"
+  safe_append "export fpath=(${LIBDIR} \$fpath)" "${HOME}/.zshrc"
   safe_append 'autoload compinit && compinit -i' "${HOME}/.zshrc"
 }
 
@@ -491,15 +503,36 @@ function update_version()
   kworkflow_version_from_repo > "${libdir}/VERSION"
 }
 
-function install_home()
+function use_system_wide_installation_directories()
+{
+  # the base path for the syste-wide installation
+  local base_path='/usr/share'
+
+  # modify the default installation paths
+  LIBDIR="${base_path}/kw"
+  DOCDIR="${base_path}/doc/kw/html"
+  MANDIR="${base_path}/man/man1"
+  SOUNDDIR="${base_path}/sounds/kw"
+
+  # The exception is the ETC directory and the BIN path. System wide config
+  # files are usually located at /etc and not at /usr while binary files are
+  # usually at /usr/bin
+  BINDIR="/usr/bin"
+  KWBINPATH="${BINDIR}/${app_name}"
+  ETCDIR="/etc/${app_name}"
+}
+
+function install_kw()
 {
   # Check Dependencies
   if [[ "$SKIPCHECKS" == 0 ]]; then
     say 'Checking dependencies ...'
     check_dependencies
   fi
-  # Move old folder structure to new one
-  legacy_folders
+  if [[ "$SYSTEMWIDE" == 0 ]]; then
+    # Move old folder structure to new one
+    legacy_folders
+  fi
   # First clean old installation
   clean_legacy
   # Synchronize source files
@@ -509,8 +542,10 @@ function install_home()
   remove_legacy_git_from_kernel_config_manager
   # Update version based on the current branch
   update_version
-  # Show current environment in terminal
-  setup_bashrc_to_show_current_kw_env
+  if [[ "$SYSTEMWIDE" == 0 ]]; then
+    # Show current environment in terminal
+    setup_bashrc_to_show_current_kw_env
+  fi
 
   warning ''
   warning '-> For a better experience with kw, please, open a new terminal.'
@@ -518,7 +553,7 @@ function install_home()
 
 function setup_bashrc_to_show_current_kw_env()
 {
-  local config_file_template="${etcdir}/kw_prompt_current_env_name.sh"
+  local config_file_template="${ETCDIR}/kw_prompt_current_env_name.sh"
 
   say ''
   say ' Note: If you want to see kw env in the prompt, add something like the below line to your PS1:'
@@ -529,14 +564,14 @@ function setup_bashrc_to_show_current_kw_env()
 
 function setup_global_config_file()
 {
-  local config_files_path="$etcdir"
+  local config_files_path="$ETCDIR"
   local config_file_template="$config_files_path/notification_template.config"
   local global_config_name='notification.config'
 
   if [[ -f "$config_file_template" ]]; then
     # Default config
     cp "$config_file_template" "$config_files_path/notification.config"
-    sed -i -e "s,SOUNDPATH,$sounddir,g" \
+    sed -i -e "s,SOUNDPATH,$SOUNDDIR,g" \
       -e "/^#?.*/d" "$config_files_path/notification.config"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
@@ -560,6 +595,10 @@ for arg; do
       FORCE=1
       continue
       ;;
+    --system | -s)
+      SYSTEMWIDE=1
+      continue
+      ;;
     # Usually short lowercase options enable some behavior. Thus, the option -C
     # is uppercase to sign we disable the dependency-check behavior.
     --skip-checks | -C)
@@ -581,9 +620,15 @@ for arg; do
   set -- "$@" "$arg"
 done
 
+# if system wide, change the installation directories.
+# This approach works both for installing and uninstalling KW.
+if [[ "${SYSTEMWIDE}" == 1 ]]; then
+  use_system_wide_installation_directories
+fi
+
 case "$1" in
   --install | -i)
-    install_home
+    install_kw
     #update_current_bash
     ;;
   --uninstall | -u)
