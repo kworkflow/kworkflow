@@ -889,6 +889,7 @@ function test_prepare_remote_dir()
   # Test 1: Normal remote prepare
   declare -a expected_cmd=(
     "$debian_sync_files_cmd"
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"rm --preserve-root=all --recursive --force -- $KW_DEPLOY_TMP_FILE\""
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
   )
 
@@ -901,6 +902,7 @@ function test_prepare_remote_dir()
   arch_sync_files_cmd="$rsync_quiet $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG --archive"
   declare -a expected_cmd=(
     "$arch_sync_files_cmd"
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"rm --preserve-root=all --recursive --force -- $KW_DEPLOY_TMP_FILE\""
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
     "$CONFIG_RSYNC $KW_ETC_DIR/template_mkinitcpio.preset $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG"
   )
@@ -919,6 +921,7 @@ function test_prepare_remote_dir()
     "$UPDATE_KW_REMOTE_MSG"
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $REMOTE_KW_DEPLOY\""
     "scp -q $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY"
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"rm --preserve-root=all --recursive --force -- $KW_DEPLOY_TMP_FILE\""
     "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
   )
 

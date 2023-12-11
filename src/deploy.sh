@@ -574,6 +574,8 @@ function prepare_remote_dir()
     cmd_manager "$flag" "$cmd"
   fi
 
+  # Removes temporary directory if already existent
+  cmd_remotely "rm --preserve-root=all --recursive --force -- $KW_DEPLOY_TMP_FILE" "$flag"
   # Create temporary folder
   cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag"
 }
