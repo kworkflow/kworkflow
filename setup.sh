@@ -221,16 +221,16 @@ function usage()
   say 'usage: ./setup.sh option'
   say ''
   say 'Where option may be one of the following:'
-  say '--help      | -h     Display this usage message'
-  say "--install   | -i     Install $app_name"
-  say "--uninstall | -u     Uninstall $app_name"
-  say '--skip-checks        Skip checks (use this when packaging)'
-  say '--skip-docs          Skip creation of man pages (use this when installing)'
-  say '--verbose            Explain what is being done'
-  say '--force              Never prompt'
-  say "--completely-remove  Remove $app_name and all files under its responsibility"
-  say "--docs               Build $app_name's documentation as HTML pages into ./build"
-  say "--enable-tracing     Install ${app_name} with tracing enabled (use it with --install)"
+  say '--help               | -h    Display this usage message'
+  say "--install            | -i    Install $app_name"
+  say "--uninstall          | -u    Uninstall $app_name"
+  say '--skip-checks        | -C    Skip checks (use this when packaging)'
+  say '--skip-docs          | -D    Skip creation of man pages (use this when installing)'
+  say '--verbose            | -v    Explain what is being done'
+  say '--force              | -f    Never prompt'
+  say "--completely-remove  | -r    Remove $app_name and all files under its responsibility"
+  say "--docs               | -d    Build $app_name's documentation as HTML pages into ./build"
+  say "--enable-tracing     | -t    Install ${app_name} with tracing enabled (use it with --install)"
 }
 
 function confirm_complete_removal()
@@ -562,27 +562,33 @@ function setup_global_config_file()
 # Options
 for arg; do
   shift
-  if [ "$arg" = '--verbose' ]; then
-    VERBOSE=1
-    continue
-  fi
-  if [ "$arg" = '--force' ]; then
-    FORCE=1
-    continue
-  fi
-  if [ "$arg" = '--skip-checks' ]; then
-    SKIPCHECKS=1
-    continue
-  fi
-  if [[ "$arg" = '--skip-docs' ]]; then
-    SKIPDOCS=1
-    continue
-  fi
-  if [[ "$arg" = '--enable-tracing' ]]; then
-    include 'tracing/tracing.sh'
-    ENABLE_TRACING=1
-    continue
-  fi
+  case "$arg" in
+    --verbose | -v)
+      VERBOSE=1
+      continue
+      ;;
+    --force | -f)
+      FORCE=1
+      continue
+      ;;
+    # Usually short lowercase options enable some behavior. Thus, the option -C
+    # is uppercase to sign we disable the dependency-check behavior.
+    --skip-checks | -C)
+      SKIPCHECKS=1
+      continue
+      ;;
+    # Similarly, the lowercase short option -D signs we disable the default
+    # behavior of generating man pages.
+    --skip-docs | -D)
+      SKIPDOCS=1
+      continue
+      ;;
+    --enable-tracing | -t)
+      include 'tracing/tracing.sh'
+      ENABLE_TRACING=1
+      continue
+      ;;
+  esac
   set -- "$@" "$arg"
 done
 
@@ -599,14 +605,14 @@ case "$1" in
     # related to kw, e.g., '.config' file under kw controls. For this reason, we do
     # not want to add a short version, and the user has to be sure about this
     # operation.
-  --completely-remove)
+  --completely-remove | -r)
     confirm_complete_removal
     clean_legacy '-d'
     ;;
   --help | -h)
     usage
     ;;
-  --docs)
+  --docs | -d)
     generate_documentation
     ;;
   *)
