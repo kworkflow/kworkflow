@@ -50,7 +50,7 @@ function _kw_autocomplete()
 
   kw_options['config']='--local --global --show --help'
 
-  kw_options['remote']='add remove rename --list --global --set-default --verbose'
+  kw_options['remote']='add list remove rename --global --set-default --verbose'
 
   kw_options['explore']='--log --grep --all --only-header --only-source --exactly --verbose'
   kw_options['e']="${kw_options['explore']}"

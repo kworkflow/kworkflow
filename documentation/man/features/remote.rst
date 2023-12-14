@@ -8,9 +8,9 @@ SYNOPSIS
 ========
 | *kw remote* [-v | \--verbose]
 | *kw remote* [--global] add <name> <user>@<remote>[:<port>]
+| *kw remote* [--global] list
 | *kw remote* [--global] remove <name>
 | *kw remote* [--global] rename <old-name> <new-name>
-| *kw remote* [--global] \--list
 | *kw remote* [--global] (-s | \--set-default)=<name>
 
 DESCRIPTION
@@ -27,15 +27,15 @@ add <name> <remote-address>:
   `remote` can be an IP or a name server and `:<port>` is optional (default port
   is 22).
 
+list:
+  List all available remotes.
+
 remove <name>:
   Remove the remote named <name>.
 
 rename <old-name> <new-name>:
   Rename the remote named <old-name> to <new-name>. If you try a name already
   in use, kw will fail with a message.
-
-\--list:
-  List all available remotes.
 
 \--global:
   Force use global config file instead of the local one.
@@ -68,7 +68,7 @@ If you want to rename::
 
 You can also list all your available remotes via::
 
- kw remote --list
+  kw remote list
 
 If you want to set the default remote::
 
