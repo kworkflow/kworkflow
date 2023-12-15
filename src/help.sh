@@ -68,9 +68,43 @@ function kworkflow_man()
   exit 2 # ENOENT
 }
 
+# This function is invoked in two situations: ./setup.sh and if kw is running
+# from the repository. In the setup.sh script, KW_LIB_DIR is set to 'src,' and
+# in the kw file, when running in the repo, this variable is set to
+# "${KW_BASE_DIR}/src". In both cases we are dealing with kw repository.
+#
+# Return:
+# Print the version information in the stdout.
+function kworkflow_version_from_repo()
+{
+  local head_hash
+  local branch_name
+  local base_version
+  local git_dir
+
+  # get version info from the git repo
+  git_dir=$(realpath "${KW_LIB_DIR}/../.git")
+  head_hash=$(git -C "${git_dir}" rev-parse --short HEAD)
+  branch_name=$(git -C "${git_dir}" rev-parse --short --abbrev-ref HEAD)
+  base_version=$(head --lines 1 "${KW_LIB_DIR}/VERSION")
+
+  printf '%s\nBranch: %s\nCommit: %s\n' "${base_version}" "${branch_name}" "${head_hash}"
+}
+
+# Get kw version from the VERSION file generated during the installation time,
+# or get it dynamically if this command is executed directly from kw repository
+# with './kw [OPTION]'.
+#
+# Return:
+# Return kw version
 function kworkflow_version()
 {
-  local version_path="$KW_LIB_DIR/VERSION"
+  local version_path="${KW_LIB_DIR}/VERSION"
 
-  cat "$version_path"
+  if [[ "${KW_REPO_MODE}" == 'y' ]]; then
+    kworkflow_version_from_repo
+    return
+  fi
+
+  printf '%s\n' "$(< "$version_path")"
 }

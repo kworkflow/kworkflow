@@ -32,4 +32,57 @@ function test_kworkflow_man()
   assertEquals "($LINENO) We expected an error message." "$expect" "$output"
 }
 
+function test_kworkflow_version_in_repomode()
+{
+  local branch_name
+  local head_hash
+  local version_name
+  local output
+  local original_path
+  local path_to_git_repository
+  local KW_REPO_MODE
+  local KW_LIB_DIR
+
+  # Initialize variables.
+  original_path="$PWD"
+  version_name='omega'
+  branch_name='foo'
+  path_to_git_repository="${SHUNIT_TMPDIR}/git_repo"
+  KW_LIB_DIR="${path_to_git_repository}/src"
+
+  # shellcheck disable=SC2034
+  KW_REPO_MODE='y' # used to trigger repo-mode behavior
+
+  # create the git repository
+  mkdir --parents "${KW_LIB_DIR}"
+
+  # cd into the repo, so we can run git commands there.
+  # This is necessary because our helper `mk_fake_git` assumes the current
+  # working directory is the directory in which we want to run git commands.
+  cd "${path_to_git_repository}" || fail 'Failed to switch to git dir.'
+
+  # print kw's version name
+  printf '%s\n' "${version_name}" > "${KW_LIB_DIR}/VERSION"
+
+  # Make fake git commits from the created branch.
+  mk_fake_git
+
+  # Create and switch to a new branch
+  git switch --quiet --create "${branch_name}"
+
+  # Get commit hash.
+  head_hash=$(git rev-parse --short HEAD)
+
+  # Get kw version.
+  output=$(kworkflow_version)
+
+  # Compare results.
+  assert_substring_match 'Wrong version name' "(${LINENO})" "${version_name}" "${output}"
+  assert_substring_match 'Wrong commit' "(${LINENO})" "Commit: ${head_hash}" "${output}"
+  assert_substring_match 'Wrong branch' "(${LINENO})" "Branch: ${branch_name}" "${output}"
+
+  # Go back to previous dir.
+  cd "$original_path" || fail 'Failed to switch back to original directory.'
+}
+
 invoke_shunit

@@ -4,6 +4,7 @@ KW_LIB_DIR='src'
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
+include "${KW_LIB_DIR}/help.sh"
 
 SILENT=1
 VERBOSE=0
@@ -487,19 +488,7 @@ function safe_remove()
 
 function update_version()
 {
-  local head_hash
-  local branch_name
-  local base_version
-
-  head_hash=$(git rev-parse --short HEAD)
-  branch_name=$(git rev-parse --short --abbrev-ref HEAD)
-  base_version=$(head -n 1 "$libdir/VERSION")
-
-  cat > "$libdir/VERSION" << EOF
-$base_version
-Branch: $branch_name
-Commit: $head_hash
-EOF
+  kworkflow_version_from_repo > "${libdir}/VERSION"
 }
 
 function install_home()
