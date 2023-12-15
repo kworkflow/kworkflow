@@ -68,9 +68,30 @@ function kworkflow_man()
   exit 2 # ENOENT
 }
 
+function kworkflow_version_from_repo()
+{
+  local head_hash
+  local branch_name
+  local base_version
+  local git_dir
+
+  # get version info from the git repo
+  git_dir=$(realpath "${KW_LIB_DIR}/../.git")
+  head_hash=$(git -C "${git_dir}" rev-parse --short HEAD)
+  branch_name=$(git -C "${git_dir}" rev-parse --short --abbrev-ref HEAD)
+  base_version=$(head --lines 1 "${KW_LIB_DIR}/VERSION")
+
+  printf '%s\nBranch: %s\nCommit: %s\n' "${base_version}" "${branch_name}" "${head_hash}"
+}
+
 function kworkflow_version()
 {
-  local version_path="$KW_LIB_DIR/VERSION"
+  local version_path="${KW_LIB_DIR}/VERSION"
 
-  cat "$version_path"
+  if [[ "${KW_REPO_MODE}" == 'y' ]]; then
+    kworkflow_version_from_repo
+    return
+  fi
+
+  printf '%s' "$(< "$version_path")"
 }
