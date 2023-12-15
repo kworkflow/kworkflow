@@ -1,3 +1,4 @@
+#!/bin/bash
 include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
 # This function displays an input box that allows the user to search a string in

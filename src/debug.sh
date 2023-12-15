@@ -1,3 +1,4 @@
+#!/bin/bash
 # Kw provides a set of mechanisms for making it easy to use some of the kernels
 # debug options such as events and ftrace. This file comprises a rich set of
 # functions to deal with this activity.

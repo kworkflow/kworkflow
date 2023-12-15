@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file handles all the interactions with git send-email. Currently it
 # provides functions to configure the options used by git send-email.
 # It's also able to verify if the configurations required to use git send-email

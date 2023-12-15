@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file handles any web access
 
 include "${KW_LIB_DIR}/lib/kwio.sh"

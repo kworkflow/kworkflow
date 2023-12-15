@@ -1,3 +1,4 @@
+#!/bin/bash
 function _kw_autocomplete()
 {
   declare -A kw_options

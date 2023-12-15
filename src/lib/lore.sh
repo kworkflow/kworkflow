@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file is the library that handles the "back end" of interacting with the
 # kernel lore archives. it handles fecthing, listing and downloading of patches
 # sent to the public mailing lists.

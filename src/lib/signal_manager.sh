@@ -1,3 +1,4 @@
+#!/bin/bash
 include "${KW_LIB_DIR}/lib/kwio.sh"
 
 function get_valid_signals()

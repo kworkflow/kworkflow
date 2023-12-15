@@ -1,3 +1,4 @@
+#!/bin/bash
 #Used for file sourcing.
 #This function should used for file sourcing instead of `. file.sh --source-only`
 #

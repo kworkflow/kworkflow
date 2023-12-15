@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file is the core of the explore feature. The idea behind the explore
 # command it unifies the way that we search for things in the project, by
 # things, you can understand from files to messages in git log.

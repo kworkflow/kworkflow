@@ -1,3 +1,4 @@
+#!/bin/bash
 # Kworkflow treats this script as a plugin for installing a new Kernel or
 # module in a target system. It is essential to highlight that this file
 # follows an API that can be seen in the "deploy.sh" file, if you make any

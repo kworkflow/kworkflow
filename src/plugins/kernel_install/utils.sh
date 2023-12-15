@@ -1,3 +1,4 @@
+#!/bin/bash
 declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
 declare -g AB_ROOTFS_PARTITION='/dev/disk/by-partsets/self/rootfs'
 declare -g LIB_MODULES_PATH='/lib/modules'

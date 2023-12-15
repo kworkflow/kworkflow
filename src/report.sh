@@ -1,3 +1,4 @@
+#!/bin/bash
 # kw keeps track of some data operations; at the moment kw tracks
 # Pomodoro sessions (kw pomodoro) and overall statistics. This file
 # intends to keep all procedures related to data fetching, processing,

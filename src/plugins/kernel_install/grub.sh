@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file is specific to the GRUB bootloader, and since it is part of kw, it
 # follows the bootloader API. In other words, we have one entry point
 # functions: run_bootloader_update: Update GRUB in a local and remote machine.

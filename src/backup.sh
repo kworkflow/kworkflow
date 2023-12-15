@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file deals with backing up and restoring kw data files stored under the
 # the KW_DATA_DIR directory. These files are configs, pomodoro reports and
 # kw usage statistics.

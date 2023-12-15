@@ -1,3 +1,4 @@
+#!/bin/bash
 # Checkpatch is a useful tool provided by Linux, and the main goal of the code
 # in this file is to handle this script in a way to make this tool easier for
 # users.

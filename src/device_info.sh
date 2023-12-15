@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file deals with functions related to hardware information
 
 include "${KW_LIB_DIR}/lib/kw_string.sh"

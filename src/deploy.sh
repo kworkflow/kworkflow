@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # The `deploy.sh` file centralizes functions related to kernel installation.
 # With kworkflow, we want to handle three scenarios:

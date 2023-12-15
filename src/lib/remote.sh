@@ -1,3 +1,4 @@
+#!/bin/bash
 # NOTE: It is recommended that src/lib/kw_config_loader.sh be included before this
 # file
 include "${KW_LIB_DIR}/lib/kw_config_loader.sh"

@@ -1,3 +1,4 @@
+#!/bin/bash
 # kw keeps track of some data operation in daily use, and this file intends to
 # process all data based on the user request. Here you going to find functions
 # responsible for aggregate and calculate values such as average and total.

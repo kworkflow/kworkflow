@@ -1,3 +1,4 @@
+#!/bin/bash
 # The `patch_hub.sh` file is the entrypoint for the `patch-hub`
 # feature that follows kw codestyle. As the feature is screen-driven, it is implemented
 # as a state-machine in files stored at the `src/ui/patch_hub` directory.

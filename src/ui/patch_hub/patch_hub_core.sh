@@ -1,3 +1,4 @@
+#!/bin/bash
 # The `patch_hub_core.sh` file centralizes the states representing the
 # sequences of screen of the `patch-hub` feature. The feature is implemented
 # as a state-machine that roughly follows the Model-View-Controller pattern. The roles

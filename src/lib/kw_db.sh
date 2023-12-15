@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file handles the interactions with the kw database
 
 include "${KW_LIB_DIR}/lib/kwio.sh"

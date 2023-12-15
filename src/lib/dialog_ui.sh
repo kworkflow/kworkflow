@@ -1,3 +1,4 @@
+#!/bin/bash
 # In this file, you will find the implementation of multiple abstract functions
 # to build the interface between kw and lore. Notice that here we manage the
 # dialog tool.

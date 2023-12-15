@@ -1,3 +1,4 @@
+#!/bin/bash
 # The init.sh keep all the operations related to the `kworkflow.config`
 # initialization. The initialization feature it is inspired on `git init`.
 

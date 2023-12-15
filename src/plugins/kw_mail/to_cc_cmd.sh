@@ -1,3 +1,4 @@
+#!/bin/bash
 # This file reads the files generated containing the recipients for any given
 # patch, this is supposed to be used by `git send-email` in the `--to-cmd` and
 # `--cc-cmd` arguments after the appropriate files have been created using the

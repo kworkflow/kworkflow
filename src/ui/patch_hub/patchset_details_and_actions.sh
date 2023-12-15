@@ -1,3 +1,4 @@
+#!/bin/bash
 include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
 # This function is responsible for showing the screen with a patchset details

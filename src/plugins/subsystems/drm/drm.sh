@@ -1,3 +1,4 @@
+#!/bin/bash
 . "${KW_LIB_DIR}/lib/kw_config_loader.sh" --source-only
 . "${KW_LIB_DIR}/lib/remote.sh" --source-only
 . "${KW_LIB_DIR}/lib/kwlib.sh" --source-only

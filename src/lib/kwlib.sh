@@ -1,3 +1,4 @@
+#!/bin/bash
 # NOTE: src/lib/kw_config_loader.sh must be included before this file
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"

@@ -1,3 +1,4 @@
+#!/bin/bash
 declare -gar GRUB=(
   'boot/grub/grub.conf'
   'boot/grub/grub.cfg'

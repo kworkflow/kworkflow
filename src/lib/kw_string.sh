@@ -1,3 +1,4 @@
+#!/bin/bash
 # @@ Expect a string
 #
 # Return:
