@@ -71,9 +71,10 @@ function run_tests()
   local test_failure_list=''
   local test_dir
   local integration_tests_setup=0 # have we setup the environment for integration tests?
+  local current_test
+  local target
 
-  for current_test in "${TESTS[@]}"; do
-    target=$(find "$TESTS_DIR" -name "${current_test}*.sh" | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+  for target in "${TESTS[@]}"; do
     if [[ -f "$target" ]]; then
 
       # if we are running integration tests, we will set up the environment for
@@ -88,6 +89,9 @@ function run_tests()
         setup_container_environment
         printf '\n'
       fi
+
+      # Format the test name to be displayed in the output.
+      current_test="$(basename "$test_dir")/$(basename "$target" | sed 's/.sh//')"
 
       say "Running test [${current_test}]"
       say "$SEPARATOR"
@@ -126,13 +130,12 @@ function run_tests()
 }
 
 declare -a TESTS
-function strip_path()
+function set_tests()
 {
-  local base
+  local file
   TESTS=()
   for file in "$@"; do
-    base=$(basename "${file}")
-    TESTS+=("${base%.*}")
+    TESTS+=("${file}")
   done
 }
 
@@ -149,22 +152,31 @@ check_files="$?"
 #shellcheck disable=SC2086
 if [[ "$#" -eq 0 ]]; then
   files_list=$(find "$TESTS_DIR" -name '*_test.sh' | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
-  strip_path $files_list
+  set_tests $files_list
+
   # Set the environment variable LANGUAGE to `en_US.UTF_8` to avoid the host
   # locale settings from interfering in the tests.
   LANGUAGE=en_US.UTF_8 run_tests
 elif [[ "$1" == 'list' ]]; then
   index=0
   files_list=$(find "$TESTS_DIR" -name '*_test.sh')
-  strip_path $files_list
+  set_tests $files_list
   for test_name in "${TESTS[@]}"; do
     ((index++))
     say "$index) ${test_name}"
   done
 elif [[ "$1" == 'test' ]]; then
-  strip_path "${@:2}"
+  # We use a regex to filter files so we test multiple tests matching a desirable
+  # pattern. For example, we can run all config-related tests  by  providing  the
+  # word config. We can also run both config unit  test  and  config  integration
+  # test with this approach.
+  regex="($(sed 's/ /|/g' <<< "${@:2}"))"
+
+  files_list=$(find "$TESTS_DIR" | grep --perl-regexp "${regex}" | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+  set_tests $files_list
   LANGUAGE=en_US.UTF_8 run_tests
 else
   show_help
