@@ -28,3 +28,5 @@ curl
 libxml-xpath-perl
 coreutils
 b4
+procps
+pciutils
