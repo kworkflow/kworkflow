@@ -12,8 +12,7 @@ declare -gA config_file_list=(
   ['mail']='send_opts blocked_emails default_to_recipients default_cc_recipients'
   ['deploy']='kw_files_remote_path deploy_temporary_files_path
               deploy_default_compression dtb_copy_pattern default_deploy_target
-              reboot_after_deploy strip_modules_debug_option
-              default_deploy_target reboot_after_deploy'
+              reboot_after_deploy strip_modules_debug_option'
   ['notification']='alert sound_alert_command visual_alert_command'
   ['kworkflow']='ssh_user ssh_ip ssh_port ssh_configfile hostname
                  disable_statistics_data_track gui_on gui_off send_opts
@@ -222,7 +221,7 @@ function parse_config_options()
   fi
 
   # Default values
-  options_values['SCOPE']='local'
+  options_values['SCOPE']=''
   options_values['PARAMETERS']=''
   options_values['IS_SHOW_CONFIGURATIONS']=''
   options_values['VERBOSE']=''
@@ -294,7 +293,6 @@ function show_configurations()
     read -ra configs <<< "${!config_file_list[@]}"
   fi
 
-  # For each config file
   for config in "${configs[@]}"; do
     # Check if it is a valid config
     if ! is_config_file_valid "$config"; then
@@ -305,23 +303,55 @@ function show_configurations()
     # Load corresponding config file
     eval "load_${config}_config"
 
-    # This part is heavily depedent of the names defined in kw_config_loader
     if [[ "$config" == 'kworkflow' ]]; then
-      declare -n config_array='configurations'
+      declare -n config_array_local="configurations_local"
+      declare -n config_array_global="configurations_global"
     else
-      declare -n config_array="${config}_config"
+      declare -n config_array_local="${config}_config_local"
+      declare -n config_array_global="${config}_config_global"
     fi
 
-    # For each possible option in a config file
     options_buffer=$(printf '%s' "${config_file_list[$config]}" | sed --null-data 's/\n/ /g')
     read -ra options <<< "${options_buffer}"
     for option in "${options[@]}"; do
-      value="${config_array[$option]}"
-      if [[ -z "$value" ]]; then
-        warning "${config}.${option}=N/A"
-      else
-        printf '%s\n' "${config}.${option}=${value}"
+
+      # if user specified global or local scope, we won't append scope prefixes
+      if [[ -n "${options_values['SCOPE']}" ]]; then
+        if [[ "${options_values['SCOPE']}" == 'local' ]]; then
+          value="${config_array_local[$option]}"
+        elif [[ "${options_values['SCOPE']}" == 'global' ]]; then
+          value="${config_array_global[$option]}"
+        fi
+
+        if [[ -n "$value" ]]; then
+          # value is defined globally or locally
+          printf '%s.%s=%s\n' "$config" "$option" "$value"
+        else
+          # undefined value
+          warning "${config}.${option}=N/A"
+        fi
+        continue
       fi
+
+      # Otherwise, we append an indicator prefix before the config.
+      # That way, the user knows if the config is defined locally or globally.
+
+      # config comes from local source
+      value="${config_array_local[$option]}"
+      if [[ -n "$value" ]]; then
+        printf '[LOCAL ] %s.%s=%s\n' "$config" "$option" "$value"
+        continue
+      fi
+
+      # config comes from global source
+      value="${config_array_global[$option]}"
+      if [[ -n "$value" ]]; then
+        printf '[GLOBAL] %s.%s=%s\n' "$config" "$option" "$value"
+        continue
+      fi
+
+      # config is undefined
+      warning "[      ] ${config}.${option}=N/A"
     done
   done
 

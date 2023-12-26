@@ -20,24 +20,38 @@ TARGET="$VM_TARGET"
 
 # Default configuration
 declare -gA configurations
+declare -gA configurations_global
+declare -gA configurations_local
 
 # Build configuration
 declare -gA build_config
+declare -gA build_config_global
+declare -gA build_config_local
 
 # Deploy configuration
 declare -gA deploy_config
+declare -gA deploy_config_global
+declare -gA deploy_config_local
 
 # VM configuration
 declare -gA vm_config
+declare -gA vm_config_global
+declare -gA vm_config_local
 
 # Mail configuration
 declare -gA mail_config
+declare -gA mail_config_global
+declare -gA mail_config_local
 
 # Notification configuration
 declare -gA notification_config
+declare -gA notification_config_global
+declare -gA notification_config_local
 
 # Notification configuration
 declare -gA lore_config
+declare -gA lore_config_global
+declare -gA lore_config_local
 
 # Default target option from kworkflow.config
 declare -gA deploy_target_opt=(['local']=2 ['remote']=3)
@@ -338,13 +352,24 @@ function parse_configuration()
 {
   local config_path="$1"
   local config_array="${2:-configurations}"
+  local config_array_scope="$3"
   local value
 
   if [ ! -f "$config_path" ]; then
     return 22 # 22 means Invalid argument - EINVAL
   fi
+
+  # The `read` command will read all the characters untill it  finds  a  newline
+  # character and then write those characters onto the given variable  (in  this
+  # case, the `line` variable). If it does not find a newline `\n` character, it
+  # will exit with status code 1. This  evaluates  to  false,  which  means  the
+  # shellscript exits the loop. Therefore, if the last line  is  not  empty  but
+  # misses the newline character, the loop won't be  run  and  the  last  config
+  # option won't be read. We handle this edge case by checking if  line  is  not
+  # empty and proceeding to run the loop once more if necessary.
+  #
   # shellcheck disable=SC2162
-  while read line; do
+  while read line || [[ -n "$line" ]]; do
     # Line started with # or that are blank should be ignored
     [[ "$line" =~ ^# || "$line" =~ ^$ ]] && continue
 
@@ -354,6 +379,9 @@ function parse_configuration()
       value="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' <<< "$value")"
 
       eval "${config_array}"'["$varname"]="$value"'
+      if [[ -n "${config_array_scope}" ]]; then
+        eval "${config_array_scope}"'["$varname"]="$value"'
+      fi
     fi
   done < "$config_path"
 }
@@ -366,6 +394,8 @@ function load_configuration()
   local target_config="$1"
   local target_config_file
   local target_array='configurations'
+  local target_array_global=''
+  local target_array_local=''
   local -a config_dirs
   local config_dirs_size
   local IFS=:
@@ -393,8 +423,11 @@ function load_configuration()
       ;;
   esac
 
+  target_array_global="${target_array}_global"
+  target_array_local="${target_array}_local"
+
   target_config_file="${target_config}.config"
-  parse_configuration "${KW_ETC_DIR}/${target_config_file}" "$target_array"
+  parse_configuration "${KW_ETC_DIR}/${target_config_file}" "$target_array" "$target_array_global"
 
   # XDG_CONFIG_DIRS is a colon-separated list of directories for config
   # files to be searched, in order of preference. Since this function
@@ -405,10 +438,10 @@ function load_configuration()
   # /etc/xdg.
   config_dirs_size="${#config_dirs[@]}"
   for ((i = config_dirs_size - 1; i >= 0; i--)); do
-    parse_configuration "${config_dirs["$i"]}/${KWORKFLOW}/${target_config_file}" "$target_array"
+    parse_configuration "${config_dirs["$i"]}/${KWORKFLOW}/${target_config_file}" "$target_array" "$target_array_global"
   done
 
-  parse_configuration "${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}/${target_config_file}" "$target_array"
+  parse_configuration "${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}/${target_config_file}" "$target_array" "$target_array_global"
 
   # Old users may have kworkflow.config at $PWD
   if [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
@@ -418,12 +451,12 @@ function load_configuration()
       mkdir -p "$PWD/$KW_DIR/"
       mv "$PWD/$CONFIG_FILENAME" "$PWD/$KW_DIR/$CONFIG_FILENAME"
     else
-      parse_configuration "${PWD}/${CONFIG_FILENAME}" "$target_array"
+      parse_configuration "${PWD}/${CONFIG_FILENAME}" "$target_array" "$target_array_local"
     fi
   fi
 
   if [[ -f "${PWD}/${KW_DIR}/${target_config_file}" ]]; then
-    parse_configuration "${PWD}/${KW_DIR}/${target_config_file}" "$target_array"
+    parse_configuration "${PWD}/${KW_DIR}/${target_config_file}" "$target_array" "$target_array_local"
   fi
 }
 

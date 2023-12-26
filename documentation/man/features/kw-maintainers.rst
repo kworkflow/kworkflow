@@ -1,6 +1,6 @@
-==============
-kw-maintainers
-==============
+===========================================
+kw-maintainers - Display module maintainers
+===========================================
 
 .. _maintainers-doc:
 

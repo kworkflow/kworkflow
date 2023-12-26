@@ -1,6 +1,6 @@
-========
-kw-debug
-========
+=======================
+kw-debug - Kernel debug
+=======================
 
 .. _debug-doc:
 
@@ -12,6 +12,7 @@ SYNOPSIS
 | *kw* *debug* [(-l | \--list)[=(<ftrace> | <events>)]] [(-e | \--event)]
 | *kw* *debug* [\--reset]
 | *kw* *debug* [(-h | \--help)]
+| *kw* *debug* [(\--verbose)]
 
 DESCRIPTION
 ===========
@@ -122,6 +123,11 @@ OPTIONS
   in background, (3) run the command, (4) disable traces. When used with
   `\--dmesg`, kw will (1) clean the dmesg log, (2) run the command, (3) and
   collect the log.
+
+\--verbose:
+  Verbose mode is an option that causes the kw program to display debug
+  messages to track its steps. This functionality is very useful during the
+  debugging process, allowing you to identify possible errors more easily.
 
 EXAMPLES
 ========

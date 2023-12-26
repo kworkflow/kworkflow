@@ -9,6 +9,7 @@ SILENT=1
 VERBOSE=0
 FORCE=0
 SKIPCHECKS=0
+SKIPDOCS=0
 ENABLE_TRACING=0
 
 declare -r app_name='kw'
@@ -63,7 +64,7 @@ function check_dependencies()
       installed=$(pacman -Ql "$package" &> /dev/null)
       [[ "$?" != 0 ]] && package_list="$package $package_list"
     done < "$DOCUMENTATION/dependencies/arch.dependencies"
-    cmd="pacman -S $package_list"
+    cmd="pacman -Sy --noconfirm ${package_list}"
   elif [[ "$distro" =~ 'debian' ]]; then
     while IFS='' read -r package; do
       installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
@@ -220,15 +221,16 @@ function usage()
   say 'usage: ./setup.sh option'
   say ''
   say 'Where option may be one of the following:'
-  say '--help      | -h     Display this usage message'
-  say "--install   | -i     Install $app_name"
-  say "--uninstall | -u     Uninstall $app_name"
-  say '--skip-checks        Skip checks (use this when packaging)'
-  say '--verbose            Explain what is being done'
-  say '--force              Never prompt'
-  say "--completely-remove  Remove $app_name and all files under its responsibility"
-  say "--docs               Build $app_name's documentation as HTML pages into ./build"
-  say "--enable-tracing     Install ${app_name} with tracing enabled (use it with --install)"
+  say '--help               | -h    Display this usage message'
+  say "--install            | -i    Install $app_name"
+  say "--uninstall          | -u    Uninstall $app_name"
+  say '--skip-checks        | -C    Skip checks (use this when packaging)'
+  say '--skip-docs          | -D    Skip creation of man pages (use this when installing)'
+  say '--verbose            | -v    Explain what is being done'
+  say '--force              | -f    Never prompt'
+  say "--completely-remove  | -r    Remove $app_name and all files under its responsibility"
+  say "--docs               | -d    Build $app_name's documentation as HTML pages into ./build"
+  say "--enable-tracing     | -t    Install ${app_name} with tracing enabled (use it with --install)"
 }
 
 function confirm_complete_removal()
@@ -368,22 +370,24 @@ function synchronize_files()
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
 
   # man file
-  mkdir -p "$mandir"
+  if [[ "$SKIPDOCS" == 0 ]]; then
+    mkdir -p "$mandir"
 
-  python3 -m venv "$DOCS_VIRTUAL_ENV"
+    python3 -m venv "$DOCS_VIRTUAL_ENV"
 
-  # Activate python virtual env
-  source "${DOCS_VIRTUAL_ENV}/bin/activate"
-  say 'Creating python virtual env...'
-  cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
-  eval "$cmd"
-  cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
-  # Deactivate python virtual env
-  deactivate
+    # Activate python virtual env
+    source "${DOCS_VIRTUAL_ENV}/bin/activate"
+    say 'Creating python virtual env...'
+    cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+    eval "$cmd"
+    cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
+    # Deactivate python virtual env
+    deactivate
 
-  if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
-    rm -r "$DOCS_VIRTUAL_ENV"
+    if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+      rm -r "$DOCS_VIRTUAL_ENV"
+    fi
   fi
 
   # etc files
@@ -558,23 +562,33 @@ function setup_global_config_file()
 # Options
 for arg; do
   shift
-  if [ "$arg" = '--verbose' ]; then
-    VERBOSE=1
-    continue
-  fi
-  if [ "$arg" = '--force' ]; then
-    FORCE=1
-    continue
-  fi
-  if [ "$arg" = '--skip-checks' ]; then
-    SKIPCHECKS=1
-    continue
-  fi
-  if [[ "$arg" = '--enable-tracing' ]]; then
-    include 'tracing/tracing.sh'
-    ENABLE_TRACING=1
-    continue
-  fi
+  case "$arg" in
+    --verbose | -v)
+      VERBOSE=1
+      continue
+      ;;
+    --force | -f)
+      FORCE=1
+      continue
+      ;;
+    # Usually short lowercase options enable some behavior. Thus, the option -C
+    # is uppercase to sign we disable the dependency-check behavior.
+    --skip-checks | -C)
+      SKIPCHECKS=1
+      continue
+      ;;
+    # Similarly, the lowercase short option -D signs we disable the default
+    # behavior of generating man pages.
+    --skip-docs | -D)
+      SKIPDOCS=1
+      continue
+      ;;
+    --enable-tracing | -t)
+      include 'tracing/tracing.sh'
+      ENABLE_TRACING=1
+      continue
+      ;;
+  esac
   set -- "$@" "$arg"
 done
 
@@ -591,14 +605,14 @@ case "$1" in
     # related to kw, e.g., '.config' file under kw controls. For this reason, we do
     # not want to add a short version, and the user has to be sure about this
     # operation.
-  --completely-remove)
+  --completely-remove | -r)
     confirm_complete_removal
     clean_legacy '-d'
     ;;
   --help | -h)
     usage
     ;;
-  --docs)
+  --docs | -d)
     generate_documentation
     ;;
   *)

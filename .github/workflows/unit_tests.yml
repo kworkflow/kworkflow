@@ -30,4 +30,4 @@ jobs:
 
       - name: Unit tests
         run: |
-          ./run_tests.sh
+          ./run_tests.sh --unit

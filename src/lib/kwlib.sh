@@ -4,6 +4,7 @@ include "${KW_LIB_DIR}/lib/kw_db.sh"
 include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 
 ENV_DIR='envs'
+KW_SHARED_MEMORY_DEFAULT_DIR='/dev/shm'
 
 # Array with compression programs accepted by tar
 declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
@@ -116,6 +117,31 @@ function cmd_manager()
   esac
 
   eval "$command_for_eval"
+}
+
+function show_verbose()
+{
+  local flag="$1"
+  local cmd="$2"
+
+  [[ "$flag" == 'VERBOSE' ]] && say "$cmd"
+}
+
+# This function creates a temporary shared memory directory to be used by
+# concurrent processes. In case the default base directory defined in the global
+# variable `@KW_SHARED_MEMORY_DEFAULT_DIR` is not available, the function uses
+# the default base directory of `mktemp --directory`
+#
+# Returns:
+# Outputs the path to the shared memory directory created.
+function create_shared_memory_dir()
+{
+  if [[ -d "$KW_SHARED_MEMORY_DEFAULT_DIR" && -w "$KW_SHARED_MEMORY_DEFAULT_DIR" ]]; then
+    printf '%s' "$(mktemp --tmpdir="$KW_SHARED_MEMORY_DEFAULT_DIR" --directory)"
+    return
+  fi
+
+  printf '%s' "$(mktemp --directory)"
 }
 
 # Checks if a directory is a kernel tree root

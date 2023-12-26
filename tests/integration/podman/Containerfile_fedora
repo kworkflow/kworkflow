@@ -1,0 +1,7 @@
+FROM docker.io/library/fedora
+
+RUN dnf install -y git
+
+COPY ./clone_and_install_kw.sh .
+
+RUN bash ./clone_and_install_kw.sh

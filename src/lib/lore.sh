@@ -12,11 +12,11 @@ declare -gr LORE_URL='https://lore.kernel.org'
 # Lore cache directory
 declare -g CACHE_LORE_DIR="${KW_CACHE_DIR}/lore"
 
-# File name for the lore list
-declare -gr MAILING_LISTS_PAGE='lore_main_page.html'
+# File name for the lore page
+declare -gr MAILING_LISTS_PAGE_NAME='lore_page'
 
-# Path to mailing list file to be parsed
-declare -g LIST_PAGE_PATH="${CACHE_LORE_DIR}/${MAILING_LISTS_PAGE}"
+# File extension for the lore list file
+declare -gr MAILING_LISTS_PAGE_EXTENSION='html'
 
 # Directory for storing every data related to lore
 declare -g LORE_DATA_DIR="${KW_DATA_DIR}/lore"
@@ -63,6 +63,10 @@ declare -g MIN_INDEX=0
 # it easy to undertand.
 declare -ag list_of_mailinglist_patches
 
+# This associative array stores the current processed patchsets and it is used
+# to check if a given patchset was already processed.
+declare -Ag processed_patchsets
+
 # This function creates the directory used by kw for any lore related data.
 #
 # Return:
@@ -88,9 +92,11 @@ function setup_cache()
   mkdir -p "${CACHE_LORE_DIR}"
 }
 
-# This function downloads the lore archive main page and retrieves the names
-# and descriptions of the mailing lists currently available in the archive, it
-# then saves that information in the `available_lore_mailing_lists`
+# This function downloads lore archive pages and retrieves names and
+# descriptions of the currently available mailing lists in the archive. It then
+# saves that information in the `available_lore_mailing_lists` global array.
+# This function takes care of the pagination from the Lore response, by fetching
+# adjacent pages until there are no more mailing lists to be listed.
 #
 # @flag Flag to control function output
 function retrieve_available_mailing_lists()
@@ -98,23 +104,39 @@ function retrieve_available_mailing_lists()
   local flag="$1"
   local index=''
   local pre_processed
+  local entries=0
+  local page_filename
+  local page=0
+  local offset=0
 
   flag=${flag:-'SILENT'}
 
   setup_cache
 
-  download "$LORE_URL" "$MAILING_LISTS_PAGE" "$CACHE_LORE_DIR" "$flag" || return "$?"
+  # When there are no more mailing lists to be listed, only the `all` list is returned
+  while [[ "$entries" -ne 1 ]]; do
 
-  pre_processed=$(sed -nE -e 's/^href="(.*)\/?">\1<\/a>$/\1/p; s/^  (.*)$/\1/p' "${LIST_PAGE_PATH}")
+    entries=0
+    page_filename="${MAILING_LISTS_PAGE_NAME}_${page}.${MAILING_LISTS_PAGE_EXTENSION}"
 
-  while IFS= read -r line; do
-    if [[ -z "$index" ]]; then
-      index="$line"
-    else
-      available_lore_mailing_lists["$index"]="$line"
-      index=''
-    fi
-  done <<< "$pre_processed"
+    offset=$((LORE_PAGE_SIZE * page))
+    page_url="${LORE_URL}/?&o=${offset}"
+
+    download "$page_url" "$page_filename" "$CACHE_LORE_DIR" "$flag" || return "$?"
+    pre_processed=$(sed -nE -e 's/^href="(.*)\/?">\1<\/a>$/\1/p; s/^  (.*)$/\1/p' "${CACHE_LORE_DIR}/${page_filename}")
+
+    while IFS= read -r line; do
+      if [[ -z "$index" ]]; then
+        index="$line"
+        ((entries++))
+      else
+        available_lore_mailing_lists["$index"]="$line"
+        index=''
+      fi
+    done <<< "$pre_processed"
+
+    ((page++))
+  done
 }
 
 # This function parser the message-id link for trying to find if the target
@@ -299,6 +321,8 @@ function reset_current_lore_fetch_session()
   list_of_mailinglist_patches=()
   PATCHSETS_PROCESSED=0
   MIN_INDEX=0
+  unset processed_patchsets
+  declare -Ag processed_patchsets
 }
 
 # This function composes a query URL to a public mailing list archived
@@ -415,7 +439,8 @@ function process_patchsets()
   local pids
   local i
 
-  shared_dir_for_parallelism=$(mktemp --directory)
+  shared_dir_for_parallelism=$(create_shared_memory_dir)
+
   starting_index="$PATCHSETS_PROCESSED"
   count=0
   i=0
@@ -424,13 +449,14 @@ function process_patchsets()
     if [[ "$line" =~ ^[[:space:]]href= ]]; then
       patch_url=$(str_get_value_under_double_quotes "$line")
 
-      if is_introduction_patch "$patch_url"; then
-        # Process each patch in parallel
+      if [[ "${processed_patchsets["$patch_url"]}" != 1 ]] && is_introduction_patch "$patch_url"; then
+        # Processes each patch in parallel
         thread_for_process_patch "$PATCHSETS_PROCESSED" "$shared_dir_for_parallelism" \
           "$processed_patchset" "$patch_url" "$patch_title" &
         pids[i]="$!"
         ((i++))
         ((PATCHSETS_PROCESSED++))
+        processed_patchsets["$patch_url"]=1
       fi
 
       processed_patchset=''
