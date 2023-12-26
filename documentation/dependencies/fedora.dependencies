@@ -25,3 +25,5 @@ perl-XML-XPath
 coreutils
 b4
 libnotify
+procps
+pciutils

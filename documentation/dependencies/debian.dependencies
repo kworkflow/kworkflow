@@ -29,3 +29,5 @@ libxml-xpath-perl
 coreutils
 b4
 libnotify-bin
+procps
+pciutils

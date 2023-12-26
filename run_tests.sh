@@ -1,15 +1,23 @@
 #!/bin/bash
 
 . ./src/lib/kw_include.sh --source-only
-include './tests/utils.sh'
+include './tests/unit/utils.sh'
+include './tests/integration/utils.sh'
 include './src/lib/kwio.sh'
 
 function show_help()
 {
-  printf '%s\n' "Usage: $0 [help] [list] [test <tfile1> ...]" \
+  printf '%s\n' "Usage: $0 [--flags] [help] [list] [test <tfile1> ...]" \
     'Run tests for kworkflow.' \
     "Example: $0 test kw_test" \
     '' \
+    'OPTIONS' \
+    '  -i, --integration' \
+    '         Limit tests to integration tests' \
+    '  -u, --unit' \
+    '         Limit tests to unit tests' \
+    '' \
+    'COMMANDS' \
     '  help - displays this help message' \
     '  list - lists all test files under tests/' \
     '  test - runs the given test'
@@ -61,16 +69,37 @@ function run_tests()
   local -i notfound=0
   local -i fail=0
   local test_failure_list=''
+  local test_dir
+  local integration_tests_setup=0 # have we setup the environment for integration tests?
+  local current_test
+  local target
 
-  for current_test in "${TESTS[@]}"; do
-    target=$(find ./tests -name "${current_test}*.sh" | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+  for target in "${TESTS[@]}"; do
     if [[ -f "$target" ]]; then
+
+      # if we are running integration tests, we will set up the environment for
+      # them here. That is because all integration tests share the same setup:
+      # at least the container environment must be up. It is much more efficient
+      # to run the setup just once for all tests than to run it for every test.
+      # This approach also avoids code duplication in the files.
+      test_dir=$(dirname "${target}")
+      if [[ "$test_dir" =~ '/integration' && "$integration_tests_setup" == 0 ]]; then
+        integration_tests_setup=1
+        say 'Preparing environment for integration tests...'
+        setup_container_environment
+        printf '\n'
+      fi
+
+      # Format the test name to be displayed in the output.
+      current_test="$(basename "$test_dir")/$(basename "$target" | sed 's/.sh//')"
+
       say "Running test [${current_test}]"
       say "$SEPARATOR"
       (
         init_env
         "$target"
       )
+
       if [[ "$?" -eq 0 ]]; then
         success+=1
       else
@@ -86,40 +115,68 @@ function run_tests()
       notfound+=1
     fi
   done
+
+  # instead of tearing down the container environment after each integration test,
+  # we will tear it down only after all tests have ran. This optimizes significant
+  # amount of time for the integration tests.
+  if [[ "${integration_tests_setup}" == 1 ]]; then
+    printf '\n' # add new line after the last "OK"
+    say 'Tearing down environment used in integration tests...'
+    teardown_container_environment
+    printf '\n'
+  fi
+
   report_results "$total" "$success" "$notfound" "$fail" "$test_failure_list"
 }
 
 declare -a TESTS
-function strip_path()
+function set_tests()
 {
-  local base
+  local file
   TESTS=()
   for file in "$@"; do
-    base=$(basename "${file}")
-    TESTS+=("${base%.*}")
+    TESTS+=("${file}")
   done
 }
+
+declare TESTS_DIR=./tests
+if [[ "$1" == '--unit' || "$1" == '-u' ]]; then
+  TESTS_DIR=./tests/unit
+  shift
+elif [[ "$1" == '--integration' || "$1" == '-i' ]]; then
+  TESTS_DIR=./tests/integration
+  shift
+fi
 
 check_files="$?"
 #shellcheck disable=SC2086
 if [[ "$#" -eq 0 ]]; then
-  files_list=$(find ./tests -name '*_test.sh' | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+  files_list=$(find "$TESTS_DIR" -name '*_test.sh' | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
-  strip_path $files_list
+  set_tests $files_list
+
   # Set the environment variable LANGUAGE to `en_US.UTF_8` to avoid the host
   # locale settings from interfering in the tests.
   LANGUAGE=en_US.UTF_8 run_tests
 elif [[ "$1" == 'list' ]]; then
   index=0
-  files_list=$(find ./tests/ -name '*_test.sh')
-  strip_path $files_list
+  files_list=$(find "$TESTS_DIR" -name '*_test.sh')
+  set_tests $files_list
   for test_name in "${TESTS[@]}"; do
     ((index++))
     say "$index) ${test_name}"
   done
 elif [[ "$1" == 'test' ]]; then
-  strip_path "${@:2}"
+  # We use a regex to filter files so we test multiple tests matching a desirable
+  # pattern. For example, we can run all config-related tests  by  providing  the
+  # word config. We can also run both config unit  test  and  config  integration
+  # test with this approach.
+  regex="($(sed 's/ /|/g' <<< "${@:2}"))"
+
+  files_list=$(find "$TESTS_DIR" | grep --perl-regexp "${regex}" | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+  set_tests $files_list
   LANGUAGE=en_US.UTF_8 run_tests
 else
   show_help

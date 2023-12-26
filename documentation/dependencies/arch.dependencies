@@ -27,3 +27,5 @@ perl-xml-xpath
 coreutils
 b4
 libnotify
+procps-ng
+pciutils

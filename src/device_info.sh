@@ -61,14 +61,6 @@ function device_main()
   show_data "$flag"
 }
 
-function show_verbose()
-{
-  local flag="$1"
-  local cmd="$2"
-
-  [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd"
-}
-
 # This function populates the ram element from the device_info_data global
 # variable with the total RAM memory from the target machine in kB.
 #

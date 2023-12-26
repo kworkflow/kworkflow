@@ -1,0 +1,7 @@
+FROM docker.io/library/archlinux
+
+RUN pacman -Syu --noconfirm git
+
+COPY ./clone_and_install_kw.sh .
+
+RUN bash ./clone_and_install_kw.sh

@@ -149,6 +149,7 @@ function handle_bookmark_action()
 {
   local -n _patchset="$1"
   local raw_patchset="$2"
+  local message_box
   local output
   local loading_pid
   local ret
@@ -156,6 +157,7 @@ function handle_bookmark_action()
   output=$(download_series "${_patchset['patchset_url']}" "${lore_config['save_patches_to']}")
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
+    return
   fi
 
   create_async_loading_screen_notification 'Bookmarking patchset'$'\n'"- ${_patchset['patchset_title']}" &
@@ -166,7 +168,12 @@ function handle_bookmark_action()
   stop_async_loading_screen_notification "$loading_pid"
   if [[ "$ret" != 0 ]]; then
     create_message_box 'Error' 'Could not bookmark patchset'$'\n'"- ${_patchset['patchset_title']}"
+    return
   fi
+
+  message_box='Bookmarked patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+  message_box+='Downloaded mbox file to:'$'\n'"$output"
+  create_message_box 'Success' "$message_box"
 }
 
 # Handler of the 'remove bookmark' action. This function removes the patchset
@@ -176,14 +183,20 @@ function handle_bookmark_action()
 function handle_remove_bookmark_action()
 {
   local -n _patchset="$1"
+  local message_box
 
   delete_series_from_local_storage "${lore_config['save_patches_to']}" "${_patchset['patchset_url']}"
   if [[ "$?" != 0 ]]; then
     create_message_box 'Warning' 'Could not delete patchset .mbx file'$'\n'"- ${_patchset['patchset_title']}"
+    return
   fi
 
   remove_patchset_from_bookmark_by_url "${_patchset['patchset_url']}"
   if [[ "$?" != 0 ]]; then
     create_message_box 'Error' 'Could not unbookmark patchset'$'\n'"- ${_patchset['patchset_title']}"
+    return
   fi
+
+  message_box='Removed bookmark from patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+  create_message_box 'Success' "$message_box"
 }

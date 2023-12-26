@@ -1,6 +1,6 @@
-========================
-kw-kernel-config-manager
-========================
+=====================================================
+kw-kernel-config-manager - Kernel config file manager
+=====================================================
 
 .. _kernel-config-manager-doc:
 

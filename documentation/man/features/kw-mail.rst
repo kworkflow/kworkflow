@@ -1,6 +1,6 @@
-=======
-kw-mail
-=======
+===================================
+kw-mail - Send patches through mail
+===================================
 
 .. _mail-doc:
 
@@ -43,7 +43,7 @@ the union of the recipients of each patch as the recipients of the cover-letter.
 OPTIONS
 =======
 -s, \--send:
-  Send a patch by email using ``git send-email`` to the email adresses
+  Send a patch by email using ``git send-email`` to the email addresses
   specified with ``--to`` and ``--cc``. You can provide *<extra-args>* to be
   passed directly to ``git send-email``, they should be placed after the double
   dash (``--``) argument. By default this function assumes these arguments to
@@ -68,7 +68,7 @@ OPTIONS
   ``git send-email``'s ``--dry-run`` option.
 
 \--private:
-  Supress auto generation of recipients.
+  Suppress auto generation of recipients.
 
 \--rfc:
   Add a request for comment prefix to the e-mail's subject.
