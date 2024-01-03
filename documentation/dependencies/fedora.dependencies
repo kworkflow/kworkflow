@@ -26,3 +26,4 @@ coreutils
 b4
 procps
 pciutils
+libnotify
