@@ -28,3 +28,4 @@ coreutils
 b4
 procps-ng
 pciutils
+libnotify
