@@ -32,6 +32,25 @@ function test_kworkflow_man()
   assertEquals "($LINENO) We expected an error message." "$expect" "$output"
 }
 
+function test_kworkflow_version()
+{
+  local KW_LIB_DIR
+  local output
+  local expected_output
+
+  # the mocked version for KW
+  expected_output=$(printf 'beta\nBranch: bazz\nCommit: ffddee\n')
+
+  # this value mocks a fake location for the version file, which is the file used
+  # by KW to get information about the current version.
+  KW_LIB_DIR="${SHUNIT_TMPDIR}"
+  printf '%s' "${expected_output}" > "${KW_LIB_DIR}/VERSION"
+
+  # check output
+  output=$(kworkflow_version)
+  assert_equals_helper "Got wrong kw version." "$LINE" "${expected_output}" "${output}"
+}
+
 function test_kworkflow_version_in_repomode()
 {
   local branch_name
