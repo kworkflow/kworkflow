@@ -91,7 +91,12 @@ if [[ "${KW_REPO_MODE}" == 'y' ]]; then
   repo_mode_msg+=$'\t'"KW_PLUGINS_DIR=${KW_PLUGINS_DIR}"$'\n'
   repo_mode_msg+=$'\t'"KW_SOUND_DIR=${KW_SOUND_DIR}"$'\n'$'\n'
   repo_mode_msg+="${SEPARATOR}"
-  say "${repo_mode_msg}"
+
+  # Message is redirected to stderr such that it can be easily ignored if needed.
+  # Otherwise, it could mess up the output expected by  integration  tests  which
+  # are runnning kw in repo-mode and the tests would fail (we may eventually want
+  # such tests because in repo-mode we can execute kw without installing it).
+  say "${repo_mode_msg}" >&2
 fi
 
 function kw()
