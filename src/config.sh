@@ -66,7 +66,7 @@ function config_main()
   target_config_file=$(printf '%s' "$parameters" | cut -d '.' -f 1)
   option_and_value="${parameters#*.}"
   option=$(printf '%s' "$option_and_value" | cut -d ' ' -f 1)
-  value=$(printf '%s' "$option_and_value" | cut -d ' ' -f 2)
+  value=$(printf '%s' "$option_and_value" | cut -d ' ' -f 2-)
 
   if [[ "${options_values['SCOPE']}" == 'global' ]]; then
     base_path="${KW_ETC_DIR}"
