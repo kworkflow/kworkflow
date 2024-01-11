@@ -24,6 +24,6 @@ curl
 perl-XML-XPath
 coreutils
 b4
-procps
+procps-ng
 pciutils
 libnotify
