@@ -10,9 +10,10 @@ can have shunit2 source code in `tests/` (you can clone it from
 https://github.com/kward/shunit2).
 
 In order to run the integration tests, it is necessary to install Podman and  to
-configure it to run in `rootless` mode. Podman  is  available  via  the  default
-package manager of popular distros, such as Arch, Debian, Fedora and those based
-on them.
+configure it to run in rootless mode as explained in the official documentation:
+https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md.
+Podman is available via the default package manager of popular distros, such  as
+Arch, Debian, Fedora and those based on them.
 
 If you want to run all the tests, try::
 
@@ -34,6 +35,8 @@ the first argument to any of the examples above. So, the syntax is::
 Where `[scope]` can be `--unit` or `--integration`. The placeholder  `[command]`
 can be either `list`, `test` or simply omited in order to run  all  tests.  Here
 are some examples:
+
+.. code-block:: bash
 
   ./run_tests.sh --unit                       # run all unit tests
   ./run_tests.sh --unit list                  # list all unit tests
