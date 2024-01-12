@@ -1,5 +1,5 @@
 ===============
-  About Tests
+About Tests
 ===============
 
 .. _tests:
@@ -41,23 +41,26 @@ are some examples:
   ./run_tests.sh --unit                       # run all unit tests
   ./run_tests.sh --unit list                  # list all unit tests
   ./run_tests.sh --unit test device           # test device unit test
+  ./run_tests.sh --unit clear-cache           # clear unit tests cache
   ./run_tests.sh --integration                # run all integration tests
   ./run_tests.sh --integration list           # list all integration tests
   ./run_tests.sh --integration test device    # test device integration test
+  ./run_tests.sh --integration clear-cache    # clear integration tests cache
   ./run_tests.sh                              # run all tests
   ./run_tests.sh list                         # list all tests
   ./run_tests.sh test device                  # run all device tests
+  ./run_tests.sh clear-cache                  # clear all cache
 
 The integration tests can take over 10 minutes to run in the first time  because
 podman is building the container images to be used in the tests, which  requires
-installing kw's dependencies in the supported distros.  After  the  images  have
-been built and cached, running the integration tests  should  take  only  a  few
+installing kw's dependencies in the supported distros. After the images have
+been built and cached, running the integration tests should take only a few
 seconds each time.
 
-Then, the local kw repo is copied to the containers and installed  again,  which
-takes very few seconds. For optimization purposes,  the  containers  are  reused
-accross tests. If you add a new commit or checkout to another branch, such  that
-HEAD points to another commit, the containers  will  be  destroyed  and  created
+Then, the local kw repo is copied to the containers and installed again, which
+takes very few seconds. For optimization purposes, the containers are reused
+accross tests. If you add a new commit or checkout to another branch, such that
+HEAD points to another commit, the containers will be destroyed and created
 again in order to install the current local version of kw.
 
 Kw is already prepared to run tests, build the documentation and check the
