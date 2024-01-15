@@ -65,12 +65,12 @@ function setup_container_environment()
     if [[ "$?" -ne 0 ]]; then
       # progress message:
       i=$((i + 1))
-      say "[${i}/${n}] Building container image for ${distro}."
+      say "[${i}/${n}] Building container image for ${distro}. This might take a while..."
 
       # Build the image or fail.
       build_distro_image "$distro"
       if [[ "$?" -ne 0 ]]; then
-        complain "failed to setup container environment for distro ${distro}"
+        complain "Failed to setup container environment for distro ${distro}"
 
         # print we will skip creating the container image
         i=$((i + 1))
