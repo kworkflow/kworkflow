@@ -58,7 +58,7 @@ Notice that you can use the short version of the above command::
 Now that you created this session, you can check how many minutes are left by
 using::
 
-  $ kw p --list # kw p -l
+  $ kw p --check-timer # kw p -c
 
 
 Now, forget about the world and focus on your task for 30 minutes; don't worry,
@@ -76,7 +76,7 @@ Notice that typing "Super weird bug" is tedious and error-prone, but don't
 worry, kw provides a feature to list all tags and associates them with an ID.
 To see all the tags that you already created, use this command::
 
-  $ kw p -g
+  $ kw p --show-tags # kw p -s
   1.Super weird bug
 
 In other words, you can use::
