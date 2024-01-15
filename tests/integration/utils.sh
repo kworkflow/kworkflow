@@ -111,7 +111,7 @@ function setup_container_environment()
     # processes) and get the output of each of them separately.
     container_run \
       --workdir "${working_directory}" \
-      --volume "${KWROOT_DIR}":"${working_directory}" \
+      --volume "${KWROOT_DIR}":"${working_directory}:Z" \
       --env PATH='/root/.local/bin:/usr/bin' \
       --name "${container_name}" \
       --detach \
