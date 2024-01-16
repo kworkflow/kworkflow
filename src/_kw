@@ -438,9 +438,9 @@ _kw_pomodoro()
 _kw_remote()
 {
   local -a remote_commands=(
-    'add:add a named remote to kw management'
-    'remove:remove an existing remote from kw management'
-    'rename:rename an existing remote'
+    '--add:add a named remote to kw management'
+    '--remove:remove an existing remote from kw management'
+    '--rename:rename an existing remote'
   )
 
   _arguments : \

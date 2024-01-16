@@ -139,7 +139,7 @@ function add_new_remote()
 
   # We expect at exact two parameters
   if [[ "${#add_parameters[*]}" != 2 ]]; then
-    complain 'Expected: add <name-without-space> <[user@]ip[:port]>'
+    complain 'Expected: --add <name-without-space> <[user@]ip[:port]>'
     exit 22 # EINVAL
   fi
 
@@ -236,7 +236,7 @@ function remove_remote()
 
   # We expect at exact two parameters
   if [[ "${#remove_parameters[*]}" != 1 ]]; then
-    complain 'Expected: remove <name-without-space>'
+    complain 'Expected: --remove <name-without-space>'
     exit 22 # EINVAL
   fi
 
@@ -280,7 +280,7 @@ function rename_remote()
 
   # We expect at exact two parameters
   if [[ "${#rename_parameters[*]}" != 2 ]]; then
-    complain 'Expected: rename <OLD-name-without-space> <NEW-name-without-space>'
+    complain 'Expected: --rename <OLD-name-without-space> <NEW-name-without-space>'
     exit 22 # EINVAL
   fi
 
@@ -359,15 +359,15 @@ function parse_remote_options()
         remote_help "$1"
         exit
         ;;
-      add)
+      --add)
         options_values['ADD']=1
         shift
         ;;
-      remove)
+      --remove)
         options_values['REMOVE']=1
         shift
         ;;
-      rename)
+      --rename)
         options_values['RENAME']=1
         shift
         ;;
@@ -411,7 +411,7 @@ function parse_remote_options()
     -z "${options_values['RENAME']}" && -z "${options_values['LIST']}" &&
     -z "${options_values['DEFAULT_REMOTE']}" ]]; then
     options_values['ERROR']='"kw remote" should be proceeded by valid option'$'\n'
-    options_values['ERROR']+='Usage: kw remote (add | remove | rename | --list | --set-default) <params>[...]'
+    options_values['ERROR']+='Usage: kw remote (--add | --remove | --rename | --list | --set-default) <params>[...]'
     return 22 # EINVAL
   fi
 }
@@ -425,9 +425,9 @@ function remote_help()
   fi
   printf '%s\n' 'kw remote:' \
     '  remote - handle remote options' \
-    '  remote add [--global] <name> <USER@IP:PORT> [--set-default] - Add new remote' \
-    '  remote remove [--global] <name> - Remove remote' \
-    '  remote rename [--global] <old> <new> - Rename remote' \
+    '  remote [--global] --add <name> <USER@IP:PORT> [--set-default] - Add new remote' \
+    '  remote [--global] --remove <name> - Remove remote' \
+    '  remote [--global] --rename <old> <new> - Rename remote' \
     '  remote [--global] --set-default=<remonte-name> - Set default remote' \
     '  remote [--global] --list - List remotes' \
     '  remote [--global] (--verbose | -v) - be verbose'
