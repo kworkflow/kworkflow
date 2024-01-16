@@ -7,9 +7,9 @@ kw-remote - Manage set of tracked test machines
 SYNOPSIS
 ========
 | *kw remote* [-v | \--verbose]
-| *kw remote* [--global] add <name> <user>@<remote>[:<port>]
-| *kw remote* [--global] remove <name>
-| *kw remote* [--global] rename <old-name> <new-name>
+| *kw remote* [--global] \--add <name> <user>@<remote>[:<port>]
+| *kw remote* [--global] \--remove <name>
+| *kw remote* [--global] \--rename <old-name> <new-name>
 | *kw remote* [--global] \--list
 | *kw remote* [--global] (-s | \--set-default)=<name>
 
@@ -21,16 +21,16 @@ available locally at `.kw/remote.config` or globally at `~/.config/kw/remote.con
 
 OPTIONS
 =======
-add <name> <remote-address>:
+\--add <name> <remote-address>:
   Adds a remote named <name> for the test machine at <remote-address>. Notice
   that <remote_address> must follow the pattern `<user>@<remote>[:<port>]` where
   `remote` can be an IP or a name server and `:<port>` is optional (default port
   is 22).
 
-remove <name>:
+\--remove <name>:
   Remove the remote named <name>.
 
-rename <old-name> <new-name>:
+\--rename <old-name> <new-name>:
   Rename the remote named <old-name> to <new-name>. If you try a name already
   in use, kw will fail with a message.
 
@@ -52,19 +52,19 @@ EXAMPLES
 In case you want **kw** to track a new test machine, you can use::
 
   cd <kernel-path>
-  kw remote add origin root@my-test-machine
+  kw remote --add origin root@my-test-machine
 
 If you do not use port 22, you can use::
 
-  kw remote add my-x86-test-system root@my-test-machine:5555
+  kw remote --add my-x86-test-system root@my-test-machine:5555
 
 If you want to remove some remote::
 
-  kw remote remove origin
+  kw remote --remove origin
 
 If you want to rename::
 
-  kw remote rename origina arm-device
+  kw remote --rename origina arm-device
 
 You can also list all your available remotes via::
 

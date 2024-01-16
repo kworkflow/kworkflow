@@ -465,17 +465,17 @@ function test_set_default_remote_we_already_have_the_default_remote()
 function test_parse_remote_options()
 {
   # Add option
-  parse_remote_options add origin 'root@la:3333'
+  parse_remote_options --add origin 'root@la:3333'
   assert_equals_helper 'Request add' "($LINENO)" "${options_values['ADD']}" 1
   assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin root@la:3333 '
 
   # Remove
-  parse_remote_options remove origin
+  parse_remote_options --remove origin
   assert_equals_helper 'Request remove' "($LINENO)" "${options_values['REMOVE']}" 1
   assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin '
 
   # Rename
-  parse_remote_options rename origin xpto
+  parse_remote_options --rename origin xpto
   assert_equals_helper 'Request rename' "($LINENO)" "${options_values['RENAME']}" 1
   assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin xpto '
 }
