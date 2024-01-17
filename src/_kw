@@ -413,6 +413,7 @@ _kw_p() { _kw_pomodoro }
 _kw_pomodoro()
 {
   local -a set_timer_options=()
+  local -a tag_options=()
 
   if ((words[(I)-t|--set-timer])); then
     set_timer_options=(
