@@ -111,6 +111,9 @@ function cmd_manager()
       say "$command_for_eval"
       return 0
       ;;
+    CMD_SUBSTITUTION_VERBOSE)
+      say "$command_for_eval" >&2
+      ;;
     *) # VERBOSE
       say "$command_for_eval"
       ;;
