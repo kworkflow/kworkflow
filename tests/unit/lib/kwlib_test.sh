@@ -212,6 +212,19 @@ function test_cmd_manager_say_complain_warning_highlight_cmd_success()
   assertTrue "($LINENO): We expected to find scripts" '[[ $ret =~ scripts ]]'
 }
 
+function test_cmd_manager_cmd_substitution_with_verbose_output
+{
+  local cmd
+  local output
+  local verbose_output_path="${SHUNIT_TMPDIR}/verbose_output"
+
+  cmd="printf 'Hello World!'"
+  output=$(cmd_manager 'CMD_SUBSTITUTION_VERBOSE' "$cmd" 2> "$verbose_output_path")
+
+  assert_equals_helper "Should execute \`${cmd}\`" "$LINENO" 'Hello World!' "$output"
+  assert_equals_helper "Should output the string \`${cmd}\`' to stderr" "$LINENO" "$cmd" "$(< "$verbose_output_path")"
+}
+
 function test_cmd_manager_check_test_mode_option()
 {
   local ret
