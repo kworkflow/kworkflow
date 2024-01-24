@@ -530,11 +530,11 @@ function test_get_bookmarked_series()
 
   get_bookmarked_series bookmarked_series
 
-  expected=' DATE1 | TITLE1                                                                 | AUTHOR1'
+  expected=' DATE1 | TITLE1                                                       | AUTHOR1'
   assertEquals "($LINENO)" "$expected" "${bookmarked_series[0]}"
-  expected=' DATE2 | TITLE2                                                                 | AUTHOR2'
+  expected=' DATE2 | TITLE2                                                       | AUTHOR2'
   assertEquals "($LINENO)" "$expected" "${bookmarked_series[1]}"
-  expected=' DATE3 | TITLE3                                                                 | AUTHOR3'
+  expected=' DATE3 | TITLE3                                                       | AUTHOR3'
   assertEquals "($LINENO)" "$expected" "${bookmarked_series[2]}"
 }
 
@@ -1168,22 +1168,22 @@ function test_format_patchsets()
   local -a formatted_patchsets_list
   local output
 
-  representative_patches[0]='message-id0Ætitle0Æauthor0Æemail0Æ2Æ1Æ6Æupdated0Æin-reply-to0Ædir0Ætimestamp0'
-  representative_patches[1]='message-id1Ætitle1Æauthor1Æemail1Æ1Æ0Æ3Æupdated1Æin-reply-to1Ædir1Ætimestamp1'
-  representative_patches[2]='message-id2Ætitle2Æauthor2Æemail2Æ16Æ1Æ8Æupdated2Æin-reply-to2Ædir2Ætimestamp2'
-  formatted_patchsets_list[0]='Vold |#old |  titleold'
+  representative_patches[0]='message-id0Ætitle0Æauthor0Æemail0Æ2Æ1Æ6Æupdated0 11:34Æin-reply-to0Ædir0Ætimestamp0'
+  representative_patches[1]='message-id1Ætitle1Æauthor1Æemail1Æ1Æ0Æ3Æupdated1 12:23Æin-reply-to1Ædir1Ætimestamp1'
+  representative_patches[2]='message-id2Ætitle2Æauthor2Æemail2Æ16Æ1Æ8Æupdated2 21:50Æin-reply-to2Ædir2Ætimestamp2'
+  formatted_patchsets_list[0]='Vold |#old |  titleold | updatedold | authorold'
 
   format_patchsets 'formatted_patchsets_list' 1 2
   assert_equals_helper 'Wrong number of patchsets formatted' "$LINENO" 3 "${#formatted_patchsets_list[@]}"
 
-  expected='Vold |#old |  titleold'
+  expected='Vold |#old |  titleold | updatedold | authorold'
   assert_equals_helper 'Should not overwrite out-of-range entry' "$LINENO" "$expected" "${formatted_patchsets_list[0]}"
 
-  expected='V1  |#3  |  title1'
+  expected='V1  |#3  | title1                                                       | updated1 | author1'
   output=$(printf '%s' "${formatted_patchsets_list[1]}" | sed 's/ *$//') # trim trailing whitespace
   assert_equals_helper 'Wrong formatted patchset 1' "$LINENO" "$expected" "$output"
 
-  expected='V16 |#8  |  title2'
+  expected='V16 |#8  | title2                                                       | updated2 | author2'
   output=$(printf '%s' "${formatted_patchsets_list[2]}" | sed 's/ *$//') # trim trailing whitespace
   assert_equals_helper 'Wrong formatted patchset 2' "$LINENO" "$expected" "$output"
 }
