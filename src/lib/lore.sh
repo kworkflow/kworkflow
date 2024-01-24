@@ -558,7 +558,7 @@ function fetch_latest_patchsets_from()
 # into an array reference passed as argument. The format of the metadata follows the
 # pattern:
 #
-#  V <version_of_patchset> | #<number_of_patches> | <patchset_title>
+#  V <version> | #<total_in_series> | <message_title> | <author_name> | <updated>
 #
 # @_formatted_patchsets_list: Array reference to output formatted range of patchsets metadata
 # @starting_index: Starting index of range from `representative_patches`
@@ -573,7 +573,7 @@ function format_patchsets()
   for i in $(seq "$starting_index" "$ending_index"); do
     read_patch_into_dict "${representative_patches["$i"]}" 'patchset'
     _formatted_patchsets_list["$i"]=$(printf 'V%-2s |#%-3s| ' "${patchset['version']}" "${patchset['total_in_series']}")
-    _formatted_patchsets_list["$i"]+=$(printf ' %-100s' "${patchset['message_title']}")
+    _formatted_patchsets_list["$i"]+=$(printf '%-60.60s | %-20.20s | %s' "${patchset['message_title']}" "${patchset['author_name']}" "${patchset['updated']:0:-6}")
   done
 }
 
@@ -809,16 +809,12 @@ function remove_series_from_bookmark_by_index()
 #
 # @_bookmarked_series: An array reference to be populated with all the bookmarked
 #   series.
-#
-# TODO:
-# - Better decide which information will be shown in the bookmarked patches screen
 function get_bookmarked_series()
 {
   local -n _bookmarked_series="$1"
   declare -A series
   local index=0
   local timestamp
-  local tmp_data
 
   if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
     return 2 # ENOENT
@@ -828,8 +824,8 @@ function get_bookmarked_series()
 
   while IFS='' read -r raw_patchset; do
     read_patch_into_dict "${raw_patchset}" 'series'
-    tmp_data=$(printf ' %s | %-70s | %s' "${series['timestamp']}" "${series['message_title']}" "${series['author_name']}")
-    _bookmarked_series["$index"]="${tmp_data}"
+    _bookmarked_series["$index"]=$(printf ' %s | %-60.60s ' "${series['timestamp']}" "${series['message_title']}")
+    _bookmarked_series["$index"]+=$(printf '| %s' "${series['author_name']}")
     ((index++))
   done < "${BOOKMARKED_SERIES_PATH}"
 }
