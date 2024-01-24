@@ -350,6 +350,9 @@ function test_get_patchset_bookmark_status()
 {
   local output
 
+  get_patchset_bookmark_status ''
+  assert_equals_helper 'Empty URL should return 22' "$LINENO" 22 "$?"
+
   {
     printf 'entry1Æhttp://lore.kernel.org/amd-gfx/0138948.2424-1-lore@kernel.org/\n'
     printf 'entry2Æhttp://lore.kernel.org/linux-staging/1676464.997845-1-lore@kernel.org/\n'
