@@ -7,7 +7,6 @@ declare -ga formatted_patchsets_list
 # These patchsets are ordered by their recieved time in the lore.kernel.org servers.
 function show_latest_patchsets_from_mailing_list()
 {
-  local additional_filters="$1"
   local starting_index
   local ending_index
   local box_title
@@ -30,6 +29,8 @@ function show_latest_patchsets_from_mailing_list()
     else
       screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
     fi
+    reset_current_lore_fetch_session
+    additional_filters=''
     return
   fi
 
@@ -68,6 +69,7 @@ function show_latest_patchsets_from_mailing_list()
         else
           screen_sequence['SHOW_SCREEN']='registered_mailing_lists'
         fi
+        additional_filters=''
       fi
       ;;
   esac

@@ -44,5 +44,5 @@ function search_string_in_lore()
   current_mailing_list='all'
 
   screen_sequence['SHOW_SCREEN']='latest_patchsets_from_mailing_list'
-  screen_sequence['SHOW_SCREEN_PARAMETER']="$(url_encode "$string")"
+  additional_filters="$(url_encode "$string")"
 }
