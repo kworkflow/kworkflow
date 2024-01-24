@@ -894,18 +894,23 @@ function read_patch_into_dict()
 # This function gets the bookmark status of a patchset, 0 being not in the local
 # bookmarked database and 1 being in the local bookmarked database.
 #
-# @patchset_url: The URL of the patchset that identifies the entry in the local
+# @message_id: The URL of the patchset that identifies the entry in the local
 #   bookmarked database
+#
+# Return:
+# Returns 22 (EINVAL)
 function get_patchset_bookmark_status()
 {
-  local patchset_url="$1"
+  local message_id="$1"
   local count
+
+  [[ -z "$message_id" ]] && return 22 # EINVAL
 
   if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
     create_lore_bookmarked_file
   fi
 
-  count=$(grep --count "$patchset_url" "${BOOKMARKED_SERIES_PATH}")
+  count=$(grep --count "$message_id" "${BOOKMARKED_SERIES_PATH}")
   if [[ "$count" == 0 ]]; then
     printf '%s' 0
   else
