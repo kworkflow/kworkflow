@@ -52,6 +52,7 @@ function show_patchset_details_and_actions()
 
     3) # Return
       screen_sequence['SHOW_SCREEN']="${screen_sequence['PREVIOUS_SCREEN']}"
+      screen_sequence['SHOW_SCREEN_PARAMETER']=''
       ;;
   esac
 }
