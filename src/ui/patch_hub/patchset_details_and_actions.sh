@@ -14,15 +14,14 @@ function show_patchset_details_and_actions()
   local patch_metadata
   local message_box
 
-  parse_raw_patchset_data "${raw_patchset}" 'patchset'
-  patch_metadata=$(prettify_string 'Series:' "${patchset['patchset_title']}")
-  patch_metadata+=$(prettify_string 'Author:' "${patchset['patchset_author']}")
-  patch_metadata+=$(prettify_string 'Version:' "${patchset['patchset_version']}")
-  patch_metadata+=$(prettify_string 'Patches:' "${patchset['total_patches']}")
+  read_patch_into_dict "$raw_patchset" 'patchset'
+  patch_metadata=$(prettify_string 'Series:' "${patchset['message_title']}")
+  patch_metadata+=$(prettify_string 'Author:' "${patchset['author_name']}")
+  patch_metadata+=$(prettify_string 'Version:' "${patchset['version']}")
+  patch_metadata+=$(prettify_string 'Patches:' "${patchset['total_in_series']}")
   message_box="$patch_metadata"
 
-  # actions_starting_status[0]=$(get_patchset_download_status "${patchset['patchset_url']}" "${lore_config['save_patches_to']}")
-  actions_starting_status[1]=$(get_patchset_bookmark_status "${patchset['patchset_url']}")
+  actions_starting_status[1]=$(get_patchset_bookmark_status "${patchset['message_id']}")
 
   create_simple_checklist 'Patchset details and actions' "$message_box" 'actions_list' 'actions_starting_status' 1
   ret="$?"
@@ -113,16 +112,16 @@ function handle_download_action()
         return
       fi
 
-      create_async_loading_screen_notification 'Downloading patchset'$'\n'"${_patchset['patchset_title']}" &
+      create_async_loading_screen_notification 'Downloading patchset'$'\n'"${_patchset['message_title']}" &
       loading_pid="$!"
 
-      output=$(download_series "${_patchset['patchset_url']}" "$download_dir_path")
+      output=$(download_series "${_patchset['message_id']}" "$download_dir_path")
       ret="$?"
       stop_async_loading_screen_notification "$loading_pid"
       if [[ "$ret" != 0 ]]; then
-        create_message_box 'Error' 'Could not download patchset:'$'\n'"${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
+        create_message_box 'Error' 'Could not download patchset:'$'\n'"${_patchset['message_title']}"$'\n'"[error message] ${output}"
       else
-        message_box='Downloaded patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+        message_box='Downloaded patchset:'$'\n'"- ${_patchset['message_title']}"$'\n'$'\n'
         message_box+='Filepath:'$'\n'"$output"
         create_message_box 'Success' "$message_box"
       fi
@@ -154,24 +153,24 @@ function handle_bookmark_action()
   local loading_pid
   local ret
 
-  output=$(download_series "${_patchset['patchset_url']}" "${lore_config['save_patches_to']}")
+  output=$(download_series "${_patchset['message_id']}" "${lore_config['save_patches_to']}")
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'"[error message] ${output}"
+    create_message_box 'Error' 'Could not download patchset:'$'\n'"- ${_patchset['message_title']}"$'\n'"[error message] ${output}"
     return
   fi
 
-  create_async_loading_screen_notification 'Bookmarking patchset'$'\n'"- ${_patchset['patchset_title']}" &
+  create_async_loading_screen_notification 'Bookmarking patchset'$'\n'"- ${_patchset['message_title']}" &
   loading_pid="$!"
 
   add_patchset_to_bookmarked_database "${raw_patchset}" "${lore_config['save_patches_to']}"
   ret="$?"
   stop_async_loading_screen_notification "$loading_pid"
   if [[ "$ret" != 0 ]]; then
-    create_message_box 'Error' 'Could not bookmark patchset'$'\n'"- ${_patchset['patchset_title']}"
+    create_message_box 'Error' 'Could not bookmark patchset'$'\n'"- ${_patchset['message_title']}"
     return
   fi
 
-  message_box='Bookmarked patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+  message_box='Bookmarked patchset:'$'\n'"- ${_patchset['message_title']}"$'\n'$'\n'
   message_box+='Downloaded mbox file to:'$'\n'"$output"
   create_message_box 'Success' "$message_box"
 }
@@ -185,18 +184,18 @@ function handle_remove_bookmark_action()
   local -n _patchset="$1"
   local message_box
 
-  delete_series_from_local_storage "${lore_config['save_patches_to']}" "${_patchset['patchset_url']}"
+  delete_series_from_local_storage "${lore_config['save_patches_to']}" "${_patchset['message_id']}"
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Warning' 'Could not delete patchset .mbx file'$'\n'"- ${_patchset['patchset_title']}"
+    create_message_box 'Warning' 'Could not delete patchset .mbx file'$'\n'"- ${_patchset['message_title']}"
     return
   fi
 
-  remove_patchset_from_bookmark_by_url "${_patchset['patchset_url']}"
+  remove_patchset_from_bookmark_by_url "${_patchset['message_id']}"
   if [[ "$?" != 0 ]]; then
-    create_message_box 'Error' 'Could not unbookmark patchset'$'\n'"- ${_patchset['patchset_title']}"
+    create_message_box 'Error' 'Could not unbookmark patchset'$'\n'"- ${_patchset['message_title']}"
     return
   fi
 
-  message_box='Removed bookmark from patchset:'$'\n'"- ${_patchset['patchset_title']}"$'\n'$'\n'
+  message_box='Removed bookmark from patchset:'$'\n'"- ${_patchset['message_title']}"$'\n'$'\n'
   create_message_box 'Success' "$message_box"
 }
