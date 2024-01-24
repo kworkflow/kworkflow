@@ -484,22 +484,22 @@ function test_compose_lore_query_url_with_verification_valid_cases()
 
   target_mailing_list='amd-gfx'
   min_index='200'
-  expected='https://lore.kernel.org/amd-gfx/?x=A&o=200&q=rt:..+AND+NOT+s:Re'
+  expected='https://lore.kernel.org/amd-gfx/?x=A&o=200&q=((s:patch+OR+s:rfc)+AND+NOT+s:re:)'
   output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$min_index")
   assert_equals_helper 'Valid arguments should return 0' "$LINENO" 0 "$?"
   assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"
 
   target_mailing_list='amd-gfx'
   min_index='-200'
-  expected='https://lore.kernel.org/amd-gfx/?x=A&o=-200&q=rt:..+AND+NOT+s:Re'
+  expected='https://lore.kernel.org/amd-gfx/?x=A&o=-200&q=((s:patch+OR+s:rfc)+AND+NOT+s:re:)'
   output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$min_index")
   assert_equals_helper 'Valid arguments should return 0' "$LINENO" 0 "$?"
   assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"
 
   target_mailing_list='amd-gfx'
   min_index='200'
-  additional_filters='s:drm%2Famdgpu+AND+NOT+f:David%20Tadokoro'
-  expected='https://lore.kernel.org/amd-gfx/?x=A&o=200&q=rt:..+AND+NOT+s:Re+AND+s:drm%2Famdgpu+AND+NOT+f:David%20Tadokoro'
+  additional_filters='s:drm%2Famdgpu+AND+NOT+f:Linus%20Torvalds'
+  expected='https://lore.kernel.org/amd-gfx/?x=A&o=200&q=((s:patch+OR+s:rfc)+AND+NOT+s:re:)+AND+(s:drm%2Famdgpu+AND+NOT+f:Linus%20Torvalds)'
   output=$(compose_lore_query_url_with_verification "$target_mailing_list" "$min_index" "$additional_filters")
   assert_equals_helper 'Valid arguments should return 0' "$LINENO" 0 "$?"
   assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"

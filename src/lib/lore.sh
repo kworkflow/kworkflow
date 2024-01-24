@@ -361,11 +361,8 @@ function compose_lore_query_url_with_verification()
     return 22 # EINVAL
   fi
 
-  # TODO: We need to use the query prefix 's:Re:' to filter out replies and match
-  # only real patches. Are we filtering possible patches? If no, can we filter more
-  # messages to obtain a lighter response file?
-  query_filter="?x=A&o=${min_index}&q=rt:..+AND+NOT+s:Re"
-  [[ -n "$additional_filters" ]] && query_filter+="+AND+${additional_filters}"
+  query_filter="?x=A&o=${min_index}&q=((s:patch+OR+s:rfc)+AND+NOT+s:re:)"
+  [[ -n "$additional_filters" ]] && query_filter+="+AND+(${additional_filters})"
   query_url="${LORE_URL}/${target_mailing_list}/${query_filter}"
   printf '%s' "$query_url"
 }
