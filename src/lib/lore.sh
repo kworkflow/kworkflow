@@ -352,54 +352,70 @@ function remove_patch_tag_from_message_title()
   printf '%s' "$message_title"
 }
 
+function thread_for_process_individual_patches()
+{
+  local message_id="$1"
+  local message_title="$2"
+  local author_name="$3"
+  local author_email="$4"
+  local updated="$5"
+  local line="$6"
+  local i="$7"
+  local shared_dir_for_parallelism="$8"
+  local version=''
+  local number_in_series=''
+  local total_in_series=''
+  local patch_tag=''
+  local processed_patch=''
+
+  patch_tag=$(get_patch_tag "$message_title")
+  version=$(get_patch_version "$patch_tag")
+  number_in_series=$(get_patch_number_in_series "$patch_tag")
+  total_in_series=$(get_patch_total_in_series "$patch_tag")
+  message_title=$(remove_patch_tag_from_message_title "$message_title" "$patch_tag")
+
+  processed_patch="${message_id}${SEPARATOR_CHAR}${message_title}${SEPARATOR_CHAR}"
+  processed_patch+="${author_name}${SEPARATOR_CHAR}${author_email}${SEPARATOR_CHAR}"
+  processed_patch+="${version}${SEPARATOR_CHAR}${number_in_series}${SEPARATOR_CHAR}"
+  processed_patch+="${total_in_series}${SEPARATOR_CHAR}${updated}${SEPARATOR_CHAR}"
+  if [[ "$line" =~ ^[[:space:]]href= ]]; then
+    processed_patch+=$(str_get_value_under_double_quotes "$line")
+  fi
+
+  printf '%s' "$processed_patch" > "${shared_dir_for_parallelism}/${i}"
+  printf '%s,%s,%s' "$message_id" "$version" "$number_in_series" > "${shared_dir_for_parallelism}/${i}-metadata"
+}
+
 function process_individual_patches()
 {
   local raw_xml="$1"
   local -n _individual_patches="$2"
   local pre_processed_patches
+  local shared_dir_for_parallelism=''
   local message_id=''
   local message_title=''
   local author_name=''
   local author_email=''
-  local version=''
-  local number_in_series=''
-  local total_in_series=''
-  local updated=''
-  local in_reply_to=''
-  local patch_tag=''
   local count=0
   local i=0
+  local -a pids
+  local -a patch_metadata
 
   pre_processed_patches=$(pre_process_raw_xml "$1")
+  shared_dir_for_parallelism=$(create_shared_memory_dir)
 
   while IFS= read -r line; do
     if [[ "$count" == 5 ]]; then
+      thread_for_process_individual_patches "$message_id" "$message_title" "$author_name" \
+        "$author_email" "$updated" "$line" "$i" "$shared_dir_for_parallelism" &
+      pids["$i"]="$!"
+
       count=0
-
-      patch_tag=$(get_patch_tag "$message_title")
-      version=$(get_patch_version "$patch_tag")
-      number_in_series=$(get_patch_number_in_series "$patch_tag")
-      total_in_series=$(get_patch_total_in_series "$patch_tag")
-      message_title=$(remove_patch_tag_from_message_title "$message_title" "$patch_tag")
-
-      # Mark individual patch as processed and store metadata
-      individual_patches_metadata["$message_id"]="${version},${number_in_series}"
-
-      _individual_patches["$i"]="${message_id}${SEPARATOR_CHAR}${message_title}${SEPARATOR_CHAR}"
-      _individual_patches["$i"]+="${author_name}${SEPARATOR_CHAR}${author_email}${SEPARATOR_CHAR}"
-      _individual_patches["$i"]+="${version}${SEPARATOR_CHAR}${number_in_series}${SEPARATOR_CHAR}"
-      _individual_patches["$i"]+="${total_in_series}${SEPARATOR_CHAR}${updated}${SEPARATOR_CHAR}"
+      ((i++))
 
       # In case the patch has a 'In-Reply-To' field, `line` contains this value,
       # so process it and read next line of pre processed.
-      if [[ "$line" =~ ^[[:space:]]href= ]]; then
-        in_reply_to=$(str_get_value_under_double_quotes "$line")
-        _individual_patches["$i"]+="$in_reply_to"
-        ((i++))
-        continue
-      fi
-
-      ((i++))
+      [[ "$line" =~ ^[[:space:]]href= ]] && continue
     fi
 
     case "$count" in
@@ -424,6 +440,19 @@ function process_individual_patches()
 
     ((count++))
   done <<< "$pre_processed_patches"
+
+  # Wait for specific PID to avoid interfering in other functionalities.
+  for pid in "${pids[@]}"; do
+    wait "$pid"
+  done
+
+  for j in $(seq 0 "$((i - 1))"); do
+    _individual_patches["$j"]=$(< "${shared_dir_for_parallelism}/${j}")
+    # Mark individual patch as processed and store metadata
+    patch_metadata=()
+    IFS=',' read -ra patch_metadata <<< "$(< "${shared_dir_for_parallelism}/${j}-metadata")"
+    individual_patches_metadata["${patch_metadata[0]}"]=$(printf '%s,%s' "${patch_metadata[1]}" "${patch_metadata[2]}")
+  done
 }
 
 function process_representative_patches()
