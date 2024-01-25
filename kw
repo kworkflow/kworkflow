@@ -119,7 +119,7 @@ function kw()
       ;;
     build | b)
       (
-        include "${KW_LIB_DIR}/build.sh"
+        include "${KW_LIB_DIR}/build.sh" "$@"
 
         build_kernel_main '' "$@"
         local ret="$?"

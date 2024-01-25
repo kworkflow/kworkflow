@@ -441,6 +441,23 @@ function build_help()
     '  build (--verbose) - Show a detailed output'
 }
 
-# Every time build.sh is loaded its proper configuration has to be loaded as well
+function check_include_interrupt()
+{
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --help | -h)
+        build_help "$1"
+        exit
+        ;;
+      *)
+        shift
+        ;;
+    esac
+  done
+}
+
+# Check if loading config is necessary
+check_include_interrupt "$@"
+
 load_build_config
 load_notification_config

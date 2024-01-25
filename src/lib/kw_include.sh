@@ -30,5 +30,6 @@ function include()
     declare -gA KW_INCLUDED_PATHS=(["$fullpath"]=1)
   fi
 
-  . "$filepath" --source-only
+  shift
+  . "$filepath" --source-only "$@"
 }
