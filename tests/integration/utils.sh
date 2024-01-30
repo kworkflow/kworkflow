@@ -31,7 +31,7 @@ function build_distro_image()
   local distro="$1"
   local file="${CONTAINER_DIR}/Containerfile_${distro}"
 
-  podman image build --file "$file" --tag "kw-${distro}" > /dev/null 2>&1
+  image_build --file "$file" --tag "kw-${distro}"
 
   if [[ "$?" -ne 0 ]]; then
     fail "(${LINENO}): Error building the image for distribution ${distro}"
@@ -56,7 +56,6 @@ function setup_container_environment()
   working_directory='/tmp/kw'
 
   for distro in "${DISTROS[@]}"; do
-
     # container_img is the image name, while container_name is the name of the
     # container built from the image.
     container_img="kw-${distro}"
@@ -85,7 +84,7 @@ function setup_container_environment()
 
     # If container exists, we tear it down and create a new one in order to
     # ensure KW installation reflects the latest local changes.
-    podman container exists "${container_name}"
+    container_exists "${container_name}"
     if [[ "$?" -eq 0 ]]; then
       teardown_single_container "${container_name}"
     fi
@@ -149,7 +148,7 @@ function teardown_single_container()
 {
   local container="$1"
 
-  podman container exists "${container}"
+  container_exists "${container}"
 
   if [[ "$?" -eq 0 ]]; then
     # Destroy container sending SIGKILL instantly.
@@ -157,6 +156,57 @@ function teardown_single_container()
   fi
 }
 
+# destroy all containers used in the tests
+teardown_container_environment()
+{
+  local distro
+  local i=0                # current step of tear down
+  local n="${#DISTROS[@]}" # total number of steps of tear down
+
+  for distro in "${DISTROS[@]}"; do
+    # progress message
+    i=$((i + 1))
+    say "[${i}/${n}] Removing ${distro} container."
+
+    teardown_single_container "kw-${distro}"
+  done
+}
+
+# check existence of container image
+function image_exists()
+{
+  podman image exists "$1"
+}
+
+# build a image
+function image_build()
+{
+  # shellcheck disable=SC2068
+  podman image build $@ > /dev/null 2>&1
+
+  if [[ "$?" -ne 0 ]]; then
+    fail "(${LINENO}): Failed to build the image."
+  fi
+}
+
+# check existence of container
+function container_exists()
+{
+  podman container exists "$1"
+}
+
+# remove containers
+function container_rm()
+{
+  # shellcheck disable=SC2068
+  podman container rm $@ > /dev/null 2>&1
+
+  if [[ "$?" -ne 0 ]]; then
+    fail "(${LINENO}): Failed to remove containers."
+  fi
+}
+
+# run a container
 function container_run()
 {
   # shellcheck disable=SC2068

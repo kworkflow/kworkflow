@@ -5,6 +5,9 @@ include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 include './src/lib/kwio.sh'
 
+declare -a TESTS
+declare TESTS_DIR
+
 function show_help()
 {
   printf '%s\n' "Usage: $0 [--flags] [help] [list] [test <tfile1> ...]" \
@@ -129,7 +132,6 @@ function run_tests()
   report_results "$total" "$success" "$notfound" "$fail" "$test_failure_list"
 }
 
-declare -a TESTS
 function set_tests()
 {
   local file
@@ -139,45 +141,86 @@ function set_tests()
   done
 }
 
-declare TESTS_DIR=./tests
-if [[ "$1" == '--unit' || "$1" == '-u' ]]; then
-  TESTS_DIR=./tests/unit
-  shift
-elif [[ "$1" == '--integration' || "$1" == '-i' ]]; then
-  TESTS_DIR=./tests/integration
-  shift
-fi
+function list_tests()
+{
+  local index
+  local files_list
 
-check_files="$?"
-#shellcheck disable=SC2086
-if [[ "$#" -eq 0 ]]; then
+  index=0
+  files_list=$(find "$TESTS_DIR" -name '*_test.sh')
+
+  # shellcheck disable=SC2086
+  set_tests $files_list
+
+  for test_name in "${TESTS[@]}"; do
+    ((index++))
+    say "$index) ${test_name}"
+  done
+}
+
+function run_all_tests()
+{
+  local files_list
+
   files_list=$(find "$TESTS_DIR" -name '*_test.sh' | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
 
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
+  # shellcheck disable=SC2086
   set_tests $files_list
 
   # Set the environment variable LANGUAGE to `en_US.UTF_8` to avoid the host
   # locale settings from interfering in the tests.
   LANGUAGE=en_US.UTF_8 run_tests
-elif [[ "$1" == 'list' ]]; then
-  index=0
-  files_list=$(find "$TESTS_DIR" -name '*_test.sh')
-  set_tests $files_list
-  for test_name in "${TESTS[@]}"; do
-    ((index++))
-    say "$index) ${test_name}"
-  done
-elif [[ "$1" == 'test' ]]; then
+}
+
+function run_user_provided_tests()
+{
+  local regex
+  local files_list
+
   # We use a regex to filter files so we test multiple tests matching a desirable
   # pattern. For example, we can run all config-related tests  by  providing  the
   # word config. We can also run both config unit  test  and  config  integration
   # test with this approach.
-  regex="($(sed 's/ /|/g' <<< "${@:2}"))"
-
+  regex="($(sed 's/ /|/g' <<< "${@}"))"
   files_list=$(find "$TESTS_DIR" | grep --perl-regexp "${regex}" | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+
+  # shellcheck disable=SC2086
   set_tests $files_list
+
   LANGUAGE=en_US.UTF_8 run_tests
-else
-  show_help
-fi
+}
+
+# parse flag
+case "$1" in
+  --unit | -u)
+    TESTS_DIR='./tests/unit'
+    shift
+    ;;
+  --integration | -i)
+    TESTS_DIR='./tests/integration'
+    shift
+    ;;
+  *)
+    TESTS_DIR='./tests'
+    ;;
+esac
+
+action=${1:-all}
+
+case "$action" in
+  all)
+    run_all_tests
+    ;;
+  list)
+    list_tests
+    ;;
+  test)
+    shift
+    run_user_provided_tests "$@"
+    ;;
+  *)
+    show_help
+    ;;
+esac
