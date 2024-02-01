@@ -47,6 +47,7 @@ function oneTimeSetUp()
   export INVALID_ARG='Invalid arguments'
   export NO_SUCH_FILE='No such file'
   export SSH_OK='ssh -p 3333 127.0.0.1'
+  export HOME='/home/SOMETHING'
   rm -rf "$FAKE_KW"
 
   mk_fake_remote "$FAKE_KW" "$modules_path"
@@ -456,6 +457,48 @@ function test_remote2host()
   expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $user@$remote:$src $dst $RSYNC_FLAGS"
   output=$(remote2host "$flag" "$src" "$dst" "$remote" "$port")
   assert_equals_helper 'Default user' "$LINENO" "$expected_cmd_str" "$output"
+}
+
+function test_extract_remote_info_from_config_file()
+{
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']='steamos'
+
+  extract_remote_info_from_config_file
+  assert_equals_helper 'Remote did not match' "$LINENO" 'steamdeck' "${remote_parameters['REMOTE_IP']}"
+  assert_equals_helper 'Port did not match' "$LINENO" 8888 "${remote_parameters['REMOTE_PORT']}"
+  assert_equals_helper 'User did not match' "$LINENO" 'jozzi' "${remote_parameters['REMOTE_USER']}"
+}
+
+function test_remove_key_from_kwown_hosts_by_user_request()
+{
+  local expected_cmd="ssh-keygen -q -f '${HOME}/.ssh/known_hosts' -R '[steamdeck]:8888'"
+
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']='steamos'
+
+  output=$(remove_key_from_kwown_hosts 'TEST_MODE' 'something' <<< 'Y' | tail -1)
+  assert_equals_helper 'Remove identification command is wrong' "$LINENO" "$expected_cmd" "$output"
+}
+
+function test_remove_key_from_kwown_hosts_by_user_request_cancel_operation()
+{
+  local output
+
+  remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
+  remote_parameters['REMOTE_FILE_HOST']='steamos'
+
+  output=$(remove_key_from_kwown_hosts 'TEST_MODE' 'something' <<< 'N')
+  assert_equals_helper 'User canceled the operation' "$LINENO" 125 "$?"
+}
+
+function test_ssh_error_handling()
+{
+  ssh_error_handling 'This is not a valid error'
+  assert_equals_helper 'This is not a valid error' "$LINENO" 0 "$?"
+
+  ssh_error_handling 'WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED'
+  assert_equals_helper 'Remote host change' "$LINENO" 111 "$?"
 }
 
 function test_which_distro()

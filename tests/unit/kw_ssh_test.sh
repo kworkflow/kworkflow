@@ -92,7 +92,7 @@ function test_kw_ssh_main_no_parameter()
   local output
 
   declare -a expected_cmd=(
-    "ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
     "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin"
   )
 
@@ -106,7 +106,7 @@ function test_kw_ssh_main_command()
   local output
 
   declare -a expected_cmd=(
-    "ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
     "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin pwd"
   )
 
@@ -129,7 +129,7 @@ function test_kw_ssh_main_script()
     '[[ $ret =~ "$msg" ]]'
 
   declare -a expected_cmd=(
-    "ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
+    "ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -F ${SHUNIT_TMPDIR}/.kw/remote.config origin exit"
     "ssh -F ${SHUNIT_TMPDIR}/.kw/remote.config origin \"bash -s\" -- < $TEST_PATH/dmesg"
   )
 
