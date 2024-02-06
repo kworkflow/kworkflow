@@ -522,8 +522,23 @@ function use_system_wide_installation_directories()
   ETCDIR="/etc/${app_name}"
 }
 
+# Ask for confirmation if KW seems to be already installed.
+function confirm_reinstallation()
+{
+  if [[ -x "${KWBINPATH}" && "${FORCE}" == 0 ]]; then
+    warning 'KW seems to be already installed!'
+    if [[ $(ask_yN 'Do you want to proceed anyway?') =~ '0' ]]; then
+      info 'Aborting kw installation...'
+      exit 0
+    fi
+  fi
+}
+
 function install_kw()
 {
+  # confirm before attempting to reinstall if that is the case.
+  confirm_reinstallation
+
   # Check Dependencies
   if [[ "$SKIPCHECKS" == 0 ]]; then
     say 'Checking dependencies ...'
