@@ -247,50 +247,6 @@ function full_cleanup()
   cmd_manager "$flag" "$cmd"
 }
 
-# This function loads the kw build configuration files into memory, populating
-# the $build_config hashtable. The files are parsed in a specific order,
-# allowing higher level setting definitions to overwrite lower level ones.
-function load_build_config()
-{
-  if [[ -v build_config && "$OVERRIDE_BUILD_CONFIG" != 1 ]]; then
-    unset OVERRIDE_BUILD_CONFIG
-    return
-  fi
-
-  local -a config_dirs
-  local config_dirs_size
-
-  if [[ -v XDG_CONFIG_DIRS ]]; then
-    IFS=: read -ra config_dirs <<< "$XDG_CONFIG_DIRS"
-  else
-    [[ -d '/etc/xdg' ]] && config_dirs=('/etc/xdg')
-  fi
-
-  # Old users may not have split their configs yet
-  parse_configuration "$KW_ETC_DIR/$BUILD_CONFIG_FILENAME" build_config
-
-  # XDG_CONFIG_DIRS is a colon-separated list of directories for config
-  # files to be searched, in order of preference. Since this function
-  # reads config files in a reversed order of preference, we must
-  # traverse it from back to top. Example: if
-  # XDG_CONFIG_DIRS=/etc/xdg:/home/user/myconfig:/etc/myconfig
-  # we will want to parse /etc/myconfig, then /home/user/myconfig, then
-  # /etc/xdg.
-  config_dirs_size="${#config_dirs[@]}"
-  for ((i = config_dirs_size - 1; i >= 0; i--)); do
-    parse_configuration "${config_dirs["$i"]}/$KWORKFLOW/$BUILD_CONFIG_FILENAME" build_config
-  done
-
-  parse_configuration "${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW/$BUILD_CONFIG_FILENAME" build_config
-
-  if [[ -f "$PWD/$KW_DIR/$BUILD_CONFIG_FILENAME" ]]; then
-    parse_configuration "$PWD/$KW_DIR/$BUILD_CONFIG_FILENAME" build_config
-  else
-    # Old users may not have used kw init yet, so they wouldn't have .kw
-    warning "Please use kw init to update your config files"
-  fi
-}
-
 function parse_build_options()
 {
   local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags:'
