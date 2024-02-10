@@ -37,7 +37,7 @@ function tearDown()
     return
   }
 
-  rm -rf "$BASE_PATH_KW"
+  rm -rf "$SHUNIT_TMPDIR"
 }
 
 function test_add_new_remote_wrong_number_of_parameters()
@@ -763,7 +763,7 @@ function test_global_option_list_remote_invalid()
   assertEquals "($LINENO)" "$?" 22
 }
 
-function test_ensure_remote_does_not_destroy_symbolic_link()
+function setup_for_sybolic_link_test()
 {
   local symlink="${BASE_PATH_KW}/remote.config"
   local output
@@ -776,8 +776,19 @@ Host origin
   Hostname test-debian
   Port 3333
   User root
+Host galactical
+  Hostname milky-way
+  Port 1234
+  User hubble
+Host global
+  Hostname planet-earth
+  Port 5678
+  User newton
 EOF
-  printf '%s\n' "$base_value" > '.kw/remote.config'
+  printf '%s\n' "$base_value" > "${BASE_PATH_KW}/remote.config"
+
+  # Remove global remote
+  mv "${SHUNIT_TMPDIR}/.config" "${SHUNIT_TMPDIR}/CONFIG"
 
   # Convert .kw to KW for create a symbolic link
   mv "$BASE_PATH_KW" "${SHUNIT_TMPDIR}/KW"
@@ -785,6 +796,14 @@ EOF
   # Create new .kw folder
   mkdir -p "$BASE_PATH_KW"
   ln --symbolic "${SHUNIT_TMPDIR}/KW/remote.config" "${symlink}"
+}
+
+function test_ensure_remote_does_not_destroy_symbolic_link()
+{
+  local symlink="${BASE_PATH_KW}/remote.config"
+  local output
+
+  setup_for_sybolic_link_test
 
   assertTrue "(${LINENO}) - Symbolic link wasn't created" "[[ -L ${symlink} ]]"
 
@@ -792,6 +811,21 @@ EOF
   output=$(add_new_remote)
 
   assertTrue "(${LINENO}) - After add a new remote, link was destroyed" "[[ -L ${symlink} ]]"
+}
+
+function test_ensure_set_default_remote_does_not_destroy_the_symbolic_link()
+{
+  local symlink="${BASE_PATH_KW}/remote.config"
+  local output
+
+  setup_for_sybolic_link_test
+
+  assertTrue "(${LINENO}) - Symbolic link wasn't created" "[[ -L ${symlink} ]]"
+
+  options_values['DEFAULT_REMOTE']='galactical'
+  output=$(set_default_remote)
+
+  assertTrue "(${LINENO}) - After set default, link was destroyed" "[[ -L ${symlink} ]]"
 }
 
 invoke_shunit
