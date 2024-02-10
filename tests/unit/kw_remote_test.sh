@@ -20,6 +20,8 @@ function setUp()
   mkdir -p "$KW_ETC_DIR"
   touch "${KW_ETC_DIR}/remote.config"
 
+  options_values['GLOBAL']=''
+
   cd "${SHUNIT_TMPDIR}" || {
     fail "($LINENO): setUp(): It was not possible to move into ${SHUNIT_TMPDIR}"
     return
@@ -674,6 +676,7 @@ function test_list_global_remotes()
   output=$(list_remotes)
   compare_command_sequence 'Should list the global remote.config if there is no local one' "$LINENO" 'expected_result' "$output"
 }
+
 function test_global_option_rename_remote()
 {
   local final_result_array
@@ -699,6 +702,7 @@ function test_global_option_rename_remote()
   mapfile -t final_result_array < "${global_remote_config_file}"
   compare_array_values expected_result final_result_array "$LINENO"
 }
+
 function test_global_options_set_default_remote()
 {
   local final_result_array
@@ -724,6 +728,7 @@ function test_global_options_set_default_remote()
   mapfile -t final_result_array < "${global_remote_config_file}"
   compare_array_values expected_result final_result_array "$LINENO"
 }
+
 function test_global_option_list_remotes()
 {
   local final_result_array
@@ -749,12 +754,44 @@ function test_global_option_list_remotes()
   mapfile -t final_result_array < "${global_remote_config_file}"
   compare_array_values expected_result final_result_array "$LINENO"
 }
+
 function test_global_option_list_remote_invalid()
 {
   rm "${global_remote_config_file}"
   options_values['GLOBAL']='1'
   output=$(list_remotes)
   assertEquals "($LINENO)" "$?" 22
+}
+
+function test_ensure_remote_does_not_destroy_symbolic_link()
+{
+  local symlink="${BASE_PATH_KW}/remote.config"
+  local output
+  local base_value
+
+  # Specific test setup
+  read -r -d '' base_value << 'EOF'
+#kw-default=origin
+Host origin
+  Hostname test-debian
+  Port 3333
+  User root
+EOF
+  printf '%s\n' "$base_value" > '.kw/remote.config'
+
+  # Convert .kw to KW for create a symbolic link
+  mv "$BASE_PATH_KW" "${SHUNIT_TMPDIR}/KW"
+
+  # Create new .kw folder
+  mkdir -p "$BASE_PATH_KW"
+  ln --symbolic "${SHUNIT_TMPDIR}/KW/remote.config" "${symlink}"
+
+  assertTrue "(${LINENO}) - Symbolic link wasn't created" "[[ -L ${symlink} ]]"
+
+  options_values['PARAMETERS']='origin root@test-deb:4444'
+  output=$(add_new_remote)
+
+  assertTrue "(${LINENO}) - After add a new remote, link was destroyed" "[[ -L ${symlink} ]]"
 }
 
 invoke_shunit
