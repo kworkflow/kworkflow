@@ -306,7 +306,7 @@ function rename_remote()
   # Check if remote name already exists
   grep --line-regexp --quiet "^Host ${old_name}$" "$remote_config_file"
   if [[ "$?" == 0 ]]; then
-    sed --in-place --regexp-extended "s/^Host $old_name/Host $new_name/" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "s/^Host $old_name/Host $new_name/" "$remote_config_file"
 
     # Check if the target remote was marked as a default
     grep --line-regexp --quiet "^#kw-default=${old_name}$" "$remote_config_file"
