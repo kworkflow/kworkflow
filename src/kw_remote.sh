@@ -168,9 +168,9 @@ function add_new_remote()
   # Check if remote name already exists
   grep --line-regexp --quiet "^Host ${name}$" "$remote_config_file"
   if [[ "$?" == 0 ]]; then
-    sed --in-place --regexp-extended "/^Host ${name}$/{n;s/Hostname.*/Hostname ${remote_parameters['REMOTE_IP']}/}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${name}$/{n;n;s/Port.*/Port ${remote_parameters['REMOTE_PORT']}/}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${name}$/{n;n;n;s/User.*/User ${remote_parameters['REMOTE_USER']}/}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${name}$/{n;s/Hostname.*/Hostname ${remote_parameters['REMOTE_IP']}/}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${name}$/{n;n;s/Port.*/Port ${remote_parameters['REMOTE_PORT']}/}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${name}$/{n;n;n;s/User.*/User ${remote_parameters['REMOTE_USER']}/}" "$remote_config_file"
     return
   fi
 
