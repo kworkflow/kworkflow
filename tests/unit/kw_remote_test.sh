@@ -832,4 +832,21 @@ function test_ensure_set_default_remote_does_not_destroy_the_symbolic_link()
   assert_equals_helper 'After set default, link was destroyed' "$LINENO" 0 "$?"
 }
 
+function test_ensure_remove_remote_does_not_destroy_the_symbolic_link()
+{
+  local symlink="${BASE_PATH_KW}/remote.config"
+  local output
+
+  setup_for_symbolic_link_test
+
+  [[ -L "$symlink" ]]
+  assert_equals_helper 'Symbolic link was not created' "$LINENO" 0 "$?"
+
+  options_values['PARAMETERS']='origin'
+  output=$(remove_remote)
+
+  [[ -L "$symlink" ]]
+  assert_equals_helper 'After remove remote, link was destroyed' "$LINENO" 0 "$?"
+}
+
 invoke_shunit

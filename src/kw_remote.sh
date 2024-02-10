@@ -249,14 +249,14 @@ function remove_remote()
     # Check if the target remote is the default
     if [[ "$?" == 0 ]]; then
       warning "'${target_remote}' was the default remote, please, set a new default"
-      sed --in-place "/^#kw-default=${target_remote}/d" "$remote_config_file"
+      sed --in-place --follow-symlinks "/^#kw-default=${target_remote}/d" "$remote_config_file"
     fi
 
-    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/Hostname.*/d}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/Port.*/d}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/User.*/d}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${target_remote}$/d" "$remote_config_file"
-    sed --in-place --regexp-extended '/^$/d' "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${target_remote}$/{n;/Hostname.*/d}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${target_remote}$/{n;/Port.*/d}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${target_remote}$/{n;/User.*/d}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${target_remote}$/d" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended '/^$/d' "$remote_config_file"
   else
     complain "We could not find ${target_remote}"
     return 22 # EINVAL
