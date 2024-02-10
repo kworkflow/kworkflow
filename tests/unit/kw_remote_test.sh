@@ -843,4 +843,19 @@ function test_ensure_remove_remote_does_not_destroy_the_symbolic_link()
   assertTrue "(${LINENO}) - After remove remote, link was destroyed" "[[ -L ${symlink} ]]"
 }
 
+function test_ensure_rename_remote_does_not_destroy_the_symbolic_link()
+{
+  local symlink="${BASE_PATH_KW}/remote.config"
+  local output
+
+  setup_for_sybolic_link_test
+
+  assertTrue "(${LINENO}) - Symbolic link wasn't created" "[[ -L ${symlink} ]]"
+
+  options_values['PARAMETERS']='origin end'
+  output=$(rename_remote)
+
+  assertTrue "(${LINENO}) - After rename remote, link was destroyed" "[[ -L ${symlink} ]]"
+}
+
 invoke_shunit
