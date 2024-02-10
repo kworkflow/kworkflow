@@ -205,7 +205,7 @@ function set_default_remote()
   grep --line-regexp --quiet "^#kw-default=.*" "$remote_config_file"
   # We don't have the default header yet, let's add it
   if [[ "$?" != 0 ]]; then
-    sed --in-place "1s/^/#kw-default=${default_remote}\n/" "$remote_config_file"
+    sed --in-place --follow-symlinks "1s/^/#kw-default=${default_remote}\n/" "$remote_config_file"
     return "$?"
   fi
 
@@ -217,7 +217,7 @@ function set_default_remote()
   fi
 
   # We already have the default remote
-  sed --in-place --regexp-extended "s/^#kw-default=.*/#kw-default=${default_remote}/" "$remote_config_file"
+  sed --in-place --follow-symlinks --regexp-extended "s/^#kw-default=.*/#kw-default=${default_remote}/" "$remote_config_file"
 }
 
 function remove_remote()
