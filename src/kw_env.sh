@@ -293,6 +293,12 @@ function destroy_env()
   success "The \"${env_name}\" environment has been destroyed."
 }
 
+function no_env_message()
+{
+  say 'Kw did not find any environment. You can create a new one with the --create option.'
+  say 'See kw env --help'
+}
+
 # This function searches for any folder inside the .kw directory and considers
 # it an env.
 #
@@ -302,8 +308,7 @@ function list_env_available_envs()
 {
   local local_kw_configs="${PWD}/.kw"
   local current_env
-  local output
-  local ret
+  declare -a all_envs
 
   if [[ ! -d "$local_kw_configs" ]]; then
     complain 'It looks like that you did not setup kw in this repository.'
@@ -311,22 +316,29 @@ function list_env_available_envs()
     exit 22 # EINVAL
   fi
 
-  output=$(ls "${local_kw_configs}/${ENV_DIR}" 2> /dev/null)
-  ret=$?
-  if [[ ret -ne 0 || -z $output ]]; then
-    say 'Kw did not find any environment. You can create a new one with the --create option.'
-    say 'See kw env --help'
+  if [[ ! -d "${local_kw_configs}/${ENV_DIR}" ]]; then
+    no_env_message
+    return 0
+  fi
+
+  readarray -t all_envs < <(find "${local_kw_configs}/${ENV_DIR}" -maxdepth 1 -type d -printf '%P\n' | sort --dictionary-order)
+  if [[ "${#all_envs[@]}" -eq 0 ]]; then
+    no_env_message
     return 0
   fi
 
   if [[ -f "${local_kw_configs}/${ENV_CURRENT_FILE}" ]]; then
     current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
-    say "Current env:"
-    printf ' -> %s\n' "$current_env"
+    say 'Current env:'
+    printf ' -> %s: %s\n\n' "$current_env" "${KW_CACHE_DIR}/${ENV_DIR}/${current_env}"
   fi
 
-  say 'All kw environments set for your local folder:'
-  printf '%s\n' "$output"
+  warning 'Other kw environments:'
+  # For the below loop, we want to split the array
+  # shellcheck disable=SC2068
+  for env in ${all_envs[@]}; do
+    printf ' * %s: %s\n' "$env" "${KW_CACHE_DIR}/${ENV_DIR}/${env}"
+  done
 }
 
 function parse_env_options()
