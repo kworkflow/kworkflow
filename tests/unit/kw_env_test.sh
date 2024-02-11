@@ -112,13 +112,12 @@ function test_show_available_envs()
   create_new_env
 
   local expected=(
-    'All kw environments set for your local folder:'
-    'farofa'
-    'tapioca'
+    'Other kw environments:'
+    "* farofa: ${KW_CACHE_DIR}/${ENV_DIR}/farofa"
+    "* tapioca: ${KW_CACHE_DIR}/${ENV_DIR}/tapioca"
   )
 
   output=$(list_env_available_envs)
-
   compare_command_sequence 'Did not list all envs correctly' "$LINENO" 'expected' "$output"
 }
 
