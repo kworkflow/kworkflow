@@ -438,20 +438,26 @@ _kw_pomodoro()
 
 _kw_remote()
 {
-  local -a remote_commands=(
-    '--add:add a named remote to kw management'
-    '--remove:remove an existing remote from kw management'
-    '--rename:rename an existing remote'
+  local -a set_default=()
+
+  set_default=(
+    '(-s --set-default --add --list --remove --rename)'{-s-,--set-default=}'[set existing remote as default]:remote-name: '
   )
 
-  _arguments : \
-    '(-v --verbose)'{-v,--verbose}'[be a little more verbose and show remote url after name]' \
-    '(-s --set-default)--list[list all available remotes]' \
-    '(-s --set-default --list)'{-s-,--set-default=-}'[set default remote to an existing one]: : ' \
-
-  if [[ "$CURRENT" -lt 3 ]]; then
-    _describe -t remote-commands 'remote command' remote_commands
+  if ((words[(I)--add])); then
+    set_default=(
+      '(-s --set-default --list --remove --rename)'{-s,--set-default}'[set remote to be added as default]'
+    )
   fi
+
+  _arguments : \
+    '--global[use global configurations]' \
+    '(-v --verbose)'{-v,--verbose}'[be a little more verbose and show remote url after name]' \
+    '(-s --set-default --add --remove --rename)--list[list all available remotes]' \
+    '(--list --remove --rename)--add[add a named remote to kw management]:remote-name: :user-ip-port: ' \
+    '(--list -s --set-default --add --remove)--rename[rename an existing remote from kw management]:old-remote-name: :new-remote-name: ' \
+    '(--list -s --set-default --add --rename)--remove[remove an existing remote from kw management]:remote-name: ' \
+    $set_default
 }
 
 _kw_r() { _kw_report }
