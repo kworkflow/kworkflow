@@ -428,7 +428,7 @@ function remote_help()
     '  remote [--global] --add <name> <USER@IP:PORT> [--set-default] - Add new remote' \
     '  remote [--global] --remove <name> - Remove remote' \
     '  remote [--global] --rename <old> <new> - Rename remote' \
-    '  remote [--global] --set-default=<remonte-name> - Set default remote' \
+    '  remote [--global] --set-default=<remote-name> - Set default remote' \
     '  remote [--global] --list - List remotes' \
     '  remote [--global] (--verbose | -v) - be verbose'
 }
