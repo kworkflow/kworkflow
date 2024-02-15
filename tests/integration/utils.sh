@@ -114,8 +114,7 @@ function setup_container_environment()
 
     # Container images already have kw installed. Install it again, overwriting
     # the installation.
-    container_exec "${container_name}" \
-      ./setup.sh --install --force --skip-checks --skip-docs > /dev/null 2>&1
+    container_exec "${container_name}" './setup.sh --install --force --skip-checks --skip-docs > /dev/null 2>&1'
 
     if [[ "$?" -ne 0 ]]; then
       fail "(${LINENO}): Failed to install kw in the container ${container_name}"
@@ -168,10 +167,25 @@ function container_run()
   fi
 }
 
+# Execute a command within a container.
+#
+# @container_name       The name or ID of the target container.
+# @container_command    The command to be executed within the container.
+# @podman_exec_options  Extra parameters for 'podman container exec' like
+#                       --workdir, --env, and other supported options.
 function container_exec()
 {
-  # shellcheck disable=SC2068
-  podman container exec $@ 2> /dev/null
+  local container_name="$1"
+  local container_command="$2"
+  local podman_exec_options="$3"
+  local cmd='podman container exec'
+
+  if [[ -n "$podman_exec_options" ]]; then
+    cmd+=" ${podman_exec_options}"
+  fi
+
+  cmd+=" ${container_name} /bin/sh -c '${container_command}' 2> /dev/null"
+  eval "$cmd"
 
   if [[ "$?" -ne 0 ]]; then
     fail "(${LINENO}): Failed to execute the command in the container."
