@@ -38,7 +38,7 @@ function local_config_test_helper()
     container="kw-${distro}"
 
     # get the output inside the container
-    output=$(container_exec --workdir '/tmp' "${container}" "kw config --show --local ${config}")
+    output=$(container_exec "${container}" "kw config --show --local ${config}" '--workdir=/tmp')
 
     if [[ "$?" -ne 0 ]]; then
       fail "(${LINENO}) kw failed to show local variables in ${distro}"
