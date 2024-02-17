@@ -103,7 +103,7 @@ When configuring kw, you might want to start looking at theses options:
 
 After making some changes, check that kw is incorporating them with::
 
-  kw vars
+  kw config --show
 
 which simply shows all the defined configuration options.
 
