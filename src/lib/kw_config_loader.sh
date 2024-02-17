@@ -56,103 +56,6 @@ declare -gA lore_config_local
 # Default target option from kworkflow.config
 declare -gA deploy_target_opt=(['local']=2 ['remote']=3)
 
-# This function is used to show the current set up used by kworkflow.
-function show_variables_main()
-{
-  local test_mode=0
-  local has_local_config='No'
-
-  load_all_config
-
-  if [[ "$1" =~ ^-h|^--help ]]; then
-    vars_help "$@"
-    exit 0
-  fi
-
-  # TODO: Drop [[ -f "$PWD/$CONFIG_FILENAME" ]] in the future
-  if [[ -f "${PWD}/${KW_DIR}/${CONFIG_FILENAME}" || -f "${PWD}/${CONFIG_FILENAME}" ]]; then
-    has_local_config='Yes'
-  fi
-
-  if [[ "$1" == 'TEST_MODE' ]]; then
-    test_mode=1
-  fi
-
-  local -Ar ssh=(
-    [ssh_user]='SSH user'
-    [ssh_ip]='SSH address'
-    [ssh_port]='SSH port'
-    [ssh_configfile]='SSH configuration file'
-    [hostname]='Hostname of the target in the SSH configuration file'
-  )
-
-  local -Ar misc=(
-    [disable_statistics_data_track]='Disable tracking of statistical data'
-    [gui_on]='Command to activate GUI'
-    [gui_off]='Command to deactivate GUI'
-    [checkpatch_opts]='Options to be used in the checkpatch script'
-    [get_maintainer_opts]='Options to be used in the get_maintainer script'
-  )
-
-  local -Ar group_descriptions=(
-    [build]='Kernel build options'
-    [deploy]='Kernel deploy options'
-    [mail]='Send-email options'
-    [ssh]='SSH options'
-    [vm]='VM options'
-    [notification]='Notification options'
-    [misc]='Miscellaneous options'
-    [lore]='Upstream patches from Lore options'
-  )
-
-  groups=(
-    'deploy'
-    'mail'
-    'ssh'
-    'vm'
-    'notification'
-    'misc'
-    'build'
-    'lore'
-  )
-
-  say 'kw configuration variables:'
-  printf '%s\n' "  Local config file: $has_local_config"
-
-  for group in "${groups[@]}"; do
-    local -n descriptions="$group"
-    case "$group" in
-      'build')
-        show_build_variables "$@"
-        continue
-        ;;
-      'deploy')
-        show_deploy_variables "$@"
-        continue
-        ;;
-      'mail')
-        show_mail_variables "$@"
-        continue
-        ;;
-      'notification')
-        show_notification_variables "$@"
-        continue
-        ;;
-      'vm')
-        show_vm_variables "$@"
-        continue
-        ;;
-      'lore')
-        show_lore_variables "$@"
-        continue
-        ;;
-    esac
-
-    printf '%s\n' "  ${group_descriptions["$group"]}:"
-    print_array configurations descriptions "$test_mode"
-  done
-}
-
 # This is a helper function that prints the option description followed by the
 # option value.
 #
@@ -504,15 +407,4 @@ load_all_config()
   load_mail_config
   load_lore_config
   load_vm_config
-}
-
-function vars_help()
-{
-  if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'vars'
-    return
-  fi
-  printf '%s\n' 'kw vars:' \
-    '  vars - Show current variable values being used by kw.'
 }

@@ -13,7 +13,7 @@ function _kw_autocomplete()
   current_command="${COMP_WORDS[$COMP_CWORD]}"
   previous_command="${COMP_WORDS[$comp_curr - 1]}"
 
-  kw_options['kw']='init build deploy bd diff ssh vars codestyle self-update
+  kw_options['kw']='init build deploy bd diff ssh codestyle self-update
                     maintainers kernel-config-manager config remote explore
                     pomodoro report device backup debug mail env patch-hub
                     clear-cache drm vm version man help'

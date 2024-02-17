@@ -16,7 +16,6 @@ function kworkflow_help()
     '  bd - Build and install kernel image/modules' \
     '  diff,df - Diff files' \
     '  ssh,s - SSH support' \
-    '  vars - Show kw variables' \
     '  codestyle,c - Apply checkpatch on directory or file' \
     '  self-update,u - kw self-update mechanism' \
     '  maintainers,m - Get maintainers and mailing list' \
