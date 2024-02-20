@@ -832,6 +832,18 @@ function test_process_representative_patches_general_case()
   assert_equals_helper 'Representative patch 1 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id2']}"
 }
 
+function test_get_raw_lore_message()
+{
+  local expected="curl --silent 'https://domain/list/message-id/raw'"
+  local output
+
+  output=$(get_raw_lore_message 'http://domain/list/message-id/' 'TEST-MODE')
+  assert_equals_helper 'Wrong command issued' "$LINENO" "$expected" "$output"
+
+  output=$(get_raw_lore_message 'http://domain/list/message-id' 'TEST-MODE')
+  assert_equals_helper 'Wrong command issued' "$LINENO" "$expected" "$output"
+}
+
 function test_process_representative_patches_subsequent_calls()
 {
   declare -a representative_patches=()
@@ -914,6 +926,104 @@ function test_process_representative_patches_duplicated_patches()
     ['id1']='2,0'
   )
 
+  process_representative_patches 'individual_patches'
+
+  assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 1 "${#representative_patches[@]}"
+  assert_equals_helper 'Wrong size of `processed_representative_patches` hashtable' "$LINENO" 1 "${#processed_representative_patches[@]}"
+  assert_equals_helper 'Wrong value of `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 1 "$REPRESENTATIVE_PATCHES_PROCESSED"
+  assert_equals_helper 'Wrong representative patch 0' "$LINENO" "$patch1" "${representative_patches[0]}"
+  assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
+}
+
+function test_process_representative_patches_in_reply_to_not_processed()
+{
+  declare -a representative_patches=()
+  declare -A individual_patches_metadata=()
+  declare -A processed_representative_patches=()
+  declare REPRESENTATIVE_PATCHES_PROCESSED=0
+
+  local -a individual_patches
+  local patch1='id1Ætitle1Æauthor1Æemail1Æ2Æ1Æ3Æupdated1Æid-not-processed'
+
+  individual_patches=(
+    "$patch1"
+  )
+  individual_patches_metadata=(
+    ['id1']='2,1'
+  )
+
+  # Case 1: In reply isn't a patch
+  # shellcheck disable=SC2317
+  function get_raw_lore_message()
+  {
+    printf 'Subject: Some discussion'
+  }
+  process_representative_patches 'individual_patches'
+
+  assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 1 "${#representative_patches[@]}"
+  assert_equals_helper 'Wrong size of `processed_representative_patches` hashtable' "$LINENO" 1 "${#processed_representative_patches[@]}"
+  assert_equals_helper 'Wrong value of `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 1 "$REPRESENTATIVE_PATCHES_PROCESSED"
+  assert_equals_helper 'Wrong representative patch 0' "$LINENO" "$patch1" "${representative_patches[0]}"
+  assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
+
+  # Case 2: In reply is patch from same patchset, but not cover letter
+  # shellcheck disable=SC2317
+  function get_raw_lore_message()
+  {
+    printf 'Subject: [PATCH v2 2/3] Some title'
+  }
+  representative_patches=()
+  processed_representative_patches=()
+  REPRESENTATIVE_PATCHES_PROCESSED=0
+  process_representative_patches 'individual_patches'
+
+  assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 1 "${#representative_patches[@]}"
+  assert_equals_helper 'Wrong size of `processed_representative_patches` hashtable' "$LINENO" 1 "${#processed_representative_patches[@]}"
+  assert_equals_helper 'Wrong value of `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 1 "$REPRESENTATIVE_PATCHES_PROCESSED"
+  assert_equals_helper 'Wrong representative patch 0' "$LINENO" "$patch1" "${representative_patches[0]}"
+  assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
+
+  # Case 3: In reply is patch from same patchset and cover letter
+  # shellcheck disable=SC2317
+  function get_raw_lore_message()
+  {
+    printf 'Subject: [PATCH v2 0/3] Some title'
+  }
+  representative_patches=()
+  processed_representative_patches=()
+  REPRESENTATIVE_PATCHES_PROCESSED=0
+  process_representative_patches 'individual_patches'
+
+  assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 0 "${#representative_patches[@]}"
+  assert_equals_helper 'Wrong size of `processed_representative_patches` hashtable' "$LINENO" 0 "${#processed_representative_patches[@]}"
+  assert_equals_helper 'Wrong value of `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 0 "$REPRESENTATIVE_PATCHES_PROCESSED"
+
+  # Case 4: In reply isn't patch from same patchset and isn't cover letter
+  # shellcheck disable=SC2317
+  function get_raw_lore_message()
+  {
+    printf 'Subject: [PATCH 0/3] Some title'
+  }
+  representative_patches=()
+  processed_representative_patches=()
+  REPRESENTATIVE_PATCHES_PROCESSED=0
+  process_representative_patches 'individual_patches'
+
+  assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 1 "${#representative_patches[@]}"
+  assert_equals_helper 'Wrong size of `processed_representative_patches` hashtable' "$LINENO" 1 "${#processed_representative_patches[@]}"
+  assert_equals_helper 'Wrong value of `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 1 "$REPRESENTATIVE_PATCHES_PROCESSED"
+  assert_equals_helper 'Wrong representative patch 0' "$LINENO" "$patch1" "${representative_patches[0]}"
+  assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
+
+  # Case 5: In reply isn't patch from same patchset, but is cover letter
+  # shellcheck disable=SC2317
+  function get_raw_lore_message()
+  {
+    printf 'Subject: [PATCH 0/3] Some title'
+  }
+  representative_patches=()
+  processed_representative_patches=()
+  REPRESENTATIVE_PATCHES_PROCESSED=0
   process_representative_patches 'individual_patches'
 
   assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 1 "${#representative_patches[@]}"
