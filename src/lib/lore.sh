@@ -542,6 +542,30 @@ function process_individual_patches()
   done <<< "$pre_processed_patches"
 }
 
+# This function makes the lore request to get the raw contents of a lore
+# message.
+#
+# @message_id: Message-ID of desired lore message.
+# @flag: Flag to control function output.
+#
+# Returns:
+# - Output: Response from requisiton to raw lore message.
+function get_raw_lore_message()
+{
+  local message_id="$1"
+  local flag="${2:-SILENT}"
+  local raw_message_url
+
+  if [[ "$message_id" =~ /$ ]]; then
+    raw_message_url=$(replace_http_by_https "${message_id}raw")
+  else
+    raw_message_url=$(replace_http_by_https "${message_id}/raw")
+  fi
+
+  # TODO: Add cache functionality
+  cmd_manager "$flag" "curl --silent '${raw_message_url}'"
+}
+
 # This function processes representative patches (i.e. the first message in a
 # patchset) from a list of processed individual patches. The patches determined
 # as representatives are stored (in the same order as the argument
@@ -556,11 +580,13 @@ function process_individual_patches()
 function process_representative_patches()
 {
   local -n _individual_patches_array="$1"
+  local is_representative_patch
   local message_id
   local in_reply_to_message_id
   local -a patch_metadata
   local -a in_reply_to_metadata
-  local is_representative_patch
+  local in_reply_to_title
+  local in_reply_to_patch_metadata
 
   for patch in "${_individual_patches_array[@]}"; do
     is_representative_patch=''
@@ -572,28 +598,35 @@ function process_representative_patches()
     # To avoid duplication, check if patch has been processed as representative
     message_id="${patch_dict['message_id']}"
     [[ -n "${processed_representative_patches["$message_id"]}" ]] && continue
+    in_reply_to_message_id="${patch_dict['in_reply_to']}"
 
     # Assume that patch number 0 is always the representative as the cover letter
     if [[ "${patch_dict['number_in_series']}" == 0 ]]; then
       is_representative_patch=1
     # Assume that, when there is no patch number 0, number 1 is the representative
+    # if it is a root of a thread
+    elif [[ "${patch_dict['number_in_series']}" == 1 && -z "$in_reply_to_message_id" ]]; then
+      is_representative_patch=1
+    # Assume that, if 'In-Reply-To' is not patch number 0 from the same version,
+    # number 1 is the representative
     elif [[ "${patch_dict['number_in_series']}" == 1 ]]; then
-      # Assume that patch number 1 without 'In-Reply-To' means no number 0
-      if [[ "${patch_dict['total_in_series']}" == 1 ||
-        -z "${patch_dict['in_reply_to']}" ]]; then
-        is_representative_patch=1
-      else
-        patch_metadata=()
-        in_reply_to_metadata=()
-        in_reply_to_message_id="${patch_dict['in_reply_to']}"
-        IFS=',' read -ra patch_metadata <<< "${individual_patches_metadata["$message_id"]}"
-        IFS=',' read -ra in_reply_to_metadata <<< "${individual_patches_metadata["$in_reply_to_message_id"]}"
+      patch_metadata=()
+      in_reply_to_metadata=()
+      IFS=',' read -ra patch_metadata <<< "${individual_patches_metadata["$message_id"]}"
 
-        # Assume that, if 'In-Reply-To' is not patch number 0 from the same
-        # version, number 1 is the representative
-        if [[ "${patch_metadata[0]}" != "${in_reply_to_metadata[0]}" || "${in_reply_to_metadata[1]}" != 0 ]]; then
-          is_representative_patch=1
+      if [[ -n "${individual_patches_metadata["$in_reply_to_message_id"]}" ]]; then
+        IFS=',' read -ra in_reply_to_metadata <<< "${individual_patches_metadata["$in_reply_to_message_id"]}"
+      else
+        in_reply_to_title=$(get_raw_lore_message "$message_id" | grep --perl-regexp '^Subject:' | sed 's/^Subject: //')
+        in_reply_to_patch_metadata=$(get_patch_metadata "$in_reply_to_title")
+        if [[ -n "$in_reply_to_patch_metadata" ]]; then
+          in_reply_to_metadata[0]=$(get_patch_version "$in_reply_to_patch_metadata")
+          in_reply_to_metadata[1]=$(get_patch_number_in_series "$in_reply_to_patch_metadata")
         fi
+      fi
+
+      if [[ "${patch_metadata[0]}" != "${in_reply_to_metadata[0]}" || "${in_reply_to_metadata[1]}" != 0 ]]; then
+        is_representative_patch=1
       fi
     fi
 
