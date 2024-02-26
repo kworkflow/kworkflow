@@ -56,7 +56,7 @@ function _kw_autocomplete()
   kw_options['explore']='--log --grep --all --only-header --only-source --exactly --verbose'
   kw_options['e']="${kw_options['explore']}"
 
-  kw_options['pomodoro']='--set-timer --check-timer --show-tags --tag --description --help --verbose'
+  kw_options['pomodoro']='--set-timer --check-timer --show-tags --tag --description --help --verbose --repeat'
   kw_options['p']="${kw_options['pomodoro']}"
 
   kw_options['report']='--day --week --month --year --output --statistics --pomodoro --all --verbose'
@@ -91,6 +91,9 @@ function _kw_autocomplete()
   # Autocomplete in the bash terminal is a powerful tool which allows us to
   # make many interesting things. In the future, we could use a tree.
 
+}
+
+complete -o default -F _kw_autocomplete kw
 }
 
 complete -o default -F _kw_autocomplete kw

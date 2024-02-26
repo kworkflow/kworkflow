@@ -409,6 +409,7 @@ _kw_p() { _kw_pomodoro }
 _kw_pomodoro()
 {
   local -a set_timer_options=()
+  local -a tag_options=()
 
   if ((words[(I)-t|--set-timer])); then
     set_timer_options=(
@@ -424,9 +425,10 @@ _kw_pomodoro()
 
   _arguments : \
     '(--verbose)--verbose[enable verbose mode]' \
-    '(-t --set-timer -c --check-timer -s --show-tags)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
-    '(-c --check-timer -t --set-timer -s --show-tags)'{-c,--check-timer}'[shows information of each active Pomodoro timebox]' \
-    '(-s --show-tags -c --check-timer -t --set-timer)'{-s,--show-tags}'[shows registered tags]' \
+    '(-t --set-timer -c --check-timer -s --show-tags -r --repeat)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
+    '(-c --check-timer -t --set-timer -s --show-tags -r --repeat)'{-c,--check-timer}'[shows information of each active Pomodoro timebox]' \
+    '(-s --show-tags -c --check-timer -t --set-timer -r --repeat)'{-s,--show-tags}'[shows registered tags]' \
+    '(-r --repeat)'{-r,--repeat}'[repeat the last completed Pomodoro session]' \
     $set_timer_options \
     $tag_options
 }
