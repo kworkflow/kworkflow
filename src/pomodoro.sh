@@ -59,7 +59,6 @@ function pomodoro_main()
   fi
 }
 
-
 # This function inspects the Pomodoro file, and based on each line, information
 # tells the user the current status of his work section.
 function show_active_pomodoro_timebox()
@@ -367,7 +366,7 @@ function parse_pomodoro()
         shift
         ;;
 
-      --repeat)  
+      --repeat)
         options_values['REPEAT']=1
         shift
         ;;
@@ -382,10 +381,13 @@ function parse_pomodoro()
   done
 }
 
-
-function repeat_last_pomodoro_session() {
+function repeat_last_pomodoro_session()
+{
   local log_file="${KW_LIB_DIR}/pomodoro_log.txt"
-  touch "$log_file" || { echo "Error creating log file: $log_file"; exit 1; }
+  touch "$log_file" || {
+    echo "Error creating log file: $log_file"
+    exit 1
+  }
   local last_session
   last_session=$(grep -Eo '[0-9]+:[0-9]+:[0-9]+.*pomodoro_main.*$' "$log_file" | tail -n 1 | awk -F ': ' '{print $2}')
   if [[ -n "$last_session" ]]; then
@@ -395,8 +397,6 @@ function repeat_last_pomodoro_session() {
     echo "No previous Pomodoro session found in the log."
   fi
 }
-
-
 
 function pomodoro_help()
 {
@@ -416,4 +416,3 @@ function pomodoro_help()
 }
 
 load_notification_config
-
