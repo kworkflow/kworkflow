@@ -94,6 +94,6 @@ function _kw_autocomplete()
 }
 
 complete -o default -F _kw_autocomplete kw
-}
 
-complete -o default -F _kw_autocomplete kw
+
+

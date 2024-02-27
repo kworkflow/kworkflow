@@ -32,9 +32,8 @@ function pomodoro_main()
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
-  # Save only Pomodoro sessions in the log file
   if [[ -z "${options_values['HELP']}" && -z "${options_values['REPEAT']}" ]]; then
-    echo "$(date): pomodoro_main $@" >> "${KW_LIB_DIR}/pomodoro_log.txt"
+    echo "$(date): pomodoro_main $*" >> "${KW_LIB_DIR}/pomodoro_log.txt"
   fi
 
   if [[ -n "${options_values[SHOW_TIMER]}" ]]; then
