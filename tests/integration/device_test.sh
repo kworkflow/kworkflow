@@ -23,8 +23,8 @@ function device_info_test_helper()
 
   # some fields must be ignored because they surely won't match.
   filter=(
-    'Root filesystem' 'Size' 'Mounted on'                        # storage fields
-    'Distribution' 'Distribution version' 'Desktop environments' # desktop fields
+    'Root filesystem' 'Size' 'Mounted on'                                            # storage fields
+    'Distribution' 'Distribution base' 'Distribution version' 'Desktop environments' # desktop fields
   )
 
   # add | separator to each filter item.
