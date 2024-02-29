@@ -224,12 +224,66 @@ function select_from()
   fi
 
   query="SELECT $columns FROM $table ;"
+
   if [[ -n "${order_by}" ]]; then
     query="SELECT $columns FROM $table ORDER BY ${order_by} ;"
   fi
 
   cmd="sqlite3 -init ${KW_DB_DIR}/pre_cmd.sql -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
   cmd_manager "$flag" "$cmd"
+}
+
+# This function gets the values in the table of given database
+# with the given conditions
+#
+# @table:     Table to select info from
+# @columns:   Columns of the table to get
+# @pre_cmd:   Pre command to execute
+# @_condition_array: An array reference of condition pairs
+# @db:        Name of the database file
+# @db_folder: Path to the folder that contains @db
+#
+# Return:
+# 2 if db doesn't exist; 22 if table is empty
+# 0 if succesful; non-zero otherwise
+function select_from_where()
+{
+  local table="$1"
+  local columns="${2:-"*"}"
+  local pre_cmd="$3"
+  local -n _condition_array="$4"
+  local db="${5:-"$DB_NAME"}"
+  local db_folder="${6:-"$KW_DATA_DIR"}"
+  local where_clause=''
+  local db_path
+  local query
+
+  db_path="$(join_path "$db_folder" "$db")"
+
+  if [[ ! -f "$db_path" ]]; then
+    complain 'Database does not exist'
+    return 2
+  fi
+
+  if [[ -z "$table" ]]; then
+    complain 'Empty table.'
+    return 22 # EINVAL
+  fi
+
+  for column in "${!_condition_array[@]}"; do
+    where_clause+="$column='${_condition_array["${column}"]}'"
+    where_clause+=' AND '
+  done
+
+  query="SELECT $columns FROM $table ;"
+
+  if [[ -n "${where_clause}" ]]; then
+    # Remove trailing ' AND '
+    where_clause="${where_clause::-5}"
+
+    query="${query::-1} WHERE ${where_clause} ;"
+  fi
+  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" -cmd "$pre_cmd" "$db_path" -batch "$query"
 }
 
 # This function takes arguments and assembles them into the correct format to

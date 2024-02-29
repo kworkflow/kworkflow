@@ -261,6 +261,49 @@ function test_select_from()
   assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
 }
 
+function test_select_from_where()
+{
+  local output
+  local expected
+  local ret
+  local entries
+  declare -A condition_array
+
+  # invalid
+  output=$(select_from_where table columns '' 'condition_array' 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 2
+  assert_equals_helper 'Expected error msg' "$LINENO" "$output" "$expected"
+
+  output=$(select_from_where '' entries '' 'condition_array')
+  ret="$?"
+  expected='Empty table.'
+  assert_equals_helper 'Empty table, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected error msg' "$LINENO" "$output" "$expected"
+
+  # valid
+  output=$(select_from_where 'tags' 'tag' '' 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags;')
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  output=$(select_from_where 'tags' '' '' 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM tags;')
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+
+  condition_array=(['start_time']='2021-11-18')
+  entries=$(concatenate_with_commas '"start_date"' '"start_time"' '"description"')
+  output=$(select_from_where 'pomodoro' "$entries" '' 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_date = '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+}
+
 test_replace_into()
 {
   local output
