@@ -2,6 +2,7 @@
 
 include './src/mail.sh'
 include './tests/unit/utils.sh'
+include './src/lib/kw_db.sh'
 
 function oneTimeSetUp()
 {
@@ -9,9 +10,14 @@ function oneTimeSetUp()
   declare -gr FAKE_GIT="$SHUNIT_TMPDIR/fake_git/"
   declare -gr FAKE_KERNEL="$FAKE_GIT/fake_kernel/"
   declare -ga test_config_opts=('test0' 'test1' 'test2' 'user.name' 'sendemail.smtpuser')
+  declare -g DB_FILES
 
+  export KW_DATA_DIR="${SHUNIT_TMPDIR}"
   export KW_ETC_DIR="$SHUNIT_TMPDIR/etc/"
   export KW_CACHE_DIR="$SHUNIT_TMPDIR/cache/"
+
+  DB_FILES="$(realpath './tests/unit/samples/db_files')"
+  KW_DB_DIR="$(realpath './database')"
 
   mk_fake_kernel_root "$FAKE_KERNEL"
   mkdir -p "$KW_ETC_DIR/mail_templates/"
@@ -46,12 +52,35 @@ function setUp()
 {
   declare -gA options_values
   declare -gA set_confs
+
+  setupDatabase
 }
 
 function tearDown()
 {
   unset options_values
   unset set_confs
+
+  teardownDatabase
+}
+
+function setupDatabase()
+{
+  declare -g TEST_GROUP_NAME
+  declare -g TEST_GROUP_ID
+
+  execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
+  TEST_GROUP_NAME='TEST_GROUP'
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "groups" (name) VALUES (\"$TEST_GROUP_NAME\") ;"
+  TEST_GROUP_ID="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM "groups" WHERE name=\"$TEST_GROUP_NAME\" ;")"
+}
+
+function teardownDatabase()
+{
+  is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
+  if [[ "$?" == 0 ]]; then
+    rm "${KW_DATA_DIR}/kw.db"
+  fi
 }
 
 function test_validate_encryption()
@@ -87,6 +116,352 @@ function test_validate_encryption()
   validate_encryption 'tls'
   ret="$?"
   assert_equals_helper 'Expected no error for tls' "$LINENO" "$ret" 0
+}
+
+function test_create_new_kw_mail_group()
+{
+  local expected
+  local output
+  local ret
+
+  local values
+
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "groups" (name) VALUES ('existent_group') ;"
+
+  #invalid values
+  output="$(create_new_kw_mail_group '')"
+  ret="$?"
+  expected='The group name is empty'
+  assert_equals_helper 'Group name should be empty' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  output="$(create_new_kw_mail_group 'existent_group')"
+  ret="$?"
+  expected='This group already exists'
+  assert_equals_helper 'Group name should be repeated' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  #valid values
+  create_new_kw_mail_group 'fake_group_name'
+  ret="$?"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name FROM "groups" WHERE name='fake_group_name' ;")
+  expected='fake_group_name'
+  assert_equals_helper 'Empty group name was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_split_contact_infos()
+{
+  local expected
+  local output
+  local ret
+  local contacts_list
+  declare -A output_arr
+
+  # invalid values
+  contacts_list="Test Contact 1 <test1@email.com>, Test Contact 1 <test1@email.com>"
+  output="$(split_contact_infos "$contacts_list" 'output_arr')"
+  ret="$?"
+  expected='Some of the contacts must have a repeated email'
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Contact infos should not have been splitted' "$LINENO" "$expected" "$output"
+
+  contacts_list="Test Contact 1 <>, Test Contact 1 <test1@email.com>"
+  output="$(split_contact_infos "$contacts_list" 'output_arr')"
+  ret="$?"
+  expected='Some of the contact names or emails must be empty'
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Contact infos should not have been splitted' "$LINENO" "$expected" "$output"
+
+  contacts_list="Test Contact 1 <>, <test1@email.com>"
+  output="$(split_contact_infos "$contacts_list" 'output_arr')"
+  ret="$?"
+  expected='Some of the contact names or emails must be empty'
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Contact infos should not have been splitted' "$LINENO" "$expected" "$output"
+
+  # valid values
+  contacts_list="Test Contact 2 <test2@email.com>, Test Contact 3 <test3@email.com>"
+  declare -A expected_arr=(
+    ["test2@email.com"]="Test Contact 2"
+    ["test3@email.com"]="Test Contact 3"
+  )
+
+  split_contact_infos "$contacts_list" 'output_arr'
+  ret="$?"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+
+  # compare array values
+  compare_array_values 'expected_arr' 'output_arr' "$LINENO"
+
+  #compare array keys
+  expected="("${!expected_arr[@]}")"
+  output="("${!output_arr[@]}")"
+  assert_equals_helper 'Contact keys splitted incorrectly' "$LINENO" "$expected" "$output"
+}
+
+function test_validate_contact_infos()
+{
+  local expected
+  local output
+  local ret
+
+  # invalid values
+  local contact_info="Test Contact 4 >test4@email.com>"
+  output="$(validate_contact_infos "$contact_info")"
+  ret="$?"
+  expected='The contact list may have a sintax error'
+  assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  contact_info="Test Contact 5 <test5@email.com<"
+  output="$(validate_contact_infos "$contact_info")"
+  ret="$?"
+  expected='The contact list may have a sintax error'
+  assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  contact_info="Test Contact 6 >test6@email.com<"
+  output="$(validate_contact_infos "$contact_info")"
+  ret="$?"
+  expected='The contact list may have a sintax error'
+  assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  contact_info="Test Contact 7 test7@email.com"
+  output="$(validate_contact_infos "$contact_info")"
+  ret="$?"
+  expected='The contact list may have a sintax error'
+  assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  contact_info="Test Contact 8 <<test8@email.com>>"
+  output="$(validate_contact_infos "$contact_info")"
+  ret="$?"
+  expected='The contact list may have a sintax error'
+  assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  # valid values
+  contact_info="Test Contact 9 <test9@email.com>"
+  output="$(validate_contact_infos "$contact_info")"
+  ret="$?"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_validate_contacts()
+{
+  local expected
+  local output
+  local ret
+
+  # invalid values
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contacts" (name, email) VALUES ('Test Contact 13', 'test13@email.com') ;"
+
+  declare -A _contacts_arr=(
+    ["test13@email.com"]="Test Contact 13"
+  )
+  output="$(validate_contacts '_contacts_arr')"
+  ret="$?"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  # valid values
+  declare -A _contacts_arr=(
+    ["test14@email.com"]="Test Contact 14"
+    ["test15@email.com"]="Test Contact 15"
+  )
+
+  validate_contacts '_contacts_arr'
+  ret="$?"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_add_contact()
+{
+  local expected
+  local output
+  local ret
+
+  declare -A _contacts_arr=(
+    ["test16@email.com"]="Test Contact 16"
+  )
+
+  add_contacts '_contacts_arr'
+  ret="$?"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name, email FROM "contacts" WHERE email='test16@email.com' ;")
+  expected='Test Contact 16|test16@email.com'
+  assert_equals_helper 'Contact was not created' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+
+  declare -A _contacts_arr=(
+    ["test17@email.com"]="Test Contact 17"
+    ["test18@email.com"]="Test Contact 18"
+  )
+
+  add_contacts '_contacts_arr'
+  ret="$?"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name, email FROM "contacts" ;")
+  expected="Test Contact 16|test16@email.com
+Test Contact 17|test17@email.com
+Test Contact 18|test18@email.com"
+  assert_equals_helper 'Contacts were not created' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_remove_contact()
+{
+  local expected
+  local output
+  local ret
+
+  local contact_id
+
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contacts" (name, email) VALUES ('Test Contact 19', 'test19@email.com') ;"
+  contact_id="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM "contacts" WHERE email='test19@email.com' ;")"
+  remove_contact "$contact_id"
+  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM "contacts" WHERE email='test19@email.com' ;")"
+  ret="$?"
+  expected=''
+  assert_equals_helper 'Contact was not removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_remove_contact_groups()
+{
+  local expected
+  local output
+  local ret
+
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contact_group" (contact_id, group_id) VALUES ('111', '111') ;"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contact_group" (contact_id, group_id) VALUES ('222', '111') ;"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contact_group" (contact_id, group_id) VALUES ('222', '222') ;"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contact_group" (contact_id, group_id) VALUES ('222', '333') ;"
+
+  remove_contact_groups '222'
+  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM contact_group WHERE contact_id=111 ;")"
+  ret="$?"
+  expected='111|111'
+  assert_equals_helper 'Contact associations was not removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+
+  remove_contact_groups '111'
+  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM contact_group ;")"
+  ret="$?"
+  expected=''
+  assert_equals_helper 'Contact associations was not removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_rename_kw_mail_group()
+{
+  local expected
+  local output
+  local ret
+
+  # invalid values
+  output="$(rename_kw_mail_group '' 'new_name')"
+  ret="$?"
+  expected='The old or the new name of the group must be empty'
+  assert_equals_helper 'Table should not be renamed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  output="$(rename_kw_mail_group 'old_name' '')"
+  ret="$?"
+  expected='The old or the new name of the group must be empty'
+  assert_equals_helper 'Table should not be renamed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  # valid values
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "groups" ('name') VALUES ('old_name') ;"
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM groups WHERE name='old_name' ;")
+  rename_kw_mail_group 'old_name' 'new_name'
+  ret="$?"
+  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM "groups" WHERE name='new_name' ;")"
+  assert_equals_helper 'Table was not renamed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_validate_removed_group()
+{
+  local expected
+  local output
+  local ret
+
+  output="$(validate_removed_group 'invalid_group')"
+  ret="$?"
+  expected='This group does not exist'
+  assert_equals_helper 'Group name should be invalid' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  output="$(validate_removed_group '')"
+  ret="$?"
+  expected='The group name is empty'
+  assert_equals_helper 'Group name should be empty' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+
+  # valid values
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "groups" (name) VALUES ('valid_group') ;"
+
+  validate_removed_group 'valid_group'
+  ret="$?"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_remove_group()
+{
+  local expected
+  local output
+  local ret
+
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "groups" ('name') VALUES ('test_group4') ;"
+
+  remove_group 'test_group4'
+  ret="$?"
+  expected=''
+  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM "groups" WHERE name='test_group4' ;")"
+  assert_equals_helper 'Group should have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_remove_group_contacts_association()
+{
+  local expected
+  local output
+  local ret
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contact_group" (contact_id, group_id) VALUES ("111","$TEST_GROUP_ID") ;"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contact_group" (contact_id, group_id) VALUES ("222","$TEST_GROUP_ID") ;"
+
+  remove_group_contacts_association "$TEST_GROUP_NAME"
+  ret="$?"
+  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM "contact_group" WHERE group_id=$TEST_GROUP_ID ;")"
+  expected=''
+  assert_equals_helper 'Group contacts association should have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_remove_contacts_without_group()
+{
+  local expected
+  local output
+  local ret
+
+  local contact_id
+
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contacts" (name, email) VALUES ('Test Contact 20', 'test20@email.com') ;"
+
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO "contacts" (name, email) VALUES ('Test Contact 21', 'test21@email.com') ;"
+  contact_id="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM "contacts" WHERE email='test21@email.com' ;")"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO contact_group (contact_id, group_id) VALUES (\"${contact_id}\",\"${TEST_GROUP_ID}\") ;"
+
+  remove_contacts_without_group
+  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name FROM "contacts" WHERE email='test20@email.com' ;")"
+  ret="$?"
+  expected=''
+  assert_equals_helper 'Contact should have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name FROM "contacts" WHERE email='test21@email.com' ;")"
+  expected='Test Contact 21'
+  assert_equals_helper 'Contact should not have been removed' "$LINENO" "$expected" "$output"
 }
 
 function test_validate_email()

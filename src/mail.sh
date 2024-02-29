@@ -6,6 +6,7 @@
 include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
+include "${KW_LIB_DIR}/lib/kw_db.sh"
 
 # Hash containing user options
 declare -gA options_values
@@ -19,6 +20,12 @@ declare -ga essential_config_options=('user.name' 'user.email'
 declare -ga optional_config_options=('sendemail.smtpencryption' 'sendemail.smtppass')
 
 declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
+
+# kw_mail tables
+declare -g groups_table='groups'
+declare -g contacts_table='contacts'
+declare -g contact_group_table='contact_group'
+declare -Ag condition_array
 
 #shellcheck disable=SC2119
 function mail_main()
@@ -40,6 +47,11 @@ function mail_main()
   fi
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
+  if [[ -n "${options_values['GROUPS']}" ]]; then
+    kw_mail_groups "$flag"
+    return 0
+  fi
 
   if [[ -n "${options_values['SEND']}" ]]; then
     mail_send "$flag"
@@ -73,6 +85,429 @@ function mail_main()
     mail_setup "$flag"
     exit
   fi
+
+  return 0
+}
+
+function kw_mail_groups()
+{
+  if [[ -n "${options_values['CREATE']}" ]]; then
+    create_new_kw_mail_group "${options_values['GROUP']}"
+  fi
+
+  if [[ -n "${options_values['APPEND']}" ]]; then
+    append_kw_mail_contacts "${options_values['APPEND']}" "${options_values['GROUP']}"
+  fi
+
+  if [[ -n "${options_values['RENAME']}" ]]; then
+    rename_kw_mail_group "${options_values['GROUP']}" "${options_values['RENAME']}"
+  fi
+
+  if [[ -n "${options_values['REMOVE-EMAIL']}" ]]; then
+    remove_kw_mail_contact "${options_values['REMOVE-EMAIL']}"
+  fi
+
+  if [[ -n "${options_values['REMOVE']}" ]]; then
+    remove_kw_mail_group "${options_values['REMOVE']}"
+  fi
+
+  return 0
+}
+
+# This function creates a new kw mail group
+#
+# @group_name: The name of the group that will be created.
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function create_new_kw_mail_group()
+{
+  local group_name="$1"
+  local result
+  local columns
+  local values
+
+  if [[ -z $group_name ]]; then
+    complain 'The group name is empty'
+    return 22 #EINVAL
+  fi
+
+  condition_array=(['name']="$group_name")
+  result="$(select_from_where $groups_table 'name' '' 'condition_array')"
+
+  if [[ -n $result ]]; then
+    complain 'This group already exists'
+    return 22 #EINVAL
+  fi
+
+  columns="$(concatenate_with_commas 'name')"
+  values="$(format_values_db 1 "$group_name")"
+  insert_into $groups_table "$columns" "$values" || exit_msg 'Error while creating new group'
+
+  success 'New group created successfully!'
+}
+
+# This function append a new contact to a given kw mail group
+#
+# @contacts_string: The string with all the contacts informations
+# @group_name: The name of the group which the contacts will be appended.
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function append_kw_mail_contacts()
+{
+  local contacts_list="$1"
+  local group_name="$2"
+  local group_id
+  declare -A _contacts_array
+
+  if [[ -z $contacts_list ]]; then
+    complain "The contacts list must be empty"
+    return 22 #EINVAL
+  fi
+
+  condition_array=(['name']="${group_name}")
+  group_id="$(select_from_where $groups_table 'id' '' 'condition_array')"
+
+  if [[ -z $group_id ]]; then
+    complain 'This group does not exist'
+    return 22 #EINVAL
+  fi
+
+  split_contact_infos "$contacts_list" '_contacts_array' || exit_msg 'Error while parsing contacts list'
+
+  validate_contacts '_contacts_array' || exit_msg 'Error while validating contacts list'
+
+  add_contacts '_contacts_array' || exit_msg 'Error while adding contacts to the database'
+
+  add_contact_group '_contacts_array' "$group_id" || exit_msg 'Error while associating contact to the group'
+
+  success 'Contacts appended successfully!'
+  return 0
+}
+
+# This function split the columns in the given contact string
+# passed as parameter
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function split_contact_infos()
+{
+  local contacts_list="$1"
+  local -n contacts_array="$2"
+  local contacts_infos_array
+  local contact_info
+  local ret
+  local name
+  local email
+  local appended_contacts=0
+  readarray -t contacts_infos_array < <(awk -v RS=", " '{print}' <<< "$contacts_list")
+
+  for contact_info in "${contacts_infos_array[@]}"; do
+    if [[ -z $contact_info ]]; then
+      continue
+    fi
+
+    validate_contact_infos "$contact_info" || return 22 #EINVAL
+
+    email="$(cut -d'<' -f2 <<< "$contact_info" | cut -d'>' -f1)"
+    name="$(cut -d'<' -f1 <<< "$contact_info")"
+
+    if [[ $email == "" || $name == "" ]]; then
+      complain "Some of the contact names or emails must be empty"
+      return 22 #EINVAL
+    fi
+
+    contacts_array["$email"]="$name"
+    ((appended_contacts++))
+  done
+
+  if [[ $appended_contacts -ne "${#contacts_array[@]}" ]]; then
+    complain 'Some of the contacts must have a repeated email'
+    return 22 #EINVAL
+  fi
+
+  return 0
+}
+
+# This validate if the string with the contact info is valid
+#
+# @contacts_info: The string with all the contacts informations
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function validate_contact_infos()
+{
+  local contact_info="$1"
+  local lt_pos
+  local lt_num
+  local gt_count
+  local gt_count
+
+  gt_count=$(grep -o ">" <<< "$contact_info" | wc -l)
+  lt_count=$(grep -o "<" <<< "$contact_info" | wc -l)
+
+  gt_pos=$(expr index "$contact_info" ">")
+  lt_pos=$(expr index "$contact_info" "<")
+
+  if [[ $lt_pos -eq 0 || $gt_pos -eq 0 || $lt_pos -gt $gt_pos || $gt_count -ne 1 || $gt_count -ne 1 ]]; then
+    complain 'The contact list may have a sintax error'
+    return 22 #EINVAL
+  fi
+
+  return 0
+}
+
+function validate_contacts()
+{
+  local -n contacts_array="$1"
+  local email
+  local result
+
+  for email in "${!contacts_array[@]}"; do
+    condition_array=(['email']="${email}")
+
+    result="$(select_from_where $contacts_table 'name' '' 'condition_array')"
+
+    if [[ -n $result ]]; then
+      complain "Email '${email}' already associated to '${result}'"
+      return 22 #EINVAL
+    fi
+  done
+
+  return 0
+}
+
+# This function add a contact in the database
+#
+# @contacts_array: The contact name
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function add_contacts()
+{
+  local -n contacts_array="$1"
+  declare -A contact
+  local values
+  local result
+  local email
+
+  for email in "${!contacts_array[@]}"; do
+    values="$(format_values_db 2 "${contacts_array["$email"]}" "${email}")"
+    insert_into $contacts_table '(name, email)' "$values" || return 22 #EINVAL
+  done
+
+  return 0
+}
+
+# This function add the association between the contacts
+# and its group in the database
+#
+# @contacts_array: The contact name
+# @group_id: The id of group which the contacts will be associated
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function add_contact_group()
+{
+  local -n contacts_array="$1"
+  local group_id="$2"
+  local values
+  local email
+
+  for email in "${!contacts_array[@]}"; do
+    condition_array=(['email']="$email")
+    contact_id="$(select_from_where $contacts_table 'id' '' 'condition_array')"
+    values="$(format_values_db 2 "$contact_id" "$group_id")"
+    insert_into "$contact_group_table" '(contact_id, group_id)' "$values" || return 22 #EINVAL
+  done
+
+  return 0
+}
+
+# This function removes a kw mail contact and all
+# of its references from the database.
+#
+# @contact_email: The email which will be removed
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function remove_kw_mail_contact()
+{
+  local contact_email="$1"
+  local contact_id
+
+  if [[ -z $contact_email ]]; then
+    complain 'Email name is empty'
+    return 22 #EINVAL
+  fi
+
+  condition_array=(['email']="$contact_email")
+  contact_id="$(select_from_where $contacts_table 'id' '' 'condition_array')"
+
+  if [[ -z $contact_id ]]; then
+    complain 'This email is not associated with a contact'
+    return 22 #EINVAL
+  fi
+
+  remove_contact_groups $contact_id || exit_msg 'Error while removing contact groups association'
+
+  remove_contact $contact_id || exit_msg 'Error while removing contact'
+
+  success 'Contact removed successfully!'
+  return 0
+}
+
+function remove_contact()
+{
+  local contact_id="$1"
+
+  condition_array=(['id']="$contact_id")
+  return $(remove_from $contacts_table 'condition_array')
+}
+
+# This function removes associated groups from a contact
+#
+# @contact_id: The id of the contact which will be
+# removed
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function remove_contact_groups()
+{
+  local contact_id="$1"
+
+  condition_array=(['contact_id']="$contact_id")
+  return $(remove_from $contact_group_table 'condition_array')
+}
+
+# This function renames a kw_mail group
+#
+# @old_name: The actual name of the renamed group
+# @new_name: The new name wich the group will be renamed
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function rename_kw_mail_group()
+{
+  local old_name="$1"
+  local new_name="$2"
+  local group_id
+
+  if [[ -z $old_name || -z $new_name ]]; then
+    complain 'The old or the new name of the group must be empty'
+    return 22 #EINVAL
+  fi
+
+  condition_array=(['name']="$old_name")
+  group_id="$(select_from_where $groups_table 'id' '' 'condition_array')"
+
+  if [[ -z $group_id ]]; then
+    complain 'This group does not exist so it can not be renamed'
+    return 22 #EINVAL
+  fi
+
+  replace_into $groups_table '("id","name")' "('${group_id}','${new_name}')" || return 22 #EINVAL
+
+  success 'Group renamed successfully!'
+}
+
+# This function removes a given kw_mail group and
+# all of it's references in the data base. Also
+# removes the contacts withou group association
+#
+# @group_name: The name of the removed group
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function remove_kw_mail_group()
+{
+  local group_name="$1"
+
+  validate_removed_group "$group_name" || exit_msg 'Error while validating group'
+
+  remove_group_contacts_association "$group_name" || exit_msg 'Error while removing contacts associations'
+
+  remove_contacts_without_group || exit_msg 'Error while removing contacts without group'
+
+  remove_group "$group_name" || exit_msg 'Error while removing group'
+
+  success 'Group removed successfully!'
+}
+
+function validate_removed_group()
+{
+  local group_name="$1"
+  local group_id
+
+  if [[ -z $group_name ]]; then
+    complain 'The group name is empty'
+    return 22 #EINVAL
+  fi
+
+  condition_array=(['name']="$group_name")
+  group_id="$(select_from_where $groups_table 'id' '' 'condition_array')"
+
+  if [[ -z $group_id ]]; then
+    complain 'This group does not exist'
+    return 22 #EINVAL
+  fi
+
+  return 0
+}
+
+# This function removes all of the group contacts associations.
+#
+# @group_name: Name of the group which the contacts will be removed
+#
+# Return:
+# returns 0 if successful, non-zero otherwise
+function remove_group_contacts_association()
+{
+  local group_name="$1"
+
+  condition_array=(['name']="$group_name")
+  group_id="$(select_from_where $groups_table 'id' '' 'condition_array')"
+
+  condition_array=(['group_id']="$group_id")
+  return $(remove_from $contact_group_table 'condition_array')
+}
+
+function remove_group()
+{
+  local group_name="$1"
+
+  condition_array=(['name']="$group_name")
+  return $(remove_from $groups_table 'condition_array')
+}
+
+# This function prepares the appropriate options to send patches using
+# `git send-email`.
+#
+# @flag: Flag to control the behavior of 'cmd_manager'
+#
+# Return:
+# returns 0 if successful, non-zero otherwise
+function remove_contacts_without_group()
+{
+  local -A _contacts_id_list
+  local contact_groups
+  local id
+
+  _contacts_id_list="$(select_from "$contacts_table" 'id')"
+
+  for id in $_contacts_id_list; do
+
+    condition_array=(['contact_id']=$id)
+    contact_groups="$(select_from_where $contact_group_table 'group_id' '' 'condition_array')"
+
+    if [[ -n $contact_groups ]]; then
+      continue
+    fi
+
+    condition_array=(['id']=$id)
+    remove_from $contacts_table 'condition_array' || return 22 #EINVAL
+  done
 
   return 0
 }
@@ -952,7 +1387,8 @@ function parse_mail_options()
   local commit_count=''
   local short_options='s,t,f,v:,i,l,n,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,verbose,'
-  long_options+='template::,interactive,no-interactive,list,private,rfc,'
+  long_options+='template::,interactive,no-interactive,list,private,rfc,groups::,'
+  long_options+='append:,rename:,create:,remove:,remove-email:,'
   local pass_option_to_send_email
 
   long_options+='email:,name:,'
@@ -990,9 +1426,43 @@ function parse_mail_options()
   options_values['COMMIT_RANGE']=''
   options_values['PRIVATE']=''
   options_values['VERBOSE']=''
+  options_values['GROUPS']=''
+  options_values['GROUP']=''
+  options_values['CREATE']=''
+  options_values['RENAME']=''
+  options_values['APPEND']=''
+  options_values['REMOVE']=''
+  options_values['REMOVE-EMAIL']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
+      --groups)
+        option="$(str_strip "$2")"
+        options_values['GROUPS']=1
+        options_values['GROUP']="$option"
+        shift 2
+        ;;
+      --create)
+        options_values['CREATE']=1
+        options_values['GROUP']="$2"
+        shift 2
+        ;;
+      --append)
+        options_values['APPEND']="$2"
+        shift 2
+        ;;
+      --remove)
+        options_values['REMOVE']="$2"
+        shift 2
+        ;;
+      --remove-email)
+        options_values['REMOVE-EMAIL']="$2"
+        shift 2
+        ;;
+      --rename)
+        options_values['RENAME']="$2"
+        shift 3
+        ;;
       --list | -l)
         mail_list
         exit
@@ -1146,6 +1616,7 @@ function mail_help()
     '  mail (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
     '  mail (-i | --interactive) - Setup interactively' \
     '  mail (-l | --list) - List the configurable options' \
+    '  mail --groups[=<group_name>] [--append] [--remove] [--rename] [--remove-email]...' \
     '  mail --verify - Check if required configurations are set' \
     '  mail --template[=<template>] [-n] - Set send-email configs based on <template>' \
     '  mail --verbose - Show a detailed output'
