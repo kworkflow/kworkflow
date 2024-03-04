@@ -610,6 +610,65 @@ function get_raw_lore_message()
   cmd_manager "$flag" "curl --silent '${raw_message_url}'"
 }
 
+function thread_for_process_representative_patch()
+{
+  local patch="$1"
+  local i="$2"
+  local shared_dir_for_parallelism="$3"
+  local is_representative_patch
+  local message_id
+  local in_reply_to_message_id
+  local -a patch_metadata
+  local -a in_reply_to_metadata
+  local in_reply_to_title
+  local in_reply_to_patch_metadata
+
+  unset patch_dict
+  declare -A patch_dict
+
+  read_patch_into_dict "$patch" 'patch_dict'
+
+  # Get patch and In-Reply-To message IDs
+  message_id="${patch_dict['message_id']}"
+  in_reply_to_message_id="${patch_dict['in_reply_to']}"
+
+  is_representative_patch=''
+
+  # Assume that patch number 0 is always the representative as the cover letter
+  if [[ "${patch_dict['number_in_series']}" == 0 ]]; then
+    is_representative_patch=1
+  # Assume that, when there is no patch number 0, number 1 is the representative
+  # if it is a root of a thread
+  elif [[ "${patch_dict['number_in_series']}" == 1 && -z "$in_reply_to_message_id" ]]; then
+    is_representative_patch=1
+  # Assume that, if 'In-Reply-To' is not patch number 0 from the same version,
+  # number 1 is the representative
+  elif [[ "${patch_dict['number_in_series']}" == 1 ]]; then
+    patch_metadata=()
+    in_reply_to_metadata=()
+    IFS=',' read -ra patch_metadata <<< "${individual_patches_metadata["$message_id"]}"
+
+    if [[ -n "${individual_patches_metadata["$in_reply_to_message_id"]}" ]]; then
+      IFS=',' read -ra in_reply_to_metadata <<< "${individual_patches_metadata["$in_reply_to_message_id"]}"
+    else
+      in_reply_to_title=$(get_raw_lore_message "$message_id" | grep --perl-regexp '^Subject:' | sed 's/^Subject: //')
+      in_reply_to_patch_metadata=$(get_patch_metadata "$in_reply_to_title")
+      if [[ -n "$in_reply_to_patch_metadata" ]]; then
+        in_reply_to_metadata[0]=$(get_patch_version "$in_reply_to_patch_metadata")
+        in_reply_to_metadata[1]=$(get_patch_number_in_series "$in_reply_to_patch_metadata")
+      fi
+    fi
+
+    if [[ "${patch_metadata[0]}" != "${in_reply_to_metadata[0]}" || "${in_reply_to_metadata[1]}" != 0 ]]; then
+      is_representative_patch=1
+    fi
+  fi
+
+  if [[ -n "$is_representative_patch" ]]; then
+    printf '%s' "$patch" > "${shared_dir_for_parallelism}/${i}"
+  fi
+}
+
 # This function processes representative patches (i.e. the first message in a
 # patchset) from a list of processed individual patches. The patches determined
 # as representatives are stored (in the same order as the argument
@@ -624,60 +683,36 @@ function get_raw_lore_message()
 function process_representative_patches()
 {
   local -n _individual_patches_array="$1"
-  local is_representative_patch
+  local patch
   local message_id
-  local in_reply_to_message_id
-  local -a patch_metadata
-  local -a in_reply_to_metadata
-  local in_reply_to_title
-  local in_reply_to_patch_metadata
+  local shared_dir_for_parallelism
+  local -a pids
+  local i=0
+
+  shared_dir_for_parallelism=$(create_shared_memory_dir)
 
   for patch in "${_individual_patches_array[@]}"; do
-    is_representative_patch=''
-    unset patch_dict
-    declare -A patch_dict
+    thread_for_process_representative_patch "$patch" "$i" "$shared_dir_for_parallelism" &
+    pids["$i"]="$!"
+    ((i++))
+  done
 
-    read_patch_into_dict "$patch" 'patch_dict'
+  # Wait for specific PID to avoid interfering in other functionalities.
+  for pid in "${pids[@]}"; do
+    wait "$pid"
+  done
 
-    # To avoid duplication, check if patch has been processed as representative
-    message_id="${patch_dict['message_id']}"
-    [[ -n "${processed_representative_patches["$message_id"]}" ]] && continue
-    in_reply_to_message_id="${patch_dict['in_reply_to']}"
+  for i in $(seq 0 "$((i - 1))"); do
+    if [[ -f "${shared_dir_for_parallelism}/${i}" ]]; then
+      patch=$(< "${shared_dir_for_parallelism}/${i}")
+      message_id=$(printf '%s' "$patch" | awk -F "$SEPARATOR_CHAR" '{print $1}')
 
-    # Assume that patch number 0 is always the representative as the cover letter
-    if [[ "${patch_dict['number_in_series']}" == 0 ]]; then
-      is_representative_patch=1
-    # Assume that, when there is no patch number 0, number 1 is the representative
-    # if it is a root of a thread
-    elif [[ "${patch_dict['number_in_series']}" == 1 && -z "$in_reply_to_message_id" ]]; then
-      is_representative_patch=1
-    # Assume that, if 'In-Reply-To' is not patch number 0 from the same version,
-    # number 1 is the representative
-    elif [[ "${patch_dict['number_in_series']}" == 1 ]]; then
-      patch_metadata=()
-      in_reply_to_metadata=()
-      IFS=',' read -ra patch_metadata <<< "${individual_patches_metadata["$message_id"]}"
+      # Avoid duplications
+      [[ -n "${processed_representative_patches["$message_id"]}" ]] && continue
 
-      if [[ -n "${individual_patches_metadata["$in_reply_to_message_id"]}" ]]; then
-        IFS=',' read -ra in_reply_to_metadata <<< "${individual_patches_metadata["$in_reply_to_message_id"]}"
-      else
-        in_reply_to_title=$(get_raw_lore_message "$message_id" | grep --perl-regexp '^Subject:' | sed 's/^Subject: //')
-        in_reply_to_patch_metadata=$(get_patch_metadata "$in_reply_to_title")
-        if [[ -n "$in_reply_to_patch_metadata" ]]; then
-          in_reply_to_metadata[0]=$(get_patch_version "$in_reply_to_patch_metadata")
-          in_reply_to_metadata[1]=$(get_patch_number_in_series "$in_reply_to_patch_metadata")
-        fi
-      fi
-
-      if [[ "${patch_metadata[0]}" != "${in_reply_to_metadata[0]}" || "${in_reply_to_metadata[1]}" != 0 ]]; then
-        is_representative_patch=1
-      fi
-    fi
-
-    if [[ -n "$is_representative_patch" ]]; then
       representative_patches["$REPRESENTATIVE_PATCHES_PROCESSED"]="$patch"
       ((REPRESENTATIVE_PATCHES_PROCESSED++))
-      processed_representative_patches["${patch_dict['message_id']}"]=1
+      processed_representative_patches["$message_id"]=1
     fi
   done
 }
