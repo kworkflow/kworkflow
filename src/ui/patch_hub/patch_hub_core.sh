@@ -218,7 +218,7 @@ function list_patches()
       case "${screen_sequence['SHOW_SCREEN']}" in
         'latest_patchsets_from_mailing_list')
           screen_sequence['PREVIOUS_SCREEN']='latest_patchsets_from_mailing_list'
-          screen_sequence['SHOW_SCREEN_PARAMETER']=${list_of_mailinglist_patches["$menu_return_string"]}
+          screen_sequence['SHOW_SCREEN_PARAMETER']=${representative_patches["$menu_return_string"]}
           ;;
         'bookmarked_patches')
           screen_sequence['PREVIOUS_SCREEN']='bookmarked_patches'
