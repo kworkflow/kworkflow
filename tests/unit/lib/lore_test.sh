@@ -75,25 +75,6 @@ function test_retrieve_available_mailing_lists()
   done
 }
 
-function test_is_introduction_patch()
-{
-  local output
-  local sample_url
-
-  sample_url='https://lore.kernel.org/amd-gfx/20221228163102.468-7-mario.limonciello@amd.com/T/#u'
-  is_introduction_patch "$sample_url"
-  assertEquals "($LINENO)" "$?" 1
-
-  sample_url='https://lore.kernel.org/amd-gfx/20221214202141.1721178-1-aurabindo.pillai@amd.com/T/#u'
-  is_introduction_patch "$sample_url"
-  assertEquals "($LINENO)" "$?" 0
-
-  # Invalid url
-  sample_url='https://lore.kernel.org/linux-media/1ae68c9f-726a-3307-65e6-e699be1fc7b9@xs4all.nl/T/#u'
-  is_introduction_patch "$sample_url"
-  assertEquals "($LINENO)" "$?" 1
-}
-
 function test_get_patch_metadata()
 {
   local message_title
@@ -436,76 +417,6 @@ function test_process_name()
   assertEquals "($LINENO)" "$output" "$expected"
 }
 
-function test_extract_metadata_from_patch_title_with_all_metadata()
-{
-  local output
-  local sample_name
-  local sample_url
-  local expected
-
-  # shellcheck disable=SC2317
-  function total_patches_in_the_series()
-  {
-    printf '0'
-  }
-
-  sample_url='https://lore.kernel.org/dri-devel/20221230153554.105856-2-robert.foss@linaro.org/T/#u'
-  expected="4${SEPARATOR_CHAR}11${SEPARATOR_CHAR}"
-  expected+='dt-bindings: display: msm: Add qcom, sm8350-dpu binding'
-  expected+="${SEPARATOR_CHAR}${sample_url}"
-
-  sample_name='[PATCH v4 01/11] dt-bindings: display: msm: Add qcom, sm8350-dpu binding'
-
-  output=$(extract_metadata_from_patch_title "$sample_name" "$sample_url")
-  assertEquals "($LINENO)" "$output" "$expected"
-}
-
-function test_extract_metadata_from_patch_title_single_patch()
-{
-  local output
-  local sample_name
-  local sample_url
-  local expected
-
-  # shellcheck disable=SC2317
-  function total_patches_in_the_series()
-  {
-    printf '0'
-  }
-
-  expected="1${SEPARATOR_CHAR}1${SEPARATOR_CHAR}"
-  expected+='drm/vc4: drop all currently held locks if deadlock happens'
-  expected+="${SEPARATOR_CHAR}"
-
-  sample_name='[PATCH] drm/vc4: drop all currently held locks if deadlock happens'
-  output=$(extract_metadata_from_patch_title "$sample_name")
-
-  assertEquals "($LINENO)" "$output" "$expected"
-}
-
-function test_extract_metadata_from_patch_title_rfc()
-{
-  local output
-  local sample_name
-  local sample_url
-  local expected
-
-  # shellcheck disable=SC2317
-  function total_patches_in_the_series()
-  {
-    printf '0'
-  }
-
-  expected="1${SEPARATOR_CHAR}20${SEPARATOR_CHAR}"
-  expected+='Initial Xe driver submission'
-  expected+="${SEPARATOR_CHAR}"
-
-  sample_name='[RFC PATCH 00/20] Initial Xe driver submission'
-  output=$(extract_metadata_from_patch_title "$sample_name")
-
-  assertEquals "($LINENO)" "$output" "$expected"
-}
-
 function test_delete_series_from_local_storage()
 {
   local download_dir_path="${SHUNIT_TMPDIR}/some/dir"
@@ -612,9 +523,9 @@ function test_get_bookmarked_series()
   local output
 
   {
-    printf 'AUTHOR1%s %s %s %sTITLE1%s %s %sDATE1\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char"
-    printf 'AUTHOR2%s %s %s %sTITLE2%s %s %sDATE2\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char"
-    printf 'AUTHOR3%s %s %s %sTITLE3%s %s %sDATE3\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+    printf '%sTITLE1%sAUTHOR1%s%s%s%s%s%s%s%sDATE1\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+    printf '%sTITLE2%sAUTHOR2%s%s%s%s%s%s%s%sDATE2\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
+    printf '%sTITLE3%sAUTHOR3%s%s%s%s%s%s%s%sDATE3\n' "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char" "$char"
   } >> "${BOOKMARKED_SERIES_PATH}"
 
   get_bookmarked_series bookmarked_series
@@ -809,162 +720,309 @@ function test_compose_lore_query_url_with_verification_valid_cases()
   assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"
 }
 
-function test_pre_process_xml_result()
+function test_pre_process_raw_xml()
 {
+  local raw_xml
   local output
   local expected
 
-  output=$(pre_process_xml_result "${SHUNIT_TMPDIR}/samples/query_result_sample-1.xml")
+  raw_xml=$(< "${SHUNIT_TMPDIR}/samples/query_result_sample-1.xml")
+  output=$(pre_process_raw_xml "$raw_xml")
   expected=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-1")
-  assert_equals_helper 'Wrong pre-processed result' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Wrong pre-processed result for sample 1' "$LINENO" "$expected" "$output"
+
+  raw_xml=$(< "${SHUNIT_TMPDIR}/samples/query_result_sample-2.xml")
+  output=$(pre_process_raw_xml "$raw_xml")
+  expected=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-2")
+  assert_equals_helper 'Wrong pre-processed result for sample 2' "$LINENO" "$expected" "$output"
 }
 
-function test_process_patchsets_single_batch()
+function test_process_individual_patches()
 {
-  local pre_processed_patches_sample
+  local -a individual_patches
+  declare -A individual_patches_metadata
+  local raw_xml
   local expected
-
-  # shellcheck disable=SC2317
-  function is_introduction_patch()
-  {
-    local patch_url="$1"
-    [[ "$patch_url" =~ introduction ]] && return 0
-    return 1
-  }
-
-  # shellcheck disable=SC2317
-  function extract_metadata_from_patch_title()
-  {
-    local patch_title="${1}${SEPARATOR_CHAR}"
-    local patch_url="$2"
-    local patchset_version="X${SEPARATOR_CHAR}"
-    local total_patches="X${SEPARATOR_CHAR}"
-
-    printf '%s%s%s%s' "$patchset_version" "$total_patches" "$patch_title" "$patch_url"
-  }
-
-  # Clear number of patchsets processed and data structure with patchsets
-  reset_current_lore_fetch_session
-
-  # Process single batch
-  pre_processed_patches_sample=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-1")
-  process_patchsets "$pre_processed_patches_sample"
-
-  assert_equals_helper 'Wrong number of patchsets processed' "$LINENO" 2 "$PATCHSETS_PROCESSED"
-
-  expected='Gilberto GilÆgil.gil@mpb.brÆXÆXÆ[PATCH v3] Add Palco to MPBÆhttp://lore.kernel.org/mpb/introduction'
-  assert_equals_helper 'Wrong processed patchset (index 0)' "$LINENO" "$expected" "${list_of_mailinglist_patches[0]}"
-
-  expected='David BowieÆmajor.tom@rock.ukÆXÆXÆ[RFC PATCH v12] Introduce Ziggy StardustÆhttp://lore.kernel.org/rock/introduction'
-  assert_equals_helper 'Wrong processed patchset (index 1)' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
-}
-
-function test_process_patchsets_multiple_batches()
-{
-  local pre_processed_patches_sample
-  local expected
-
-  # shellcheck disable=SC2317
-  function is_introduction_patch()
-  {
-    local patch_url="$1"
-    [[ "$patch_url" =~ introduction ]] && return 0
-    return 1
-  }
-
-  # shellcheck disable=SC2317
-  function extract_metadata_from_patch_title()
-  {
-    local patch_title="${1}${SEPARATOR_CHAR}"
-    local patch_url="$2"
-    local patchset_version="X${SEPARATOR_CHAR}"
-    local total_patches="X${SEPARATOR_CHAR}"
-
-    printf '%s%s%s%s' "$patchset_version" "$total_patches" "$patch_title" "$patch_url"
-  }
-
-  # Clear number of patchsets processed and data structure with patchsets
-  reset_current_lore_fetch_session
 
   # Process first batch
-  pre_processed_patches_sample=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-1")
-  process_patchsets "$pre_processed_patches_sample"
+  raw_xml=$(< "${SAMPLES_DIR}/lore/query_result_sample-1.xml")
+  process_individual_patches "$raw_xml" 'individual_patches'
+
+  # Check the list of processed individual patches
+  assert_equals_helper 'Should have processed 3 individual patches' "$LINENO" 3 "${#individual_patches[@]}"
+  expected='http://lore.kernel.org/mpb/introductionÆAdd Palco to MPBÆGilberto GilÆgil.gil@mpb.brÆ3Æ1Æ1Æ2023/08/09 21:27Æ'
+  assert_equals_helper 'Wrong processing of patch 0' "$LINENO" "$expected" "${individual_patches[0]}"
+  expected='http://lore.kernel.org/soul/sequelÆtim-maia/racional: Add Bom Senso to albumÆTim MaiaÆtim.maia@soul.brÆ1Æ3Æ9Æ2023/08/09 19:10Æhttp://lore.kernel.org/soul/introduction'
+  assert_equals_helper 'Wrong processing of patch 1' "$LINENO" "$expected" "${individual_patches[1]}"
+  expected='http://lore.kernel.org/rock/introductionÆIntroduce Ziggy StardustÆDavid BowieÆmajor.tom@rock.ukÆ12Æ1Æ1Æ2023/08/09 19:10Æ'
+  assert_equals_helper 'Wrong processing of patch 2' "$LINENO" "$expected" "${individual_patches[2]}"
+
+  # Check the metadata of the processed patches
+  assert_equals_helper 'Should have 3 patches metadata' "$LINENO" 3 "${#individual_patches_metadata[@]}"
+  expected='3,1'
+  assert_equals_helper 'Wrong metadata of patch 0' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/mpb/introduction']}"
+  expected='1,3'
+  assert_equals_helper 'Wrong metadata of patch 1' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/soul/sequel']}"
+  expected='12,1'
+  assert_equals_helper 'Wrong metadata of patch 2' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/rock/introduction']}"
 
   # Process second batch
-  pre_processed_patches_sample=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-2")
-  process_patchsets "$pre_processed_patches_sample"
+  raw_xml=$(< "${SAMPLES_DIR}/lore/query_result_sample-2.xml")
+  process_individual_patches "$raw_xml" 'individual_patches'
 
-  assert_equals_helper 'Wrong number of patchsets processed' "$LINENO" 3 "$PATCHSETS_PROCESSED"
+  # Check the list of processed individual patches
+  assert_equals_helper 'Should have processed 3 individual patches' "$LINENO" 3 "${#individual_patches[@]}"
+  expected='http://lore.kernel.org/reggae/sequelÆbob-marley/survavil: Add One Drop to albumÆBob MarleyÆbob.marley@reggae.jmÆ2Æ7Æ10Æ2023/08/09 21:27Æ'
+  assert_equals_helper 'Wrong processing of patch 0' "$LINENO" "$expected" "${individual_patches[0]}"
+  expected='http://lore.kernel.org/punk/sequelÆcbj/camisa10: Add Só os Loucos Sabem to albumÆCharlie Brown Jr.Æcharlie.brown@punk.brÆ1Æ3Æ13Æ2023/08/09 19:10Æ'
+  assert_equals_helper 'Wrong processing of patch 1' "$LINENO" "$expected" "${individual_patches[1]}"
+  expected='http://lore.kernel.org/samba-pop/introductionÆRelease Músicas para Churrasco Vol.1ÆSeu JorgeÆseu.jorge@samba-pop.brÆ1Æ1Æ1Æ2023/08/09 19:10Æhttp://lore.kernel.org/samba-pop/request'
+  assert_equals_helper 'Wrong processing of patch 2' "$LINENO" "$expected" "${individual_patches[2]}"
 
-  expected='Gilberto GilÆgil.gil@mpb.brÆXÆXÆ[PATCH v3] Add Palco to MPBÆhttp://lore.kernel.org/mpb/introduction'
-  assert_equals_helper 'Wrong processed patchset (index 0)' "$LINENO" "$expected" "${list_of_mailinglist_patches[0]}"
-
-  expected='David BowieÆmajor.tom@rock.ukÆXÆXÆ[RFC PATCH v12] Introduce Ziggy StardustÆhttp://lore.kernel.org/rock/introduction'
-  assert_equals_helper 'Wrong processed patchset (index 1)' "$LINENO" "$expected" "${list_of_mailinglist_patches[1]}"
-
-  expected='Seu JorgeÆseu.jorge@samba-pop.brÆXÆXÆ[RFC] Release Músicas para Churrasco Vol.1Æhttp://lore.kernel.org/samba-pop/introduction'
-  assert_equals_helper 'Wrong processed patchset (index 2)' "$LINENO" "$expected" "${list_of_mailinglist_patches[2]}"
+  # Check the metadata of the processed patches
+  assert_equals_helper 'Should have 6 patches metadata' "$LINENO" 6 "${#individual_patches_metadata[@]}"
+  expected='3,1'
+  assert_equals_helper 'Wrong metadata of patch 0' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/mpb/introduction']}"
+  expected='1,3'
+  assert_equals_helper 'Wrong metadata of patch 1' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/soul/sequel']}"
+  expected='12,1'
+  assert_equals_helper 'Wrong metadata of patch 2' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/rock/introduction']}"
+  expected='2,7'
+  assert_equals_helper 'Wrong metadata of patch 3' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/reggae/sequel']}"
+  expected='1,3'
+  assert_equals_helper 'Wrong metadata of patch 4' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/punk/sequel']}"
+  expected='1,1'
+  assert_equals_helper 'Wrong metadata of patch 5' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/samba-pop/introduction']}"
 }
 
-function test_process_patchsets_repeated_patches()
+function test_process_representative_patches_general_case()
 {
-  local pre_processed_patches_sample
-  local expected
+  declare -a representative_patches=()
+  declare -A individual_patches_metadata=()
+  declare -A processed_representative_patches=()
+  declare REPRESENTATIVE_PATCHES_PROCESSED=0
 
-  # Clear number of patchsets processed and data structure with patchsets
-  reset_current_lore_fetch_session
+  local -a individual_patches
+  local patch1='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1Æ'
+  local patch2='id2Ætitle2Æauthor2Æemail2Æ13Æ1Æ230Æupdated2Æ'
+  local patch3='id3Ætitle3Æauthor3Æemail3Æ2Æ3Æ3Æupdated3Æid1'
+  local patch4='id4Ætitle4Æauthor4Æemail4Æ2Æ1Æ3Æupdated4Æid1'
 
-  # Process list of repeated pre processed patches
-  pre_processed_patches_sample=$(< "${SHUNIT_TMPDIR}/samples/pre_processed_patches_sample-repeated")
-  process_patchsets "$pre_processed_patches_sample"
-  assert_equals_helper 'Repeated patches should not be processed again' "$LINENO" 1 "$PATCHSETS_PROCESSED"
+  individual_patches=(
+    "$patch1"
+    "$patch2"
+    "$patch3"
+    "$patch4"
+  )
+  individual_patches_metadata=(
+    ['id1']='2,0'
+    ['id2']='13,1'
+    ['id3']='2,3'
+    ['id4']='2,1'
+  )
 
-  expected='David BowieÆmajor.tom@rock.ukÆXÆXÆ[RFC PATCH v12] Introduce Ziggy StardustÆhttp://lore.kernel.org/rock/introduction'
-  assert_equals_helper 'Wrong processed patchset (index 0)' "$LINENO" "$expected" "${list_of_mailinglist_patches[0]}"
+  process_representative_patches 'individual_patches'
+
+  assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 2 "${#representative_patches[@]}"
+  assert_equals_helper 'Wrong size of `processed_representative_patches` hashtable' "$LINENO" 2 "${#processed_representative_patches[@]}"
+  assert_equals_helper 'Wrong value of `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 2 "$REPRESENTATIVE_PATCHES_PROCESSED"
+  assert_equals_helper 'Wrong representative patch 0' "$LINENO" "$patch1" "${representative_patches[0]}"
+  assert_equals_helper 'Wrong representative patch 1' "$LINENO" "$patch2" "${representative_patches[1]}"
+  assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
+  assert_equals_helper 'Representative patch 1 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id2']}"
+}
+
+function test_process_representative_patches_subsequent_calls()
+{
+  declare -a representative_patches=()
+  declare -A individual_patches_metadata=()
+  declare -A processed_representative_patches=()
+  declare REPRESENTATIVE_PATCHES_PROCESSED=0
+
+  local -a individual_patches
+  local patch1='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1Æ'
+  local patch2='id2Ætitle2Æauthor2Æemail2Æ13Æ1Æ230Æupdated2Æ'
+  local patch3='id3Ætitle3Æauthor3Æemail3Æ2Æ3Æ3Æupdated3Æid1'
+  local patch4='id4Ætitle4Æauthor4Æemail4Æ2Æ1Æ3Æupdated4Æid1'
+  local patch5='id5Ætitle5Æauthor5Æemail5Æ32Æ4Æ6Æupdated5Æ'
+  local patch6='id6Ætitle6Æauthor6Æemail6Æ4Æ2Æ14Æupdated6Æ'
+  local patch7='id7Ætitle7Æauthor7Æemail7Æ1Æ0Æ5Æupdated7Æ'
+  local patch8='id8Ætitle8Æauthor8Æemail8Æ1Æ1Æ5Æupdated8Æid7'
+
+  individual_patches=(
+    "$patch1"
+    "$patch2"
+    "$patch3"
+    "$patch4"
+  )
+  individual_patches_metadata=(
+    ['id1']='2,0'
+    ['id2']='13,1'
+    ['id3']='2,3'
+    ['id4']='2,1'
+  )
+
+  # First call
+  process_representative_patches 'individual_patches'
+
+  # Update data structs
+  individual_patches=(
+    "$patch5"
+    "$patch6"
+    "$patch7"
+    "$patch8"
+  )
+  individual_patches_metadata['id5']='32,4'
+  individual_patches_metadata['id6']='4,2'
+  individual_patches_metadata['id7']='1,0'
+  individual_patches_metadata['id8']='1,1'
+
+  # Second call
+  process_representative_patches 'individual_patches'
+
+  assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 3 "${#representative_patches[@]}"
+  assert_equals_helper 'Wrong size of `processed_representative_patches` hashtable' "$LINENO" 3 "${#processed_representative_patches[@]}"
+  assert_equals_helper 'Wrong value of `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 3 "$REPRESENTATIVE_PATCHES_PROCESSED"
+  assert_equals_helper 'Wrong representative patch 0' "$LINENO" "$patch1" "${representative_patches[0]}"
+  assert_equals_helper 'Wrong representative patch 1' "$LINENO" "$patch2" "${representative_patches[1]}"
+  assert_equals_helper 'Wrong representative patch 2' "$LINENO" "$patch7" "${representative_patches[2]}"
+  assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
+  assert_equals_helper 'Representative patch 1 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id2']}"
+  assert_equals_helper 'Representative patch 2 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id7']}"
+}
+
+function test_process_representative_patches_duplicated_patches()
+{
+  declare -a representative_patches=()
+  declare -A individual_patches_metadata=()
+  declare -A processed_representative_patches=()
+  declare REPRESENTATIVE_PATCHES_PROCESSED=0
+
+  local -a individual_patches
+  local patch1='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1Æ'
+  local patch2='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1Æ'
+  local patch3='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1Æ'
+  local patch4='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1Æ'
+
+  individual_patches=(
+    "$patch1"
+    "$patch2"
+    "$patch3"
+    "$patch4"
+  )
+  individual_patches_metadata=(
+    ['id1']='2,0'
+  )
+
+  process_representative_patches 'individual_patches'
+
+  assert_equals_helper 'Wrong size of `representative_patches` array' "$LINENO" 1 "${#representative_patches[@]}"
+  assert_equals_helper 'Wrong size of `processed_representative_patches` hashtable' "$LINENO" 1 "${#processed_representative_patches[@]}"
+  assert_equals_helper 'Wrong value of `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 1 "$REPRESENTATIVE_PATCHES_PROCESSED"
+  assert_equals_helper 'Wrong representative patch 0' "$LINENO" "$patch1" "${representative_patches[0]}"
+  assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
+}
+
+function test_read_patch_into_dict()
+{
+  local patch
+  declare -A patch_dict
+
+  patch='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1Æ'
+  read_patch_into_dict "$patch" 'patch_dict'
+  assert_equals_helper 'Wrong value of messsage ID' "$LINENO" 'id1' "${patch_dict['message_id']}"
+  assert_equals_helper 'Wrong value of message title' "$LINENO" 'title1' "${patch_dict['message_title']}"
+  assert_equals_helper 'Wrong value of author name' "$LINENO" 'author1' "${patch_dict['author_name']}"
+  assert_equals_helper 'Wrong value of author email' "$LINENO" 'email1' "${patch_dict['author_email']}"
+  assert_equals_helper 'Wrong value of version' "$LINENO" 2 "${patch_dict['version']}"
+  assert_equals_helper 'Wrong value of number in series' "$LINENO" 0 "${patch_dict['number_in_series']}"
+  assert_equals_helper 'Wrong value of total in series' "$LINENO" 3 "${patch_dict['total_in_series']}"
+  assert_equals_helper 'Wrong value of updated' "$LINENO" 'updated1' "${patch_dict['updated']}"
+  assert_equals_helper 'Wrong value of in reply to' "$LINENO" '' "${patch_dict['in_reply_to']}"
+  assert_equals_helper 'Wrong value of download dir path' "$LINENO" '' "${patch_dict['download_dir_path']}"
+  assert_equals_helper 'Wrong value of timestamp' "$LINENO" '' "${patch_dict['timestamp']}"
+
+  patch='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1ÆidX'
+  read_patch_into_dict "$patch" 'patch_dict'
+  assert_equals_helper 'Wrong value of messsage ID' "$LINENO" 'id1' "${patch_dict['message_id']}"
+  assert_equals_helper 'Wrong value of message title' "$LINENO" 'title1' "${patch_dict['message_title']}"
+  assert_equals_helper 'Wrong value of author name' "$LINENO" 'author1' "${patch_dict['author_name']}"
+  assert_equals_helper 'Wrong value of author email' "$LINENO" 'email1' "${patch_dict['author_email']}"
+  assert_equals_helper 'Wrong value of version' "$LINENO" 2 "${patch_dict['version']}"
+  assert_equals_helper 'Wrong value of number in series' "$LINENO" 0 "${patch_dict['number_in_series']}"
+  assert_equals_helper 'Wrong value of total in series' "$LINENO" 3 "${patch_dict['total_in_series']}"
+  assert_equals_helper 'Wrong value of updated' "$LINENO" 'updated1' "${patch_dict['updated']}"
+  assert_equals_helper 'Wrong value of in reply to' "$LINENO" 'idX' "${patch_dict['in_reply_to']}"
+  assert_equals_helper 'Wrong value of download dir path' "$LINENO" '' "${patch_dict['download_dir_path']}"
+  assert_equals_helper 'Wrong value of timestamp' "$LINENO" '' "${patch_dict['timestamp']}"
+
+  patch='id1Ætitle1Æauthor1Æemail1Æ2Æ0Æ3Æupdated1ÆidXÆpath1Ætimestamp1'
+  read_patch_into_dict "$patch" 'patch_dict'
+  assert_equals_helper 'Wrong value of messsage ID' "$LINENO" 'id1' "${patch_dict['message_id']}"
+  assert_equals_helper 'Wrong value of message title' "$LINENO" 'title1' "${patch_dict['message_title']}"
+  assert_equals_helper 'Wrong value of author name' "$LINENO" 'author1' "${patch_dict['author_name']}"
+  assert_equals_helper 'Wrong value of author email' "$LINENO" 'email1' "${patch_dict['author_email']}"
+  assert_equals_helper 'Wrong value of version' "$LINENO" 2 "${patch_dict['version']}"
+  assert_equals_helper 'Wrong value of number in series' "$LINENO" 0 "${patch_dict['number_in_series']}"
+  assert_equals_helper 'Wrong value of total in series' "$LINENO" 3 "${patch_dict['total_in_series']}"
+  assert_equals_helper 'Wrong value of updated' "$LINENO" 'updated1' "${patch_dict['updated']}"
+  assert_equals_helper 'Wrong value of in reply to' "$LINENO" 'idX' "${patch_dict['in_reply_to']}"
+  assert_equals_helper 'Wrong value of download dir path' "$LINENO" 'path1' "${patch_dict['download_dir_path']}"
+  assert_equals_helper 'Wrong value of timestamp' "$LINENO" 'timestamp1' "${patch_dict['timestamp']}"
 }
 
 function test_reset_current_lore_fetch_session()
 {
-  list_of_mailinglist_patches[0]=1
-  list_of_mailinglist_patches[1]=1
-  list_of_mailinglist_patches[2]=1
-  PATCHSETS_PROCESSED=3
+
+  representative_patches[0]=1
+  representative_patches[1]=1
+  representative_patches[2]=1
+  declare -Ag individual_patches_metadata
+  individual_patches_metadata['patch_1a']=1
+  individual_patches_metadata['patch_1b']=1
+  individual_patches_metadata['patch_1c']=1
+  individual_patches_metadata['patch_2']=1
+  individual_patches_metadata['patch_3a']=1
+  individual_patches_metadata['patch_3b']=1
+  individual_patches_metadata['patch_3c']=1
+  individual_patches_metadata['patch_3d']=1
+  declare -Ag processed_representative_patches
+  processed_representative_patches['patch_1']=1
+  processed_representative_patches['patch_2']=1
+  processed_representative_patches['patch_3']=1
+  REPRESENTATIVE_PATCHES_PROCESSED=3
   MIN_INDEX=200
 
-  declare -Ag processed_patchsets
-  processed_patchsets['patch_1']=1
-  processed_patchsets['patch_2']=1
-  processed_patchsets['patch_3']=1
-
-  reset_current_lore_fetch_session 2
-  assert_equals_helper 'Should reset `list_of_mailinglist_patches`' "$LINENO" 0 "${#list_of_mailinglist_patches[@]}"
-  assert_equals_helper 'Should reset `PATCHSETS_PROCESSED`' "$LINENO" 0 "$PATCHSETS_PROCESSED"
+  reset_current_lore_fetch_session
+  assert_equals_helper 'Should reset `representative_patches`' "$LINENO" 0 "${#representative_patches[@]}"
+  assert_equals_helper 'Should reset `REPRESENTATIVE_PATCHES_PROCESSED`' "$LINENO" 0 "$REPRESENTATIVE_PATCHES_PROCESSED"
   assert_equals_helper 'Should reset `MIN_INDEX`' "$LINENO" 0 "$MIN_INDEX"
-  assert_equals_helper 'Should reset `processed_patchsets`' "$LINENO" 0 "${#processed_patchsets[@]}"
+  assert_equals_helper 'Should reset `processed_representative_patches`' "$LINENO" 0 "${#processed_representative_patches[@]}"
 }
 
 function test_format_patchsets()
 {
   local -a formatted_patchsets_list
+  local output
 
-  list_of_mailinglist_patches[0]='Jay CornwallÆjay.cornwall@amd.comÆ1Æ1Ædrm/amdkfd: Add missing tba_hi programming on aldebaranÆ'
-  list_of_mailinglist_patches[0]+='http://lore.kernel.org/amd-gfx/20230809212615.137674-1-jay.cornwall@amd.com/'
-  list_of_mailinglist_patches[1]='Alex DeucherÆalexander.deucher@amd.comÆ1Æ10Ædrm/amdgpu: don'"'"'t allow userspace to create a doorbell BOÆ'
-  list_of_mailinglist_patches[1]+='http://lore.kernel.org/amd-gfx/20230809190956.435068-1-alexander.deucher@amd.com/'
-  list_of_mailinglist_patches[2]='Juca PiramaÆjuca.pirama@jp.comÆ3Æ1Ædrm/amdgpu: improve everythingÆ'
-  list_of_mailinglist_patches[2]+='http://lore.kernel.org/amd-gfx/15230802663656.432068-1-juca.pirama@jp.com/'
-  formatted_patchsets_list[0]=1
+  representative_patches[0]='message-id0Ætitle0Æauthor0Æemail0Æ2Æ1Æ6Æupdated0Æin-reply-to0Ædir0Ætimestamp0'
+  representative_patches[1]='message-id1Ætitle1Æauthor1Æemail1Æ1Æ0Æ3Æupdated1Æin-reply-to1Ædir1Ætimestamp1'
+  representative_patches[2]='message-id2Ætitle2Æauthor2Æemail2Æ16Æ1Æ8Æupdated2Æin-reply-to2Ædir2Ætimestamp2'
+  formatted_patchsets_list[0]='Vold |#old |  titleold'
 
   format_patchsets 'formatted_patchsets_list' 1 2
   assert_equals_helper 'Wrong number of patchsets formatted' "$LINENO" 3 "${#formatted_patchsets_list[@]}"
 
-  expected='V1  |#10 | drm/amdgpu: don'"'"'t allow userspace to create a doorbell BO'
-  [[ "${formatted_patchsets_list[1]}" =~ $expected ]] # to account for trailing whitespace
-  assert_equals_helper 'Wrong formatted patchset' "$LINENO" 0 "$?"
+  expected='Vold |#old |  titleold'
+  assert_equals_helper 'Should not overwrite out-of-range entry' "$LINENO" "$expected" "${formatted_patchsets_list[0]}"
 
-  expected='V3  |#1  | drm/amdgpu: improve everything'
-  [[ "${formatted_patchsets_list[2]}" =~ $expected ]] # to account for trailing whitespace
-  assert_equals_helper 'Wrong formatted patchset' "$LINENO" 0 "$?"
+  expected='V1  |#3  |  title1'
+  output=$(printf '%s' "${formatted_patchsets_list[1]}" | sed 's/ *$//') # trim trailing whitespace
+  assert_equals_helper 'Wrong formatted patchset 1' "$LINENO" "$expected" "$output"
+
+  expected='V16 |#8  |  title2'
+  output=$(printf '%s' "${formatted_patchsets_list[2]}" | sed 's/ *$//') # trim trailing whitespace
+  assert_equals_helper 'Wrong formatted patchset 2' "$LINENO" "$expected" "$output"
 }
 
 function test_get_page_starting_index()
@@ -973,11 +1031,11 @@ function test_get_page_starting_index()
   local patchsets_per_page
   local output
 
-  # Mocking `list_of_mailinglist_patches` with 199 patchsets
-  unset list_of_mailinglist_patches
-  declare -gA list_of_mailinglist_patches
+  # Mocking `representative_patches` with 199 patchsets
+  unset representative_patches
+  declare -gA representative_patches
   for i in $(seq 0 199); do
-    list_of_mailinglist_patches["$i"]=1
+    representative_patches["$i"]=1
   done
 
   page=5
@@ -997,11 +1055,11 @@ function test_get_page_ending_index()
   local patchsets_per_page
   local output
 
-  # Mocking `list_of_mailinglist_patches` with 199 patchsets
-  unset list_of_mailinglist_patches
-  declare -gA list_of_mailinglist_patches
+  # Mocking `representative_patches` with 199 patchsets
+  unset representative_patches
+  declare -gA representative_patches
   for i in $(seq 0 199); do
-    list_of_mailinglist_patches["$i"]=1
+    representative_patches["$i"]=1
   done
 
   page=3

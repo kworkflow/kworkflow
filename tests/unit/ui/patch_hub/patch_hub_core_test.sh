@@ -52,7 +52,7 @@ function test_show_dashboard()
 function test_list_patches_with_patches()
 {
   local -a patchsets_metadata_array
-  declare -ag list_of_mailinglist_patches
+  declare -ag representative_patches
 
   # shellcheck disable=SC2317
   function create_menu_options()
@@ -66,14 +66,14 @@ function test_list_patches_with_patches()
     'more_patches_metadata'
   )
 
-  list_of_mailinglist_patches=(
+  representative_patches=(
     'some_patch_raw_data'
     'some_other_patch_raw_data'
     'more_patches_raw_data'
   )
 
   screen_sequence['SHOW_SCREEN']='latest_patchsets_from_mailing_list'
-  list_patches 'Message test' list_of_mailinglist_patches ''
+  list_patches 'Message test' representative_patches ''
   assert_equals_helper 'Wrong screen set' "$LINENO" 'patchset_details_and_actions' "${screen_sequence['SHOW_SCREEN']}"
   assert_equals_helper 'Wrong screen parameter' "$LINENO" 'more_patches_raw_data' "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
 
