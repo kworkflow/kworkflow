@@ -94,28 +94,329 @@ function test_is_introduction_patch()
   assertEquals "($LINENO)" "$?" 1
 }
 
-function test_is_the_link_valid()
+function test_get_patch_metadata()
 {
-  is_the_link_valid ''
-  assertEquals "($LINENO)" "$?" 22
+  local message_title
+  local expected
+  local output
 
-  # shellcheck disable=SC2317
-  function curl()
-  {
-    printf 'HTTP/1.1 200 OK'
-  }
+  message_title='some/subsys: Do foo'
+  expected=''
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed without patch metadata' "$LINENO" "$expected" "$output"
 
-  is_the_link_valid 'something'
-  assertEquals "($LINENO)" "$?" 0
+  message_title='[PATCH] some/subsys: Do foo'
+  expected='[PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with the word "PATCH" in upper case' "$LINENO" "$expected" "$output"
 
-  # shellcheck disable=SC2317
-  function curl()
-  {
-    return 6
-  }
+  message_title='[patch] some/subsys: Do foo'
+  expected='[patch]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with the word "PATCH" in lower case' "$LINENO" "$expected" "$output"
 
-  is_the_link_valid 'something'
-  assertEquals "($LINENO)" "$?" 22
+  message_title='[Patch] some/subsys: Do foo'
+  expected='[Patch]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with the word "PATCH" with starting upper case' "$LINENO" "$expected" "$output"
+
+  message_title='[pAtcH] some/subsys: Do foo'
+  expected='[pAtcH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with the word "PATCH" with random case' "$LINENO" "$expected" "$output"
+
+  message_title='[RFC] some/subsys: Do foo'
+  expected='[RFC]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with the word "RFC" in upper case' "$LINENO" "$expected" "$output"
+
+  message_title='[rfc] some/subsys: Do foo'
+  expected='[rfc]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with the word "RFC" in lower case' "$LINENO" "$expected" "$output"
+
+  message_title='[Rfc] some/subsys: Do foo'
+  expected='[Rfc]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with the word "RFC" with starting upper case' "$LINENO" "$expected" "$output"
+
+  message_title='[rfC] some/subsys: Do foo'
+  expected='[rfC]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with the word "RFC" with random case' "$LINENO" "$expected" "$output"
+
+  message_title='[RFC PATCH] some/subsys: Do foo'
+  expected='[RFC PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with with tag mixing "PATCH" and "RFC" (case 1)' "$LINENO" "$expected" "$output"
+
+  message_title='[PATCH RFC] some/subsys: Do foo'
+  expected='[PATCH RFC]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with with tag mixing "PATCH" and "RFC" (case 2)' "$LINENO" "$expected" "$output"
+
+  message_title='[addtional tag][PATCH] some/subsys: Do foo'
+  expected='[PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with two tags' "$LINENO" "$expected" "$output"
+
+  message_title='[addtional tag 1][PATCH] some/subsys: Do [addtional tag 2] foo'
+  expected='[PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with more than one tag' "$LINENO" "$expected" "$output"
+
+  message_title='[PATCH] some/subsys: Do foo in array[0] element'
+  expected='[PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with braces in subject' "$LINENO" "$expected" "$output"
+
+  message_title='[PATCH] !@#$%^&*()_-+={}\|/.,:;`~"'"'"''
+  expected='[PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with special characters' "$LINENO" "$expected" "$output"
+
+  message_title='[v2 PATCH] some/subsys: Do foo'
+  expected='[v2 PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with version in tag' "$LINENO" "$expected" "$output"
+
+  message_title='[PATCH 4/13] some/subsys: Do foo'
+  expected='[PATCH 4/13]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with numbering in tag' "$LINENO" "$expected" "$output"
+
+  message_title='[PATCH] revert "patch"'
+  expected='[PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with word "patch" in subject' "$LINENO" "$expected" "$output"
+
+  message_title='[PATCH][GSoC patch] some/subsys: Do foo'
+  expected='[PATCH]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with following tag with word "patch"' "$LINENO" "$expected" "$output"
+
+  message_title='[v13 PATCH 2/3] some/subsys: Do foo'
+  expected='[v13 PATCH 2/3]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with version and numbering in tag' "$LINENO" "$expected" "$output"
+
+  message_title='[PATCH bpf-next 4.3] some/subsys: Do foo'
+  expected='[PATCH bpf-next 4.3]'
+  output=$(get_patch_metadata "$message_title")
+  assert_equals_helper 'Failed with arbitrary string in tag' "$LINENO" "$expected" "$output"
+}
+
+function test_get_patch_version()
+{
+  local patch_metadata
+  local output
+
+  patch_metadata=''
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Empty patch metadata should return 2 ENOENT' "$LINENO" 2 "$?"
+  assert_equals_helper 'Empty patch metadata should output "X" as version' "$LINENO" 'X' "$output"
+
+  patch_metadata='[PATCH]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag "[PATCH]"' "$LINENO" 1 "$output"
+
+  patch_metadata='[RFC PATCH]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag "[RFC PATCH]"' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH AUTOSEL]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary string' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH 2718]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary integer' "$LINENO" 1 "$output"
+
+  patch_metadata='[281.828 PATCH]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary float' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH 12/13]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with numbering' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH v4321]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version (v)' "$LINENO" 4321 "$output"
+
+  patch_metadata='[PATCH V1234]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version (V)' "$LINENO" 1234 "$output"
+
+  patch_metadata='[PATCH stringV1234string]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version without space as border' "$LINENO" 1234 "$output"
+
+  patch_metadata='[PATCH V18 56/78]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version and numbering' "$LINENO" 18 "$output"
+
+  patch_metadata='[Very voice PATCH v1389 Vertical]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version strings starting with v/V' "$LINENO" 1389 "$output"
+
+  patch_metadata='[PATCH v 1234]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version (v) with space separating number and letter' "$LINENO" 1234 "$output"
+
+  patch_metadata='[PATCH V 1234]'
+  output=$(get_patch_version "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version (V) with space separating number and letter' "$LINENO" 1234 "$output"
+}
+
+function test_get_patch_number_in_series()
+{
+  local patch_metadata
+  local expected
+
+  patch_metadata=''
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Empty patch metadata should return 2 ENOENT' "$LINENO" 2 "$?"
+  assert_equals_helper 'Empty patch metadata should output "X" as number in the series' "$LINENO" 'X' "$output"
+
+  patch_metadata='[PATCH]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag "[PATCH]"' "$LINENO" 1 "$output"
+
+  patch_metadata='[RFC PATCH]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag "[RFC PATCH]"' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH AUTOSEL]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary string' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH 2718]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary integer' "$LINENO" 1 "$output"
+
+  patch_metadata='[281.828 PATCH]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary float' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH v4321]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH 00/13]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag of cover letter' "$LINENO" 0 "$output"
+
+  patch_metadata='[PATCH 1/2]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag of first patch' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH 0424/2002]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag of arbitrary patch' "$LINENO" 424 "$output"
+
+  patch_metadata='[v32 PATCH 0424/2002]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with numbering and version' "$LINENO" 424 "$output"
+
+  patch_metadata='[PATCH 123 / 345]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with one space between numbers and foward-slash' "$LINENO" 123 "$output"
+
+  patch_metadata='[PATCH 123       /  345]'
+  output=$(get_patch_number_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary number of spaces between numbers and foward-slash' "$LINENO" 123 "$output"
+}
+
+function test_get_patch_total_in_series()
+{
+  local patch_metadata
+  local expected
+
+  patch_metadata=''
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Empty patch metadata should return 2 ENOENT' "$LINENO" 2 "$?"
+  assert_equals_helper 'Empty patch metadata should output "X" as total in series' "$LINENO" 'X' "$output"
+
+  patch_metadata='[PATCH]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag "[PATCH]"' "$LINENO" 1 "$output"
+
+  patch_metadata='[RFC PATCH]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag "[RFC PATCH]"' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH AUTOSEL]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary string' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH 2718]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary integer' "$LINENO" 1 "$output"
+
+  patch_metadata='[281.828 PATCH]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary float' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH v4321]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with version' "$LINENO" 1 "$output"
+
+  patch_metadata='[PATCH 00/13]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag of cover letter' "$LINENO" 13 "$output"
+
+  patch_metadata='[PATCH 1/2]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag of first patch' "$LINENO" 2 "$output"
+
+  patch_metadata='[PATCH 0424/2002]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag of arbitrary patch' "$LINENO" 2002 "$output"
+
+  patch_metadata='[v32 PATCH 0424/2002]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with numbering and version' "$LINENO" 2002 "$output"
+
+  patch_metadata='[PATCH 123 / 345]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with one space between numbers and foward-slash' "$LINENO" 345 "$output"
+
+  patch_metadata='[PATCH 123       /  345]'
+  output=$(get_patch_total_in_series "$patch_metadata")
+  assert_equals_helper 'Failed for tag with arbitrary number of spaces between numbers and foward-slash' "$LINENO" 345 "$output"
+}
+
+function test_remove_patch_metadata_from_message_title()
+{
+  local message_title
+  local expected
+  local output
+
+  message_title='some/subsys: Do foo'
+  expected='some/subsys: Do foo'
+  output=$(remove_patch_metadata_from_message_title "$message_title" '')
+  assert_equals_helper 'Failed for inexistent patch metadata' "$LINENO" "$expected" "$output"
+
+  message_title='[PATCH] some/subsys: Do foo'
+  expected='some/subsys: Do foo'
+  output=$(remove_patch_metadata_from_message_title "$message_title" '[PATCH]')
+  assert_equals_helper 'Failed for simple patch metadata' "$LINENO" "$expected" "$output"
+
+  message_title='[RFC PATCH v12 23/23] some/subsys: Do foo'
+  expected='some/subsys: Do foo'
+  output=$(remove_patch_metadata_from_message_title "$message_title" '[RFC PATCH v12 23/23]')
+  assert_equals_helper 'Failed for complex patch metadata' "$LINENO" "$expected" "$output"
+
+  message_title='[cocci][PATCH][net-dev] some/subsys: Do foo'
+  expected='[cocci][net-dev] some/subsys: Do foo'
+  output=$(remove_patch_metadata_from_message_title "$message_title" '[PATCH]')
+  assert_equals_helper 'Failed for complex patch metadata' "$LINENO" "$expected" "$output"
+
+  message_title='[RFC/PATCH 00/23] some/subsys: Do foo'
+  expected='some/subsys: Do foo'
+  output=$(remove_patch_metadata_from_message_title "$message_title" '[RFC/PATCH 00/23]')
+  assert_equals_helper 'Failed for complex patch metadata' "$LINENO" "$expected" "$output"
 }
 
 function test_process_name()
