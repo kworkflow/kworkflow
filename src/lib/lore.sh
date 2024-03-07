@@ -160,57 +160,187 @@ function is_introduction_patch()
   return 1
 }
 
-# Verify if the target URL is accessible or not.
+# This function extracts the patch metadata of a lore message title. A patch
+# metadata is a string surrounded by square brackets that contains the word
+# "PATCH" and/or "RFC".
 #
-# @url Target url
+# For example, considering `@message_title` equal to
+#   '[V3 Patch 3/7] some/subsys: Do foo',
+# the outputted patch metadata will be '[V3 Patch 3/7]'.
 #
-# Return:
-# If the URL is accessible, return 0. Otherwise, return 22.
-function is_the_link_valid()
+# @message_title: Message title of a lore message.
+#
+# Return: If the function finds a patch metadata as a substring of `@message_title`,
+# outputs the patch metadata, otherwise, output an empty string.
+function get_patch_metadata()
 {
-  local url="$1"
-  local curl_cmd='curl --insecure --silent --fail --silent --head'
-  local raw_curl_output
-  local url_status_code
+  local message_title="$1"
+  local patch_metadata
 
-  [[ -z "$url" ]] && return 22 # EINVAL
+  if [[ "$message_title" =~ \[[^\]]*([Rr][Ff][Cc]|[Pp][Aa][Tt][Cc][Hh])[^\[]*\] ]]; then
+    patch_metadata="${BASH_REMATCH[0]}"
+  fi
 
-  curl_cmd+=" $url"
-  raw_curl_output=$(eval "$curl_cmd")
-
-  url_status_code=$(printf '%s' "$raw_curl_output" | grep --extended-regexp '^HTTP' | cut -d ' ' -f2)
-  [[ "$url_status_code" == 200 ]] && return 0
-  return 22 # EINVAL
+  printf '%s' "$patch_metadata"
 }
 
-# Lore URL has a pattern that looks like this:
+# This function extracts the version number of a patch from a patch metadata.
+# The version number is the integer that follows the letters 'v' and 'V'.
 #
-# https://lore.kernel.org/[LIST]/[MESSAGE-ID]-[PATCH NUMBER]-[AUTHOR EMAIL]/T/#u
+# For example, considering `@patch_metadata` equal to
+#   '[rfc patch v4]',
+# the outputted version will be '4'.
 #
-# With this idea in mind, this function checks for '-[PATCH NUMBER]-' in the
-# URL. Based on that, it increments the PATCH Number by one until we reach an
-# invalid URL and figure out the total of patches in the series.
-#
-# @url Target url
+# @patch_metadata: Patch metadata of lore message.
 #
 # Return:
-# Return the total of patches.
-function total_patches_in_the_series()
+# If `@patch_metadata` is non-empty, output the version and return 0. Otherwise,
+# return 2 (ENOENT) and output 'X', meaning 'undefined'.
+function get_patch_version()
 {
-  local url="$1"
-  local total=0
-  local link_ref=1
-  local ret
+  local patch_metadata="$1"
+  local version=''
 
-  url=$(replace_http_by_https "$url")
+  if [[ -z "$patch_metadata" ]]; then
+    printf 'X'
+    return 2 # ENOENT
+  fi
 
-  until ! is_the_link_valid "$url"; do
-    ((total++))
-    ((link_ref++))
-    url="${url/-[0-9]*-/-$link_ref-}"
-  done
+  # Grab pattern 'v<number>' or 'V<number>' from patch metadata
+  if [[ "$patch_metadata" =~ [v|V]+[[:space:]]*[[:digit:]]+ ]]; then
+    version="${BASH_REMATCH[0]}"
+    # Grab number from string
+    [[ "$version" =~ [[:digit:]]+ ]] && version="${BASH_REMATCH[0]}"
+  fi
+  # Versions 1 don't have pattern 'v<number>' nor 'V<number>' in the patch metadata
+  [[ -z "$version" ]] && version=1
 
-  printf '%d' "$total"
+  printf '%s' "$version"
+}
+
+# This function extracts the pattern `<number>/<number>` with an arbitrary count
+# of spaces between the digits and the foward slash.
+#
+# @patch_metadata: Patch metadata of lore message.
+#
+# Return:
+# Outputs the matched `<number>/<number>` pattern, returning 0 in any case.
+function get_number_slash_number_pattern()
+{
+  local patch_metadata="$1"
+  local number_slash_number_pattern=''
+
+  if [[ "$patch_metadata" =~ [[:digit:]]+[[:space:]]*/[[:space:]]*[[:digit:]]+ ]]; then
+    number_slash_number_pattern="${BASH_REMATCH[0]}"
+  fi
+
+  printf '%s' "$number_slash_number_pattern"
+}
+
+# This function extracts the patch number in the series from a patch metadata.
+# The patch number in the series is the index of the patch in the series that
+# composes a patchset.
+#
+# For example, considering `@patch_metadata` equal to
+#   '[PATCH 09/21]',
+# the outputted number in series will be '9'.
+#
+# @patch_metadata: Patch metadata of lore message.
+#
+# Return:
+# If `@patch_metadata` is non-empty, output the number in the series and return 0.
+# Otherwise, return 2 (ENOENT) and output 'X', meaning 'undefined'.
+function get_patch_number_in_series()
+{
+  local patch_metadata="$1"
+  local number_slash_number_pattern=''
+  local number_in_series=''
+
+  if [[ -z "$patch_metadata" ]]; then
+    printf 'X'
+    return 2 # ENOENT
+  fi
+
+  number_slash_number_pattern=$(get_number_slash_number_pattern "$patch_metadata")
+  # Grab number from start of string
+  [[ "$number_slash_number_pattern" =~ ^[[:digit:]]+ ]] && number_in_series="${BASH_REMATCH[0]}"
+
+  # Remove leading zeroes
+  if [[ "$number_in_series" =~ ^0+$ ]]; then
+    number_in_series=0
+  else
+    number_in_series=$(printf '%s' "$number_in_series" | sed 's/^0*//')
+  fi
+
+  # Patchsets with one patch don't have pattern '<number>/<number>' in the patch metadata
+  [[ -z "$number_in_series" ]] && number_in_series=1
+
+  printf '%s' "$number_in_series"
+}
+
+# This function extracts the total number of patches in the series from a patch
+# tag.
+#
+# For example, considering `@patch_metadata` equal to
+#   '[v12 patch 0/320]',
+# the outputted total in series will be '320'.
+#
+# @patch_metadata: Patch metadata of lore message.
+#
+# Return:
+# If `@patch_metadata` is non-empty, output the total in the series and return 0.
+# Otherwise, return 2 (ENOENT) and output 'X', meaning 'undefined'.
+function get_patch_total_in_series()
+{
+  local patch_metadata="$1"
+  local number_slash_number_pattern=''
+  local total_in_series=''
+
+  if [[ -z "$patch_metadata" ]]; then
+    printf 'X'
+    return 2 # ENOENT
+  fi
+
+  number_slash_number_pattern=$(get_number_slash_number_pattern "$patch_metadata")
+  # Grab number from end of string
+  [[ "$number_slash_number_pattern" =~ [[:digit:]]+$ ]] && total_in_series="${BASH_REMATCH[0]}"
+
+  # Patchsets with one patch don't have pattern '<number>/<number>' in the patch metadata
+  [[ -z "$total_in_series" ]] && total_in_series=1
+
+  printf '%s' "$total_in_series"
+}
+
+# This function removes a patch metadata substring from a message title.
+#
+# For example, considering `@message_title` equal to
+#   '[additional tag][RFC/PATCH v23 12/57] some/subsys: Do bar',
+# and `@patch_metadata` equal to
+#   '[RFC/PATCH v23 12/57]',
+# the outputted stripped title will be
+#   '[additional tag] some/subsys: Do bar'.
+#
+# @message_title: Message title of lore message.
+# @patch_metadata: Patch metadata of lore message.
+#
+# Return:
+# If `@message_title` and `@patch_metadata` are non-empty, output `@message_title`
+# stripped of `@patch_metadata` (assuming it is a substring). Otherwise, output an
+# empty string.
+function remove_patch_metadata_from_message_title()
+{
+  local message_title="$1"
+  local patch_metadata="$2"
+
+  # This conditional prevents `sed` 'previous regular expression' error
+  if [[ -n "$patch_metadata" && -n "$message_title" ]]; then
+    # Escape chars '[', ']', and '/' from patch metadata
+    patch_metadata=$(printf '%s' "$patch_metadata" | sed 's/\[/\\\[/g' | sed 's/\]/\\\]/g' | sed 's/\//\\\//g')
+    message_title=$(printf '%s' "$message_title" | sed "s/${patch_metadata}//")
+    message_title=$(str_strip "$message_title")
+  fi
+
+  printf '%s' "$message_title"
 }
 
 # Usually, the Linux kernel patch title has a lot of helpful information, and
@@ -219,7 +349,8 @@ function total_patches_in_the_series()
 #
 #  Patch version, Total of patches, Patch title, URL
 #
-# @patch_title Raw patch title to be parsed
+# @message_title: Raw patch title to be parsed.
+# @message_id: Message title of patch to be parsed.
 #
 # Return: Return a string with patch version, total patches, and patch title
 # separated by SEPARATOR_CHAR.
@@ -232,36 +363,18 @@ function total_patches_in_the_series()
 # version, this is not so straightforward.
 function extract_metadata_from_patch_title()
 {
-  local patch_title="$1"
-  local url="$2"
-  local patch_prefix
-  local patch_version="1${SEPARATOR_CHAR}"
-  local total_patches="X${SEPARATOR_CHAR}"
-  local patch_title="${patch_title}"
+  local message_title="$1"
+  local message_id="$2"
+  local patch_metadata
+  local version
+  local total_in_series
 
-  patch_prefix=$(printf '%s' "$patch_title" | grep --only-matching --perl-regexp '^\[(RFC|PATCH).*\]')
-  if [[ "$?" == 0 ]]; then
-    # Patch version
-    patch_version=$(printf '%s' "$patch_prefix" | grep --only-matching --perl-regexp '[v|V]+\d+' | grep --only-matching --perl-regexp '\d+')
-    [[ "$?" != 0 ]] && patch_version=1
-    patch_version+="${SEPARATOR_CHAR}"
+  patch_metadata="$(get_patch_metadata "$message_title")"
+  version="$(get_patch_version "$patch_metadata")${SEPARATOR_CHAR}"
+  total_in_series="$(get_patch_total_in_series "$patch_metadata")${SEPARATOR_CHAR}"
+  message_title="$(remove_patch_metadata_from_message_title "$message_title" "$patch_metadata")${SEPARATOR_CHAR}"
 
-    # How many patches
-    total_patches=$(total_patches_in_the_series "$url")
-    if [[ "$total_patches" == 0 ]]; then
-      total_patches=$(printf '%s' "$patch_prefix" | grep --only-matching --perl-regexp "\d+/\d+" | grep --only-matching --perl-regexp "\d+$")
-      [[ "$?" != 0 ]] && total_patches=1
-    fi
-    total_patches+="${SEPARATOR_CHAR}"
-
-    # Get patch title
-    patch_title=$(printf '%s' "$patch_title" | cut -d ']' -f2)
-    patch_title=$(str_strip "$patch_title")
-  fi
-
-  patch_title+="${SEPARATOR_CHAR}"
-
-  printf '%s%s%s%s' "$patch_version" "$total_patches" "$patch_title" "$url"
+  printf '%s%s%s%s' "$version" "$total_in_series" "$message_title" "$message_id"
 }
 
 # This function was tailored to run in a subshell because we want to run this
