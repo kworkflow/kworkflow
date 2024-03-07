@@ -460,6 +460,55 @@ function pre_process_raw_xml()
   printf '%s\n ' "$xpath_output"
 }
 
+# This function is used to process individual patches in parallel. As a worker
+# it composes a string representing a processed entry of a patch, and stores it
+# in a file inside the `@{shared_dir_for_parallelism}/<entry-number>`. A
+# metadata file `@{shared_dir_for_parallelism}/<entry-number>-metadata` to store
+# the message ID, version, and number in the series of the patch.
+#
+# @message_id: Patch message ID.
+# @message_title: Subject of the message.
+# @author_name: Name of the author of the message.
+# @author_email: Email of the author of the message.
+# @updated: Received time of message on Lore server.
+# @in_reply_to: Value of field with possible In-Reply-To.
+# @i: Index of patch to be processed.
+# @shared_dir_for_parallelism: Path to directory where the parallel processing
+#   results will be stored.
+function thread_for_process_individual_patch()
+{
+  local message_id="$1"
+  local message_title="$2"
+  local author_name="$3"
+  local author_email="$4"
+  local updated="$5"
+  local in_reply_to="$6"
+  local i="$7"
+  local shared_dir_for_parallelism="$8"
+  local version=''
+  local number_in_series=''
+  local total_in_series=''
+  local patch_metadata=''
+  local processed_patch=''
+
+  patch_metadata=$(get_patch_metadata "$message_title")
+  version=$(get_patch_version "$patch_metadata")
+  number_in_series=$(get_patch_number_in_series "$patch_metadata")
+  total_in_series=$(get_patch_total_in_series "$patch_metadata")
+  message_title=$(remove_patch_metadata_from_message_title "$message_title" "$patch_metadata")
+
+  processed_patch="${message_id}${SEPARATOR_CHAR}${message_title}${SEPARATOR_CHAR}"
+  processed_patch+="${author_name}${SEPARATOR_CHAR}${author_email}${SEPARATOR_CHAR}"
+  processed_patch+="${version}${SEPARATOR_CHAR}${number_in_series}${SEPARATOR_CHAR}"
+  processed_patch+="${total_in_series}${SEPARATOR_CHAR}${updated}${SEPARATOR_CHAR}"
+  if [[ "$in_reply_to" =~ ^href= ]]; then
+    processed_patch+=$(str_get_value_under_double_quotes "$in_reply_to")
+  fi
+
+  printf '%s' "$processed_patch" > "${shared_dir_for_parallelism}/${i}"
+  printf '%s,%s,%s' "$message_id" "$version" "$number_in_series" > "${shared_dir_for_parallelism}/${i}-metadata"
+}
+
 # This function processes a list of individual patches from an Atom feed into an
 # indexed array that is passed as reference. All patches that are processed in
 # this function are marked in the `individual_patches_metadata` global hastable.
@@ -473,49 +522,31 @@ function process_individual_patches()
   local raw_xml="$1"
   local -n _individual_patches="$2"
   local pre_processed_patches
+  local shared_dir_for_parallelism=''
   local message_id=''
   local message_title=''
   local author_name=''
   local author_email=''
-  local version=''
-  local number_in_series=''
-  local total_in_series=''
-  local updated=''
-  local in_reply_to=''
-  local patch_metadata=''
   local patch_attribute_number=0
   local i=0
+  local -a pids
+  local -a patch_metadata
 
   pre_processed_patches=$(pre_process_raw_xml "$raw_xml")
+  shared_dir_for_parallelism=$(create_shared_memory_dir)
 
   while IFS=$'\n' read -r line; do
     if [[ "$patch_attribute_number" == 5 ]]; then
+      thread_for_process_individual_patch "$message_id" "$message_title" "$author_name" \
+        "$author_email" "$updated" "$line" "$i" "$shared_dir_for_parallelism" &
+      pids["$i"]="$!"
+
       patch_attribute_number=0
-
-      patch_metadata=$(get_patch_metadata "$message_title")
-      version=$(get_patch_version "$patch_metadata")
-      number_in_series=$(get_patch_number_in_series "$patch_metadata")
-      total_in_series=$(get_patch_total_in_series "$patch_metadata")
-      message_title=$(remove_patch_metadata_from_message_title "$message_title" "$patch_metadata")
-
-      # Mark individual patch as processed and store metadata
-      individual_patches_metadata["$message_id"]="${version},${number_in_series}"
-
-      _individual_patches["$i"]="${message_id}${SEPARATOR_CHAR}${message_title}${SEPARATOR_CHAR}"
-      _individual_patches["$i"]+="${author_name}${SEPARATOR_CHAR}${author_email}${SEPARATOR_CHAR}"
-      _individual_patches["$i"]+="${version}${SEPARATOR_CHAR}${number_in_series}${SEPARATOR_CHAR}"
-      _individual_patches["$i"]+="${total_in_series}${SEPARATOR_CHAR}${updated}${SEPARATOR_CHAR}"
+      ((i++))
 
       # In case the patch has a 'In-Reply-To' field, `line` contains this value,
       # so process it and read next line of pre processed.
-      if [[ "$line" =~ ^href= ]]; then
-        in_reply_to=$(str_get_value_under_double_quotes "$line")
-        _individual_patches["$i"]+="$in_reply_to"
-        ((i++))
-        continue
-      fi
-
-      ((i++))
+      [[ "$line" =~ ^href= ]] && continue
     fi
 
     case "$patch_attribute_number" in
@@ -540,6 +571,19 @@ function process_individual_patches()
 
     ((patch_attribute_number++))
   done <<< "$pre_processed_patches"
+
+  # Wait for specific PID to avoid interfering in other functionalities.
+  for pid in "${pids[@]}"; do
+    wait "$pid"
+  done
+
+  for j in $(seq 0 "$((i - 1))"); do
+    _individual_patches["$j"]=$(< "${shared_dir_for_parallelism}/${j}")
+    # Mark individual patch as processed and store metadata
+    patch_metadata=()
+    IFS=',' read -ra patch_metadata <<< "$(< "${shared_dir_for_parallelism}/${j}-metadata")"
+    individual_patches_metadata["${patch_metadata[0]}"]=$(printf '%s,%s' "${patch_metadata[1]}" "${patch_metadata[2]}")
+  done
 }
 
 # This function makes the lore request to get the raw contents of a lore

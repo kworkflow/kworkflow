@@ -737,6 +737,59 @@ function test_pre_process_raw_xml()
   assert_equals_helper 'Wrong pre-processed result for sample 2' "$LINENO" "$expected" "$output"
 }
 
+function test_thread_for_process_individual_patch()
+{
+  local shared_dir_path="${SHUNIT_TMPDIR}/shared_dir"
+  local message_id1='http://lore.kernel.org/foo/bar'
+  local message_title1='[PATCH] some/subsys: Fix bug'
+  local author_name1='Foo Bar'
+  local author_email1='foo@bar.com'
+  local updated1='2023/03/01 12:05'
+  local line1='next-patch'
+  local message_id2='http://lore.kernel.org/xpto/abc'
+  local message_title2='[v3 RFC PATCH 12/13] subsys/net: Revert previous patch'
+  local author_name2='Xpto Abc'
+  local author_email2='xpto@abc.jp'
+  local updated2='2023/12/01 12:30'
+  local line2='href="http://lore.kernel.org/abc/xpto"'
+  local expected
+
+  mkdir "$shared_dir_path"
+
+  thread_for_process_individual_patch "$message_id1" "$message_title1" "$author_name1" \
+    "$author_email1" "$updated1" "$line1" 0 "$shared_dir_path" &
+  thread_for_process_individual_patch "$message_id2" "$message_title2" "$author_name2" \
+    "$author_email2" "$updated2" "$line2" 1 "$shared_dir_path"
+
+  [[ -f "${shared_dir_path}/0" ]]
+  # shellcheck disable=SC2319
+  assert_equals_helper 'Did not generate entry for processed patch' "$LINENO" 0 "$?"
+  expected='http://lore.kernel.org/foo/barÆsome/subsys: Fix bugÆFoo BarÆfoo@bar.comÆ'
+  expected+='1Æ1Æ1Æ2023/03/01 12:05Æ'
+  assert_equals_helper 'Wrong processed patch' "$LINENO" "$expected" "$(< "${shared_dir_path}/0")"
+
+  [[ -f "${shared_dir_path}/0-metadata" ]]
+  # shellcheck disable=SC2319
+  assert_equals_helper 'Did not generate metadata entry for processed patch' "$LINENO" 0 "$?"
+  expected='http://lore.kernel.org/foo/bar,1,1'
+  assert_equals_helper 'Wrong processed patch metadata' "$LINENO" "$expected" "$(< "${shared_dir_path}/0-metadata")"
+
+  [[ -f "${shared_dir_path}/1" ]]
+  # shellcheck disable=SC2319
+  assert_equals_helper 'Did not generate entry for processed patch' "$LINENO" 0 "$?"
+  expected='http://lore.kernel.org/xpto/abcÆsubsys/net: Revert previous patchÆXpto AbcÆxpto@abc.jpÆ'
+  expected+='3Æ12Æ13Æ2023/12/01 12:30Æhttp://lore.kernel.org/abc/xpto'
+  assert_equals_helper 'Wrong processed patch' "$LINENO" "$expected" "$(< "${shared_dir_path}/1")"
+
+  [[ -f "${shared_dir_path}/1-metadata" ]]
+  # shellcheck disable=SC2319
+  assert_equals_helper 'Did not generate metadata entry for processed patch' "$LINENO" 0 "$?"
+  expected='http://lore.kernel.org/xpto/abc,3,12'
+  assert_equals_helper 'Wrong processed patch metadata' "$LINENO" "$expected" "$(< "${shared_dir_path}/1-metadata")"
+
+  rm -rf "$shared_dir_path"
+}
+
 function test_process_individual_patches()
 {
   local -a individual_patches
