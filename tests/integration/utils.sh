@@ -453,3 +453,19 @@ function container_inspect()
     fail "(${LINENO}): Failed to inspect the container."
   fi
 }
+
+# This function generates a temporary directory inside a specified container.
+#
+# @container  The name of the container.
+function generate_temporary_directory_in_container()
+{
+  local container="$1"
+  local ret
+
+  container_exec "$container" 'mktemp --directory'
+  ret="$?"
+  if [ "$ret" -ne 0 ]; then
+    fail 'Failed to create a temporary directory inside the container'
+    return "$ret"
+  fi
+}
