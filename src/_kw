@@ -282,6 +282,7 @@ _kw_explore()
     '(-a --all -l --log -g --grep)'{-a,--all}'[search for all matches in files under or not git management]' \
     '(-c --only-source -H --only-header)'{-c,--only-source}'[show only results from the source]' \
     '(-H --only-header -c --only-source)'{-H,--only-header}'[show only results from the header]' \
+    '(-C --show-context)'{-C,--show-context}'[set the context value]' \
     '1: : ' \
     '2: :_files'
 }
@@ -405,7 +406,7 @@ _kw_man()
   _values 'kw commands' \
     'backup' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
     'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
-    'patch-hub' 
+    'patch-hub'
 }
 
 _kw_p() { _kw_pomodoro }
