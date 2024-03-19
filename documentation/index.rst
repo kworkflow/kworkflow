@@ -26,6 +26,16 @@ check:
    content/developmentworkflow
    content/tracingandprofiling
 
+Kw Handbook
+===========
+
+Device and tips for new contributors.
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Handbook:
+
+
 Kw code doc
 ===========
 
