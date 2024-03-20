@@ -80,3 +80,12 @@ Well, that's it. kw will automatically infer the number of job slots for
 compiling based on the number of cores of your machine (i.e. when running make
 ``-j<number>``, *<number>* is an integer that specifies the number of processes
 that will run at the same time), and compilation will begin!
+
+Compiling patchsets
+-------------------
+You may want to try compiling every patch in your patchset to test if everything is alright.
+You can do this by using the "from-sha" flag::
+
+  kw build --from-sha SHA
+
+This will compile every patch after the commit with given SHA to the branch HEAD.
