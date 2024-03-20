@@ -17,6 +17,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-c | \--clean)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-f | \--full-cleanup)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [\--cflags]
+| *kw* (*b* | *build*) [\--from-sha <SHA>]
 | *kw* (*b* | *build*) [\--verbose]
 
 DESCRIPTION
@@ -102,6 +103,10 @@ OPTIONS
     | **sv** or **vs** enables both.
     | **n** (or any other option) disables notifications (this is the default).
 
+\--from-sha:
+  Build every commit after <SHA> to branch head. Useful for testing if all patches in
+  patchset compile.
+
 EXAMPLES
 ========
 For these examples, we assume that the relevant fields in your configuration 
@@ -159,3 +164,11 @@ If you want to reset the kernel tree to its default, `all config and script outp
 If you want to use cflags::
 
   kw b --cflags "-O3 -pipe -march=native"
+
+If you want to build every commit after HEAD~2 to HEAD::
+
+  kw b --from-sha HEAD~2
+
+If you want to build every commit after ee3b5 to HEAD::
+
+  kw b --from-sha ee3b5
