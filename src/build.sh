@@ -33,6 +33,7 @@ function build_kernel_main()
   local clean
   local output_kbuild_flag=''
   local cflags
+  local from_sha_arg
 
   parse_build_options "$@"
 
@@ -59,6 +60,7 @@ function build_kernel_main()
   clean=${options_values['CLEAN']}
   full_cleanup=${options_values['FULL_CLEANUP']}
   cflags=${options_values['CFLAGS']}
+  from_sha_arg=${options_values['FROM_SHA_ARG']}
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
   flag=${flag:-'SILENT'}
@@ -121,6 +123,11 @@ function build_kernel_main()
 
   if [[ -n "$doc_type" ]]; then
     build_doc "$flag" "$output_kbuild_flag" "$optimizations" "$doc_type" "$output_path"
+    return "$?"
+  fi
+
+  if [[ -n "$from_sha_arg" ]]; then
+    from_sha "$flag" "$output_kbuild_flag" "$from_sha_arg"
     return "$?"
   fi
 
@@ -247,9 +254,21 @@ function full_cleanup()
   cmd_manager "$flag" "$cmd"
 }
 
+function from_sha()
+{
+  local flag="$1"
+  local env_path="$2"
+  local sha="$3"
+  local cmd
+
+  flag=${flag:-'SILENT'}
+  cmd="git rebase ${sha} --exec 'yes \"\" | make prepare${env_path}; make${env_path}'"
+  cmd_manager "$flag" "$cmd"
+}
+
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags:'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags:,from-sha:'
   local short_options='h,i,n,d,S:,w::,s:,c,f'
   local doc_type
   local file_name_size
@@ -279,6 +298,7 @@ function parse_build_options()
   options_values['FULL_CLEANUP']=''
   options_values['VERBOSE']=''
   options_values['CFLAGS']="${build_config[cflags]}"
+  options_values['FROM_SHA_ARG']=''
 
   # Check llvm option
   if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
@@ -362,6 +382,11 @@ function parse_build_options()
         options_values['LOG_PATH']="$2"
         shift 2
         ;;
+      --from-sha)
+        options_values['FROM_SHA_ARG']="$2"
+        echo "${options_values['FROM_SHA_ARG']}"
+        shift 2
+        ;;
       --)
         shift
         ;;
@@ -394,7 +419,8 @@ function build_help()
     '  build (-c | --clean) - Clean option integrated into env' \
     '  build (-f | --full-cleanup) - Reset the kernel tree to its default option integrated into env' \
     '  build (--cflags) - Customize kernel compilation with specific flags' \
-    '  build (--verbose) - Show a detailed output'
+    '  build (--verbose) - Show a detailed output' \
+    '  build (--from-sha) - Build all commits from given commit to actual commit'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well

@@ -18,6 +18,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-f | \--full-cleanup)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [\--cflags]
 | *kw* (*b* | *build*) [\--verbose]
+| *kw* (*b* | *build*) [\--from-sha]
 
 DESCRIPTION
 ===========
@@ -101,6 +102,10 @@ OPTIONS
     | **v** enables visual notification.
     | **sv** or **vs** enables both.
     | **n** (or any other option) disables notifications (this is the default).
+
+\--from-sha:
+  Build every commit from specified hash commit to actual commit. Useful for testing if
+  patchset compiles.
 
 EXAMPLES
 ========
