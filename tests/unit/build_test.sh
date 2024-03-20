@@ -861,6 +861,122 @@ function test_kernel_build_cpu_scaling_llvm_warning_sava_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
+function test_kernel_build_from_sha()
+{
+  local expected_result
+  local output
+  local sha='HEAD^'
+
+  mk_fake_git
+
+  output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
+  declare -a expected_result=(
+    "git rebase HEAD^ --exec 'kw build'"
+  )
+
+  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+}
+
+function test_kernel_build_from_sha_nonexisting_sha()
+{
+  local expected_result
+  local output
+  local sha='fakesha'
+
+  mk_fake_git
+
+  output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
+  declare -a expected_result=(
+    "ERROR: The given SHA (${sha}) does not represent a valid commit sha."
+  )
+
+  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+}
+
+function test_kernel_build_from_sha_sha_not_ancestor()
+{
+  local expected_result
+  local output
+
+  mk_fake_git
+  mk_git_branch 'branch'
+
+  output=$(build_kernel_main 'TEST_MODE' --from-sha branch)
+  declare -a expected_result=(
+    'ERROR: Given SHA (branch) is invalid. Check if it is an ancestor of the branch head.'
+  )
+
+  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+}
+
+function test_kernel_build_from_sha_pending_rebase()
+{
+  local expected_result
+  local output
+  local sha='HEAD^'
+
+  mk_fake_git
+  mkdir '.git/rebase-merge'
+
+  output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
+  declare -a expected_result=(
+    'ERROR: Abort the repository rebase before continuing with build from sha (use "git rebase --abort")!'
+  )
+
+  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+}
+
+function test_kernel_build_from_sha_pending_merge()
+{
+  local expected_result
+  local output
+  local sha='HEAD^'
+
+  mk_fake_git
+  touch '.git/MERGE_HEAD'
+
+  output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
+  declare -a expected_result=(
+    'ERROR: Abort the repository merge before continuing with build from sha (use "git rebase --abort")!'
+  )
+
+  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+}
+
+function test_kernel_build_from_sha_pending_bisect()
+{
+  local expected_result
+  local output
+  local sha='HEAD^'
+
+  mk_fake_git
+  touch '.git/BISECT_LOG'
+
+  output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
+  declare -a expected_result=(
+    'ERROR: Stop the repository bisect before continuing with build from sha (use "git bisect reset")!'
+  )
+
+  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+}
+
+function test_kernel_build_from_sha_pending_apply()
+{
+  local expected_result
+  local output
+  local sha='HEAD^'
+
+  mk_fake_git
+  mkdir '.git/rebase-apply'
+
+  output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
+  declare -a expected_result=(
+    'ERROR: Abort the repository patch apply before continuing with build from sha (use "git am --abort")!'
+  )
+
+  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+}
+
 function test_kernel_build_inside_an_env()
 {
   local output

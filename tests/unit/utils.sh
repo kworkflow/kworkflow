@@ -265,6 +265,21 @@ function mk_fake_git()
   git commit --allow-empty -q -m 'Third commit'
 }
 
+# Create a new git branch for current local repository and return to master branch afterwards.
+#
+# @branch_name The name of the new branch to be created.
+function mk_git_branch()
+{
+  local branch_name="$1"
+
+  git checkout --quiet HEAD^
+  git checkout --quiet -b "$branch_name"
+  touch branch_file
+  git add branch_file
+  git commit --message "create_branch" --quiet
+  git checkout --quiet master
+}
+
 function mk_fake_kw_folder()
 {
   local target_folder="$1"
