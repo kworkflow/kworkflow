@@ -155,7 +155,7 @@ function replace_into()
 function remove_from()
 {
   local table="$1"
-  local -n _condition_array="$2"
+  local _condition_array="$2"
   local db="${3:-"${DB_NAME}"}"
   local db_folder="${4:-"${KW_DATA_DIR}"}"
   local flag=${5:-'SILENT'}
@@ -169,29 +169,28 @@ function remove_from()
     return 2
   fi
 
-  if [[ -z "$table" || -z "${!_condition_array[*]}" ]]; then
+  if [[ -z "$table" || -z "$_condition_array" ]]; then
     complain 'Empty table or condition array.'
     return 22 # EINVAL
   fi
 
-  for column in "${!_condition_array[@]}"; do
-    where_clause+="$column='${_condition_array["${column}"]}'"
-    where_clause+=' AND '
-  done
-  # Remove trailing ' AND '
-  where_clause="${where_clause::-5}"
+  where_clause="$(generate_where_clause "$_condition_array")"
+  query="DELETE FROM ${table} ${where_clause} ;"
 
-  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"DELETE FROM ${table} WHERE ${where_clause};\""
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${query}\""
   cmd_manager "$flag" "$cmd"
 }
 
 # This function gets the values in the table of given database
+# with the given conditions.
 #
-# @flag:      Flag to control function output
 # @table:     Table to select info from
 # @columns:   Columns of the table to get
 # @pre_cmd:   Pre command to execute
+# @_condition_array: An array reference of condition pairs. In case there is no
+#   WHERE clause, an empty value must be passed
 # @order_by:  List of attributes to use for ordering
+# @flag:      Flag to control function output
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
 #
@@ -203,13 +202,14 @@ function select_from()
   local table="$1"
   local columns="${2:-"*"}"
   local pre_cmd="$3"
-  local order_by="$4"
-  local flag=${5:-'SILENT'}
-  local db="${6:-$DB_NAME}"
-  local db_folder="${7:-$KW_DATA_DIR}"
+  local _condition_array="$4"
+  local order_by=${5:-''}
+  local flag=${6:-'SILENT'}
+  local db="${7:-"$DB_NAME"}"
+  local db_folder="${8:-"$KW_DATA_DIR"}"
+  local where_clause
   local db_path
   local query
-  local cmd
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -223,13 +223,50 @@ function select_from()
     return 22 # EINVAL
   fi
 
-  query="SELECT $columns FROM $table ;"
-  if [[ -n "${order_by}" ]]; then
-    query="SELECT $columns FROM $table ORDER BY ${order_by} ;"
+  if [[ -n "$_condition_array" ]]; then
+    where_clause="$(generate_where_clause "$_condition_array")"
   fi
 
-  cmd="sqlite3 -init ${KW_DB_DIR}/pre_cmd.sql -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
+  query="SELECT ${columns} FROM ${table} ${where_clause} ;"
+
+  if [[ -n "${order_by}" ]]; then
+    query="${query::-2} ORDER BY ${order_by} ;"
+  fi
+
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
   cmd_manager "$flag" "$cmd"
+}
+
+# This function receives a condition_array and then generate
+# the infos that will be used by the WHERE clause to specify
+# the data we want.
+#
+# @condition_array_ref: The condition array reference containing the conditions
+#
+# Returns:
+# A string containing the generated clause
+function generate_where_clause()
+{
+  local -n condition_array_ref="$1"
+  local clause
+  local relational_op='='
+  local attribute
+  local where_clause="WHERE "
+  local value
+
+  for clause in "${!condition_array_ref[@]}"; do
+    attribute="$(cut --delimiter=',' --fields=1 <<< "$clause")"
+    value="${condition_array_ref["${clause}"]}"
+
+    if [[ "$clause" =~ "," ]]; then
+      relational_op=$(cut --delimiter=',' --fields=2 <<< "$clause")
+    fi
+
+    where_clause+="${attribute}${relational_op}'${value}'"
+    where_clause+=' AND '
+  done
+
+  printf '%s' "${where_clause::-5}" # Remove trailing ' AND '
 }
 
 # This function takes arguments and assembles them into the correct format to

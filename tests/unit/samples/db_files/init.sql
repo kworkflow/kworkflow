@@ -24,5 +24,6 @@ CREATE TABLE IF NOT EXISTS "fake_table" (
   "name" TEXT NOT NULL UNIQUE,
   "attribute1" TEXT,
   "attribute2" TEXT,
+  "rank" INTEGER NOT NULL,
   PRIMARY KEY("id")
 );

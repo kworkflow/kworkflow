@@ -114,6 +114,7 @@ function save_config_file()
   local rows
   local cmd
   local ret
+  declare -A condition_array
 
   # Get env's kernel source tree
   if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
@@ -129,7 +130,8 @@ function save_config_file()
   [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
 
   # Checks if there is already an entry for that kernel config file in the database
-  is_on_database="$(select_from "kernel_config WHERE name IS '${config_name}'" '' '' '' "$flag")"
+  condition_array=(['name']="${config_name}")
+  is_on_database="$(select_from 'kernel_config' '' '' 'condition_array' '' "$flag")"
   if [[ -n "${is_on_database}" && "$force" != 1 ]]; then
     warning "Kernel config file named '${config_name}' already exists."
     if [[ $(ask_yN "Do you want to overwrite it?") =~ '0' ]]; then
@@ -521,7 +523,7 @@ function list_configs()
 
   [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
 
-  configs="$(select_from 'kernel_config' 'name AS \"Name\", description AS \"Description\", last_updated_datetime AS \"Last updated\"' '.mode column' '' "$flag")"
+  configs="$(select_from 'kernel_config' 'name AS \"Name\", description AS \"Description\", last_updated_datetime AS \"Last updated\"' '.mode column' '' '' "$flag")"
 
   if [[ -z "$configs" ]]; then
     say 'There are no .config files managed by kw'
@@ -554,6 +556,7 @@ function basic_config_validations()
   local flag="${5:-SILENT}"
   local query_output
   local -r kernel_configs_dir="${KW_DATA_DIR}/configs"
+  declare -A condition_array
 
   if [[ ! -f "${kernel_configs_dir}/${config_name}" ]]; then
     complain "Couldn't find config file named: ${config_name}"
@@ -562,7 +565,9 @@ function basic_config_validations()
 
   [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
 
-  query_output="$(select_from "kernel_config WHERE name IS '${config_name}'" '' '' '' "$flag")"
+  condition_array=(['name']="${config_name}")
+  query_output="$(select_from 'kernel_config' '' '' 'condition_array' '' "$flag")"
+
   if [[ -z "${query_output}" ]]; then
     complain "Couldn't find config in database named: ${config_name}"
     # Ask user what to do with hanging local .config
@@ -654,7 +659,7 @@ function remove_config()
   fi
 
   condition_array=(['name']="${config_name}")
-  remove_from '"kernel_config"' 'condition_array' '' '' "$flag"
+  remove_from 'kernel_config' 'condition_array' '' '' "$flag"
 
   say "The ${config_name} config file was removed from kw management"
 }

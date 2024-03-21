@@ -125,15 +125,18 @@ function test_save_config_file_check_directories_creation()
 function test_save_config_file_check_saved_config()
 {
   local output
+  declare -A condition_array
 
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
   assertTrue "${LINENO}: Failed to find .config file for ${NAME_1}" '[[ -f ${dot_configs_dir}/${NAME_1} ]]'
-  output=$(select_from "kernel_config WHERE name IS '${NAME_1}'" 'name')
+  condition_array=(['name']="${NAME_1}")
+  output=$(select_from 'kernel_config' 'name' '' 'condition_array')
   assert_equals_helper "Failed to find db entry for ${NAME_1}" "$LINENO" "$NAME_1" "$output"
 
   save_config_file "$NO_FORCE" "$NAME_2" > /dev/null
   assertTrue "${LINENO}: Failed to find .config file for ${NAME_2}" '[[ -f ${dot_configs_dir}/${NAME_2} ]]'
-  output=$(select_from "kernel_config WHERE name IS '${NAME_2}'" 'name')
+  condition_array=(['name']="${NAME_2}")
+  output=$(select_from 'kernel_config' 'name' '' 'condition_array')
   assert_equals_helper "Failed to find db entry for ${NAME_2}" "$LINENO" "$NAME_2" "$output"
 
   output=$(cat "${dot_configs_dir}/${NAME_2}")
@@ -143,13 +146,16 @@ function test_save_config_file_check_saved_config()
 function test_save_config_file_check_description()
 {
   local output
+  declare -A condition_array
 
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
-  output=$(select_from "kernel_config WHERE name IS '${NAME_1}'" 'description')
+  condition_array=(['name']="${NAME_1}")
+  output=$(select_from 'kernel_config' 'description' '' 'condition_array')
   assert_equals_helper "The description content for ${NAME_1} does not match" "$LINENO" "$DESCRIPTION_1" "$output"
 
   save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
-  output=$(select_from "kernel_config WHERE name IS '${NAME_2}'" 'description')
+  condition_array=(['name']="${NAME_2}")
+  output=$(select_from 'kernel_config' 'description' '' 'condition_array')
   assert_equals_helper "The description content for ${NAME_2} does not match" "$LINENO" "$DESCRIPTION_2" "$output"
 }
 
@@ -286,21 +292,21 @@ function test_remove_config()
   # Case 1: We should have two files
   output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
   assert_equals_helper "We expected 2 files but got ${output}" "$LINENO" 2 "$output"
-  output=$(select_from 'kernel_config' 'count(*)')
+  output=$(select_from 'kernel_config' 'count(*)' '' '')
   assert_equals_helper "We expected 2 entries in the db but got ${output}" "$LINENO" 2 "$output"
 
   # Case 2: Remove one config file
   remove_config "$NAME_1" 1 > /dev/null 2>&1
   output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
   assert_equals_helper "We expected 1 file but got ${output}" "$LINENO" 1 "$output"
-  output=$(select_from 'kernel_config' 'count(*)')
+  output=$(select_from 'kernel_config' 'count(*)' '' '')
   assert_equals_helper "We expected 1 entry in the db but got ${output}" "$LINENO" 1 "$output"
 
   # Case 3: Remove all config files
   remove_config "$NAME_2" 1 > /dev/null 2>&1
   output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
   assert_equals_helper "We expected no files but got ${output}" "$LINENO" 0 "$output"
-  output=$(select_from 'kernel_config' 'count(*)')
+  output=$(select_from 'kernel_config' 'count(*)' '' '')
   assert_equals_helper "We expected no entry in the db but got ${output}" "$LINENO" 0 "$output"
 }
 
