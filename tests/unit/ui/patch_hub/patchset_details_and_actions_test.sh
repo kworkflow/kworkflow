@@ -35,13 +35,13 @@ function tearDown()
 
 function test_show_patchset_details_and_actions()
 {
-  local raw_patchset='Juca PiramaÆjucapirama@xpto.comÆV1Æ255ÆDC Patches November 19, 2022Æhttp://anotherthing.la'
+  local raw_patchset='message_idÆmessage: titleÆJuca PiramaÆjuca@pirama.foo.barÆ4Æ8Æ42Æ2024/02/14 21:32Æin_reply_to_message_id'
   local output
   local expected_result='Patchset details and actions'
 
-  expected_result+=' \Zb\Z6Series:\ZnDC Patches November 19, 2022\n'
-  expected_result+='\Zb\Z6Author:\ZnJuca Pirama\n\Zb\Z6Version:\ZnV1\n'
-  expected_result+='\Zb\Z6Patches:\Zn255\n'
+  expected_result+=' \Zb\Z6Series:\Znmessage: title\n'
+  expected_result+='\Zb\Z6Author:\ZnJuca Pirama\n\Zb\Z6Version:\Zn4\n'
+  expected_result+='\Zb\Z6Patches:\Zn42\n'
   expected_result+=' Download to specific directory Bookmark'
 
   # shellcheck disable=SC2317
@@ -201,18 +201,18 @@ test_handle_remove_bookmark_action()
     return 0
   }
 
-  patchset['patchset_url']='https://lore.kernel.org/amd-gfx/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com/'
+  patchset['message_id']='message-id'
   lore_config['save_patches_to']="$SHUNIT_TMPDIR"
-  mbx_file_path="${lore_config['save_patches_to']}/20230622215735.2026220-1-Rodrigo.Siqueira@amd.com.mbx"
+  mbx_file_path="${lore_config['save_patches_to']}/message-id.mbx"
   touch "$mbx_file_path"
-  printf 'https://lore.kernel.org/list/message-ID/' >> "$BOOKMARKED_SERIES_PATH"
+  printf '%s' "${patchset['message_id']}" >> "$BOOKMARKED_SERIES_PATH"
 
   handle_remove_bookmark_action 'patchset'
   [[ ! -f "$mbx_file_path" ]]
   assert_equals_helper 'Should have removed the .mbx file' "$LINENO" 0 "$?"
   output=$(< "$BOOKMARKED_SERIES_PATH")
   # shellcheck disable=SC2076
-  [[ ! "$output" =~ "${patchset['patchset_url']}" ]]
+  [[ ! "$output" =~ "${patchset['message_id']}" ]]
   assert_equals_helper 'Should have removed patchset entry from database' "$LINENO" 0 "$?"
 }
 

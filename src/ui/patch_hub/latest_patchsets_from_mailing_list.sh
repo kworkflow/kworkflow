@@ -17,7 +17,7 @@ function show_latest_patchsets_from_mailing_list()
   create_async_loading_screen_notification "Loading patchsets from ${current_mailing_list} list" &
   loading_pid="$!"
 
-  # Query patches from mailing list, this info will be saved at `list_of_mailinglist_patches[@]`.
+  # Query patches from mailing list, this info will be saved at `representative_patches[@]`.
   fetch_latest_patchsets_from "$current_mailing_list" "$PAGE" "${lore_config['patchsets_per_page']}" "$additional_filters"
   ret="$?"
   stop_async_loading_screen_notification "$loading_pid"
@@ -49,7 +49,7 @@ function show_latest_patchsets_from_mailing_list()
   case "$ret" in
     0) # OK
       screen_sequence['PREVIOUS_SCREEN']='latest_patchsets_from_mailing_list'
-      screen_sequence['SHOW_SCREEN_PARAMETER']=${list_of_mailinglist_patches["$menu_return_string"]}
+      screen_sequence['SHOW_SCREEN_PARAMETER']=${representative_patches["$menu_return_string"]}
       screen_sequence['SHOW_SCREEN']='patchset_details_and_actions'
       ;;
     1) # Next
