@@ -7,7 +7,7 @@ kw-explore - Explore folder
 SYNOPSIS
 ========
 *kw* (*e* | *explore*) [(-l | \--log) | (-g | \--grep) | (-a | \--all) | \--verbose]
-                       [(-c | \--only-source) | (-H | \--only-header)] <expr>
+                       [(-c | \--only-source) | (-H | \--only-header)] [(-C | \--show-context <num>)] <expr>
                        [-p] [<dir> | <file>]
 
 DESCRIPTION
@@ -44,6 +44,9 @@ OPTIONS
 
 -H | \--only-header:
   With this option, it is possible to show only the results from the header.
+
+-C | \--show-context <num>:
+  Show <num> lines of additional context above and below the matched line.
 
 \--verbose:
   Verbose mode allows the user to see the commands executed under the hood.

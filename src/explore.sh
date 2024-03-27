@@ -15,6 +15,7 @@ function explore_main()
   local flag
   local search
   local path
+  local context
   local ret
 
   if [[ "$1" =~ -h|--help ]]; then
@@ -31,6 +32,7 @@ function explore_main()
   flag="${options_values['TEST_MODE']:-'SILENT'}"
   search="${options_values['SEARCH']}"
   path="${options_values['PATH']:-'.'}"
+  context="${options_values['CONTEXT']:-0}"
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
@@ -48,19 +50,19 @@ function explore_main()
 
   if [[ "${options_values['TYPE']}" -eq 2 ]]; then
     # Use GNU GREP
-    explore_files_gnu_grep "$search" "$path" "$flag"
+    explore_files_gnu_grep "$search" "$path" "$context" "$flag"
     return
   fi
 
   if [[ "${options_values['TYPE']}" -eq 3 ]]; then
     # Search in directories controlled or not by git
-    explore_all_files_git "$search" "$path" "$flag"
+    explore_all_files_git "$search" "$path" "$context" "$flag"
     return
   fi
 
   if [[ -z "${options_values['TYPE']}" ]]; then
     # Search in files under git control
-    explore_files_under_git "$search" "$path" "$flag"
+    explore_files_under_git "$search" "$path" "$context" "$flag"
     return
   fi
 }
@@ -75,8 +77,8 @@ function explore_main()
 # This function also set options_values
 function parse_explore_options()
 {
-  local long_options='log,grep,all,only-header,only-source,exactly,verbose'
-  local short_options='l,g,a,H,c'
+  local long_options='log,grep,all,only-header,only-source,exactly,verbose,show-context:'
+  local short_options='l,g,a,H,c,C:'
   local options
 
   if [[ "$#" -eq 0 ]]; then
@@ -97,6 +99,7 @@ function parse_explore_options()
   options_values['TYPE']=''
   options_values['SCOPE']=''
   options_values['EXACTLY']=''
+  options_values['CONTEXT']=''
   options_values['VERBOSE']=''
 
   eval "set -- $options"
@@ -160,6 +163,21 @@ function parse_explore_options()
         options_values['VERBOSE']=1
         shift
         ;;
+      --show-context | -C)
+        if [[ -n "${options_values['CONTEXT']}" ]]; then
+          options_values['ERROR']="Invalid arguments: Multiple context values!"
+          return 22 # EINVAL
+        fi
+
+        # Check if the next argument exists and is an integer
+        if [[ ! "$2" =~ ^[0-9]+$ ]]; then
+          options_values['ERROR']="Invalid arguments: --show-context requires an integer value!"
+          return 22 # EINVAL
+        fi
+
+        options_values['CONTEXT']="$2"
+        shift 2
+        ;;
       --) # End of options, beginning of arguments
         shift
         ;;
@@ -196,7 +214,7 @@ function explore_git_log()
 
   flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "git log --grep='$search_string' $path"
+  cmd_manager "$flag" "git log --grep='${search_string}' ${path}"
 }
 
 # This function searches string in files under git control.
@@ -209,11 +227,12 @@ function explore_files_under_git()
 {
   local regex="$1"
   local path="$2"
-  local flag="$3"
+  local context="$3"
+  local flag="$4"
 
   flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "git grep -e '$regex' -nI $path"
+  cmd_manager "$flag" "git grep -C ${context} -e '${regex}' --line-number -I ${path}"
 }
 
 # This function uses git grep tool to search string in files under or not git
@@ -228,11 +247,12 @@ function explore_all_files_git()
 {
   local regex="$1"
   local path="$2"
-  local flag="$3"
+  local context="$3"
+  local flag="$4"
 
   flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "git grep --no-index -e '$regex' -nI $path"
+  cmd_manager "$flag" "git grep --no-index -C ${context} -e '${regex}' --line-number -I ${path}"
 }
 
 # This function allows the use of gnu grep utility to manages the search for
@@ -246,11 +266,12 @@ function explore_files_gnu_grep()
 {
   local regex="$1"
   local path="$2"
-  local flag="$3"
+  local context="$3"
+  local flag="$4"
 
   flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "grep --color -nrI $path -e '$regex'"
+  cmd_manager "$flag" "grep --color --line-number --recursive -I ${path} -C ${context} -e '${regex}'"
 }
 
 function explore_help()
@@ -267,5 +288,6 @@ function explore_help()
     '  explore,e --all,-a <string> - Search for all <string> match under or not of git management' \
     '  explore,e --only-source,-c <string> - Search for all <string> in source files' \
     '  explore,e --only-header,-H <string> - Search for all <string> in header files' \
+    '  explore,e --show-context,-C <num> - Print <num> lines of output context' \
     '  explore,e --verbose - Show a detailed output'
 }

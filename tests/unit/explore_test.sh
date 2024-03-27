@@ -67,7 +67,12 @@ function test_explore_files_under_git_repo()
   assertEquals "($LINENO)" "$MSG_OUT" "$output"
 
   output=$(explore_main 'GNU grep' '.' 'TEST_MODE')
-  expected_result="git grep -e 'GNU grep' -nI ."
+  expected_result="git grep -C 0 -e 'GNU grep' --line-number -I ."
+  assertEquals "($LINENO)" "$expected_result" "$output"
+
+  # Test for non zero context value
+  output=$(explore_main --show-context 5 'GNU grep' '.' 'TEST_MODE')
+  expected_result="git grep -C 5 -e 'GNU grep' --line-number -I ."
   assertEquals "($LINENO)" "$expected_result" "$output"
 
   # Test if search only in files under git control
@@ -133,7 +138,11 @@ function test_explore_grep()
   assertEquals "($LINENO)" '.git' "$output"
 
   output=$(explore_main --grep 'GNU grep' '.' 'TEST_MODE')
-  expected_result="grep --color -nrI . -e 'GNU grep'"
+  expected_result="grep --color --line-number --recursive -I . -C 0 -e 'GNU grep'"
+  assertEquals "($LINENO)" "$expected_result" "$output"
+
+  output=$(explore_main --grep --show-context 5 'GNU grep' '.' 'TEST_MODE')
+  expected_result="grep --color --line-number --recursive -I . -C 5 -e 'GNU grep'"
   assertEquals "($LINENO)" "$expected_result" "$output"
 
   cd "$current_path" || {
@@ -153,7 +162,11 @@ function test_explore_git()
   }
 
   output=$(explore_main --all 'GNU grep' '.' 'TEST_MODE')
-  expected_result="git grep --no-index -e 'GNU grep' -nI ."
+  expected_result="git grep --no-index -C 0 -e 'GNU grep' --line-number -I ."
+  assertEquals "($LINENO)" "$expected_result" "$output"
+
+  output=$(explore_main --all --show-context 5 'GNU grep' '.' 'TEST_MODE')
+  expected_result="git grep --no-index -C 5 -e 'GNU grep' --line-number -I ."
   assertEquals "($LINENO)" "$expected_result" "$output"
 
   # Test if the search ignores files in .git
@@ -235,6 +248,20 @@ function test_parse_explore_options()
   ret="$?"
   assertEquals "($LINENO)" '0' "$ret"
   assertEquals "($LINENO)" 'HEADER' "${options_values['SCOPE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options -C 5
+  ret="$?"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" '5' "${options_values['CONTEXT']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --show-context 5
+  ret="$?"
+  assertEquals "($LINENO)" '0' "$ret"
+  assertEquals "($LINENO)" '5' "${options_values['CONTEXT']}"
 
   # Others
   parse_explore_options --logljkl
