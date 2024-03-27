@@ -32,6 +32,10 @@ function pomodoro_main()
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
+  if [[ -z "${options_values['HELP']}" && -z "${options_values['REPEAT']}" ]]; then
+    echo "$(date): pomodoro_main $*" >> "${KW_LIB_DIR}/pomodoro_log.txt"
+  fi
+
   if [[ -n "${options_values[SHOW_TIMER]}" ]]; then
     show_active_pomodoro_timebox "$flag"
     return 0
@@ -46,8 +50,12 @@ function pomodoro_main()
     register_tag "$flag" "${options_values['TAG']}"
   fi
 
-  if [[ -n "${options_values['TIMER']}" ]]; then
+  if [[ -n "${options_values['TIMER']}" && -z "${options_values['REPEAT']}" ]]; then
     timer_thread "$flag" &
+  fi
+
+  if [[ -n "${options_values['REPEAT']}" ]]; then
+    repeat_last_pomodoro_session
   fi
 }
 
@@ -301,7 +309,7 @@ function format_text()
 
 function parse_pomodoro()
 {
-  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,verbose'
+  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,repeat,verbose'
   local short_options='t:,c,s,g:,d:,h'
   local options
 
@@ -322,6 +330,7 @@ function parse_pomodoro()
   options_values['TAG']=''
   options_values['DESCRIPTION']=''
   options_values['VERBOSE']=''
+  options_values['REPEAT']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -365,6 +374,11 @@ function parse_pomodoro()
         options_values['VERBOSE']=1
         shift
         ;;
+
+      --repeat)
+        options_values['REPEAT']=1
+        shift
+        ;;
       --help | -h)
         pomodoro_help "$1"
         exit
@@ -374,6 +388,23 @@ function parse_pomodoro()
         ;;
     esac
   done
+}
+
+function repeat_last_pomodoro_session()
+{
+  local log_file="${KW_LIB_DIR}/pomodoro_log.txt"
+  touch "$log_file" || {
+    echo "Error creating log file: $log_file"
+    exit 1
+  }
+  local last_session
+  last_session=$(grep -Eo '[0-9]+:[0-9]+:[0-9]+.*pomodoro_main.*$' "$log_file" | tail -n 1 | awk -F ': ' '{print $2}')
+  if [[ -n "$last_session" ]]; then
+    echo "Repeating the last Pomodoro session: $last_session"
+    eval "$last_session"
+  else
+    echo "No previous Pomodoro session found in the log."
+  fi
 }
 
 function pomodoro_help()
@@ -389,6 +420,7 @@ function pomodoro_help()
     '  pomodoro (-s|--show-tags) - Show registered tags' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> - Set timer with tag' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> (-d|--description) <desc> - Set timer with tag and description' \
+    '  pomodoro (--repeat) - Repeat the last completed Pomodoro session' \
     '  pomodoro (--verbose) - Show a detailed output'
 }
 
