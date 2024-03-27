@@ -20,6 +20,30 @@ CREATE TABLE IF NOT EXISTS "command_label" (
   PRIMARY KEY("id")
 );
 
+-- Table containing the kw_mail groups 
+CREATE TABLE IF NOT EXISTS "groups" (
+    "id" INTEGER NOT NULL UNIQUE,
+    "name" VARCHAR(50) NOT NULL UNIQUE,
+    PRIMARY KEY("id")
+);
+
+-- Table containing the kw_mail contacts infos
+CREATE TABLE IF NOT EXISTS "contacts" (
+    "id" INTEGER NOT NULL UNIQUE,
+    "name" VARCHAR(100) NOT NULL,
+    "email" VARCHAR(100) NOT NULL,
+    PRIMARY KEY("id")
+);
+
+-- Table containing the association between a kw_mail group and it's contacts
+CREATE TABLE IF NOT EXISTS "contact_group" (
+    "contact_id" SERIAL INTEGER,
+    "group_id" INTEGER,
+    PRIMARY KEY ("contact_id", "group_id"),
+    FOREIGN KEY ("contact_id") REFERENCES "contacts"("id"),
+    FOREIGN KEY ("group_id") REFERENCES "groups"("id")
+);
+
 -- Table containing the possible exit status of an executed commmand
 CREATE TABLE IF NOT EXISTS "status" (
   "id" INTEGER NOT NULL UNIQUE,

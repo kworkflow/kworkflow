@@ -12,6 +12,8 @@ SYNOPSIS
 | *kw mail* (-l | \--list)
 | *kw mail* \--verify [\--local | \--global]
 | *kw mail* \--template[=<template>] [-n | \--no-interactive] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
+| *kw mail* \--groups=[=<Group>] [--append "<Contact1 <email1>, Contact2 <email2>, ...>"] [--create] [--rename "<New name>"] [--remove] [--remove-email "<Email>"]
+| *kw mail* \--groups[=<group> [--rename] [(<new_name>)]] [--append] [("contact <email>...")] [\--create] [("group")]  [\--remove] [(<group>)] [\--remove-email] [(email)]
 | *kw mail* \--verbose
 
 
@@ -122,6 +124,29 @@ OPTIONS
 
 -l, \--list:
   Lists the settings that mail uses.
+
+\-- groups[=<group>]:
+  Initialize kw mail groups interface. 
+     
+\--create='<group>':
+  Create a new kw mail *<group>* in the database
+
+\--rename='<new_name>':
+  Rename a given group passed in the *--groups[=<group>]* the the *<new_name>*
+
+\--append='<"contact <email>">':
+  append the contacts to the given group, passed as *--groups[=<group>]*
+  or to a recent created group.
+
+\--remove='<group>':
+  Remove the given *<group>* from the database.
+  Also removes all of it's contacts associations and the contacts
+  only related to this group.
+
+\--remove-email='<email>':
+  Remove the given *<email>* from the database.
+  Also removes all of it's group associations.
+ 
 
 \--verbose:
   Verbose mode is an option that causes the kw program to display debug messages to track
