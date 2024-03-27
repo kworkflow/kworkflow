@@ -10,9 +10,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # This is here just because git-email cannot be installed in the 
+      # This is here just because git-email cannot be installed in the
       # Github CI otherwise.
       - name: Add git-core PPA for git-email
         run: |
