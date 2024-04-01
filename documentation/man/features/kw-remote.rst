@@ -11,7 +11,7 @@ SYNOPSIS
 | *kw remote* [--global] \--remove <name>
 | *kw remote* [--global] \--rename <old-name> <new-name>
 | *kw remote* [--global] \--list
-| *kw remote* [--global] (-s | \--set-default)=<name>
+| *kw remote* [--global] -s<name> | \--set-default=<name>
 
 DESCRIPTION
 ===========
@@ -40,7 +40,7 @@ OPTIONS
 \--global:
   Force use global config file instead of the local one.
 
-\-s=<name>, \--set-default=<name>:
+\-s<name>, \--set-default=<name>:
   Set default remote to remote named <name>.
 
 \-v, \--verbose:
@@ -73,4 +73,3 @@ You can also list all your available remotes via::
 If you want to set the default remote::
 
   kw remote --set-default=new-default-remote
-
