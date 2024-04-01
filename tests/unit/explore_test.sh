@@ -67,8 +67,13 @@ function test_explore_files_under_git_repo()
   assertEquals "($LINENO)" "$MSG_OUT" "$output"
 
   output=$(explore_main 'GNU grep' '.' 'TEST_MODE')
-  expected_result="git grep -e 'GNU grep' -nI ."
+  expected_result="git grep --context 0 -e 'GNU grep' --line-number -I ."
   assertEquals "($LINENO)" "$expected_result" "$output"
+
+  # Test for non zero context value
+  output=$(explore_main --show-context=5 'GNU grep' '.' 'TEST_MODE')
+  expected_result="git grep --context 5 -e 'GNU grep' --line-number -I ."
+  assertEquals "(${LINENO})" "$expected_result" "$output"
 
   # Test if search only in files under git control
   cp "$current_path/tests/unit/samples/grep_check.c" ./
@@ -82,13 +87,13 @@ function test_explore_files_under_git_repo()
 
   # Test only-source and only-header
   MSG_OUT='3'
-  output=$(explore_main 'camelCase' | wc -l)
+  output=$(explore_main 'camelCase' | wc --lines)
   assertEquals "($LINENO)" "$MSG_OUT" "$output"
   MSG_OUT='2'
-  output=$(explore_main -c 'camelCase' | wc -l)
+  output=$(explore_main -c 'camelCase' | wc --lines)
   assertEquals "($LINENO)" "$MSG_OUT" "$output"
   MSG_OUT='1'
-  output=$(explore_main -H 'camelCase' | wc -l)
+  output=$(explore_main -H 'camelCase' | wc --lines)
   assertEquals "($LINENO)" "$MSG_OUT" "$output"
 
   cd "$current_path" || {
@@ -133,7 +138,11 @@ function test_explore_grep()
   assertEquals "($LINENO)" '.git' "$output"
 
   output=$(explore_main --grep 'GNU grep' '.' 'TEST_MODE')
-  expected_result="grep --color -nrI . -e 'GNU grep'"
+  expected_result="grep --color --line-number --recursive -I . --context 0 -e 'GNU grep'"
+  assertEquals "(${LINENO})" "$expected_result" "$output"
+
+  output=$(explore_main --grep --show-context=5 'GNU grep' '.' 'TEST_MODE')
+  expected_result="grep --color --line-number --recursive -I . --context 5 -e 'GNU grep'"
   assertEquals "($LINENO)" "$expected_result" "$output"
 
   cd "$current_path" || {
@@ -153,7 +162,11 @@ function test_explore_git()
   }
 
   output=$(explore_main --all 'GNU grep' '.' 'TEST_MODE')
-  expected_result="git grep --no-index -e 'GNU grep' -nI ."
+  expected_result="git grep --no-index --context 0 -e 'GNU grep' --line-number -I ."
+  assertEquals "(${LINENO})" "$expected_result" "$output"
+
+  output=$(explore_main --all --show-context=5 'GNU grep' '.' 'TEST_MODE')
+  expected_result="git grep --no-index --context 5 -e 'GNU grep' --line-number -I ."
   assertEquals "($LINENO)" "$expected_result" "$output"
 
   # Test if the search ignores files in .git
@@ -168,6 +181,47 @@ function test_explore_git()
 
   cd "$current_path" || {
     fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_explore_context()
+{
+  local -r current_path="$PWD"
+  local expected_context='3'
+  local expected_match='avoid'
+  local msg_out='7'
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "(${LINENO}) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Check the number of output lines
+  output=$(explore_main --show-context=3 'avoid' codestyle_error.c | wc --lines)
+  assertEquals "(${LINENO})" "$msg_out" "$output"
+
+  output=$(explore_main --show-context="$expected_context" "$expected_match" codestyle_error.c)
+
+  # Check if the expected match and context lines are present in the output
+  assert_substring_match 'Expected match not found!' "${LINENO}" "${expected_match}" "$output"
+
+  # Check context lines below the match
+  for ((i = 1; i <= expected_context; i++)); do
+    CONTEXT_LINE=$((i + 4)) # Assuming match is on line 4
+    CONTEXT_LINE_CONTENT=$(printf '%s' "$output" | head -n "${CONTEXT_LINE}" | tail --lines 1)
+    assert_line_match "Context line ${CONTEXT_LINE} below match" "$CONTEXT_LINE_CONTENT" "$output"
+  done
+
+  # Check context lines above the match
+  for ((i = 1; i <= expected_context; i++)); do
+    CONTEXT_LINE=$((4 - i)) # Assuming match is on line 4
+    CONTEXT_LINE_CONTENT=$(printf '%s' "$output" | head -n ${CONTEXT_LINE} | tail -n 1)
+    assert_line_match "Context line ${CONTEXT_LINE} above match" "$CONTEXT_LINE_CONTENT" "$output"
+  done
+
+  cd "$current_path" || {
+    fail "(${LINENO}) It was not possible to move back from temp directory"
     return
   }
 }
@@ -236,6 +290,20 @@ function test_parse_explore_options()
   assertEquals "($LINENO)" '0' "$ret"
   assertEquals "($LINENO)" 'HEADER' "${options_values['SCOPE']}"
 
+  unset options_values
+  declare -gA options_values
+  parse_explore_options -C
+  ret="$?"
+  assertEquals "(${LINENO})" '0' "$ret"
+  assertEquals "(${LINENO})" '3' "${options_values['CONTEXT']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --show-context=5
+  ret="$?"
+  assertEquals "(${LINENO})" '0' "$ret"
+  assertEquals "(${LINENO})" '5' "${options_values['CONTEXT']}"
+
   # Others
   parse_explore_options --logljkl
   ret="$?"
@@ -265,6 +333,13 @@ function test_parse_explore_options()
   ret="$?"
   assertEquals "($LINENO)" '22' "$ret"
   assertEquals "($LINENO)" 'Invalid arguments: Multiple search type!' "${options_values['ERROR']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_explore_options --show-context=invalid
+  ret="$?"
+  assertEquals "($LINENO)" '22' "$ret"
+  assertEquals "($LINENO)" 'Context value must be a non-negative integer!' "${options_values['ERROR']}"
 
   parse_explore_options main
   ret="$?"
