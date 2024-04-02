@@ -146,8 +146,7 @@ function get_raw_data_from_period_of_time()
 # associative array in their respective command.
 #
 # Return:
-# In case there is no statistics raw data to process, returns 2 (ENOENT) and
-# sets an error message in 'options_values['ERROR']'.
+# In case there is no statistics raw data to process, returns 2 (ENOENT).
 function process_and_format_statistics_raw_data()
 {
   local flag="$1"
@@ -159,10 +158,7 @@ function process_and_format_statistics_raw_data()
 
   flag=${flag:-'SILENT'}
 
-  if [[ -z "${statistics_raw_data}" ]]; then
-    options_values['ERROR']="kw doesn't have any statistics of the target period: ${target_period}"
-    return 2 # ENOENT
-  fi
+  [[ -z "${statistics_raw_data}" ]] && return 2 # ENOENT
 
   for command in "${!statistics[@]}"; do
     values=$(printf '%s\n' "${statistics_raw_data}" | grep "|${command}|" | cut -d '|' -f6)
@@ -194,8 +190,7 @@ function process_and_format_statistics_raw_data()
 # including an all tag summary.
 #
 # Return:
-# In case there is no statistics raw data to process, returns 2 (ENOENT) and
-# sets an error message in 'options_values['ERROR']'.
+# In case there is no statistics raw data to process, returns 2 (ENOENT).
 function process_and_format_pomodoro_raw_data()
 {
   local flag="$1"
@@ -216,10 +211,7 @@ function process_and_format_pomodoro_raw_data()
 
   flag=${flag:-'SILENT'}
 
-  if [[ -z "${pomodoro_raw_data}" ]]; then
-    options_values['ERROR']="kw doesn't have any Pomodoro data of the target period: ${target_period}"
-    return 2 # ENOENT
-  fi
+  [[ -z "${pomodoro_raw_data}" ]] && return 2 # ENOENT
 
   while read -r entry; do
     tag=$(printf '%s' "$entry" | cut -d '|' -f3)
@@ -287,9 +279,8 @@ function show_report()
     done
     printf '\n'
   elif [[ -n "${options_values['STATISTICS']}" ]]; then
-    warning "${options_values['ERROR']}"
+    warning "kw doesn't have any statistics of the target period: ${target_period}"
   fi
-
   if [[ -n "${options_values['POMODORO']}" && -n "${pomodoro_raw_data}" ]]; then
     say "# Pomodoro Report: ${target_period}"
     printf '%s\n\n' "${pomodoro_metadata['ALL_TAGS']}"
@@ -299,7 +290,7 @@ function show_report()
       printf '%s\n%s\n' '- Sessions:' "${pomodoro_sessions["$tag"]}"
     done
   elif [[ -n "${options_values['POMODORO']}" ]]; then
-    warning "${options_values['ERROR']}"
+    warning "kw doesn't have any Pomodoro data of the target period: ${target_period}"
   fi
 }
 

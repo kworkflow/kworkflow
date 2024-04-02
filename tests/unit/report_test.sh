@@ -323,14 +323,10 @@ function test_get_raw_data_from_period_of_time()
 
 function test_process_and_format_statistics_raw_data_without_data()
 {
-  local expected
-
   target_period='1998/04/17'
   statistics_raw_data=''
   process_and_format_statistics_raw_data
   assert_equals_helper 'Should result in an error code' "$LINENO" 2 "$?"
-  expected="kw doesn't have any statistics of the target period: ${target_period}"
-  assert_equals_helper 'Should result in an error message' "$LINENO" "$expected" "${options_values['ERROR']}"
 }
 
 function test_process_and_format_statistics_raw_data_with_data()
@@ -388,14 +384,10 @@ function test_process_and_format_statistics_raw_data_with_data()
 
 function test_process_and_format_pomodoro_raw_data_without_data()
 {
-  local expected
-
   target_period='day 1998/04/17'
   pomodoro_raw_data=''
   process_and_format_pomodoro_raw_data
   assert_equals_helper 'Should result in an error code' "$LINENO" 2 "$?"
-  expected="kw doesn't have any Pomodoro data of the target period: ${target_period}"
-  assert_equals_helper 'Should result in an error message' "$LINENO" "$expected" "${options_values['ERROR']}"
 }
 
 function test_process_and_format_pomodoro_raw_data_with_data()
@@ -451,18 +443,16 @@ function test_show_report()
   # Error message for statistics
   options_values['STATISTICS']=1
   statistics_raw_data=''
-  options_values['ERROR']='Some error message'
   output=$(show_report)
-  expected='Some error message'
+  expected="kw doesn't have any statistics of the target period: ${target_period}"
   assert_equals_helper 'No statistics should result in error message' "$LINENO" "$expected" "$output"
 
   # Error message for Pomodoro
   options_values['STATISTICS']=''
   options_values['POMODORO']=1
   pomodoro_raw_data=''
-  options_values['ERROR']='Another error message'
   output=$(show_report)
-  expected='Another error message'
+  expected="kw doesn't have any Pomodoro data of the target period: ${target_period}"
   assert_equals_helper 'No Pomodoro data should result in error message' "$LINENO" "$expected" "$output"
 
   # Expect output for statistics
