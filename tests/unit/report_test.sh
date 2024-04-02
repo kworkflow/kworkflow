@@ -453,7 +453,7 @@ function test_show_report()
   statistics_raw_data=''
   options_values['ERROR']='Some error message'
   output=$(show_report)
-  expected='Some error message'
+  expected="kw doesn't have any statistics of the target period: ${target_period}"
   assert_equals_helper 'No statistics should result in error message' "$LINENO" "$expected" "$output"
 
   # Error message for Pomodoro
@@ -462,7 +462,7 @@ function test_show_report()
   pomodoro_raw_data=''
   options_values['ERROR']='Another error message'
   output=$(show_report)
-  expected='Another error message'
+  expected="kw doesn't have any Pomodoro data of the target period: ${target_period}"
   assert_equals_helper 'No Pomodoro data should result in error message' "$LINENO" "$expected" "$output"
 
   # Expect output for statistics

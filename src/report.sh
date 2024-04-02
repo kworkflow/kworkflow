@@ -287,9 +287,8 @@ function show_report()
     done
     printf '\n'
   elif [[ -n "${options_values['STATISTICS']}" ]]; then
-    warning "${options_values['ERROR']}"
+    warning "kw doesn't have any statistics of the target period: ${target_period}"
   fi
-
   if [[ -n "${options_values['POMODORO']}" && -n "${pomodoro_raw_data}" ]]; then
     say "# Pomodoro Report: ${target_period}"
     printf '%s\n\n' "${pomodoro_metadata['ALL_TAGS']}"
@@ -299,7 +298,7 @@ function show_report()
       printf '%s\n%s\n' '- Sessions:' "${pomodoro_sessions["$tag"]}"
     done
   elif [[ -n "${options_values['POMODORO']}" ]]; then
-    warning "${options_values['ERROR']}"
+    warning "kw doesn't have any Pomodoro data of the target period: ${target_period}"
   fi
 }
 
