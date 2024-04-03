@@ -2,6 +2,7 @@
 
 include './src/lib/kwio.sh'
 
+declare -gr CONTAINER_BASE_IMAGE='docker.io/library'
 declare -g CONTAINER_DIR # Has the container files to build the container images
 declare -g SAMPLES_DIR   # Has sample files used accross the integration tests
 declare -g KWROOT_DIR    # Local kw dir to be copied to and installed in the containers
@@ -64,14 +65,14 @@ function setup_container_environment()
 
     # Only build the image if it does not exist. That's because trying to build
     # the podman image takes a second or two even if it exists and is cached.
-    podman image exists "${container_img}"
+    image_exists "${container_img}"
     if [[ "$?" -ne 0 ]]; then
       current_step=$((current_step + 1))
       say "[${current_step}/${total_steps}] Building container image for ${distro}. This might take a while..."
 
       build_distro_image "$distro"
       if [[ "$?" -ne 0 ]]; then
-        complain "Failed to setup container environment for distro ${distro}"
+        complain "Failed to setup container for distro ${distro}"
 
         current_step=$((current_step + 1))
         say "[${current_step}/${total_steps}] Skip creating ${distro} container."
@@ -129,7 +130,7 @@ function setup_container_environment()
 }
 
 # Destroy all containers used in the tests
-function teardown_container_environment()
+function teardown_containers()
 {
   local distro
   local i=0
@@ -144,7 +145,7 @@ function teardown_container_environment()
 
 # Destroy a single container
 #
-# @container: Name or ID of the container
+# @container    Name or ID of the container
 function teardown_single_container()
 {
   local container="$1"
@@ -157,6 +158,177 @@ function teardown_single_container()
   fi
 }
 
+# Completely remove the container environment: the containers and the images
+#
+# @flag   Optional. Currently, only accepts '-f' or '--force' to force removal of cached images.
+function teardown_container_environment()
+{
+  local flag="$1"
+  local container_name
+  local distro
+  local img
+  local img_layer_list
+  local dangling_img
+  local dangling_img_layer_list
+
+  for distro in "${DISTROS[@]}"; do
+    container_name="kw-${distro}"
+    podman container exists "${container_name}"
+    if [[ "$?" -eq 0 ]]; then
+      say "Removing podman container kw-${distro}."
+      teardown_single_container "${container_name}"
+    fi
+
+    img="kw-${distro}"
+    image_exists "${img}"
+    if [[ "$?" -eq 0 ]]; then
+      say "Removing podman ${img} image."
+
+      # Get this image layers, so we can safely remove its children dangling images.
+      img_layer_list=$(image_inspect -f '{{.RootFS.Layers}}' "${img}" | tr -d '[]')
+
+      # Remove possible dangling images
+      while read -r dangling_img; do
+        # We check if the image exist  because  it  could  happen  that  in  the
+        # previous iteration the father dangling image was deleted, causing  the
+        # child dangling image to be deleted as well.
+        image_exists "${dangling_img}"
+        if [[ "$?" -ne 0 ]]; then
+          continue
+        fi
+
+        # We check if the dangling image have layers which are exact prefixes of
+        # the current image we are trying to delete.
+        dangling_img_layer_list=$(image_inspect -f '{{.RootFS.Layers}}' "${dangling_img}" | tr -d '[]')
+        grep --perl-regexp "^${dangling_img_layer_list}" <<< "${img_layer_list}" > /dev/null
+
+        # Delete the dangling image if that is the case.
+        if [[ "$?" -eq 0 ]]; then
+          # Dangling images are always force-removed.
+          image_rm --force "${dangling_img}"
+        fi
+      done <<< "$(image_ls --all --quiet --filter 'intermediate=true')"
+
+      # Remove main image.
+      image_rm --force "${img}"
+      if [[ "$?" -ne 0 ]]; then
+        complain "Failed to remove ${img} image."
+      fi
+    fi
+
+    # Remove the base image for the distro.
+    img="${CONTAINER_BASE_IMAGE}/${distro}"
+    image_exists "${img}"
+    if [[ "$?" -eq 0 ]]; then
+      say "Removing podman ${img} image."
+
+      if [[ -n "$flag" ]]; then
+        image_rm "$flag" "$img"
+      else
+        image_rm "$img"
+      fi
+    fi
+  done
+}
+
+# Check if the given image exists.
+#
+# @image    The image name or id.
+function image_exists()
+{
+  podman image exists "$1"
+}
+
+# Remove the given images.
+#
+# @flags    Optional flags to be passed to podman.
+#           If it is '-f' or '--force', then it should be the ONLY flag.
+# @images   Image names or ids.
+function image_rm()
+{
+  local force_remove=0
+  local img
+
+  if [[ "$1" == "-f" || "$1" == "--force" ]]; then
+    force_remove=1
+    shift
+  fi
+
+  if [[ "$#" -lt 1 ]]; then
+    complain "(${LINENO}): no image provided to be removed."
+    return 1
+  fi
+
+  # shellcheck disable=SC2068
+  podman image rm $@ > /dev/null 2>&1
+
+  # command succeed.
+  if [[ "$?" -eq 0 ]]; then
+    return 0
+  fi
+
+  # comman failed and we should not force-attempt it.
+  if [[ "$force_remove" == 0 ]]; then
+    complain "(${LINENO}): kw failed to execute \`podman image rm ${*}\`. Consider using --force flag."
+    return 1
+  fi
+
+  # We try it again, this time forcing the removal of the images.
+  # WARNING: If the first argument is '-f', we suppose all the other ones are the image names.
+  while [[ "$#" -gt 0 ]]; do
+    img="$1"
+    shift
+
+    # Make sure the image exists.
+    podman image exists "$img"
+    if [[ "$?" -ne 0 ]]; then
+      complain "(${LINENO}) provided image '${img}' does not exist."
+      continue
+    fi
+
+    # Force remove all containers that depend on that image, one by one.
+    (podman container ls --all --quiet --filter ancestor="$img" |
+      xargs -n1 podman container rm --force --time 0) > /dev/null 2>&1
+
+    # Force remove the image now.
+    podman image rm --force "$img" > /dev/null 2>&1
+  done
+}
+
+# List the given images.
+#
+# @options  Options to be passed to podman.
+# @images   Image names or ids.
+function image_ls()
+{
+  if [[ "$#" -le 1 ]]; then
+    complain "(${LINENO}): no image provided to be listed."
+    return 1
+  fi
+
+  # shellcheck disable=SC2068
+  podman image ls $@
+
+  if [[ "$?" -ne 0 ]]; then
+    complain "(${LINENO}): kw failed to execute \`podman image ls ${*}\`."
+  fi
+}
+
+# Inspect the given images.
+#
+# @options  Options to be passed to podman.
+# @images   Image names or ids.
+function image_inspect()
+{
+  # shellcheck disable=SC2068
+  podman image inspect $@
+
+  if [[ "$?" -ne 0 ]]; then
+    complain "(${LINENO}): kw failed to execute \`podman image inspect ${*}\`."
+  fi
+}
+
+# run a container
 function container_run()
 {
   # shellcheck disable=SC2068
@@ -210,6 +382,10 @@ function container_copy()
   fi
 }
 
+# Inspect the given containers.
+#
+# @options  Options to be passed to podman.
+# @images   Container names or ids.
 function container_inspect()
 {
   # shellcheck disable=SC2068
