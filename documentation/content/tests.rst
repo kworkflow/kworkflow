@@ -1,5 +1,5 @@
 ===============
-  About Tests
+About Tests
 ===============
 
 .. _tests:
@@ -25,7 +25,7 @@ List all available test files::
 
 Or run individual tests with::
 
-  ./run_tests.sh test TESTFILE1 ...
+  ./run_tests.sh test TEST_FILE_1 ...
 
 To limit the scope of the tests, pass the flag `--unit` or `--integration` as
 the first argument to any of the examples above. So, the syntax is::
@@ -33,7 +33,7 @@ the first argument to any of the examples above. So, the syntax is::
   ./run_tests.sh [scope] [command] [args]
 
 Where `[scope]` can be `--unit` or `--integration`. The placeholder  `[command]`
-can be either `list`, `test` or simply omited in order to run  all  tests.  Here
+can be either `list`, `test` or simply omitted in order to run  all  tests. Here
 are some examples:
 
 .. code-block:: bash
@@ -41,12 +41,15 @@ are some examples:
   ./run_tests.sh --unit                       # run all unit tests
   ./run_tests.sh --unit list                  # list all unit tests
   ./run_tests.sh --unit test device           # test device unit test
+  ./run_tests.sh --unit clear-cache           # clear unit tests cache
   ./run_tests.sh --integration                # run all integration tests
   ./run_tests.sh --integration list           # list all integration tests
   ./run_tests.sh --integration test device    # test device integration test
+  ./run_tests.sh --integration clear-cache    # clear integration tests cache
   ./run_tests.sh                              # run all tests
   ./run_tests.sh list                         # list all tests
   ./run_tests.sh test device                  # run all device tests
+  ./run_tests.sh clear-cache                  # clear all cache
 
 The integration tests can take over 10 minutes to run in the first time  because
 podman is building the container images to be used in the tests, which  requires
@@ -56,7 +59,7 @@ seconds each time.
 
 Then, the local kw repo is copied to the containers and installed  again,  which
 takes very few seconds. For optimization purposes,  the  containers  are  reused
-accross tests. If you add a new commit or checkout to another branch, such  that
+across  tests. If you add a new commit or checkout to another branch, such  that
 HEAD points to another commit, the containers  will  be  destroyed  and  created
 again in order to install the current local version of kw.
 

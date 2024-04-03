@@ -18,6 +18,7 @@ function show_help()
     '         Limit tests to unit tests' \
     '' \
     'COMMANDS' \
+    '  clear-cache - clears tests cache' \
     '  help - displays this help message' \
     '  list - lists all test files under tests/' \
     '  test - runs the given test'
@@ -121,12 +122,23 @@ function run_tests()
   # amount of time for the integration tests.
   if [[ "${integration_tests_setup}" == 1 ]]; then
     printf '\n' # add new line after the last "OK"
-    say 'Tearing down environment used in integration tests...'
-    teardown_container_environment
+    say 'Tearing down containers used in integration tests...'
+    teardown_containers
     printf '\n'
   fi
 
   report_results "$total" "$success" "$notfound" "$fail" "$test_failure_list"
+}
+
+function clear_unit_tests_cache()
+{
+  say 'Unit tests: nothing cached to clear.'
+}
+
+function clear_integration_tests_cache()
+{
+  say 'Integration tests: cleaning cache...'
+  teardown_container_environment "$@"
 }
 
 declare -a TESTS
@@ -139,12 +151,16 @@ function set_tests()
   done
 }
 
+declare TESTS_UNIT=1
+declare TESTS_INTEGRATION=1
 declare TESTS_DIR=./tests
 if [[ "$1" == '--unit' || "$1" == '-u' ]]; then
   TESTS_DIR=./tests/unit
+  TESTS_INTEGRATION=0
   shift
 elif [[ "$1" == '--integration' || "$1" == '-i' ]]; then
   TESTS_DIR=./tests/integration
+  TESTS_UNIT=0
   shift
 fi
 
@@ -178,6 +194,10 @@ elif [[ "$1" == 'test' ]]; then
   files_list=$(find "$TESTS_DIR" | grep --perl-regexp "${regex}" | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
   set_tests $files_list
   LANGUAGE=en_US.UTF_8 run_tests
+elif [[ "$1" == 'clear-cache' ]]; then
+  shift
+  [[ "${TESTS_UNIT}" == 1 ]] && clear_unit_tests_cache "$@"
+  [[ "${TESTS_INTEGRATION}" == 1 ]] && clear_integration_tests_cache "$@"
 else
   show_help
 fi
