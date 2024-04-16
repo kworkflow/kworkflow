@@ -279,7 +279,7 @@ function is_a_patch()
   cmd_manager 'SILENT' "$cmd"
   cmd_return="$?"
 
-  if [[ "$cmd_return" == 0 || "$cmd_return" == 1 ]]; then
+  if [[ "$cmd_return" -eq 0 || "$cmd_return" -eq 1 ]]; then
     return 0
   fi
 

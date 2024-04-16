@@ -309,19 +309,21 @@ function remove_blocked_recipients()
 }
 
 # This function checks if any of the arguments in @args is a valid commit
-# reference
+# reference or if there's any patch file or patch directory in it
 #
 # @args: arguments to be processed
 #
 # Returns:
 # 125 if nor inside git work tree;
 # 0 if any of the arguments is a valid reference to a commit; 22 otherwise
-function find_commit_references()
+function find_commit_references_or_patch_files_dirs()
 {
   local args="$*"
   local arg=''
   local parsed=''
   local commit_range=''
+  local patch_files_references=''
+  local patch_dir_references=''
 
   [[ -z "$args" ]] && return 22 # EINVAL
 
@@ -331,6 +333,13 @@ function find_commit_references()
 
   #shellcheck disable=SC2086
   while read -r arg; do
+    if [[ -d "$arg" ]]; then
+      patch_dir_references+="${arg} "
+      continue
+    elif [[ -f "$arg" ]]; then
+      patch_files_references+="${arg} "
+      continue
+    fi
     parsed="$(git rev-parse "$arg" 2> /dev/null)"
     while read -r rev; do
       # check if the argument is a valid reference to a commit-ish object
@@ -340,14 +349,53 @@ function find_commit_references()
       fi
     done <<< "$parsed"
     parsed=''
+
   done <<< "$(git rev-parse -- $args 2> /dev/null)"
 
-  if [[ -n "$commit_range" ]]; then
+  validate_patch_dir_reference "$patch_dir_references"
+
+  if [[ "$?" -eq 22 ]]; then
+    return 22 #EINVAL
+  fi
+
+  if [[ -n "$commit_range" || -n "$patch_dir_references" || -n "$patch_files_references" ]]; then
     printf '%s' "$(str_strip "$commit_range")"
+
+    printf '%s' "$(str_strip "$patch_files_references")"
+
+    printf '%s' "$(str_strip "$patch_dir_references")"
+
     return 0
   fi
 
   return 22 # EINVAL
+}
+
+# This function checks if the patches files or directories given as references
+# are valid patches.
+#
+# @args: arguments to be processed
+#
+# Returns:
+# 0 if any of the arguments is a valid reference to a commit, 22 otherwise
+function validate_patch_dir_reference()
+{
+  local patches_references="$1"
+  local patches_array
+  local patch
+  local dir_files
+
+  read -r -a patches_array <<< "$patches_references"
+  for patch in "${patches_array[@]}"; do
+    if [[ -d "$patch" ]]; then
+      dir_files=$(find "$patch" -mindepth 1 -print0 | xargs -0 echo)
+      validate_patch_dir_reference "$dir_files" || return 22 # EINVAL
+    elif ! is_a_patch "$patch" && ! is_a_cover_letter "$patch"; then
+      complain "${patch} is neither a patch file nor a patch cover letter"
+      return 22 # EINVAL
+    fi
+  done
+  return 0
 }
 
 # This function deals with configuring the options used by `git send-email`
@@ -1110,7 +1158,7 @@ function parse_mail_options()
           fi
         done
         options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$pass_option_to_send_email ${options_values['PATCH_VERSION']}")"
-        options_values['COMMIT_RANGE']+="$(find_commit_references "${options_values['PASS_OPTION_TO_SEND_EMAIL']}")"
+        options_values['COMMIT_RANGE']+="$(find_commit_references_or_patch_files_dirs "${options_values['PASS_OPTION_TO_SEND_EMAIL']}")"
         rev_ret="$?"
         shift "$#"
         ;;

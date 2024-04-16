@@ -10,6 +10,9 @@ function oneTimeSetUp()
   declare -gr FAKE_KERNEL="$FAKE_GIT/fake_kernel/"
   declare -ga test_config_opts=('test0' 'test1' 'test2' 'user.name' 'sendemail.smtpuser')
 
+  declare -gr FAKE_PATCHES_DIRS=('fake_patches' 'fake_patches/invalid' 'fake_patches/valid' 'fake_patches/valid_with_cover_letter')
+  declare -gr FAKE_PATCH_FILES=('0000-cover-letter.patch' '0001.patch' '0002.patch' '0003-invalid.patch')
+
   export KW_ETC_DIR="$SHUNIT_TMPDIR/etc/"
   export KW_CACHE_DIR="$SHUNIT_TMPDIR/cache/"
 
@@ -21,6 +24,9 @@ function oneTimeSetUp()
 
   touch "$KW_ETC_DIR/mail_templates/test2"
   printf '%s\n' 'sendemail.smtpserver=smtp.test2.com' > "$KW_ETC_DIR/mail_templates/test2"
+
+  mkdir "${FAKE_GIT}/${FAKE_PATCHES_DIRS[0]}"
+  cp --recursive 'tests/unit/samples/patch_files/'* "${FAKE_GIT}/${FAKE_PATCHES_DIRS[0]}"
 
   cd "$FAKE_GIT" || {
     ret="$?"
@@ -118,9 +124,11 @@ function test_validate_email()
   assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
 }
 
-function test_find_commit_references()
+function test_find_commit_references_or_patch_files_dirs()
 {
   local output
+  local ret
+  local expected
   local ret
 
   cd "$SHUNIT_TMPDIR" || {
@@ -129,11 +137,11 @@ function test_find_commit_references()
     exit "$ret"
   }
 
-  find_commit_references
+  find_commit_references_or_patch_files_dirs
   ret="$?"
   assert_equals_helper 'No arguments given' "$LINENO" 22 "$ret"
 
-  find_commit_references @^
+  find_commit_references_or_patch_files_dirs @^
   ret="$?"
   assert_equals_helper 'Outside git repo should return 125' "$LINENO" 125 "$ret"
 
@@ -143,25 +151,87 @@ function test_find_commit_references()
     exit "$ret"
   }
 
-  output="$(find_commit_references invalid_ref)"
+  output="$(find_commit_references_or_patch_files_dirs invalid_ref)"
   ret="$?"
   assert_equals_helper 'Invalid ref should not work' "$LINENO" 22 "$ret"
   assertTrue "($LINENO) Invalid ref should be empty" '[[ -z "$output" ]]'
 
-  output="$(find_commit_references '@^..@')"
+  output="$(find_commit_references_or_patch_files_dirs '@^..@')"
   ret="$?"
   assert_equals_helper '@^..@ should be a valid reference' "$LINENO" 0 "$ret"
   assertTrue "($LINENO) @^..@ should generate a reference" '[[ -n "$output" ]]'
 
-  output="$(find_commit_references @)"
+  output="$(find_commit_references_or_patch_files_dirs @)"
   ret="$?"
   assert_equals_helper '@ should be a valid reference' "$LINENO" 0 "$ret"
   assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
 
-  output="$(find_commit_references some args @ around)"
+  output="$(find_commit_references_or_patch_files_dirs some args @ around)"
   ret="$?"
   assert_equals_helper '@ should be a valid reference' "$LINENO" 0 "$ret"
   assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
+
+  output="$(find_commit_references_or_patch_files_dirs some args @ around)"
+  ret="$?"
+  assert_equals_helper '@ should be a valid reference' "$LINENO" 0 "$ret"
+  assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
+
+  output="$(find_commit_references_or_patch_files_dirs some args @ around)"
+  ret="$?"
+  assert_equals_helper '@ should be a valid reference' "$LINENO" 0 "$ret"
+  assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
+
+  output="$(find_commit_references_or_patch_files_dirs "${FAKE_PATCHES_DIRS[0]}")"
+  ret="$?"
+  expected='fake_patches/invalid/0003-invalid.patch is neither a patch file nor a patch cover letter'
+  assert_equals_helper "${FAKE_PATCHES_DIRS[0]} should not be a valid reference" "$LINENO" "$output" "$expected"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[0]} should not be a valid reference" "$LINENO" 22 "$ret"
+
+  output="$(find_commit_references_or_patch_files_dirs "${FAKE_PATCHES_DIRS[1]}")"
+  ret="$?"
+  expected='fake_patches/invalid/0003-invalid.patch is neither a patch file nor a patch cover letter'
+  assert_equals_helper "${FAKE_PATCHES_DIRS[1]} should not be a valid reference" "$LINENO" "$output" "$expected"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[1]} should not be a valid reference" "$LINENO" 22 "$ret"
+
+  output="$(find_commit_references_or_patch_files_dirs "${FAKE_PATCHES_DIRS[2]}")"
+  ret="$?"
+  expected="${FAKE_PATCHES_DIRS[2]}"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[2]} should generate a valid reference" "$LINENO" "$output" "$expected"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[2]} should be a valid reference" "$LINENO" 0 "$ret"
+
+  output="$(find_commit_references_or_patch_files_dirs "${FAKE_PATCHES_DIRS[3]}")"
+  ret="$?"
+  expected="${FAKE_PATCHES_DIRS[3]}"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[3]} should generate a valid reference" "$LINENO" "$output" "$expected"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[3]} should be a valid reference" "$LINENO" 0 "$ret"
+
+  files="$(find "${FAKE_PATCHES_DIRS[0]}" -mindepth 1 -exec printf "%s " {} \; | sed 's/ $//')"
+  output="$(find_commit_references_or_patch_files_dirs "$files")"
+  ret="$?"
+  expected='fake_patches/invalid/0003-invalid.patch is neither a patch file nor a patch cover letter'
+  assert_equals_helper "files should not generate valid references" "$LINENO" "$output" "$expected"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[0]} should not be a valid reference" "$LINENO" 22 "$ret"
+
+  files="$(find "${FAKE_PATCHES_DIRS[1]}" -mindepth 1 -exec printf "%s " {} \; | sed 's/ $//')"
+  output="$(find_commit_references_or_patch_files_dirs "$files")"
+  ret="$?"
+  expected="$files"
+  assert_equals_helper "files should not generate valid references" "$LINENO" "$output" "$expected"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[1]} should not be a valid reference" "$LINENO" 0 "$ret"
+
+  files="$(find "${FAKE_PATCHES_DIRS[2]}" -mindepth 1 -exec printf "%s " {} \; | sed 's/ $//')"
+  output="$(find_commit_references_or_patch_files_dirs "$files")"
+  ret="$?"
+  expected="$files"
+  assert_equals_helper "files should generate valid references" "$LINENO" "$output" "$expected"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[2]} should be a valid reference" "$LINENO" 0 "$ret"
+
+  files="$(find "${FAKE_PATCHES_DIRS[3]}" -mindepth 1 -exec printf "%s " {} \; | sed 's/ $//')"
+  output="$(find_commit_references_or_patch_files_dirs "$files")"
+  ret="$?"
+  expected="$files"
+  assert_equals_helper "files should generate valid references" "$LINENO" "$output" "$expected"
+  assert_equals_helper "${FAKE_PATCHES_DIRS[3]} should be a valid reference" "$LINENO" 0 "$ret"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -494,6 +564,30 @@ function test_mail_send()
   expected='git send-email --to="mail@test.com" extra_args --other_arg -13 -v2'
   assert_equals_helper 'Testing no options option' "$LINENO" "$expected" "$output"
 
+  parse_mail_options "${FAKE_PATCHES_DIRS[0]}" '--to=mail@test.com'
+  output=$(mail_send 'TEST_MODE')
+  expected="git send-email --to=\"mail@test.com\" ${FAKE_PATCHES_DIRS[0]}"
+  assert_equals_helper 'Testing send with a file' "$LINENO" "$expected" "$output"
+
+  parse_mail_options "${FAKE_PATCHES_DIRS[1]}" '--to=mail@test.com'
+  output=$(mail_send 'TEST_MODE')
+  expected="git send-email --to=\"mail@test.com\" ${FAKE_PATCHES_DIRS[1]}"
+  assert_equals_helper 'Testing send with a file' "$LINENO" "$expected" "$output"
+
+  parse_mail_options "${FAKE_PATCHES_DIRS[2]}" '--to=mail@test.com'
+  output=$(mail_send 'TEST_MODE')
+  expected="git send-email --to=\"mail@test.com\" ${FAKE_PATCHES_DIRS[2]}"
+  assert_equals_helper 'Testing send with a file' "$LINENO" "$expected" "$output"
+
+  parse_mail_options "${FAKE_PATCHES_DIRS[3]}" '--to=mail@test.com'
+  output=$(mail_send 'TEST_MODE')
+  expected="git send-email --to=\"mail@test.com\" ${FAKE_PATCHES_DIRS[3]}"
+  assert_equals_helper 'Testing send with a file' "$LINENO" "$expected" "$output"
+
+  parse_mail_options "${FAKE_PATCHES_DIRS[2]}/${FAKE_PATCH_FILES[1]}" '--to=mail@test.com'
+  output=$(mail_send 'TEST_MODE')
+  expected="git send-email --to=\"mail@test.com\" ${FAKE_PATCHES_DIRS[2]}/${FAKE_PATCH_FILES[1]}"
+  assert_equals_helper 'Testing send with a file' "$LINENO" "$expected" "$output"
   parse_mail_options '--to=mail@test.com'
 
   parse_configuration "$KW_MAIL_CONFIG_SAMPLE" send_patch_config
@@ -507,6 +601,71 @@ function test_mail_send()
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" --annotate --cover-letter --no-chain-reply-to --thread @^^'
   assert_equals_helper 'Testing default option' "$LINENO" "$expected" "$output"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+
+}
+
+function test_validate_patch_dir_reference()
+{
+  local expected
+  local output
+  local ret
+  local files
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    exit "$ret"
+  }
+
+  output="$(validate_patch_dir_reference "${FAKE_PATCHES_DIRS[0]}")"
+  ret="$?"
+  expected='fake_patches/invalid/0003-invalid.patch is neither a patch file nor a patch cover letter'
+  assert_equals_helper 'Testing directory with invalid directories' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing directory with invalid directories' "$LINENO" "$ret" 22
+
+  output="$(validate_patch_dir_reference "${FAKE_PATCHES_DIRS[1]}")"
+  ret="$?"
+  expected='fake_patches/invalid/0003-invalid.patch is neither a patch file nor a patch cover letter'
+  assert_equals_helper 'Testing directory with invalid files' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing directory with invalid files' "$LINENO" "$ret" 22
+
+  validate_patch_dir_reference "${FAKE_PATCHES_DIRS[2]}"
+  ret="$?"
+  assert_equals_helper 'Testing directory with valid files' "$LINENO" "$ret" 0
+
+  validate_patch_dir_reference "${FAKE_PATCHES_DIRS[3]}"
+  ret="$?"
+  assert_equals_helper 'Testing directory with valid files and cover-letter' "$LINENO" "$ret" 0
+
+  files="$(find "${FAKE_PATCHES_DIRS[0]}" -mindepth 1 -exec printf "%s " {} \;)"
+  output="$(validate_patch_dir_reference "$files")"
+  ret="$?"
+  expected='fake_patches/invalid/0003-invalid.patch is neither a patch file nor a patch cover letter'
+  assert_equals_helper 'Testing files and directory with invalid directories' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing files and directory with invalid directories' "$LINENO" "$ret" 22
+
+  files="$(find "${FAKE_PATCHES_DIRS[1]}" -mindepth 1 -exec printf "%s " {} \;)"
+  output="$(validate_patch_dir_reference "$files")"
+  ret="$?"
+  expected='fake_patches/invalid/0003-invalid.patch is neither a patch file nor a patch cover letter'
+  assert_equals_helper 'Testing invalid files' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing invalid files' "$LINENO" "$ret" 22
+
+  files="$(find "${FAKE_PATCHES_DIRS[2]}" -mindepth 1 -exec printf "%s " {} \;)"
+  output="$(validate_patch_dir_reference "$files")"
+  ret="$?"
+  assert_equals_helper 'Testing valid files' "$LINENO" "$ret" 0
+
+  files="$(find "${FAKE_PATCHES_DIRS[3]}" -mindepth 1 -exec printf "%s " {} \;)"
+  validate_patch_dir_reference "$files"
+  ret="$?"
+  assert_equals_helper 'Testing valid files with cover-letter' "$LINENO" "$ret" 0
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"

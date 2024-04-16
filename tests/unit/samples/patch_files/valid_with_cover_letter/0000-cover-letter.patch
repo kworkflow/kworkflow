@@ -1,0 +1,88 @@
+From e2c5516ed89f9af86dfb6260fa4bd8d6ca49d54f Mon Sep 17 00:00:00 2001
+From: JGBSouza <joaosouzaaa12@gmail.com>
+Date: Fri, 31 May 2024 13:16:31 -0300
+To: JGBSouza <joaosouzaaa12@gmail.com>
+Subject: [PATCH 0/2] *** SUBJECT HERE ***
+
+*** BLURB HERE ***
+
+JGBSouza (1):
+  src: mail: Enable sending files and directory as patches
+
+Marcelo Mendes Spessoto Junior (1):
+  kw: replace every "#!/bin/bash" shebang with "#!/usr/bin/env bash"
+
+ database/migrate_legacy_data_20220101.sh      |  2 +-
+ documentation/content/codingstyle.rst         |  6 ++++++
+ kw                                            |  2 +-
+ run_tests.sh                                  |  2 +-
+ scripts/kwreview.sh                           |  2 +-
+ setup.sh                                      |  2 +-
+ src/mail.sh                                   |  4 ++++
+ tests/integration/config_test.sh              |  2 +-
+ tests/integration/device_test.sh              |  2 +-
+ tests/integration/kw_version_test.sh          |  2 +-
+ .../podman/clone_and_install_kw.sh            |  2 +-
+ tests/integration/utils.sh                    |  2 +-
+ tests/unit/backup_test.sh                     |  2 +-
+ tests/unit/build_test.sh                      |  2 +-
+ tests/unit/codestyle_test.sh                  |  2 +-
+ tests/unit/config_test.sh                     |  2 +-
+ tests/unit/debug_test.sh                      |  2 +-
+ tests/unit/deploy_test.sh                     |  2 +-
+ tests/unit/device_test.sh                     |  2 +-
+ tests/unit/diff_test.sh                       |  2 +-
+ tests/unit/drm_plugin_test.sh                 |  2 +-
+ tests/unit/explore_test.sh                    |  2 +-
+ tests/unit/help_test.sh                       |  2 +-
+ tests/unit/init_test.sh                       |  2 +-
+ tests/unit/kernel_config_manager_test.sh      |  2 +-
+ tests/unit/kw_dash.sh                         |  2 +-
+ tests/unit/kw_db_test.sh                      |  2 +-
+ tests/unit/kw_env_test.sh                     |  2 +-
+ tests/unit/kw_remote_test.sh                  |  2 +-
+ tests/unit/kw_ssh_test.sh                     |  2 +-
+ tests/unit/kw_test.sh                         |  2 +-
+ tests/unit/lib/dialog_ui_test.sh              |  2 +-
+ tests/unit/lib/kw_config_loader_test.sh       |  2 +-
+ tests/unit/lib/kw_include_test.sh             |  2 +-
+ tests/unit/lib/kw_string_test.sh              |  2 +-
+ tests/unit/lib/kw_time_and_date_test.sh       |  2 +-
+ tests/unit/lib/kwio_test.sh                   |  2 +-
+ tests/unit/lib/kwlib_test.sh                  |  2 +-
+ tests/unit/lib/lore_test.sh                   |  2 +-
+ tests/unit/lib/remote_test.sh                 |  2 +-
+ tests/unit/lib/signal_manager_test.sh         |  2 +-
+ tests/unit/lib/statistics_test.sh             |  2 +-
+ tests/unit/lib/web_test.sh                    |  2 +-
+ tests/unit/mail_test.sh                       | 19 ++++++++++++++++++-
+ tests/unit/maintainers_test.sh                |  2 +-
+ tests/unit/patch_hub_test.sh                  |  2 +-
+ tests/unit/permissions_test.sh                |  2 +-
+ .../unit/plugins/kernel_install/arch_test.sh  |  2 +-
+ .../kernel_install/bootloader_utils_test.sh   |  2 +-
+ .../plugins/kernel_install/debian_test.sh     |  2 +-
+ .../plugins/kernel_install/fedora_test.sh     |  2 +-
+ .../unit/plugins/kernel_install/grub_test.sh  |  2 +-
+ tests/unit/plugins/kernel_install/rpi_test.sh |  2 +-
+ .../unit/plugins/kernel_install/utils_test.sh |  2 +-
+ tests/unit/plugins/kw_mail/to_cc_cmd_test.sh  |  2 +-
+ tests/unit/pomodoro_test.sh                   |  2 +-
+ tests/unit/report_test.sh                     |  2 +-
+ tests/unit/samples/tracing/kw_main_file_mock  |  2 +-
+ tests/unit/scripts/profiler_test.sh           |  2 +-
+ tests/unit/self_update_test.sh                |  2 +-
+ tests/unit/tracing/tracing_test.sh            |  4 ++--
+ ...latest_patchsets_from_mailing_list_test.sh |  2 +-
+ .../ui/patch_hub/lore_mailing_lists_test.sh   |  2 +-
+ .../unit/ui/patch_hub/patch_hub_core_test.sh  |  2 +-
+ .../patchset_details_and_actions_test.sh      |  2 +-
+ .../patch_hub/search_string_in_lore_test.sh   |  2 +-
+ tests/unit/ui/patch_hub/settings_test.sh      |  2 +-
+ tests/unit/utils.sh                           |  2 +-
+ tests/unit/vm_test.sh                         |  2 +-
+ 69 files changed, 95 insertions(+), 68 deletions(-)
+
+-- 
+2.34.1
+

@@ -1,0 +1,793 @@
+From c2a23887eae4796c9ac78de500616802f68a948a Mon Sep 17 00:00:00 2001
+From: Marcelo Mendes Spessoto Junior <marcelomspessoto@gmail.com>
+Date: Fri, 19 Apr 2024 22:57:10 -0300
+Subject: [PATCH 1/2] kw: replace every "#!/bin/bash" shebang with
+ "#!/usr/bin/env bash"
+
+The usual "#!/bin/bash" may not work for some linux distributions.
+Replace it with "#!/usr/bin/env bash"
+
+kworkflow, being a bash-written project, requires the use of shebangs to
+define the interpreter environment where kw is run. Nowadays, the
+scripts contain the shebang "#!/bin/bash", which works normally for most
+of the distros.  There are, however, some exceptions, such as NixOS,
+where there is no /bin/bash (bash is located in /nix/store). Using
+workflow on these types of distros may not be smooth, since the user is
+required to run kw commands preceded by bash or manually modify the
+code.
+
+Closes: #1089
+
+Reviewed-by: Rodrigo Siqueira <siqueirajordao@riseup.net>
+Signed-off-by: Marcelo Mendes Spessoto Junior <marcelomspessoto@gmail.com>
+Signed-off-by: Rodrigo Siqueira <siqueirajordao@riseup.net>
+---
+ database/migrate_legacy_data_20220101.sh                    | 2 +-
+ documentation/content/codingstyle.rst                       | 6 ++++++
+ kw                                                          | 2 +-
+ run_tests.sh                                                | 2 +-
+ scripts/kwreview.sh                                         | 2 +-
+ setup.sh                                                    | 2 +-
+ tests/integration/config_test.sh                            | 2 +-
+ tests/integration/device_test.sh                            | 2 +-
+ tests/integration/kw_version_test.sh                        | 2 +-
+ tests/integration/podman/clone_and_install_kw.sh            | 2 +-
+ tests/integration/utils.sh                                  | 2 +-
+ tests/unit/backup_test.sh                                   | 2 +-
+ tests/unit/build_test.sh                                    | 2 +-
+ tests/unit/codestyle_test.sh                                | 2 +-
+ tests/unit/config_test.sh                                   | 2 +-
+ tests/unit/debug_test.sh                                    | 2 +-
+ tests/unit/deploy_test.sh                                   | 2 +-
+ tests/unit/device_test.sh                                   | 2 +-
+ tests/unit/diff_test.sh                                     | 2 +-
+ tests/unit/drm_plugin_test.sh                               | 2 +-
+ tests/unit/explore_test.sh                                  | 2 +-
+ tests/unit/help_test.sh                                     | 2 +-
+ tests/unit/init_test.sh                                     | 2 +-
+ tests/unit/kernel_config_manager_test.sh                    | 2 +-
+ tests/unit/kw_dash.sh                                       | 2 +-
+ tests/unit/kw_db_test.sh                                    | 2 +-
+ tests/unit/kw_env_test.sh                                   | 2 +-
+ tests/unit/kw_remote_test.sh                                | 2 +-
+ tests/unit/kw_ssh_test.sh                                   | 2 +-
+ tests/unit/kw_test.sh                                       | 2 +-
+ tests/unit/lib/dialog_ui_test.sh                            | 2 +-
+ tests/unit/lib/kw_config_loader_test.sh                     | 2 +-
+ tests/unit/lib/kw_include_test.sh                           | 2 +-
+ tests/unit/lib/kw_string_test.sh                            | 2 +-
+ tests/unit/lib/kw_time_and_date_test.sh                     | 2 +-
+ tests/unit/lib/kwio_test.sh                                 | 2 +-
+ tests/unit/lib/kwlib_test.sh                                | 2 +-
+ tests/unit/lib/lore_test.sh                                 | 2 +-
+ tests/unit/lib/remote_test.sh                               | 2 +-
+ tests/unit/lib/signal_manager_test.sh                       | 2 +-
+ tests/unit/lib/statistics_test.sh                           | 2 +-
+ tests/unit/lib/web_test.sh                                  | 2 +-
+ tests/unit/mail_test.sh                                     | 2 +-
+ tests/unit/maintainers_test.sh                              | 2 +-
+ tests/unit/patch_hub_test.sh                                | 2 +-
+ tests/unit/permissions_test.sh                              | 2 +-
+ tests/unit/plugins/kernel_install/arch_test.sh              | 2 +-
+ tests/unit/plugins/kernel_install/bootloader_utils_test.sh  | 2 +-
+ tests/unit/plugins/kernel_install/debian_test.sh            | 2 +-
+ tests/unit/plugins/kernel_install/fedora_test.sh            | 2 +-
+ tests/unit/plugins/kernel_install/grub_test.sh              | 2 +-
+ tests/unit/plugins/kernel_install/rpi_test.sh               | 2 +-
+ tests/unit/plugins/kernel_install/utils_test.sh             | 2 +-
+ tests/unit/plugins/kw_mail/to_cc_cmd_test.sh                | 2 +-
+ tests/unit/pomodoro_test.sh                                 | 2 +-
+ tests/unit/report_test.sh                                   | 2 +-
+ tests/unit/samples/tracing/kw_main_file_mock                | 2 +-
+ tests/unit/scripts/profiler_test.sh                         | 2 +-
+ tests/unit/self_update_test.sh                              | 2 +-
+ tests/unit/tracing/tracing_test.sh                          | 4 ++--
+ .../ui/patch_hub/latest_patchsets_from_mailing_list_test.sh | 2 +-
+ tests/unit/ui/patch_hub/lore_mailing_lists_test.sh          | 2 +-
+ tests/unit/ui/patch_hub/patch_hub_core_test.sh              | 2 +-
+ .../unit/ui/patch_hub/patchset_details_and_actions_test.sh  | 2 +-
+ tests/unit/ui/patch_hub/search_string_in_lore_test.sh       | 2 +-
+ tests/unit/ui/patch_hub/settings_test.sh                    | 2 +-
+ tests/unit/utils.sh                                         | 2 +-
+ tests/unit/vm_test.sh                                       | 2 +-
+ 68 files changed, 74 insertions(+), 68 deletions(-)
+
+diff --git a/database/migrate_legacy_data_20220101.sh b/database/migrate_legacy_data_20220101.sh
+index 906db17..8de7859 100755
+--- a/database/migrate_legacy_data_20220101.sh
++++ b/database/migrate_legacy_data_20220101.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ # This file handles the migration of legacy user data, from the old directories and files
+ # storage, to the new database model
+diff --git a/documentation/content/codingstyle.rst b/documentation/content/codingstyle.rst
+index 19ac2aa..b6257d2 100644
+--- a/documentation/content/codingstyle.rst
++++ b/documentation/content/codingstyle.rst
+@@ -329,6 +329,12 @@ Good::
+ 
+   rsync --verbose --recursive dir1 dir2
+ 
++Declaring shebangs
++------------------
++
++Avoid using "#!/bin/bash" when writing new bash files. This usual shebang may not work for
++some linux distributions that don't follow FHS, such as NixOS. Use "#!/usr/bin/env bash" instead.
++
+ Conclusion
+ ----------
+ 
+diff --git a/kw b/kw
+index 700cd93..41b2951 100755
+--- a/kw
++++ b/kw
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ KWORKFLOW=${KWORKFLOW:-'kw'}
+ 
+diff --git a/run_tests.sh b/run_tests.sh
+index 7e32cf0..24de362 100755
+--- a/run_tests.sh
++++ b/run_tests.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ . ./src/lib/kw_include.sh --source-only
+ include './tests/unit/utils.sh'
+diff --git a/scripts/kwreview.sh b/scripts/kwreview.sh
+index 2095f55..9af8831 100755
+--- a/scripts/kwreview.sh
++++ b/scripts/kwreview.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ declare -gA opt
+ declare -ga analysed_files
+diff --git a/setup.sh b/setup.sh
+index 3ee47fb..34938b5 100755
+--- a/setup.sh
++++ b/setup.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ KW_LIB_DIR='src'
+ . 'src/lib/kw_include.sh' --source-only
+ include "${KW_LIB_DIR}/lib/kwio.sh"
+diff --git a/tests/integration/config_test.sh b/tests/integration/config_test.sh
+index 7e45978..d6551e3 100755
+--- a/tests/integration/config_test.sh
++++ b/tests/integration/config_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ include './tests/integration/utils.sh'
+diff --git a/tests/integration/device_test.sh b/tests/integration/device_test.sh
+index 3a859d9..4694b24 100755
+--- a/tests/integration/device_test.sh
++++ b/tests/integration/device_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ include './tests/integration/utils.sh'
+diff --git a/tests/integration/kw_version_test.sh b/tests/integration/kw_version_test.sh
+index d0f08a2..10379c6 100755
+--- a/tests/integration/kw_version_test.sh
++++ b/tests/integration/kw_version_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/kwio.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/integration/podman/clone_and_install_kw.sh b/tests/integration/podman/clone_and_install_kw.sh
+index d1d27f3..d721c1a 100755
+--- a/tests/integration/podman/clone_and_install_kw.sh
++++ b/tests/integration/podman/clone_and_install_kw.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ # The primary purpose of this file is to install kw's dependencies in the  image
+ # we will built. This will save up time when installing the local copy of KW  in
+diff --git a/tests/integration/utils.sh b/tests/integration/utils.sh
+index ae0e8c9..178fa35 100755
+--- a/tests/integration/utils.sh
++++ b/tests/integration/utils.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/kwio.sh'
+ 
+diff --git a/tests/unit/backup_test.sh b/tests/unit/backup_test.sh
+index 3cb832b..e2b5337 100755
+--- a/tests/unit/backup_test.sh
++++ b/tests/unit/backup_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/backup.sh'
+ include './src/lib/kwlib.sh'
+diff --git a/tests/unit/build_test.sh b/tests/unit/build_test.sh
+index b735aba..1c54734 100755
+--- a/tests/unit/build_test.sh
++++ b/tests/unit/build_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/build.sh' > /dev/null
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/codestyle_test.sh b/tests/unit/codestyle_test.sh
+index 2b9c377..dffa376 100755
+--- a/tests/unit/codestyle_test.sh
++++ b/tests/unit/codestyle_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/codestyle.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/config_test.sh b/tests/unit/config_test.sh
+index bc62503..ca4b292 100755
+--- a/tests/unit/config_test.sh
++++ b/tests/unit/config_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/config.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/debug_test.sh b/tests/unit/debug_test.sh
+index 67ad786..f2dca85 100755
+--- a/tests/unit/debug_test.sh
++++ b/tests/unit/debug_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/debug.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/deploy_test.sh b/tests/unit/deploy_test.sh
+index bc726b6..3a3e905 100755
+--- a/tests/unit/deploy_test.sh
++++ b/tests/unit/deploy_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/deploy.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/device_test.sh b/tests/unit/device_test.sh
+index 6485098..331003e 100755
+--- a/tests/unit/device_test.sh
++++ b/tests/unit/device_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/device_info.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/diff_test.sh b/tests/unit/diff_test.sh
+index cf4c4de..729bbc3 100755
+--- a/tests/unit/diff_test.sh
++++ b/tests/unit/diff_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/diff.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/drm_plugin_test.sh b/tests/unit/drm_plugin_test.sh
+index 44b327c..1bc583f 100755
+--- a/tests/unit/drm_plugin_test.sh
++++ b/tests/unit/drm_plugin_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/plugins/subsystems/drm/drm.sh'
+ include './src/lib/kwlib.sh'
+diff --git a/tests/unit/explore_test.sh b/tests/unit/explore_test.sh
+index 5596e35..298fdf5 100755
+--- a/tests/unit/explore_test.sh
++++ b/tests/unit/explore_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ include './src/explore.sh'
+diff --git a/tests/unit/help_test.sh b/tests/unit/help_test.sh
+index 46f8daa..04e30f5 100755
+--- a/tests/unit/help_test.sh
++++ b/tests/unit/help_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ include './src/help.sh'
+diff --git a/tests/unit/init_test.sh b/tests/unit/init_test.sh
+index 4957be5..6d96a93 100755
+--- a/tests/unit/init_test.sh
++++ b/tests/unit/init_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/init.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/kernel_config_manager_test.sh b/tests/unit/kernel_config_manager_test.sh
+index ee5c3e8..a52ea20 100755
+--- a/tests/unit/kernel_config_manager_test.sh
++++ b/tests/unit/kernel_config_manager_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/kernel_config_manager.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/kw_dash.sh b/tests/unit/kw_dash.sh
+index 647f5a5..0f52ad6 100755
+--- a/tests/unit/kw_dash.sh
++++ b/tests/unit/kw_dash.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ 
+diff --git a/tests/unit/kw_db_test.sh b/tests/unit/kw_db_test.sh
+index a941fa4..880f966 100755
+--- a/tests/unit/kw_db_test.sh
++++ b/tests/unit/kw_db_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ include './src/lib/kw_db.sh'
+diff --git a/tests/unit/kw_env_test.sh b/tests/unit/kw_env_test.sh
+index f70d9e5..9f23b0c 100755
+--- a/tests/unit/kw_env_test.sh
++++ b/tests/unit/kw_env_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/kw_env.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/kw_remote_test.sh b/tests/unit/kw_remote_test.sh
+index ce823c8..b7088a2 100755
+--- a/tests/unit/kw_remote_test.sh
++++ b/tests/unit/kw_remote_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/kw_remote.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/kw_ssh_test.sh b/tests/unit/kw_ssh_test.sh
+index f125689..dc8bf18 100755
+--- a/tests/unit/kw_ssh_test.sh
++++ b/tests/unit/kw_ssh_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/kw_ssh.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/kw_test.sh b/tests/unit/kw_test.sh
+index f6d6922..462eab8 100755
+--- a/tests/unit/kw_test.sh
++++ b/tests/unit/kw_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ unset -v KW_LIB_DIR # to be able to test the developer mode
+diff --git a/tests/unit/lib/dialog_ui_test.sh b/tests/unit/lib/dialog_ui_test.sh
+index 5450af3..991dee9 100755
+--- a/tests/unit/lib/dialog_ui_test.sh
++++ b/tests/unit/lib/dialog_ui_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ #
+ include './src/lib/dialog_ui.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/lib/kw_config_loader_test.sh b/tests/unit/lib/kw_config_loader_test.sh
+index d7153ed..9db669a 100755
+--- a/tests/unit/lib/kw_config_loader_test.sh
++++ b/tests/unit/lib/kw_config_loader_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ include './src/lib/kw_config_loader.sh'
+diff --git a/tests/unit/lib/kw_include_test.sh b/tests/unit/lib/kw_include_test.sh
+index 964a704..41cff45 100755
+--- a/tests/unit/lib/kw_include_test.sh
++++ b/tests/unit/lib/kw_include_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ 
+diff --git a/tests/unit/lib/kw_string_test.sh b/tests/unit/lib/kw_string_test.sh
+index d9fcd80..8640b0c 100755
+--- a/tests/unit/lib/kw_string_test.sh
++++ b/tests/unit/lib/kw_string_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/kw_string.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/lib/kw_time_and_date_test.sh b/tests/unit/lib/kw_time_and_date_test.sh
+index c883f15..5ea88e3 100755
+--- a/tests/unit/lib/kw_time_and_date_test.sh
++++ b/tests/unit/lib/kw_time_and_date_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/kw_time_and_date.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/lib/kwio_test.sh b/tests/unit/lib/kwio_test.sh
+index f1b082a..2334ab1 100755
+--- a/tests/unit/lib/kwio_test.sh
++++ b/tests/unit/lib/kwio_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ include './src/lib/kwio.sh'
+diff --git a/tests/unit/lib/kwlib_test.sh b/tests/unit/lib/kwlib_test.sh
+index 750e1eb..f0e3bcf 100755
+--- a/tests/unit/lib/kwlib_test.sh
++++ b/tests/unit/lib/kwlib_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/maintainers.sh'
+ include './src/lib/kwlib.sh'
+diff --git a/tests/unit/lib/lore_test.sh b/tests/unit/lib/lore_test.sh
+index 2d20f91..1725a9e 100755
+--- a/tests/unit/lib/lore_test.sh
++++ b/tests/unit/lib/lore_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/lore.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/lib/remote_test.sh b/tests/unit/lib/remote_test.sh
+index daead56..e89d113 100755
+--- a/tests/unit/lib/remote_test.sh
++++ b/tests/unit/lib/remote_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/remote.sh'
+ include './src/lib/kwlib.sh'
+diff --git a/tests/unit/lib/signal_manager_test.sh b/tests/unit/lib/signal_manager_test.sh
+index f6b5472..0e836d0 100755
+--- a/tests/unit/lib/signal_manager_test.sh
++++ b/tests/unit/lib/signal_manager_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/signal_manager.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/lib/statistics_test.sh b/tests/unit/lib/statistics_test.sh
+index f16660a..3a483f7 100755
+--- a/tests/unit/lib/statistics_test.sh
++++ b/tests/unit/lib/statistics_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/statistics.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/lib/web_test.sh b/tests/unit/lib/web_test.sh
+index f48421a..ba74de6 100755
+--- a/tests/unit/lib/web_test.sh
++++ b/tests/unit/lib/web_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/lib/web.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/mail_test.sh b/tests/unit/mail_test.sh
+index d822ae1..a65f548 100755
+--- a/tests/unit/mail_test.sh
++++ b/tests/unit/mail_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/mail.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/maintainers_test.sh b/tests/unit/maintainers_test.sh
+index 4a1b19d..0f04c84 100755
+--- a/tests/unit/maintainers_test.sh
++++ b/tests/unit/maintainers_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/maintainers.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/patch_hub_test.sh b/tests/unit/patch_hub_test.sh
+index 1353ed0..cbcecf9 100755
+--- a/tests/unit/patch_hub_test.sh
++++ b/tests/unit/patch_hub_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/patch_hub.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/permissions_test.sh b/tests/unit/permissions_test.sh
+index 5eb4adf..6bc7f09 100755
+--- a/tests/unit/permissions_test.sh
++++ b/tests/unit/permissions_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ 
+diff --git a/tests/unit/plugins/kernel_install/arch_test.sh b/tests/unit/plugins/kernel_install/arch_test.sh
+index 887de86..8b942c3 100755
+--- a/tests/unit/plugins/kernel_install/arch_test.sh
++++ b/tests/unit/plugins/kernel_install/arch_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/plugins/kernel_install/utils.sh'
+ include './src/plugins/kernel_install/arch.sh'
+diff --git a/tests/unit/plugins/kernel_install/bootloader_utils_test.sh b/tests/unit/plugins/kernel_install/bootloader_utils_test.sh
+index d2ce7db..80f9b50 100755
+--- a/tests/unit/plugins/kernel_install/bootloader_utils_test.sh
++++ b/tests/unit/plugins/kernel_install/bootloader_utils_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/plugins/kernel_install/bootloader_utils.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/plugins/kernel_install/debian_test.sh b/tests/unit/plugins/kernel_install/debian_test.sh
+index 66f8003..a69c884 100755
+--- a/tests/unit/plugins/kernel_install/debian_test.sh
++++ b/tests/unit/plugins/kernel_install/debian_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/plugins/kernel_install/utils.sh'
+ include './src/plugins/kernel_install/debian.sh'
+diff --git a/tests/unit/plugins/kernel_install/fedora_test.sh b/tests/unit/plugins/kernel_install/fedora_test.sh
+index 0a235b6..f306d91 100755
+--- a/tests/unit/plugins/kernel_install/fedora_test.sh
++++ b/tests/unit/plugins/kernel_install/fedora_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/plugins/kernel_install/utils.sh'
+ include './src/plugins/kernel_install/fedora.sh'
+diff --git a/tests/unit/plugins/kernel_install/grub_test.sh b/tests/unit/plugins/kernel_install/grub_test.sh
+index a3e6849..770631b 100755
+--- a/tests/unit/plugins/kernel_install/grub_test.sh
++++ b/tests/unit/plugins/kernel_install/grub_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/plugins/kernel_install/utils.sh'
+ include './src/plugins/kernel_install/grub.sh'
+diff --git a/tests/unit/plugins/kernel_install/rpi_test.sh b/tests/unit/plugins/kernel_install/rpi_test.sh
+index 67ccd16..2c4afb4 100755
+--- a/tests/unit/plugins/kernel_install/rpi_test.sh
++++ b/tests/unit/plugins/kernel_install/rpi_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/plugins/kernel_install/utils.sh'
+ include './src/plugins/kernel_install/rpi_bootloader.sh'
+diff --git a/tests/unit/plugins/kernel_install/utils_test.sh b/tests/unit/plugins/kernel_install/utils_test.sh
+index 8c30a78..473d906 100755
+--- a/tests/unit/plugins/kernel_install/utils_test.sh
++++ b/tests/unit/plugins/kernel_install/utils_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ # We load utils in the oneTimeSetUp() to ensure we can replace some kw functions
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/plugins/kw_mail/to_cc_cmd_test.sh b/tests/unit/plugins/kw_mail/to_cc_cmd_test.sh
+index c636a10..4e8798a 100755
+--- a/tests/unit/plugins/kw_mail/to_cc_cmd_test.sh
++++ b/tests/unit/plugins/kw_mail/to_cc_cmd_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ 
+diff --git a/tests/unit/pomodoro_test.sh b/tests/unit/pomodoro_test.sh
+index 6eaf8c3..00b57e1 100755
+--- a/tests/unit/pomodoro_test.sh
++++ b/tests/unit/pomodoro_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/pomodoro.sh'
+ include './src/lib/kw_db.sh'
+diff --git a/tests/unit/report_test.sh b/tests/unit/report_test.sh
+index 821a981..483fc79 100755
+--- a/tests/unit/report_test.sh
++++ b/tests/unit/report_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/report.sh'
+ include './src/lib/kw_db.sh'
+diff --git a/tests/unit/samples/tracing/kw_main_file_mock b/tests/unit/samples/tracing/kw_main_file_mock
+index 44b598d..afab178 100644
+--- a/tests/unit/samples/tracing/kw_main_file_mock
++++ b/tests/unit/samples/tracing/kw_main_file_mock
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ # This is a mock to test the injection of tracing code into kw main file
+ 
+diff --git a/tests/unit/scripts/profiler_test.sh b/tests/unit/scripts/profiler_test.sh
+index c4a61cd..7d89d9d 100755
+--- a/tests/unit/scripts/profiler_test.sh
++++ b/tests/unit/scripts/profiler_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './scripts/profiler.sh' > '/dev/null' 2>&1
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/self_update_test.sh b/tests/unit/self_update_test.sh
+index a6e9dcd..062e3f8 100755
+--- a/tests/unit/self_update_test.sh
++++ b/tests/unit/self_update_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/self_update.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/tracing/tracing_test.sh b/tests/unit/tracing/tracing_test.sh
+index d89f056..5dd647c 100755
+--- a/tests/unit/tracing/tracing_test.sh
++++ b/tests/unit/tracing/tracing_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tracing/tracing.sh'
+ include './tests/unit/utils.sh'
+@@ -45,7 +45,7 @@ function test_sync_main_kw_file_with_tracing()
+   output=$(< "${bin}/${kw_path}")
+   expected=$(
+     cat << 'EOF'
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ # This is a mock to test the injection of tracing code into kw main file
+ 
+diff --git a/tests/unit/ui/patch_hub/latest_patchsets_from_mailing_list_test.sh b/tests/unit/ui/patch_hub/latest_patchsets_from_mailing_list_test.sh
+index ee86553..ad7caed 100755
+--- a/tests/unit/ui/patch_hub/latest_patchsets_from_mailing_list_test.sh
++++ b/tests/unit/ui/patch_hub/latest_patchsets_from_mailing_list_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/ui/patch_hub/latest_patchsets_from_mailing_list.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/ui/patch_hub/lore_mailing_lists_test.sh b/tests/unit/ui/patch_hub/lore_mailing_lists_test.sh
+index bf915b4..91a4f0c 100755
+--- a/tests/unit/ui/patch_hub/lore_mailing_lists_test.sh
++++ b/tests/unit/ui/patch_hub/lore_mailing_lists_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/ui/patch_hub/lore_mailing_lists.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/ui/patch_hub/patch_hub_core_test.sh b/tests/unit/ui/patch_hub/patch_hub_core_test.sh
+index af168e3..6146cfb 100755
+--- a/tests/unit/ui/patch_hub/patch_hub_core_test.sh
++++ b/tests/unit/ui/patch_hub/patch_hub_core_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/ui/patch_hub/patch_hub_core.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/ui/patch_hub/patchset_details_and_actions_test.sh b/tests/unit/ui/patch_hub/patchset_details_and_actions_test.sh
+index 0ee5c9d..0a10a14 100755
+--- a/tests/unit/ui/patch_hub/patchset_details_and_actions_test.sh
++++ b/tests/unit/ui/patch_hub/patchset_details_and_actions_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/ui/patch_hub/patchset_details_and_actions.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/ui/patch_hub/search_string_in_lore_test.sh b/tests/unit/ui/patch_hub/search_string_in_lore_test.sh
+index 9e085c9..2e943df 100755
+--- a/tests/unit/ui/patch_hub/search_string_in_lore_test.sh
++++ b/tests/unit/ui/patch_hub/search_string_in_lore_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/ui/patch_hub/search_string_in_lore.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/ui/patch_hub/settings_test.sh b/tests/unit/ui/patch_hub/settings_test.sh
+index f00a999..e14a601 100755
+--- a/tests/unit/ui/patch_hub/settings_test.sh
++++ b/tests/unit/ui/patch_hub/settings_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './src/ui/patch_hub/settings.sh'
+ include './tests/unit/utils.sh'
+diff --git a/tests/unit/utils.sh b/tests/unit/utils.sh
+index 1ed2775..19bc526 100755
+--- a/tests/unit/utils.sh
++++ b/tests/unit/utils.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ REPO_ROOT_PATH="$PWD"
+ TEST_DIR="$PWD/tests/unit"
+diff --git a/tests/unit/vm_test.sh b/tests/unit/vm_test.sh
+index 6ab43c3..643b5bf 100755
+--- a/tests/unit/vm_test.sh
++++ b/tests/unit/vm_test.sh
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ 
+ include './tests/unit/utils.sh'
+ include './src/lib/kw_config_loader.sh'
+-- 
+2.34.1
+
