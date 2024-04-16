@@ -342,6 +342,10 @@ function find_commit_references()
     parsed=''
   done <<< "$(git rev-parse -- $args 2> /dev/null)"
 
+  if [[ -f "$i" || -d "$i" ]]; then
+    return 0
+  fi
+
   if [[ -n "$commit_range" ]]; then
     printf '%s' "$(str_strip "$commit_range")"
     return 0

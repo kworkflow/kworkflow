@@ -10,6 +10,9 @@ function oneTimeSetUp()
   declare -gr FAKE_KERNEL="$FAKE_GIT/fake_kernel/"
   declare -ga test_config_opts=('test0' 'test1' 'test2' 'user.name' 'sendemail.smtpuser')
 
+  declare -gr FAKE_PATCHES_DIR='fake_patches'
+  declare -gr FAKE_PATCH_FILE="${FAKE_PATCHES_DIR}/fake_patch_file"
+
   export KW_ETC_DIR="$SHUNIT_TMPDIR/etc/"
   export KW_CACHE_DIR="$SHUNIT_TMPDIR/cache/"
 
@@ -29,6 +32,9 @@ function oneTimeSetUp()
   }
 
   mk_fake_git
+
+  mkdir "./${FAKE_PATCHES_DIR}"
+  touch "./${FAKE_PATCH_FILE}"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -494,6 +500,16 @@ function test_mail_send()
   expected='git send-email --to="mail@test.com" extra_args --other_arg -13 -v2'
   assert_equals_helper 'Testing no options option' "$LINENO" "$expected" "$output"
 
+  parse_mail_options "$FAKE_PATCH_FILE" '--to=mail@test.com'
+  output=$(mail_send 'TEST_MODE')
+  expected="git send-email --to=\"mail@test.com\" $FAKE_PATCH_FILE"
+  assert_equals_helper 'Testing send with a file' "$LINENO" "$expected" "$output"
+
+  parse_mail_options "$FAKE_PATCHES_DIR" '--to=mail@test.com'
+  output=$(mail_send 'TEST_MODE')
+  expected="git send-email --to=\"mail@test.com\" $FAKE_PATCHES_DIR"
+  assert_equals_helper 'Testing send with a directory' "$LINENO" "$expected" "$output"
+
   parse_mail_options '--to=mail@test.com'
 
   parse_configuration "$KW_MAIL_CONFIG_SAMPLE" mail_config
@@ -513,6 +529,7 @@ function test_mail_send()
     fail "($LINENO): Failed to move back to original dir"
     exit "$ret"
   }
+
 }
 
 function test_get_configs()
