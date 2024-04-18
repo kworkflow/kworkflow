@@ -234,6 +234,43 @@ function is_valid_argument()
   return 0
 }
 
+# This function creates a temporary file which keeps all the arguments
+# used in the last pomodoro command.
+#
+# @argument A string with all the arguments
+#
+# Return:
+# 0 if the argument is valid an 22 otherwise.
+function store_last_args()
+{
+  local argument=$1
+
+  if [[ -z $argument ]]; then
+    options_values['ERROR']='Received empty arguments string'
+    return 22 # EINVAL
+  fi
+
+  printf "$argument" > "/tmp/last_pomodoro"
+
+  return 0
+}
+
+# This function returns the whole last pomodoro command with its arguments.
+#
+# Return:
+# If a last command was made and the arguments were kept, it returns the last
+# full pomodoro commnad used. If doesn't, an alert print occurs and return 
+# 22 (EINVAL).
+function get_last_args()
+{
+  if [[ -z "/tmp/last_pomodoro" || ! -s "/tmp/last_pomodoro" ]]; then
+    options_values['ERROR']='No last pomodoro command found'
+    return 22 # EINVAL
+  else
+    cat "/tmp/last_pomodoro"
+  fi
+}
+
 # This function returns a tag name given a tag value. If the tag value
 # is a number and there is a correspondent tag ID, it prints the tag name.
 # Otherwise, it prints the value passed as argument.
@@ -305,7 +342,7 @@ function format_text()
 
 function parse_pomodoro()
 {
-  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,verbose'
+  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,verbose,repeat,'
   local short_options='t:,c,s,g:,d:,h'
   local options
 
@@ -369,6 +406,10 @@ function parse_pomodoro()
         options_values['VERBOSE']=1
         shift
         ;;
+      --repeat)
+        bash -c "kw pomodoro $(get_last_args)"
+        return
+        ;;
       --help | -h)
         pomodoro_help "$1"
         exit
@@ -378,6 +419,9 @@ function parse_pomodoro()
         ;;
     esac
   done
+
+  # Stores arguments only if the command was successful
+  store_last_args "$options"
 }
 
 function pomodoro_help()
@@ -393,7 +437,8 @@ function pomodoro_help()
     '  pomodoro (-s|--show-tags) - Show registered tags' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> - Set timer with tag' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> (-d|--description) <desc> - Set timer with tag and description' \
-    '  pomodoro (--verbose) - Show a detailed output'
+    '  pomodoro (--verbose) - Show a detailed output' \
+    '  pomodoro (--repeat) - Repeat the last pomodoro command, if he exists'
 }
 
 load_notification_config
