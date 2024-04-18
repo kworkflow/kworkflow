@@ -24,7 +24,6 @@ if [[ -f "$KW_SYSTEM_WIDE_INSTALLATION" ]]; then
   KW_LIB_DIR='/usr/share/kw'
   KW_SOUND_DIR='/usr/share/sounds/kw'
   KW_DOC_DIR='/usr/share/doc/kw/html/'
-  KW_SOUND_DIR='/usr/share/sounds/kw'
   KW_ETC_DIR='/etc/kw'
 else
   KW_LIB_DIR="${KW_LIB_DIR:-"${HOME}/.local/lib"}/${KWORKFLOW}"
