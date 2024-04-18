@@ -380,4 +380,38 @@ function test_show_tags()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
+function test_get_last_args()
+{
+  local expected_error
+
+  printf "" > "/tmp/last_pomodoro"
+  get_last_args
+  assert_equals_helper 'Empty pomodoro file should return 22' "$LINENO" 22 "$?"
+  expected_error='No last pomodoro command found'
+  assert_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" ${options_values[ERROR]}
+
+  rm /tmp/last_pomodoro
+  get_last_args
+  assert_equals_helper 'Missing pomodoro file should return 22' "$LINENO" 22 "$?"
+  expected_error='No last pomodoro command found'
+  assert_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" ${options_values[ERROR]}
+
+  printf '-t 30m -g "New tag" -d "I know how to reproduce the bug!"' > "/tmp/last_pomodoro"
+  get_last_args
+  assert_equals_helper 'Valid argument should return 0' "$LINENO" 0 "$?"
+}
+
+function test_store_last_args()
+{
+  local expected_error
+
+  store_last_args ''
+  assert_equals_helper 'Empty string should return 22' "$LINENO" 22 "$?"
+  expected_error='Received empty arguments string'
+  asset_equals_helper 'Incorrect error message' "$LINENO" "$expected_error" "${options_value[ERROR]}"
+
+  store_last_args '-t 30m -g "New tag" -d "I know how to reproduce the bug!"'
+  assert_equals_helper 'Valid argument should return 0' "$LINENO" 0 "$?"
+}
+
 invoke_shunit
