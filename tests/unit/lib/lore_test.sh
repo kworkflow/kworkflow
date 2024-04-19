@@ -890,10 +890,10 @@ function test_get_raw_lore_message()
   local expected="curl --silent 'https://domain/list/message-id/raw'"
   local output
 
-  output=$(get_raw_lore_message 'http://domain/list/message-id/' 'TEST-MODE')
+  output=$(get_raw_lore_message 'http://domain/list/message-id/' 'TEST_MODE')
   assert_equals_helper 'Wrong command issued' "$LINENO" "$expected" "$output"
 
-  output=$(get_raw_lore_message 'http://domain/list/message-id' 'TEST-MODE')
+  output=$(get_raw_lore_message 'http://domain/list/message-id' 'TEST_MODE')
   assert_equals_helper 'Wrong command issued' "$LINENO" "$expected" "$output"
 }
 
