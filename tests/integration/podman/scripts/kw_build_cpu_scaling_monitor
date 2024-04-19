@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+
+# This script tests the CPU scaling feature of the 'kw build' command.
+# It runs 'kw build --cpu-scaling <value>', monitors CPU usage, terminates the
+# build process, and verifies that usage remains within the expected range.
+
+if [[ "$#" -eq 0 ]]; then
+  printf 'Usage: %s <cpu_scaling_value>\n' "$0"
+  exit 22
+fi
+
+declare -g CPU_SCALING="$1"
+declare -g CPU_USAGE_FILE='/tmp/cpu_usage.txt'
+
+# CPU Usage (%) = (Δ CPU Time / (Δ Time × Number of CPUs)) × 100
+function monitor_cpu_usage()
+{
+  # Example output from /sys/fs/cgroup/cpu.stat:
+  # usage_usec 1234567890    Total CPU time used in microseconds
+  # user_usec  987654321     CPU time used in user space
+  # system_usec 456789012    CPU time used in kernel space
+
+  # In this case, we're extracting the 'usage_usec' value to calculate CPU usage.
+  local cgroup_path='/sys/fs/cgroup/cpu.stat'
+  local duration_seconds=30
+  local interval_seconds=5
+  local end
+  local initial_usage
+  local final_usage
+  local usage_diff
+  local usage_diff_sec
+  local cpu_count
+  local cpu_usage_percent
+
+  end=$((SECONDS + duration_seconds))
+  while [[ "$SECONDS" -lt "$end" ]]; do
+    initial_usage=$(grep 'usage_usec' "$cgroup_path" | cut --delimiter=' ' --fields=2)
+    sleep "$interval_seconds"
+    final_usage=$(grep 'usage_usec' "$cgroup_path" | cut --delimiter=' ' --fields=2)
+    usage_diff=$((final_usage - initial_usage))
+    usage_diff_sec=$(printf 'scale=6; %s / 1000000\n' "$usage_diff" | bc --mathlib)
+    cpu_count=$(nproc)
+    cpu_usage_percent=$(printf 'scale=2; (%s / (%s * %s)) * 100\n' "$usage_diff_sec" "$interval_seconds" "$cpu_count" | bc --mathlib)
+    printf '%s\n' "$cpu_usage_percent" >> "$CPU_USAGE_FILE"
+  done
+}
+
+function calculate_avg_cpu_usage()
+{
+  local sum=0
+  local count=0
+
+  while IFS= read -r line; do
+    sum=$(printf '%.6f' "$(printf '%s + %s\n' "$sum" "$line" | bc --mathlib)")
+    count=$((count + 1))
+  done < "$CPU_USAGE_FILE"
+
+  if [[ "$count" -gt 0 ]]; then
+    avg=$(printf '%.6f' "$(printf '%s / %s\n' "$sum" "$count" | bc --mathlib)")
+  else
+    avg=0
+  fi
+
+  printf '%s\n' "$avg"
+}
+
+function check_cpu_usage()
+{
+  local avg_cpu_usage="$1"
+  local target_cpu_usage="$CPU_SCALING"
+  local threshold=10
+  local lower_bound
+  local upper_bound
+
+  lower_bound=$(printf '%.2f' "$(bc <<< "${target_cpu_usage} - ${threshold}")")
+  upper_bound=$(printf '%.2f' "$(bc <<< "${target_cpu_usage} + ${threshold}")")
+
+  # Check if the average CPU usage is outside the expected range
+  if [[ $(bc <<< "${avg_cpu_usage} < ${lower_bound}") -eq 1 || $(bc <<< "${avg_cpu_usage} > ${upper_bound}") -eq 1 ]]; then
+    exit 1
+  else
+    exit 0
+  fi
+}
+
+# Start the build command in the background
+eval "kw build --cpu-scaling ${CPU_SCALING}" &
+# Wait a short period to ensure the kw build process is running
+sleep 30
+# Monitor CPU usage while the process is running
+monitor_cpu_usage
+# Calculate the average CPU usage
+avg_cpu_usage=$(calculate_avg_cpu_usage)
+printf 'Average CPU usage during build: %.2f%%\n' "$avg_cpu_usage"
+# Terminate all running build processes
+pkill 'make'
+# Wait a short period to ensure the build processes was stopped
+sleep 10
+# Check if the average CPU usage is within the expected range
+check_cpu_usage "$avg_cpu_usage"
+# Clean up the CPU usage file
+rm "$CPU_USAGE_FILE"
