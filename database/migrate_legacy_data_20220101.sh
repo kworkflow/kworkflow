@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This file handles the migration of legacy user data, from the old directories and files
 # storage, to the new database model

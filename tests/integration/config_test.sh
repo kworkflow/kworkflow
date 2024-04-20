@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 REPO_ROOT_PATH="$PWD"
 TEST_DIR="$PWD/tests/unit"

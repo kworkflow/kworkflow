@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 include './src/lib/dialog_ui.sh'
 include './tests/unit/utils.sh'

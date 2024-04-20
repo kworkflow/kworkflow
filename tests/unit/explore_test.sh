@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './tests/unit/utils.sh'
 include './src/explore.sh'

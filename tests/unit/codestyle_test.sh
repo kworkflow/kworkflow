@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/codestyle.sh'
 include './tests/unit/utils.sh'

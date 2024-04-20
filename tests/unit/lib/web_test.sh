@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/lib/web.sh'
 include './tests/unit/utils.sh'

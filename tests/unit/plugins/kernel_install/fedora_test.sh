@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/plugins/kernel_install/utils.sh'
 include './src/plugins/kernel_install/fedora.sh'

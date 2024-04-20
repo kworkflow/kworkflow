@@ -329,6 +329,12 @@ Good::
 
   rsync --verbose --recursive dir1 dir2
 
+Declaring shebangs
+------------------
+
+Avoid using "#!/bin/bash" when writing new bash files. This usual shebang may not work for
+some linux distributions that don't follow FHS, such as NixOS. Use "#!/usr/bin/env bash" instead.
+
 Conclusion
 ----------
 
