@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/build.sh' > /dev/null
 include './tests/unit/utils.sh'

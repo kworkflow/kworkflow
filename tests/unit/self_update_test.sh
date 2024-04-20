@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/self_update.sh'
 include './tests/unit/utils.sh'

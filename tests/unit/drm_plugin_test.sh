@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/plugins/subsystems/drm/drm.sh'
 include './src/lib/kwlib.sh'

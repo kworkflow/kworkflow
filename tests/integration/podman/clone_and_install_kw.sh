@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # The primary purpose of this file is to install kw's dependencies in the  image
 # we will built. This will save up time when installing the local copy of KW  in

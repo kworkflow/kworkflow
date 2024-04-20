@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './scripts/profiler.sh' > '/dev/null' 2>&1
 include './tests/unit/utils.sh'

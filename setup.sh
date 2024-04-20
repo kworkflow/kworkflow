@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 KW_LIB_DIR='src'
 . 'src/lib/kw_include.sh' --source-only
 include "${KW_LIB_DIR}/lib/kwio.sh"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/device_info.sh'
 include './tests/unit/utils.sh'
