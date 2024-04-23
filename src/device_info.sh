@@ -11,11 +11,12 @@ declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['cpu_max']=''                         # Maximum frequency of CPU in MHz
   ['cpu_min']=''                         # Minimum frequency of CPU in MHz
   ['desktop_environment']=''             # Desktop environment
+  ['kernel_version']=''                  # Kernel version
   ['disk_size']=''                       # Disk size in KB
   ['root_path']=''                       # Root directory path
   ['fs_mount']=''                        # Path where root is mounted
   ['os_name']=''                         # Distro's name
-  ['os_version']=''                      # Distro's versios
+  ['os_version']=''                      # Distro's version
   ['os_id_like']=''                      # Distro which this distro is based on
   ['motherboard_name']=''                # Motherboard name
   ['motherboard_vendor']=''              # Motherboard vendor
@@ -341,6 +342,32 @@ function get_desktop_environment()
   device_info_data['desktop_environment']="$formatted_de"
 }
 
+function get_kernel_version()
+{
+  local target="$1"
+  local flag="$2"
+  local cmd
+  local kernel_version
+
+  cmd="uname -r"
+
+  case "$target" in
+  1) # VM_TARGET
+    kernel_version=$("$cmd")
+    ;;
+  2) # LOCAL_TARGET
+    show_verbose "$flag" "$cmd"
+    kernel_version=$(cmd_manager 'SILENT' "$cmd")
+    ;;
+  3) # REMOTE_TARGET
+    show_verbose "$flag" "$cmd"
+    kernel_version=$(cmd_remotely "$cmd" 'SILENT')
+    ;;
+  esac
+
+  device_info_data['kernel_version']="$kernel_version"
+}
+
 # This function populates the gpu associative array with the vendor and
 # fetchable memory from each GPU found in the target machine.
 function get_gpu()
@@ -569,6 +596,7 @@ function learn_device()
   get_disk "$target" "$flag"
   get_os "$target" "$flag"
   get_desktop_environment "$target" "$flag"
+  get_kernel_version "$target" "$flag"
   get_gpu "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
@@ -640,6 +668,7 @@ function show_data()
     printf '  Distribution base: %s\n' "${device_info_data['os_id_like']}"
   fi
   printf '  Desktop environments: %s\n' "${device_info_data['desktop_environment']}"
+  printf '  Kernel version: %s\n' "${device_info_data['kernel_version']}"
 
   if [[ "$target" != "$VM_TARGET" ]]; then
     say 'Motherboard:'
