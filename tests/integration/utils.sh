@@ -32,7 +32,7 @@ function build_distro_image()
   local distro="$1"
   local file="${CONTAINER_DIR}/Containerfile_${distro}"
 
-  podman image build --file "$file" --tag "kw-${distro}" > /dev/null 2>&1
+  image_build --file "$file" --tag "kw-${distro}"
 
   if [[ "$?" -ne 0 ]]; then
     fail "(${LINENO}): Error building the image for distribution ${distro}"
@@ -57,7 +57,6 @@ function setup_container_environment()
   working_directory='/tmp/kw'
 
   for distro in "${DISTROS[@]}"; do
-
     # container_img is the image name, while container_name is the name of the
     # container built from the image.
     container_img="kw-${distro}"
@@ -86,7 +85,7 @@ function setup_container_environment()
 
     # If container exists, we tear it down and create a new one in order to
     # ensure KW installation reflects the latest local changes.
-    podman container exists "${container_name}"
+    container_exists "${container_name}"
     if [[ "$?" -eq 0 ]]; then
       teardown_single_container "${container_name}"
     fi
@@ -129,7 +128,7 @@ function setup_container_environment()
   DISTROS=("${distros_ok[@]}")
 }
 
-# Destroy all containers used in the tests
+# Destroy all containers used in the tests.
 function teardown_containers()
 {
   local distro
@@ -145,12 +144,12 @@ function teardown_containers()
 
 # Destroy a single container
 #
-# @container    Name or ID of the container
+# @container    Container name or id.
 function teardown_single_container()
 {
   local container="$1"
 
-  podman container exists "${container}"
+  container_exists "${container}"
 
   if [[ "$?" -eq 0 ]]; then
     # Destroy container sending SIGKILL instantly.
@@ -328,7 +327,44 @@ function image_inspect()
   fi
 }
 
-# run a container
+# Build a container image.
+#
+# @args   Arguments to be passed to podman.
+function image_build()
+{
+  # shellcheck disable=SC2068
+  podman image build $@ > /dev/null 2>&1
+
+  if [[ "$?" -ne 0 ]]; then
+    fail "(${LINENO}): Failed to build the image."
+  fi
+}
+
+# Check existence of given container.
+#
+# @container    The container name or id.
+function container_exists()
+{
+  podman container exists "$1"
+}
+
+# Remove the given containers.
+#
+# @options      Options to be passed to podman if any.
+# @containers   Container names or ids.
+function container_rm()
+{
+  # shellcheck disable=SC2068
+  podman container rm $@ > /dev/null 2>&1
+
+  if [[ "$?" -ne 0 ]]; then
+    fail "(${LINENO}): Failed to remove containers."
+  fi
+}
+
+# Run a container.
+#
+# @args   Arguments to be passed to podman.
 function container_run()
 {
   # shellcheck disable=SC2068
@@ -364,7 +400,7 @@ function container_exec()
   fi
 }
 
-# Copy files from the host to the container
+# Copy files from the host to the container.
 #
 # @container The container to copy files to.
 # @src       The file in the host.
@@ -384,8 +420,8 @@ function container_copy()
 
 # Inspect the given containers.
 #
-# @options  Options to be passed to podman.
-# @images   Container names or ids.
+# @options      Options to be passed to podman.
+# @containers   Container names or ids.
 function container_inspect()
 {
   # shellcheck disable=SC2068
