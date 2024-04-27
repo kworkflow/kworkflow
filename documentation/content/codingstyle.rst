@@ -244,11 +244,11 @@ a developer. We also encourage using the ``assert_equals_helper`` helper
 function, which provides a wrapper capable of spitting a useful error message
 in case the assertion fails. Ideally, one should do either::
 
-   assert_equals_helper "$error_message" "($LINENO)" "$output" "$expected_output"
+   assert_equals_helper "$error_message" "($LINENO)" "$expected_output" "$output"
 
 or::
 
-   assertEquals "($LINENO)" "$output" "$expected_output"
+   assertEquals "($LINENO)" "$expected_output" "$output"
 
 Help functions
 --------------

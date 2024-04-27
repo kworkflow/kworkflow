@@ -108,11 +108,11 @@ function test_set_config_value_changing_default_value()
 
   set_config_value 'use_llvm' 'lala' "${KW_CONFIG_BASE_PATH}/build.config"
   output=$(grep 'use_llvm' "${KW_CONFIG_BASE_PATH}/build.config")
-  assert_equals_helper 'Change llvm' "($LINENO)" "$output" 'use_llvm=lala'
+  assert_equals_helper 'Change llvm' "($LINENO)" 'use_llvm=lala' "$output"
 
   set_config_value 'menu_config' 'menuconfig' "${KW_CONFIG_BASE_PATH}/build.config"
   output=$(grep 'menu_config' "${KW_CONFIG_BASE_PATH}/build.config")
-  assert_equals_helper 'Change llvm' "($LINENO)" "$output" 'menu_config=menuconfig'
+  assert_equals_helper 'Change llvm' "($LINENO)" 'menu_config=menuconfig' "$output"
 }
 
 function test_set_config_value_with_dot_in_the_value()
@@ -133,7 +133,7 @@ function test_set_config_with_a_path_as_value()
 
   set_config_value 'qemu_path_image' '/DATA/QEMU_VMS/virty.qcow2' "${KW_CONFIG_BASE_PATH}/vm.config"
   output=$(grep 'qemu_path_image' "${KW_CONFIG_BASE_PATH}/vm.config")
-  assert_equals_helper 'Change llvm' "($LINENO)" "$output" 'qemu_path_image=/DATA/QEMU_VMS/virty.qcow2'
+  assert_equals_helper 'Change llvm' "($LINENO)" 'qemu_path_image=/DATA/QEMU_VMS/virty.qcow2' "$output"
 }
 
 function test_set_config_with_verbose_mode()
