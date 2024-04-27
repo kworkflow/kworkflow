@@ -202,7 +202,7 @@ function test_validate_env_before_switch_invalid_case_with_config()
   # In this case we don't care about the user output for the test, for this
   # reason, move to dev/null
   validate_env_before_switch > /dev/null
-  assert_equals_helper 'It should not allow switch to a new env due to .config file.' "$LINENO" "$?" 22
+  assert_equals_helper 'It should not allow switch to a new env due to .config file.' "$LINENO" 22 "$?"
 }
 
 function test_validate_env_before_switch_invalid_case_with_object_file()
@@ -217,7 +217,7 @@ function test_validate_env_before_switch_invalid_case_with_object_file()
   # In this case we don't care about the user output for the test, for this
   # reason, move to dev/null
   validate_env_before_switch > /dev/null
-  assert_equals_helper 'It should not allow switch to a new env due to object files.' "$LINENO" "$?" 22
+  assert_equals_helper 'It should not allow switch to a new env due to object files.' "$LINENO" 22 "$?"
 }
 
 function test_validate_env_before_switch_no_config_and_no_object_files()
@@ -226,7 +226,7 @@ function test_validate_env_before_switch_no_config_and_no_object_files()
   mv '.config' 'config'
 
   validate_env_before_switch > /dev/null
-  assert_equals_helper 'It should allow switch to a new env.' "$LINENO" "$?" 0
+  assert_equals_helper 'It should allow switch to a new env.' "$LINENO" 0 "$?"
 }
 
 function test_parse_env_options()

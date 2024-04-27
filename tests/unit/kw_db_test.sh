@@ -31,12 +31,12 @@ function test_execute_sql_script()
 
   output=$(execute_sql_script 'wrong/path/invalid_script.sql')
   ret="$?"
-  assert_equals_helper 'Invalid script, error expected' "$LINENO" "$ret" 2
+  assert_equals_helper 'Invalid script, error expected' "$LINENO" 2 "$ret"
 
   output=$(execute_sql_script "$DB_FILES/init.sql")
   ret="$?"
   expected="Creating database: $KW_DATA_DIR/kw.db"
-  assert_equals_helper 'No errors expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No errors expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'DB file does not exist, should warn' "$LINENO" "$expected" "$output"
 
   assertTrue "($LINENO) DB file should be created" '[[ -f "$KW_DATA_DIR/kw.db" ]]'
@@ -49,17 +49,17 @@ function test_execute_sql_script()
 
   execute_sql_script "$DB_FILES/insert.sql"
   ret="$?"
-  assert_equals_helper 'No errors expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No errors expected' "$LINENO" 0 "$ret"
 
   # counting the number rows in each table
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT count(id) FROM tags;')
-  assert_equals_helper 'Expected 4 tags' "$LINENO" "$output" 4
+  assert_equals_helper 'Expected 4 tags' "$LINENO" 4 "$output"
 
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT count(rowid) FROM pomodoro;')
-  assert_equals_helper 'Expected 5 pomodoro entries' "$LINENO" "$output" 5
+  assert_equals_helper 'Expected 5 pomodoro entries' "$LINENO" 5 "$output"
 
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT count(rowid) FROM statistics;')
-  assert_equals_helper 'Expected 4 statistic entries' "$LINENO" "$output" 4
+  assert_equals_helper 'Expected 4 statistic entries' "$LINENO" 4 "$output"
 }
 
 function test_format_values_db()
@@ -71,37 +71,37 @@ function test_format_values_db()
   output=$(format_values_db 0)
   ret="$?"
   expected='No arguments given'
-  assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   output=$(format_values_db 3 'first' 'second' 'third')
   ret="$?"
   expected="('first','second','third')"
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   output=$(format_values_db 2 "some_func('lala xpto')" "somefunc2('lala xpto')")
   ret="$?"
   expected="(some_func('lala xpto'),somefunc2('lala xpto'))"
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   output=$(format_values_db 2 'first 1' 'second 1' 'first 2' 'second 2')
   ret="$?"
   expected="('first 1','second 1'),('first 2','second 2')"
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   output=$(format_values_db 1 "some 'quotes'")
   ret="$?"
   expected="('some ''quotes''')"
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   output=$(format_values_db 2 'first' 'NULL')
   ret="$?"
   expected="('first',NULL)"
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
@@ -115,25 +115,25 @@ function test_execute_command_db()
   output=$(execute_command_db 'some cmd' 'wrong/path/invalid_db.db')
   ret="$?"
   expected='Database does not exist'
-  assert_equals_helper 'Invalid db, error expected.' "$LINENO" "$ret" 2
+  assert_equals_helper 'Invalid db, error expected.' "$LINENO" 2 "$ret"
   assert_equals_helper 'Expected error msg.' "$LINENO" "$expected" "$output"
 
   output=$(execute_command_db 'SELECT * FROM tags;')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM tags;')
-  assert_equals_helper 'No error expected.' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected.' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output.' "$LINENO" "$expected" "$output"
 
   output=$(execute_command_db 'SELECT * FROM not_a_table;' 2>&1)
   ret="$?"
   expected='no such table: not_a_table'
-  assert_equals_helper 'Invalid table.' "$LINENO" "$ret" 1
+  assert_equals_helper 'Invalid table.' "$LINENO" 1 "$ret"
   assert_substring_match 'Wrong output.' "($LINENO)" "$expected" "$output"
 
   output=$(execute_command_db 'SELEC * FROM tags;' 2>&1)
   ret="$?"
   expected='near "SELEC": syntax error'
-  assert_equals_helper 'Invalid table.' "$LINENO" "$ret" 1
+  assert_equals_helper 'Invalid table.' "$LINENO" 1 "$ret"
   assert_substring_match 'Wrong output.' "($LINENO)" "$expected" "$output"
 
   entries="$(concatenate_with_commas name start_date)"
@@ -141,7 +141,7 @@ function test_execute_command_db()
   output=$(execute_command_db "SELECT $entries FROM statistics;")
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT name,start_date FROM statistics;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Testing with concatenate_with_commas' "$LINENO" "$expected" "$output"
 }
 
@@ -157,19 +157,19 @@ function test_insert_into()
   output=$(insert_into table entries values 'wrong/path/invalid_db.db')
   ret="$?"
   expected='Database does not exist'
-  assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 2
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   output=$(insert_into '' entries values)
   ret="$?"
   expected='Empty table or values.'
-  assert_equals_helper 'Empty table, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   output=$(insert_into table entries '')
   ret="$?"
   expected='Empty table or values.'
-  assert_equals_helper 'Empty values, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Empty values, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   # valid
@@ -177,28 +177,28 @@ function test_insert_into()
   ret="$?"
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags WHERE id = 5;')
   expected='new tag'
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   insert_into 'tags' '' "('6','other tag')"
   ret="$?"
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags WHERE id = 6;')
   expected='other tag'
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   insert_into 'tags' 'tag' "('yet another tag')"
   ret="$?"
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags WHERE id = 7;')
   expected='yet another tag'
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   insert_into 'pomodoro' '("tag_id","start_date","start_time","duration","description")' "(4,date('now'),time('now'),600,'some description')"
   ret="$?"
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "description" FROM pomodoro WHERE "tag_id" = 4;')
   expected='some description'
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   entries=$(concatenate_with_commas '"tag_id"' '"start_date"' '"start_time"' '"duration"' '"description"')
@@ -207,7 +207,7 @@ function test_insert_into()
   ret="$?"
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "description" FROM pomodoro WHERE "tag_id" = 5;')
   expected='some description 2'
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Testing with format functions' "$LINENO" "$expected" "$output"
 
   entries=$(concatenate_with_commas id tag)
@@ -216,7 +216,7 @@ function test_insert_into()
   ret="$?"
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT tag FROM tags WHERE id >= 8;')
   expected=$'tag 8\ntag 9'
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Testing with format functions' "$LINENO" "$expected" "$output"
 }
 
@@ -232,20 +232,20 @@ function test_select_from()
   output=$(select_from table columns '' '' '' '' 'wrong/path/invalid_db.db')
   ret="$?"
   expected='Database does not exist'
-  assert_equals_helper 'Invalid db, error expected' "$LINENO" "$ret" 2
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   output=$(select_from '' "$entries" '' '')
   ret="$?"
   expected='Empty table.'
-  assert_equals_helper 'Empty table, error expected' "$LINENO" "$ret" 22
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   # valid
   output=$(select_from 'pomodoro' "$entries" '' '')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM "pomodoro" ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   entries=$(concatenate_with_commas '"start_date"' '"start_time"' '"description"')
@@ -253,56 +253,56 @@ function test_select_from()
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,=']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time < '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<=']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <= '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,>']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time > '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,>=']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time >= '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,!=']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time != '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<>']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <> '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 

@@ -730,8 +730,8 @@ function test_parse_deploy_options()
   declare -gA options_values
   parse_deploy_options --remote 'user@127.0.2.1:8888'
   assert_equals_helper 'Could not set deploy REMOTE_USER' "($LINENO)" 'user' "${remote_parameters['REMOTE_USER']}"
-  assert_equals_helper 'Could not set deploy REMOTE' "($LINENO)" "${remote_parameters['REMOTE_IP']}" '127.0.2.1'
-  assert_equals_helper 'Could not set deploy REMOTE_PORT' "($LINENO)" "${remote_parameters['REMOTE_PORT']}" '8888'
+  assert_equals_helper 'Could not set deploy REMOTE' "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
+  assert_equals_helper 'Could not set deploy REMOTE_PORT' "($LINENO)" '8888' "${remote_parameters['REMOTE_PORT']}"
 
   unset options_values
   declare -gA options_values
@@ -945,8 +945,8 @@ function test_collect_target_info_for_deploy()
   # LOCAL
   alias collect_deploy_info='collect_deploy_info_other_mock'
   collect_target_info_for_deploy 2 'TEST_MODE'
-  assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'LILO'
-  assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'fedora'
+  assert_equals_helper 'Check bootloader' "($LINENO)" 'LILO' "${target_deploy_info[bootloader]}"
+  assert_equals_helper 'Check distro' "($LINENO)" 'fedora' "${target_deploy_info[distro]}"
 
   # REMOTE
   function cmd_remotely()
@@ -955,8 +955,8 @@ function test_collect_target_info_for_deploy()
     printf '[bootloader]=syslinux [distro]=chrome'
   }
   collect_target_info_for_deploy 3 'TEST_MODE'
-  assert_equals_helper 'Check bootloader' "($LINENO)" "${target_deploy_info[bootloader]}" 'syslinux'
-  assert_equals_helper 'Check distro' "($LINENO)" "${target_deploy_info[distro]}" 'chrome'
+  assert_equals_helper 'Check bootloader' "($LINENO)" 'syslinux' "${target_deploy_info[bootloader]}"
+  assert_equals_helper 'Check distro' "($LINENO)" 'chrome' "${target_deploy_info[distro]}"
 }
 
 function test_get_kernel_binary_name_outside_env()
@@ -971,11 +971,11 @@ function test_get_kernel_binary_name_outside_env()
 
   build_config['arch']='arm64'
   output=$(get_kernel_binary_name)
-  assert_equals_helper 'Expected Image for ARM' "($LINENO)" "$output" 'Image'
+  assert_equals_helper 'Expected Image for ARM' "($LINENO)" 'Image' "$output"
 
   build_config['arch']='x86_64'
   output=$(get_kernel_binary_name)
-  assert_equals_helper 'Expected bzImage for x86' "($LINENO)" "$output" 'bzImage'
+  assert_equals_helper 'Expected bzImage for x86' "($LINENO)" 'bzImage' "$output"
 
   cd "$original" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -991,11 +991,11 @@ function test_get_kernel_binary_name_inside_env()
 
   build_config['arch']='arm64'
   output=$(get_kernel_binary_name)
-  assert_equals_helper 'Expected Image for ARM' "($LINENO)" "$output" 'Image'
+  assert_equals_helper 'Expected Image for ARM' "($LINENO)" 'Image' "$output"
 
   build_config['arch']='x86_64'
   output=$(get_kernel_binary_name)
-  assert_equals_helper 'Expected bzImage for x86' "($LINENO)" "$output" 'bzImage'
+  assert_equals_helper 'Expected bzImage for x86' "($LINENO)" 'bzImage' "$output"
 }
 
 function test_get_kernel_binary_name_invalid_operation()
