@@ -12,6 +12,7 @@ declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['cpu_max']=''                         # Maximum frequency of CPU in MHz
   ['cpu_min']=''                         # Minimum frequency of CPU in MHz
   ['desktop_environment']=''             # Desktop environment
+  ['kernel_name']=''                  # Kernel name
   ['kernel_version']=''                  # Kernel version
   ['disk_size']=''                       # Disk size in KB
   ['root_path']=''                       # Root directory path
@@ -359,25 +360,34 @@ function get_kernel_version()
 {
   local target="$1"
   local flag="$2"
-  local cmd
+  local cmd_version
   local kernel_version
 
-  cmd="uname -r"
+  cmd_name='uname -s'
+  cmd_version="uname -r"
 
   case "$target" in
   1) # VM_TARGET
-    kernel_version=$("$cmd")
+    kernel_name=$("$cmd_name")
+    kernel_version=$("$cmd_version")
     ;;
   2) # LOCAL_TARGET
-    show_verbose "$flag" "$cmd"
-    kernel_version=$(cmd_manager 'SILENT' "$cmd")
+    show_verbose "$flag" "$cmd_name"
+    kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
+
+    show_verbose "$flag" "$cmd_version"
+    kernel_version=$(cmd_manager 'SILENT' "$cmd_version")
     ;;
   3) # REMOTE_TARGET
-    show_verbose "$flag" "$cmd"
-    kernel_version=$(cmd_remotely "$cmd" 'SILENT')
+    show_verbose "$flag" "$cmd_name"
+    kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
+
+    show_verbose "$flag" "$cmd_version"
+    kernel_version=$(cmd_remotely "$cmd_version" 'SILENT')
     ;;
   esac
 
+  device_info_data['kernel_name']="$kernel_name"
   device_info_data['kernel_version']="$kernel_version"
 }
 
@@ -684,7 +694,8 @@ function show_data()
   printf '  Desktop environments: %s\n' "${device_info_data['desktop_environment']}"
 
   say 'Kernel:'
-  printf '  Version: %s\n' "${device_info_data['kernel_version']}"
+  printf '  Name: %s\n' "${device_info_data['kernel_name']}"
+  printf '  Version/Release: %s\n' "${device_info_data['kernel_version']}"
 
   if [[ "$target" != "$VM_TARGET" ]]; then
     say 'Motherboard:'
