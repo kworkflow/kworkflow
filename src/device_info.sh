@@ -7,6 +7,7 @@ include "${KW_LIB_DIR}/vm.sh"
 
 declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['cpu_model']=''                       # CPU model vendor
+  ['cpu_architecture']=''                # CPU architecture
   ['cpu_currently']=''                   # Current frequency of CPU in MHz
   ['cpu_max']=''                         # Maximum frequency of CPU in MHz
   ['cpu_min']=''                         # Minimum frequency of CPU in MHz
@@ -110,6 +111,7 @@ function get_cpu()
   local flag="$2"
   local cpu_model
   local cpu_frequency
+  local cpu_architecture
   local cpu_currently
   local cpu_max
   local cpu_min
@@ -118,10 +120,14 @@ function get_cpu()
   flag=${flag:-'SILENT'}
   cmd_model="lscpu | grep 'Model name:' | sed --regexp-extended 's/Model name:\s+//g' | cut --delimiter=' ' -f1"
   cmd_frequency="lscpu | grep MHz | sed --regexp-extended 's/(CPU.*)/\t\t\1/'"
+  cmd_architecture="lscpu | grep 'Architecture:' | sed --regexp-extended 's/Architecture:\s+//g' | cut --delimiter=' ' -f1"
 
   case "$target" in
     1) #VM_TARGET
       cpu_model='Virtual'
+
+      show_verbose "$flag" "$cmd_architecture"
+      cpu_architecture=$(cmd_manager 'SILENT' "$cmd_architecture")
       ;;
     2) # LOCAL_TARGET
       show_verbose "$flag" "$cmd_model"
@@ -129,6 +135,9 @@ function get_cpu()
 
       show_verbose "$flag" "$cmd_frequency"
       cpu_frequency=$(cmd_manager 'SILENT' "$cmd_frequency")
+
+      show_verbose "$flag" "$cmd_architecture"
+      cpu_architecture=$(cmd_manager 'SILENT' "$cmd_architecture")
       ;;
     3) # REMOTE_TARGET
       show_verbose "$flag" "$cmd_model"
@@ -136,13 +145,17 @@ function get_cpu()
 
       show_verbose "$flag" "$cmd_frequency"
       cpu_frequency=$(cmd_remotely "$cmd_frequency" 'SILENT')
+
+      show_verbose "$flag" "$cmd_architecture"
+      cpu_architecture=$(cmd_manager 'SILENT' "$cmd_architecture")
       ;;
   esac
 
   device_info_data['cpu_model']="$cpu_model"
+  device_info_data['cpu_architecture']="$cpu_architecture"
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n%s\n' "$cpu_model" "$cpu_frequency"
+    printf '%s\n%s\n%s\n' "$cpu_model" "$cpu_frequency" "$cpu_architecture"
     return 0
   fi
 
@@ -636,6 +649,7 @@ function show_data()
 
   say 'CPU:'
   printf '  Model: %s\n' "${device_info_data['cpu_model']}"
+  printf '  Architecture: %s\n' "${device_info_data['cpu_architecture']}"
 
   if [[ -n "${device_info_data['cpu_currently']}" ]]; then
     printf '  Current frequency (MHz): %s\n' "${device_info_data['cpu_currently']}"
@@ -668,7 +682,9 @@ function show_data()
     printf '  Distribution base: %s\n' "${device_info_data['os_id_like']}"
   fi
   printf '  Desktop environments: %s\n' "${device_info_data['desktop_environment']}"
-  printf '  Kernel version: %s\n' "${device_info_data['kernel_version']}"
+
+  say 'Kernel:'
+  printf '  Version: %s\n' "${device_info_data['kernel_version']}"
 
   if [[ "$target" != "$VM_TARGET" ]]; then
     say 'Motherboard:'
