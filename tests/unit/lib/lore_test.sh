@@ -760,6 +760,7 @@ function test_thread_for_process_individual_patch()
     "$author_email1" "$updated1" "$line1" 0 "$shared_dir_path" &
   thread_for_process_individual_patch "$message_id2" "$message_title2" "$author_name2" \
     "$author_email2" "$updated2" "$line2" 1 "$shared_dir_path"
+  wait
 
   [[ -f "${shared_dir_path}/0" ]]
   # shellcheck disable=SC2319
