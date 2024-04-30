@@ -684,6 +684,14 @@ function test_kernel_uninstall()
   deploy_remote_cmd+=" --uninstall-kernels '1' 'remote' '$single_kernel' 'TEST_MODE' ''"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$deploy_remote_cmd\""
   assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
+
+  # Kernel with regex
+  output=$(run_kernel_uninstall 3 1 "regex:(5.*-rc7)" 'TEST_MODE' '' 1)
+  deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
+  deploy_remote_cmd+=" --uninstall-kernels '1' 'remote' 'regex:(5.*-rc7)' 'TEST_MODE' ''"
+  run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$deploy_remote_cmd\""
+  assert_equals_helper 'Regex option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
+
 }
 
 function test_cleanup()

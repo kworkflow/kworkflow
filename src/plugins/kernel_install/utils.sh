@@ -551,32 +551,88 @@ function do_uninstall()
   fi
 }
 
+# Element existence check. Checks if element belongs to given array.
+#
+# @target_element: element being checked
+# @array: target array
+#
+# Return:
+# returns 0 if element is in array and 1 otherwise
+function is_in_array()
+{
+  local target_element="$1"
+  local -n _array="$2"
+
+  for element in "${_array[@]}"; do
+    if [[ "$element" == "$target_element" ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Return a list of unique available kernels names
+#
+# @prefix: set a base prefix for searching for kernels.
+# @all_kernels: list all available kernels, not only the ones installed by kw
+#
+# Return:
+# returns array containing available kernels
+function process_installed_kernels()
+{
+  local all_kernels="$1"
+  local prefix="$2"
+  local -n _processed_installed_kernels="$3"
+  local kernels
+
+  kernels=$(list_installed_kernels 'SILENT' 1 "$all_kernels" "$prefix")
+  IFS=, read -r -a available_kernels <<< "$kernels"
+  mapfile -t _processed_installed_kernels <<< "$(printf "%s\n" "${available_kernels[@]}" | sort --unique)"
+}
+
 function kernel_uninstall()
 {
   local reboot="$1"
   local target="$2"
-  local kernel_list_string="$3"
+  local kernel_list_string_or_regex="$3"
   local flag="$4"
   local force="$5"
   local prefix="$6"
   local update_grub=0
+  local -a deduped_all_kernels
+  local -a deduped_kw_managed_kernels
+  local prefix_for_regex='regex:'
+  declare -A kernel_names
 
-  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
-  cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
-
-  kernel_list_string=$(printf '%s' "$kernel_list_string" | tr --delete ' ')
-
-  if [[ -z "$kernel_list_string" ]]; then
+  if [[ -z "$kernel_list_string_or_regex" ]]; then
     printf '%s\n' 'Invalid argument'
     exit 22 #EINVAL
   fi
 
-  IFS=', ' read -r -a kernel_names <<< "$kernel_list_string"
-  for kernel in "${kernel_names[@]}"; do
-    cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
-    cmd_manager "$flag" "$cmd"
+  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
+  cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
+
+  process_installed_kernels 1 "$prefix" 'deduped_all_kernels'
+  process_installed_kernels '' "$prefix" 'deduped_kw_managed_kernels'
+
+  IFS=', ' read -r -a kernel_names_array <<< "$kernel_list_string_or_regex"
+
+  for input_string in "${kernel_names_array[@]}"; do
+    for installed_kernel in "${deduped_all_kernels[@]}"; do
+      if [[ "$input_string" =~ ^$prefix_for_regex ]]; then
+        input_regex=^${input_string#"$prefix_for_regex"}$
+        [[ $installed_kernel =~ $input_regex ]] && kernel_names["$installed_kernel"]=1
+      else
+        [[ "$installed_kernel" == "$input_string" ]] && kernel_names["$installed_kernel"]=1
+      fi
+    done
+  done
+
+  for kernel in "${!kernel_names[@]}"; do
+    # is_in_array "$kernel" "deduped_kw_managed_kernels[@]"
+    is_in_array "$kernel" 'deduped_kw_managed_kernels'
     if [[ "$?" != 0 && -z "$force" ]]; then
-      printf '%s\n' "$kernel not managed by kw. Use --force/-f to uninstall anyway."
+      printf '%s\n' "${kernel} not managed by kw. Use --force/-f to uninstall anyway."
       continue # EINVAL
     fi
 
