@@ -280,6 +280,18 @@ it stays consistent across multiple platforms. If you need to add extra lines
 while generating a string you can use the ``$'\n'`` literal to add a new line
 character or other special characters.
 
+Single quotes instead double quotes
+-----------------------------------
+
+Whenever you have a variable that stands for a string that doesn’t contain 
+shell expansions, use single quotes instead of double quotes. For example::
+
+  var='literal-value' #Single quotes
+
+or::
+
+  path="${HOME}/path/to/file" #Double quotes
+
 String concatenation
 --------------------
 
