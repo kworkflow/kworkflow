@@ -85,9 +85,10 @@ OPTIONS
 -s, \--ls-line:
   List available kernels separated by comma.
 
--u <kernel-name>[,...], \--uninstall <kernel-name>[,...]:
+-u (<kernel-name> | regex:<pattern>)[,...], \--uninstall (<kernel-name> | regex:<pattern>)[,...]:
   Remove a single kernel or multiple kernels; for removing
-  multiple kernels it is necessary to separate them with comma.
+  multiple kernels it is necessary to separate them with comma. A regex pattern
+  can also be passed as input, prefixed with 'regex:'.
 
 -f, \--force:
   Remove kernels even if they were not installed by kw (only valid with
@@ -153,3 +154,17 @@ any other kw user. If you want to install a custom kernel from this package,
 you can use::
 
   kw deploy --from-package 5.19.0-THIS-IS-AN-EXAMPLE+.kw.tar
+
+Below are examples of how to use `kw deploy --uninstall`:
+
+1) Full kernel name argument
+
+  kw deploy --uninstall 'kernel1'
+
+2) Regular expression argument
+
+  kw deploy --uninstall 'regex:kernel.*'
+
+3) Comma-separated list of full kernel names and regular expressions
+
+  kw deploy --uninstall 'regex:kernel[1-3],kernel4,regex:kernel[5-6]'
