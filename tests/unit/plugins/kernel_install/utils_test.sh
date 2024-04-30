@@ -52,7 +52,7 @@ function setUp()
   # Creating fake installed kernels
   touch "$INSTALLED_KERNELS_PATH"
   printf '5.5.0-rc2-VKMS+' >> "$INSTALLED_KERNELS_PATH"
-  printf '5.6.0-rc2-AMDGPU+' >> "$INSTALLED_KERNELS_PATH"
+  printf '\n%s' '5.6.0-rc2-AMDGPU+' >> "$INSTALLED_KERNELS_PATH"
 
   # Replace KW_DEPLOY_TMP_FILE
   test_tmp_file="$SHUNIT_TMPDIR/tmp/kw"
@@ -206,30 +206,88 @@ function test_reboot_machine()
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
 }
 
-function test_kernel_uninstall_unmanaged()
+function test_is_in_array()
 {
-  local output
-  local -a expected
-  local output
+  local -a array=(1 2 3 4 5)
 
-  expected=(
-    '' # TODO: Figure out why we have these extra spaces here
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
-    ''
-    "sudo touch '$INSTALLED_KERNELS_PATH'"
-    ''
-    "sudo grep -q 'kname' '$INSTALLED_KERNELS_PATH'"
-    'kname not managed by kw. Use --force/-f to uninstall anyway.'
-  )
+  is_in_array 0 'array'
+  assert_equals_helper 'Should return 1 (not present)' "$LINENO" 1 "$?"
+  is_in_array 4 'array'
+  assert_equals_helper 'Should return 0 (present)' "$LINENO" 0 "$?"
+}
 
-  # Test unmanaged
+function test_process_installed_kernels()
+{
+  local -a processed_installed_kernels
+  local original_list_installed_kernels_definition
+
+  original_list_installed_kernels_definition=$(declare -f list_installed_kernels)
+  # shellcheck disable=SC2317
+  function list_installed_kernels()
+  {
+    local all_kernels="$3"
+
+    if [[ -n "$all_kernels" ]]; then
+      printf 'kernel1,kernel2,notmanaged'
+    else
+      printf 'kernel1,kernel2'
+    fi
+  }
+
+  processed_installed_kernels=('should' 'be' 'cleared' 'prior')
+  process_installed_kernels '' '' 'processed_installed_kernels'
+  assert_equals_helper 'Wrong number of elements' "$LINENO" 2 "${#processed_installed_kernels[@]}"
+  assert_equals_helper 'Wrong element 0' "$LINENO" 'kernel1' "${processed_installed_kernels[0]}"
+  assert_equals_helper 'Wrong element 1' "$LINENO" 'kernel2' "${processed_installed_kernels[1]}"
+
+  processed_installed_kernels=('should' 'be' 'cleared' 'prior')
+  process_installed_kernels 1 '' 'processed_installed_kernels'
+  assert_equals_helper 'Wrong number of elements' "$LINENO" 3 "${#processed_installed_kernels[@]}"
+  assert_equals_helper 'Wrong element 0' "$LINENO" 'kernel1' "${processed_installed_kernels[0]}"
+  assert_equals_helper 'Wrong element 1' "$LINENO" 'kernel2' "${processed_installed_kernels[1]}"
+  assert_equals_helper 'Wrong element 2' "$LINENO" 'notmanaged' "${processed_installed_kernels[2]}"
+
+  eval "$original_list_installed_kernels_definition"
+}
+
+function test_kernel_uninstall_regex_one_kernel()
+{
+  local kernel_name='5.5.0-rc2-VKMS+'
+  local mkinitcpio_d_path_1="etc/mkinitcpio.d/$kernel_name.preset"
+  local grub_cfg_path="${TARGET_PATH}/boot/grub/grub.cfg"
+  local output
+  local boot_files
+  local index
+
   cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 
-  output=$(kernel_uninstall '0' 'local' 'kname')
-  compare_command_sequence '' "$LINENO" 'expected' "$output"
+  # Composing expected command sequence
+  local -a cmd_sequence=(
+    "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "Removing: ${kernel_name}"
+  )
+  index=${#cmd_sequence[@]}
+
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name}*" | sort)
+  # shellcheck disable=SC2068
+  for file in ${boot_files[@]}; do
+    cmd_sequence["$((index++))"]="Removing: ${file}"
+    cmd_sequence["$((index++))"]="sudo -E rm ${file}"
+  done
+
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name}"
+  cmd_sequence["$((index++))"]="sudo sed -i '/${kernel_name}/d' '$INSTALLED_KERNELS_PATH'"
+  cmd_sequence["$((index++))"]='run_bootloader_update_mock'
+
+  # Check
+  output=$(kernel_uninstall 0 'local' 'regex:.*VKMS.*' 'TEST_MODE' '' "$SHUNIT_TMPDIR")
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
     fail "($LINENO) It was not possible to move back from temp directory"
@@ -237,32 +295,146 @@ function test_kernel_uninstall_unmanaged()
   }
 }
 
-function test_kernel_force_uninstall_unmanaged()
+function test_kernel_uninstall_regex_two_kernels()
 {
-  local target='xpto'
+  local kernel_name_1='5.5.0-rc2-VKMS+'
+  local kernel_name_2='5.6.0-rc2-AMDGPU+'
+  local mkinitcpio_d_path_1="etc/mkinitcpio.d/${kernel_name_1}.preset"
+  local mkinitcpio_d_path_2="etc/mkinitcpio.d/${kernel_name_2}.preset"
+  local output
+  local boot_files
+  local index
+
+  cd "$SHUNIT_TMPDIR" || {
+
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Composing expected command sequence
+  local -a cmd_sequence=(
+    "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "Removing: ${kernel_name_1}"
+  )
+  index=${#cmd_sequence[@]}
+
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name_1}*" | sort)
+  # shellcheck disable=SC2068
+  for file in ${boot_files[@]}; do
+    cmd_sequence["$((index++))"]="Removing: ${file}"
+    cmd_sequence["$((index++))"]="sudo -E rm ${file}"
+  done
+
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name_1}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name_1}"
+  cmd_sequence["$((index++))"]="sudo sed -i '/${kernel_name_1}/d' '$INSTALLED_KERNELS_PATH'"
+  cmd_sequence["$((index++))"]="Removing: ${kernel_name_2}"
+
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name_2}*" | sort)
+  # shellcheck disable=SC2068
+  for file in ${boot_files[@]}; do
+    cmd_sequence["$((index++))"]="Removing: ${file}"
+    cmd_sequence["$((index++))"]="sudo -E rm ${file}"
+  done
+
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_2}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name_2}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name_2}"
+  cmd_sequence["$((index++))"]="sudo sed -i '/${kernel_name_2}/d' '$INSTALLED_KERNELS_PATH'"
+  cmd_sequence["$((index++))"]='run_bootloader_update_mock'
+
+  # Check
+  output=$(kernel_uninstall 0 'local' '5.*' 'TEST_MODE' '' "$SHUNIT_TMPDIR")
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+  output=$(kernel_uninstall 0 'local' 'regex:5\.5.*,regex:5\.6.*' 'TEST_MODE' '' "$SHUNIT_TMPDIR")
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+  output=$(kernel_uninstall 0 'local' 'regex:5\.5.*,regex:5\.6.*' 'TEST_MODE' '' "$SHUNIT_TMPDIR")
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+  output=$(kernel_uninstall 0 'local' 'regex:5\.5.*,5.6.0-rc2-AMDGPU+' 'TEST_MODE' '' "$SHUNIT_TMPDIR")
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_uninstall_unmanaged()
+{
+  local target='5.5.0-rc2-NOTMANAGED'
   local modules_lib_path="${TARGET_PATH}/lib/modules/${target}"
-  local initramfs_tools_var_path="${TARGET_PATH}/var/lib/initramfs-tools/$target"
+  local initramfs_tools_var_path="${TARGET_PATH}/var/lib/initramfs-tools/${target}"
   local mkinitcpio_d_path="${TARGET_PATH}/etc/mkinitcpio.d/${target}.preset"
   local output
 
   # Notice that we are only testing the force feature, we did not create fake
   # files, as a result we can't find files.
   local -a cmd_sequence=(
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
-    "sudo touch '$INSTALLED_KERNELS_PATH'"
-    "sudo grep -q 'xpto' '$INSTALLED_KERNELS_PATH'"
-    "Removing: $target"
-    "Can't find $mkinitcpio_d_path"
-    "Can't find $initramfs_tools_var_path"
-    "Can't find $modules_lib_path"
-    "sudo sed -i '/xpto/d' '$INSTALLED_KERNELS_PATH'"
+    "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "${target} not managed by kw. Use --force/-f to uninstall anyway."
+  )
+
+  mkdir -p "${TARGET_PATH}/boot"
+  printf '%s\n' "menuentry 'Arch Linux, with Linux 5.5.0-rc2-NOTMANAGED'" >> "${TARGET_PATH}/boot/grub/grub.cfg"
+  touch "${TARGET_PATH}/boot/vmlinuz-5.5.0-rc2-NOTMANAGED"
+  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-NOTMANAGED' 'TEST_MODE' '' "$TARGET_PATH")
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  rm "${TARGET_PATH}/boot/vmlinuz-5.5.0-rc2-NOTMANAGED"
+}
+
+function test_kernel_force_uninstall_unmanaged()
+{
+  local target='5.5.0-rc2-NOTMANAGED'
+  local grub_cfg_path="${TARGET_PATH}/boot/grub/grub.cfg"
+  local boot_path="${TARGET_PATH}/boot/vmlinuz-${target}"
+  local modules_lib_path="${TARGET_PATH}/lib/modules/${target}"
+  local initramfs_tools_var_path="${TARGET_PATH}/var/lib/initramfs-tools/${target}"
+  local mkinitcpio_d_path="${TARGET_PATH}/etc/mkinitcpio.d/${target}.preset"
+  local output
+
+  # Notice that we are only testing the force feature, we did not create fake
+  # files, as a result we can't find files.
+  local -a cmd_sequence=(
+    "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "Removing: ${target}"
+    "Removing: ${boot_path}"
+    "sudo -E rm ${boot_path}"
+    "Removing: ${mkinitcpio_d_path}"
+    "sudo -E rm ${mkinitcpio_d_path}"
+    "Removing: ${initramfs_tools_var_path}"
+    "sudo -E rm ${initramfs_tools_var_path}"
+    "Removing: ${modules_lib_path}"
+    "sudo -E rm -rf ${modules_lib_path}"
+    "sudo sed -i '/${target}/d' '${INSTALLED_KERNELS_PATH}'"
     'run_bootloader_update_mock'
   )
 
   mkdir -p "${TARGET_PATH}/boot"
+  mkdir -p "${TARGET_PATH}/lib/modules/"
+  mkdir -p "${TARGET_PATH}/var/lib/initramfs-tools"
+  mkdir -p "${TARGET_PATH}/etc/mkinitcpio.d"
 
-  output=$(kernel_uninstall 0 'local' 'xpto' 'TEST_MODE' 1 "$TARGET_PATH")
+  tmp_grub_cfg="${TARGET_PATH}/tmp/grub.cfg"
+  cp "$grub_cfg_path" "$tmp_grub_cfg"
+  printf '%s' "menuentry 'Arch Linux, with Linux 5.5.0-rc2-NOTMANAGED'" >> "$grub_cfg_path"
+  touch "$boot_path"
+  touch "$mkinitcpio_d_path"
+  touch "$initramfs_tools_var_path"
+  mkdir -p "$modules_lib_path"
+
+  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-NOTMANAGED' 'TEST_MODE' 1 "$TARGET_PATH")
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cp "$tmp_grub_cfg" "$grub_cfg_path"
+  rm "$boot_path"
+  rm "$mkinitcpio_d_path"
+  rm "$initramfs_tools_var_path"
+  rm -rf "$modules_lib_path"
 }
 
 function test_remove_managed_kernel_local()
@@ -293,7 +465,6 @@ function test_remove_managed_kernel_local()
   local -a cmd_sequence=(
     "sudo mkdir -p $REMOTE_KW_DEPLOY"
     "sudo touch '$INSTALLED_KERNELS_PATH'"
-    "sudo grep -q '$kernel_name' '$INSTALLED_KERNELS_PATH'"
     "Removing: $kernel_name"
   )
 
@@ -323,7 +494,7 @@ function test_remove_managed_kernel_local()
   done
 
   # Check
-  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' '' "$SHUNIT_TMPDIR/")
+  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' 1 "$SHUNIT_TMPDIR/")
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
