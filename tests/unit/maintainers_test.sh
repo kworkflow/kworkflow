@@ -11,7 +11,8 @@ include './tests/unit/utils.sh'
 CORRECT_DIR_MSG="=========================================================
 MODULE AUTHORS:
 code1.c: John Doe <johndoe@community.com>, Caesar Doe <caesar@community.com>, Michael Doe <michael@community.com>
-code2.c: Bob Hilson <bob@opensource.com>"
+code2.c: Bob Hilson <bob@opensource.com>
+multiline_authors_test.c: Martha Elsa <martha@opensource.com>, Verena Bert <vb@opensource.com>, Gabi Katinka <gabik@opensource.com>, Leonie Hildebert <leoni.hildebert@opensource.com>"
 CORRECT_FILE_MSG="=========================================================
 MODULE AUTHORS:
 code1.c: John Doe <johndoe@community.com>, Caesar Doe <caesar@community.com>, Michael Doe <michael@community.com>"
