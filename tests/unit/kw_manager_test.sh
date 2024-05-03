@@ -214,6 +214,72 @@ function test_remove_group()
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
 }
 
+function test_rename_existent_group()
+{
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_GROUP}\" (name) VALUES ('old_group_name');"
+
+  # invalid values
+  output=$(rename_email_group 'unexistent_group' 'new_group_name')
+  ret="$?"
+  expected='This group does not exist so it can not be renamed'
+  assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  output=$(rename_email_group 'old_group_name' '')
+  ret="$?"
+  expected='The group name is empty'
+  assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  output=$(rename_email_group 'old_group_name' '012345678901234567890123456789012345678901234567890')
+  ret="$?"
+  expected='The group name must be less than 50 characters'
+  assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  output=$(rename_email_group 'old_group_name' '!@#$%^&,+')
+  ret="$?"
+  expected='The group name must not contain special characters'
+  assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  output=$(rename_email_group 'old_group_name' "nonexistent_group''")
+  ret="$?"
+  expected='The group name must not contain special characters'
+  assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  # valid values
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM \"${DATABASE_TABLE_GROUP}\" WHERE name='old_group_name';")
+  rename_email_group 'old_group_name' 'new_group_name'
+  ret="$?"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM \"${DATABASE_TABLE_GROUP}\" WHERE name='new_group_name';")
+  assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_rename_group()
+{
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_GROUP}\" (name) VALUES ('old_group_name');"
+
+  # invalid values
+  output=$(rename_group 'old_group_name' "nonexistent_group'")
+  ret="$?"
+  expected=$'Error while removing group from the database with command:\nsqlite3 -init '
+  expected+="${KW_DB_DIR}/pre_cmd.sql -cmd \"\" \"${KW_DATA_DIR}/kw.db\" "
+  expected+="-batch \"UPDATE email_group SET name = 'nonexistent_group'' WHERE name='old_group_name' ;\""
+  assertContains 'Expected no error' "$output" "$expected"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  # valid values
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM \"${DATABASE_TABLE_GROUP}\" WHERE name='old_group_name';")
+  rename_group 'old_group_name' 'new_group_name'
+  ret="$?"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM \"${DATABASE_TABLE_GROUP}\" WHERE name='new_group_name';")
+  assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
 function test_manage_contacts_parser()
 {
   local expected
@@ -239,6 +305,10 @@ function test_manage_contacts_parser()
   parse_manage_contacts_options '-r' 'fake_group'
   expected='fake_group'
   assert_equals_helper 'Set group-remove' "$LINENO" "${options_values['GROUP_REMOVE']}" "$expected"
+
+  parse_manage_contacts_options '--group-rename' 'fake_group:new_group'
+  expected='fake_group:new_group'
+  assert_equals_helper 'Set group-rename' "$LINENO" "${options_values['GROUP_RENAME']}" "$expected"
 }
 
 invoke_shunit

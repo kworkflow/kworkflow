@@ -14,6 +14,7 @@ declare -g DATABASE_TABLE_CONTACT='email_contact'
 declare -g DATABASE_TABLE_CONTACT_GROUP='email_contact_group'
 
 declare -Ag condition_array
+declare -Ag updates_array
 
 #shellcheck disable=SC2119
 function manage_contacts_main()
@@ -48,6 +49,14 @@ function manage_contacts_main()
 
     if [[ "$?" -eq 0 ]]; then
       success "Group ${group_name} removed successfully!"
+    fi
+  fi
+
+  if [[ -n "${options_values['GROUPS_RENAME']}" ]]; then
+    rename_email_group "${options_values['GROUP']}" "${options_values['GROUPS_RENAME']}"
+
+    if [[ "$?" -eq 0 ]]; then
+      success "Group ${options_values['GROUP']} successfully renamed to ${options_values['GROUPS_RENAME']}"
     fi
   fi
 
@@ -230,6 +239,78 @@ function remove_group()
   return 0
 }
 
+# This function renames a given mail group after checking
+# the parameters passed.
+#
+# @old_name: The actual name of the renamed group
+# @new_name: The new name wich the group will be renamed
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function rename_email_group()
+{
+  local old_name="$1"
+  local new_name="$2"
+  local group_id
+
+  if [[ -z "$old_name" ]]; then
+    complain 'Error, group name is empty'
+    return 61 # ENODATA
+  fi
+
+  check_existent_group "$old_name"
+
+  if [[ "$?" -eq 0 ]]; then
+    warning 'This group does not exist so it can not be renamed'
+    return 22 # EINVAL
+  fi
+
+  validate_group_name "$new_name"
+
+  if [[ "$?" -ne 0 ]]; then
+    return 22 # EINVAL
+  fi
+
+  rename_group "$old_name" "$new_name"
+
+  if [[ "$?" -ne 0 ]]; then
+    return 22 # EINVAL
+  fi
+
+  return 0
+}
+
+# This function renames a given group from the database
+#
+# @old_name: Name of the group that will be renamed
+# @new_name: New namw of the group
+#
+# Return:
+# returns 0 if successful, non-zero otherwise
+function rename_group()
+{
+  local old_name="$1"
+  local new_name="$2"
+  local sql_operation_result
+  local ret
+
+  condition_array=(['name']="${old_name}")
+  updates_array=(['name']="${new_name}")
+
+  sql_operation_result=$(update_into "$DATABASE_TABLE_GROUP" 'updates_array' '' 'condition_array' 'VERBOSE')
+  ret="$?"
+
+  if [[ "$ret" -eq 2 || "$ret" -eq 61 ]]; then
+    complain "$sql_operation_result"
+    return 22 # EINVAL
+  elif [[ "$ret" -ne 0 ]]; then
+    complain "($LINENO):" $'Error while removing group from the database with command:\n'"${sql_operation_result}"
+    return 22 # EINVAL
+  fi
+
+  return 0
+}
+
 function parse_manage_contacts_options()
 {
   local index
@@ -238,7 +319,7 @@ function parse_manage_contacts_options()
   local patch_version=''
   local commit_count=''
   local short_options='c:,r:,'
-  local long_options='group-create:,group-remove:,'
+  local long_options='group-create:,group-remove:,group-rename:,'
   local pass_option_to_send_email
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -254,6 +335,7 @@ function parse_manage_contacts_options()
   options_values['GROUP']=''
   options_values['GROUP_CREATE']=''
   options_values['GROUP_REMOVE']=''
+  options_values['GROUP_RENAME']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -264,6 +346,10 @@ function parse_manage_contacts_options()
         ;;
       --group-remove | -r)
         options_values['GROUP_REMOVE']="$2"
+        shift 2
+        ;;
+      --group-rename)
+        options_values['GROUP_RENAME']="$2"
         shift 2
         ;;
       --)
@@ -284,5 +370,6 @@ function manage_contacts_help()
   fi
   printf '%s\n' 'kw manage-contacts:' \
     '  manage-contacts (-c | --group-create) [<name>] - create new group' \
-    '  manage-contacts (-r | --group-remove) [<name>] - remove existing group'
+    '  manage-contacts (-r | --group-remove) [<name>] - remove existing group' \
+    '  manage-contacts --group-rename [<old_name>:<new_name>] - rename existent group'
 }
