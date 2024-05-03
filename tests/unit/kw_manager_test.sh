@@ -163,6 +163,57 @@ function test_create_group()
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
 }
 
+function test_remove_email_group()
+{
+  local expected
+  local output
+  local ret
+
+  # invalid cases
+  output=$(remove_email_group 'nonexistent_group')
+  ret="$?"
+  expected='Error, this group does not exist'
+  assert_equals_helper 'Group should not have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected error' "$LINENO" "$ret" 22
+
+  # valid values
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_GROUP}\" ('name') VALUES ('test_group4') ;"
+
+  remove_email_group 'test_group4'
+  ret="$?"
+  expected=''
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM \"${DATABASE_TABLE_GROUP}\" WHERE name='test_group4' ;")
+  assert_equals_helper 'Group should have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
+function test_remove_group()
+{
+  local expected
+  local output
+  local ret
+
+  # invalid cases
+  output=$(remove_group "nonexistent_group'")
+  ret="$?"
+  expected=$'Error while removing group from the database with command:\nsqlite3 -init '
+  expected+="${KW_DB_DIR}/pre_cmd.sql \"${KW_DATA_DIR}/kw.db\" "
+  expected+="-batch \"DELETE FROM email_group WHERE name='nonexistent_group'' ;\""
+
+  assert_equals_helper 'Group should not have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected error' "$LINENO" "$ret" 22
+
+  # valid values
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_GROUP}\" ('name') VALUES ('test_group4') ;"
+
+  remove_group 'test_group4'
+  ret="$?"
+  expected=''
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM \"${DATABASE_TABLE_GROUP}\" WHERE name='test_group4' ;")
+  assert_equals_helper 'Group should have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
 function test_manage_contacts_parser()
 {
   local expected
@@ -180,6 +231,14 @@ function test_manage_contacts_parser()
   assert_equals_helper 'Set group-create' "$LINENO" "${options_values['GROUP_CREATE']}" "$expected"
   expected='fake_group'
   assert_equals_helper 'Set group-create' "$LINENO" "${options_values['GROUP']}" "$expected"
+
+  parse_manage_contacts_options '--group-remove' 'fake_group'
+  expected='fake_group'
+  assert_equals_helper 'Set group-remove' "$LINENO" "${options_values['GROUP_REMOVE']}" "$expected"
+
+  parse_manage_contacts_options '-r' 'fake_group'
+  expected='fake_group'
+  assert_equals_helper 'Set group-remove' "$LINENO" "${options_values['GROUP_REMOVE']}" "$expected"
 }
 
 invoke_shunit

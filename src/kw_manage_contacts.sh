@@ -43,6 +43,14 @@ function manage_contacts_main()
     fi
   fi
 
+  if [[ "${options_values['GROUP_REMOVE']}" ]]; then
+    remove_email_group "${option_values['GROUP']}"
+
+    if [[ "$?" -eq 0 ]]; then
+      success "Group ${group_name} removed successfully!"
+    fi
+  fi
+
   return 0
 }
 
@@ -167,6 +175,61 @@ function check_existent_group()
   return 0
 }
 
+# This function removes a given mail group and
+# all of it's references in the data base. Also
+# removes the contacts without group association
+#
+# @group_name: The name of the removed group
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function remove_email_group()
+{
+  local group_name="$1"
+
+  check_existent_group "$group_name"
+
+  if [[ "$?" -eq 0 ]]; then
+    warning 'Error, this group does not exist'
+    return 22 #EINVAL
+  fi
+
+  remove_group "$group_name"
+
+  if [[ "$?" -ne 0 ]]; then
+    return 22 #EINVAL
+  fi
+
+  return 0
+}
+
+# This function removes a given group from the database
+#
+# @group_name: Name of the group which the contacts will be removed
+#
+# Return:
+# returns 0 if successful, non-zero otherwise
+function remove_group()
+{
+  local group_name="$1"
+  local sql_operation_result
+
+  condition_array=(['name']="${group_name}")
+
+  sql_operation_result=$(remove_from "$DATABASE_TABLE_GROUP" 'condition_array' '' '' 'VERBOSE')
+  ret="$?"
+
+  if [[ "$ret" -eq 2 || "$ret" -eq 61 ]]; then
+    complain "$sql_operation_result"
+    return 22 # EINVAL
+  elif [[ "$ret" -ne 0 ]]; then
+    complain $'Error while removing group from the database with command:\n'"${sql_operation_result}"
+    return 22 # EINVAL
+  fi
+
+  return 0
+}
+
 function parse_manage_contacts_options()
 {
   local index
@@ -174,8 +237,8 @@ function parse_manage_contacts_options()
   local setup_token=0
   local patch_version=''
   local commit_count=''
-  local short_options='c:,'
-  local long_options='group-create:,'
+  local short_options='c:,r:,'
+  local long_options='group-create:,group-remove:,'
   local pass_option_to_send_email
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -190,12 +253,17 @@ function parse_manage_contacts_options()
   options_values['GROUPS']=''
   options_values['GROUP']=''
   options_values['GROUP_CREATE']=''
+  options_values['GROUP_REMOVE']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --group-create | -c)
         options_values['GROUP_CREATE']=1
         options_values['GROUP']="$2"
+        shift 2
+        ;;
+      --group-remove | -r)
+        options_values['GROUP_REMOVE']="$2"
         shift 2
         ;;
       --)
@@ -215,5 +283,6 @@ function manage_contacts_help()
     exit
   fi
   printf '%s\n' 'kw manage-contacts:' \
-    '  manage-contacts (-c | --group-create) [<name>] - create new group'
+    '  manage-contacts (-c | --group-create) [<name>] - create new group' \
+    '  manage-contacts (-r | --group-remove) [<name>] - remove existing group'
 }
