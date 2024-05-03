@@ -300,6 +300,13 @@ function kw()
         kworkflow_man "$@"
       )
       ;;
+    manage-contacts)
+      (
+        include "${KW_LIB_DIR}/manage_contacts.sh"
+
+        manage_contacts_main "$@"
+      )
+      ;;
     help | --help)
       (
         include "${KW_LIB_DIR}/help.sh"
