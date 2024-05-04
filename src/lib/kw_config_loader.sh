@@ -107,8 +107,8 @@ function show_build_variables()
     [cflags]='Specify compilation flags'
   )
 
-  printf '%s\n' "  Kernel build options:"
-  local -n descriptions="build"
+  printf '%s\n' '  Kernel build options:'
+  local -n descriptions='build'
 
   print_array build_config build
 }
@@ -139,8 +139,8 @@ function show_deploy_variables()
     [strip_modules_debug_option]='Modules will be stripped after they are installed which will reduce the initramfs size'
   )
 
-  printf '%s\n' "  Kernel deploy options:"
-  local -n descriptions="deploy"
+  printf '%s\n' '  Kernel deploy options:'
+  local -n descriptions='deploy'
   print_array deploy_config deploy
 }
 
@@ -165,8 +165,8 @@ function show_mail_variables()
     [default_cc_recipients]='E-mail addresses to always be included as CC: recipients'
   )
 
-  printf '%s\n' "  kw mail options:"
-  local -n descriptions="mail"
+  printf '%s\n' '  kw mail options:'
+  local -n descriptions='mail'
   print_array mail_config mail
 }
 
@@ -192,8 +192,8 @@ function show_vm_variables()
     [mount_point]='VM mount point'
   )
 
-  printf '%s\n' "  Kernel vm options:"
-  local -n descriptions="vm"
+  printf '%s\n' '  Kernel vm options:'
+  local -n descriptions='vm'
   print_array vm_config vm
 }
 
@@ -217,8 +217,8 @@ function show_notification_variables()
     [visual_alert_command]='Command for visual notification'
   )
 
-  printf '%s\n' "  Kernel notification options:"
-  local -n descriptions="notification"
+  printf '%s\n' '  Kernel notification options:'
+  local -n descriptions='notification'
 
   print_array notification_config notification
 }
@@ -241,7 +241,7 @@ function show_lore_variables()
     [lists]='List that you want to follow'
   )
 
-  printf '%s\n' "  Kernel upstream Lore options:"
+  printf '%s\n' '  Kernel upstream Lore options:'
   local -n descriptions='lore'
 
   print_array lore_config lore

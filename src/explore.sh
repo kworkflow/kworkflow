@@ -34,9 +34,9 @@ function explore_main()
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
-  if [[ "${options_values['SCOPE']}" == "HEADER" ]]; then
+  if [[ "${options_values['SCOPE']}" == 'HEADER' ]]; then
     path="${path}/*.h"
-  elif [[ "${options_values['SCOPE']}" == "SOURCE" ]]; then
+  elif [[ "${options_values['SCOPE']}" == 'SOURCE' ]]; then
     path="${path}/*.c"
   fi
 
@@ -80,7 +80,7 @@ function parse_explore_options()
   local options
 
   if [[ "$#" -eq 0 ]]; then
-    options_values['ERROR']="Expected string or parameter. See man for detail."
+    options_values['ERROR']='Expected string or parameter. See man for detail.'
     return 22 # EINVAL
   fi
 
@@ -105,7 +105,7 @@ function parse_explore_options()
     case "$1" in
       --log | -l)
         if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 1 ]]; then
-          options_values['ERROR']="Invalid arguments: Multiple search type!"
+          options_values['ERROR']='Invalid arguments: Multiple search type!'
           return 22 # EINVAL
         fi
 
@@ -114,7 +114,7 @@ function parse_explore_options()
         ;;
       --grep | -g)
         if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 2 ]]; then
-          options_values['ERROR']="Invalid arguments: Multiple search type!"
+          options_values['ERROR']='Invalid arguments: Multiple search type!'
           return 22 # EINVAL
         fi
 
@@ -123,7 +123,7 @@ function parse_explore_options()
         ;;
       --all | -a)
         if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 3 ]]; then
-          options_values['ERROR']="Invalid arguments: Multiple search type!"
+          options_values['ERROR']='Invalid arguments: Multiple search type!'
           return 22 # EINVAL
         fi
 
@@ -132,24 +132,24 @@ function parse_explore_options()
         ;;
       --only-header | -H)
         if [[ -n "${options_values['SCOPE']}" ]]; then
-          if [[ "${options_values['SCOPE']}" != "HEADER" ]]; then
-            options_values['ERROR']="Invalid arguments: Multiple search scope!"
+          if [[ "${options_values['SCOPE']}" != 'HEADER' ]]; then
+            options_values['ERROR']='Invalid arguments: Multiple search scope!'
             return 22 # EINVAL
           fi
         fi
 
-        options_values['SCOPE']="HEADER"
+        options_values['SCOPE']='HEADER'
         shift
         ;;
       --only-source | -c)
         if [[ -n "${options_values['SCOPE']}" ]]; then
-          if [[ "${options_values['SCOPE']}" != "SOURCE" ]]; then
-            options_values['ERROR']="Invalid arguments: Multiple search scope!"
+          if [[ "${options_values['SCOPE']}" != 'SOURCE' ]]; then
+            options_values['ERROR']='Invalid arguments: Multiple search scope!'
             return 22 # EINVAL
           fi
         fi
 
-        options_values['SCOPE']="SOURCE"
+        options_values['SCOPE']='SOURCE'
         shift
         ;;
       --exactly)
@@ -173,7 +173,7 @@ function parse_explore_options()
         elif [[ -z "${options_values['PATH']}" ]]; then
           options_values['PATH']="$1"
         else
-          options_values['ERROR']="Too many parameters"
+          options_values['ERROR']='Too many parameters'
           return 22 # EINVAL
         fi
         shift
