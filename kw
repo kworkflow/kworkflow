@@ -139,10 +139,9 @@ function kw()
       ;;
     bd)
       (
-        include "${KW_LIB_DIR}/deploy.sh"
-        include "${KW_LIB_DIR}/build.sh"
+        include "${KW_LIB_DIR}/build_and_deploy.sh"
 
-        build_kernel_main && deploy_main 1 "$@"
+        build_and_deploy_main "$@"
         local ret="$?"
         alert_completion 'kw bd' "$1"
         return "$ret"
