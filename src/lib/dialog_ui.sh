@@ -253,7 +253,7 @@ function spin_frame()
   local spin='⣾⣽⣻⢿⡿⣟⣯⣷'
 
   frame_offset=$(((frame_offset) % ${#spin}))
-  printf "%s" "${spin:$frame_offset:1}"
+  printf '%s' "${spin:$frame_offset:1}"
 }
 
 # Create simple async loading screen notification for delayed actions.

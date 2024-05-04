@@ -1103,7 +1103,7 @@ function parse_mail_options()
         fi
         # TODO: find a better way to handle spaces inside pass_option_to_send_email
         for i in "$@"; do
-          if [[ "${i}" =~ " " ]]; then
+          if [[ "${i}" =~ ' ' ]]; then
             pass_option_to_send_email+=" ${i@Q}"
           else
             pass_option_to_send_email+=" ${i}"

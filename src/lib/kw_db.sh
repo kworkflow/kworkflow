@@ -313,7 +313,7 @@ function generate_where_clause()
     attribute="$(cut --delimiter=',' --fields=1 <<< "$clause")"
     value="${condition_array_ref["${clause}"]}"
 
-    if [[ "$clause" =~ "," ]]; then
+    if [[ "$clause" =~ ',' ]]; then
       relational_op=$(cut --delimiter=',' --fields=2 <<< "$clause")
     fi
 

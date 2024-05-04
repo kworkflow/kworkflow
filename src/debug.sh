@@ -854,7 +854,7 @@ function convert_event_syntax_to_sys_path_hash()
       if [[ "$specific_event" =~ .*'['.*']'.* ]]; then
         specific_filter=${specific_event%]*}
         specific_filter=${specific_filter##*[}
-        specific_event=$(cut -d "[" -f1 <<< "$specific_event")
+        specific_event=$(cut -d '[' -f1 <<< "$specific_event")
       fi
 
       hash_key="${EVENT_BASE_PATH}/${root_event}/${specific_event}"
