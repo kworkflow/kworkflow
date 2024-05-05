@@ -1,7 +1,8 @@
 <img src="images/kw_logo.png" width="600" alt="kworkflow">
 
-![Build Status](https://github.com/kworkflow/kworkflow/actions/workflows/unit_tests.yml/badge.svg?branch=unstable)
+![Build Status](https://github.com/kworkflow/kworkflow/actions/workflows/unit_tests.yml/badge.svg?branch=master)
 [![codecov](https://codecov.io/gh/kworkflow/kworkflow/branch/unstable/graph/badge.svg?token=ZQ52EK8VWF)](https://codecov.io/gh/kworkflow/kworkflow)
+
 # About
 
 kw has a simple mission: reduce the setup overhead of working with the Linux
