@@ -130,11 +130,11 @@ _kw_config()
     local configs='(
       vm.virtualizer vm.mount_point vm.qemu_hw_options vm.qemu_net_options vm.qemu_path_image
       kworkflow.ssh_user kworkflow.ssh_ip kworkflow.ssh_port kworkflow.ssh_configfile kworkflow.hostname
-      kworkflow.disable_statistics_data_track kworkflow.gui_on kworkflow.gui_off kworkflow.send_opts
-      kworkflow.blocked_emails kworkflow.checkpatch_opts kworkflow.get_maintainer_opts
-      notification.alert notification.sound_alert_command notification.visual_alert_command
-      build.arch build.kernel_img_name build.cross_compile build.menu_config build.doc_type build.cflags
-      build.cpu_scaling_factor build.enable_ccache build.warning_level build.use_llvm
+      kworkflow.disable_statistics_data_track kworkflow.gui_on kworkflow.gui_off kworkflow.gui_on_after_reboot
+      kworkflow.gui_off_after_reboot kworkflow.send_opts kworkflow.blocked_emails kworkflow.checkpatch_opts
+      kworkflow.get_maintainer_opts notification.alert notification.sound_alert_command
+      notification.visual_alert_command build.arch build.kernel_img_name build.cross_compile build.menu_config
+      build.doc_type build.cflags build.cpu_scaling_factor build.enable_ccache build.warning_level build.use_llvm
       deploy.kw_files_remote_path deploy.deploy_temporary_files_path deploy.deploy_default_compression
       deploy.dtb_copy_pattern deploy.default_deploy_target deploy.reboot_after_deploy
       deploy.strip_modules_debug_option mail.send_opts mail.blocked_emails mail.default_cc_recipients
@@ -257,6 +257,8 @@ _kw_drm()
     '(--local)--remote[specify a remote as the target machine]: :' \
     '(--gui-off)--gui-on[turn-on the target GUI]' \
     '(--gui-on)--gui-off[turn-off the target GUI]' \
+    '(--gui-off-after-reboot)--gui-on-after-reboot[turn-on the target GUI permanently]' \
+    '(--gui-on-after-reboot)--gui-off-after-reboot[turn-off the target GUI permanently]' \
     '--conn-available[show all connectors available in the target machine]' \
     '--modes[show all available modes per card]'
 }

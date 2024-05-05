@@ -119,6 +119,8 @@ function test_parse_configuration_check_parser_values_only_for_kworkflow_config_
     [ssh_port]='3333'
     [gui_on]='turn on'
     [gui_off]='turn off'
+    [gui_on_after_reboot]='turn on after reboot'
+    [gui_off_after_reboot]='turn off after reboot'
     [checkpatch_opts]='--no-tree --color=always --strict'
     [get_maintainer_opts]='--separator , --nokeywords --nogit --nogit-fallback --norolestats'
   )
