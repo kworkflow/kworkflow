@@ -12,6 +12,8 @@ function drm_main()
   local target
   local gui_on
   local gui_off
+  local gui_on_after_reboot
+  local gui_off_after_reboot
   local conn_available
   local remote
   local load_module
@@ -34,6 +36,8 @@ function drm_main()
   target="${options_values['TARGET']}"
   gui_on="${options_values['GUI_ON']}"
   gui_off="${options_values['GUI_OFF']}"
+  gui_on_after_reboot="${options_values['GUI_ON_AFTER_REBOOT']}"
+  gui_off_after_reboot="${options_values['GUI_OFF_AFTER_REBOOT']}"
   conn_available="${options_values['CONN_AVAILABLE']}"
   modes_available="${options_values['MODES_AVAILABLE']}"
   help_opt="${options_values['HELP']}"
@@ -64,6 +68,10 @@ function drm_main()
     gui_control 'ON' "$target" "$remote" "$flag"
   elif [[ "$gui_off" == 1 ]]; then
     gui_control 'OFF' "$target" "$remote" "$flag"
+  elif [[ "$gui_on_after_reboot" == 1 ]]; then
+    gui_control 'ON_AFTER_REBOOT' "$target" "$remote" "$flag"
+  elif [[ "$gui_off_after_reboot" == 1 ]]; then
+    gui_control 'OFF_AFTER_REBOOT' "$target" "$remote" "$flag"
   fi
 
   if [[ -n "$unload_module" ]]; then
@@ -208,6 +216,8 @@ function gui_control()
   local isolate_target
   local remote
   local port
+  local set_default='false'
+  local default_command
 
   flag=${flag:-'SILENT'}
 
@@ -215,15 +225,34 @@ function gui_control()
     isolate_target='graphical.target'
     vt_console=1
     gui_control_cmd="${configurations[gui_on]}"
-  else
+  elif [[ "$operation" == 'OFF' ]]; then
     isolate_target='multi-user.target'
     vt_console=0
     gui_control_cmd="${configurations[gui_off]}"
+  elif [[ "$operation" == 'ON_AFTER_REBOOT' ]]; then
+    isolate_target='graphical.target'
+    vt_console=1
+    gui_control_cmd="${configurations[gui_on_after_reboot]}"
+    set_default='true'
+    warning 'This option will take effect after reboot' >&2
+  elif [[ "$operation" == 'OFF_AFTER_REBOOT' ]]; then
+    isolate_target='multi-user.target'
+    vt_console=0
+    gui_control_cmd="${configurations[gui_off_after_reboot]}"
+    set_default='true'
+    warning 'This option will take effect after reboot' >&2
   fi
 
   # If the user does not override the turn on/off command we use the default
   # systemctl
-  gui_control_cmd=${gui_control_cmd:-"systemctl isolate ${isolate_target}"}
+
+  if [[ "$set_default" == 'true' ]]; then
+    default_command="systemctl set-default ${isolate_target}"
+  else
+    default_command="systemctl isolate ${isolate_target}"
+  fi
+
+  gui_control_cmd=${gui_control_cmd:-"${default_command}"}
   bind_control_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" '$vt_console' > $i; done; sleep 0.5' # is this right?
 
   case "$target" in
@@ -360,8 +389,8 @@ function get_supported_mode_per_connector()
 
 function parse_drm_options()
 {
-  local long_options='remote:,local,gui-on,gui-off,load-module:,unload-module:,help,verbose'
-  long_options+=',conn-available,modes'
+  local long_options='remote:,local,gui-on,gui-off,gui-on-after-reboot,gui-off-after-reboot'
+  long_options+=',load-module:,unload-module:,help,verbose,conn-available,modes'
   local short_options='h'
   local raw_options="$*"
   local options
@@ -378,6 +407,8 @@ function parse_drm_options()
 
   options_values['GUI_ON']=''
   options_values['GUI_OFF']=''
+  options_values['GUI_ON_AFTER_REBOOT']=''
+  options_values['GUI_OFF_AFTER_REBOOT']=''
   options_values['CONN_AVAILABLE']=''
   options_values['HELP']=''
   options_values['LOAD_MODULE']=''
@@ -426,6 +457,14 @@ function parse_drm_options()
         ;;
       --gui-off)
         options_values['GUI_OFF']=1
+        shift
+        ;;
+      --gui-on-after-reboot)
+        options_values['GUI_ON_AFTER_REBOOT']=1
+        shift
+        ;;
+      --gui-off-after-reboot)
+        options_values['GUI_OFF_AFTER_REBOOT']=1
         shift
         ;;
       --load-module)
@@ -489,6 +528,8 @@ function drm_help()
     '  drm [--local | --remote [<remote>:<port>]] (-um|--unload-module)=<module>[;<module>;...]' \
     '  drm [--local | --remote [<remote>:<port>]] --gui-on' \
     '  drm [--local | --remote [<remote>:<port>]] --gui-off' \
+    '  drm [--local | --remote [<remote>:<port>]] --gui-on-after-reboot' \
+    '  drm [--local | --remote [<remote>:<port>]] --gui-off-after-reboot' \
     '  drm [--local | --remote [<remote>:<port>]] --conn-available' \
     '  drm [--local | --remote [<remote>:<port>]] --verbose' \
     '  drm [--local | --remote [<remote>:<port>]] --modes'

@@ -78,8 +78,8 @@ function _kw_autocomplete()
 
   kw_options['patch-hub']='--help'
 
-  kw_options['drm']='--remote --local --gui-on --gui-off --load-module
-                     --unload-module --conn-available --modes --verbose --help'
+  kw_options['drm']='--remote --local --gui-on --gui-off --gui-on-after-reboot --gui-off-after-reboot
+                     --load-module --unload-module --conn-available --modes --verbose --help'
 
   kw_options['vm']='--mount --umount --up --alert --help'
 

@@ -55,6 +55,22 @@ OPTIONS
   systemctl operation but users can change this behavior by set *gui_off* with
   a specific command in the **kworkflow.config** file with the specific command.
 
+\--gui-on-after-reboot:
+  This option sets the GUI to turn on automatically after the next reboot. By default,
+  it uses systemctl operation; however, users are free to add any specific
+  command for activating their preferred GUI in the variable *gui_on_after_reboot*
+  in the **kworkflow.config** file.
+  Note: This change will take effect only after the system is rebooted. To enable
+  the GUI immediately, use the --gui-on option.
+
+\--gui-off-after-reboot:
+  This option sets the GUI to turn off automatically after the next reboot. By default,
+  it uses systemctl operation; however, users are free to add any specific
+  command for deactivating their GUI in the variable *gui_off_after_reboot*
+  in the **kworkflow.config** file.
+  Note: This change will take effect only after the system is rebooted. To disable
+  the GUI immediately, use the --gui-off option.
+
 \--conn-available:
   Show all connectors available in the target machine. The ones marked with '*'
   are enabled.
