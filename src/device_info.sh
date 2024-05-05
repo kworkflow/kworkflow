@@ -12,7 +12,7 @@ declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['cpu_max']=''                         # Maximum frequency of CPU in MHz
   ['cpu_min']=''                         # Minimum frequency of CPU in MHz
   ['desktop_environment']=''             # Desktop environment
-  ['kernel_name']=''                  # Kernel name
+  ['kernel_name']=''                     # Kernel name
   ['kernel_version']=''                  # Kernel version
   ['disk_size']=''                       # Disk size in KB
   ['root_path']=''                       # Root directory path
@@ -24,7 +24,12 @@ declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['motherboard_vendor']=''              # Motherboard vendor
   ['chassis']=''                         # Chassis type
   ['img_size']=''                        # Size of VM image in KB
-  ['img_type']='')                       # Type of VM image
+  ['img_type']=''                        # Type of VM image
+  ['n_displays']=''                      # Total number of connected displays
+  ['n_active']=''                        # Number of active displays
+  ['name_resol']=''                      # Name and resolution of active displays
+  ['active_displays']=''                 # Name of active displays
+  ['display_resolution']='')             # Resolution of active displays
 
 declare -gA gpus
 
@@ -367,24 +372,24 @@ function get_kernel_version()
   cmd_version="uname -r"
 
   case "$target" in
-  1) # VM_TARGET
-    kernel_name=$("$cmd_name")
-    kernel_version=$("$cmd_version")
-    ;;
-  2) # LOCAL_TARGET
-    show_verbose "$flag" "$cmd_name"
-    kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
+    1) # VM_TARGET
+      kernel_name=$("$cmd_name")
+      kernel_version=$("$cmd_version")
+      ;;
+    2) # LOCAL_TARGET
+      show_verbose "$flag" "$cmd_name"
+      kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
 
-    show_verbose "$flag" "$cmd_version"
-    kernel_version=$(cmd_manager 'SILENT' "$cmd_version")
-    ;;
-  3) # REMOTE_TARGET
-    show_verbose "$flag" "$cmd_name"
-    kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
+      show_verbose "$flag" "$cmd_version"
+      kernel_version=$(cmd_manager 'SILENT' "$cmd_version")
+      ;;
+    3) # REMOTE_TARGET
+      show_verbose "$flag" "$cmd_name"
+      kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
 
-    show_verbose "$flag" "$cmd_version"
-    kernel_version=$(cmd_remotely "$cmd_version" 'SILENT')
-    ;;
+      show_verbose "$flag" "$cmd_version"
+      kernel_version=$(cmd_remotely "$cmd_version" 'SILENT')
+      ;;
   esac
 
   device_info_data['kernel_name']="$kernel_name"
@@ -592,6 +597,30 @@ function get_img_info()
   device_info_data['img_type']="$img_type"
 }
 
+# This function shows displays information
+function get_display_info()
+{
+  local act_name
+  local act_resol
+  local name_resol
+  local n_display
+  local n_active
+
+  n_display=$(xrandr -q | wc -l)
+
+  n_active=$(xrandr -q | grep -c " connected ")
+
+  act_name=$(xrandr | grep " connected " | awk '{ print $1 }')
+  act_resol=$(xrandr | grep "\*" | awk '{ print $1 }')
+  name_resol=$(xrandr | grep " connected " | awk '{ print $1, "- resolution", $4 }')
+
+  device_info_data['n_display']="$n_display"
+  device_info_data['n_active']="$n_active"
+  device_info_data['active_displays']="$act_name"
+  device_info_data['display_resolution']="$act_resol"
+  device_info_data['name_resol']="$name_resol"
+}
+
 # This function calls other functions to populate the device_info_data variable
 # with the data related to the hardware from the target machine.
 #
@@ -623,6 +652,7 @@ function learn_device()
   get_gpu "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
+  get_display_info
 
   if [[ "$target" == "$VM_TARGET" ]]; then
     vm_umount > /dev/null
@@ -656,6 +686,18 @@ function show_data()
 
   say 'Chassis:'
   printf '  Type: %s\n' "${device_info_data['chassis']}"
+
+  say 'Display:'
+  printf '  Number of connected displays: %s\n' "${device_info_data['n_display']}"
+  printf '  Number of active displays: %s\n' "${device_info_data['n_active']}"
+  printf '  Name of active displays: \n'
+  for name in ${device_info_data["active_displays"]}; do
+    printf '   -%s\n' "${name}"
+  done
+  printf '  Resolution of active displays: \n'
+  for res in ${device_info_data["display_resolution"]}; do
+    printf '   -%s\n' "${res}"
+  done
 
   say 'CPU:'
   printf '  Model: %s\n' "${device_info_data['cpu_model']}"
