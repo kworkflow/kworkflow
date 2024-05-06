@@ -60,6 +60,7 @@ function test_display_data()
     'Type: Pizza Box'
     'CPU:'
     'Model: A model'
+    'Architecture: x86_64'
     'Current frequency (MHz): 1400'
     'RAM:'
     'Total RAM: 16G'
@@ -86,6 +87,7 @@ function test_display_data()
   device_info_data['chassis']='Pizza Box'
   device_info_data['ram']='16777216'
   device_info_data['cpu_model']='A model'
+  device_info_data['cpu_architecture']='x86_64'
   device_info_data['cpu_currently']=1400
   device_info_data['disk_size']='250G'
   device_info_data['root_path']='dev/something'
