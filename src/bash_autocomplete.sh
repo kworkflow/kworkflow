@@ -15,7 +15,7 @@ function _kw_autocomplete()
 
   kw_options['kw']='init build deploy bd diff ssh codestyle self-update
                     maintainers kernel-config-manager config remote explore
-                    pomodoro report device backup debug mail env patch-hub
+                    pomodoro report device backup debug send-patch env patch-hub
                     clear-cache drm vm version man help'
 
   kw_options['init']='--arch --remote --target --force --template --verbose'
@@ -69,7 +69,7 @@ function _kw_autocomplete()
   kw_options['debug']='--remote --local --event --ftrace --dmesg --cmd --verbose
                        --history --disable --reset --list --follow --help'
 
-  kw_options['mail']='--list --send --to --cc --simulate --setup --email --name --smtpencryption
+  kw_options['send-patch']='--list --send --to --cc --simulate --setup --email --name --smtpencryption
                       --template --interactive --local --global --private --verify
                       --force --no-interactive --rfc --verbose --smtpuser --smtpserver
                       --smtpserverport --smtppass'

@@ -97,7 +97,7 @@ the previous sections.
   | :ref:`kw-diff<diff-doc>`
   | :ref:`kw-report<report-doc>`
   | :ref:`kw-pomodoro<pomodoro-doc>`
-  | :ref:`kw-mail<mail-doc>`
+  | :ref:`kw-send-patch<send-patch-doc>`
   | :ref:`kw-self-update<self-update-doc>`
 
 clear-cache

@@ -223,10 +223,11 @@ function test_show_configurations_without_parameters()
   assert_line_match "$LINENO" 'build.warning_level=2' "$output"
   assert_line_match "$LINENO" 'build.use_llvm=yes' "$output"
 
-  assert_line_match "$LINENO" 'mail.send_opts=--annotate --cover-letter --no-chain-reply-to --thread' "$output"
-  assert_line_match "$LINENO" 'mail.blocked_emails=test@email.com' "$output"
-  assert_line_match "$LINENO" 'mail.default_to_recipients=defaultto1@email.com,defaultto2@email.com' "$output"
-  assert_line_match "$LINENO" 'mail.default_cc_recipients=defaultcc1@email.com,defaultcc2@email.com,defaultcc3@email.com' "$output"
+  assert_line_match "$LINENO" 'send_patch.send_opts=--annotate --cover-letter --no-chain-reply-to --thread' "$output"
+  # echo $output
+  assert_line_match "$LINENO" 'send_patch.blocked_emails=test@email.com' "$output"
+  assert_line_match "$LINENO" 'send_patch.default_to_recipients=defaultto1@email.com,defaultto2@email.com' "$output"
+  assert_line_match "$LINENO" 'send_patch.default_cc_recipients=defaultcc1@email.com,defaultcc2@email.com,defaultcc3@email.com' "$output"
 
   assert_line_match "$LINENO" 'deploy.default_deploy_target=remote' "$output"
   assert_line_match "$LINENO" 'deploy.reboot_after_deploy=no' "$output"

@@ -6,8 +6,8 @@ CONFIG_FILENAME='kworkflow.config'
 BUILD_CONFIG_FILENAME='build.config'
 DEPLOY_CONFIG_FILENAME='deploy.config'
 VM_CONFIG_FILENAME='vm.config'
-MAIL_CONFIG_FILENAME='mail.config'
-MAIL_CONFIG_FILENAME='lore.config'
+SEND_PATCH_CONFIG_FILENAME='send_patch.config'
+SEND_PATCH_CONFIG_FILENAME='lore.config'
 KW_DIR='.kw'
 
 # Basic targets
@@ -38,10 +38,10 @@ declare -gA vm_config
 declare -gA vm_config_global
 declare -gA vm_config_local
 
-# Mail configuration
-declare -gA mail_config
-declare -gA mail_config_global
-declare -gA mail_config_local
+# Send patch configuration
+declare -gA send_patch_config
+declare -gA send_patch_config_global
+declare -gA send_patch_config_local
 
 # Notification configuration
 declare -gA notification_config
@@ -144,30 +144,30 @@ function show_deploy_variables()
   print_array deploy_config deploy
 }
 
-function show_mail_variables()
+function show_send_patch_variables()
 {
   local test_mode=0
-  local has_local_mail_config='No'
+  local has_local_send_patch_config='No'
 
-  [[ -f "${PWD}/${KW_DIR}/${MAIL_CONFIG_FILENAME}" ]] && has_local_mail_config='Yes'
+  [[ -f "${PWD}/${KW_DIR}/${SEND_PATCH_CONFIG_FILENAME}" ]] && has_local_send_patch_config='Yes'
 
-  say 'kw Mail configuration variables:'
-  printf '%s\n' "  Local Mail config file: $has_local_mail_config"
+  say 'kw send-patch configuration variables:'
+  printf '%s\n' "  Local send patch config file: $has_local_send_patch_config"
 
   if [[ "$1" == 'TEST_MODE' ]]; then
     test_mode=1
   fi
 
-  local -Ar mail=(
+  local -Ar send_patch=(
     [send_opts]='Options to be used when sending a patch'
     [blocked_emails]='Blocked e-mail addresses'
     [default_to_recipients]='E-mail addresses to always be included as To: recipients'
     [default_cc_recipients]='E-mail addresses to always be included as CC: recipients'
   )
 
-  printf '%s\n' '  kw mail options:'
-  local -n descriptions='mail'
-  print_array mail_config mail
+  printf '%s\n' '  kw send-patch options:'
+  local -n descriptions='send-patch'
+  print_array send_patch_config send-patch
 }
 
 function show_vm_variables()
@@ -312,8 +312,8 @@ function load_configuration()
     'deploy')
       target_array='deploy_config'
       ;;
-    'mail')
-      target_array='mail_config'
+    'send_patch')
+      target_array='send_patch_config'
       ;;
     'notification')
       target_array='notification_config'
@@ -378,9 +378,9 @@ load_vm_config()
   load_configuration 'vm'
 }
 
-load_mail_config()
+load_send_patch_config()
 {
-  load_configuration 'mail'
+  load_configuration 'send_patch'
 }
 
 load_kworkflow_config()
@@ -404,7 +404,7 @@ load_all_config()
   load_kworkflow_config
   load_deploy_config
   load_build_config
-  load_mail_config
+  load_send_patch_config
   load_lore_config
   load_vm_config
 }

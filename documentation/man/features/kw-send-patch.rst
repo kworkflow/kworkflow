@@ -1,25 +1,25 @@
-===================================
-kw-mail - Send patches through mail
-===================================
+=============================================
+kw send-patch - Send patches through mail
+=============================================
 
-.. _mail-doc:
+.. _send-patch-doc:
 
 SYNOPSIS
 ========
-| *kw mail* (-s | \--send) [\--simulate] [\--private] [\--rfc] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
-| *kw mail* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
-| *kw mail* (-i | \--interactive) [\--local | \--global]
-| *kw mail* (-l | \--list)
-| *kw mail* \--verify [\--local | \--global]
-| *kw mail* \--template[=<template>] [-n | \--no-interactive] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
-| *kw mail* \--verbose
+| *kw send-patch* (-s | \--send) [\--simulate] [\--private] [\--rfc] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
+| *kw send-patch* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
+| *kw send-patch* (-i | \--interactive) [\--local | \--global]
+| *kw send-patch* (-l | \--list)
+| *kw send-patch* \--verify [\--local | \--global]
+| *kw send-patch* \--template[=<template>] [-n | \--no-interactive] [\--local | \--global] [-f | \--force] [(<config> <value>)...]
+| *kw send-patch* \--verbose
 
 
 DESCRIPTION
 ===========
 It is common to deal with patch submissions to a mailing list, and
 ``git send-email`` is one of the most famous tools for handling that. The
-**mail** functionality aims to wrap this tool to simplify its usage and
+**send-patch** functionality aims to wrap this tool to simplify its usage and
 integrate it with other **kw** functionalities.
 If used inside of a linux kernel tree the send feature will auto populate the
 *to* and *cc* fields of each patch file with the appropriate maintainers and
@@ -29,12 +29,12 @@ the union of the recipients of each patch as the recipients of the cover-letter.
 .. note::
   You can block certain e-mail addresses from being automatically added to the
   recipients list of the patches using the *blocked_emails* option in the
-  **mail.config** file.
+  **send_patch.config** file.
 
 .. note::
   You can add To\: and CC\: recipients to be included by default using the
   *default_to_recipients* and *default_cc_recipients* configurations, respectively,
-  in the **mail.config** file.
+  in the **send_patch.config** file.
 
 .. note::
   Any option recognized by ``git send-email`` can be passed directly to it if
@@ -53,7 +53,7 @@ OPTIONS
 
   .. note::
     You can change the default arguments used to send emails in the
-    **mail.config** file.
+    **send_patch.config** file.
 
 \--to='<recipient>,...':
   Specify the recipients that will receive the patch via e-mail. The
@@ -133,28 +133,28 @@ EXAMPLES
 If you wish to use gmail you can run the following command to setup all the
 variables at once::
 
-  kw mail -t --name 'Xpto Lala' --email myemail@gmail.com --smtpencryption tls \
+  kw send-patch -t --name 'Xpto Lala' --email myemail@gmail.com --smtpencryption tls \
     --smtpserver smtp.gmail.com --smtpserverport 587 --smtpuser myemail@gmail.com
 
 To simulate sending the last commit as a patch just write::
 
-  kw mail --send --simulate --to=some@email.com
+  kw send-patch --send --simulate --to=some@email.com
 
 Then when you are sure the command executed as expected, drop the
 ``--simulate`` argument to actually send the patch::
 
-  kw mail --send --to=some@email.com
+  kw send-patch --send --to=some@email.com
 
 To send a range of commits the following can be used::
 
-  kw mail -s <SHA1>..<SHA2>
+  kw send-patch  -s <SHA1>..<SHA2>
 
 Extra arguments can be passed directly to ``git send-email`` like this::
 
-  kw mail -s --to='some@email.com' -- --thread
+  kw send-patch  -s --to='some@email.com' -- --thread
 
 If you are inside of a linux kernel tree, you can send the last three commits
 as a patchset to the maintainers of the subsystems and with copies to the
 appropriate mailing lists using::
 
-  kw mail -s -3
+  kw send-patch  -s -3

@@ -34,7 +34,7 @@ _kw()
     'help:Show kw man page'
     'init:Initialize kworkflow config file'
     'kernel-config-manager:Manage config files'
-    'mail:Send patches via email'
+    'send-patch:Send patches via email'
     'maintainers:Get maintainers and mailing list'
     'man:Show manual pages'
     'pomodoro:kw pomodoro support'
@@ -344,7 +344,7 @@ _kw_kernel-config-manager()
     $force
 }
 
-_kw_mail()
+_kw_send-patch()
 {
   local -a send_options=()
   local global=''
@@ -407,7 +407,7 @@ _kw_man()
 {
   _values 'kw commands' \
     'backup' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
-    'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
+    'explore' 'init' 'send-patch' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
     'patch-hub' 
 }
 

@@ -245,11 +245,11 @@ function kw()
         debug_main "$@"
       )
       ;;
-    mail)
+    send-patch)
       (
-        include "${KW_LIB_DIR}/mail.sh"
+        include "${KW_LIB_DIR}/send_patch.sh"
 
-        mail_main "$@"
+        send_patch_main "$@"
       )
       ;;
     env)
