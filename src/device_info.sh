@@ -11,6 +11,10 @@ declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['cpu_max']=''                         # Maximum frequency of CPU in MHz
   ['cpu_min']=''                         # Minimum frequency of CPU in MHz
   ['desktop_environment']=''             # Desktop environment
+  ['kernel_name']=''                     # Kernel name
+  ['kernel_release']=''                  # Kernel release
+  ['kernel_version']=''                  # Kernel version
+  ['kernel_machine']=''                  # Kernel machine type
   ['disk_size']=''                       # Disk size in KB
   ['root_path']=''                       # Root directory path
   ['fs_mount']=''                        # Path where root is mounted
@@ -29,6 +33,9 @@ declare -gA options_values
 
 # This function calls other functions to process and display the hardware
 # information of a target machine.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 function device_main()
 {
   local flag
@@ -64,7 +71,9 @@ function device_main()
 # This function populates the ram element from the device_info_data global
 # variable with the total RAM memory from the target machine in kB.
 #
-# @target Target machine
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 function get_ram()
 {
   local flag="$1"
@@ -102,7 +111,9 @@ function get_ram()
 
 # This function provides the model and frequency of the CPU from a machine
 #
-# @target Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 function get_cpu()
 {
   local target="$1"
@@ -169,7 +180,9 @@ function get_cpu()
 # This function populates the values from the size and fs (filesystem) key of
 # the device_info_data variable.
 #
-# @target Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 function get_disk()
 {
   local target="$1"
@@ -222,7 +235,9 @@ function get_disk()
 # This function populates the os and desktop environment variables from the
 # device_info_data variable.
 #
-# @target Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 function get_os()
 {
   local target="$1"
@@ -288,7 +303,9 @@ function get_os()
 # This function populates the desktop environment variables from the
 # device_info_data variable.
 #
-# @target Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 # @remote IP address of the target machine
 # @port Destination for sending the file
 function get_desktop_environment()
@@ -341,8 +358,76 @@ function get_desktop_environment()
   device_info_data['desktop_environment']="$formatted_de"
 }
 
+# This function populates kernel variables from the device_info_data
+# variable.
+#
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
+function get_kernel_info()
+{
+  local target="$1"
+  local flag="$2"
+  local cmd_name
+  local cmd_version
+  local cmd_release
+  local cmd_machine
+  local kernel_name
+  local kernel_version
+  local kernel_release
+  local kernel_machine_type
+
+  cmd_name='uname --kernel-name'
+  cmd_release='uname --kernel-release'
+  cmd_version='uname --kernel-version'
+  cmd_machine='uname --machine'
+
+  case "$target" in
+    2) # LOCAL_TARGET
+      show_verbose "$flag" "$cmd_name"
+      kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
+
+      show_verbose "$flag" "$cmd_release"
+      kernel_release=$(cmd_manager 'SILENT' "$cmd_release")
+
+      show_verbose "$flag" "$cmd_version"
+      kernel_version=$(cmd_manager 'SILENT' "$cmd_version")
+
+      show_verbose "$flag" "$cmd_machine"
+      kernel_machine=$(cmd_manager 'SILENT' "$cmd_machine")
+      ;;
+    3) # REMOTE_TARGET
+      show_verbose "$flag" "$cmd_name"
+      kernel_name=$(cmd_remotely 'SILENT' "$cmd_name")
+
+      show_verbose "$flag" "$cmd_release"
+      kernel_release=$(cmd_remotely 'SILENT' "$cmd_release")
+
+      show_verbose "$flag" "$cmd_version"
+      kernel_version=$(cmd_remotely 'SILENT' "$cmd_version")
+
+      show_verbose "$flag" "$cmd_machine"
+      kernel_machine=$(cmd_remotely 'SILENT' "$cmd_machine")
+      ;;
+  esac
+
+  if [[ "$flag" == 'TEST_MODE' ]]; then
+    printf '%s\n%s\n' "$cmd_name" "$cmd_release" "$cmd_version" "$cmd_machine"
+    return 0
+  fi
+
+  device_info_data['kernel_name']="$kernel_name"
+  device_info_data['kernel_release']="$kernel_release"
+  device_info_data['kernel_version']="$kernel_version"
+  device_info_data['kernel_machine']="$kernel_machine"
+}
+
 # This function populates the gpu associative array with the vendor and
 # fetchable memory from each GPU found in the target machine.
+#
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 function get_gpu()
 {
   local target="$1"
@@ -406,7 +491,9 @@ function get_gpu()
 # This function retrieves both the name and vendor from the motherboard of a
 # target machine.
 #
-# @target Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 function get_motherboard()
 {
   local target="$1"
@@ -474,7 +561,9 @@ function get_motherboard()
 
 # This function gets the chassis type of the target machine.
 #
-# @target Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 function get_chassis()
 {
   local target="$1"
@@ -545,7 +634,9 @@ function get_img_info()
 # This function calls other functions to populate the device_info_data variable
 # with the data related to the hardware from the target machine.
 #
-# @target Target machine
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 function learn_device()
 {
   local target="$1"
@@ -569,6 +660,7 @@ function learn_device()
   get_disk "$target" "$flag"
   get_os "$target" "$flag"
   get_desktop_environment "$target" "$flag"
+  get_kernel_info "$target" "$flag"
   get_gpu "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
@@ -585,6 +677,10 @@ function learn_device()
 }
 
 # This function shows the information stored in the device_info_data variable.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 function show_data()
 {
   local flag="$1"
@@ -640,6 +736,12 @@ function show_data()
     printf '  Distribution base: %s\n' "${device_info_data['os_id_like']}"
   fi
   printf '  Desktop environments: %s\n' "${device_info_data['desktop_environment']}"
+
+  say 'Kernel:'
+  printf '  Name: %s\n' "${device_info_data['kernel_name']}"
+  printf '  Release: %s\n' "${device_info_data['kernel_release']}"
+  printf '  Version: %s\n' "${device_info_data['kernel_version']}"
+  printf '  Machine hardware name: %s\n' "${device_info_data['kernel_machine']}"
 
   if [[ "$target" != "$VM_TARGET" ]]; then
     say 'Motherboard:'
