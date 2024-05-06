@@ -31,22 +31,23 @@ executed:
 
 You can specify the deploy target via command line by using the flag
 ``--remote <remote>:<port>`` (e.g., ``--remote 172.16.254.1:22``); however, if
-you do this frequently you will probably prefer to add this information to your
-local **kworkflow.config**. See the example below::
+you plan on deploying to the same remote frequently can benefit from using the
+``kw remote`` feature to save the SSH information in a configuration file
+used by kw, for example::
 
-  default_deploy_target=remote
-  ssh_user=root
-  ssh_ip=172.16.254.1
-  ssh_port=22
+  kw remote --add origin root@172.16.254.1
+
+For more information, check ``kw remote --help``
 
 If you want to install a new kernel version in your host machine, you can use
 the flag ``--local``; you will need to use your root password.
 
-Another typical operation when deploying a new kernel to a test machine, it is
-the reboot after the update. You can explicitly say it for **kw** by adding the
-flag ``--reboot``, add this to the **kworkflow.config** with::
+Another typical operation when deploying a new kernel to a test machine is
+rebooting after the update. You can add the ``--reboot`` flag to a command to
+explicitly make **kw** reboot the machine afterwards, or you can set this to 
+always happen by modifying ``reboot_after_deploy`` flag in **deploy.config** with::
 
-  reboot_after_deploy=yes
+  kw config deploy.reboot_after_deploy yes
 
 This can be used with conjunction the :ref:`build<build-doc>` command by
 invoking ``kw bd``.
@@ -117,8 +118,9 @@ OPTIONS
 
 EXAMPLES
 ========
-For these examples, we suppose the fields in your **kworkflow.config** file are
-already configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 First, if you are working in a specific kernel module, and if you want to
 install your recent changes in your local machine you can use::
