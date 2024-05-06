@@ -9,7 +9,7 @@ declare -ga config_file_list=(
   'build'
   'deploy'
   'kworkflow'
-  'mail'
+  'send_patch'
   'notification'
   'remote'
   'vm'

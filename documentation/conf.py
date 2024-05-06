@@ -172,7 +172,7 @@ man_pages = [
     ('man/features/kw-drm', 'kw-drm', 'drm subsystem support', [author], 1),
     ('man/features/kw-explore', 'kw-explore', 'git grep wrapper', [author], 1),
     ('man/features/kw-init', 'kw-init', 'initialize kworkflow.config', [author], 1),
-    ('man/features/kw-mail', 'kw-mail', 'git send-email wrapper', ['Rubens Gomes Neto'], 1),
+    ('man/features/kw-send-patch', 'kw-send-patch', 'git send-email wrapper', ['Rubens Gomes Neto'], 1),
     ('man/features/kw-maintainers', 'kw-maintainers', 'display module maintainers', [author], 1),
     ('man/features/kw-pomodoro', 'kw-pomodoro', 'pomodoro style time management', [author], 1),
     ('man/features/kw-report', 'kw-report', 'user data report support', [author], 1),

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-include './src/mail.sh'
+include './src/send_patch.sh'
 include './tests/unit/utils.sh'
 
 function oneTimeSetUp()
@@ -496,7 +496,7 @@ function test_mail_send()
 
   parse_mail_options '--to=mail@test.com'
 
-  parse_configuration "$KW_MAIL_CONFIG_SAMPLE" mail_config
+  parse_configuration "$KW_MAIL_CONFIG_SAMPLE" send_patch_config
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" --annotate  --no-chain-reply-to --thread @^'
   assert_equals_helper 'Testing default option' "$LINENO" "$expected" "$output"
@@ -907,7 +907,7 @@ function test_template_setup()
     '(enter the corresponding number to choose)'
     '1) Test1'
     '2) Test2'
-    '3) Exit kw mail'
+    '3) Exit kw send-patch'
     '#?'
   )
 

@@ -21,21 +21,21 @@ declare -ga optional_config_options=('sendemail.smtpencryption' 'sendemail.smtpp
 declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
 
 #shellcheck disable=SC2119
-function mail_main()
+function send_patch_main()
 {
   local flag
 
   flag=${flag:-'SILENT'}
 
   if [[ "$1" =~ -h|--help ]]; then
-    mail_help "$1"
+    send_patch_help "$1"
     exit 0
   fi
 
   parse_mail_options "$@"
   if [[ "$?" -gt 0 ]]; then
     complain "${options_values['ERROR']}"
-    mail_help
+    send_patch_help
     return 22 # EINVAL
   fi
 
@@ -87,7 +87,7 @@ function mail_main()
 function mail_send()
 {
   local flag="$1"
-  local opts="${mail_config[send_opts]}"
+  local opts="${send_patch_config[send_opts]}"
   local to_recipients="${options_values['TO']}"
   local cc_recipients="${options_values['CC']}"
   local dryrun="${options_values['SIMULATE']}"
@@ -213,12 +213,12 @@ function generate_kernel_recipients()
   local cc=''
   local to_list=''
   local cc_list=''
-  local blocked="${mail_config[blocked_emails]}"
+  local blocked="${send_patch_config[blocked_emails]}"
   local patch_cache="${KW_CACHE_DIR}/patches"
   local cover_letter_to="${patch_cache}/to/cover-letter"
   local cover_letter_cc="${patch_cache}/cc/cover-letter"
-  local default_to_recipients="${mail_config[default_to_recipients]}"
-  local default_cc_recipients="${mail_config[default_cc_recipients]}"
+  local default_to_recipients="${send_patch_config[default_to_recipients]}"
+  local default_cc_recipients="${send_patch_config[default_cc_recipients]}"
   local get_maintainer_cmd="perl ${kernel_root}/scripts/get_maintainer.pl"
   get_maintainer_cmd+=" --nogit --nogit-fallback --no-r --no-n --multiline"
   get_maintainer_cmd+=" --nokeywords --norolestats --remove-duplicates"
@@ -499,7 +499,7 @@ function add_config()
   cmd_manager "$flag" "$cmd"
 }
 
-# This function gets all the currently set values for the mail_config used
+# This function gets all the currently set values for the send_patch_config used
 # by this script and writes them to the global variable set_confs
 #
 # @cmd_scope:  The scope being imposed on the command
@@ -682,7 +682,7 @@ function validate_setup_opt()
     complain -n 'You provided a flag that should only be used with '
     complain '`--setup`, `--template` or `--interactive`.'
     complain 'Please check your command and try again.'
-    mail_help
+    send_patch_help
     exit 95 # ENOTSUP
   fi
 
@@ -704,7 +704,7 @@ function template_setup()
   if [[ -z "$template" ]]; then
     mapfile -t available_templates < <(find "$KW_ETC_DIR/mail_templates" -type f -printf '%f\n' | sort -d)
     [[ -n "${options_values['INTERACTIVE']}" ]] && available_templates+=('skip template')
-    available_templates+=('exit kw mail')
+    available_templates+=('exit kw send-patch')
 
     say 'You may choose one of the following templates to start your configuration.'
     printf '(enter the corresponding number to choose)\n'
@@ -964,7 +964,7 @@ function parse_mail_options()
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
   if [[ "$?" != 0 ]]; then
-    options_values['ERROR']="$(kw_parse_get_errors 'kw mail' "$short_options" \
+    options_values['ERROR']="$(kw_parse_get_errors 'kw send-patch' "$short_options" \
       "$long_options" "$@")"
     return 22 # EINVAL
   fi
@@ -1134,21 +1134,21 @@ function parse_mail_options()
   return 0
 }
 
-function mail_help()
+function send_patch_help()
 {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'mail'
+    kworkflow_man 'send-patch'
     exit
   fi
-  printf '%s\n' 'kw mail:' \
-    '  mail (-s | --send) [<options>] - Send patches via e-mail' \
-    '  mail (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
-    '  mail (-i | --interactive) - Setup interactively' \
-    '  mail (-l | --list) - List the configurable options' \
-    '  mail --verify - Check if required configurations are set' \
-    '  mail --template[=<template>] [-n] - Set send-email configs based on <template>' \
-    '  mail --verbose - Show a detailed output'
+  printf '%s\n' 'kw send-patch:' \
+    '  send-patch (-s | --send) [<options>] - Send patches via e-mail' \
+    '  send-patch (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
+    '  send-patch (-i | --interactive) - Setup interactively' \
+    '  send-patch (-l | --list) - List the configurable options' \
+    '  send-patch --verify - Check if required configurations are set' \
+    '  send-patch --template[=<template>] [-n] - Set send-email configs based on <template>' \
+    '  send-patch --verbose - Show a detailed output'
 }
 
-load_mail_config
+load_send_patch_config

@@ -44,7 +44,7 @@ Components
 
 We treat every feature under kw as a specific component, usually with a
 dedicated file. For example, the deploy feature implementation can be seen in
-the `src/deploy.sh` file and the mail implementation in the `src/mail.sh` file.
+the `src/deploy.sh` file and the mail implementation in the `src/send_patch.sh` file.
 Usually, the component file follows this basic structure (see :ref:`code-style
 <coding-style>` for more details):
 

@@ -66,9 +66,9 @@ function test_deploy_config()
   local_config_test_helper 'deploy'
 }
 
-function test_mail_config()
+function test_send_patch_config()
 {
-  local_config_test_helper 'mail'
+  local_config_test_helper 'send_patch'
 }
 
 function test_notification_config()

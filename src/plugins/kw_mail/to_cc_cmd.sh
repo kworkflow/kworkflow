@@ -1,7 +1,7 @@
 # This file reads the files generated containing the recipients for any given
 # patch, this is supposed to be used by `git send-email` in the `--to-cmd` and
 # `--cc-cmd` arguments after the appropriate files have been created using the
-# `generate_kernel_recipients` function in the `src/mail.sh` file.
+# `generate_kernel_recipients` function in the `src/send_patch.sh` file.
 
 # This reads the list of recipients stored in a file corresponding to the given
 # patch

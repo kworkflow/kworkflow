@@ -51,8 +51,8 @@ function tearDown()
   unset vm_config
   declare -gA vm_config
 
-  unset mail_config
-  declare -gA mail_config
+  unset send_patch_config
+  declare -gA send_patch_config
 
   unset notification_config
   declare -gA notification_config
