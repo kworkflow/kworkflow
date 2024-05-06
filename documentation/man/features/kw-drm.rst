@@ -26,8 +26,8 @@ OPTIONS
 \--local, \--remote [<remote>:<port>]:
   This option specifies the target device for the drm action, it can be a
   remote or local machine. If these options are not explicitly passed via
-  command line, **kw** going to take the target set in the variable
-  *default_deploy_target* (**kworkflow.config**) for identifying the target.
+  command line, **kw** is going to take the target set in the variable
+  *default_deploy_target* (**deploy.config**) for identifying the target.
   It is important to highlight that the drm feature **does not support VM**.
 
 -lm, \--load-module=<module>[:<param1>,...][;<module>:...]:
@@ -68,8 +68,9 @@ OPTIONS
 
 EXAMPLES
 ========
-For these examples, we suppose the fields in your **kworkflow.config** file are
-already configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 If you are working with DRM drivers, you can take advantage of load and unload
 commands combined with GUI control commands. For example::
