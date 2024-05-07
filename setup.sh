@@ -157,6 +157,84 @@ function check_dependencies()
   fi
 }
 
+# This function checks and installs kernel build dependencies.
+# It supports three Linux distributions: Debian, Arch Linux, and Fedora.
+#
+# @distro: Detect the current distribution.
+#
+# Returns:
+# return 0: All necessary dependencies are already installed or installation is successful.
+# return 1 (EPERM): Unsupported OS type.
+function check_and_install_kernel_build_dependencies()
+{
+  local distro="$1"
+  local package_list
+  local cmd
+  local kernel_build_deps_file
+
+  kernel_build_deps_file="${DOCUMENTATION}/dependencies/kernel_build/${distro}.dependencies"
+
+  package_list=$(get_missing_packages "$distro" "$kernel_build_deps_file")
+
+  case "$distro" in
+    arch*)
+      cmd="pacman -Sy --noconfirm ${package_list}"
+      ;;
+    debian*)
+      cmd="apt install -y ${package_list}"
+      ;;
+    fedora*)
+      cmd="dnf install -y ${package_list}"
+      ;;
+    *)
+      complain "Unsupported OS type: ${distro}"
+      return 1 # EPERM
+      ;;
+  esac
+
+  if [[ -z "$package_list" ]]; then
+    warning 'All necessary kernel build dependencies are already installed.'
+    return 0
+  fi
+
+  if [[ -n "$package_list" ]]; then
+    if [[ "$FORCE" == 0 ]]; then
+      if [[ $(ask_yN "The following packages are required to build the kernel: ${package_list}"$'\nMay we install them?') =~ '0' ]]; then
+        complain 'Aborting installation. Kernel build dependencies not installed.'
+        exit 125 # ECANCELED
+      fi
+    fi
+
+    install_packages "$cmd"
+
+    # Installation failed...
+    if [[ "$?" -ne 0 ]]; then
+      complain '[ERROR] Dependencies installation to build the kernel has failed. Aborting installation...'
+      exit "$?"
+    fi
+  fi
+}
+
+# This function initiates the process to ensure kernel build dependencies are
+# installed.
+function install_kernel_dev_deps()
+{
+  local distro
+  local ret
+
+  distro=$(detect_distro '/')
+
+  # Check if distro is equal to 'none'
+  if [[ "$distro" == 'none' ]]; then
+    complain 'Support for this distro is not available yet.'
+    exit 22 # EINVAL
+  fi
+
+  # Use check_and_install_kernel_build_dependencies() to handle dependency
+  # installation
+  check_and_install_kernel_build_dependencies "$distro"
+}
+
 function generate_documentation()
 {
   local ret
@@ -269,16 +347,17 @@ function usage()
   say 'usage: ./setup.sh option'
   say ''
   say 'Where option may be one of the following:'
-  say '--help               | -h    Display this usage message'
-  say "--install            | -i    Install $app_name"
-  say "--uninstall          | -u    Uninstall $app_name"
-  say '--skip-checks        | -C    Skip checks (use this when packaging)'
-  say '--skip-docs          | -D    Skip creation of man pages (use this when installing)'
-  say '--verbose            | -v    Explain what is being done'
-  say '--force              | -f    Never prompt'
-  say "--completely-remove  | -r    Remove $app_name and all files under its responsibility"
-  say "--docs               | -d    Build $app_name's documentation as HTML pages into ./build"
-  say "--enable-tracing     | -t    Install ${app_name} with tracing enabled (use it with --install)"
+  say '--help                     | -h    Display this usage message'
+  say "--install                  | -i    Install $app_name"
+  say '--install-kernel-dev-deps  | -k    Installs all necessary dependencies to build the kernel according to your distribution'
+  say "--uninstall                | -u    Uninstall $app_name"
+  say '--skip-checks              | -C    Skip checks (use this when packaging)'
+  say '--skip-docs                | -D    Skip creation of man pages (use this when installing)'
+  say '--verbose                  | -v    Explain what is being done'
+  say '--force                    | -f    Never prompt'
+  say "--completely-remove        | -r    Remove $app_name and all files under its responsibility"
+  say "--docs                     | -d    Build $app_name's documentation as HTML pages into ./build"
+  say "--enable-tracing           | -t    Install ${app_name} with tracing enabled (use it with --install)"
 }
 
 function confirm_complete_removal()
@@ -650,6 +729,9 @@ case "$1" in
     ;;
   --docs | -d)
     generate_documentation
+    ;;
+  --install-kernel-dev-deps | -k)
+    install_kernel_dev_deps
     ;;
   *)
     complain 'Invalid number of arguments'
