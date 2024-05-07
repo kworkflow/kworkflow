@@ -1,0 +1,12 @@
+qt3-devel
+libXi-devel
+diffutils
+gcc-c++
+ncurses-devel
+bison
+flex
+openssl-devel
+elfutils-libelf-devel
+openssl
+dwarves
+llvm
