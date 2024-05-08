@@ -197,7 +197,7 @@ function collect_deploy_info()
   bootloader="[bootloader]=$bootloader"
 
   # Get distro
-  distro=$(cat /etc/*-release | grep -w 'ID\(_LIKE\)\?' | cut -d = -f 2 | xargs echo)
+  distro=$(cat /etc/*-release | grep --word-regexp 'ID\(_LIKE\)\?' | cut --delimiter = --fields 2 | xargs printf '%s ')
   distro="[distro]='$distro'"
 
   # Build associative array data
