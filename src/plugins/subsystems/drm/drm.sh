@@ -1,6 +1,9 @@
+include  "${KW_LIB_DIR}/lib/kwio.sh" 
+
 . "${KW_LIB_DIR}/lib/kw_config_loader.sh" --source-only
 . "${KW_LIB_DIR}/lib/remote.sh" --source-only
 . "${KW_LIB_DIR}/lib/kwlib.sh" --source-only
+
 
 declare -gr UNLOAD='UNLOAD'
 declare -gA options_values
@@ -18,6 +21,8 @@ function drm_main()
   local unload_module
   local test_mode
   local flag
+  local get_edid
+  local decode_edid
 
   if [[ "$*" =~ -h|--help ]]; then
     drm_help "$*"
@@ -31,6 +36,8 @@ function drm_main()
     return 22
   fi
 
+  decode_edid="${options_values['DECODE_EDID']}"
+  get_edid="${options_values['GET_EDID']}"
   target="${options_values['TARGET']}"
   gui_on="${options_values['GUI_ON']}"
   gui_off="${options_values['GUI_OFF']}"
@@ -43,6 +50,22 @@ function drm_main()
   remote="${remote_parameters['REMOTE']}"
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
+  if [[ -n "$decode_edid" ]]; then
+    #module_control 'LOAD' "$target" "$remote" "$load_module" "$flag"
+    decode_edid
+    if [[ "$?" != 0 ]]; then
+      return 22
+    fi
+  fi
+
+  if [[ -n "$get_edid" ]]; then
+    #module_control 'LOAD' "$target" "$remote" "$load_module" "$flag"
+    get_edid
+    if [[ "$?" != 0 ]]; then
+      return 22
+    fi
+  fi
 
   if [[ "$target" == "$REMOTE_TARGET" ]]; then
     # Check connection before try to work with remote
@@ -349,9 +372,65 @@ function get_supported_mode_per_connector()
   printf '%s\n' "$modes"
 }
 
+# Creates a binary EDID file, for each connected monitor, on the current folder.
+function get_edid()
+{
+  declare -a monitors
+
+  monitors=( $(ls -d /sys/class/drm/*/edid) )
+
+  say ""
+
+  if [ ${#monitors[@]} -lt 1 ]; then
+	  complain "Could not find any listed monitors!"
+  fi
+
+  for i in ${monitors[@]};
+  do
+          echo $i | awk -F"/" '{print "Wrote: " $5".bin"}'
+	  cat $i > $(echo $i | awk -F"/" '{print $5}')".bin"
+  done
+
+  say ""
+  
+}
+
+# Decodes selected EDID binary file. Filename must match exactly
+# the same path under sysfs, to prevent decoding non-EDID binary files.
+# e.g card0-DP-1.bin is valid for /sys/class/drm/card0-DP-1/edid
+function decode_edid ()
+{
+  declare -a monitors
+  declare -a files
+  declare -a edids
+
+  monitors+=( $(ls -d /sys/class/drm/*/edid | awk -F"/" '{print $5".bin"}') )
+  files+=( $(ls | grep bin) )
+
+  edids+=( $(echo ${monitors[@]} ${files[@]} | tr ' ' '\n' | sort | uniq -d) )
+
+  if [ ${#edids[@]} -lt 1 ]; then
+	  complain "Could not find any valid EDID binary files!"
+	  warning "Run kw drm --get-edid first!"
+	  say""
+	  return
+  fi
+
+  if [ ${#edids[@]} -gt 1 ]; then
+	  for i in `seq 0 1 $((${#edids[@]}-1))`; do
+		  say $i". "${edids[$i]}
+	  done
+          selection=$(ask_with_default "Decode which file: [0-$((${#edids[@]}-1))]" "0")
+	  edid-decode < ${edids[$selection]}
+  else
+	  edid-decode < ${edids[0]}
+  fi
+	
+}
+
 function parse_drm_options()
 {
-  local long_options='remote:,local,gui-on,gui-off,load-module:,unload-module:,help,verbose'
+  local long_options='remote:,local,gui-on,gui-off,load-module:,unload-module:,help,verbose,get-edid,decode-edid'
   long_options+=',conn-available,modes'
   local short_options='h'
   local raw_options="$*"
@@ -367,6 +446,8 @@ function parse_drm_options()
     return 22 # EINVAL
   fi
 
+  options_values['DECODE_EDID']=''
+  options_values['GET_EDID']=''
   options_values['GUI_ON']=''
   options_values['GUI_OFF']=''
   options_values['CONN_AVAILABLE']=''
@@ -417,6 +498,14 @@ function parse_drm_options()
         ;;
       --gui-off)
         options_values['GUI_OFF']=1
+        shift
+        ;;
+      --get-edid)
+        options_values['GET_EDID']=1
+        shift
+        ;;
+      --decode-edid)
+        options_values['DECODE_EDID']=1
         shift
         ;;
       --load-module)
@@ -480,6 +569,8 @@ function drm_help()
     '  drm [--local | --remote [<remote>:<port>]] (-um|--unload-module)=<module>[;<module>;...]' \
     '  drm [--local | --remote [<remote>:<port>]] --gui-on' \
     '  drm [--local | --remote [<remote>:<port>]] --gui-off' \
+    '  drm [--local | --remote [<remote>:<port>]] --get-edid' \
+    '  drm [--local | --remote [<remote>:<port>]] --decode-edid' \
     '  drm [--local | --remote [<remote>:<port>]] --conn-available' \
     '  drm [--local | --remote [<remote>:<port>]] --verbose' \
     '  drm [--local | --remote [<remote>:<port>]] --modes'
