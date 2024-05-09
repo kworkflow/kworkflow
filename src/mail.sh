@@ -600,7 +600,7 @@ function mail_verify()
   if [[ "${#missing_conf}" -gt 0 ]]; then
     complain 'Missing configurations required for send-email:'
     printf '  %s\n' "${missing_conf[@]}"
-    return 22
+    return 22 # EINVAL
   fi
 
   success 'It looks like you are ready to send patches as:'

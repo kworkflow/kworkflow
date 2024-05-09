@@ -59,7 +59,7 @@ function maintainers_main()
   # Check if is a valid path
   if [[ ! -d "$FILE_OR_DIR" && ! -f "$FILE_OR_DIR" ]]; then
     complain 'Invalid path'
-    return 1
+    return 1 # EPERM
   fi
 
   FILE_OR_DIR="$(realpath "${FILE_OR_DIR}")"
@@ -68,7 +68,7 @@ function maintainers_main()
   if ! is_a_patch "$FILE_OR_DIR"; then
     if [[ -n "$update_patch" ]]; then
       complain 'Option --update-patch was passed but given path is not a patch.'
-      return 1
+      return 1 # EPERM
     fi
     is_file_a_patch=false
     script_options="${script_options} -f"
@@ -85,7 +85,7 @@ function maintainers_main()
   # Check if kernel root was found.
   if [[ -z "$kernel_root" ]]; then
     complain 'Neither the given path nor the working path is in a kernel tree.'
-    return 1
+    return 1 # EPERM
   fi
 
   # If file is not a patch and outside a kernel tree, it must be an user's
@@ -93,7 +93,7 @@ function maintainers_main()
   # because it is most likely a user's mistake. So better let the user know.
   if ! "$is_file_a_patch" && ! "$is_file_inside_kernel_tree"; then
     complain 'The given file is not a patch and is outside a kernel tree.'
-    return 1
+    return 1 # EPERM
   fi
 
   cmd_manager "$flag" "cd ${kernel_root}"

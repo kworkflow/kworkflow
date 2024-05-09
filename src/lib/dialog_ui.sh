@@ -931,7 +931,7 @@ function prettify_string()
   local variable_to_concatenate="$2"
 
   if [[ -z "$fixed_text" || -z "$variable_to_concatenate" ]]; then
-    return 22
+    return 22 # EINVAL
   fi
 
   printf '\Zb\Z6%s\Zn%s\\n' "$fixed_text" "$variable_to_concatenate"

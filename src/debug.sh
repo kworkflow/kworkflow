@@ -48,7 +48,7 @@ function debug_main()
   if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
     debug_help
-    return 22
+    return 22 # EINVAL
   fi
 
   test_mode="${options_values['TEST_MODE']}"
@@ -961,7 +961,7 @@ function parser_debug_options()
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
           options_values['ERROR']="$option"
-          return 22
+          return 22 # EINVAL
         fi
         options_values['TARGET']="$REMOTE_TARGET"
         shift 2
@@ -1029,7 +1029,7 @@ function parser_debug_options()
         ;;
       *)
         options_values['ERROR']="$1"
-        return 22
+        return 22 # EINVAL
         ;;
     esac
   done

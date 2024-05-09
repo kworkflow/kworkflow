@@ -316,7 +316,7 @@ function parser_ssh_options()
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
           options_values['ERROR']="$option"
-          return 22
+          return 22 # EINVAL
         fi
         shift 2
         ;;
@@ -357,7 +357,7 @@ function parser_ssh_options()
         ;;
       *)
         options_values['ERROR']="$1"
-        return 22
+        return 22 # EINVAL
         ;;
     esac
   done

@@ -64,7 +64,7 @@ function report_results()
       done
     fi
 
-    return 1
+    return 1 # EPERM
   fi
 }
 

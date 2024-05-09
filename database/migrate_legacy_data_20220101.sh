@@ -99,7 +99,7 @@ function migrate_statistics()
   cmd_manager 'SILENT' "mv ${datadir}/statistics ${datadir}/legacy_statistics"
   if [[ "$?" != 0 ]]; then
     complain "Couldn't rename ${datadir}/statistics ${datadir}/legacy_statistics"
-    return 1 #EPERM
+    return 1 # EPERM
   fi
 }
 
@@ -161,7 +161,7 @@ function migrate_pomodoro()
   cmd_manager 'SILENT' "mv ${datadir}/pomodoro ${datadir}/legacy_pomodoro"
   if [[ "$?" != 0 ]]; then
     complain "Couldn't rename ${datadir}/pomodoro ${datadir}/legacy_pomodoro"
-    return 1 #EPERM
+    return 1 # EPERM
   fi
 }
 
@@ -216,20 +216,20 @@ function migrate_kernel_configs()
   cmd_manager 'SILENT' "cp -r ${configs_dir}/. ${datadir}/configs"
   if [[ "$?" != 0 ]]; then
     complain "Couldn't copy kernel config files from ${configs_dir} to ${datadir}/configs"
-    return 1 #EPERM
+    return 1 # EPERM
   fi
 
   # mark migrated directories to avoid duplicated data
   cmd_manager 'SILENT' "mv ${datadir}/configs/configs ${datadir}/configs/legacy_configs"
   if [[ "$?" != 0 ]]; then
     complain "Couldn't rename ${datadir}/configs/configs to ${datadir}/configs/legacy_configs"
-    return 1 #EPERM
+    return 1 # EPERM
   fi
 
   cmd_manager 'SILENT' "mv ${datadir}/configs/metadata ${datadir}/configs/legacy_metadata"
   if [[ "$?" != 0 ]]; then
     complain "Couldn't rename ${datadir}/configs/metadata to ${datadir}/configs/legacy_metadata"
-    return 1 #EPERM
+    return 1 # EPERM
   fi
 }
 
