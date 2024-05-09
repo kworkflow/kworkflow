@@ -448,7 +448,7 @@ function parse_report_options()
 
   if [[ "$reference_count" -gt 1 ]]; then
     complain 'Please, only use a single time reference'
-    return 22
+    return 22 # EINVAL
   elif [[ "$reference_count" == 0 ]]; then
     # If no option, set day as a default
     options_values['DAY']=$(get_today_info '+%Y/%m/%d')

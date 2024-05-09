@@ -245,7 +245,7 @@ function get_config_from_proc()
   case "$target" in
     1) # VM
       # We do not support this option with VM
-      return 95
+      return 95 # ENOTSUP
       ;;
     2) # LOCAL
       # Try to find /proc/config, if we cannot find, attempt to load the module

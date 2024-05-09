@@ -29,7 +29,7 @@ function str_is_a_number()
 
   value=$(str_strip "$value")
   [[ "$value" =~ ^[-]?[0-9]+$ ]] && return 0
-  return 1
+  return 1 # EPERM
 }
 
 # Calculate the length of a string
@@ -206,7 +206,7 @@ function str_has_special_characters()
   local str="$*"
 
   [[ "$str" == *['!'@#\$%^\&*\(\)+]* ]] && return 0
-  return 1
+  return 1 # EPERM
 }
 
 # Get value under double-quotes. This function only returns the first match if

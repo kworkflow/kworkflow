@@ -169,7 +169,7 @@ function is_kernel_root()
     -d "${DIR}/scripts" ]]; then
     return 0
   fi
-  return 1
+  return 1 # EPERM
 }
 
 # Finds the root of the linux kernel repo containing the given file
@@ -268,7 +268,7 @@ function is_a_patch()
   local file_content
 
   if [[ ! -f "$FILE_PATH" ]]; then
-    return 1
+    return 1 # EPERM
   fi
 
   file_content=$(< "$FILE_PATH")
@@ -284,7 +284,7 @@ function is_a_patch()
 
   for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
     if [[ ! "$file_content" =~ $expected_str ]]; then
-      return 1
+      return 1 # EPERM
     fi
   done
 

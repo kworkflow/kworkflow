@@ -544,7 +544,7 @@ function setup_global_config_file()
     fi
   else
     warning "setup could not find $config_file_template"
-    return 2
+    return 2 # ENOENT
   fi
 }
 
