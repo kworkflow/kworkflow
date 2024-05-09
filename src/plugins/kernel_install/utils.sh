@@ -40,7 +40,7 @@ function cmd_manager()
       ;;
   esac
 
-  eval "$@"
+  eval "$*"
 }
 
 function command_exists()
