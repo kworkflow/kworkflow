@@ -352,6 +352,7 @@ function usage()
   say '--help                     | -h    Display this usage message'
   say "--install                  | -i    Install $app_name"
   say '--install-kernel-dev-deps  | -k    Installs all necessary dependencies to build the kernel according to your distribution'
+  say "--full-installation        | -F    Install $app_name and its kernel development dependencies"
   say "--uninstall                | -u    Uninstall $app_name"
   say '--skip-checks              | -C    Skip checks (use this when packaging)'
   say '--skip-docs                | -D    Skip creation of man pages (use this when installing)'
@@ -644,6 +645,14 @@ function install_home()
   warning '-> For a better experience with kw, please, open a new terminal.'
 }
 
+function full_installation()
+{
+  say 'Starting kw installation...'
+  install_home
+  say 'Installing kernel dependencies for build...'
+  install_kernel_dev_deps
+}
+
 function setup_bashrc_to_show_current_kw_env()
 {
   local config_file_template="${etcdir}/kw_prompt_current_env_name.sh"
@@ -734,6 +743,9 @@ case "$1" in
     ;;
   --install-kernel-dev-deps | -k)
     install_kernel_dev_deps
+    ;;
+  --full-installation | -F)
+    full_installation
     ;;
   *)
     complain 'Invalid number of arguments'
