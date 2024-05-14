@@ -348,16 +348,16 @@ function usage()
   say ''
   say 'Where option may be one of the following:'
   say '--help                     | -h    Display this usage message'
-  say "--install                  | -i    Install $app_name"
+  say "--install                  | -i    Install ${app_name}"
   say '--install-kernel-dev-deps  | -k    Installs all necessary dependencies to build the kernel according to your distribution'
-  say "--full-installation        | -F    Install $app_name and its kernel development dependencies"
-  say "--uninstall                | -u    Uninstall $app_name"
+  say "--full-installation        | -F    Install ${app_name} and its kernel development dependencies"
+  say "--uninstall                | -u    Uninstall ${app_name}"
   say '--skip-checks              | -C    Skip checks (use this when packaging)'
   say '--skip-docs                | -D    Skip creation of man pages (use this when installing)'
   say '--verbose                  | -v    Explain what is being done'
   say '--force                    | -f    Never prompt'
-  say "--completely-remove        | -r    Remove $app_name and all files under its responsibility"
-  say "--docs                     | -d    Build $app_name's documentation as HTML pages into ./build"
+  say "--completely-remove        | -r    Remove ${app_name} and all files under its responsibility"
+  say "--docs                     | -d    Build ${app_name}'s documentation as HTML pages into ./build"
   say "--enable-tracing           | -t    Install ${app_name} with tracing enabled (use it with --install)"
 }
 
