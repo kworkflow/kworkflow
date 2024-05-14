@@ -1,6 +1,6 @@
-. "${KW_LIB_DIR}/lib/kw_config_loader.sh" --source-only
-. "${KW_LIB_DIR}/lib/remote.sh" --source-only
-. "${KW_LIB_DIR}/lib/kwlib.sh" --source-only
+include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
+include "${KW_LIB_DIR}/lib/remote.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 declare -gr UNLOAD='UNLOAD'
 declare -gA options_values
@@ -26,9 +26,9 @@ function drm_main()
 
   parse_drm_options "$@"
   if [[ "$?" -gt 0 ]]; then
-    complain "Invalid option: ${options_values['ERROR']} $target $gui_on $gui_off ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
+    complain "Invalid option: ${options_values['ERROR']} ${target} ${gui_on} ${gui_off} ${remote_parameters['REMOTE_IP']} ${remote_parameters['REMOTE_PORT']}"
     drm_help
-    return 22
+    return 22 # EINVAL
   fi
 
   target="${options_values['TARGET']}"
@@ -56,7 +56,7 @@ function drm_main()
   if [[ -n "$load_module" ]]; then
     module_control 'LOAD' "$target" "$remote" "$load_module" "$flag"
     if [[ "$?" != 0 ]]; then
-      return 22
+      return 22 # EINVAL
     fi
   fi
 
@@ -100,7 +100,7 @@ function module_control()
   local unformatted_remote="$3"
   local parameters="$4"
   local flag="$5"
-  local module_cmd=""
+  local module_cmd=''
   local remote
   local port
 
@@ -109,12 +109,12 @@ function module_control()
   module_cmd=$(convert_module_info "$operation" "$parameters")
   if [[ "$?" != 0 ]]; then
     complain 'Wrong parameter in --[un]load-module='
-    return 22
+    return 22 # EINVAL
   fi
 
   case "$target" in
     2) # LOCAL
-      cmd_manager "$flag" "sudo bash -c \"$module_cmd\""
+      cmd_manager "$flag" "sudo bash -c \"${module_cmd}\""
       ;;
     3) # REMOTE
       remote=$(get_based_on_delimiter "$unformatted_remote" ':' 1)
@@ -138,10 +138,10 @@ function convert_module_info()
   local unload="$1"
   shift
   local raw_modules_str="$*"
-  local parameters_str=""
-  local final_command=""
-  local remove_flag=""
-  local module_str=""
+  local parameters_str=''
+  local final_command=''
+  local remove_flag=''
+  local module_str=''
   local first_time=1
 
   if [[ "$unload" == "$UNLOAD" ]]; then
@@ -154,21 +154,21 @@ function convert_module_info()
   # Target event. e.g.: amdgpu_dm or amdgpu
   for module in "${modules[@]}"; do
     parameters_str=''
-    module_str="modprobe $remove_flag $module"
+    module_str="modprobe ${remove_flag} ${module}"
 
     if [[ "$module" =~ .*':'.* ]]; then
-      module_str="modprobe $remove_flag "
-      module_str+=$(cut -d ':' -f1 <<< "$module")
+      module_str="modprobe ${remove_flag} "
+      module_str+=$(cut --delimiter=':' --fields=1 <<< "$module")
 
       if [[ "$unload" != "$UNLOAD" ]]; then
         # Capture module parameters
-        specific_parameters_str=$(cut -d ':' -f2 <<< "$module")
+        specific_parameters_str=$(cut --delimiter=':' --fields=2 <<< "$module")
         IFS=',' read -r -a parameters_array <<< "$specific_parameters_str"
         for specific_parameter in "${parameters_array[@]}"; do
           parameters_str+="$specific_parameter "
         done
 
-        module_str+=" $parameters_str"
+        module_str+=" ${parameters_str}"
       fi
     fi
 
@@ -177,7 +177,7 @@ function convert_module_info()
       first_time=0
       continue
     fi
-    final_command+=" && $module_str"
+    final_command+=" && ${module_str}"
   done
 
   if [[ -z "$final_command" ]]; then
@@ -264,26 +264,26 @@ function get_available_connectors()
 
   case "$target" in
     2) # LOCAL TARGET
-      cards_raw_list=$(find "$SYSFS_CLASS_DRM" -name 'card*' | sort -d)
+      cards_raw_list=$(find "$SYSFS_CLASS_DRM" -name 'card*' | sort --dictionary-order)
       if [[ -f "$SYSFS_CLASS_DRM" ]]; then
         ret="$?"
-        complain "We cannot access $SYSFS_CLASS_DRM"
+        complain "We cannot access ${SYSFS_CLASS_DRM}"
         return "$ret" # ENOENT
       fi
       target_label='local'
       ;;
     3) # REMOTE TARGET
-      find_conn_cmd="find $SYSFS_CLASS_DRM -name 'card*'"
+      find_conn_cmd="find ${SYSFS_CLASS_DRM} -name 'card*'"
 
-      cards_raw_list=$(cmd_remotely "$find_conn_cmd" "$flag" | sort -d)
+      cards_raw_list=$(cmd_remotely "$find_conn_cmd" "$flag" | sort --dictionary-order)
       target_label='remote'
       ;;
   esac
 
   while read -r card; do
     card=$(basename "$card")
-    key=$(printf '%s\n' "$card" | grep card | cut -d- -f1)
-    value=$(printf '%s\n' "$card" | grep card | cut -d- -f2)
+    key=$(printf '%s\n' "$card" | grep card | cut --delimiter='-' --fields=1)
+    value=$(printf '%s\n' "$card" | grep card | cut --delimiter='-' --fields=2)
     [[ "$key" == "$value" ]] && continue
 
     if [[ -n "$key" && -n "$value" ]]; then
@@ -292,18 +292,18 @@ function get_available_connectors()
         cards["$key"]="$value"
         continue
       fi
-      cards["$key"]="$list_of_values,$value"
+      cards["$key"]="${list_of_values},${value}"
     fi
   done <<< "$cards_raw_list"
 
   for card in "${!cards[@]}"; do
     connectors="${cards[$card]}"
 
-    printf '%s\n' "[$target_label] ${card^} supports:"
+    printf '%s\n' "[${target_label}] ${card^} supports:"
 
     IFS=',' read -r -a connectors <<< "${cards[$card]}"
     for conn in "${connectors[@]}"; do
-      printf '%s\n' " $conn"
+      printf '%s\n' " ${conn}"
     done
 
   done
@@ -324,13 +324,13 @@ function get_supported_mode_per_connector()
 
   flag=${flag:-'SILENT'}
 
-  cmd="for f in $SYSFS_CLASS_DRM/*/modes;"' do c=$(< $f) && [[ ! -z $c ]] && printf "%s\n" "$f:" "$c" ""; done'
+  cmd="for f in ${SYSFS_CLASS_DRM}/*/modes;"' do c=$(< $f) && [[ ! -z $c ]] && printf "%s\n" "$f:" "$c" ""; done'
 
   case "$target" in
     2) # LOCAL TARGET
       if [[ -f "$SYSFS_CLASS_DRM" ]]; then
         ret="$?"
-        complain "We cannot access $SYSFS_CLASS_DRM"
+        complain "We cannot access ${SYSFS_CLASS_DRM}"
         return "$ret" # ENOENT
       fi
       modes=$(eval "$cmd")
@@ -395,14 +395,14 @@ function parse_drm_options()
     options_values['TARGET']="$LOCAL_TARGET"
   fi
 
-  eval "set -- $options"
+  eval "set -- ${options}"
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --remote)
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
           options_values['ERROR']="$option"
-          return 22
+          return 22 # EINVAL
         fi
         options_values['TARGET']="$REMOTE_TARGET"
         shift 2
@@ -471,7 +471,7 @@ function parse_drm_options()
 function drm_help()
 {
   if [[ "$1" =~ --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
+    include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'drm'
     return
   fi
