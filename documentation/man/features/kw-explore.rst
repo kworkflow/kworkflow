@@ -6,7 +6,7 @@ kw-explore - Explore folder
 
 SYNOPSIS
 ========
-*kw* (*e* | *explore*) [(-l | \--log) | (-g | \--grep) | (-a | \--all) | \--verbose]
+*kw* (*e* | *explore*) [(-l | \--log) | (-g | \--grep) | (-a | \--all) | \--snippet | \--verbose]
                        [(-c | \--only-source) | (-H | \--only-header)] <expr>
                        [-p] [<dir> | <file>]
 
@@ -44,6 +44,10 @@ OPTIONS
 
 -H | \--only-header:
   With this option, it is possible to show only the results from the header.
+
+\--snippet:
+  This option forces ``kw (e | explore)`` to display small snippet previews
+  of files with the matched line at the center.
 
 \--verbose:
   Verbose mode allows the user to see the commands executed under the hood.

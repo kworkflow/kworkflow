@@ -31,6 +31,7 @@ function explore_main()
   flag="${options_values['TEST_MODE']:-'SILENT'}"
   search="${options_values['SEARCH']}"
   path="${options_values['PATH']:-'.'}"
+  snippet="${options_values['SNIPPET']}"
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
@@ -48,19 +49,19 @@ function explore_main()
 
   if [[ "${options_values['TYPE']}" -eq 2 ]]; then
     # Use GNU GREP
-    explore_files_gnu_grep "$search" "$path" "$flag"
+    explore_files_gnu_grep "$search" "$path" "$flag" "$snippet"
     return
   fi
 
   if [[ "${options_values['TYPE']}" -eq 3 ]]; then
     # Search in directories controlled or not by git
-    explore_all_files_git "$search" "$path" "$flag"
+    explore_all_files_git "$search" "$path" "$flag" "$snippet"
     return
   fi
 
   if [[ -z "${options_values['TYPE']}" ]]; then
     # Search in files under git control
-    explore_files_under_git "$search" "$path" "$flag"
+    explore_files_under_git "$search" "$path" "$flag" "$snippet"
     return
   fi
 }
@@ -75,7 +76,7 @@ function explore_main()
 # This function also set options_values
 function parse_explore_options()
 {
-  local long_options='log,grep,all,only-header,only-source,exactly,verbose'
+  local long_options='log,grep,all,only-header,only-source,exactly,verbose,snippet'
   local short_options='l,g,a,H,c'
   local options
 
@@ -98,6 +99,7 @@ function parse_explore_options()
   options_values['SCOPE']=''
   options_values['EXACTLY']=''
   options_values['VERBOSE']=''
+  options_values['SNIPPET']=''
 
   eval "set -- $options"
 
@@ -160,6 +162,10 @@ function parse_explore_options()
         options_values['VERBOSE']=1
         shift
         ;;
+      --snippet)
+        options_values['SNIPPET']=1
+        shift
+        ;;
       --) # End of options, beginning of arguments
         shift
         ;;
@@ -205,15 +211,23 @@ function explore_git_log()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
+# @snippet Enable display mode to show small snippet previews of files
 function explore_files_under_git()
 {
   local regex="$1"
   local path="$2"
   local flag="$3"
+  local snippet="$4"
 
   flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "git grep -e '$regex' -nI $path"
+  if [[ -z "$snippet" ]]; then
+    # Show the usual output with colors and format from git grep
+    cmd_manager "$flag" "git grep -e '$regex' -nI $path"
+  else
+    # Pass output to show snippet preview
+    explore_snippet "$flag" "$(eval "git grep -e '$regex' -nI $path")"
+  fi
 }
 
 # This function uses git grep tool to search string in files under or not git
@@ -224,15 +238,23 @@ function explore_files_under_git()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
+# @snippet Enable display mode to show small snippet previews of files
 function explore_all_files_git()
 {
   local regex="$1"
   local path="$2"
   local flag="$3"
+  local snippet="$4"
 
   flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "git grep --no-index -e '$regex' -nI $path"
+  if [[ -z "$snippet" ]]; then
+    # Show the usual output with colors and format from git grep
+    cmd_manager "$flag" "git grep --no-index -e '$regex' -nI $path"
+  else
+    # Pass output to show snippet preview
+    explore_snippet "$flag" "$(eval "git grep --no-index -e '$regex' -nI $path")"
+  fi
 }
 
 # This function allows the use of gnu grep utility to manages the search for
@@ -242,15 +264,80 @@ function explore_all_files_git()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
+# @snippet Enable display mode to show small snippet previews of files
 function explore_files_gnu_grep()
 {
   local regex="$1"
   local path="$2"
   local flag="$3"
+  local snippet="$4"
 
   flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "grep --color -nrI $path -e '$regex'"
+  if [[ -z "$snippet" ]]; then
+    # Show the usual output with colors and format from grep
+    cmd_manager "$flag" "grep --color -nrI $path -e '$regex'"
+  else
+    # Pass output to show snippet preview
+    explore_snippet "$flag" "$(eval "grep --color -nrI $path -e '$regex'")"
+  fi
+}
+
+# This function is an interactive loop that uses the content from
+# GNU grep or GIT grep to display a sequence of small snippet previews
+# of the matched files by 'kw explore'.
+#
+# @flag How to display a command. Variable passed from caller function
+# @snippets_tmp_file Volatile file to hold the snippets generated and
+# used by command 'less' so the user can interactively look at them
+function explore_snippet()
+{
+  local flag="$1"
+  local snippets_tmp_file='/tmp/snippets_tmp_file'
+
+  [[ -f "$snippets_tmp_file" ]] && rm "$snippets_tmp_file"
+
+  if [[ "$flag" != 'TEST_MODE' ]]; then
+    touch "$snippets_tmp_file"
+    say 'Waiting until all content is grouped...'
+  fi
+
+  # Get content and only keep the file's path and line number.
+  # Example: './path/to/file.c:123:<something>' becomes './path/to/file.c:123:'
+  local files
+  files=$(grep --only-matching --regexp "^.*:[0-9]*:" <<< "$2")
+
+  printf '%s\n' "$files" | while read -r file; do
+    # Split path and line into 2 variables
+    file_path=$(cut --delimiter ':' --fields 1 <<< "$file")
+    file_line=$(cut --delimiter ':' --fields 2 <<< "$file")
+
+    [[ -z "$file_path" || -z "$file_line" ]] && break
+
+    # Define boundaries for the preview
+    line_beg=$(("$file_line" - 5))
+    line_beg=$(("$line_beg" > 1 ? "$line_beg" : 1))
+    line_end=$(("$file_line" + 5))
+
+    cmd_snippet="cat --number ${file_path} | sed --quiet '${line_beg},${line_end}p'"
+    cmd_output="$(cmd_manager "$flag" "$cmd_snippet")"
+
+    if [[ "$flag" != 'TEST_MODE' ]]; then
+      {
+        # Snippet's header
+        printf '%s\n' "$SEPARATOR"
+        printf ' File: %s\n' "$file_path"
+        printf ' Line: %s\n' "$file_line"
+        printf '%s\n' "$SEPARATOR"
+        # Snippet's code
+        printf '%s\n\n' "$cmd_output"
+      } >> "$snippets_tmp_file"
+    else
+      # Print command used to test it
+      printf '%s\n' "$cmd_output"
+    fi
+  done
+  [[ "$flag" != 'TEST_MODE' ]] && less -X < "$snippets_tmp_file"
 }
 
 function explore_help()
@@ -267,5 +354,6 @@ function explore_help()
     '  explore,e --all,-a <string> - Search for all <string> match under or not of git management' \
     '  explore,e --only-source,-c <string> - Search for all <string> in source files' \
     '  explore,e --only-header,-H <string> - Search for all <string> in header files' \
+    '  explore,e --snippet - Show preview of files with matched line at the center' \
     '  explore,e --verbose - Show a detailed output'
 }

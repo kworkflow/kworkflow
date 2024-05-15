@@ -282,4 +282,71 @@ function test_parse_explore_options()
   assertEquals "($LINENO)" 'Too many parameters' "${options_values['ERROR']}"
 }
 
+function test_explore_snippet()
+{
+  local -r current_path="$PWD"
+  local output
+
+  # This variable holds the pattern that is being used by this
+  # function to explore_snippet
+  local SNIPPET_PATTERN='camelCase'
+
+  # The following variables hold a sequence of the commands that
+  # must be invoked by explore_snippet given the pattern held
+  # by SNIPPET_PATTERN.
+  #
+  # The invoked command can be found at:
+  # `src/explore.sh` function `explore_snippet`
+  local EXPECTED_GREP=""
+  local EXPECTED_GIT_GREP=""
+
+  local cmd_expected_git_grep=(
+    "cat --number codestyle_check.c | sed --quiet '8,18p'"
+    "cat --number codestyle_check.h | sed --quiet '8,18p'"
+  )
+
+  local cmd_expected_grep=(
+    "cat --number ./codestyle_check.h | sed --quiet '8,18p'"
+    "cat --number ./codestyle_check.c | sed --quiet '8,18p'"
+    "cat --number ./.git/grep_check.c | sed --quiet '8,18p'"
+  )
+
+  # New line character to concatenate commans in different lines
+  local NL=$'\n'
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "($LINENO) It was not possible to move to temporary directory"
+    return
+  }
+
+  EXPECTED_GIT_GREP="${EXPECTED_GIT_GREP}${cmd_expected_git_grep[0]}${NL}"
+  EXPECTED_GIT_GREP="${EXPECTED_GIT_GREP}${cmd_expected_git_grep[1]}"
+
+  EXPECTED_GREP="${EXPECTED_GREP}${cmd_expected_grep[0]}${NL}"
+  EXPECTED_GREP="${EXPECTED_GREP}${cmd_expected_grep[1]}${NL}"
+  EXPECTED_GREP="${EXPECTED_GREP}${cmd_expected_grep[2]}"
+
+  rm -rf ./*.c ./*.h
+  cp "$current_path/tests/unit/samples/grep_check.c" .git
+  cp "$current_path/tests/unit/samples/codestyle_check.c" .
+  cp "$current_path/tests/unit/samples/codestyle_check.h" .
+
+  # Test snippet with GIT's grep
+  output=$(explore_main --snippet "$SNIPPET_PATTERN" ./ TEST_MODE)
+  assert_equals_helper 'Command mismatch' "($LINENO)" "$EXPECTED_GIT_GREP" "$output"
+
+  # Test snippet with GNU's grep
+  output=$(explore_main --snippet --grep "$SNIPPET_PATTERN" ./ TEST_MODE)
+  assert_equals_helper 'Command mismatch' "($LINENO)" "$EXPECTED_GREP" "$output"
+
+  cd "$current_path" || {
+    fail "($LINENO) It was not possible to move back from temp directory"
+    return
+  }
+
+  # Reset git repository for other functions
+  tearDown
+  setUp
+}
+
 invoke_shunit

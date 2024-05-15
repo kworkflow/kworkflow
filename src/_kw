@@ -282,6 +282,7 @@ _kw_explore()
     '(-a --all -l --log -g --grep)'{-a,--all}'[search for all matches in files under or not git management]' \
     '(-c --only-source -H --only-header)'{-c,--only-source}'[show only results from the source]' \
     '(-H --only-header -c --only-source)'{-H,--only-header}'[show only results from the header]' \
+    '(--snippet)--snippet[show small preview of files with the matched line at the center]' \
     '1: : ' \
     '2: :_files'
 }

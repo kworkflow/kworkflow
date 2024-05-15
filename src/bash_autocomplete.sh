@@ -53,7 +53,7 @@ function _kw_autocomplete()
 
   kw_options['remote']='--add --remove --rename --list --global --set-default --verbose'
 
-  kw_options['explore']='--log --grep --all --only-header --only-source --exactly --verbose'
+  kw_options['explore']='--log --grep --all --only-header --only-source --exactly --snippet --verbose'
   kw_options['e']="${kw_options['explore']}"
 
   kw_options['pomodoro']='--set-timer --check-timer --show-tags --tag --description --help --verbose'
