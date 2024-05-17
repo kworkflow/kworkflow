@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS "command_label" (
 CREATE TABLE IF NOT EXISTS "email_group" (
     "id" INTEGER NOT NULL UNIQUE,
     "name" VARCHAR(50) NOT NULL UNIQUE,
-    "created_at" TEXT DEFAULT (date('now')),
+    "created_at" TEXT DEFAULT (date('now', 'localtime')),
     PRIMARY KEY("id")
 );
 
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS "email_contact" (
     "id" INTEGER NOT NULL UNIQUE,
     "name" VARCHAR(100) NOT NULL,
     "email" VARCHAR(100) NOT NULL UNIQUE,
-    "created_at" TEXT DEFAULT (date('now')),
+    "created_at" TEXT DEFAULT (date('now', 'localtime')),
     PRIMARY KEY("id")
 );
 

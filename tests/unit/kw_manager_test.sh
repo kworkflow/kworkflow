@@ -34,11 +34,15 @@ function tearDown()
 function setupDatabase()
 {
   declare -g TEST_GROUP_NAME='TEST_GROUP'
+  declare -g TEST_CONTACT_INFOS=('name' 'email')
   declare -g TEST_GROUP_ID
 
   execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
   sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_GROUP}\" (name) VALUES (\"${TEST_GROUP_NAME}\");"
   TEST_GROUP_ID="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM \"${DATABASE_TABLE_GROUP}\" WHERE name='${TEST_GROUP_NAME}';")"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_CONTACT}\" (name, email) VALUES (\"${TEST_CONTACT_INFOS[0]}\",\"${TEST_CONTACT_INFOS[1]}\");"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_CONTACT_GROUP}\" (contact_id, group_id) VALUES (1,1);"
+
 }
 
 function tearDownDatabase()
@@ -644,6 +648,33 @@ function test_remove_email_contact()
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
 }
 
+function test_show_email_groups()
+{
+  local output
+  local expected
+  local ret
+  local date_now
+
+  date_now="$(date +"%Y-%m-%d")"
+
+  output=$(show_email_groups '' 150)
+
+  expected=$'ID      |Name                                                                                       |Contacts                 |Created at          \n'
+  expected+=$'------------------------------------------------------------------------------------------------------------------------------------------------------\n'
+  expected+="1       |TEST_GROUP                                                                                 |1                        |${date_now}          "
+  expected+=$'\n------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+  assert_equals_helper 'Testing show kw mail groups' "$LINENO" "$output" "$expected"
+
+  output=$(show_email_groups "${TEST_GROUP_NAME}" 150)
+  expected=$'----------------------------------------------------------------------TEST_GROUP----------------------------------------------------------------------\n'
+  expected+=$'ID      |Name                                              |Email                                               |Associated Groups   |Created at  \n'
+  expected+=$'------------------------------------------------------------------------------------------------------------------------------------------------------\n'
+  expected+="1       |name                                              |email                                               |1                   |${date_now}  "
+  expected+=$'\n------------------------------------------------------------------------------------------------------------------------------------------------------'
+  assert_equals_helper 'Testing show kw mail groups' "$LINENO" "$output" "$expected"
+}
+
 function test_manage_contacts_parser()
 {
   local expected
@@ -683,6 +714,18 @@ function test_manage_contacts_parser()
   assert_equals_helper 'Set group remove-email' "$LINENO" "${options_values['GROUP_REMOVE_EMAIL']}" "$expected"
   expected='group'
   assert_equals_helper 'Set group remove-email' "$LINENO" "${options_values['GROUP']}" "$expected"
+
+  parse_manage_contacts_options '--group-show='
+  expected=''
+  assert_equals_helper 'Set group show' "$LINENO" "${options_values['GROUP']}" "$expected"
+  expected=1
+  assert_equals_helper 'Set group show' "$LINENO" "${options_values['GROUP_SHOW']}" "$expected"
+
+  parse_manage_contacts_options '--group-show=test'
+  expected='test'
+  assert_equals_helper 'Set group show' "$LINENO" "${options_values['GROUP']}" "$expected"
+  expected=1
+  assert_equals_helper 'Set group show' "$LINENO" "${options_values['GROUP_SHOW']}" "$expected"
 }
 
 invoke_shunit
