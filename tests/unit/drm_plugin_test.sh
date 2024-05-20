@@ -63,10 +63,13 @@ function mk_fake_sys_class_drm()
 
   for dir in "${fake_dirs[@]}"; do
     mkdir -p "${FAKE_DRM_SYSFS}/${dir}"
+    printf disabled > "${FAKE_DRM_SYSFS}/${dir}/enabled"
   done
 
   touch "${FAKE_DRM_SYSFS}/version"
   touch "${FAKE_DRM_SYSFS}/card0-DP-3/modes"
+  printf enabled > "${FAKE_DRM_SYSFS}/card0-DVI-D-1/enabled"
+  printf enabled > "${FAKE_DRM_SYSFS}/card1-HDMI-A-2/enabled"
 
   cat << END >> "${FAKE_DRM_SYSFS}/card0-DP-3/modes"
 1920x2160
@@ -259,16 +262,16 @@ function test_get_available_connectors_local()
 
   declare -a expected_output=(
     '[local] Card1 supports:'
-    'DP'
-    'DP'
-    'DP'
-    'HDMI'
+    'DP-4'
+    'DP-5'
+    'DP-6'
+    'HDMI-A-2 *'
     '[local] Card0 supports:'
-    'DP'
-    'DP'
-    'DP'
-    'DVI'
-    'HDMI'
+    'DP-1'
+    'DP-2'
+    'DP-3'
+    'DVI-D-1 *'
+    'HDMI-A-1'
   )
 
   # Local
@@ -276,6 +279,7 @@ function test_get_available_connectors_local()
   compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 }
 
+# shellcheck disable=SC2317  # Disable shellchek warning about unreachable commands in this function
 function test_get_available_connectors_remote()
 {
   local output
@@ -284,16 +288,16 @@ function test_get_available_connectors_remote()
   output=$(
     function cmd_remotely()
     {
-      printf '/sys/class/drm/card0-%s-1\n' 'DP'
-      printf '/sys/class/drm/card0-%s-1\n' 'eDP'
+      printf '/sys/class/drm/card0-%s,enabled\n' 'DP-1'
+      printf '/sys/class/drm/card0-%s,disabled\n' 'eDP-1'
     }
     get_available_connectors '3' '' 'TEST_MODE'
   )
 
   declare -a expected_output=(
     '[remote] Card0 supports:'
-    'DP'
-    'eDP'
+    'DP-1 *'
+    'eDP-1'
   )
   compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 }
