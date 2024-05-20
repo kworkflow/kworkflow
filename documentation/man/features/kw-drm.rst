@@ -56,7 +56,8 @@ OPTIONS
   a specific command in the **kworkflow.config** file with the specific command.
 
 \--conn-available:
-  Show all connectors available in the target machine.
+  Show all connectors available in the target machine. The ones marked with '*'
+  are enabled.
 
 \--modes:
   Show all available modes per card.

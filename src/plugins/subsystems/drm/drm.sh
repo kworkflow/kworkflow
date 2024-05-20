@@ -258,13 +258,17 @@ function get_available_connectors()
   local remote
   local port
   local find_conn_cmd
+  local connector_enabled
   declare -A cards
 
   flag=${flag:-'SILENT'}
 
+  # command to find all cards and for each of them append if it is enabled or not
+  find_conn_cmd="find ${SYSFS_CLASS_DRM} -name 'card*-*' -exec printf '%s,' {} \; -exec cat {}/enabled \; -exec printf '\n' \;"
+
   case "$target" in
     2) # LOCAL TARGET
-      cards_raw_list=$(find "$SYSFS_CLASS_DRM" -name 'card*' | sort --dictionary-order)
+      cards_raw_list=$(cmd_manager 'SILENT' "$find_conn_cmd" | sort --dictionary-order)
       if [[ -f "$SYSFS_CLASS_DRM" ]]; then
         ret="$?"
         complain "We cannot access ${SYSFS_CLASS_DRM}"
@@ -273,21 +277,26 @@ function get_available_connectors()
       target_label='local'
       ;;
     3) # REMOTE TARGET
-      find_conn_cmd="find ${SYSFS_CLASS_DRM} -name 'card*'"
-
       cards_raw_list=$(cmd_remotely "$find_conn_cmd" "$flag" | sort --dictionary-order)
       target_label='remote'
       ;;
   esac
 
-  while read -r card; do
-    card=$(basename "$card")
+  while read -r card_info; do
+    card_path=$(printf '%s' "$card_info" | cut --delimiter=',' --fields=1)
+    connector_enabled=$(printf '%s' "$card_info" | cut --delimiter=',' --fields=2)
+    card=$(basename "$card_path")
     key=$(printf '%s\n' "$card" | grep card | cut --delimiter='-' --fields=1)
-    value=$(printf '%s\n' "$card" | grep card | cut --delimiter='-' --fields=2)
+    value=$(printf '%s\n' "$card" | grep card | cut --delimiter='-' --fields=2-)
     [[ "$key" == "$value" ]] && continue
 
     if [[ -n "$key" && -n "$value" ]]; then
       list_of_values="${cards[$key]}"
+
+      if [[ "$connector_enabled" == 'enabled' ]]; then
+        value="${value} *"
+      fi
+
       if [[ -z "$list_of_values" ]]; then
         cards["$key"]="$value"
         continue
