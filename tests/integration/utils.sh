@@ -413,7 +413,8 @@ function container_exec()
   # Escape single quotes in the container command
   container_command=$(str_escape_single_quotes "$container_command")
 
-  cmd+=" ${container_name} /bin/sh -c $'${container_command}' 2> /dev/null"
+  cmd+=" ${container_name} /bin/bash -c $'${container_command}' 2> /dev/null"
+
   eval "$cmd"
 
   if [[ "$?" -ne 0 ]]; then
