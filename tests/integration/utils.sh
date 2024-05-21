@@ -121,6 +121,7 @@ function setup_container_environment()
       --volume "${KWROOT_DIR}":"${working_directory}:Z" \
       --env PATH='/root/.local/bin:/usr/bin' \
       --name "${container_name}" \
+      --privileged \
       --detach \
       "${container_img}" sleep infinity > /dev/null
 
