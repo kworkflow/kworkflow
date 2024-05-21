@@ -2,6 +2,7 @@
 
 include './src/lib/kw_string.sh'
 include './src/lib/kwio.sh'
+include './src/lib/kw_string.sh'
 
 declare -gr CONTAINER_BASE_IMAGE='docker.io/library'
 declare -g CONTAINER_DIR # Has the container files to build the container images
@@ -422,6 +423,38 @@ function container_exec()
     complain "$cmd"
     fail "(${LINENO}): Failed to execute the command in the container."
   fi
+}
+
+# Function to execute a command within a container that is itself running
+# inside another container.
+#
+#  @outer_container_name     The name or ID of the outer container.
+#  @inner_container_name     The name or ID of the inner container.
+#  @inner_container_command  The command to be executed within the inner container.
+#  @podman_exec_options      Extra parameters for 'podman container exec' like
+#                            --workdir, --env, and other supported options.
+function container_exec_in_nested_container()
+{
+  local outer_container_name="$1"
+  local inner_container_name="$2"
+  local inner_container_command="$3"
+  local podman_exec_options="$4"
+  local cmd='podman container exec'
+
+  if [[ -n "$podman_exec_options" ]]; then
+    cmd+=" ${podman_exec_options}"
+  fi
+
+  inner_container_command=$(str_escape_single_quotes "$inner_container_command")
+  cmd+=" ${inner_container_name} /bin/bash -c $'${inner_container_command}'"
+
+  output=$(container_exec "$outer_container_name" "$cmd")
+
+  if [[ "$?" -ne 0 ]]; then
+    fail "(${LINENO}): failed to execute the command in the container."
+  fi
+
+  printf '%s\n' "$output"
 }
 
 # Copy files from the host to the container.
