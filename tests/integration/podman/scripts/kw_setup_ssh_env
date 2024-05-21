@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+
+# This script creates an SSH server inside a container to test the kw ssh
+# feature.
+
+set -e
+
+function detect_distro()
+{
+  if [[ -f '/etc/os-release' ]]; then
+    . /etc/os-release
+    printf "%s\n" "$ID"
+  else
+    printf 'Distribution not detected\n'
+  fi
+}
+
+# This function configures the container storage environment. The primary
+# objective is to resolve issues related to the overlay storage driver on Arch
+# Linux systems. For Arch Linux, it sets the storage configuration to use an
+# alternative setup defined in archlinux_storage.conf and removes the existing
+# container storage directory
+function configure_container_environment()
+{
+  local distro
+  local podman_tmp_utils='/root/kw-ssh-tests'
+  local containers_config_dir='/etc/containers'
+  local arch_storage_conf="${podman_tmp_utils}/archlinux_storage.conf"
+  local containers_config_file="${containers_config_dir}/containers.conf"
+  local storage_config_file="${containers_config_dir}/storage.conf"
+
+  distro=$(detect_distro)
+
+  if [[ "$distro" =~ 'arch' ]]; then
+    printf "%s" "$(< ${arch_storage_conf})" > "$storage_config_file"
+    rm --recursive --force '/var/lib/containers/storage'
+  fi
+}
+
+# Ensure /usr/sbin is in the PATH
+function ensure_path()
+{
+  if ! grep --quiet '/usr/sbin' <<< "$PATH"; then
+    printf "export PATH=\"\$PATH:/usr/sbin\"\n" >> ~/.bashrc
+    source ~/.bashrc
+  fi
+}
+
+# Generate SSH keys for the root user without a passphrase
+function generate_ssh_keys()
+{
+  local ssh_key_dir='/root/.ssh'
+  local ssh_key_file="${ssh_key_dir}/id_rsa"
+
+  ssh-keygen -t rsa -b 4096 -C 'testing@example.com' -N '' -f "$ssh_key_file"
+  cp --recursive "${ssh_key_file}.pub" /root/
+}
+
+# Build and run the SSH server container
+function setup_ssh_server_container()
+{
+  local image_name='ssh-server'
+  local ssh_container_name='ssh-server-container'
+
+  podman build --tag "$image_name" --file '/root/Containerfile_ssh'
+  podman run --detach --name "$ssh_container_name" "$image_name"
+}
+
+function main()
+{
+  ensure_path
+  configure_container_environment
+  generate_ssh_keys
+  setup_ssh_server_container
+}
+
+main

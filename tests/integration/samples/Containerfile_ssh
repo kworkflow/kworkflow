@@ -1,0 +1,27 @@
+# This Containerfile sets up a Debian-based container with an SSH server. The
+# purpose of this container is to test SSH connections using the kw ssh tool.
+# It installs necessary packages, configures the SSH server, and sets up root
+# login with a pre-defined password and SSH public key authentication.
+
+# Start with the Debian image
+FROM debian:latest
+
+# Install necessary packages
+RUN apt-get update && \
+    apt-get install -y openssh-server iptables rsync && \
+    mkdir -p /var/run/sshd && \
+    echo 'root:password' | chpasswd && \
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/UsePAM yes/UsePAM no/' /etc/ssh/sshd_config && \
+    mkdir -p /root/.ssh && \
+    chmod 700 /root/.ssh
+
+# Copy SSH public key and set permissions
+COPY id_rsa.pub /root/.ssh/authorized_keys
+RUN chmod 600 /root/.ssh/authorized_keys
+
+# Expose the SSH port
+EXPOSE 22
+
+# Start the SSH service
+CMD ["/usr/sbin/sshd", "-D"]
