@@ -286,6 +286,13 @@ function kw()
         vm_main "$@"
       )
       ;;
+    signature)
+      (
+        include "${KW_LIB_DIR}/signature.sh"
+
+        signature_main "$@"
+      )
+      ;;
     version | --version | -v)
       (
         include "${KW_LIB_DIR}/help.sh"

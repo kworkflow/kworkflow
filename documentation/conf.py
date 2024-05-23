@@ -181,6 +181,7 @@ man_pages = [
     ('man/features/kw-self-update', 'kw-self-update', 'kw self-update mechanism', ['David Tadokoro, Everaldo Junior'], 1),
     ('man/features/kw-patch-hub', 'kw-patch-hub', 'UI with lore.kernel.org archives', ['David Tadokoro, Rodrigo Siqueira'], 1),
     ('man/features/kw-bd', 'kw-bd', 'build and then deploy the kernel', ['Briza Mel de Sousa, Lorenzo Salvador'], 1),
+    ('man/features/kw-signature', 'kw-signature', 'write trailer lines', ['Lincoln Yuji, Luiza Soezima, Sabrina Araujo'], 1),
 ]
 
 

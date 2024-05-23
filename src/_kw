@@ -41,6 +41,7 @@ _kw()
     'remote:Manage the set of test machines ("remotes")'
     'report:Show kw pomodoro reports and kw usage statistics'
     'self-update:kw self-update mechanism'
+    'signature:Write trailers in commits or patches'
     'ssh:SSH support'
     'patch-hub: Open UI with lore.kernel.org archives'
     'version:Show kw version'
@@ -407,8 +408,8 @@ _kw_man()
 {
   _values 'kw commands' \
     'backup' 'bd' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
-    'explore' 'init' 'send-patch' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
-    'patch-hub' 
+    'explore' 'init' 'send-patch' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' \
+    'signature' 'ssh' 'patch-hub' 
 }
 
 _kw_p() { _kw_pomodoro }
@@ -484,6 +485,20 @@ _kw_self-update()
   _arguments : \
     '(--verbose)--verbose[enable verbose mode]' \
     '(-u --unstable)'{-u,--unstable}'[update kw based on the unstable branch]'
+}
+
+_kw_signature()
+{
+  _arguments : \
+    '(--verbose)--verbose[enable verbose mode]' \
+    {-s-,--add-signed-off-by=-}'[add Signed-off-by tag line]' \
+    {-r-,--add-reviewed-by=-}'[add Reviewed-by tag line]' \
+    {-a-,--add-acked-by=-}'[add Acked-by tag line]' \
+    {-t-,--add-tested-by=-}'[add Tested-by tag line]' \
+    {-C-,--add-co-developed-by=-}'[add Co-developed-by and Signed-off-by tag lines]' \
+    {-R-,--add-reported-by=-}'[add Reported-by and optional Closes|Link tag lines]' \
+    {-f-,--add-fixes=-}'[add Fixes tag line]' \
+    '1: :_files'
 }
 
 _kw_s() { _kw_ssh }
