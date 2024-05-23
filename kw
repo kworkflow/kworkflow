@@ -287,6 +287,13 @@ function kw()
         vm_main "$@"
       )
       ;;
+    handle-trailer)
+      (
+        include "${KW_LIB_DIR}/handle_trailer.sh"
+
+        handle_trailer_main "$@"
+      )
+      ;;
     version | --version | -v)
       (
         include "${KW_LIB_DIR}/help.sh"

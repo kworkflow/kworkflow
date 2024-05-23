@@ -30,6 +30,7 @@ _kw()
     'drm:Set of commands to work with DRM drivers '
     'env:Handle kw envs'
     'explore:Explore string patterns'
+    'handle-trailer:Handle trailers in commits or patches'
     'h:Displays this help message'
     'help:Show kw man page'
     'init:Initialize kworkflow config file'
@@ -285,6 +286,16 @@ _kw_explore()
     '(-C --show-context)'{-C-,--show-context=-}'[set the context value]' \
     '1: : ' \
     '2: :_files'
+}
+
+_kw_handle_trailer()
+{
+  _arguments: \
+    '(--verbose)--verbose[enable verbose mode]' \
+    '(-r --add-reviewed-by -a --add-acked-by -f --add-fixes)'{-r,--add-reviewed-by}'[add Reviewed-by trailer line]: : ' \
+    '(-a --add-acked-by -r --add-reviewed-by -f --add-fixes)'{-a,--add-acked-by}'[add Acked-by trailer line]: : ' \
+    '(-f --add-fixes -r --add-reviewed-by -a --add-acked-by)'{-f,--add-fixes}'[add Fixes trailer line]: : ' \
+    '1: :_files'
 }
 
 _kw_h()

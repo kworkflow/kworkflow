@@ -16,7 +16,7 @@ function _kw_autocomplete()
   kw_options['kw']='init build deploy bd diff ssh codestyle self-update
                     maintainers kernel-config-manager config remote explore
                     pomodoro report device backup debug mail env patch-hub
-                    clear-cache drm vm version man help'
+                    clear-cache drm vm handle-trailer version man help'
 
   kw_options['init']='--arch --remote --target --force --template --verbose'
 
@@ -82,6 +82,8 @@ function _kw_autocomplete()
                      --unload-module --conn-available --modes --verbose --help'
 
   kw_options['vm']='--mount --umount --up --alert --help'
+
+  kw_options['handle-trailer']='--add-reviewed-by --add-acked-by --add-fixes --verbose'
 
   kw_options['clear-cache']='--verbose'
 

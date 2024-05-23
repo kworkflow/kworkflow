@@ -1,0 +1,36 @@
+From f0440260c76695e874af21a45e3156d3ba7a817b Mon Sep 17 00:00:00 2001
+From: kw <kw@example.net>
+Date: Thu, 24 May 2024 13:26:52 -0300
+To: Jane Doe <jane@email.com>,kernel@list.org
+Subject: [PATCH] handle_trailer test
+
+Lorem ipsum dolor sit amet, consectetur adipisci elit,
+sed eiusmod tempor incidunt ut labore et dolore magna aliqua.
+Ut enim ad minim veniam, quis nostrum exercitationem
+ullam corporis suscipit laboriosam, nisi ut aliquid ex ea
+commodi consequatur.
+
+Signed-off-by: kw <kw@example.net>
+Reviewed-by: John Doe <johndoe@community.com>
+Acked-by: Michael Doe <michaeldoe@community.com>
+Fixes: <hash>
+---
+ sound/core/init.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/sound/core/init.c b/sound/core/init.c
+index b02a99766351..fa769ff80e09 100644
+--- a/sound/core/init.c
++++ b/sound/core/init.c
+@@ -19,6 +19,8 @@
+ #include <sound/control.h>
+ #include <sound/info.h>
+
++/* Testing... */
++
+ /* monitor files for graceful shutdown (hotplug) */
+ struct snd_monitor_file {
+ 	struct file *file;
+--
+2.30.0
+
