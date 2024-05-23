@@ -35,11 +35,11 @@ function test_to_cc_main()
 
   bash "$to_cc_cmd" "$FAKE_CACHE" 'to' ''
   ret="$?"
-  assert_equals_helper 'Empty patch path should return an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Empty patch path should return an error' "$LINENO" 22 "$ret"
 
   bash "$to_cc_cmd" "$FAKE_CACHE" '' 'to_list'
   ret="$?"
-  assert_equals_helper 'Empty to_cc should return an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Empty to_cc should return an error' "$LINENO" 22 "$ret"
 
   output="$(bash "$to_cc_cmd" "$FAKE_CACHE" to to_list)"
   expected="$TO_LIST"

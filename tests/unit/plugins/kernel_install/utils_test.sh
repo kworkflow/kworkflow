@@ -455,7 +455,7 @@ function test_install_modules()
   local lib_modules_path_bkp="$LIB_MODULES_PATH"
 
   output=$(install_modules "$module_target" 'TEST_MODE')
-  assert_equals_helper 'We did not find required files' "$LINENO" "$?" 2
+  assert_equals_helper 'We did not find required files' "$LINENO" 2 "$?"
 
   cd "$test_tmp_file" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -532,10 +532,12 @@ function test_install_kernel_remote()
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE" "$name"
   mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
   touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
-  printf 'kernel_name=%s\n' "$name" > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
-  printf 'kernel_binary_image_file=%s\n' "$kernel_image_name" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
-  printf 'architecture=%s\n' "$architecture" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
-  printf 'previous_kernel_backup=yes\n' >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  {
+    printf 'kernel_name=%s\n' "$name"
+    printf 'kernel_binary_image_file=%s\n' "$kernel_image_name"
+    printf 'architecture=%s\n' "$architecture"
+    printf 'previous_kernel_backup=yes\n'
+  } > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   touch "${PWD}/boot/vmlinuz-${name}"
 
   output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
@@ -575,9 +577,11 @@ function test_install_kernel_local()
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
   mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
   touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
-  printf 'kernel_name=%s\n' "$name" > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
-  printf 'kernel_binary_image_file=%s\n' "$kernel_image_name" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
-  printf 'architecture=%s\n' "$architecture" >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
+  {
+    printf 'kernel_name=%s\n' "$name"
+    printf 'kernel_binary_image_file=%s\n' "$kernel_image_name"
+    printf 'architecture=%s\n' "$architecture"
+  } > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
@@ -659,19 +663,19 @@ function test_is_filesystem_writable()
   local expected_cmd
 
   output=$(is_filesystem_writable 'ext4' 'TEST_MODE')
-  assert_equals_helper 'Expected nothing' "$LINENO" "$?" 0
+  assert_equals_helper 'Expected nothing' "$LINENO" 0 "$?"
 
   output=$(is_filesystem_writable 'xpto-lala' 'TEST_MODE')
-  assert_equals_helper 'Expected EOPNOTSUPP error' "$LINENO" "$?" 95
+  assert_equals_helper 'Expected EOPNOTSUPP error' "$LINENO" 95 "$?"
 
   output=$(is_filesystem_writable 'btrfs' 'TEST_MODE')
   expected_cmd='btrfs property get / ro | grep "ro=false" --silent'
-  assert_equals_helper 'Expected btrfs property get command' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected btrfs property get command' "$LINENO" "$expected_cmd" "$output"
 
   AB_ROOTFS_PARTITION="${PWD}/kw"
   output=$(is_filesystem_writable 'ext4' 'TEST_MODE')
   expected_cmd="tune2fs -l '$AB_ROOTFS_PARTITION' | grep -q '^Filesystem features: .*read-only.*$'"
-  assert_equals_helper 'Expected tune2fs command' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected tune2fs command' "$LINENO" "$expected_cmd" "$output"
 }
 
 function test_make_root_partition_writable()
@@ -686,7 +690,7 @@ function test_make_root_partition_writable()
     }
     make_root_partition_writable 'TEST_MODE'
   )"
-  assert_equals_helper 'It is writable, do nothing' "$LINENO" "$?" 0
+  assert_equals_helper 'It is writable, do nothing' "$LINENO" 0 "$?"
 
   # Check ext4
   AB_ROOTFS_PARTITION='/xpto/la'

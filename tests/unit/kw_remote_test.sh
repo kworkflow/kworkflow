@@ -46,15 +46,15 @@ function test_add_new_remote_wrong_number_of_parameters()
 
   options_values['PARAMETERS']=''
   output=$(add_new_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   options_values['PARAMETERS']='xpto'
   output=$(add_new_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   options_values['PARAMETERS']='xpto lala uuu'
   output=$(add_new_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_add_new_remote_no_kw_folder()
@@ -67,7 +67,7 @@ function test_add_new_remote_no_kw_folder()
   options_values['PARAMETERS']='origin u'
   output=$(add_new_remote)
 
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_add_new_remote_with_no_config_file()
@@ -213,11 +213,11 @@ function test_remove_remote_wrong_parameters()
   options_values['PARAMETERS']=''
 
   output=$(remove_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   options_values['PARAMETERS']='one two'
   output=$(remove_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_remove_remote_only_one_entry()
@@ -235,7 +235,7 @@ function test_remove_remote_only_one_entry()
   options_values['PARAMETERS']='origin'
   output=$(remove_remote)
   mapfile -t final_result < "${BASE_PATH_KW}/remote.config"
-  assertEquals "($LINENO)" "${final_result[*]}" ''
+  assertEquals "($LINENO)" '' "${final_result[*]}"
 }
 
 function test_remove_remote_try_to_remove_something_from_an_empty_file()
@@ -247,7 +247,7 @@ function test_remove_remote_try_to_remove_something_from_an_empty_file()
   options_values['PARAMETERS']='origin'
   output=$(remove_remote)
   mapfile -t final_result < "${BASE_PATH_KW}/remote.config"
-  assertEquals "($LINENO)" "${final_result[*]}" ''
+  assertEquals "($LINENO)" '' "${final_result[*]}"
 }
 
 function test_remove_remote_drop_guard_between_others()
@@ -316,7 +316,7 @@ function test_remove_remote_try_to_drop_something_that_does_not_exists()
   # Remove a remote option in the middle
   options_values['PARAMETERS']='uva'
   output=$(remove_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_rename_remote_wrong_number_of_parameters()
@@ -325,15 +325,15 @@ function test_rename_remote_wrong_number_of_parameters()
 
   options_values['PARAMETERS']=''
   output=$(rename_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   options_values['PARAMETERS']='xpto'
   output=$(rename_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   options_values['PARAMETERS']='xpto la lu'
   output=$(rename_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_rename_remote_try_to_rename_something_that_does_not_exists()
@@ -344,7 +344,7 @@ function test_rename_remote_try_to_rename_something_that_does_not_exists()
 
   options_values['PARAMETERS']='ko uva'
   output=$(rename_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_rename_remote_rename_to_something_that_already_exists()
@@ -355,7 +355,7 @@ function test_rename_remote_rename_to_something_that_already_exists()
 
   options_values['PARAMETERS']='fedora-test arch-test'
   output=$(rename_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_rename_remote_change_a_valid_remote()
@@ -429,7 +429,7 @@ function test_set_default_remote_try_to_set_an_invalid_remote()
 
   options_values['DEFAULT_REMOTE']='palmares'
   output=$(set_default_remote)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_set_default_remote_we_already_have_the_default_remote()
@@ -468,18 +468,18 @@ function test_parse_remote_options()
 {
   # Add option
   parse_remote_options --add origin 'root@la:3333'
-  assert_equals_helper 'Request add' "($LINENO)" "${options_values['ADD']}" 1
-  assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin root@la:3333 '
+  assert_equals_helper 'Request add' "($LINENO)" 1 "${options_values['ADD']}"
+  assert_equals_helper 'Remote options' "($LINENO)" 'origin root@la:3333 ' "${options_values['PARAMETERS']}"
 
   # Remove
   parse_remote_options --remove origin
-  assert_equals_helper 'Request remove' "($LINENO)" "${options_values['REMOVE']}" 1
-  assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin '
+  assert_equals_helper 'Request remove' "($LINENO)" 1 "${options_values['REMOVE']}"
+  assert_equals_helper 'Remote options' "($LINENO)" 'origin ' "${options_values['PARAMETERS']}"
 
   # Rename
   parse_remote_options --rename origin xpto
-  assert_equals_helper 'Request rename' "($LINENO)" "${options_values['RENAME']}" 1
-  assert_equals_helper 'Remote options' "($LINENO)" "${options_values['PARAMETERS']}" 'origin xpto '
+  assert_equals_helper 'Request rename' "($LINENO)" 1 "${options_values['RENAME']}"
+  assert_equals_helper 'Remote options' "($LINENO)" 'origin xpto ' "${options_values['PARAMETERS']}"
 }
 
 function test_list_remotes()
@@ -508,23 +508,23 @@ function test_list_remotes_invalid()
 {
   rm "${local_remote_config_file}"
   output=$(list_remotes)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   rm -rf "${BASE_PATH_KW}"
   rm "${global_remote_config_file}"
   output=$(list_remotes)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_kw_remote_without_valid_option()
 {
   # kw remote (no option nor parameter)
   parse_remote_options
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   # kw remote <params>[...] (no options)
   parse_remote_options
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_remove_remote_that_is_prefix_of_other_remote()
@@ -760,7 +760,7 @@ function test_global_option_list_remote_invalid()
   rm "${global_remote_config_file}"
   options_values['GLOBAL']='1'
   output=$(list_remotes)
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function setup_for_symbolic_link_test()

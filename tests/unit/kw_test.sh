@@ -11,7 +11,7 @@ function test_validate_global_variables()
   VARS=(KWORKFLOW KW_LIB_DIR)
   for v in "${VARS[@]}"; do
     test -z ${!v+x}
-    assertEquals "Variable $v should exist." $? 1
+    assertEquals "Variable ${v} should exist." 1 $?
   done
 }
 

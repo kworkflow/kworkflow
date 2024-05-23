@@ -73,16 +73,16 @@ function test_parse_configuration_config_with_spaces_and_comments()
   parse_configuration 'kworkflow_space_comments.config'
   assertEquals "($LINENO): Kw failed to load a regular config file" 0 "$?"
 
-  assertEquals "($LINENO)" "${configurations['ssh_user']}" 'juca'
-  assertEquals "($LINENO)" "${configurations['mount_point']}" '/home/lala'
-  assertEquals "($LINENO)" "${configurations['virtualizer']}" 'libvirt'
-  assertEquals "($LINENO)" "${configurations['reboot_after_deploy']}" 'no'
+  assertEquals "($LINENO)" 'juca' "${configurations['ssh_user']}"
+  assertEquals "($LINENO)" '/home/lala' "${configurations['mount_point']}"
+  assertEquals "($LINENO)" 'libvirt' "${configurations['virtualizer']}"
+  assertEquals "($LINENO)" 'no' "${configurations['reboot_after_deploy']}"
 }
 
 function test_parser_configuration_failed_exit_code()
 {
   parse_configuration 'tests/unit/foobarpotato'
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 # Helper function used to compare expected config agaist the populated data.
@@ -270,13 +270,13 @@ function test_load_configuration()
 
   # No to updating kworkflow.config to .kw/kworkflow.config
   output="$(printf '%s\n' 'n' | load_kworkflow_config)"
-  assertEquals "($LINENO): There should have been a warning" "$output" "$msg"
+  assertEquals "($LINENO): There should have been a warning" "$msg" "$output"
   assertTrue 'kworkflow.config was moved' '[[ -f "$PWD/$CONFIG_FILENAME" ]]'
 
   # Yes to updating kworkflow.config to .kw/kworkflow.config
   output="$(printf '%s\n' 'y' | load_configuration)"
 
-  assertEquals "($LINENO): There should have been a warning" "$output" "$msg"
+  assertEquals "($LINENO): There should have been a warning" "$msg" "$output"
 
   assertTrue '.kw was not created' '[[ -d "$PWD/$KW_DIR/" ]]'
   assertTrue 'kworkflow.config is not inside .kw' '[[ -f "$PWD/$KW_DIR/$CONFIG_FILENAME" ]]'

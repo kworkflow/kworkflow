@@ -107,7 +107,7 @@ function test_create_simple_checklist_rely_on_some_default_options()
   expected_cmd+=" $'Checklist 1' '' 'on' $'Checklist 2' '' 'off'"
 
   output=$(create_simple_checklist "$menu_title" "$menu_message_box" 'menu_list_string_array' 'check_statuses' '' '' '' '' '' 'TEST_MODE')
-  assert_equals_helper 'Expected simple checklist' "$LINENO" "${output}" "${expected_cmd}"
+  assert_equals_helper 'Expected simple checklist' "$LINENO" "${expected_cmd}" "${output}"
 }
 
 function test_create_simple_checklist_use_all_options()
@@ -126,7 +126,7 @@ function test_create_simple_checklist_use_all_options()
   expected_cmd+=" $'Checklist 1' '' 'on' $'Checklist 2' '' 'off'"
 
   output=$(create_simple_checklist "$menu_title" "$menu_message_box" 'menu_list_string_array' 'check_statuses' 1 'Nop' '442' '244' '3' 'TEST_MODE')
-  assert_equals_helper 'Expected simple checklist' "$LINENO" "${output}" "${expected_cmd}"
+  assert_equals_helper 'Expected simple checklist' "$LINENO" "${expected_cmd}" "${output}"
 }
 
 function test_create_loading_screen_notification_rely_on_some_default_options()
@@ -139,7 +139,7 @@ function test_create_loading_screen_notification_rely_on_some_default_options()
   expected_cmd+=" '8' '60'"
 
   output=$(create_loading_screen_notification "$loading_message" '' '' 'TEST_MODE')
-  assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${output}" "${expected_cmd}"
+  assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${expected_cmd}" "${output}"
 }
 
 function test_create_loading_screen_notification_use_all_options()
@@ -152,7 +152,7 @@ function test_create_loading_screen_notification_use_all_options()
   expected_cmd+=" '1234' '4321'"
 
   output=$(create_loading_screen_notification "$loading_message" '1234' '4321' 'TEST_MODE')
-  assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${output}" "${expected_cmd}"
+  assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${expected_cmd}" "${output}"
 }
 
 function test_create_async_loading_screen_notification_rely_on_some_default_options()
@@ -177,7 +177,7 @@ function test_create_async_loading_screen_notification_rely_on_some_default_opti
   stop_async_loading_screen_notification "$pid"
 
   output=$(< "$output_path")
-  assert_equals_helper 'Expected async loading screen with some default options' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected async loading screen with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
 function test_create_async_loading_screen_notification_use_all_options()
@@ -202,7 +202,7 @@ function test_create_async_loading_screen_notification_use_all_options()
   stop_async_loading_screen_notification "$pid"
 
   output=$(< "$output_path")
-  assert_equals_helper 'Expected async loading screen with some default options' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected async loading screen with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
 function test_create_message_box_rely_on_some_default_options()
@@ -216,7 +216,7 @@ function test_create_message_box_rely_on_some_default_options()
   expected_cmd+=" --msgbox $'There\'re no bookmarked patches...'"
   expected_cmd+=" '15' '40'"
   output=$(create_message_box "${box_title}" "${message_box}" '' '' 'TEST_MODE')
-  assert_equals_helper 'Expected message box with some default options' "$LINENO" "$output" "${expected_cmd}"
+  assert_equals_helper 'Expected message box with some default options' "$LINENO" "${expected_cmd}" "$output"
 }
 
 function test_create_message_box_use_all_options()
@@ -230,7 +230,7 @@ function test_create_message_box_use_all_options()
   expected_cmd+=" --msgbox $'There\'re no bookmarked patches...'"
   expected_cmd+=" '1234' '4321'"
   output=$(create_message_box "${box_title}" "${message_box}" '1234' '4321' 'TEST_MODE')
-  assert_equals_helper 'Expected message box with all custom options' "$LINENO" "$output" "${expected_cmd}"
+  assert_equals_helper 'Expected message box with all custom options' "$LINENO" "${expected_cmd}" "$output"
 }
 
 function test_create_directory_selection_screen_rely_on_some_default_options()
@@ -569,10 +569,10 @@ function test_build_dialog_command_preamble()
 function test_prettify_string_failures()
 {
   prettify_string
-  assert_equals_helper 'Expected failure' "$LINENO" "$?" 22
+  assert_equals_helper 'Expected failure' "$LINENO" 22 "$?"
 
   prettify_string 'Something'
-  assert_equals_helper 'Expected failure' "$LINENO" "$?" 22
+  assert_equals_helper 'Expected failure' "$LINENO" 22 "$?"
 }
 
 function test_prettify_string()
@@ -581,7 +581,7 @@ function test_prettify_string()
   local expected_string='\Zb\Z6Series:\ZnSomething\n'
 
   output=$(prettify_string 'Series:' 'Something')
-  assert_equals_helper 'Expected pretty string' "$LINENO" "$output" "$expected_string"
+  assert_equals_helper 'Expected pretty string' "$LINENO" "$expected_string" "$output"
 }
 
 invoke_shunit

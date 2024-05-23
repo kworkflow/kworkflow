@@ -44,19 +44,19 @@ function test_create_new_env_create_multiple_envs_from_current_configs()
 
   options_values['CREATE']='xpto'
   create_new_env
-  assertEquals "($LINENO) We should nota have errors" "$?" 0
+  assertEquals "($LINENO) We should nota have errors" 0 "$?"
 
   options_values['CREATE']='abc'
   create_new_env
-  assertEquals "($LINENO) We should nota have errors" "$?" 0
+  assertEquals "($LINENO) We should nota have errors" 0 "$?"
 
   # Other checks
   # 1. Do we have the env folder?
   new_env_name=$(find ".kw/${ENV_DIR}" -type d -name 'xpto')
-  assertEquals "($LINENO) We did not find the new folder name" "$new_env_name" ".kw/${ENV_DIR}/xpto"
+  assertEquals "($LINENO) We did not find the new folder name" ".kw/${ENV_DIR}/xpto" "$new_env_name"
 
   new_env_name=$(find ".kw/${ENV_DIR}" -type d -name 'abc')
-  assertEquals "($LINENO) We did not find the new folder name" "$new_env_name" ".kw/${ENV_DIR}/abc"
+  assertEquals "($LINENO) We did not find the new folder name" ".kw/${ENV_DIR}/abc" "$new_env_name"
 
   # 2. Check for config files
   for config in "${config_file_list[@]}"; do
@@ -74,7 +74,7 @@ function test_create_new_env_outside_of_a_repo_without_init()
 
   options_values['CREATE']='farofa'
   output=$(create_new_env)
-  assertEquals "($LINENO) We should hit a fail condition" "$?" 22
+  assertEquals "($LINENO) We should hit a fail condition" 22 "$?"
 }
 
 function test_create_new_env_missing_config()
@@ -98,7 +98,7 @@ function test_create_new_env_check_if_target_env_name_already_exists()
 
   # Try to create the same env twice
   output=$(create_new_env)
-  assertEquals "($LINENO) We should be able to create two env with the same name" "$?" 22
+  assertEquals "($LINENO) We should be able to create two env with the same name" 22 "$?"
 }
 
 function test_show_available_envs()
@@ -129,7 +129,7 @@ function test_show_available_envs_when_we_dont_kw_folder()
   assertTrue "${LINENO}: Something went wrong when we tried to remove .kw folder" 'rm -rf .kw'
 
   output=$(list_env_available_envs)
-  assertEquals "($LINENO) We should hit a fail condition" "$?" 22
+  assertEquals "($LINENO) We should hit a fail condition" 22 "$?"
 }
 
 function test_show_available_envs_when_there_is_no_env()
@@ -166,7 +166,7 @@ function test_use_target_env()
   real_path=$(readlink "${PWD}/.kw/build.config")
   expected_path="${PWD}/.kw/${ENV_DIR}/farofa/build.config"
 
-  assertEquals "($LINENO) It looks like that the env did not switch" "$real_path" "$expected_path"
+  assertEquals "($LINENO) It looks like that the env did not switch" "$expected_path" "$real_path"
 
   # Switch env
   options_values['USE']='tapioca'
@@ -175,7 +175,7 @@ function test_use_target_env()
   real_path=$(readlink "${PWD}/.kw/build.config")
   expected_path="${PWD}/.kw/${ENV_DIR}/tapioca/build.config"
 
-  assertEquals "($LINENO) It looks like that the env did not switch" "$real_path" "$expected_path"
+  assertEquals "($LINENO) It looks like that the env did not switch" "$expected_path" "$real_path"
 }
 
 function test_use_target_env_invalid_env()
@@ -194,7 +194,7 @@ function test_use_target_env_invalid_env()
   # Switch env
   options_values['USE']='lala'
   output=$(use_target_env)
-  assertEquals "($LINENO) Env does not exists" "$?" 22
+  assertEquals "($LINENO) Env does not exists" 22 "$?"
 }
 
 function test_validate_env_before_switch_invalid_case_with_config()
@@ -242,11 +242,11 @@ function test_parse_env_options()
 
   # Check help
   output=$(parse_env_options -h)
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 
   # Check verbose
   output=$(parse_env_options --verbose)
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 
   # Check create
   parse_env_options --create abc
@@ -254,10 +254,10 @@ function test_parse_env_options()
     "($LINENO)" 'abc' "${options_values['CREATE']}"
 
   output=$(parse_env_options --create 'abc la')
-  assertEquals "($LINENO) Invalid name" "$?" 22
+  assertEquals "($LINENO) Invalid name" 22 "$?"
 
   output=$(parse_env_options --create 'Weird_n@m#')
-  assertEquals "($LINENO) Invalid name" "$?" 22
+  assertEquals "($LINENO) Invalid name" 22 "$?"
 
   # Check use option
   parse_env_options --use abc
@@ -266,10 +266,10 @@ function test_parse_env_options()
 
   # Check use option
   parse_env_options --an-invalid-option
-  assertEquals "($LINENO) Invalid option" "$?" 22
+  assertEquals "($LINENO) Invalid option" 22 "$?"
 
   parse_env_options --use
-  assertEquals "($LINENO) Invalid option" "$?" 22
+  assertEquals "($LINENO) Invalid option" 22 "$?"
 }
 
 function test_exit_env_checking_files()

@@ -52,7 +52,7 @@ function device_info_test_helper()
     expected_output=$(sed '/GPU:/q' <<< "${expected_output}" | sed '/GPU:/d')
   fi
 
-  assertEquals "(${LINENO}): kw device failed for ${distro}" "${output}" "${expected_output}"
+  assertEquals "(${LINENO}): kw device failed for ${distro}" "${expected_output}" "${output}"
 
   # check storage information
   fs_type=$(container_inspect --format '{{.Driver}}' "${container}")
