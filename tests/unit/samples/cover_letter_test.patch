@@ -1,0 +1,21 @@
+From 2741c6a546f4e0b148f7211def92a8843b9e0972 Mon Sep 17 00:00:00 2001
+From: kw <kw@example.net>
+Date: Fri, 23 May 2023 09:04:44 -0300
+Subject: [PATCH 0/2] Cover letter example
+
+This is an example of a cover letter for testing purposes.
+There are not actual pacthes related to this file and the
+following modified files do not exist.
+
+kw (2):
+  src: art3435: Add failure paths as corner cases
+  test: unit: art3435_test: Add failing tests
+  
+  src/art3435.c | 34 ++++++++++++++++++
+  test/unit/art3435.sh | 86 ++++++++++++++++++++++++++++++++++
+
+  2 files changed, 120 insertions(+)
+
+-- 
+2.34.1
+
