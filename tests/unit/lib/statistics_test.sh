@@ -64,10 +64,10 @@ function test_calculate_total_of_data()
 function test_max_value()
 {
   max=$(max_value "0")
-  assertEquals "($LINENO)" "$max" "0"
+  assertEquals "($LINENO)" 0 "$max"
 
   max=$(max_value "")
-  assertEquals "($LINENO)" "$max" "0"
+  assertEquals "($LINENO)" 0 "$max"
 
   max=$(max_value "$pre_values")
   assertEquals "($LINENO)" "$pre_max" "$max"
@@ -76,13 +76,13 @@ function test_max_value()
 function test_min_value()
 {
   min=$(min_value "0" "0")
-  assertEquals "($LINENO)" "$min" "0"
+  assertEquals "($LINENO)" 0 "$min"
 
   min=$(min_value "" "")
-  assertEquals "($LINENO)" "$min" ""
+  assertEquals "($LINENO)" "" "$min"
 
   min=$(min_value "$pre_values" "$pre_max")
-  assertEquals "($LINENO)" "$min" "$pre_min"
+  assertEquals "($LINENO)" "$pre_min" "$min"
 }
 
 # Note: The weekly, monthly, and yearly calculation uses `basic_data_process`.
@@ -98,11 +98,11 @@ function test_basic_data_process()
 
   basic_data_process "$data"
   build="${shared_data["build"]}"
-  assertEquals "($LINENO)" "$build_output" "$build"
+  assertEquals "($LINENO)" "$build" "$build_output"
 
   basic_data_process "$data"
   deploy="${shared_data["deploy"]}"
-  assertEquals "($LINENO)" "$deploy_output" "$deploy"
+  assertEquals "($LINENO)" "$deploy" "$deploy_output"
 
   basic_data_process "$data"
   deploy="${shared_data["list"]}"

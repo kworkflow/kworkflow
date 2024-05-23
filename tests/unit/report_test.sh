@@ -65,62 +65,62 @@ function test_parse_report_options()
   # Default values
   parse_report_options '--day'
   expected_result=$(get_today_info '+%Y/%m/%d')
-  assert_equals_helper 'Get today info' "$LINENO" "${options_values['DAY']}" "$expected_result"
+  assert_equals_helper 'Get today info' "$LINENO" "$expected_result" "${options_values['DAY']}"
 
   parse_report_options '--week'
   expected_result=$(get_days_of_week)
-  assert_equals_helper 'Get this week info' "$LINENO" "${options_values['WEEK']}" "$expected_result"
+  assert_equals_helper 'Get this week info' "$LINENO" "$expected_result" "${options_values['WEEK']}"
 
   parse_report_options '--month'
   expected_result=$(get_today_info '+%Y/%m')
-  assert_equals_helper 'Get this month info' "$LINENO" "${options_values['MONTH']}" "$expected_result"
+  assert_equals_helper 'Get this month info' "$LINENO" "$expected_result" "${options_values['MONTH']}"
 
   parse_report_options '--year'
   expected_result=$(get_today_info '+%Y')
-  assert_equals_helper 'Get this year info' "$LINENO" "${options_values['YEAR']}" "$expected_result"
+  assert_equals_helper 'Get this year info' "$LINENO" "$expected_result" "${options_values['YEAR']}"
 
   parse_report_options '--verbose'
-  assert_equals_helper 'Show a detailed output' "$LINENO" "${options_values['VERBOSE']}" '1'
+  assert_equals_helper 'Show a detailed output' "$LINENO" 1 "${options_values['VERBOSE']}"
 
   # Values with parameters
   ## Days
   ref_date='1999/03/03'
   parse_report_options "--day=$ref_date"
   expected_result=$(date_to_format "$ref_date" '+%Y/%m/%d')
-  assert_equals_helper "$ref_date is a valid date" "$LINENO" "${options_values['DAY']}" "$expected_result"
+  assert_equals_helper "$ref_date is a valid date" "$LINENO" "$expected_result" "${options_values['DAY']}"
 
   ref_date='2022/04/32'
   output=$(parse_report_options "--day=$ref_date" 2> /dev/null)
   ret="$?"
-  assert_equals_helper "$ref_date is an invalid date" "$LINENO" "$ret" 22
+  assert_equals_helper "$ref_date is an invalid date" "$LINENO" 22 "$ret"
 
   ## Weeks
   ref_date='1990/04/10'
   parse_report_options "--week=$ref_date"
   expected_result=$(get_days_of_week "$ref_date")
-  assert_equals_helper 'We expected all days of week' "$LINENO" "${options_values['WEEK']}" "$expected_result"
+  assert_equals_helper 'We expected all days of week' "$LINENO" "$expected_result" "${options_values['WEEK']}"
 
   ref_date='2022/04/32'
   output=$(parse_report_options "--week=$ref_date" 2> /dev/null)
   ret="$?"
-  assert_equals_helper "$ref_date is invalid" "$LINENO" "$ret" 22
+  assert_equals_helper "$ref_date is invalid" "$LINENO" 22 "$ret"
 
   ## Month
   ref_date='1990/04'
   parse_report_options "--month=$ref_date"
   expected_result=$(date_to_format "$ref_date/01" '+%Y/%m')
-  assert_equals_helper 'We expected 1990/04' "$LINENO" "${options_values['MONTH']}" "$expected_result"
+  assert_equals_helper 'We expected 1990/04' "$LINENO" "$expected_result" "${options_values['MONTH']}"
 
   ref_date='1990/30'
   output=$(parse_report_options "--month=$ref_date" 2> /dev/null)
   ret="$?"
-  assert_equals_helper 'Invalid date' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid date' "$LINENO" 22 "$ret"
 
   # Invalid parameter
   ref_date='2022/04/12'
   output=$(parse_report_options "--month=$ref_date --day=$ref_date" 2> /dev/null)
   ret="$?"
-  assert_equals_helper 'Invalid date' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid date' "$LINENO" 22 "$ret"
 }
 
 function test_statistics()
@@ -558,7 +558,7 @@ function test_save_data_to()
   # Try to use an invalid root directory path.
   output=$(save_data_to '/lala/do/not')
   ret="$?"
-  assert_equals_helper 'We expect a root path to be invalid' "$LINENO" "$ret" 1
+  assert_equals_helper 'We expect a root path to be invalid' "$LINENO" 1 "$ret"
 
   # Try to use an invalid folder path error.
   output=$(save_data_to '/tmp/folder_not_created/')

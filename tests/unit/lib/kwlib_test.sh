@@ -230,10 +230,10 @@ function test_cmd_manager_check_test_mode_option()
   local ret
 
   ret=$(cmd_manager 'TEST_MODE' 'pwd')
-  assertEquals "Expected pwd, but we got $ret" "$ret" "pwd"
+  assertEquals "Expected pwd, but we got ${ret}" "pwd" "$ret"
 
   ret=$(cmd_manager 'TEST_MODE' 'ls -lah')
-  assertEquals "Expected ls -lah, but we got $ret" "$ret" "ls -lah"
+  assertEquals "Expected ls -lah, but we got ${ret}" "ls -lah" "$ret"
 }
 
 function test_detect_distro_root_path_only()
@@ -243,47 +243,47 @@ function test_detect_distro_root_path_only()
 
   root_path="${SAMPLES_DIR}/os/arch"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/manjaro"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/ubuntu"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   root_path="${SAMPLES_DIR}/os/debian"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   root_path="${SAMPLES_DIR}/os/raspbian"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   root_path="${SAMPLES_DIR}/os/fedora"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'fedora'
+  assert_equals_helper '' "$LINENO" 'fedora' "$output"
 
   root_path="${SAMPLES_DIR}/os/arch-linux-arm"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/endeavouros"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/steamos"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/popos"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   root_path="${SAMPLES_DIR}/os/none"
   output=$(detect_distro "$root_path")
-  assert_equals_helper '' "$LINENO" "$output" 'none'
+  assert_equals_helper '' "$LINENO" 'none' "$output"
 }
 
 function test_detect_distro_str_check()
@@ -292,22 +292,22 @@ function test_detect_distro_str_check()
   local output
 
   output=$(detect_distro '/' 'arch')
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   output=$(detect_distro '' 'debian')
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   output=$(detect_distro '' 'fedora')
-  assert_equals_helper '' "$LINENO" "$output" 'fedora'
+  assert_equals_helper '' "$LINENO" 'fedora' "$output"
 
   output=$(detect_distro '' 'ubuntu')
-  assert_equals_helper '' "$LINENO" "$output" 'none'
+  assert_equals_helper '' "$LINENO" 'none' "$output"
 
   output=$(detect_distro '' 'ubuntu debian')
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   output=$(detect_distro '' 'manjaro steamos lala arch')
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 }
 
 function test_detect_distro_from_raw_data()
@@ -319,57 +319,57 @@ function test_detect_distro_from_raw_data()
   root_path="${SAMPLES_DIR}/os/arch/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/manjaro/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/ubuntu/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   root_path="${SAMPLES_DIR}/os/debian/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   root_path="${SAMPLES_DIR}/os/raspbian/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   root_path="${SAMPLES_DIR}/os/fedora/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'fedora'
+  assert_equals_helper '' "$LINENO" 'fedora' "$output"
 
   root_path="${SAMPLES_DIR}/os/arch-linux-arm/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/endeavouros/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/steamos/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'arch'
+  assert_equals_helper '' "$LINENO" 'arch' "$output"
 
   root_path="${SAMPLES_DIR}/os/popos/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'debian'
+  assert_equals_helper '' "$LINENO" 'debian' "$output"
 
   root_path="${SAMPLES_DIR}/os/none/etc/os-release"
   os_release_data=$(< "$root_path")
   output=$(detect_distro '' '' "$os_release_data")
-  assert_equals_helper '' "$LINENO" "$output" 'none'
+  assert_equals_helper '' "$LINENO" 'none' "$output"
 }
 
 function test_join_path()
@@ -378,19 +378,19 @@ function test_join_path()
   local ret
 
   ret=$(join_path "/lala" "///xpto")
-  assertEquals "Expect /lala/xpto" "$ret" "$base"
+  assertEquals "Expect /lala/xpto" "$base" "$ret"
 
   ret=$(join_path "/lala" "/xpto////")
-  assertEquals "Expect /lala/xpto" "$ret" "$base"
+  assertEquals "Expect /lala/xpto" "$base" "$ret"
 
   ret=$(join_path "/lala" "////xpto////")
-  assertEquals "Expect /lala/xpto" "$ret" "$base"
+  assertEquals "Expect /lala/xpto" "$base" "$ret"
 
   ret=$(join_path "/lala" "//test///xpto////")
-  assertEquals "Expect /lala/test/xpto" "$ret" "/lala/test/xpto"
+  assertEquals "Expect /lala/test/xpto" "/lala/test/xpto" "$ret"
 
   ret=$(join_path "/lala/")
-  assertEquals "Expect /lala/" "$ret" "/lala/"
+  assertEquals "Expect /lala/" "/lala/" "$ret"
 }
 
 function test_find_kernel_root()
@@ -401,13 +401,13 @@ function test_find_kernel_root()
   mkdir -p "$fake_path"
 
   kernel_path=$(find_kernel_root "$fake_path")
-  assertEquals "We expected to find a kernel path" "$kernel_path" "$SHUNIT_TMPDIR"
+  assertEquals "We expected to find a kernel path" "$SHUNIT_TMPDIR" "$kernel_path"
 
   kernel_path=$(find_kernel_root "/tmp")
-  assertEquals "We should not find a path" "$kernel_path" ""
+  assertEquals "We should not find a path" "" "$kernel_path"
 
   kernel_path=$(find_kernel_root "test/")
-  assertEquals "We should not find a path" "$kernel_path" ""
+  assertEquals "We should not find a path" "" "$kernel_path"
 }
 
 function test_is_a_patch()

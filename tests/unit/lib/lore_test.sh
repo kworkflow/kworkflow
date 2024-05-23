@@ -66,12 +66,12 @@ function test_retrieve_available_mailing_lists()
 
   for index in "${!expected_lists[@]}"; do
     assert_equals_helper "We expected '$index' to be a valid key" "($LINENO)" \
-      "${available_lore_mailing_lists["$index"]}" "${expected_lists["$index"]}"
+      "${expected_lists["$index"]}" "${available_lore_mailing_lists["$index"]}"
   done
 
   for index in "${!available_lore_mailing_lists[@]}"; do
     assert_equals_helper "We didn't expect '$index' to be a valid key" "($LINENO)" \
-      "${available_lore_mailing_lists["$index"]}" "${expected_lists["$index"]}"
+      "${expected_lists["$index"]}" "${available_lore_mailing_lists["$index"]}"
   done
 }
 
@@ -406,15 +406,15 @@ function test_process_name()
   local expected='First Second'
 
   output=$(process_name 'Second, First')
-  assertEquals "($LINENO)" "$output" "$expected"
+  assertEquals "($LINENO)" "$expected" "$output"
 
   output=$(process_name 'Second Third, First')
   expected='First Second Third'
-  assertEquals "($LINENO)" "$output" "$expected"
+  assertEquals "($LINENO)" "$expected" "$output"
 
   output=$(process_name 'First Second')
   expected='First Second'
-  assertEquals "($LINENO)" "$output" "$expected"
+  assertEquals "($LINENO)" "$expected" "$output"
 }
 
 function test_delete_series_from_local_storage()

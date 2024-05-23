@@ -963,7 +963,7 @@ function test_mail_verify()
 
   output=$(mail_verify)
   ret="$?"
-  assert_equals_helper 'Failed verify expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Failed verify expected an error' "$LINENO" 22 "$ret"
   compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
   unset options_values
@@ -988,7 +988,7 @@ function test_mail_verify()
 
   output=$(mail_verify)
   ret="$?"
-  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
   compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
   unset options_values

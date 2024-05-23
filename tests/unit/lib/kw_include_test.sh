@@ -80,8 +80,8 @@ function test_include_similar_paths()
   test1_expected='output of test1'
   test2_expected='output of test2'
 
-  assertEquals "($LINENO)" "$test1_output" "$test1_expected"
-  assertEquals "($LINENO)" "$test2_output" "$test2_expected"
+  assertEquals "($LINENO)" "$test1_expected" "$test1_output"
+  assertEquals "($LINENO)" "$test2_expected" "$test2_output"
 }
 
 invoke_shunit

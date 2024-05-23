@@ -30,7 +30,7 @@ function test_diff_folders()
 
   # TODO: We need to investigate this LANG part. Ideally, we don't want it here
   output=$(LANG=en_US.UTF-8 diff_folders "$folder_1" "$folder_2")
-  assertEquals "$output" "Only in ${folder_1}: get_maintainer.pl"
+  assertEquals "Only in ${folder_1}: get_maintainer.pl" "$output"
 }
 
 function test_diff_folders_no_difference()
@@ -39,7 +39,7 @@ function test_diff_folders_no_difference()
   local folder_2="${SAMPLES_DIR}/db_files"
 
   output=$(diff_folders "$folder_1" "$folder_2")
-  assertEquals "$output" ""
+  assertEquals "" "$output"
 }
 
 function test_diff_folders_invalid_path()

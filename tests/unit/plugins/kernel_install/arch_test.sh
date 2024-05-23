@@ -128,7 +128,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_not_supported(
     generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'remote' 'GRUB'
   )"
 
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs()

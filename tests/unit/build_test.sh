@@ -307,7 +307,7 @@ function test_kernel_build_invalid_flag()
 
   output=$(build_kernel_main 'TEST_MODE' --notvalid 2> /dev/null)
   ret="$?"
-  assertEquals "($LINENO)" "$ret" 22
+  assertEquals "($LINENO)" 22 "$ret"
 }
 
 function test_kernel_build_outside_kernel_repository()
@@ -322,7 +322,7 @@ function test_kernel_build_outside_kernel_repository()
 
   output=$(build_kernel_main 'TEST_MODE')
   ret="$?"
-  assert_equals_helper 'We expected an error' "($LINENO)" "$ret" 125
+  assert_equals_helper 'We expected an error' "($LINENO)" 125 "$ret"
 
   cd "$FAKE_KERNEL" || {
     fail "($LINENO) It was not possible to move into temporary directory"

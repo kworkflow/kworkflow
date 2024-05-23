@@ -400,7 +400,7 @@ function test_convert_module_info()
   assertEquals "$LINENO" "$expected" "$output"
 
   output=$(convert_module_info "LOAD" "")
-  assertEquals "$LINENO" "$?" "22"
+  assertEquals "$LINENO" 22 "$?"
 }
 
 invoke_shunit
