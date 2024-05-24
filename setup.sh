@@ -51,39 +51,93 @@ declare -r CONFIGS_PATH='configs'
 
 declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
 
+# This function identifies the missing packages required by the distribution.
+#
+# @distro: The distribution name (arch, debian, fedora, etc.)
+# @deps_file: The path to the dependencies file for the distribution.
+#
+# Returns:
+#   A string of space-separated missing packages.
+function get_missing_packages()
+{
+  local distro="$1"
+  local deps_file="$2"
+  local package_list
+  local installed
+
+  if [[ "$distro" =~ 'arch' ]]; then
+    while IFS='' read -r package; do
+      pacman -Ql "$package" &> /dev/null
+      [[ "$?" != 0 ]] && package_list="${package} ${package_list}"
+    done < "$deps_file"
+  elif [[ "$distro" =~ 'debian' ]]; then
+    while IFS='' read -r package; do
+      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
+      [[ "$installed" -eq 0 ]] && package_list="${package} ${package_list}"
+    done < "$deps_file"
+  elif [[ "$distro" =~ 'fedora' ]]; then
+    while IFS='' read -r package; do
+      rpm -q "$package" &> /dev/null
+      [[ "$?" -ne 0 ]] && package_list="${package} ${package_list}"
+    done < "$deps_file"
+  fi
+
+  printf '%s\n' "$package_list"
+}
+
+# This function installs the given packages.
+#
+# @cmd: The installation command with the packages to be installed.
+#
+# Returns:
+# The return status of the installation command.
+function install_packages()
+{
+  local cmd="$1"
+
+  if [[ "$EUID" -eq 0 ]]; then
+    eval "$cmd"
+  else
+    eval "sudo ${cmd}"
+  fi
+
+  return "$?"
+}
+
+# This function checks and installs the necessary dependencies for the current
+# distribution.
+#
+# Returns:
+# return 0: If all dependencies are already installed or installation
+# is successful.
 function check_dependencies()
 {
-  local package_list=''
-  local cmd=''
+  local package_list
+  local cmd
   local distro
   local ret
 
   distro=$(detect_distro '/')
 
-  if [[ "$distro" =~ 'arch' ]]; then
-    while IFS='' read -r package; do
-      installed=$(pacman -Ql "$package" &> /dev/null)
-      [[ "$?" != 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/arch.dependencies"
-    cmd="pacman -Sy --noconfirm ${package_list}"
-  elif [[ "$distro" =~ 'debian' ]]; then
-    while IFS='' read -r package; do
-      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
-      [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/debian.dependencies"
-    cmd="apt install -y $package_list"
-  elif [[ "$distro" =~ 'fedora' ]]; then
-    while IFS='' read -r package; do
-      installed=$(rpm -q "$package" &> /dev/null)
-      [[ "$?" -ne 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/fedora.dependencies"
-    cmd="dnf install -y $package_list"
-  else
-    warning 'Unfortunately, we do not have official support for your distro (yet)'
-    warning 'Please, try to find the following packages:'
-    warning "$(cat "$DOCUMENTATION/dependencies/arch.dependencies")"
-    return 0
-  fi
+  package_list=$(get_missing_packages "$distro" "${DOCUMENTATION}/dependencies/${distro}.dependencies")
+
+  case "$distro" in
+    arch*)
+      cmd="pacman -Sy --noconfirm ${package_list}"
+      ;;
+    debian*)
+      cmd="apt install -y ${package_list}"
+      ;;
+    fedora*)
+      cmd="dnf install -y ${package_list}"
+      ;;
+    *)
+      warning 'Unfortunately, we do not have official support for your distro (yet)'
+      warning 'Please, try to find the following packages:'
+      warning "$(cat "${DOCUMENTATION}/dependencies/arch.dependencies")"
+      return 0
+      ;;
+  esac
 
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
@@ -93,20 +147,13 @@ function check_dependencies()
       fi
     fi
 
-    # Install system packages
-    if [[ "$EUID" -eq 0 ]]; then
-      eval "$cmd"
-    else
-      eval "sudo $cmd"
-    fi
-    ret="$?"
+    install_packages "$cmd"
 
     # Installation failed...
-    if [[ "$ret" -ne 0 ]]; then
+    if [[ "$?" -ne 0 ]]; then
       complain '[ERROR] Dependencies installation has failed. Aborting kw installation...'
-      exit "$ret"
+      exit "$?"
     fi
-
   fi
 }
 
