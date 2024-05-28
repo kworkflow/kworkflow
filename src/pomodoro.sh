@@ -32,6 +32,13 @@ function pomodoro_main()
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
+  if [[ -n "${options_values['REPEAT_PREVIOUS']}" ]]; then
+    fetch_last_pomodoro_session || return "$?"
+    if [[ $(ask_yN 'Would you like to repeat this session?') =~ '0' ]]; then
+      return 125 # ECANCELED
+    fi
+  fi
+
   if [[ -n "${options_values[SHOW_TIMER]}" ]]; then
     show_active_pomodoro_timebox "$flag"
     return 0
@@ -268,6 +275,65 @@ function get_tag_name()
   return 0
 }
 
+# This function fetches the last pomodoro session from the database, if
+# there is one, and sets the options values accordingly.
+#
+# Return:
+# If there is a last pomodoro session, returns 0. If there isn't a last pomodoro
+# session or any of the last session arguments are invalid, returns 22 (EINVAL).
+function fetch_last_pomodoro_session()
+{
+  local last_pomodoro_session
+  local duration_in_secs
+  local tag_name
+  local description
+  local duration=''
+
+  last_pomodoro_session=$(select_from 'pomodoro_report' '"duration","tag_name","description"' '' '' 'date DESC, time DESC LIMIT 1')
+  #last_pomodoro_session=duration|tag_name|description
+  if [[ -z "$last_pomodoro_session" ]]; then
+    options_values['ERROR']='No previous pomodoro session found'
+    return 22 # EINVAL
+  fi
+
+  duration_in_secs=$(cut --delimiter='|' --fields=1 <<< "$last_pomodoro_session")
+  is_valid_time "${duration_in_secs}s" || return "$?"
+
+  tag_name=$(cut --delimiter='|' --fields=2 <<< "$last_pomodoro_session")
+  is_valid_argument "$tag_name" 'tag' || return "$?"
+
+  description=$(cut --delimiter='|' --fields=3 <<< "$last_pomodoro_session")
+  is_valid_argument "$description" 'description' || return "$?"
+
+  options_values['TIMER']="${duration_in_secs}s"
+  options_values['TAG']=$(cut --delimiter='|' --fields=2 <<< "$last_pomodoro_session")
+  options_values['DESCRIPTION']=$(cut --delimiter='|' --fields=3 <<< "$last_pomodoro_session")
+
+  if [[ duration_in_secs -ge 3600 ]]; then
+    duration+="$((duration_in_secs / 3600))h "
+    duration_in_secs=$((duration_in_secs % 3600))
+  fi
+
+  if [[ duration_in_secs -ge 60 ]]; then
+    duration+="$((duration_in_secs / 60))m "
+    duration_in_secs=$((duration_in_secs % 60))
+  fi
+
+  if [[ duration_in_secs -gt 0 ]]; then
+    duration+="${duration_in_secs}s"
+  fi
+
+  say 'Last pomodoro session:'
+  say "- Duration: ${duration}"
+  if [[ -n ${options_values['TAG']} ]]; then
+    say "- Tag: ${options_values['TAG']}"
+  fi
+
+  if [[ -n ${options_values['DESCRIPTION']} ]]; then
+    say "- Description: ${options_values['DESCRIPTION']}"
+  fi
+}
+
 # This function format text to be used for a tag or description.
 #
 # @text: Text to be formatted
@@ -305,7 +371,7 @@ function format_text()
 
 function parse_pomodoro()
 {
-  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,verbose'
+  local long_options='set-timer:,check-timer,show-tags,tag:,description:,repeat-previous,help,verbose'
   local short_options='t:,c,s,g:,d:,h'
   local options
 
@@ -326,6 +392,7 @@ function parse_pomodoro()
   options_values['TAG']=''
   options_values['DESCRIPTION']=''
   options_values['VERBOSE']=''
+  options_values['REPEAT_PREVIOUS']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -365,6 +432,10 @@ function parse_pomodoro()
         options_values['DESCRIPTION']=$(format_text "$2" 'description')
         shift 2
         ;;
+      --repeat-previous | -r)
+        options_values['REPEAT_PREVIOUS']=1
+        shift
+        ;;
       --verbose)
         options_values['VERBOSE']=1
         shift
@@ -393,6 +464,7 @@ function pomodoro_help()
     '  pomodoro (-s|--show-tags) - Show registered tags' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> - Set timer with tag' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> (-d|--description) <desc> - Set timer with tag and description' \
+    '  pomodoro (--repeat-previous) - Repeats last pomodoro session' \
     '  pomodoro (--verbose) - Show a detailed output'
 }
 
