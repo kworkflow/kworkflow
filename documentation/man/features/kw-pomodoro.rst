@@ -9,6 +9,7 @@ SYNOPSIS
 | *kw* (*p* | *pomodoro*) (-t | \--set-timer) <time>(h | m | s) [(-g | \--tag) <tag> [(-d | \--description) <desc>] [\--verbose]]
 | *kw* (*p* | *pomodoro*) (-c | \--check-timer) [\--verbose]
 | *kw* (*p* | *pomodoro*) (-s | \--show-tags) [\--verbose]
+| *kw* (*p* | *pomodoro*) (\--repeat-previous) [\--verbose]
 
 DESCRIPTION
 ===========
@@ -55,6 +56,10 @@ OPTIONS
 -s, \--show-tags:
   This option shows all the registered tags.
 
+\--repeat-previous:
+  This option repeats the last Pomodoro session with the same tag name and
+  description, if applicable.
+
 \--verbose:
   Display commands executed under the hood.
 
@@ -76,6 +81,10 @@ Create a Pomodoro timebox of 1 hour with tag name 'kernel-dev' and description
 'amd-gfx patch reviews'::
 
   kw pomodoro --set-timer 1h --tag 'kernel-dev' --description 'amd-gfx patch reviews'
+
+To repeat that last Pomodoro session::
+
+  kw pomodoro --repeat-previous
 
 Create a Pomodoro timebox of 99 seconds with tag name corresponding to the tag
 of ID 42::

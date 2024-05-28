@@ -14,6 +14,7 @@ MAX_DESCRIPTION_LENGTH=512
 function pomodoro_main()
 {
   local flag
+  local ret
 
   flag=${flag:-'SILENT'}
 
@@ -31,6 +32,23 @@ function pomodoro_main()
   fi
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+
+  if [[ -n "${options_values['REPEAT_PREVIOUS']}" ]]; then
+    fetch_last_pomodoro_session "$flag"
+    ret="$?"
+    if [[ "$ret" != 0 ]]; then
+      complain "Failed to fetch last Pomodoro session: ${options_values[ERROR]}"
+      return "$ret"
+    fi
+
+    confirm_repeat_last_pomodoro_session
+    ret="$?"
+    if [[ "$ret" == 125 ]]; then
+      warning 'Repeat last Pomodoro session aborted.'
+      return 125 # ECANCELED
+    fi
+    say "Repeating session!"
+  fi
 
   if [[ -n "${options_values[SHOW_TIMER]}" ]]; then
     show_active_pomodoro_timebox "$flag"
@@ -268,6 +286,65 @@ function get_tag_name()
   return 0
 }
 
+# This function fetches the last pomodoro session from the database, if there is
+# one, and sets the `TIMER`, `TAG`, and `DESCRIPTION` options values
+# accordingly, preparing to repeat the last session.
+#
+# @flag Flag to control function output.
+#
+# Return:
+# If there is a last pomodoro session, returns 0. If there isn't a last pomodoro
+# session, returns 2 (ENOENT).
+function fetch_last_pomodoro_session()
+{
+  local flag=${1:-'SILENT'}
+  local last_pomodoro_session
+  local duration_in_secs
+  local tag_name
+  local description
+
+  [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
+
+  last_pomodoro_session=$(select_from 'pomodoro_report' '"duration","tag_name","description"' '' '' 'date DESC, time DESC LIMIT 1' "$flag")
+  #last_pomodoro_session=duration|tag_name|description
+  if [[ -z "$last_pomodoro_session" ]]; then
+    options_values['ERROR']='No previous pomodoro session found'
+    return 2 # ENOENT
+  fi
+
+  duration_in_secs=$(cut --delimiter='|' --fields=1 <<< "$last_pomodoro_session")
+  tag_name=$(cut --delimiter='|' --fields=2 <<< "$last_pomodoro_session")
+  description=$(cut --delimiter='|' --fields=3 <<< "$last_pomodoro_session")
+
+  options_values['TIMER']="${duration_in_secs}s"
+  options_values['TAG']=$(cut --delimiter='|' --fields=2 <<< "$last_pomodoro_session")
+  options_values['DESCRIPTION']=$(cut --delimiter='|' --fields=3 <<< "$last_pomodoro_session")
+}
+
+# This function displays the last Pomodoro session fetched with
+# `fetch_last_pomodoro_session` and prompts the user to continue or abort
+# repeating the last session.
+#
+# Return:
+# Returns 0 if the user continues the operation, and 125 (ECANCELED), otherwise.
+function confirm_repeat_last_pomodoro_session()
+{
+  local duration_in_secs
+  local duration
+
+  duration_in_secs="${options_values[TIMER]}"
+  duration=$(sec_to_format "${duration_in_secs::-1}" '+%H:%M:%S')
+
+  say 'Last pomodoro session:'
+  say "- Duration ${duration}"
+  [[ -n ${options_values['TAG']} ]] && say "- Tag: ${options_values['TAG']}"
+  [[ -n ${options_values['DESCRIPTION']} ]] && say "- Description: ${options_values['DESCRIPTION']}"
+
+  if [[ $(ask_yN 'Would you like to repeat this session?') =~ '0' ]]; then
+    return 125 # ECANCELED
+  fi
+}
+
 # This function format text to be used for a tag or description.
 #
 # @text: Text to be formatted
@@ -305,7 +382,7 @@ function format_text()
 
 function parse_pomodoro()
 {
-  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,verbose'
+  local long_options='set-timer:,check-timer,show-tags,tag:,description:,repeat-previous,help,verbose'
   local short_options='t:,c,s,g:,d:,h'
   local options
 
@@ -326,6 +403,7 @@ function parse_pomodoro()
   options_values['TAG']=''
   options_values['DESCRIPTION']=''
   options_values['VERBOSE']=''
+  options_values['REPEAT_PREVIOUS']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -365,6 +443,14 @@ function parse_pomodoro()
         options_values['DESCRIPTION']=$(format_text "$2" 'description')
         shift 2
         ;;
+      --repeat-previous | -r)
+        if [[ -n "${options_values['TIMER']}" || -n "${options_values['SHOW_TIMER']}" || -n "${options_values['SHOW_TAGS']}" ]]; then
+          options_values['ERROR']='--repeat-previous can only be accompanied by --verbose'
+          return 22 # EINVAL
+        fi
+        options_values['REPEAT_PREVIOUS']=1
+        shift
+        ;;
       --verbose)
         options_values['VERBOSE']=1
         shift
@@ -393,6 +479,7 @@ function pomodoro_help()
     '  pomodoro (-s|--show-tags) - Show registered tags' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> - Set timer with tag' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> (-d|--description) <desc> - Set timer with tag and description' \
+    '  pomodoro (--repeat-previous) - Repeat last Pomodoro session' \
     '  pomodoro (--verbose) - Show a detailed output'
 }
 
