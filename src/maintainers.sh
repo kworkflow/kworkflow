@@ -59,7 +59,7 @@ function maintainers_main()
   # Check if is a valid path
   if [[ ! -d "$FILE_OR_DIR" && ! -f "$FILE_OR_DIR" ]]; then
     complain 'Invalid path'
-    return 1
+    return 1 # EPERM
   fi
 
   FILE_OR_DIR="$(realpath "${FILE_OR_DIR}")"
@@ -68,7 +68,7 @@ function maintainers_main()
   if ! is_a_patch "$FILE_OR_DIR"; then
     if [[ -n "$update_patch" ]]; then
       complain 'Option --update-patch was passed but given path is not a patch.'
-      return 1
+      return 1 # EPERM
     fi
     is_file_a_patch=false
     script_options="${script_options} -f"
@@ -85,7 +85,7 @@ function maintainers_main()
   # Check if kernel root was found.
   if [[ -z "$kernel_root" ]]; then
     complain 'Neither the given path nor the working path is in a kernel tree.'
-    return 1
+    return 1 # EPERM
   fi
 
   # If file is not a patch and outside a kernel tree, it must be an user's
@@ -93,7 +93,7 @@ function maintainers_main()
   # because it is most likely a user's mistake. So better let the user know.
   if ! "$is_file_a_patch" && ! "$is_file_inside_kernel_tree"; then
     complain 'The given file is not a patch and is outside a kernel tree.'
-    return 1
+    return 1 # EPERM
   fi
 
   cmd_manager "$flag" "cd ${kernel_root}"
@@ -160,9 +160,20 @@ function print_files_authors()
   local printed_authors_separator=false
 
   for file in "${files[@]}"; do
-    authors=$(grep --only-matching --extended-regexp 'MODULE_AUTHOR *\(.*\)' "$file" |
-      sed --regexp-extended 's/(MODULE_AUTHOR *\( *\"|\" *\))//g' |
-      sed --expression ':a' --expression 'N' --expression '$!ba' --expression 's/\n/, /g')
+    # Match everything inside the parenthesis of `MODULE_AUTHOR (<match>)`, with arbitrary white spaces
+    # before `(`, while handling multi-line cases. The `\K` escape sequence resets the grep's match,
+    # that is, it excludes `MODULE_AUTHOR *\(` from the final result
+    authors=$(grep --null-data --perl-regexp --only-matching 'MODULE_AUTHOR\s*\(\K[^)]*' "$file" | tr --delete '\0')
+
+    # Trim contents from first grep deleting `\n` and `\` with any adjacent white spaces,
+    # and substitute leading white spaces to a single one.
+    authors=$(sed --expression 's/\\n//g' --expression 's/\s*\\\s*//g' --expression 's/^\s*/ /g' <<< "$authors")
+    authors=$(tr --delete '\n' <<< "$authors")
+
+    # Finally, delete string quotes by substituting them to commas to separate the authors, removing
+    # remaining blank characters at the end of the output.
+    authors=$(sed --expression 's/\"\s*\"/, /g' --expression 's/\s*\"//g' --expression 's/\s*$//g' <<< "$authors")
+
     if [[ -n "$authors" ]]; then
       if [[ "$printed_authors_separator" = false ]]; then
         say "$SEPARATOR"

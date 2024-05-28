@@ -67,7 +67,7 @@ function is_ssh_connection_configured()
       ret="$?"
 
       # User canceled the manual update
-      [[ "$ret" == 125 ]] && return 125
+      [[ "$ret" == 125 ]] && return 125 # ECANCELED
       # Some other unknown error occurred
       [[ "$ret" != 0 ]] && return 101 # ENETUNREACH
 

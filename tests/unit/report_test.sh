@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/report.sh'
 include './src/lib/kw_db.sh'

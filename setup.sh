@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 KW_LIB_DIR='src'
 . 'src/lib/kw_include.sh' --source-only
 include "${KW_LIB_DIR}/lib/kwio.sh"
@@ -544,7 +544,7 @@ function setup_global_config_file()
     fi
   else
     warning "setup could not find $config_file_template"
-    return 2
+    return 2 # ENOENT
   fi
 }
 

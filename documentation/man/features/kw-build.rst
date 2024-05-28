@@ -40,7 +40,7 @@ OPTIONS
 
 -n, \--menu:
   The menu option invokes the kernel menuconfig. Notice that the default menu
-  config can be changed in the **kworkflow.config** file by setting a different
+  config can be changed in the **build.config** file by setting a different
   option in *menu_config*. If the user is working in a *cross-compile*
   environment, it is recommended to use this option to avoid messing with the
   config file manually.
@@ -48,7 +48,7 @@ OPTIONS
 -d, \--doc:
   The doc option provides a mechanism for building the kernel-doc; by default,
   it will build htmldocs. Users can change the default documentation output by
-  changing the parameter *doc_type* in the **kworkflow.config** file.
+  changing the parameter *doc_type* in the **build.config** file.
 
 -S, \--cpu-scaling:
   The cpu-scaling option lets the user set whichever CPU usage they want from
@@ -61,12 +61,12 @@ OPTIONS
 
 -w, \--warnings (1 | 2 | 3 | 12 | 13 | 23 | 123):
   This can be used to enable compilation warnings accordingly. You can set the
-  default log level via `build.config` file under the option `warning_level`.
+  default log level via **build.config** file under the option `warning_level`.
   Please check the kernel's ``make help`` for more info.
 
 -s, \--save-log-to=path:
   This option will save the full compilation log with the enabled warnings to
-  the specified path. You can set the default log path in the `build.config`
+  the specified path. You can set the default log path in the **build.config**
   file via `log_path` option.
 
 \--llvm:
@@ -104,8 +104,9 @@ OPTIONS
 
 EXAMPLES
 ========
-For these examples, we suppose the fields in your **kworkflow.config** file are
-already configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 For building and installing a new module version based on the current kernel
 version, you can use::

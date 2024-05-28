@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/pomodoro.sh'
 include './src/lib/kw_db.sh'

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/mail.sh'
 include './tests/unit/utils.sh'
@@ -61,32 +61,32 @@ function test_validate_encryption()
   # invalid values
   validate_encryption 'xpto' &> /dev/null
   ret="$?"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   validate_encryption 'rsa' &> /dev/null
   ret="$?"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   validate_encryption 'tlss' &> /dev/null
   ret="$?"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   validate_encryption 'ssll' &> /dev/null
   ret="$?"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   validate_encryption &> /dev/null
   ret="$?"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   # valid values
   validate_encryption 'ssl'
   ret="$?"
-  assert_equals_helper 'Expected no error for ssl' "$LINENO" "$ret" 0
+  assert_equals_helper 'Expected no error for ssl' "$LINENO" 0 "$ret"
 
   validate_encryption 'tls'
   ret="$?"
-  assert_equals_helper 'Expected no error for tls' "$LINENO" "$ret" 0
+  assert_equals_helper 'Expected no error for tls' "$LINENO" 0 "$ret"
 }
 
 function test_validate_email()
@@ -99,23 +99,23 @@ function test_validate_email()
   output="$(validate_email 'invalid email')"
   ret="$?"
   expected='Invalid email: invalid email'
-  assert_equals_helper 'Invalid email was passed' "$LINENO" "$output" "$expected"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   output="$(validate_email 'lalala')"
   ret="$?"
   expected='Invalid email: lalala'
-  assert_equals_helper 'Invalid email was passed' "$LINENO" "$output" "$expected"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   # valid values
   validate_email 'test@email.com'
   ret="$?"
-  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
 
   validate_email 'test123@serious.gov'
   ret="$?"
-  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
 }
 
 function test_find_commit_references()
@@ -131,11 +131,11 @@ function test_find_commit_references()
 
   find_commit_references
   ret="$?"
-  assert_equals_helper 'No arguments given' "$LINENO" "$ret" 22
+  assert_equals_helper 'No arguments given' "$LINENO" 22 "$ret"
 
   find_commit_references @^
   ret="$?"
-  assert_equals_helper 'Outside git repo should return 125' "$LINENO" "$ret" 125
+  assert_equals_helper 'Outside git repo should return 125' "$LINENO" 125 "$ret"
 
   cd "$FAKE_GIT" || {
     ret="$?"
@@ -145,22 +145,22 @@ function test_find_commit_references()
 
   output="$(find_commit_references invalid_ref)"
   ret="$?"
-  assert_equals_helper 'Invalid ref should not work' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid ref should not work' "$LINENO" 22 "$ret"
   assertTrue "($LINENO) Invalid ref should be empty" '[[ -z "$output" ]]'
 
   output="$(find_commit_references '@^..@')"
   ret="$?"
-  assert_equals_helper '@^..@ should be a valid reference' "$LINENO" "$ret" 0
+  assert_equals_helper '@^..@ should be a valid reference' "$LINENO" 0 "$ret"
   assertTrue "($LINENO) @^..@ should generate a reference" '[[ -n "$output" ]]'
 
   output="$(find_commit_references @)"
   ret="$?"
-  assert_equals_helper '@ should be a valid reference' "$LINENO" "$ret" 0
+  assert_equals_helper '@ should be a valid reference' "$LINENO" 0 "$ret"
   assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
 
   output="$(find_commit_references some args @ around)"
   ret="$?"
-  assert_equals_helper '@ should be a valid reference' "$LINENO" "$ret" 0
+  assert_equals_helper '@ should be a valid reference' "$LINENO" 0 "$ret"
   assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
 
   cd "$ORIGINAL_DIR" || {
@@ -180,28 +180,28 @@ function test_validate_email_list()
   output="$(validate_email_list 'invalid email')"
   ret="$?"
   expected='The given recipient: invalid email does not contain a valid e-mail.'
-  assert_equals_helper 'Invalid email was passed' "$LINENO" "$output" "$expected"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   output="$(validate_email_list 'lalala')"
   ret="$?"
   expected='The given recipient: lalala does not contain a valid e-mail.'
-  assert_equals_helper 'Invalid email was passed' "$LINENO" "$output" "$expected"
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   output="$(validate_email_list 'name1@lala.com,name2@lala.xpto,LastName, FirstName <last.first@lala.com>,test123@serious.gov')"
   ret="$?"
   expected='The given recipient: LastName does not contain a valid e-mail.'
-  assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
 
   # valid values
   validate_email_list 'test@email.com'
   ret="$?"
-  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
 
   validate_email_list 'name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov'
   ret="$?"
-  assert_equals_helper 'Expected a success' "$LINENO" "$ret" 0
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
 }
 
 function test_reposition_commit_count_arg()
@@ -211,19 +211,19 @@ function test_reposition_commit_count_arg()
 
   output="$(reposition_commit_count_arg --any --amount --of --args)"
   expected=' "--any" "--amount" "--of" "--args"'
-  assert_equals_helper 'Should not change arguments' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Should not change arguments' "$LINENO" "$expected" "$output"
 
   output="$(reposition_commit_count_arg --arg='some options, lala')"
   expected=' "--arg=some options, lala"'
-  assert_equals_helper 'Should correctly quote arguments' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Should correctly quote arguments' "$LINENO" "$expected" "$output"
 
   output="$(reposition_commit_count_arg -375)"
   expected=' -- -375'
-  assert_equals_helper 'Should place count argument at the end' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Should place count argument at the end' "$LINENO" "$expected" "$output"
 
   output="$(reposition_commit_count_arg --arg='some options, lala' -375)"
   expected=' "--arg=some options, lala" -- -375'
-  assert_equals_helper 'Should handle multiple arguments' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Should handle multiple arguments' "$LINENO" "$expected" "$output"
 }
 
 function test_remove_blocked_recipients()
@@ -268,151 +268,151 @@ function test_mail_parser()
   # Invalid options
   parse_mail_options '-t' '--smtpuser'
   ret="$?"
-  assert_equals_helper 'Option without argument' "$LINENO" "$ret" 22
+  assert_equals_helper 'Option without argument' "$LINENO" 22 "$ret"
 
   output=$(parse_mail_options '--name' 'Xpto')
   ret="$?"
-  assert_equals_helper 'Option without --setup' "$LINENO" "$ret" 95
+  assert_equals_helper 'Option without --setup' "$LINENO" 95 "$ret"
 
   parse_mail_options '--smtpLalaXpto' 'lala xpto'
   ret="$?"
-  assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid option passed' "$LINENO" 22 "$ret"
 
   parse_mail_options '--wrongOption' 'lala xpto'
   ret="$?"
-  assert_equals_helper 'Invalid option passed' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid option passed' "$LINENO" 22 "$ret"
 
   # valid options
   parse_mail_options some -- extra -1 args HEAD^
   expected='some extra args HEAD^ -1'
-  assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
-  assert_equals_helper 'Set passthrough options' "$LINENO" "${options_values['COMMIT_RANGE']}" '-1 HEAD^'
+  assert_equals_helper 'Set passthrough options' "$LINENO" "$expected" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
+  assert_equals_helper 'Set passthrough options' "$LINENO" '-1 HEAD^' "${options_values['COMMIT_RANGE']}"
 
   parse_mail_options -- --subject-prefix="PATCH i-g-t" HEAD^
   expected="'--subject-prefix=PATCH i-g-t' HEAD^"
-  assert_equals_helper 'Set passthrough options with space' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
+  assert_equals_helper 'Set passthrough options with space' "$LINENO" "$expected" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
 
   parse_mail_options -375
   expected='-375'
-  assert_equals_helper 'Set commit count option' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
-  assert_equals_helper 'Set commit count option' "$LINENO" "${options_values['COMMIT_RANGE']}" "$expected "
+  assert_equals_helper 'Set commit count option' "$LINENO" "$expected" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
+  assert_equals_helper 'Set commit count option' "$LINENO" "$expected " "${options_values['COMMIT_RANGE']}"
 
   parse_mail_options -v3
   expected='-v3'
-  assert_equals_helper 'Set version option' "$LINENO" "${options_values['PATCH_VERSION']}" "$expected"
+  assert_equals_helper 'Set version option' "$LINENO" "$expected" "${options_values['PATCH_VERSION']}"
 
   expected='-v3 @^'
-  assert_equals_helper 'Set version option' "$LINENO" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" "$expected"
-  assert_equals_helper 'Set version option' "$LINENO" "${options_values['COMMIT_RANGE']}" '@^'
+  assert_equals_helper 'Set version option' "$LINENO" "$expected" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
+  assert_equals_helper 'Set version option' "$LINENO" '@^' "${options_values['COMMIT_RANGE']}"
 
   parse_mail_options '--send'
-  assert_equals_helper 'Set send flag' "$LINENO" "${options_values['SEND']}" 1
+  assert_equals_helper 'Set send flag' "$LINENO" 1 "${options_values['SEND']}"
 
   parse_mail_options '--verbose'
-  assert_equals_helper 'Set verbose option' "$LINENO" "${options_values['VERBOSE']}" 1
+  assert_equals_helper 'Set verbose option' "$LINENO" 1 "${options_values['VERBOSE']}"
 
   parse_mail_options '--private'
   expected='--suppress-cc=all'
-  assert_equals_helper 'Set private flag' "$LINENO" "${options_values['PRIVATE']}" "$expected"
+  assert_equals_helper 'Set private flag' "$LINENO" "$expected" "${options_values['PRIVATE']}"
 
   parse_mail_options '--rfc'
   expected='--rfc'
-  assert_equals_helper 'Set rfc flag' "$LINENO" "${options_values['RFC']}" "$expected"
+  assert_equals_helper 'Set rfc flag' "$LINENO" "$expected" "${options_values['RFC']}"
 
   parse_mail_options '--to=some@mail.com'
   expected='some@mail.com'
-  assert_equals_helper 'Set to flag' "$LINENO" "${options_values['TO']}" "$expected"
+  assert_equals_helper 'Set to flag' "$LINENO" "$expected" "${options_values['TO']}"
 
   parse_mail_options '--cc=some@mail.com'
   expected='some@mail.com'
-  assert_equals_helper 'Set cc flag' "$LINENO" "${options_values['CC']}" "$expected"
+  assert_equals_helper 'Set cc flag' "$LINENO" "$expected" "${options_values['CC']}"
 
   parse_mail_options '--simulate'
   expected='--dry-run'
-  assert_equals_helper 'Set simulate flag' "$LINENO" "${options_values['SIMULATE']}" "$expected"
+  assert_equals_helper 'Set simulate flag' "$LINENO" "$expected" "${options_values['SIMULATE']}"
 
   parse_mail_options '--to=name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>'
   expected='name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>'
-  assert_equals_helper 'Set to flag' "$LINENO" "${options_values['TO']}" "$expected"
+  assert_equals_helper 'Set to flag' "$LINENO" "$expected" "${options_values['TO']}"
 
   parse_mail_options '--setup'
   expected=1
-  assert_equals_helper 'Set setup flag' "$LINENO" "${options_values['SETUP']}" "$expected"
+  assert_equals_helper 'Set setup flag' "$LINENO" "$expected" "${options_values['SETUP']}"
 
   parse_mail_options '--force'
   expected=1
-  assert_equals_helper 'Set force flag' "$LINENO" "${options_values['FORCE']}" "$expected"
+  assert_equals_helper 'Set force flag' "$LINENO" "$expected" "${options_values['FORCE']}"
 
   parse_mail_options '--verify'
   expected_result=1
-  assert_equals_helper 'Set verify flag' "$LINENO" "${options_values['VERIFY']}" "$expected_result"
+  assert_equals_helper 'Set verify flag' "$LINENO" "$expected_result" "${options_values['VERIFY']}"
 
   parse_mail_options '--template'
   expected_result=':'
-  assert_equals_helper 'Template without options' "$LINENO" "${options_values['TEMPLATE']}" "$expected_result"
+  assert_equals_helper 'Template without options' "$LINENO" "$expected_result" "${options_values['TEMPLATE']}"
 
   parse_mail_options '--template=test'
   expected_result=':test'
-  assert_equals_helper 'Set template flag' "$LINENO" "${options_values['TEMPLATE']}" "$expected_result"
+  assert_equals_helper 'Set template flag' "$LINENO" "$expected_result" "${options_values['TEMPLATE']}"
 
   parse_mail_options '--template=  Test '
   expected_result=':test'
-  assert_equals_helper 'Set template flag, case and spaces' "$LINENO" "${options_values['TEMPLATE']}" "$expected_result"
+  assert_equals_helper 'Set template flag, case and spaces' "$LINENO" "$expected_result" "${options_values['TEMPLATE']}"
 
   parse_mail_options '--interactive'
   expected_result='parser'
-  assert_equals_helper 'Set interactive flag' "$LINENO" "${options_values['INTERACTIVE']}" "$expected_result"
+  assert_equals_helper 'Set interactive flag' "$LINENO" "$expected_result" "${options_values['INTERACTIVE']}"
 
   parse_mail_options '--no-interactive'
   expected_result=1
-  assert_equals_helper 'Set no-interactive flag' "$LINENO" "${options_values['NO_INTERACTIVE']}" "$expected_result"
+  assert_equals_helper 'Set no-interactive flag' "$LINENO" "$expected_result" "${options_values['NO_INTERACTIVE']}"
 
   expected=''
-  assert_equals_helper 'Unset local or global flag' "$LINENO" "${options_values['CMD_SCOPE']}" "$expected"
+  assert_equals_helper 'Unset local or global flag' "$LINENO" "$expected" "${options_values['CMD_SCOPE']}"
 
   expected='local'
-  assert_equals_helper 'Unset local or global flag' "$LINENO" "${options_values['SCOPE']}" "$expected"
+  assert_equals_helper 'Unset local or global flag' "$LINENO" "$expected" "${options_values['SCOPE']}"
 
   parse_mail_options '--local'
-  assert_equals_helper 'Set local flag' "$LINENO" "${options_values['SCOPE']}" "$expected"
-  assert_equals_helper 'Set local flag' "$LINENO" "${options_values['CMD_SCOPE']}" "$expected"
+  assert_equals_helper 'Set local flag' "$LINENO" "$expected" "${options_values['SCOPE']}"
+  assert_equals_helper 'Set local flag' "$LINENO" "$expected" "${options_values['CMD_SCOPE']}"
 
   parse_mail_options '--global'
   expected='global'
-  assert_equals_helper 'Set global flag' "$LINENO" "${options_values['SCOPE']}" "$expected"
-  assert_equals_helper 'Set global flag' "$LINENO" "${options_values['CMD_SCOPE']}" "$expected"
+  assert_equals_helper 'Set global flag' "$LINENO" "$expected" "${options_values['SCOPE']}"
+  assert_equals_helper 'Set global flag' "$LINENO" "$expected" "${options_values['CMD_SCOPE']}"
 
   parse_mail_options '-t' '--name' 'Xpto Lala'
   expected='Xpto Lala'
-  assert_equals_helper 'Set name' "$LINENO" "${options_values['user.name']}" "$expected"
+  assert_equals_helper 'Set name' "$LINENO" "$expected" "${options_values['user.name']}"
 
   parse_mail_options '-t' '--email' 'test@email.com'
   expected='test@email.com'
-  assert_equals_helper 'Set email' "$LINENO" "${options_values['user.email']}" "$expected"
+  assert_equals_helper 'Set email' "$LINENO" "$expected" "${options_values['user.email']}"
 
   parse_mail_options '-t' '--smtpuser' 'test@email.com'
   expected='test@email.com'
-  assert_equals_helper 'Set smtp user' "$LINENO" "${options_values['sendemail.smtpuser']}" "$expected"
+  assert_equals_helper 'Set smtp user' "$LINENO" "$expected" "${options_values['sendemail.smtpuser']}"
 
   parse_mail_options '-t' '--smtpencryption' 'tls'
   expected='tls'
-  assert_equals_helper 'Set smtp encryption to tls' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
+  assert_equals_helper 'Set smtp encryption to tls' "$LINENO" "$expected" "${options_values['sendemail.smtpencryption']}"
 
   parse_mail_options '-t' '--smtpencryption' 'ssl'
   expected='ssl'
-  assert_equals_helper 'Set smtp encryption to ssl' "$LINENO" "${options_values['sendemail.smtpencryption']}" "$expected"
+  assert_equals_helper 'Set smtp encryption to ssl' "$LINENO" "$expected" "${options_values['sendemail.smtpencryption']}"
 
   parse_mail_options '-t' '--smtpserver' 'test.email.com'
   expected='test.email.com'
-  assert_equals_helper 'Set smtp server' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+  assert_equals_helper 'Set smtp server' "$LINENO" "$expected" "${options_values['sendemail.smtpserver']}"
 
   parse_mail_options '-t' '--smtpserverport' '123'
   expected='123'
-  assert_equals_helper 'Set smtp serverport' "$LINENO" "${options_values['sendemail.smtpserverport']}" "$expected"
+  assert_equals_helper 'Set smtp serverport' "$LINENO" "$expected" "${options_values['sendemail.smtpserverport']}"
 
   parse_mail_options '-t' '--smtppass' 'verySafePass'
   expected='verySafePass'
-  assert_equals_helper 'Set smtp pass' "$LINENO" "${options_values['sendemail.smtppass']}" "$expected"
+  assert_equals_helper 'Set smtp pass' "$LINENO" "$expected" "${options_values['sendemail.smtppass']}"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -438,75 +438,75 @@ function test_mail_send()
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email @^'
-  assert_equals_helper 'Testing send without options' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send without options' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--to=mail@test.com'
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" @^'
-  assert_equals_helper 'Testing send with to option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send with to option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--to=name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov'
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov" @^'
-  assert_equals_helper 'Testing send with to option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send with to option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--cc=mail@test.com'
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --cc="mail@test.com" @^'
-  assert_equals_helper 'Testing send with c option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send with c option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--cc=name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov'
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --cc="name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov" @^'
-  assert_equals_helper 'Testing send with cc option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send with cc option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--simulate'
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --dry-run @^'
-  assert_equals_helper 'Testing send with simulate option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send with simulate option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--private'
 
   output=$(mail_send 'TEST_MODE')
   expected="git send-email --suppress-cc=all @^"
-  assert_equals_helper 'Testing send with to option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send with to option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--rfc'
 
   output=$(mail_send 'TEST_MODE')
   expected="git send-email --rfc @^"
-  assert_equals_helper 'Testing send with rfc option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send with rfc option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--to=mail@test.com' 'HEAD~'
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" HEAD~'
-  assert_equals_helper 'Testing send with patch option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing send with patch option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--to=mail@test.com' -13 -v2 extra_args -- --other_arg
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" extra_args --other_arg -13 -v2'
-  assert_equals_helper 'Testing no options option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing no options option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--to=mail@test.com'
 
   parse_configuration "$KW_MAIL_CONFIG_SAMPLE" mail_config
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" --annotate  --no-chain-reply-to --thread @^'
-  assert_equals_helper 'Testing default option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing default option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--to=mail@test.com' '@^^'
   parse_configuration "$KW_CONFIG_SAMPLE"
 
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" --annotate --cover-letter --no-chain-reply-to --thread @^^'
-  assert_equals_helper 'Testing default option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing default option' "$LINENO" "$expected" "$output"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -536,19 +536,19 @@ function test_get_configs()
 
   output=${set_confs['local_user.name']}
   expected='Xpto Lala'
-  assert_equals_helper 'Checking local name' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Checking local name' "$LINENO" "$expected" "$output"
 
   output=${set_confs['local_user.email']}
   expected='test@email.com'
-  assert_equals_helper 'Checking local email' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Checking local email' "$LINENO" "$expected" "$output"
 
   output=${set_confs['local_sendemail.smtppass']}
   expected='********'
-  assert_equals_helper 'Checking local smtppass' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Checking local smtppass' "$LINENO" "$expected" "$output"
 
   output=${set_confs['local_sendemail.smtpuser']}
   expected='<empty>'
-  assert_equals_helper 'Checking local smtpuser' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Checking local smtpuser' "$LINENO" "$expected" "$output"
 
   git config --local --unset sendemail.smtpuser
 
@@ -608,8 +608,8 @@ function test_config_values()
   expected['local']='Xpto Lala'
   expected['loaded']='Loaded Name'
 
-  assert_equals_helper 'Checking local name' "$LINENO" "${output['local']}" "${expected['local']}"
-  assert_equals_helper 'Checking loaded name' "$LINENO" "${output['loaded']}" "${expected['loaded']}"
+  assert_equals_helper 'Checking local name' "$LINENO" "${expected['local']}" "${output['local']}"
+  assert_equals_helper 'Checking loaded name' "$LINENO" "${expected['loaded']}" "${output['loaded']}"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -630,11 +630,11 @@ function test_add_config()
   # test default values
   output=$(add_config 'test.opt' '' '' 'TEST_MODE')
   expected="git config --global test.opt 'value'"
-  assert_equals_helper 'Testing serverport option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing serverport option' "$LINENO" "$expected" "$output"
 
   output=$(add_config 'test.option' 'test_value' 'local' 'TEST_MODE')
   expected="git config --local test.option 'test_value'"
-  assert_equals_helper 'Testing serverport option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing serverport option' "$LINENO" "$expected" "$output"
 }
 
 function test_mail_setup()
@@ -675,17 +675,17 @@ function test_mail_setup()
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config -- user.name 'Xpto Lala'"
-  assert_equals_helper 'Testing config with same value' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing config with same value' "$LINENO" "$expected" "$output"
 
   parse_mail_options '-t' '--name' 'Lala Xpto'
 
   output=$(printf 'n\n' | mail_setup 'TEST_MODE' | tail -n 1)
   expected='No configuration options were set.'
-  assert_equals_helper 'Operation should be skipped' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Operation should be skipped' "$LINENO" "$expected" "$output"
 
   output=$(printf 'y\n' | mail_setup 'TEST_MODE' | tail -n 1)
   expected="git config -- user.name 'Lala Xpto'"
-  assert_equals_helper 'Testing confirmation' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing confirmation' "$LINENO" "$expected" "$output"
 
   unset options_values
   declare -gA options_values
@@ -694,14 +694,14 @@ function test_mail_setup()
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --local sendemail.smtpserverport '123'"
-  assert_equals_helper 'Testing serverport option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing serverport option' "$LINENO" "$expected" "$output"
 
   options_values['sendemail.smtpserverport']=''
   options_values['user.name']='Xpto Lala'
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --local user.name 'Xpto Lala'"
-  assert_equals_helper 'Testing config with same value' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing config with same value' "$LINENO" "$expected" "$output"
 
   unset options_values
   declare -gA options_values
@@ -710,7 +710,7 @@ function test_mail_setup()
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --local sendemail.smtpuser 'username'"
-  assert_equals_helper 'Testing smtpuser option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing smtpuser option' "$LINENO" "$expected" "$output"
 
   unset options_values
   declare -gA options_values
@@ -720,7 +720,7 @@ function test_mail_setup()
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --global sendemail.smtppass 'verySafePass'"
-  assert_equals_helper 'Testing global option' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing global option' "$LINENO" "$expected" "$output"
 
   cd "$SHUNIT_TMPDIR" || {
     ret="$?"
@@ -736,7 +736,7 @@ function test_mail_setup()
 
   output=$(mail_setup 'TEST_MODE')
   expected="git config --global sendemail.smtppass 'verySafePass'"
-  assert_equals_helper 'Testing global option outside git' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Testing global option outside git' "$LINENO" "$expected" "$output"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -798,13 +798,13 @@ function test_interactive_prompt()
   # the way bash handles variables and subshells
   # TODO: fix these tests
   # expected='value1'
-  # assert_equals_helper 'Testing test1 value' "$LINENO" "${options_values['test1']}" "$expected"
+  # assert_equals_helper 'Testing test1 value' "$LINENO" "$expected" "${options_values['test1']}"
 
   # expected='value2'
-  # assert_equals_helper 'Testing test2 value' "$LINENO" "${options_values['test2']}" "$expected"
+  # assert_equals_helper 'Testing test2 value' "$LINENO" "$expected" "${options_values['test2']}"
 
   # expected='Lala Xpto'
-  # assert_equals_helper 'Testing user.name value' "$LINENO" "${options_values['user.name']}" "$expected"
+  # assert_equals_helper 'Testing user.name value' "$LINENO" "$expected" "${options_values['user.name']}"
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -877,24 +877,24 @@ function test_load_template()
   output=$(load_template 'invalid' &> /dev/null)
   ret="$?"
   expected=22
-  assert_equals_helper 'Invalid template' "$LINENO" "$ret" "$expected"
+  assert_equals_helper 'Invalid template' "$LINENO" "$expected" "$ret"
 
   load_template 'test1'
   expected='smtp.test1.com'
-  assert_equals_helper 'Load template 1' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+  assert_equals_helper 'Load template 1' "$LINENO" "$expected" "${options_values['sendemail.smtpserver']}"
 
   tearDown
   setUp
 
   load_template 'test2'
   expected='smtp.test2.com'
-  assert_equals_helper 'Load template 2' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+  assert_equals_helper 'Load template 2' "$LINENO" "$expected" "${options_values['sendemail.smtpserver']}"
 
   parse_mail_options -t --smtpserver 'user.given.server'
 
   load_template 'test2'
   expected='user.given.server'
-  assert_equals_helper 'Load template 2 should not overwrite user given values' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+  assert_equals_helper 'Load template 2 should not overwrite user given values' "$LINENO" "$expected" "${options_values['sendemail.smtpserver']}"
 }
 
 function test_template_setup()
@@ -920,20 +920,20 @@ function test_template_setup()
 
   template_setup
   expected='smtp.test1.com'
-  assert_equals_helper 'Load template 1' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+  assert_equals_helper 'Load template 1' "$LINENO" "$expected" "${options_values['sendemail.smtpserver']}"
 
   options_values['TEMPLATE']=':test2'
   options_values['sendemail.smtpserver']=''
 
   template_setup
   expected='smtp.test2.com'
-  assert_equals_helper 'Load template 2' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+  assert_equals_helper 'Load template 2' "$LINENO" "$expected" "${options_values['sendemail.smtpserver']}"
 
   parse_mail_options --smtpserver 'user.input' --template='test2'
 
   template_setup
   expected='user.input'
-  assert_equals_helper 'Load template 2' "$LINENO" "${options_values['sendemail.smtpserver']}" "$expected"
+  assert_equals_helper 'Load template 2' "$LINENO" "$expected" "${options_values['sendemail.smtpserver']}"
 }
 
 # This test can only be done on a local scope, as we have no control over the
@@ -1005,7 +1005,7 @@ function test_mail_verify()
 
   output=$(mail_verify | head -1)
   expected='It looks like you are ready to send patches as:'
-  assert_equals_helper 'Expected successful verification' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Expected successful verification' "$LINENO" "$expected" "$output"
 
   unset options_values
   unset set_confs

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/kw_remote.sh'
 include './tests/unit/utils.sh'

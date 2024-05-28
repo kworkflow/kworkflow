@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 KWORKFLOW=${KWORKFLOW:-'kw'}
 
@@ -321,7 +321,7 @@ function kw()
 
         complain 'Invalid option'
         kworkflow_help
-        return 1
+        return 1 # EPERM
       )
       ;;
   esac

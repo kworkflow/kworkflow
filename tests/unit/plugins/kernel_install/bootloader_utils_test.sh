@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/plugins/kernel_install/bootloader_utils.sh'
 include './tests/unit/utils.sh'

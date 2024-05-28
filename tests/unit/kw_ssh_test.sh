@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/kw_ssh.sh'
 include './tests/unit/utils.sh'

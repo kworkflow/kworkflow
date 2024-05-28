@@ -600,7 +600,7 @@ function mail_verify()
   if [[ "${#missing_conf}" -gt 0 ]]; then
     complain 'Missing configurations required for send-email:'
     printf '  %s\n' "${missing_conf[@]}"
-    return 22
+    return 22 # EINVAL
   fi
 
   success 'It looks like you are ready to send patches as:'
@@ -1103,7 +1103,7 @@ function parse_mail_options()
         fi
         # TODO: find a better way to handle spaces inside pass_option_to_send_email
         for i in "$@"; do
-          if [[ "${i}" =~ " " ]]; then
+          if [[ "${i}" =~ ' ' ]]; then
             pass_option_to_send_email+=" ${i@Q}"
           else
             pass_option_to_send_email+=" ${i}"

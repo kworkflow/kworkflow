@@ -74,7 +74,7 @@ function is_html_file()
 
   grep --silent '\(<head>\|<body>\)' "$file_path"
   [[ "$?" == 0 ]] && return 0
-  return 1
+  return 1 # EPERM
 }
 
 # This function recieves a string and converts it to contain only characters that

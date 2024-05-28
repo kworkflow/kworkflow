@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './tests/unit/utils.sh'
 unset -v KW_LIB_DIR # to be able to test the developer mode

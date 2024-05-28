@@ -48,7 +48,7 @@ function debug_main()
   if [[ "$?" -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
     debug_help
-    return 22
+    return 22 # EINVAL
   fi
 
   test_mode="${options_values['TEST_MODE']}"
@@ -854,7 +854,7 @@ function convert_event_syntax_to_sys_path_hash()
       if [[ "$specific_event" =~ .*'['.*']'.* ]]; then
         specific_filter=${specific_event%]*}
         specific_filter=${specific_filter##*[}
-        specific_event=$(cut -d "[" -f1 <<< "$specific_event")
+        specific_event=$(cut -d '[' -f1 <<< "$specific_event")
       fi
 
       hash_key="${EVENT_BASE_PATH}/${root_event}/${specific_event}"
@@ -961,7 +961,7 @@ function parser_debug_options()
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
           options_values['ERROR']="$option"
-          return 22
+          return 22 # EINVAL
         fi
         options_values['TARGET']="$REMOTE_TARGET"
         shift 2
@@ -1029,7 +1029,7 @@ function parser_debug_options()
         ;;
       *)
         options_values['ERROR']="$1"
-        return 22
+        return 22 # EINVAL
         ;;
     esac
   done

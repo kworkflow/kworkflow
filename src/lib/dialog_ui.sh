@@ -253,7 +253,7 @@ function spin_frame()
   local spin='⣾⣽⣻⢿⡿⣟⣯⣷'
 
   frame_offset=$(((frame_offset) % ${#spin}))
-  printf "%s" "${spin:$frame_offset:1}"
+  printf '%s' "${spin:$frame_offset:1}"
 }
 
 # Create simple async loading screen notification for delayed actions.
@@ -931,7 +931,7 @@ function prettify_string()
   local variable_to_concatenate="$2"
 
   if [[ -z "$fixed_text" || -z "$variable_to_concatenate" ]]; then
-    return 22
+    return 22 # EINVAL
   fi
 
   printf '\Zb\Z6%s\Zn%s\\n' "$fixed_text" "$variable_to_concatenate"

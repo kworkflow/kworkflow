@@ -138,7 +138,7 @@ function is_tag_already_registered()
   is_tag_registered=$(select_from "tag WHERE name IS '${tag_name}'" '' '' '' '' "$flag")
 
   [[ -n "${is_tag_registered}" ]] && return 0
-  return 1
+  return 1 # EPERM
 }
 
 # This is the thread function that will be used to notify when the Pomodoro

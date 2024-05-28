@@ -547,7 +547,7 @@ function prepare_remote_dir()
   distro_info=$(which_distro "$remote" "$port" "$user")
   distro=$(detect_distro '/' "$distro_info")
 
-  if [[ $distro =~ "none" ]]; then
+  if [[ "$distro" =~ 'none' ]]; then
     complain "Unfortunately, there's no support for '$distro_info'"
     exit 95 # ENOTSUP
   fi

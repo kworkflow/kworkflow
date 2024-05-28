@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/lib/lore.sh'
 include './tests/unit/utils.sh'
@@ -760,6 +760,7 @@ function test_thread_for_process_individual_patch()
     "$author_email1" "$updated1" "$line1" 0 "$shared_dir_path" &
   thread_for_process_individual_patch "$message_id2" "$message_title2" "$author_name2" \
     "$author_email2" "$updated2" "$line2" 1 "$shared_dir_path"
+  wait
 
   [[ -f "${shared_dir_path}/0" ]]
   # shellcheck disable=SC2319
@@ -890,10 +891,10 @@ function test_get_raw_lore_message()
   local expected="curl --silent 'https://domain/list/message-id/raw'"
   local output
 
-  output=$(get_raw_lore_message 'http://domain/list/message-id/' 'TEST-MODE')
+  output=$(get_raw_lore_message 'http://domain/list/message-id/' 'TEST_MODE')
   assert_equals_helper 'Wrong command issued' "$LINENO" "$expected" "$output"
 
-  output=$(get_raw_lore_message 'http://domain/list/message-id' 'TEST-MODE')
+  output=$(get_raw_lore_message 'http://domain/list/message-id' 'TEST_MODE')
   assert_equals_helper 'Wrong command issued' "$LINENO" "$expected" "$output"
 }
 

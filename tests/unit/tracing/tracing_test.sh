@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './tracing/tracing.sh'
 include './tests/unit/utils.sh'
@@ -45,7 +45,7 @@ function test_sync_main_kw_file_with_tracing()
   output=$(< "${bin}/${kw_path}")
   expected=$(
     cat << 'EOF'
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This is a mock to test the injection of tracing code into kw main file
 

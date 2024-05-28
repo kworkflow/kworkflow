@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 include './src/ui/patch_hub/lore_mailing_lists.sh'
 include './tests/unit/utils.sh'

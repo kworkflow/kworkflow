@@ -245,7 +245,7 @@ function get_config_from_proc()
   case "$target" in
     1) # VM
       # We do not support this option with VM
-      return 95
+      return 95 # ENOTSUP
       ;;
     2) # LOCAL
       # Try to find /proc/config, if we cannot find, attempt to load the module
@@ -425,7 +425,7 @@ function fetch_config()
   cmd_manager "$flag" "$cmd"
 
   if [[ -f "${config_base_path}/${output}" ]]; then
-    if [[ -z "$force" && $(ask_yN "Do you want to overwrite ${output} in your current directory?") =~ "0" ]]; then
+    if [[ -z "$force" && "$(ask_yN "Do you want to overwrite ${output} in your current directory?")" =~ '0' ]]; then
       warning 'Operation aborted'
       return 125 #ECANCELED
     fi
@@ -480,7 +480,7 @@ function fetch_config()
         ;;
     esac
 
-    printf "%s" "$mods" > "${KW_CACHE_DIR}/lsmod"
+    printf '%s' "$mods" > "${KW_CACHE_DIR}/lsmod"
 
     cmd="make localmodconfig LSMOD=${KW_CACHE_DIR}/lsmod${output_kbuild_flag}"
 

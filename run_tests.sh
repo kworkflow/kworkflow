@@ -1,9 +1,14 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 . ./src/lib/kw_include.sh --source-only
 include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 include './src/lib/kwio.sh'
+
+declare -a TESTS
+declare TESTS_DIR
+declare TESTS_UNIT=1
+declare TESTS_INTEGRATION=1
 
 function show_help()
 {
@@ -59,7 +64,7 @@ function report_results()
       done
     fi
 
-    return 1
+    return 1 # EPERM
   fi
 }
 
@@ -141,7 +146,6 @@ function clear_integration_tests_cache()
   teardown_container_environment "$@"
 }
 
-declare -a TESTS
 function set_tests()
 {
   local file
@@ -151,53 +155,92 @@ function set_tests()
   done
 }
 
-declare TESTS_UNIT=1
-declare TESTS_INTEGRATION=1
-declare TESTS_DIR=./tests
-if [[ "$1" == '--unit' || "$1" == '-u' ]]; then
-  TESTS_DIR=./tests/unit
-  TESTS_INTEGRATION=0
-  shift
-elif [[ "$1" == '--integration' || "$1" == '-i' ]]; then
-  TESTS_DIR=./tests/integration
-  TESTS_UNIT=0
-  shift
-fi
+function list_tests()
+{
+  local index
+  local files_list
 
-check_files="$?"
-#shellcheck disable=SC2086
-if [[ "$#" -eq 0 ]]; then
+  index=0
+  files_list=$(find "$TESTS_DIR" -name '*_test.sh')
+
+  # shellcheck disable=SC2086
+  set_tests $files_list
+
+  for test_name in "${TESTS[@]}"; do
+    ((index++))
+    say "$index) ${test_name}"
+  done
+}
+
+function run_all_tests()
+{
+  local files_list
+
   files_list=$(find "$TESTS_DIR" -name '*_test.sh' | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
 
   # Note: Usually we want to use double-quotes on bash variables, however,
   # in this case we want a set of parameters instead of a single one.
+  # shellcheck disable=SC2086
   set_tests $files_list
 
   # Set the environment variable LANGUAGE to `en_US.UTF_8` to avoid the host
   # locale settings from interfering in the tests.
   LANGUAGE=en_US.UTF_8 run_tests
-elif [[ "$1" == 'list' ]]; then
-  index=0
-  files_list=$(find "$TESTS_DIR" -name '*_test.sh')
-  set_tests $files_list
-  for test_name in "${TESTS[@]}"; do
-    ((index++))
-    say "$index) ${test_name}"
-  done
-elif [[ "$1" == 'test' ]]; then
+}
+
+function run_user_provided_tests()
+{
+  local regex
+  local files_list
+
   # We use a regex to filter files so we test multiple tests matching a desirable
   # pattern. For example, we can run all config-related tests  by  providing  the
   # word config. We can also run both config unit  test  and  config  integration
   # test with this approach.
-  regex="($(sed 's/ /|/g' <<< "${@:2}"))"
-
+  regex="($(sed 's/ /|/g' <<< "${@}"))"
   files_list=$(find "$TESTS_DIR" | grep --perl-regexp "${regex}" | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
+
+  # shellcheck disable=SC2086
   set_tests $files_list
+
   LANGUAGE=en_US.UTF_8 run_tests
-elif [[ "$1" == 'clear-cache' ]]; then
-  shift
-  [[ "${TESTS_UNIT}" == 1 ]] && clear_unit_tests_cache "$@"
-  [[ "${TESTS_INTEGRATION}" == 1 ]] && clear_integration_tests_cache "$@"
-else
-  show_help
-fi
+}
+
+# parse flag
+case "$1" in
+  --unit | -u)
+    TESTS_DIR='./tests/unit'
+    TESTS_INTEGRATION=0
+    shift
+    ;;
+  --integration | -i)
+    TESTS_DIR='./tests/integration'
+    TESTS_UNIT=0
+    shift
+    ;;
+  *)
+    TESTS_DIR='./tests'
+    ;;
+esac
+
+action=${1:-all}
+shift
+
+case "$action" in
+  all)
+    run_all_tests
+    ;;
+  list)
+    list_tests
+    ;;
+  test)
+    run_user_provided_tests "$@"
+    ;;
+  clear-cache)
+    [[ "$TESTS_UNIT" -eq 1 ]] && clear_unit_tests_cache "$@"
+    [[ "$TESTS_INTEGRATION" -eq 1 ]] && clear_integration_tests_cache "$@"
+    ;;
+  *)
+    show_help
+    ;;
+esac
