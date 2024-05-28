@@ -175,6 +175,9 @@ function test_parse_pomodoro()
 
   parse_pomodoro '--verbose'
   assert_equals_helper 'Show a detailed output' "$LINENO" 1 "${options_values['VERBOSE']}"
+
+  parse_pomodoro '--repeat-previous'
+  assert_equals_helper 'No last session to repeat' "$LINENO" 1 "${options_values['REPEAT_PREVIOUS']}"
 }
 
 function test_register_data_for_report()
@@ -378,6 +381,53 @@ function test_show_tags()
   expected+='4   AAAAAAA'$'\n'
   expected+='5   1111111'
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+}
+
+function test_fetch_last_pomodoro_session_no_last_session()
+{
+  local values
+  local columns='("date","time","duration","tag_name","description")'
+  local expected='No previous pomodoro session found'
+
+  options_values=()
+  fetch_last_pomodoro_session
+  assert_equals_helper 'No last session to repeat' "$LINENO" "$expected" "${options_values['ERROR']}"
+}
+
+function test_fetch_last_pomodoro_session_one_session()
+{
+  local values
+  local columns='("date","time","duration","tag_name","description")'
+
+  values="('2024-05-27','17:36:20','3600','fake_tag','this is not a drill')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO 'pomodoro_report' ${columns} VALUES ${values} ;"
+
+  options_values=()
+  fetch_last_pomodoro_session
+  assert_equals_helper 'Wrong duration' "$LINENO" '3600s' "${options_values['TIMER']}"
+  assert_equals_helper 'Wrong tag' "$LINENO" 'fake_tag' "${options_values['TAG']}"
+  assert_equals_helper 'Wrong description' "$LINENO" 'this is not a drill' "${options_values['DESCRIPTION']}"
+}
+
+function test_fetch_last_pomodoro_session_multiple_sessions()
+{
+  local values
+  local columns='("date","time","duration","tag_name","description")'
+
+  values="('2024-05-27','17:36:21','2718281','creative_tag','this is not a drill')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO 'pomodoro_report' ${columns} VALUES ${values} ;"
+  values="('2024-05-27','17:36:19','120','third_oldest_tag','this might be a drill')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO 'pomodoro_report' ${columns} VALUES ${values} ;"
+  values="('2024-05-27','17:36:18','3600','second_oldest_tag','this may be a drill')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO 'pomodoro_report' ${columns} VALUES ${values} ;"
+  values="('2024-05-27','17:36:17','1800','oldest_tag','this is probably a drill')"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO 'pomodoro_report' ${columns} VALUES ${values} ;"
+
+  options_values=()
+  fetch_last_pomodoro_session
+  assert_equals_helper 'Wrong duration' "$LINENO" '2718281s' "${options_values['TIMER']}"
+  assert_equals_helper 'Wrong tag' "$LINENO" 'creative_tag' "${options_values['TAG']}"
+  assert_equals_helper 'Wrong description' "$LINENO" 'this is not a drill' "${options_values['DESCRIPTION']}"
 }
 
 invoke_shunit

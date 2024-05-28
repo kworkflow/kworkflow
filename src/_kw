@@ -431,9 +431,10 @@ _kw_pomodoro()
 
   _arguments : \
     '(--verbose)--verbose[enable verbose mode]' \
-    '(-t --set-timer -c --check-timer -s --show-tags)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
-    '(-c --check-timer -t --set-timer -s --show-tags)'{-c,--check-timer}'[shows information of each active Pomodoro timebox]' \
-    '(-s --show-tags -c --check-timer -t --set-timer)'{-s,--show-tags}'[shows registered tags]' \
+    '(--repeat-previous -t --set-timer -c --check-timer -s --show-tags)--repeat-previous[repeats the last Pomodoro session]' \
+    '(-t --set-timer -c --check-timer -s --show-tags --repeat-previous)'{-t,--set-timer}'[set the timer for the Pomodoro timebox]: : ' \
+    '(-c --check-timer -t --set-timer -s --show-tags --repeat-previous)'{-c,--check-timer}'[shows information of each active Pomodoro timebox]' \
+    '(-s --show-tags -c --check-timer -t --set-timer --repeat-previous)'{-s,--show-tags}'[shows registered tags]' \
     $set_timer_options \
     $tag_options
 }
