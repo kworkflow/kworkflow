@@ -73,6 +73,49 @@ function codestyle_main()
   checkpatch=$(join_path "$kernel_root" 'scripts/checkpatch.pl')
   cmd_script="perl ${checkpatch} ${checkpatch_options}"
 
+  [[ -n "${options_values['START_LINE']}" ]] && start_line=${options_values['START_LINE']}
+  [[ -n "${options_values['END_LINE']}" ]] && end_line=${options_values['END_LINE']}
+
+  if [[ -n "$start_line" || -n "$end_line" ]]; then
+    range_option_flag='true'
+  fi
+
+  # Check if --start-line and --end-line options are being used with a single file
+  if [[ ! -f "$path" && -n "$range_option_flag" ]]; then
+    complain "Invalid path using start-line and end-line option: ${path}"
+    return 2 # ENOENT
+  fi
+
+  # When no --start-line is specified, assign the first line of the file to start_line
+  if [[ -n "$range_option_flag" && -z "$start_line" ]]; then
+    start_line=1
+  fi
+
+  # When no --end-line is specified, assign the last line of the file to end_line
+  if [[ -n "$range_option_flag" && -z "$end_line" ]]; then
+    end_line=$(wc -l < "$FLIST")
+  fi
+
+  # If --start-line and --end-line options are being used, assign a temporary file
+  # to FLIST with the line interval and SPDX License Identifier
+  if [[ -n "$range_option_flag" ]]; then
+    suffix=".${FLIST#*.}"
+    temp_file=$(mktemp --suffix "$suffix" --tmpdir="$PWD")
+
+    if [[ "$start_line" != '1' ]]; then
+      printf '%s\n' '// SPDX-License-Identifier: TEMPFILE' > "$temp_file"
+      ((blank_lines = start_line - 2))
+      yes '' | head -n "$blank_lines" >> "$temp_file"
+    fi
+  fi
+
+  # For --start-line and --end-line options, write the line interval to the temporary file
+  # and assign it to FLIST
+  if [[ -n "$range_option_flag" ]]; then
+    sed -n "${start_line},${end_line}p" "$FLIST" >> "$temp_file"
+    FLIST="$temp_file"
+  fi
+
   for current_file in $FLIST; do
     file="$current_file"
 
@@ -84,6 +127,10 @@ function codestyle_main()
     cmd_manager "$flag" "$cmd_script $file"
     [[ "$?" != 0 ]] && say "$SEPARATOR"
   done
+
+  if [[ -n "$range_option_flag" ]]; then
+    rm "$temp_file"
+  fi
 }
 
 # This function gets raw data and based on that fill out the options values to
@@ -93,7 +140,7 @@ function codestyle_main()
 # In case of successful return 0, otherwise, return 22.
 function parse_codestyle_options()
 {
-  local long_options='verbose,help'
+  local long_options='verbose,help,start-line:,end-line:'
   local short_options='h'
   local options
 
@@ -108,6 +155,8 @@ function parse_codestyle_options()
   # Default values
   options_values['VERBOSE']=''
   options_values['TEST_MODE']=''
+  options_values['START_LINE']=''
+  options_values['END_LINE']=''
 
   eval "set -- $options"
 
@@ -116,6 +165,14 @@ function parse_codestyle_options()
       --verbose)
         options_values['VERBOSE']=1
         shift
+        ;;
+      --start-line)
+        options_values['START_LINE']="$2"
+        shift 2
+        ;;
+      --end-line)
+        options_values['END_LINE']="$2"
+        shift 2
         ;;
       TEST_MODE)
         options_values['TEST_MODE']='TEST_MODE'
@@ -145,7 +202,9 @@ function codestyle_help()
   fi
   printf '%s\n' 'kw codestyle:' \
     '  codestyle [<dir>|<file>|<patch>] - Use checkpatch on target' \
-    '  codestyle (--verbose) [<dir>|<file>|<patch>] - Show detailed output'
+    '  codestyle (--verbose) [<dir>|<file>|<patch>] - Show detailed output' \
+    '  codestyle (--start-line <line>) - Set line where the script will start checkpatch' \
+    '  codestyle (--end-line <line>) - Set line where the script will end checkpatch'
 }
 
 load_kworkflow_config
