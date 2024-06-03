@@ -4,6 +4,14 @@ include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 include './src/device_info.sh'
 
+function oneTimeSetUp()
+{
+  # The VERBOSE variable is set and exported in the run_tests.sh script based
+  # on the command-line options provided by the user. It controls the verbosity
+  # of the output during the test runs.
+  setup_container_environment "$VERBOSE" 'device'
+}
+
 # test if `kw device --local` in the container matches the host
 function device_info_test_helper()
 {

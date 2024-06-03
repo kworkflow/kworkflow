@@ -6,9 +6,10 @@ include './tests/integration/utils.sh'
 include './src/lib/kwio.sh'
 
 declare -a TESTS
-declare TESTS_DIR
+declare TESTS_DIR='./tests'
 declare TESTS_UNIT=1
 declare TESTS_INTEGRATION=1
+declare VERBOSE=0
 
 function show_help()
 {
@@ -21,6 +22,8 @@ function show_help()
     '         Limit tests to integration tests' \
     '  -u, --unit' \
     '         Limit tests to unit tests' \
+    '  -v, --verbose' \
+    '         Increase verbosity of the output' \
     '' \
     'COMMANDS' \
     '  clear-cache - clears tests cache' \
@@ -76,25 +79,13 @@ function run_tests()
   local -i fail=0
   local test_failure_list=''
   local test_dir
-  local integration_tests_setup=0 # have we setup the environment for integration tests?
   local current_test
   local target
 
   for target in "${TESTS[@]}"; do
     if [[ -f "$target" ]]; then
 
-      # if we are running integration tests, we will set up the environment for
-      # them here. That is because all integration tests share the same setup:
-      # at least the container environment must be up. It is much more efficient
-      # to run the setup just once for all tests than to run it for every test.
-      # This approach also avoids code duplication in the files.
       test_dir=$(dirname "${target}")
-      if [[ "$test_dir" =~ '/integration' && "$integration_tests_setup" == 0 ]]; then
-        integration_tests_setup=1
-        say 'Preparing environment for integration tests...'
-        setup_container_environment
-        printf '\n'
-      fi
 
       # Format the test name to be displayed in the output.
       current_test="$(basename "$test_dir")/$(basename "$target" | sed 's/.sh//')"
@@ -122,14 +113,11 @@ function run_tests()
     fi
   done
 
-  # instead of tearing down the container environment after each integration test,
-  # we will tear it down only after all tests have ran. This optimizes significant
-  # amount of time for the integration tests.
-  if [[ "${integration_tests_setup}" == 1 ]]; then
-    printf '\n' # add new line after the last "OK"
+  if [[ "$test_dir" =~ '/integration' && "$VERBOSE" -eq 1 ]]; then
+    say '' # add new line after the last "OK"
     say 'Tearing down containers used in integration tests...'
     teardown_containers
-    printf '\n'
+    say ''
   fi
 
   report_results "$total" "$success" "$notfound" "$fail" "$test_failure_list"
@@ -206,22 +194,32 @@ function run_user_provided_tests()
   LANGUAGE=en_US.UTF_8 run_tests
 }
 
-# parse flag
-case "$1" in
-  --unit | -u)
-    TESTS_DIR='./tests/unit'
-    TESTS_INTEGRATION=0
-    shift
-    ;;
-  --integration | -i)
-    TESTS_DIR='./tests/integration'
-    TESTS_UNIT=0
-    shift
-    ;;
-  *)
-    TESTS_DIR='./tests'
-    ;;
-esac
+# Parse flag
+while [[ "$1" =~ ^- && ! "$1" == '--' ]]; do
+  case "$1" in
+    --unit | -u)
+      TESTS_DIR='./tests/unit'
+      TESTS_UNIT=0
+      shift
+      ;;
+    --integration | -i)
+      TESTS_DIR='./tests/integration'
+      TESTS_UNIT=0
+      shift
+      ;;
+    --verbose | -v)
+      VERBOSE=1
+      export VERBOSE
+      shift
+      ;;
+    *)
+      show_help
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "$1" == '--' ]]; then shift; fi
 
 action=${1:-all}
 shift

@@ -7,6 +7,11 @@ function oneTimeSetUp()
 {
   local distro
 
+  # The VERBOSE variable is set and exported in the run_tests.sh script based
+  # on the command-line options provided by the user. It controls the verbosity
+  # of the output during the test runs.
+  setup_container_environment "$VERBOSE" 'config'
+
   # copy config files to the containers
   for distro in "${DISTROS[@]}"; do
     container_copy "kw-${distro}" "${SAMPLES_DIR}/config" '/tmp/.kw'
