@@ -4,6 +4,14 @@ include './src/lib/kwio.sh'
 include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 
+function oneTimeSetUp()
+{
+  # The VERBOSE variable is set and exported in the run_tests.sh script based
+  # on the command-line options provided by the user. It controls the verbosity
+  # of the output during the test runs.
+  setup_container_environment "$VERBOSE" 'version'
+}
+
 # This function gets the commit hash and base version of the specified branch,
 # constructs the expected output.
 #
