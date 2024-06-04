@@ -3,20 +3,7 @@ on:
   [push, pull_request]
 
 jobs:
-  initialize-repository:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
   integration-tests:
-    needs: initialize-repository
     runs-on: ubuntu-latest
 
     steps:
