@@ -167,8 +167,10 @@ function teardown_single_container()
   container_exists "${container}"
 
   if [[ "$?" -eq 0 ]]; then
-    # Destroy container sending SIGKILL instantly.
-    podman container rm --force --time 0 "${container}" > /dev/null 2>&1
+    # Stop the container with no wait time
+    podman stop --time 0 "$container" > /dev/null 2>&1
+    # Remove the container forcefully
+    podman container rm --force "$container" > /dev/null 2>&1
   fi
 }
 
