@@ -49,6 +49,70 @@ function pomodoro_main()
   if [[ -n "${options_values['TIMER']}" ]]; then
     timer_thread "$flag" &
   fi
+
+  if [[ -n "${options_values['WATCH']}" ]]; then
+    watch_loop "$flag"
+    return 0
+  fi
+}
+
+# This function shows the active Pomodoro timebox in a loop,  
+# using the result from `show_active_pomodoro_timebox` function.
+function watch_loop()
+{
+  local flag="$1"
+  local previous_timeboxes_amount=0
+  local current_timeboxes_amount=$(get_current_timeboxes_amount "$flag")
+
+  if [[ "$current_timeboxes_amount" -eq 0 ]]; then
+    if [[ -n "${options_values['TIMER']}" ]]; then
+      if [[ -z "${options_values['TAG']}" ]]; then
+        say 'No tag defined for timebox'
+        return 0
+      fi
+      # wait for timer to setup
+      cmd_manager "$flag" "sleep 1"
+    else 
+      say 'No active tagged timebox'
+      return 0
+    fi
+  fi
+
+  while true; do
+    current_timeboxes_amount=$(get_current_timeboxes_amount "$flag")
+    if [[ "$current_timeboxes_amount" -eq 0 && "$previous_timeboxes_amount" -gt 0 ]]; then
+      say 'Tagged timebox finished'
+      return 0
+    fi
+    if [[ "$current_timeboxes_amount" -ne "$previous_timeboxes_amount" ]]; then
+      cmd_manager "$flag" "clear"
+      previous_timeboxes_amount="$current_timeboxes_amount"
+    else
+      # avoid flickering
+      cmd_manager "$flag" "tput cup 0 0"
+    fi
+
+    show_active_pomodoro_timebox "$flag"
+
+    # Collect user actions
+    printf '%s\n' 'Press Q to quit'
+    read -r -n 1 -t 1 key
+    if [[ "$key" == 'q' || "$key" == 'Q' ]] ; then
+      return 0
+    fi
+  done
+
+  return 0
+}
+
+# This function returns the amount of active timeboxes.
+function get_current_timeboxes_amount()
+{
+  local flag="$1"
+  local current_timeboxes_amount
+
+  current_timeboxes_amount=$(select_from 'active_timebox' 'COUNT(*)' '' '' '' "$flag")
+  printf '%s\n' "${current_timeboxes_amount}"
 }
 
 # This function inspects the Pomodoro file, and based on each line, information
@@ -305,8 +369,8 @@ function format_text()
 
 function parse_pomodoro()
 {
-  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,verbose'
-  local short_options='t:,c,s,g:,d:,h'
+  local long_options='set-timer:,check-timer,show-tags,tag:,description:,help,verbose,watch'
+  local short_options='t:,c,s,g:,d:,h,w'
   local options
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -326,6 +390,7 @@ function parse_pomodoro()
   options_values['TAG']=''
   options_values['DESCRIPTION']=''
   options_values['VERBOSE']=''
+  options_values['WATCH']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -369,6 +434,10 @@ function parse_pomodoro()
         options_values['VERBOSE']=1
         shift
         ;;
+      --watch | -w)
+        options_values['WATCH']=1
+        shift
+        ;;
       --help | -h)
         pomodoro_help "$1"
         exit
@@ -393,7 +462,8 @@ function pomodoro_help()
     '  pomodoro (-s|--show-tags) - Show registered tags' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> - Set timer with tag' \
     '  pomodoro (-t|--set-timer) <time>(h|m|s) (-g|--tag) <tag> (-d|--description) <desc> - Set timer with tag and description' \
-    '  pomodoro (--verbose) - Show a detailed output'
+    '  pomodoro (--verbose) - Show a detailed output' \
+    '  pomodoro (-w|--watch) - Show the active pomodoro timer'
 }
 
 load_notification_config
