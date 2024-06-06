@@ -566,6 +566,11 @@ function synchronize_files()
     fi
   fi
 
+  if command_exists 'nu'; then
+    # Add tabcompletion to nu
+    install_nucompletion
+  fi
+
   say "$SEPARATOR"
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
@@ -596,6 +601,13 @@ function append_zshcompletion()
   safe_append "# ${app_name}" "${HOME}/.zshrc"
   safe_append "export fpath=(${libdir} \$fpath)" "${HOME}/.zshrc"
   safe_append 'autoload compinit && compinit -i' "${HOME}/.zshrc"
+}
+
+function install_nucompletion() 
+{
+  say "Nushell detected. Downloading completions from GitHub nushell/nu_scripts"
+  curl -o ${libdir}/kw-completions.nu https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/kw/kw-completions.nu
+  say "To enable nu completions, add \`source ${libdir}/kw-completions.nu\` to your nushell config file (\$nu.config-file)"
 }
 
 function safe_append()
