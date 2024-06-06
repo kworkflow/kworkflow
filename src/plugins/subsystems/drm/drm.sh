@@ -60,8 +60,10 @@ function drm_main()
   if [[ -n "$load_module" ]]; then
     module_control 'LOAD' "$target" "$remote" "$load_module" "$flag"
     if [[ "$?" != 0 ]]; then
+      complain "Failure to load module ${load_module}"
       return 22 # EINVAL
     fi
+    success "Successfully loaded module ${load_module}"
   fi
 
   if [[ "$gui_on" == 1 ]]; then
@@ -78,6 +80,11 @@ function drm_main()
     # For unload DRM drivers, we need to make sure that we turn off user GUI
     [[ "$gui_off" != 1 ]] && gui_control 'OFF' "$target" "$remote"
     module_control 'UNLOAD' "$target" "$remote" "$unload_module" "$flag"
+    if [[ "$?" != 0 ]]; then
+      complain "Failure to unload module ${unload_module}"
+      return 22 # EINVAL
+    fi
+    success "Successfully unloaded module ${unload_module}"
   fi
 
   if [[ "$conn_available" == 1 ]]; then
