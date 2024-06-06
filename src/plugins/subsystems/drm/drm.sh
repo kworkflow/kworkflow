@@ -524,8 +524,8 @@ function drm_help()
     return
   fi
   printf '%s\n' 'Usage: kw drm [options]:' \
-    '  drm [--local | --remote [<remote>:<port>]] (-lm|--load-module)=<module>[:<param1>,<param2>][;<module>:...][;...]' \
-    '  drm [--local | --remote [<remote>:<port>]] (-um|--unload-module)=<module>[;<module>;...]' \
+    '  drm [--local | --remote [<remote>:<port>]] --load-module=<module>[:<param1>,<param2>][;<module>:...][;...]' \
+    '  drm [--local | --remote [<remote>:<port>]] --unload-module=<module>[;<module>;...]' \
     '  drm [--local | --remote [<remote>:<port>]] --gui-on' \
     '  drm [--local | --remote [<remote>:<port>]] --gui-off' \
     '  drm [--local | --remote [<remote>:<port>]] --gui-on-after-reboot' \
