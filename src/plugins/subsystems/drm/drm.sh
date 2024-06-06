@@ -298,8 +298,8 @@ function get_available_connectors()
   case "$target" in
     2) # LOCAL TARGET
       cards_raw_list=$(cmd_manager 'SILENT' "$find_conn_cmd" | sort --dictionary-order)
+      ret="$?"
       if [[ -f "$SYSFS_CLASS_DRM" ]]; then
-        ret="$?"
         complain "We cannot access ${SYSFS_CLASS_DRM}"
         return "$ret" # ENOENT
       fi
