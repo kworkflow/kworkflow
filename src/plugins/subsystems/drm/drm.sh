@@ -21,7 +21,7 @@ function drm_main()
   local test_mode
   local flag
 
-  if [[ "$*" =~ -h|--help ]]; then
+  if [[ "$*" =~ -h|--help || "$#" == 0 ]]; then
     drm_help "$*"
     exit 0
   fi
