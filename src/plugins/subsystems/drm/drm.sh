@@ -120,7 +120,7 @@ function module_control()
       remote=$(get_based_on_delimiter "$unformatted_remote" ':' 1)
       port=$(get_based_on_delimiter "$unformatted_remote" ':' 2)
 
-      cmd_remotely "$module_cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$flag" "$module_cmd" "$remote" "$port"
       ;;
   esac
 }
@@ -234,8 +234,8 @@ function gui_control()
       cmd_manager "$flag" "$bind_control_cmd"
       ;;
     3) # REMOTE TARGET
-      cmd_remotely "$gui_control_cmd" "$flag" "$remote" "$port"
-      cmd_remotely "$bind_control_cmd" "$flag" "$remote" "$port" '' '1'
+      cmd_remotely "$flag" "$gui_control_cmd" "$remote" "$port"
+      cmd_remotely "$flag" "$bind_control_cmd" "$remote" "$port" '' '1'
       ;;
   esac
 }
@@ -277,7 +277,7 @@ function get_available_connectors()
       target_label='local'
       ;;
     3) # REMOTE TARGET
-      cards_raw_list=$(cmd_remotely "$find_conn_cmd" "$flag" | sort --dictionary-order)
+      cards_raw_list=$(cmd_remotely "$flag" "$find_conn_cmd" | sort --dictionary-order)
       target_label='remote'
       ;;
   esac
@@ -346,7 +346,7 @@ function get_supported_mode_per_connector()
       target_label='local'
       ;;
     3) # REMOTE TARGET
-      modes=$(cmd_remotely "$cmd" 'SILENT' '' '' '' '1')
+      modes=$(cmd_remotely 'SILENT' "$cmd" '' '' '' '1')
       target_label='remote'
       ;;
   esac

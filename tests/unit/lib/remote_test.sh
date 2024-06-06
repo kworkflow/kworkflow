@@ -328,7 +328,7 @@ function test_cmd_remote()
   remote_parameters['REMOTE_FILE_HOST']='origin'
 
   expected_command="ssh -F ${SHUNIT_TMPDIR}/remote.config origin sudo \"$command\""
-  output=$(cmd_remotely "$command" "$flag")
+  output=$(cmd_remotely "$flag" "$command")
   assertEquals "($LINENO): Command did not match" "$expected_command" "$output"
 
   configurations=()
@@ -340,23 +340,23 @@ function test_cmd_remote()
   remote_parameters['REMOTE_USER']='root'
 
   expected_command="ssh -p $port $user@$remote sudo \"$command\""
-  output=$(cmd_remotely "$command" "$flag" "$remote" "$port" "$user")
+  output=$(cmd_remotely "$flag" "$command" "$remote" "$port" "$user")
   assertEquals "($LINENO):" "$expected_command" "$output"
 
   expected_command="ssh -p $port $user@localhost sudo \"$command\""
-  output=$(cmd_remotely "$command" "$flag" '' "$port" "$user")
+  output=$(cmd_remotely "$flag" "$command" '' "$port" "$user")
   assertEquals "($LINENO):" "$expected_command" "$output"
 
   expected_command="ssh -p 22 $user@localhost sudo \"$command\""
-  output=$(cmd_remotely "$command" "$flag" '' '' "$user")
+  output=$(cmd_remotely "$flag" "$command" '' '' "$user")
   assertEquals "($LINENO):" "$expected_command" "$output"
 
   expected_command="ssh -p 22 root@localhost sudo \"$command\""
-  output=$(cmd_remotely "$command" "$flag")
+  output=$(cmd_remotely "$flag" "$command")
   assertEquals "($LINENO):" "$expected_command" "$output"
 
   expected_command="No command specified"
-  output=$(cmd_remotely '' "$flag")
+  output=$(cmd_remotely "$flag" '')
   assertEquals "($LINENO):" "$expected_command" "$output"
 }
 
