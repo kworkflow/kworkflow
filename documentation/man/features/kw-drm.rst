@@ -30,7 +30,7 @@ OPTIONS
   *default_deploy_target* (**deploy.config**) for identifying the target.
   It is important to highlight that the drm feature **does not support VM**.
 
--lm, \--load-module=<module>[:<param1>,...][;<module>:...]:
+\--load-module=<module>[:<param1>,...][;<module>:...]:
   Allow user to specify one or more modules to be load with or without
   parameters. If you want to indicate more than one module, you have to
   separate them using ';'. Additionally, if users wish to provide specific
@@ -39,7 +39,7 @@ OPTIONS
   will make sure that the target module will be load first and after that
   trigger the GUI.
 
--um=<module>[;<module>;...], \--unload-module=<module>[;<module>;...]:
+\--unload-module=<module>[;<module>;...]:
   This option allows users to unload one or more DRM drivers. Users can provide
   a single module to be unloaded or a list separated by ';'. This command first
   disables the user interface and, after that, unloads the module.
