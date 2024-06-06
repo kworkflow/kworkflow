@@ -88,7 +88,7 @@ function get_ram()
       ;;
     3) # REMOTE_TARGET
       show_verbose "$flag" "$cmd"
-      ram=$(cmd_remotely "$cmd" 'SILENT')
+      ram=$(cmd_remotely 'SILENT' "$cmd")
       ;;
   esac
 
@@ -131,10 +131,10 @@ function get_cpu()
       ;;
     3) # REMOTE_TARGET
       show_verbose "$flag" "$cmd_model"
-      cpu_model=$(cmd_remotely "$cmd_model" 'SILENT')
+      cpu_model=$(cmd_remotely 'SILENT' "$cmd_model")
 
       show_verbose "$flag" "$cmd_frequency"
-      cpu_frequency=$(cmd_remotely "$cmd_frequency" 'SILENT')
+      cpu_frequency=$(cmd_remotely 'SILENT' "$cmd_frequency")
       ;;
   esac
 
@@ -193,7 +193,7 @@ function get_disk()
       ;;
     3) # REMOTE_TARGET
       show_verbose "$flag" "$cmd"
-      info=$(cmd_remotely "$cmd" 'SILENT')
+      info=$(cmd_remotely 'SILENT' "$cmd")
       ;;
   esac
 
@@ -254,7 +254,7 @@ function get_os()
       root_path='/'
       cmd="cat $(join_path "$root_path" "$os_release_path")"
       show_verbose "$flag" "$cmd"
-      raw_os_release=$(cmd_remotely "$cmd" 'SILENT')
+      raw_os_release=$(cmd_remotely 'SILENT' "$cmd")
       ;;
   esac
 
@@ -313,7 +313,7 @@ function get_desktop_environment()
       ;;
     3) # REMOTE_TARGET
       show_verbose "$flag" "$cmd"
-      desktop_env=$(cmd_remotely "$cmd" 'SILENT')
+      desktop_env=$(cmd_remotely 'SILENT' "$cmd")
       ;;
   esac
 
@@ -379,11 +379,11 @@ function get_gpu()
       ;;
     3) # REMOTE_TARGET
       show_verbose "$flag" "$cmd_pci_address"
-      pci_addresses=$(cmd_remotely "$cmd_pci_address" 'SILENT')
+      pci_addresses=$(cmd_remotely 'SILENT' "$cmd_pci_address")
       for g in $pci_addresses; do
         cmd="lspci -v -s ${g}"
         show_verbose "$flag" "$cmd"
-        gpu_info=$(cmd_remotely "$cmd" 'SILENT')
+        gpu_info=$(cmd_remotely 'SILENT' "$cmd")
 
         cmd="printf '%s\n' '${gpu_info}' | sed --quiet --regexp-extended '/Subsystem/s/\s*.*:\s+(.*)/\1/p'"
         show_verbose "$flag" "$cmd"
@@ -444,20 +444,20 @@ function get_motherboard()
       ;;
     3) # REMOTE_TARGET
       show_verbose "$flag" "$cmd_name"
-      mb_name=$(cmd_remotely "$cmd_name" 'SILENT')
+      mb_name=$(cmd_remotely 'SILENT' "$cmd_name")
 
       show_verbose "$flag" "$cmd_vendor"
-      mb_vendor=$(cmd_remotely "$cmd_vendor" 'SILENT')
+      mb_vendor=$(cmd_remotely 'SILENT' "$cmd_vendor")
 
       # Fallback
       if [[ -z "$mb_name" ]]; then
         show_verbose "$flag" "$fallback_name_cmd"
-        mb_name=$(cmd_remotely "$fallback_name_cmd" 'SILENT')
+        mb_name=$(cmd_remotely 'SILENT' "$fallback_name_cmd")
       fi
 
       if [[ -z "$mb_vendor" ]]; then
         show_verbose "$flag" "$fallback_vendor_cmd"
-        mb_vendor=$(cmd_remotely "$fallback_vendor_cmd" 'SILENT')
+        mb_vendor=$(cmd_remotely 'SILENT' "$fallback_vendor_cmd")
       fi
       ;;
   esac
@@ -508,10 +508,10 @@ function get_chassis()
     3) # REMOTE_TARGET
       cmd="test -f ${dmi_file_path}"
       show_verbose "$flag" "$cmd"
-      cmd_remotely "$cmd" "$flag"
+      cmd_remotely "$flag" "$cmd"
       if [[ "$?" == 0 ]]; then
         show_verbose "$flag" "$dmi_cmd"
-        chassis_type=$(cmd_remotely "$dmi_cmd" 'SILENT')
+        chassis_type=$(cmd_remotely 'SILENT' "$dmi_cmd")
       fi
       ;;
   esac

@@ -208,7 +208,7 @@ function reset_debug()
         # TODO: We should check if the VM is up and running
       fi
 
-      cmd_remotely "$reset_cmd" "$flag" "$remote" "$port" "$user"
+      cmd_remotely "$flag" "$reset_cmd" "$remote" "$port" "$user"
       ;;
   esac
 }
@@ -275,7 +275,7 @@ function dmesg_debug()
         # TODO: We should check if the VM is up and running
       fi
 
-      cmd_remotely "$cmd" "$flag" '' '' '' '' "$save_following_log"
+      cmd_remotely "$flag" "$cmd" '' '' '' '' "$save_following_log"
       ;;
   esac
 }
@@ -387,13 +387,13 @@ function event_debug()
 
       if [[ -n "$list" ]]; then
         show_verbose "$flag" "$command"
-        list_output=$(cmd_remotely "$command" 'SILENT' "$remote" "$port" "$user")
+        list_output=$(cmd_remotely 'SILENT' "$command" "$remote" "$port" "$user")
         show_list "$list_output" "$event"
         ret="$?"
         return "$ret"
       fi
 
-      cmd_remotely "$command" "$flag" "$remote" "$port" "$user" '' "$save_following_log"
+      cmd_remotely "$flag" "$command" "$remote" "$port" "$user" '' "$save_following_log"
 
       # If we used --cmd, we need to retrieve the log
       if [[ -n "$user_cmd" ]]; then
@@ -442,7 +442,7 @@ function ftrace_list()
       fi
 
       show_verbose "$flag" "$cmd_list"
-      raw_data=$(cmd_remotely "$cmd_list" 'SILENT' "$remote" "$port" "$user")
+      raw_data=$(cmd_remotely 'SILENT' "$cmd_list" "$remote" "$port" "$user")
       ret="$?"
       ;;
   esac
@@ -531,7 +531,7 @@ function ftrace_debug()
         # TODO: We should check if the VM is up and running
       fi
 
-      cmd_remotely "$cmd_ftrace" "$flag" '' '' '' '' "$save_following_log"
+      cmd_remotely "$flag" "$cmd_ftrace" '' '' '' '' "$save_following_log"
       ret="$?"
 
       # If we used --cmd, we need to retrieve the log
@@ -900,7 +900,7 @@ function stop_debug()
         port="${remote_parameters['REMOTE_PORT']}"
         user="${remote_parameters['REMOTE_USER']}"
 
-        cmd_remotely "$stop_dmesg_cmd" "$flag" "$remote" "$port" "$user"
+        cmd_remotely "$flag" "$stop_dmesg_cmd" "$remote" "$port" "$user"
         ;;
     esac
   fi
