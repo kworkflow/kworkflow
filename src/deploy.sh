@@ -352,7 +352,7 @@ function prepare_distro_for_deploy()
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --deploy-setup ${flag} ${target}"
 
-      cmd_remotely "$cmd" "$flag"
+      cmd_remotely "$flag" "$cmd"
       ;;
   esac
 }
@@ -389,7 +389,7 @@ function update_status_log()
       ;;
     3) # REMOTE_TARGET
       cmd="${metadata_string} >> ${kw_status_path}"
-      cmd_remotely "$cmd" "$flag"
+      cmd_remotely "$flag" "$cmd"
       ;;
   esac
 }
@@ -420,7 +420,7 @@ function check_setup_status()
       ret="$?"
       ;;
     3) # REMOTE_TARGET
-      cmd_remotely "$cmd" "$flag"
+      cmd_remotely "$flag" "$cmd"
       ret="$?"
       ;;
   esac
@@ -563,7 +563,7 @@ function prepare_remote_dir()
       '--archive' "$remote" "$port" "$user" 'quiet'
   else
     say '* Sending kw to the remote'
-    cmd_remotely "mkdir -p $REMOTE_KW_DEPLOY" "$flag"
+    cmd_remotely "$flag" "mkdir -p $REMOTE_KW_DEPLOY"
 
     if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
       cmd="scp -q -F ${remote_parameters['REMOTE_FILE']} $files_to_send ${remote_parameters['REMOTE_FILE_HOST']}:$REMOTE_KW_DEPLOY"
@@ -575,9 +575,9 @@ function prepare_remote_dir()
   fi
 
   # Removes temporary directory if already existent
-  cmd_remotely "rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}" "$flag"
+  cmd_remotely "$flag" "rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}"
   # Create temporary folder
-  cmd_remotely "mkdir -p $KW_DEPLOY_TMP_FILE" "$flag"
+  cmd_remotely "$flag" "mkdir -p $KW_DEPLOY_TMP_FILE"
 }
 
 # Create the temporary folder for local deploy.
@@ -663,7 +663,7 @@ function run_list_installed_kernels()
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --list-kernels $flag $single_line $all"
 
-      cmd_remotely "$cmd" "$flag"
+      cmd_remotely "$flag" "$cmd"
       ;;
   esac
 
@@ -707,7 +707,7 @@ function collect_target_info_for_deploy()
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --collect-info $flag $target"
 
-      data=$(cmd_remotely "$cmd" "$flag")
+      data=$(cmd_remotely "$flag" "$cmd")
       ;;
   esac
 
@@ -780,7 +780,7 @@ function run_kernel_uninstall()
       # line break with `\`; this may allow us to break a huge line like this.
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --uninstall-kernels '$reboot' 'remote' '$kernels_target_list' '$flag' '$force'"
-      cmd_remotely "$cmd" "$flag"
+      cmd_remotely "$flag" "$cmd"
       ;;
   esac
 }
@@ -853,7 +853,7 @@ function modules_install()
 
       # Execute script
       cmd="$REMOTE_INTERACE_CMD_PREFIX --modules ${release}.kw.tar"
-      cmd_remotely "$cmd" "$flag"
+      cmd_remotely "$flag" "$cmd"
       ;;
   esac
 }
@@ -1338,7 +1338,7 @@ function run_kernel_install()
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 
-      cmd_remotely "$cmd" "$flag" "$remote" "$port"
+      cmd_remotely "$flag" "$cmd" "$remote" "$port"
       human_install_kernel_message "$?"
       return "$?"
       ;;

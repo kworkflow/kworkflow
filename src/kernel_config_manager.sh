@@ -259,13 +259,13 @@ function get_config_from_proc()
       return 0
       ;;
     3) # REMOTE
-      cmd_remotely "[ -f ${PROC_CONFIG_PATH} ]" "$flag"
+      cmd_remotely "$flag" "[ -f ${PROC_CONFIG_PATH} ]"
       if [[ "$?" != 0 ]]; then
-        cmd_remotely "$CMD_LOAD_CONFIG_MODULE" "$flag"
+        cmd_remotely "$flag" "$CMD_LOAD_CONFIG_MODULE"
         [[ "$?" != 0 ]] && return 95 # Operation not supported
       fi
 
-      cmd_remotely "$CMD_GET_CONFIG" "$flag"
+      cmd_remotely "$flag" "$CMD_GET_CONFIG"
       [[ "$?" != 0 ]] && return 95 # Operation not supported
       remote2host "$flag" "/tmp/${output}" "$config_base_path"
       return 0
@@ -313,8 +313,8 @@ function get_config_from_boot()
       return 0
       ;;
     3) # REMOTE
-      kernel_release=$(cmd_remotely 'uname -r' "$flag")
-      cmd_remotely "[ -f ${root}boot/config-${kernel_release} ]" "$flag"
+      kernel_release=$(cmd_remotely "$flag" 'uname -r')
+      cmd_remotely "$flag" "[ -f ${root}boot/config-${kernel_release} ]"
       [[ "$?" != 0 ]] && return 95 # ENOTSUP
 
       remote2host "$flag" "${root}boot/config-${kernel_release}" "$config_base_path"
@@ -476,7 +476,7 @@ function fetch_config()
         mods=$(cmd_manager "$flag" 'lsmod')
         ;;
       3) # REMOTE
-        mods=$(cmd_remotely 'lsmod' "$flag")
+        mods=$(cmd_remotely "$flag" 'lsmod')
         ;;
     esac
 
