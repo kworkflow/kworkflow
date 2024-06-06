@@ -8,10 +8,13 @@ function setUp()
 {
   # Create a temporary directory for holding different config file
   export FAKE_DRM_SYSFS="${SHUNIT_TMPDIR}/sys/class/drm"
+  export FAKE_DRI_SYSFS="${SHUNIT_TMPDIR}/sys/kernel/debug/dri"
   export original_dir="$PWD"
   export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
+  export SYSFS_KERNEL_DEBUG_DRI="$FAKE_DRI_SYSFS"
 
   mkdir -p "$FAKE_DRM_SYSFS"
+  mkdir -p "$FAKE_DRI_SYSFS"
 
   cp "${SAMPLES_DIR}/kworkflow_drm_plugin.config" "${SHUNIT_TMPDIR}/kworkflow.config"
   cp "${SAMPLES_DIR}/deploy_remote.config" "${SHUNIT_TMPDIR}/deploy.config"
@@ -23,6 +26,7 @@ function setUp()
 
   # Prepare fake sysfs
   mk_fake_sys_class_drm
+  mk_fake_sys_kernel_debug_dri
 
   # Parser default config file for the average case
   parse_configuration "$KW_CONFIG_SAMPLE"
@@ -94,6 +98,33 @@ END
 1280x1024
 640x480
 720x400
+END
+}
+
+function mk_fake_sys_kernel_debug_dri()
+{
+  declare -a fake_dirs=(
+    "1"
+    "128")
+
+  for dir in "${fake_dirs[@]}"; do
+    mkdir -p "${FAKE_DRI_SYSFS}/${dir}"
+  done
+
+  cat << END >> "${FAKE_DRI_SYSFS}/1/state"
+crtc[98]: pipe A
+	enable=1
+	active=1
+	self_refresh_active=0
+	planes_changed=0
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=81
+	connector_mask=1
+	encoder_mask=1
+	mode: "1920x1080": 60 148520 1920 1968 2000 2230 1080 1083 1089 1110 0x48 0x9
 END
 }
 
@@ -330,6 +361,39 @@ function test_get_supported_mode_per_connector()
   )
 
   export SYSFS_CLASS_DRM="$FAKE_DRM_SYSFS"
+  output=$(get_supported_mode_per_connector 2)
+  compare_command_sequence '' "$LINENO" 'expected_output' "$output"
+
+  declare -a expected_output=(
+    "Modes per card"
+    "${SHUNIT_TMPDIR}/card0-DP-3:"
+    "1920x2160"
+    "2560x1440"
+    "1920x1080* 60Hz"
+    "1680x1050"
+    "1280x1024"
+    "1440x900"
+    "1280x960"
+    "1152x864"
+    "1280x720"
+    "1440x576"
+    "1024x768"
+    "1440x480"
+    "800x600"
+    "720x576"
+    "720x480"
+    "640x480"
+    "720x400"
+    "${SHUNIT_TMPDIR}/card1-HDMI-A-2:"
+    "2560x1440"
+    "1920x1080* 60Hz"
+    "1280x1024"
+    "640x480"
+    "720x400"
+  )
+
+  export USER_ID=0
+  export SYSFS_KERNEL_DEBUG_DRI="$FAKE_DRI_SYSFS"
   output=$(get_supported_mode_per_connector 2)
   compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 }

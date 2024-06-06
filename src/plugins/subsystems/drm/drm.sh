@@ -6,6 +6,8 @@ declare -gr UNLOAD='UNLOAD'
 declare -gA options_values
 
 declare -g SYSFS_CLASS_DRM='/sys/class/drm'
+declare -g SYSFS_KERNEL_DEBUG_DRI='/sys/kernel/debug/dri'
+declare -g USER_ID="$EUID"
 
 function drm_main()
 {
@@ -345,8 +347,32 @@ function get_supported_mode_per_connector()
   modes=${modes//\/modes/}
   modes=${modes//sys\/class\/drm\//}
 
+  # get current resolution and hz
+  regex='mode: "[0-9]+x[0-9]+": [0-9]+'
+
   say 'Modes per card'
-  printf '%s\n' "$modes"
+  if [[ "$USER_ID" -eq 0 ]]; then
+    for file in "$SYSFS_KERNEL_DEBUG_DRI/"*"/state"; do
+      matches=$(grep -E "${regex}" "$file")
+      while IFS= read -r line; do
+        if [[ $line =~ $regex ]]; then
+          resolution=$(sed -n 's/.*"\(.*\)".*/\1/p' <<< "${BASH_REMATCH[0]}")
+          hz=$(awk -F': ' '{print $3}' <<< "${BASH_REMATCH[0]}")
+          break
+        fi
+      done <<< "$matches"
+    done
+
+    for line in $modes; do
+      if [[ $line == "$resolution" ]]; then
+        printf '%s* %sHz\n' "$resolution" "$hz"
+      else
+        printf '%s\n' "$line"
+      fi
+    done
+  else
+    printf '%s\n' "$modes"
+  fi
 }
 
 function parse_drm_options()
