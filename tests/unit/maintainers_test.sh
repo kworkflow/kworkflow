@@ -81,13 +81,13 @@ function oneTimeTearDown()
 function test_print_files_authors()
 {
   local -r ret=$(print_files_authors "tests/unit/samples/print_file_author_test_dir/code1.c")
-  multilineAssertEquals "$ret" "$CORRECT_FILE_MSG"
+  multilineAssertEquals "$CORRECT_FILE_MSG" "$ret"
 }
 
 function test_print_files_authors_from_dir()
 {
   local -r ret=$(print_files_authors "tests/unit/samples/print_file_author_test_dir")
-  multilineAssertEquals "$ret" "$CORRECT_DIR_MSG"
+  multilineAssertEquals "$CORRECT_DIR_MSG" "$ret"
 }
 
 function test_maintainers_main()
@@ -103,20 +103,20 @@ function test_maintainers_main()
     return
   }
   ret="$(maintainers_main .)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
+  multilineAssertEquals "$CORRECT_TMP_MSG" "$ret"
 
   ret="$(maintainers_main fs)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
+  multilineAssertEquals "$CORRECT_TMP_FS_MSG" "$ret"
 
   cd fs || {
     fail "($LINENO) It was not possible to move to fs directory"
     return
   }
   ret="$(maintainers_main ..)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
+  multilineAssertEquals "$CORRECT_TMP_MSG" "$ret"
 
   ret="$(maintainers_main .)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_FS_MSG"
+  multilineAssertEquals "$CORRECT_TMP_FS_MSG" "$ret"
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back from temp directory"
     return
@@ -132,28 +132,28 @@ function test_maintainers_main_patch()
   }
 
   ret="$(maintainers_main update_patch_test.patch)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_MSG"
+  multilineAssertEquals "$CORRECT_TMP_MSG" "$ret"
 
   # test -u
   cp -f update_patch_test.patch{,.bak}
   ret="$(maintainers_main -u update_patch_test.patch)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_MSG"
+  multilineAssertEquals "$CORRECT_TMP_PATCH_MSG" "$ret"
   assertFileEquals update_patch_test{,_model}.patch
   cp -f update_patch_test.patch{.bak,}
 
   # test --update-patch
   ret="$(maintainers_main --update-patch update_patch_test.patch)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_MSG"
+  multilineAssertEquals "$CORRECT_TMP_PATCH_MSG" "$ret"
   assertFileEquals update_patch_test{,_model}.patch
 
   # test for already existing maintainers
   ret="$(maintainers_main -u update_patch_test.patch)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH_ALREADY_IN_MSG"
+  multilineAssertEquals "$CORRECT_TMP_PATCH_ALREADY_IN_MSG" "$ret"
   assertFileEquals update_patch_test{,_model}.patch
 
   # test for already existing "To:" field without maintainers
   ret="$(maintainers_main -u update_patch_test2.patch)"
-  multilineAssertEquals "$ret" "$CORRECT_TMP_PATCH2_MSG"
+  multilineAssertEquals "$CORRECT_TMP_PATCH2_MSG" "$ret"
   assertFileEquals update_patch_test{,_model}2.patch
 
   cd "$original_dir" || {

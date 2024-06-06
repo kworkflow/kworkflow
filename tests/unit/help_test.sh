@@ -28,7 +28,7 @@ function test_kworkflow_man()
   expect="Couldn't find the man page for kw-error!"
   output=$(kworkflow_man 'error' 'TEST_MODE')
   ret="$?"
-  assertEquals "($LINENO) We expected an error." "$ret" 2
+  assertEquals "($LINENO) We expected an error." 2 "$ret"
   assertEquals "($LINENO) We expected an error message." "$expect" "$output"
 }
 

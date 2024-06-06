@@ -32,7 +32,7 @@ function test_create_backup()
   done)
 
   output=$(create_backup /randomly/random/path)
-  assertEquals "$LINENO" "$output" 'We could not find the path'
+  assertEquals "$LINENO" 'We could not find the path' "$output"
 
   output=$(create_backup "$SHUNIT_TMPDIR" 'SILENT')
   filepath=$(str_remove_prefix "$output" 'Backup successfully created at ')
@@ -47,7 +47,7 @@ function test_restore_backup()
   local output
 
   output=$(restore_backup "$SHUNIT_TMPDIR"/random/path/backup.tar.gz)
-  assertEquals "($LINENO)" "$output" 'We could not find this file'
+  assertEquals "($LINENO)" 'We could not find this file' "$output"
 
   output=$(restore_backup tests/unit/samples/kw-backup-2021-08-07_23-42-51.tar.gz)
   assertTrue "($LINENO) Not all files were extracted" \
@@ -83,17 +83,17 @@ function test_restore_config()
 
   config_2_last_line=$(tail -n 1 "$KW_DATA_DIR/configs/configs/config-2")
   output=$(printf '%s\n' 'n' | restore_config)
-  assertEquals "$LINENO" "$(printf '%s\n' "$output" | head -n 1)" 'It looks like that the file config-2 differs from the backup version.'
+  assertEquals "$LINENO" 'It looks like that the file config-2 differs from the backup version.' "$(printf '%s\n' "$output" | head -n 1)"
 
   # Since we answered no above, we expect config-2 to remain the same
   assert_equals_helper "config-2 should've reamined the same" "$LINENO" "$config_2_last_line" "$(tail -n 1 "$KW_DATA_DIR/configs/configs/config-2")"
 
   output=$(printf '%s\n' 'y' | restore_config)
-  assertEquals "$LINENO" "$(printf '%s\n' "$output" | head -n 1)" 'It looks like that the file config-2 differs from the backup version.'
+  assertEquals "$LINENO" 'It looks like that the file config-2 differs from the backup version.' "$(printf '%s\n' "$output" | head -n 1)"
 
   # Now config-2 should be changed, as we said yes above
   config_2_last_line=$(tail -n 1 "$KW_DATA_DIR/configs/configs/config-2")
-  assertEquals "$LINENO" "$config_2_last_line" '# This line is different'
+  assertEquals "$LINENO" '# This line is different' "$config_2_last_line"
 }
 
 function test_restore_data_from_dir()

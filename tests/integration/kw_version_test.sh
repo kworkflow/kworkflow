@@ -4,19 +4,21 @@ include './src/lib/kwio.sh'
 include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 
-declare -g expected_output
-
-function oneTimeSetUp()
+# This function gets the commit hash and base version of the specified branch,
+# constructs the expected output.
+#
+# @container: The name of the container.
+#
+# Return:
+# Return 0: On success.
+# Return 1: If it fails to get the branch name, head commit hash, or base version.
+function kw_version_check_version()
 {
-  local kw_git_dir
-  local kw_dir
+  local container="$1"
   local head_hash
   local branch_name
   local base_version
-
-  # git directory path
-  kw_dir="${KWROOT_DIR}"
-  kw_git_dir="${kw_dir}/.git"
+  local expected_output
 
   # In order to check correctness of `kw --version`, we collect some information
   # from the git repo:
@@ -24,43 +26,69 @@ function oneTimeSetUp()
   # - Base version (alpha, beta, or other)
   # - Branch name
   # - Commit sha
-  #
-  # Because the local KW repo is copied to the container, we run  the  following
-  # commands directly on the host instead of running in the container.
-  head_hash=$(git --git-dir "${kw_git_dir}" rev-parse --short HEAD)
-  branch_name=$(git --git-dir "${kw_git_dir}" rev-parse --short --abbrev-ref HEAD)
-  base_version=$(head --lines 1 "${kw_dir}/src/VERSION")
+  branch_name=$(container_exec "$container" "git rev-parse --short --abbrev-ref HEAD")
+  if [[ "$?" -ne 0 ]]; then
+    complain "Failed to get the branch name"
+    return 1 # EPERM
+  fi
 
-  # using the gathered information, we build the expected output
-  expected_output=$(printf '%s\nBranch: %s\nCommit: %s' "$base_version" "$branch_name" "$head_hash")
+  head_commit_hash=$(container_exec "$container" "git rev-parse --short ${branch_name}")
+  if [[ "$?" -ne 0 ]]; then
+    complain 'Failed to get the head commit hash'
+    return 1 # EPERM
+  fi
+
+  base_version=$(container_exec "$container" "git show ${branch_name}:./src/VERSION | head --lines 1")
+  if [[ "$?" -ne 0 ]]; then
+    complain 'Failed to get the base version'
+    return 1 # EPERM
+  fi
+
+  expected_output=$(printf '%s\nBranch: %s\nCommit: %s' "$base_version" "$branch_name" "$head_commit_hash")
+
+  printf '%s\n' "$expected_output"
 }
 
-function kw_version_test_helper()
+# Function to test the kw version feature across different distributions inside
+# containers, using the three forms of the feature: kw version, kw --version,
+# and kw -v.
+function test_kw_version()
 {
-  local distro="$1"
   local container
+  local distro
   local output
+  local expected_output
 
-  # collect the kw version in the container
-  container="kw-${distro}"
-  output=$(container_exec "${container}" 'kw --version')
+  for distro in "${DISTROS[@]}"; do
+    container="kw-${distro}"
 
-  assertEquals "(${LINENO}): kw version failed for ${distro}" "$expected_output" "$output"
-}
+    # collect the expected output in the container.
+    expected_output=$(kw_version_check_version "$container")
+    if [[ "$?" -ne 0 ]]; then
+      fail "(${LINENO}): Couldn't collect expected version output from container ${container}"
+    fi
 
-function test_kw_version_on_archlinux()
-{
-  kw_version_test_helper 'archlinux'
-}
+    # collect the version in the container using `kw version`
+    output=$(container_exec "$container" 'kw version')
+    if [[ "$?" -ne 0 ]]; then
+      fail "(${LINENO}): Failed to get 'kw version' for ${distro}"
+    fi
+    assert_equals_helper "'kw version' failed for ${distro}" "$LINENO" "$expected_output" "$output"
 
-function test_kw_version_on_debian()
-{
-  kw_version_test_helper 'debian'
-}
+    # collect the version in the container using `kw --version`
+    output=$(container_exec "$container" 'kw --version')
+    if [[ "$?" -ne 0 ]]; then
+      fail "(${LINENO}): Failed to get 'kw --version' for ${distro}"
+    fi
+    assert_equals_helper "'kw --version' failed for ${distro}" "$LINENO" "$expected_output" "$output"
 
-function test_kw_version_on_fedora()
-{
-  kw_version_test_helper 'fedora'
+    # collect the version in the container using `kw -v`
+    output=$(container_exec "$container" 'kw -v')
+    if [[ "$?" -ne 0 ]]; then
+      fail "(${LINENO}): Failed to get 'kw -v' for ${distro}"
+    fi
+    assert_equals_helper "'kw -v' failed for ${distro}" "$LINENO" "$expected_output" "$output"
+  done
 }
 
 invoke_shunit

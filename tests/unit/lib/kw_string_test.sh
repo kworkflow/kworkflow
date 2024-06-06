@@ -294,20 +294,20 @@ function test_concatenate_with_commas()
   output=$(concatenate_with_commas)
   ret="$?"
   expected=''
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
-  assert_equals_helper 'Expected empty string' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Expected empty string' "$LINENO" "$expected" "$output"
 
   output=$(concatenate_with_commas 'single')
   ret="$?"
   expected='single'
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
-  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   output=$(concatenate_with_commas 'first' 'second' 'third')
   ret="$?"
   expected='first,second,third'
-  assert_equals_helper 'No error expected' "$LINENO" "$ret" 0
-  assert_equals_helper 'Wrong output' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
 function test_str_has_special_characters()
@@ -317,10 +317,10 @@ function test_str_has_special_characters()
   local ret
 
   output=$(str_has_special_characters 'no special char here')
-  assert_equals_helper 'No error expected' "$LINENO" "$?" 1
+  assert_equals_helper 'No error expected' "$LINENO" 1 "$?"
 
   output=$(str_has_special_characters 'We have a special char!')
-  assert_equals_helper 'We expected a special char here' "$LINENO" "$?" 0
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
 }
 
 function test_str_get_value_under_double_quotes()
@@ -329,18 +329,18 @@ function test_str_get_value_under_double_quotes()
   local expected='value under quotes'
 
   output=$(str_get_value_under_double_quotes 'This is a "value under quotes", right?')
-  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$expected" "$output"
 
   expected='Nothing around quotes'
   output=$(str_get_value_under_double_quotes '"Nothing around quotes"')
-  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$expected" "$output"
 
   expected='Two'
   output=$(str_get_value_under_double_quotes '"Two" and "Nothing around quotes" and "xpto"')
-  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$output" "$expected"
+  assert_equals_helper 'Wrong values under quotes' "$LINENO" "$expected" "$output"
 
   output=$(str_get_value_under_double_quotes '')
-  assert_equals_helper 'Empty string' "$LINENO" "$?" 22
+  assert_equals_helper 'Empty string' "$LINENO" 22 "$?"
 
 }
 

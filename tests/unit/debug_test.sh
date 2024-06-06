@@ -120,7 +120,7 @@ function test_process_list()
   raw_input=''
   output=$(process_list "$raw_input" 1)
   ret="$?"
-  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
+  assert_equals_helper 'Return error:' "($LINENO)" 22 "$ret"
 }
 
 function test_convert_event_syntax_to_sys_path_hash()
@@ -223,8 +223,8 @@ function test_convert_event_syntax_to_sys_path_hash()
     IFS=$'\n'
     printf '%s\n' "${!events_hash[*]}"
   )
-  assert_equals_helper 'Wrong syntax:' "($LINENO)" "$output" ''
-  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
+  assert_equals_helper 'Wrong syntax:' "($LINENO)" '' "$output"
+  assert_equals_helper 'Return error:' "($LINENO)" 22 "$ret"
 
   events_hash=()
   convert_event_syntax_to_sys_path_hash ':'
@@ -233,8 +233,8 @@ function test_convert_event_syntax_to_sys_path_hash()
     IFS=$'\n'
     printf '%s\n' "${!events_hash[*]}"
   )
-  assert_equals_helper 'Wrong syntax:' "($LINENO)" "$output" ''
-  assert_equals_helper 'Return error:' "($LINENO)" "$ret" 22
+  assert_equals_helper 'Wrong syntax:' "($LINENO)" '' "$output"
+  assert_equals_helper 'Return error:' "($LINENO)" 22 "$ret"
 }
 
 function test_build_event_command_string()
@@ -311,9 +311,9 @@ function test_parser_debug_options_remote()
 {
   # 1) Parser remote without config file.
   parser_debug_options --remote 'juca@localhost:33'
-  assert_equals_helper 'Expected localhost' "$LINENO" "${remote_parameters['REMOTE_IP']}" 'localhost'
-  assert_equals_helper 'Expected port 33' "$LINENO" "${remote_parameters['REMOTE_PORT']}" 33
-  assert_equals_helper 'Expected user' "$LINENO" "${remote_parameters['REMOTE_USER']}" 'juca'
+  assert_equals_helper 'Expected localhost' "$LINENO" 'localhost' "${remote_parameters['REMOTE_IP']}"
+  assert_equals_helper 'Expected port 33' "$LINENO" 33 "${remote_parameters['REMOTE_PORT']}"
+  assert_equals_helper 'Expected user' "$LINENO" 'juca' "${remote_parameters['REMOTE_USER']}"
 
   # 2) Parser remote with config file
 
@@ -329,16 +329,16 @@ function test_parser_debug_options_remote()
 
   # 2.1) We have a config file, with origin set as host, and user request it
   parser_debug_options --remote 'origin'
-  assert_equals_helper 'Expected origin' "$LINENO" "${remote_parameters['REMOTE_FILE_HOST']}" 'origin'
+  assert_equals_helper 'Expected origin' "$LINENO" 'origin' "${remote_parameters['REMOTE_FILE_HOST']}"
 
   # 2.2) We have a config file, with --remote NAME, but we don't have NAME in the
   #      config file.
   parser_debug_options --remote 'debian-test-dns'
-  assert_equals_helper 'Expected empty' "$LINENO" "${remote_parameters['REMOTE_FILE_HOST']}" ''
-  assert_equals_helper 'Expected debian-test-dns' "$LINENO" "${remote_parameters['REMOTE_IP']}" 'debian-test-dns'
+  assert_equals_helper 'Expected empty' "$LINENO" '' "${remote_parameters['REMOTE_FILE_HOST']}"
+  assert_equals_helper 'Expected debian-test-dns' "$LINENO" 'debian-test-dns' "${remote_parameters['REMOTE_IP']}"
 
   parser_debug_options --remote '192.0.2.0'
-  assert_equals_helper 'Expected 192.0.2.0' "$LINENO" "${remote_parameters['REMOTE_IP']}" '192.0.2.0'
+  assert_equals_helper 'Expected 192.0.2.0' "$LINENO" '192.0.2.0' "${remote_parameters['REMOTE_IP']}"
 
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move back to original directory"
@@ -353,62 +353,62 @@ function test_parser_debug_options()
 
   # Validate list option
   parser_debug_options --list
-  assert_equals_helper 'Expected list' "$LINENO" "${options_values['LIST']}" 1
+  assert_equals_helper 'Expected list' "$LINENO" 1 "${options_values['LIST']}"
 
   parser_debug_options --list --event 'amdgpu_dm'
-  assert_equals_helper 'Expected amdgpu_dm' "$LINENO" "${options_values['EVENT']}" 'amdgpu_dm'
+  assert_equals_helper 'Expected amdgpu_dm' "$LINENO" 'amdgpu_dm' "${options_values['EVENT']}"
 
   # Validate history option
   parser_debug_options --history
-  assert_equals_helper 'Expected history' "$LINENO" "${options_values['HISTORY']}" 1
+  assert_equals_helper 'Expected history' "$LINENO" 1 "${options_values['HISTORY']}"
 
   # Validate follow
   parser_debug_options --follow
-  assert_equals_helper 'Expected follow' "$LINENO" "${options_values['FOLLOW']}" 1
+  assert_equals_helper 'Expected follow' "$LINENO" 1 "${options_values['FOLLOW']}"
 
   # Validate event
   event_str='amdgpu_dm:dc_something[x>3]'
   parser_debug_options --event "$event_str"
-  assert_equals_helper 'Expected event' "$LINENO" "${options_values['EVENT']}" "$event_str"
+  assert_equals_helper 'Expected event' "$LINENO" "$event_str" "${options_values['EVENT']}"
 
   # Validate disable event
   parser_debug_options --event "$event_str" --disable
-  assert_equals_helper 'Expected event' "$LINENO" "${options_values['DISABLE']}" 1
+  assert_equals_helper 'Expected event' "$LINENO" 1 "${options_values['DISABLE']}"
 
   # Validate disable event
   parser_debug_options --event "$event_str" --cmd "$fake_cmd"
-  assert_equals_helper 'Expected event' "$LINENO" "${options_values['CMD']}" "$fake_cmd"
+  assert_equals_helper 'Expected event' "$LINENO" "$fake_cmd" "${options_values['CMD']}"
 
   # Check local option
   parser_debug_options --local --event "$event_str" --disable
-  assert_equals_helper 'Expected event' "$LINENO" "${options_values['TARGET']}" 2
+  assert_equals_helper 'Expected event' "$LINENO" 2 "${options_values['TARGET']}"
 
   # Check test_mode
   parser_debug_options test_mode
-  assert_equals_helper 'Expected event' "$LINENO" "${options_values['TEST_MODE']}" 'TEST_MODE'
+  assert_equals_helper 'Expected event' "$LINENO" 'TEST_MODE' "${options_values['TEST_MODE']}"
 
   # Validate dmesg
   parser_debug_options --dmesg
-  assert_equals_helper 'Expected dmesg' "$LINENO" "${options_values['DMESG']}" 1
+  assert_equals_helper 'Expected dmesg' "$LINENO" 1 "${options_values['DMESG']}"
 
   # Validate ftrace
   parser_debug_options --ftrace
-  assert_equals_helper 'Expected ftrace failure' "$LINENO" "$?" 22
+  assert_equals_helper 'Expected ftrace failure' "$LINENO" 22 "$?"
 
   parser_debug_options --list --ftrace
-  assert_equals_helper 'Expected ftrace failure' "$LINENO" "$?" 22
+  assert_equals_helper 'Expected ftrace failure' "$LINENO" 22 "$?"
 
   ftrace_str='something:another,thing'
   parser_debug_options --ftrace="$ftrace_str"
-  assert_equals_helper 'Expected ftrace syntax' "$LINENO" "${options_values['FTRACE']}" "$ftrace_str"
+  assert_equals_helper 'Expected ftrace syntax' "$LINENO" "$ftrace_str" "${options_values['FTRACE']}"
 
   ftrace_str='something:'
   parser_debug_options --ftrace="$ftrace_str"
-  assert_equals_helper 'Expected ftrace setup' "$LINENO" "${options_values['FTRACE']}" "$ftrace_str"
+  assert_equals_helper 'Expected ftrace setup' "$LINENO" "$ftrace_str" "${options_values['FTRACE']}"
 
   ftrace_str='something:  la, llu,    xpto'
   parser_debug_options --ftrace="$ftrace_str"
-  assert_equals_helper 'Expected ftrace string' "$LINENO" "${options_values['FTRACE']}" "$ftrace_str"
+  assert_equals_helper 'Expected ftrace string' "$LINENO" "$ftrace_str" "${options_values['FTRACE']}"
 }
 
 function test_build_ftrace_command_string()
@@ -423,10 +423,10 @@ function test_build_ftrace_command_string()
   # function_graph
   output=$(build_ftrace_command_string 'function_graph')
   expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer && $enable_trace"
-  assert_equals_helper 'Expected to enable function_graph' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected to enable function_graph' "$LINENO" "$expected_cmd" "$output"
 
   output=$(build_ftrace_command_string '    function_graph        ')
-  assert_equals_helper 'Expected to enable function_graph' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected to enable function_graph' "$LINENO" "$expected_cmd" "$output"
 
   # function_graph: -> Should fail
   output=$(build_ftrace_command_string 'function_graph:  ')
@@ -443,7 +443,7 @@ function test_build_ftrace_command_string()
   expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
   expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
-  assert_equals_helper 'Expected amdgpu_dm filters' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected amdgpu_dm filters' "$LINENO" "$expected_cmd" "$output"
 
   # function_graph:amdgpu_dm*,dc_*,drm_test
   output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*,dc_*,drm_test')
@@ -452,7 +452,7 @@ function test_build_ftrace_command_string()
   expected_cmd+=" && printf '%s' 'dc_*' >> $ftracer_filter"
   expected_cmd+=" && printf '%s' 'drm_test' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
-  assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$expected_cmd" "$output"
 
   # function_graph: amdgpu_dm*,   dc_*
   output=$(build_ftrace_command_string 'function_graph: amdgpu_dm*,   dc_*')
@@ -460,7 +460,7 @@ function test_build_ftrace_command_string()
   expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter"
   expected_cmd+=" && printf '%s' 'dc_*' >> $ftracer_filter"
   expected_cmd+=" && $enable_trace"
-  assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected to find multiple filters' "$LINENO" "$expected_cmd" "$output"
 
   # Empty
   output=$(build_ftrace_command_string '')
@@ -470,7 +470,7 @@ function test_build_ftrace_command_string()
   # Disable
   output=$(build_ftrace_command_string 'function_graph:amdgpu_dm*' 1)
   expected_cmd="$disable_trace && printf '' > $ftracer_filter && printf 'nop' > $FTRACE_CURRENT_PATH"
-  assert_equals_helper 'Expected disable command' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected disable command' "$LINENO" "$expected_cmd" "$output"
 }
 
 function test_ftrace_debug()
@@ -491,7 +491,7 @@ function test_ftrace_debug()
   output=$(ftrace_debug 2 'TEST_MODE' 'function_graph:amdgpu_dm*')
   expected_cmd="$disable_trace && printf '%s' 'function_graph' > $current_tracer"
   expected_cmd+=" && printf '%s' 'amdgpu_dm*' >> $ftracer_filter && $enable_trace"
-  assert_equals_helper 'Expected command' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected command' "$LINENO" "$expected_cmd" "$output"
 
   expected_cmd_base="$expected_cmd"
 
@@ -502,12 +502,12 @@ function test_ftrace_debug()
 
   output=$(ftrace_debug 3 'TEST_MODE' 'function_graph:amdgpu_dm*')
   expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd_base\""
-  assert_equals_helper 'Expected remote command' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected remote command' "$LINENO" "$expected_cmd" "$output"
 
   # Follow
   output=$(ftrace_debug 3 'TEST_MODE' 'function_graph:amdgpu_dm*' '' 1)
   expected_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$expected_cmd_base && cat $trace_pipe\""
-  assert_equals_helper 'Expected follow' "$LINENO" "$output" "$expected_cmd"
+  assert_equals_helper 'Expected follow' "$LINENO" "$expected_cmd" "$output"
 
   # History
   cd "$SHUNIT_TMPDIR" || {
@@ -763,7 +763,7 @@ function test_event_debug()
   # Failure case
   output=$(event_debug 3 'TEST_MODE' 'lala;:')
   ret="$?"
-  assert_equals_helper 'Invalid syntax' "$LINENO" "$ret" 22
+  assert_equals_helper 'Invalid syntax' "$LINENO" 22 "$ret"
 
   # List
   output=$(event_debug 2 'TEST_MODE' 'amdgpu_dm' '' '' '' 1)

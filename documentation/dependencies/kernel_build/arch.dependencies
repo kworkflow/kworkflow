@@ -1,0 +1,17 @@
+make
+base-devel
+linux-headers
+bison
+flex
+openssl
+ncurses
+pahole
+xmlto
+kmod
+inetutils
+bc
+libelf
+cpio
+perl
+tar
+xz

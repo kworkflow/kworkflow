@@ -36,7 +36,7 @@ function test_show_dashboard()
   }
 
   show_dashboard
-  assert_equals_helper 'Expected register screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'registered_mailing_lists'
+  assert_equals_helper 'Expected register screen' "$LINENO" 'registered_mailing_lists' "${screen_sequence['SHOW_SCREEN']}"
 
   # Mock bookmarked
   # shellcheck disable=SC2317
@@ -46,7 +46,7 @@ function test_show_dashboard()
   }
 
   show_dashboard
-  assert_equals_helper 'Expected register screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'bookmarked_patches'
+  assert_equals_helper 'Expected register screen' "$LINENO" 'bookmarked_patches' "${screen_sequence['SHOW_SCREEN']}"
 }
 
 function test_list_patches_with_patches()
@@ -98,10 +98,10 @@ function test_list_patches_without_patches()
   target_array_list=()
 
   list_patches 'Message test' target_array_list 'show_new_patches_in_the_mailing_list' ''
-  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'dashboard'
+  assert_equals_helper 'Expected screen' "$LINENO" 'dashboard' "${screen_sequence['SHOW_SCREEN']}"
 
   list_patches 'Message test' target_array_list 'bookmarked_patches' ''
-  assert_equals_helper 'Expected screen' "$LINENO" "${screen_sequence['SHOW_SCREEN']}" 'dashboard'
+  assert_equals_helper 'Expected screen' "$LINENO" 'dashboard' "${screen_sequence['SHOW_SCREEN']}"
 }
 
 invoke_shunit

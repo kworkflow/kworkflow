@@ -46,29 +46,29 @@ function show_raw_configurations()
 function test_is_config_file_valid()
 {
   is_config_file_valid 'invalid'
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   is_config_file_valid 'builds'
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   is_config_file_valid 'kworkflows'
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   # Valid options
   is_config_file_valid 'kworkflow'
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 
   is_config_file_valid 'build'
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 }
 
 function test_is_a_valid_config_option_only_valid_options()
 {
   is_a_valid_config_option 'build' 'cross_compile'
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 
   is_a_valid_config_option 'kworkflow' 'ssh_ip'
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 }
 
 function test_is_a_valid_config_invalid_parameters()
@@ -76,16 +76,16 @@ function test_is_a_valid_config_invalid_parameters()
   local output
 
   output=$(is_a_valid_config_option 'build')
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   output=$(is_a_valid_config_option 'kworkflow')
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 
   output=$(is_a_valid_config_option 'kworkflow' 'this_is_invalid')
-  assertEquals "($LINENO)" "$?" 95
+  assertEquals "($LINENO)" 95 "$?"
 
   output=$(is_a_valid_config_option 'build' 'nop')
-  assertEquals "($LINENO)" "$?" 95
+  assertEquals "($LINENO)" 95 "$?"
 }
 
 function test_set_config_check_if_file_still_a_link_after_change()
@@ -118,13 +118,13 @@ function test_set_config_value_changing_default_value()
 function test_set_config_value_with_dot_in_the_value()
 {
   validate_option_parameter 'this.is valid'
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 
   validate_option_parameter 'this.is valid.also.valid'
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 
   validate_option_parameter 'this is.not.valid'
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 function test_set_config_with_a_path_as_value()
@@ -151,10 +151,10 @@ function test_set_config_with_verbose_mode()
 function test_check_if_target_config_exist()
 {
   check_if_target_config_exist 'vm' 'vm.config'
-  assertEquals "($LINENO)" "$?" 0
+  assertEquals "($LINENO)" 0 "$?"
 
   check_if_target_config_exist 'vm' 'la.config'
-  assertEquals "($LINENO)" "$?" 2
+  assertEquals "($LINENO)" 2 "$?"
 }
 
 function test_parse_config_options()
@@ -292,9 +292,9 @@ function test_show_configurations_invalid_target()
   local output
 
   output=$(show_configurations invalid_target)
-  assertEquals "($LINENO)" "$output" 'Invalid config target: invalid_target'
+  assertEquals "($LINENO)" 'Invalid config target: invalid_target' "$output"
   show_configurations invalid_target > /dev/null 2>&1
-  assertEquals "($LINENO)" "$?" 22
+  assertEquals "($LINENO)" 22 "$?"
 }
 
 invoke_shunit

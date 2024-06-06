@@ -64,7 +64,7 @@ OPTIONS
   default log level via **build.config** file under the option `warning_level`.
   Please check the kernel's ``make help`` for more info.
 
--s, \--save-log-to=path:
+-s, \--save-log-to path:
   This option will save the full compilation log with the enabled warnings to
   the specified path. You can set the default log path in the **build.config**
   file via `log_path` option.
@@ -142,7 +142,7 @@ using::
 Sometimes we have a lot of error message that does not fit in the terminal
 buffer; in these cases it is helpful to save all logs in a file::
 
-  kw b --warnings 123 --save-log-to=ALL_WARNINGS.log
+  kw b --warnings 123 --save-log-to ALL_WARNINGS.log
 
 If you want to use llvm::
 
