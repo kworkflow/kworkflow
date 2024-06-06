@@ -30,14 +30,46 @@ DISTROS=(
 # The status code of the command ran to build the image.
 function build_distro_image()
 {
-  local distro="$1"
+  local verbose="$1"
+  local distro="$2"
   local file="${CONTAINER_DIR}/Containerfile_${distro}"
+  local id
+  local mb_size
+  local gb_size
+  local size
+  local size_unit
 
   image_build --file "$file" --tag "kw-${distro}"
 
   if [[ "$?" -ne 0 ]]; then
     fail "(${LINENO}): Error building the image for distribution ${distro}"
     return "$?"
+  fi
+
+  size_unit=$(podman image inspect --format '{{ .Size }}' "kw-${distro}")
+  id=$(podman image inspect --format '{{ .Id }}' "kw-${distro}")
+
+  # Converting size in bytes to the appropriate units
+  if [[ "$size_unit" -lt 1024 ]]; then
+    size="${size_unit} B"
+  elif [[ "$size_unit" -lt "$(bc <<< 1024^2)" ]]; then
+    size_unit=$(printf "scale=2; %s / %s\n" "${size_unit}" "1024" | bc)
+    size="${size_unit} KB"
+  elif [[ "$size_unit" -lt "$(bc <<< 1024^3)" ]]; then
+    mb_size=$(bc <<< 1024^2)
+    size_unit=$(printf "scale=2; %s / %s\n" "${size_unit}" "$mb_size" | bc)
+    size="${size_unit} MB"
+  else
+    gb_size=$(bc <<< 1024^3)
+    size_unit=$(printf "scale=2; %s / %s\n" "${size_unit}" "$gb_size" | bc)
+    size="${size_unit} GB"
+  fi
+
+  if [[ "$verbose" -eq 1 ]]; then
+    warning "- Cached container distro: ${distro}"
+    warning "- Image ID: ${id}"
+    warning "- Containerfile path: ${file}"
+    warning "- Size: ${size}"
   fi
 }
 
@@ -79,7 +111,7 @@ function setup_container_environment()
         say "[${current_step}/${total_steps}] Building container image for ${distro}. This might take a while..."
       fi
 
-      build_distro_image "$distro"
+      build_distro_image "$verbose" "$distro"
       if [[ "$?" -ne 0 ]]; then
         complain "Failed to setup container for distro ${distro}"
 
