@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+include './src/lib/kw_string.sh'
 include './src/lib/kwio.sh'
 
 declare -gr CONTAINER_BASE_IMAGE='docker.io/library'
@@ -409,7 +410,10 @@ function container_exec()
     cmd+=" ${podman_exec_options}"
   fi
 
-  cmd+=" ${container_name} /bin/sh -c '${container_command}' 2> /dev/null"
+  # Escape single quotes in the container command
+  container_command=$(str_escape_single_quotes "$container_command")
+
+  cmd+=" ${container_name} /bin/sh -c $'${container_command}' 2> /dev/null"
   eval "$cmd"
 
   if [[ "$?" -ne 0 ]]; then
