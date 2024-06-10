@@ -667,41 +667,6 @@ function test_get_file_name_from_path()
   assertEquals "($LINENO) Should have returned an empty string" '' "$output"
 }
 
-function test_is_inside_work_tree()
-{
-  local expected
-  local output
-  local ret
-
-  cd "$SHUNIT_TMPDIR" || {
-    ret="$?"
-    fail "($LINENO): Unable to move to temp directory"
-    return "$ret"
-  }
-
-  output=$(is_inside_work_tree 'TEST_MODE')
-  expected='git rev-parse --is-inside-work-tree &> /dev/null'
-  assert_equals_helper 'Testing command' "$LINENO" "$expected" "$output"
-
-  output=$(is_inside_work_tree '')
-  ret="$?"
-  assert_equals_helper 'Not in a git work tree, should fail' "$LINENO" 128 "$ret"
-
-  mk_fake_git
-
-  output=$(is_inside_work_tree '')
-  ret="$?"
-  assert_equals_helper 'Inside a git work tree' "$LINENO" 0 "$ret"
-
-  rm -rf .git
-
-  cd "$ORIGINAL_DIR" || {
-    ret="$?"
-    fail "($LINENO): Unable to move back from temp directory"
-    return "$ret"
-  }
-}
-
 function test_get_all_git_config()
 {
   local expected

@@ -2,6 +2,7 @@
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
 include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
+include "${KW_LIB_DIR}/lib/git.sh"
 
 ENV_DIR='envs'
 KW_SHARED_MEMORY_DEFAULT_DIR='/dev/shm'
@@ -587,22 +588,6 @@ function get_file_name_from_path()
   local file_path="$1"
 
   printf '%s\n' "${file_path##*/}"
-}
-
-# Checks if the command is being run inside a git work-tree
-#
-# @flag: How to display (or not) the command used
-#
-# Returns:
-# 0 if is inside a git work-tree root and 128 otherwise.
-function is_inside_work_tree()
-{
-  local flag="$1"
-  local cmd='git rev-parse --is-inside-work-tree &> /dev/null'
-
-  flag=${flag:-'SILENT'}
-
-  cmd_manager "$flag" "$cmd"
 }
 
 # Get all instances of a given git config with their scope
