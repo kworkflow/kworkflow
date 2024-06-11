@@ -404,7 +404,7 @@ _kw_maintainers()
 _kw_man()
 {
   _values 'kw commands' \
-    'backup' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
+    'backup' 'bd' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
     'explore' 'init' 'mail' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
     'patch-hub' 
 }
