@@ -525,7 +525,7 @@ function parse_drm_options()
 
 function drm_help()
 {
-  if [[ "$1" =~ --help ]]; then
+  if [[ "$1" =~ -h|--help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'drm'
     return
@@ -539,7 +539,8 @@ function drm_help()
     '  drm [--local | --remote [<remote>:<port>]] --gui-off-after-reboot' \
     '  drm [--local | --remote [<remote>:<port>]] --conn-available' \
     '  drm [--local | --remote [<remote>:<port>]] --verbose' \
-    '  drm [--local | --remote [<remote>:<port>]] --modes'
+    '  drm [--local | --remote [<remote>:<port>]] --modes' \
+    '  drm (-h|--help)'
 }
 
 load_deploy_config
