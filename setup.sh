@@ -603,10 +603,10 @@ function append_zshcompletion()
   safe_append 'autoload compinit && compinit -i' "${HOME}/.zshrc"
 }
 
-function install_nucompletion() 
+function install_nucompletion()
 {
   local completions_file="${libdir}/kw-completions.nu"
-  
+
   if [[ -f "$completions_file" ]]; then
     return
   fi
@@ -617,7 +617,7 @@ function install_nucompletion()
   fi
 
   curl --silent https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/kw/kw-completions.nu --output "${completions_file}"
-  
+
   if [[ "$?" != 0 ]]; then
     complain 'Failed to download nu completions for kw. Try manually downloading from https://github.com/nushell/nu_scripts/tree/main/custom-completions/kw'
     return
