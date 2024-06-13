@@ -76,12 +76,14 @@ function codestyle_main()
   [[ -n "${options_values['START_LINE']}" ]] && start_line=${options_values['START_LINE']}
   [[ -n "${options_values['END_LINE']}" ]] && end_line=${options_values['END_LINE']}
 
+  [[ -n "${options_values['FUNCTION']}" ]] && function=${options_values['FUNCTION']}
+
   if [[ -n "$start_line" || -n "$end_line" ]]; then
     range_option_flag='true'
   fi
 
-  # Check if --start-line and --end-line options are being used with a single file
-  if [[ ! -f "$path" && -n "$range_option_flag" ]]; then
+  # Check if --start-line --end-line and --function options are being used with a single file
+  if [[ ! -f "$path" && -n "$range_option_flag" && -n "$function" ]]; then
     complain "Invalid path using start-line and end-line option: ${path}"
     return 2 # ENOENT
   fi
@@ -96,9 +98,15 @@ function codestyle_main()
     end_line=$(wc -l < "$FLIST")
   fi
 
-  # If --start-line and --end-line options are being used, assign a temporary file
-  # to FLIST with the line interval and SPDX License Identifier
-  if [[ -n "$range_option_flag" ]]; then
+  # For --function option, find the start line of the function definition
+  # and assign it to start_line.
+  if [[ -n "$function" ]]; then
+    start_line=$(awk "/[a-zA-Z]+[[:space:]]+${function}[[:space:]]*\\(.*[^;]$/ {print FNR}" "$FLIST")
+  fi
+
+  # If --start-line, --end-line or --function options are being used, assign a temporary file
+  # to FLIST with blank lines and SPDX License Identifier
+  if [[ -n "$range_option_flag" || -n "$function" ]]; then
     suffix=".${FLIST#*.}"
     temp_file=$(mktemp --suffix "$suffix" --tmpdir="$PWD")
 
@@ -116,6 +124,30 @@ function codestyle_main()
     FLIST="$temp_file"
   fi
 
+  # For --function option, write the function definition to the temporary file
+  # and assign it to FLIST
+  if [[ -n "$function" ]]; then
+    awk '
+      $0 ~ "[a-zA-Z]+[[:space:]]+"FUNCTION_NAME"[[:space:]]*\\(.*[^;]$" {
+        in_function_header = 1
+      }
+      in_function_header {
+        if ($0 ~ /{/) {
+          in_function_header = 0
+          in_function = 1
+        }
+        if (!in_function) print
+      }
+      in_function {
+        if (!in_function_header) print
+        if ($0 ~ /{/) open_braces++
+        if ($0 ~ /}/) open_braces--
+        if (open_braces == 0) exit
+      }
+    ' FUNCTION_NAME="$function" "$FLIST" >> "$temp_file"
+    FLIST="$temp_file"
+  fi
+
   for current_file in $FLIST; do
     file="$current_file"
 
@@ -128,7 +160,7 @@ function codestyle_main()
     [[ "$?" != 0 ]] && say "$SEPARATOR"
   done
 
-  if [[ -n "$range_option_flag" ]]; then
+  if [[ -n "$range_option_flag" || -n "$function" ]]; then
     rm "$temp_file"
   fi
 }
@@ -140,7 +172,7 @@ function codestyle_main()
 # In case of successful return 0, otherwise, return 22.
 function parse_codestyle_options()
 {
-  local long_options='verbose,help,start-line:,end-line:'
+  local long_options='verbose,help,start-line:,end-line:,function:'
   local short_options='h'
   local options
 
@@ -157,6 +189,7 @@ function parse_codestyle_options()
   options_values['TEST_MODE']=''
   options_values['START_LINE']=''
   options_values['END_LINE']=''
+  options_values['FUNCTION']=''
 
   eval "set -- $options"
 
@@ -172,6 +205,10 @@ function parse_codestyle_options()
         ;;
       --end-line)
         options_values['END_LINE']="$2"
+        shift 2
+        ;;
+      --function)
+        options_values['FUNCTION']="$2"
         shift 2
         ;;
       TEST_MODE)
@@ -204,7 +241,8 @@ function codestyle_help()
     '  codestyle [<dir>|<file>|<patch>] - Use checkpatch on target' \
     '  codestyle (--verbose) [<dir>|<file>|<patch>] - Show detailed output' \
     '  codestyle (--start-line <line>) - Set line where the script will start checkpatch' \
-    '  codestyle (--end-line <line>) - Set line where the script will end checkpatch'
+    '  codestyle (--end-line <line>) - Set line where the script will end checkpatch' \
+    '  codestyle (--function <function-name>) - Define function to apply checkpatch'
 }
 
 load_kworkflow_config
