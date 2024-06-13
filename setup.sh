@@ -605,9 +605,25 @@ function append_zshcompletion()
 
 function install_nucompletion() 
 {
-  say "Nushell detected. Downloading completions from GitHub nushell/nu_scripts"
-  curl -o ${libdir}/kw-completions.nu https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/kw/kw-completions.nu
-  say "To enable nu completions, add \`source ${libdir}/kw-completions.nu\` to your nushell config file (\$nu.config-file)"
+  local completions_file="${libdir}/kw-completions.nu"
+  
+  if [[ -f "$completions_file" ]]; then
+    return
+  fi
+
+  if [[ $(ask_yN "Nushell detected. Want download completions for kw?") =~ '0' ]]; then
+    say "If you can your mind, download it manually download from https://github.com/nushell/nu_scripts/tree/main/custom-completions/kw"
+    return
+  fi
+
+  curl --silent https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/kw/kw-completions.nu --output "${completions_file}"
+  
+  if [[ "$?" != 0 ]]; then
+    complain 'Failed to download nu completions for kw. Try manually downloading from https://github.com/nushell/nu_scripts/tree/main/custom-completions/kw'
+    return
+  fi
+
+  say "Nu completions downloaded successfully, add \`source ${completions_file}\` to your nushell config file (\$nu.config-file)"
 }
 
 function safe_append()
