@@ -256,7 +256,9 @@ function get_kernel_version()
   cmd_manager "$flag" "$cmd"
 }
 
-# Checks if the given path is a patch file
+# Checks if the given path is a patch file using the git apply --check command
+# that returns 0 or 1 if a file is a patch and would or wouldn't cause any
+# conflict respectively
 #
 # @FILE_PATH The argument is the path
 #
@@ -265,30 +267,23 @@ function get_kernel_version()
 function is_a_patch()
 {
   local -r FILE_PATH="$*"
-  local file_content
+  local cmd='git apply --check'
+  local cmd_return
 
   if [[ ! -f "$FILE_PATH" ]]; then
     return 1
   fi
 
-  file_content=$(< "$FILE_PATH")
+  cmd+=" ${FILE_PATH} > /dev/null 2>&1"
 
-  # The following array stores strings that are expected to be present
-  # in a patch file. The absence of any of these strings makes the
-  # given file be considered NOT a patch
-  local -ar PATCH_EXPECTED_STRINGS=(
-    'diff --git'
-    '---'
-    '@@'
-  )
+  cmd_manager 'SILENT' "$cmd"
+  cmd_return="$?"
 
-  for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
-    if [[ ! "$file_content" =~ $expected_str ]]; then
-      return 1
-    fi
-  done
+  if [[ "$cmd_return" == 0 || "$cmd_return" == 1 ]]; then
+    return 0
+  fi
 
-  return 0
+  return 1
 }
 
 # Checks if the given path is a patch cover letter
