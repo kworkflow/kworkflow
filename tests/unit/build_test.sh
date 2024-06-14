@@ -870,11 +870,9 @@ function test_kernel_build_from_sha()
   mk_fake_git
 
   output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
-  declare -a expected_result=(
-    "git rebase HEAD^ --exec 'kw build'"
-  )
+  expected_result="git rebase HEAD^ --exec 'kw build'"
 
-  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+  assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
 function test_kernel_build_from_sha_nonexisting_sha()
@@ -886,11 +884,9 @@ function test_kernel_build_from_sha_nonexisting_sha()
   mk_fake_git
 
   output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
-  declare -a expected_result=(
-    "ERROR: The given SHA (${sha}) does not represent a valid commit sha."
-  )
+  expected_result="ERROR: The given SHA (${sha}) does not represent a valid commit sha."
 
-  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+  assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
 function test_kernel_build_from_sha_sha_not_ancestor()
@@ -902,11 +898,9 @@ function test_kernel_build_from_sha_sha_not_ancestor()
   mk_git_branch 'branch'
 
   output=$(build_kernel_main 'TEST_MODE' --from-sha branch)
-  declare -a expected_result=(
-    'ERROR: Given SHA (branch) is invalid. Check if it is an ancestor of the branch head.'
-  )
+  expected_result='ERROR: Given SHA (branch) is invalid. Check if it is an ancestor of the branch head.'
 
-  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+  assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
 function test_kernel_build_from_sha_pending_rebase()
@@ -919,11 +913,9 @@ function test_kernel_build_from_sha_pending_rebase()
   mkdir '.git/rebase-merge'
 
   output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
-  declare -a expected_result=(
-    'ERROR: Abort the repository rebase before continuing with build from sha (use "git rebase --abort")!'
-  )
+  expected_result='ERROR: Abort the repository rebase before continuing with build from sha (use "git rebase --abort")!'
 
-  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+  assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
 function test_kernel_build_from_sha_pending_merge()
@@ -936,11 +928,9 @@ function test_kernel_build_from_sha_pending_merge()
   touch '.git/MERGE_HEAD'
 
   output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
-  declare -a expected_result=(
-    'ERROR: Abort the repository merge before continuing with build from sha (use "git rebase --abort")!'
-  )
+  expected_result='ERROR: Abort the repository merge before continuing with build from sha (use "git rebase --abort")!'
 
-  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+  assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
 function test_kernel_build_from_sha_pending_bisect()
@@ -953,11 +943,9 @@ function test_kernel_build_from_sha_pending_bisect()
   touch '.git/BISECT_LOG'
 
   output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
-  declare -a expected_result=(
-    'ERROR: Stop the repository bisect before continuing with build from sha (use "git bisect reset")!'
-  )
+  expected_result='ERROR: Stop the repository bisect before continuing with build from sha (use "git bisect reset")!'
 
-  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+  assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
 function test_kernel_build_from_sha_pending_apply()
@@ -970,11 +958,9 @@ function test_kernel_build_from_sha_pending_apply()
   mkdir '.git/rebase-apply'
 
   output=$(build_kernel_main 'TEST_MODE' --from-sha ${sha})
-  declare -a expected_result=(
-    'ERROR: Abort the repository patch apply before continuing with build from sha (use "git am --abort")!'
-  )
+  expected_result='ERROR: Abort the repository patch apply before continuing with build from sha (use "git am --abort")!'
 
-  compare_command_sequence '' "(${LINENO})" 'expected_result' "$output"
+  assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
 function test_kernel_build_inside_an_env()
