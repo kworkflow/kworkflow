@@ -292,14 +292,14 @@ function remove_kw_from_PATH_variable()
 
 function update_path()
 {
-  local shellrc=${1:-'.bashrc'}
+  local shellrc="$1"
 
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
   for path in "${ALL_PATHS[@]}"; do
     [[ "$path" -ef "$binpath" ]] && return
   done
 
-  safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "${HOME}/${shellrc}"
+  safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "$shellrc"
 }
 
 function update_current_bash()
@@ -547,9 +547,9 @@ function synchronize_files()
 
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc
-    if [[ -f "$HOME/.bashrc" || -L "$HOME/.bashrc" ]]; then
+    if [[ -f "${HOME}/.bashrc" || -L "${HOME}/.bashrc" ]]; then
       append_bashcompletion
-      update_path
+      update_path "${HOME}/.bashrc"
     else
       warning 'Unable to find a .bashrc file.'
     fi
@@ -558,9 +558,14 @@ function synchronize_files()
   if command_exists 'zsh'; then
     # Add tabcompletion to zshrc
     if [[ -f "${HOME}/.zshrc" || -L "${HOME}/.zshrc" ]]; then
-      remove_legacy_zshcompletion
-      append_zshcompletion
-      update_path '.zshrc'
+      remove_legacy_zshcompletion "${HOME}/.zshrc"
+      append_zshcompletion "${HOME}/.zshrc"
+      update_path "${HOME}/.zshrc"
+    # Check for alternative path for .zshrc
+    elif [[ -d "$ZDOTDIR" && -f "${ZDOTDIR}/.zshrc" ]]; then
+      remove_legacy_zshcompletion "${ZDOTDIR}/.zshrc"
+      append_zshcompletion "${ZDOTDIR}/.zshrc"
+      update_path "${ZDOTDIR}/.zshrc"
     else
       warning 'Unable to find a .zshrc file.'
     fi
@@ -586,16 +591,20 @@ function append_bashcompletion()
 
 function remove_legacy_zshcompletion()
 {
-  safe_remove '# Enable bash completion for zsh' "${HOME}/.zshrc"
-  safe_remove 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
-  safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.zshrc"
+  local zshrc_path="$1"
+
+  safe_remove '# Enable bash completion for zsh' "${zshrc_path}"
+  safe_remove 'autoload bashcompinit && bashcompinit' "${zshrc_path}"
+  safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${zshrc_path}"
 }
 
 function append_zshcompletion()
 {
-  safe_append "# ${app_name}" "${HOME}/.zshrc"
-  safe_append "export fpath=(${libdir} \$fpath)" "${HOME}/.zshrc"
-  safe_append 'autoload compinit && compinit -i' "${HOME}/.zshrc"
+  local zshrc_path="$1"
+
+  safe_append "# ${app_name}" "${zshrc_path}"
+  safe_append "export fpath=(${libdir} \$fpath)" "${zshrc_path}"
+  safe_append 'autoload compinit && compinit -i' "${zshrc_path}"
 }
 
 function safe_append()
