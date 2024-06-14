@@ -22,6 +22,13 @@ function setupPatch()
   cp -f tests/unit/samples/test.patch "$SHUNIT_TMPDIR"
 }
 
+function setupCoverLetter()
+{
+  cp --force 'tests/unit/samples/patch_files/0000-cover-letter.patch' "$SHUNIT_TMPDIR"
+  cp --force 'tests/unit/samples/patch_files/invalid/0003-invalid.patch' "$SHUNIT_TMPDIR"
+  cp --force 'tests/unit/samples/patch_files/0001.patch' "$SHUNIT_TMPDIR"
+}
+
 function setupFakeKernelRepo()
 {
   # This makes $SHUNIT_TMPDIR should mock a kernel tree root. A .git
@@ -416,6 +423,32 @@ function test_is_a_patch()
   is_a_patch "$SHUNIT_TMPDIR/test.patch"
   [[ "$?" != 0 ]] && fail "Failed to check if a file is a patch."
   true # Reset return value
+}
+
+function test_is_a_cover_letter()
+{
+  local output
+  local ret
+
+  setupCoverLetter
+
+  # Invalid Cases
+  output=$(is_a_cover_letter "${SHUNIT_TMPDIR}/0000-unexistent-cover-letter.patch")
+  ret="$?"
+  assert_equals_helper 'Patch cover letter should not exist.' "$LINENO" 17 "$ret"
+
+  output=$(is_a_cover_letter "${SHUNIT_TMPDIR}/0001.patch")
+  ret="$?"
+  assert_equals_helper 'File shouldnt be a patch cover-letter.' "$LINENO" 126 "$ret"
+
+  output=$(is_a_cover_letter "${SHUNIT_TMPDIR}/0003-invalid.patch")
+  ret="$?"
+  assert_equals_helper 'File shouldnt be a patch cover-letter.' "$LINENO" 126 "$ret"
+
+  # Valid Cases
+  output=$(is_a_cover_letter "${SHUNIT_TMPDIR}/0000-cover-letter.patch")
+  ret="$?"
+  assert_equals_helper 'File should be a patch cover-letter.' "$LINENO" 0 "$ret"
 }
 
 function test_get_based_on_delimiter()

@@ -268,7 +268,7 @@ function is_a_patch()
   local file_content
 
   if [[ ! -f "$FILE_PATH" ]]; then
-    return 1 # EPERM
+    return 1
   fi
 
   file_content=$(< "$FILE_PATH")
@@ -284,7 +284,40 @@ function is_a_patch()
 
   for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
     if [[ ! "$file_content" =~ $expected_str ]]; then
-      return 1 # EPERM
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+# Checks if the given path is a patch cover letter
+#
+# @FILE_PATH The argument is the path
+#
+# Returns:
+# True if given path is a patch cover letter and false otherwise.
+function is_a_cover_letter()
+{
+  local -r FILE_PATH="$1"
+  local file_content
+
+  if [[ ! -f "$FILE_PATH" ]]; then
+    return 17 # EEXIST
+  fi
+
+  file_content=$(< "$FILE_PATH")
+
+  local -ar COVER_LETTER_EXPECTED_STRINGS=(
+    'Subject: \[PATCH 0/[0-9]+\]'
+    'To:'
+    'From:'
+    'Date:'
+  )
+
+  for expected_str in "${COVER_LETTER_EXPECTED_STRINGS[@]}"; do
+    if [[ ! "$file_content" =~ $expected_str ]]; then
+      return 126 # ENOKEY
     fi
   done
 
