@@ -58,25 +58,29 @@ function execute_command_db()
   sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -bail -batch "$sql_cmd"
 }
 
-# This function inserts values into table of given database
+# This function insert or replace rows into table of given database,
+# depending if the rows already exist or not.
 #
-# @table:     Table to insert data into
-# @entries:   Columns on the table where to add the data
-# @values:    Rows of data to be added
+# @table:     Table to replace/insert data into
+# @columns:   Columns on the table where to update/add the data
+# @rows:      Rows of data to be added
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
+# @sql_command: Command to execute, can be INSERT or REPLACE
 #
 # Return:
 # 2 if db doesn't exist;
-# 0 if succesful; non-zero otherwise
-function insert_into()
+# 22 if empty table or empty rows are passed;
+# 0 if succesful.
+function insert_replace_cmd()
 {
   local table="$1"
   local entries="$2"
-  local values="$3"
+  local rows="$3"
   local db="${4:-"$DB_NAME"}"
   local flag=${5:-'SILENT'}
   local db_folder="${6:-$KW_DATA_DIR}"
+  local sql_command="$7"
   local db_path
   local cmd
 
@@ -87,15 +91,42 @@ function insert_into()
     return 2
   fi
 
-  if [[ -z "$table" || -z "$values" ]]; then
-    complain 'Empty table or values.'
+  if [[ -z "$table" || -z "$rows" ]]; then
+    complain 'Empty table or rows.'
     return 22 # EINVAL
   fi
 
   [[ -n "$entries" && ! "$entries" =~ ^\(.*\)$ ]] && entries="($entries)"
 
-  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"INSERT INTO ${table} ${entries} VALUES ${values};\""
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${sql_command} INTO ${table} ${entries} VALUES ${values};\""
   cmd_manager "$flag" "$cmd"
+}
+
+# This function inserts values into table of given database
+#
+# @table:     Table to insert data into
+# @entries:   Columns on the table where to add the data
+# @rows:    Rows of data to be added
+# @db:        Name of the database file
+# @db_folder: Path to the folder that contains @db
+#
+# Return:
+# 2 if db doesn't exist;
+# 22 if empty table or empty rows are passed;
+# 0 if succesful; non-zero otherwise
+function insert_into()
+{
+  local table="$1"
+  local entries="$2"
+  local rows="$3"
+  local db="${4:-"$DB_NAME"}"
+  local flag=${5:-'SILENT'}
+  local db_folder="${6:-$KW_DATA_DIR}"
+  local sql_cmd
+
+  sql_cmd="INSERT"
+
+  insert_replace_cmd "$table" "$entries" "$rows" "$db" "$flag" "$db_folder" "$sql_cmd"
 }
 
 # This function updates or insert rows into table of given database,
@@ -119,25 +150,11 @@ function replace_into()
   local db="${4:-"$DB_NAME"}"
   local flag=${5:-'SILENT'}
   local db_folder="${6:-"$KW_DATA_DIR"}"
-  local db_path
-  local cmd
+  local sql_cmd
 
-  db_path="$(join_path "$db_folder" "$db")"
+  sql_cmd="REPLACE"
 
-  if [[ ! -f "$db_path" ]]; then
-    complain 'Database does not exist'
-    return 2 # ENOENT
-  fi
-
-  if [[ -z "$table" || -z "$rows" ]]; then
-    complain 'Empty table or rows.'
-    return 22 # EINVAL
-  fi
-
-  [[ -n "$columns" && ! "$columns" =~ ^\(.*\)$ ]] && columns="($columns)"
-
-  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"REPLACE INTO ${table} ${columns} VALUES ${rows};\""
-  cmd_manager "$flag" "$cmd"
+  insert_replace_cmd "$table" "$entries" "$rows" "$db" "$flag" "$db_folder" "$sql_cmd"
 }
 
 # This function removes every matching row from a given table.
