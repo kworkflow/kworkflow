@@ -81,7 +81,7 @@ function show_active_pomodoro_timebox()
     say "Started at: ${start_time} [${start_date}]"
     say '- Elapsed time:' "$(secs_to_arbitrarily_long_hours_mins_secs "${elapsed_time}")"
     say '- You still have' "$(secs_to_arbitrarily_long_hours_mins_secs "${remaining_time}")"
-  done <<< "$(select_from 'active_timebox' '"date","time","duration"' '' '' '' "$flag")"
+  done <<< "$(select_from 'active_timebox' '"date","time","duration"' '' "$flag")"
 }
 
 # Show registered tags with number identification.
@@ -95,7 +95,7 @@ function show_tags()
   [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
 
   condition_array=(['active']='1')
-  tags=$(select_from 'tag' '"id" AS "ID", "name" AS "Name"' '.mode column' 'condition_array' 'id' "$flag")
+  tags=$(select_from 'tag' '"id" AS "ID", "name" AS "Name"' 'condition_array' "$flag" '.mode column' 'condition_array')
   if [[ -z "$tags" ]]; then
     say 'You did not register any tag yet'
     return 0
@@ -135,7 +135,7 @@ function is_tag_already_registered()
 
   [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
 
-  is_tag_registered=$(select_from "tag WHERE name IS '${tag_name}'" '' '' '' '' "$flag")
+  is_tag_registered=$(select_from "tag WHERE name IS '${tag_name}'" '' '' "$flag")
 
   [[ -n "${is_tag_registered}" ]] && return 0
   return 1 # EPERM
@@ -258,7 +258,7 @@ function get_tag_name()
   fi
 
   condition_array=(['id']="$value")
-  tag=$(select_from 'tag' 'name' '' 'condition_array')
+  tag=$(select_from 'tag' 'name' 'condition_array')
   if [[ -z "$tag" ]]; then
     options_values['ERROR']="There is no tag with ID: ${value}"
     return 22 # EINVAL

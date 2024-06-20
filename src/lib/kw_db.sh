@@ -24,7 +24,7 @@ function execute_sql_script()
 
   if [[ ! -f "$sql_path" ]]; then
     complain "Could not find the file: $sql_path"
-    return 2
+    return 2 # ENOENT
   fi
 
   [[ -f "$db_path" ]] || warning "Creating database: $db_path"
@@ -52,7 +52,7 @@ function execute_command_db()
 
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'
-    return 2
+    return 2 # ENOENT
   fi
 
   sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -bail -batch "$sql_cmd"
@@ -75,7 +75,7 @@ function execute_command_db()
 function insert_replace_cmd()
 {
   local table="$1"
-  local entries="$2"
+  local columns="$2"
   local rows="$3"
   local db="${4:-"$DB_NAME"}"
   local flag=${5:-'SILENT'}
@@ -88,7 +88,7 @@ function insert_replace_cmd()
 
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'
-    return 2
+    return 2 # ENOENT
   fi
 
   if [[ -z "$table" || -z "$rows" ]]; then
@@ -105,7 +105,7 @@ function insert_replace_cmd()
 # This function inserts values into table of given database
 #
 # @table:     Table to insert data into
-# @entries:   Columns on the table where to add the data
+# @columns:   Columns on the table where to add the data
 # @rows:    Rows of data to be added
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
@@ -117,7 +117,7 @@ function insert_replace_cmd()
 function insert_into()
 {
   local table="$1"
-  local entries="$2"
+  local columns="$2"
   local rows="$3"
   local db="${4:-"$DB_NAME"}"
   local flag=${5:-'SILENT'}
@@ -126,7 +126,7 @@ function insert_into()
 
   sql_cmd="INSERT"
 
-  insert_replace_cmd "$table" "$entries" "$rows" "$db" "$flag" "$db_folder" "$sql_cmd"
+  insert_replace_cmd "$table" "$columns" "$rows" "$db" "$flag" "$db_folder" "$sql_cmd"
 }
 
 # This function updates or insert rows into table of given database,
@@ -183,7 +183,7 @@ function remove_from()
 
   if [[ ! -f "${db_path}" ]]; then
     complain 'Database does not exist'
-    return 2
+    return 2 # ENOENT
   fi
 
   if [[ -z "$table" || -z "$_condition_array" ]]; then
@@ -218,10 +218,12 @@ function select_from()
 {
   local table="$1"
   local columns="${2:-"*"}"
-  local pre_cmd="$3"
-  local _condition_array="$4"
-  local order_by=${5:-''}
-  local flag=${6:-'SILENT'}
+  #local pre_cmd="$3"
+  local _condition_array="$3" # antigo 4
+  #local order_by=${5:-''}
+  local flag=${4:-'SILENT'} # antigo 6
+  local pre_cmd="$5" # antigo 3
+  local order_by=${6:-''} # antigo 5
   local db="${7:-"$DB_NAME"}"
   local db_folder="${8:-"$KW_DATA_DIR"}"
   local where_clause
@@ -232,7 +234,7 @@ function select_from()
 
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'
-    return 2
+    return 2 # ENOENT
   fi
 
   if [[ -z "$table" ]]; then
@@ -274,10 +276,12 @@ function update_into()
 {
   local table="$1"
   local _updates_array="$2"
-  local pre_cmd="$3"
-  local _condition_array="$4"
-  local flag=${5:-'SILENT'}
-  local db="${6:-"$DB_NAME"}"
+  #local pre_cmd="$3"
+  local _condition_array="$3" # antigo 4
+  #local flag=${5:-'SILENT'}
+  local db="${4:-"$DB_NAME"}" # antigo 6
+  local pre_cmd="$5" # antigo 3
+  local flag=${6:-'SILENT'} # antigo 5
   local db_folder="${7:-"$KW_DATA_DIR"}"
   local where_clause=''
   local db_path
@@ -287,7 +291,7 @@ function update_into()
 
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'
-    return 2
+    return 2 # ENOENT
   fi
 
   if [[ -z "$table" ]]; then
@@ -386,7 +390,7 @@ function format_values_db()
 
   if [[ "$#" == 0 ]]; then
     complain 'No arguments given'
-    return 22
+    return 22 # EINVAL
   fi
 
   for val in "$@"; do

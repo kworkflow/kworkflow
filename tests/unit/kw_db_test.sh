@@ -250,56 +250,56 @@ function test_select_from()
 
   entries=$(concatenate_with_commas '"start_date"' '"start_time"' '"description"')
   condition_array=(['start_time']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time < '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <= '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,>']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time > '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,>=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time >= '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,!=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time != '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<>']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <> '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
@@ -508,7 +508,7 @@ function test_update_into()
   local ret
 
   # invalid operations
-  output=$(update_into 'table' 'updates_array' '' '' '' 'wrong/path/invalid_db.db')
+  output=$(update_into 'table' 'updates_array' '' 'wrong/path/invalid_db.db')
   ret="$?"
   expected='Database does not exist'
   assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
@@ -538,7 +538,7 @@ function test_update_into()
   # update one row using one unique attribute
   condition_array=(['name']='name19')
   updates_array=(['attribute1']='att1.1')
-  update_into 'fake_table' 'updates_array' '' 'condition_array'
+  update_into 'fake_table' 'updates_array' 'condition_array'
   ret="$?"
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT attribute1 FROM 'fake_table' WHERE name='name19' ;")
   expected='att1.1'
@@ -548,7 +548,7 @@ function test_update_into()
   # update multiple rows using one unique attribute
   condition_array=(['name']='name19')
   updates_array=(['attribute1']='att1.2' ['attribute2']='att2.2' ['rank']='10')
-  update_into 'fake_table' 'updates_array' '' 'condition_array'
+  update_into 'fake_table' 'updates_array' 'condition_array'
   ret="$?"
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT attribute1, attribute2, rank FROM 'fake_table' WHERE name='name19' ;")
   expected='att1.2|att2.2|10'
@@ -558,7 +558,7 @@ function test_update_into()
   # update one row using non unique attribute
   condition_array=(['rank']='2')
   updates_array=(['attribute1']='att1.3')
-  update_into 'fake_table' 'updates_array' '' 'condition_array'
+  update_into 'fake_table' 'updates_array' 'condition_array'
   ret="$?"
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT attribute1 FROM 'fake_table' WHERE rank='2' ;")
   expected=$'att1.3\natt1.3'
@@ -568,7 +568,7 @@ function test_update_into()
   # update multiple rows using non unique attribute
   condition_array=(['rank,>=']='10')
   updates_array=(['attribute1']='att1.4' ['attribute2']='att2.4' ['rank']='3')
-  update_into 'fake_table' 'updates_array' '' 'condition_array'
+  update_into 'fake_table' 'updates_array' 'condition_array'
   ret="$?"
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name,attribute1,attribute2,rank FROM 'fake_table' WHERE rank='3' ;")
   expected=$'name19|att1.4|att2.4|3\nname20|att1.4|att2.4|3'

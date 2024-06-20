@@ -130,13 +130,13 @@ function test_save_config_file_check_saved_config()
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
   assertTrue "${LINENO}: Failed to find .config file for ${NAME_1}" '[[ -f ${dot_configs_dir}/${NAME_1} ]]'
   condition_array=(['name']="${NAME_1}")
-  output=$(select_from 'kernel_config' 'name' '' 'condition_array')
+  output=$(select_from 'kernel_config' 'name' 'condition_array')
   assert_equals_helper "Failed to find db entry for ${NAME_1}" "$LINENO" "$NAME_1" "$output"
 
   save_config_file "$NO_FORCE" "$NAME_2" > /dev/null
   assertTrue "${LINENO}: Failed to find .config file for ${NAME_2}" '[[ -f ${dot_configs_dir}/${NAME_2} ]]'
   condition_array=(['name']="${NAME_2}")
-  output=$(select_from 'kernel_config' 'name' '' 'condition_array')
+  output=$(select_from 'kernel_config' 'name' 'condition_array')
   assert_equals_helper "Failed to find db entry for ${NAME_2}" "$LINENO" "$NAME_2" "$output"
 
   output=$(cat "${dot_configs_dir}/${NAME_2}")
@@ -150,12 +150,12 @@ function test_save_config_file_check_description()
 
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
   condition_array=(['name']="${NAME_1}")
-  output=$(select_from 'kernel_config' 'description' '' 'condition_array')
+  output=$(select_from 'kernel_config' 'description' 'condition_array')
   assert_equals_helper "The description content for ${NAME_1} does not match" "$LINENO" "$DESCRIPTION_1" "$output"
 
   save_config_file "$NO_FORCE" "$NAME_2" "$DESCRIPTION_2" > /dev/null
   condition_array=(['name']="${NAME_2}")
-  output=$(select_from 'kernel_config' 'description' '' 'condition_array')
+  output=$(select_from 'kernel_config' 'description' 'condition_array')
   assert_equals_helper "The description content for ${NAME_2} does not match" "$LINENO" "$DESCRIPTION_2" "$output"
 }
 

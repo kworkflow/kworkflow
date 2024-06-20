@@ -131,7 +131,7 @@ function save_config_file()
 
   # Checks if there is already an entry for that kernel config file in the database
   condition_array=(['name']="${config_name}")
-  is_on_database="$(select_from 'kernel_config' '' '' 'condition_array' '' "$flag")"
+  is_on_database="$(select_from 'kernel_config' '' 'condition_array' "$flag")"
   if [[ -n "${is_on_database}" && "$force" != 1 ]]; then
     warning "Kernel config file named '${config_name}' already exists."
     if [[ $(ask_yN "Do you want to overwrite it?") =~ '0' ]]; then
@@ -523,7 +523,7 @@ function list_configs()
 
   [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
 
-  configs="$(select_from 'kernel_config' 'name AS \"Name\", description AS \"Description\", last_updated_datetime AS \"Last updated\"' '.mode column' '' '' "$flag")"
+  configs="$(select_from 'kernel_config' 'name AS \"Name\", description AS \"Description\", last_updated_datetime AS \"Last updated\"' '' "$flag" '.mode column')"
 
   if [[ -z "$configs" ]]; then
     say 'There are no .config files managed by kw'
@@ -566,7 +566,7 @@ function basic_config_validations()
   [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
 
   condition_array=(['name']="${config_name}")
-  query_output="$(select_from 'kernel_config' '' '' 'condition_array' '' "$flag")"
+  query_output="$(select_from 'kernel_config' '' 'condition_array' "$flag")"
 
   if [[ -z "${query_output}" ]]; then
     complain "Couldn't find config in database named: ${config_name}"
