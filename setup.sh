@@ -571,6 +571,11 @@ function synchronize_files()
     fi
   fi
 
+  if command_exists 'nu'; then
+    # Add tabcompletion to nu
+    install_nucompletion
+  fi
+
   say "$SEPARATOR"
   # Create ~/.cache/kw for support some of the operations
   mkdir -p "$cachedir"
@@ -581,6 +586,29 @@ function synchronize_files()
   fi
 
   say "$app_name installed into $HOME"
+}
+
+function install_nucompletion()
+{
+  local completions_file="${libdir}/kw-completions.nu"
+
+  if [[ -f "$completions_file" ]]; then
+    return
+  fi
+
+  if [[ $(ask_yN "Nushell detected. Want to download completions for kw?") =~ '0' ]]; then
+    say "If you change your mind, download it manually download from https://github.com/nushell/nu_scripts/tree/main/custom-completions/kw"
+    return
+  fi
+
+  curl --silent https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/kw/kw-completions.nu --output "${completions_file}"
+
+  if [[ "$?" != 0 ]]; then
+    complain 'Failed to download nu completions for kw. Try manually downloading from https://github.com/nushell/nu_scripts/tree/main/custom-completions/kw'
+    return
+  fi
+
+  say "Nu completions downloaded successfully, add \`source ${completions_file}\` to your nushell config file (\$nu.config-file)"
 }
 
 function append_bashcompletion()
