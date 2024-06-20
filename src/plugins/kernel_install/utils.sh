@@ -486,11 +486,24 @@ function update_bootloader()
     cmd="generate_${distro}_temporary_root_file_system"
     cmd+=" $flag $name $target ${deploy_data['bootloader']} $path_prefix $root_file_system"
 
-    cmd_manager "$flag" "$cmd"
+    output=$(cmd_manager "$flag" "$cmd")
+    [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$output"
     ret="$?"
     if [[ "$ret" != 0 ]]; then
       printf 'Error when trying to generate the temporary root file system\n'
-      exit "$ret"
+      if [[ "$output" == *'ERROR: binary not found'* ]]; then
+        if [[ -f "/boot/initramfs-${name}.img" ]]; then
+          printf "%s\n" "$output" | grep -E 'ERROR'
+
+          if [[ $(ask_yN 'Would you like to continue anyway?') == 0 ]]; then
+            exit 125 # ECANCELED
+          fi
+        else
+          exit "$ret"
+        fi
+      else
+        exit "$ret"
+      fi
     fi
   fi
 

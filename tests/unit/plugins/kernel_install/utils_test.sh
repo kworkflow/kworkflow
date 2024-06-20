@@ -787,4 +787,47 @@ function test_parse_kw_package_metadata_no_pkg_info()
   assert_equals_helper 'Expected an error due to the lack of info file' "($LINENO)" 22 "$?"
 }
 
+function test_question_generate_temporary_root_file_system()
+{
+  local output='* Preparing modules
+[====================================================================================================================================] 101%
+* Sending kernel package (6.7.0-integration-asdn+.kw.tar) to the remote
+     27,777,170 100%    3.60MB/s    0:00:07 (xfr#1, to-chk=0/1)
+==> Using drop-in configuration file: '\''20-steamdeck.conf'\''
+==> Starting build: '\''6.7.0-integration-asdn+'\'' 
+  -> Running build hook: [base]
+  -> Running build hook: [udev]
+  -> Running build hook: [steamos]
+==> ERROR: binary not found: '\''plymouth'\''
+  -> Running build hook: [steam-deck]
+==> WARNING: Possibly missing firmware for module: '\''xhci_pci'\''
+  -> Running build hook: [modconf]
+  -> Running build hook: [keyboard]
+  -> Running build hook: [block]
+  -> Running build hook: [filesystems]
+==> WARNING: Possibly missing '\''/bin/bash'\'' for script: /usr/bin/mount.steamos
+  -> Running build hook: [resume]
+==> Generating module dependencies
+==> Creating zstd-compressed initcpio image: '\''/boot/initramfs-6.7.0-integration-asdn+.img'\''
+Error when trying to generate the temporary root file system
+==> WARNING: errors were encountered during the build. The image may not be complete.
+-> Execution time: 00:00:13'
+
+  name=$(uname -r)
+  local initramfspath="test/boot/initramfs-$name.img"
+  touch "$initramfspath"
+
+  if [[ "$output" == *'ERROR: binary not found'* ]]; then
+    if [[ -f "test//boot/initramfs-${name}.img" ]] || [[ -f "/boot/initrd.img-${name}" ]]; then
+      printf "%s\n" "$output" | grep -E 'ERROR'
+
+      if [[ $(printf 'y\n' | ask_yN 'Would you like to continue anyway?') == 0 ]]; then
+        exit 125 # ECANCELED
+      fi
+    fi
+  fi
+
+  assert_equals_helper 'Expected to continue and print the error' "$LINENO" 'ERROR: binary not found: '\''plymouth'\''' "$output" | grep -E 'ERROR'
+}
+
 invoke_shunit
