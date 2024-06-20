@@ -47,6 +47,8 @@ function init_main()
     return 22 # EINVAL
   fi
 
+  [[ -n "${options_values['INTERACTIVE']}" ]] && interactive_prompt
+
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
   flag=${flag:-'SILENT'}
 
@@ -119,6 +121,73 @@ function init_main()
   fi
 
   say "Initialized kworkflow directory in ${PWD}/${KW_DIR} based on ${USER} data"
+}
+
+# This function prompts the user to set up a configuration value
+#
+# @option: Option value to be set(must be uppercase)
+# @default: Default option
+function iprompt()
+{
+  local option="$1"
+  local default="$2"
+  if [[ "$option" == "ARCH" ]]; then
+    options_values['FORCE']+=1
+  fi
+
+  loption=$(echo "$option" | tr '[:upper:]' '[:lower:]')
+  ans="$(ask_with_default "Do you want to setup the $loption" "y/N" "" "" )"
+  if [[ "$ans" == "y" ]]; then
+    ans="$(ask_with_default "Specify the $loption:" "$default" "")"
+    options_values["$option"]+="$ans"
+  fi
+}
+
+# This function interactively prompts the user about each configuration option.
+function interactive_prompt()
+{
+  iprompt "TEMPLATE" "x86_64"
+  iprompt "ARCH" "x86_64"
+  iprompt "REMOTE" ""
+  iprompt "TARGET" "vm"
+
+  ans="y"
+  while [[ "$ans" != "n" ]]; do
+    say "TEMPLATE: ""${options_values['TEMPLATE']}"
+    say "ARCH: ""${options_values['ARCH']}"
+    say "REMOTE: ""${options_values['REMOTE']}"
+    say "TARGET: ""${options_values['TARGET']}"
+
+    ans="$(ask_with_default "Change any setting before proceeding?" "N/y" "" "")"
+
+    if [[ "$ans" == "y" ]]; then
+      printf "1. TEMPLATE\n2. ARCH\n3. REMOTE\n4. TARGET\n"
+      ans="$(ask_with_default "Change which option?" "" "" "")"
+      while [[ "$ans" -gt 0 ]]; do
+        case "$ans" in
+        1)
+	  iprompt "TEMPLATE" "x86_64"
+	  ans="y"
+	  ;;
+	2)
+	  iprompt "ARCH" "x86_64"
+	  ans="y"
+	  ;;
+	3)
+	  iprompt "REMOTE" ""
+	  ans="y"
+	  ;;
+	4)
+	  iprompt "TARGET" "vm"
+	  ans="y"
+	  ;;
+	*)
+	  ans="n"
+	  ;;
+	esac
+      done
+    fi
+  done
 }
 
 # This function sets variables in the config file to a specified value.
@@ -201,8 +270,8 @@ function get_template_name()
 
 function parse_init_options()
 {
-  local long_options='arch:,remote:,target:,force,template::,verbose'
-  local short_options='a:,r:,t:,f'
+  local long_options='arch:,remote:,target:,force,template::,interactive,verbose'
+  local short_options='a:,r:,t:,i,f,'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -215,6 +284,7 @@ function parse_init_options()
   options_values['ARCH']=''
   options_values['FORCE']=''
   options_values['TEMPLATE']='x86-64'
+  options_values['INTERACTIVE']=''
   options_values['VERBOSE']=''
 
   eval "set -- $options"
@@ -242,6 +312,11 @@ function parse_init_options()
         option="$(str_strip "${2,,}")"
         options_values['TEMPLATE']="$option"
         shift 2
+        ;;
+      --interactive | -i)
+	shift
+        options_values['INTERACTIVE']=1
+	shift
         ;;
       --verbose)
         options_values['VERBOSE']=1
@@ -272,6 +347,7 @@ function init_help()
     '  init --arch <arch> - Set the arch field in the kworkflow.config file.' \
     '  init --remote <user>@<ip>:<port> - Set remote fields in the kworkflow.config file.' \
     '  init --target <target> Set the default_deploy_target field in the kworkflow.config file' \
+    '  init --interactive - Interactive setup and configuration' \
     '  init --verbose - Show a detailed output'
 }
 
