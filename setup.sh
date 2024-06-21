@@ -596,19 +596,18 @@ function install_nucompletion()
     return
   fi
 
-  if [[ $(ask_yN "Nushell detected. Want to download completions for kw?") =~ '0' ]]; then
-    say "If you change your mind, download it manually download from https://github.com/nushell/nu_scripts/tree/main/custom-completions/kw"
+  if [[ $(ask_yN 'Nushell detected: Do you want to download completions for kw?') =~ '0' ]]; then
+    say 'If you change your mind, download it manually download from https://github.com/nushell/nu_scripts/tree/main/custom-completions/kw'
     return
   fi
 
-  curl --silent https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/kw/kw-completions.nu --output "${completions_file}"
-
+  curl --silent 'https://raw.githubusercontent.com/nushell/nu_scripts/main/custom-completions/kw/kw-completions.nu' --output "${completions_file}"
   if [[ "$?" != 0 ]]; then
     complain 'Failed to download nu completions for kw. Try manually downloading from https://github.com/nushell/nu_scripts/tree/main/custom-completions/kw'
     return
   fi
 
-  say "Nu completions downloaded successfully, add \`source ${completions_file}\` to your nushell config file (\$nu.config-file)"
+  say "Nu completions downloaded successfully, add \`source ${completions_file}\` to your nushell config file (\$nu.config-path)"
 }
 
 function append_bashcompletion()
