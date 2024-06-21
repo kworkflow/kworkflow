@@ -55,6 +55,11 @@ OPTIONS
     You can change the default arguments used to send emails in the
     **send_patch.config** file.
 
+  .. note::
+    You can also send patch files and/or directories using the kw mail --send
+    command by specifying the directory and/or patch file name directly with 
+    ``git send-email <patch-file>`` or ``<patch-dir>``
+
 \--to='<recipient>,...':
   Specify the recipients that will receive the patch via e-mail. The
   *<recipient>* list can be in any format accepted by ``git send-email``, e.g.:
@@ -144,6 +149,14 @@ Then when you are sure the command executed as expected, drop the
 ``--simulate`` argument to actually send the patch::
 
   kw send-patch --send --to=some@email.com
+
+To send a patch already formated in your files you can use::
+
+  kw mail --send /path/to/file.patch
+
+To send a patch directory containing formated patches in your file use instead::
+
+  kw mail --send /path/to/patch-directory
 
 To send a range of commits the following can be used::
 
