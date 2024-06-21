@@ -413,6 +413,7 @@ function container_exec()
   eval "$cmd"
 
   if [[ "$?" -ne 0 ]]; then
+    complain "$cmd"
     fail "(${LINENO}): Failed to execute the command in the container."
   fi
 }
