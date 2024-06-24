@@ -145,6 +145,47 @@ function test_execute_command_db()
   assert_equals_helper 'Testing with concatenate_with_commas' "$LINENO" "$expected" "$output"
 }
 
+function test_run_sql_query()
+{
+  local output
+  local expected
+  local ret
+  local entries
+  local query
+
+  output=$(run_sql_query 'some_query' 'invalid_db.db' 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected.' "$LINENO" 2 "$ret"
+  assert_equals_helper 'Expected error msg.' "$LINENO" "$expected" "$output"
+
+  output=$(run_sql_query 'SELECT * FROM tags;')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM tags;')
+  assert_equals_helper 'No error expected.' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output.' "$LINENO" "$expected" "$output"
+
+  output=$(run_sql_query 'SELECT * FROM not_a_table;' 2>&1)
+  ret="$?"
+  expected='no such table: not_a_table'
+  assert_equals_helper 'Invalid table.' "$LINENO" 1 "$ret"
+  assert_substring_match 'Wrong output.' "($LINENO)" "$expected" "$output"
+
+  output=$(run_sql_query 'SELEC * FROM tags;' 2>&1)
+  ret="$?"
+  expected='near "SELEC": syntax error'
+  assert_equals_helper 'Invalid table.' "$LINENO" 1 "$ret"
+  assert_substring_match 'Wrong output.' "($LINENO)" "$expected" "$output"
+
+  entries="$(concatenate_with_commas name start_date)"
+
+  output=$(run_sql_query "SELECT $entries FROM statistics;")
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT name,start_date FROM statistics;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Testing with concatenate_with_commas' "$LINENO" "$expected" "$output"
+}
+
 function test_insert_into()
 {
   local output

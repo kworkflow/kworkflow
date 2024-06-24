@@ -47,7 +47,6 @@ function execute_command_db()
   local sql_cmd="$1"
   local db="${2:-"$DB_NAME"}"
   local db_folder="${3:-"$KW_DATA_DIR"}"
-  local db_path
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -62,9 +61,9 @@ function execute_command_db()
 # This function runs a sql command in a given database and
 # executes a pre command if it is passed.
 #
+# @query:     SQL query that will be executed
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
-# @query:     SQL query that will be executed
 # @flag:      Flag to control function output
 # @pre_cmd:   Pre command to executed, if passed
 #
@@ -74,28 +73,28 @@ function execute_command_db()
 # 0 if succesful; non-zero otherwise
 function run_sql_query()
 {
-	local db="${1:-"$DB_NAME"}"
-	local db_folder="${2:-$KW_DATA_DIR}"
-	local query="$3"
-	local flag=${4:-'SILENT'}
-	local pre_cmd="$5"
-	local cmd
-	local db_path
+  local query="$1"
+  local db="${2:-"$DB_NAME"}"
+  local db_folder="${3:-$KW_DATA_DIR}"
+  local flag=${4:-'SILENT'}
+  local pre_cmd="$5"
+  local cmd
+  local db_path
 
-	db_path="$(join_path "$db_folder" "$db")"
+  db_path="$(join_path "$db_folder" "$db")"
 
-	if [[ ! -f "$db_path" ]]; then
-    	  complain 'Database does not exist'
-    	  return 2 # ENOENT
-  	fi
+  if [[ ! -f "$db_path" ]]; then
+    complain 'Database does not exist'
+    return 2 # ENOENT
+  fi
 
-	if [[ -z "$pre_cmd" ]]; then
-	  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
-	else
-	  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${query}\""
-	fi
+  if [[ -z "$pre_cmd" ]]; then
+    cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
+  else
+    cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${query}\""
+  fi
 
-	cmd_manager "$flag" "$cmd"
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function inserts values into table of given database
@@ -131,7 +130,7 @@ function insert_into()
 
   query="INSERT INTO ${table} ${columns} VALUES ${rows};"
 
-  return run_sql_query "$db" "$db_folder" "$query" "$flag"
+  return run_sql_query "$query" "$db" "$db_folder" "$flag"
 }
 
 # This function updates or insert rows into table of given database,
@@ -167,7 +166,7 @@ function replace_into()
 
   query="REPLACE INTO ${table} ${columns} VALUES ${rows};"
 
-  return run_sql_query "$db" "$db_folder" "$query" "$flag"
+  return run_sql_query "$query" "$db" "$db_folder" "$flag"
 }
 
 # This function removes every matching row from a given table.
@@ -200,7 +199,7 @@ function remove_from()
   where_clause="$(generate_where_clause "$_condition_array")"
   query="DELETE FROM ${table} ${where_clause} ;"
 
-  return run_sql_query "$db" "$db_folder" "$query" "$flag"
+  return run_sql_query "$query" "$db" "$db_folder" "$flag"
 }
 
 # This function gets the values in the table of given database
@@ -247,7 +246,7 @@ function select_from()
     query="${query::-2} ORDER BY ${order_by} ;"
   fi
 
-  return run_sql_query "$db" "$db_folder" "$query" "$flag" "$pre_cmd"
+  return run_sql_query "query" "$db" "$db_folder" "$flag" "$pre_cmd"
 }
 
 # This function updates the set of values in the table of given database
@@ -292,7 +291,7 @@ function update_into()
 
   query="UPDATE ${table} SET ${set_clause} ${where_clause} ;"
 
-  return run_sql_query "$db" "$db_folder" "$query" "$flag" "$pre_cmd"
+  return run_sql_query "$query" "$db" "$db_folder" "$flag" "$pre_cmd"
 }
 
 # This function receives a condition_array and then generate
