@@ -95,7 +95,7 @@ function show_tags()
   [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
 
   condition_array=(['active']='1')
-  tags=$(select_from 'tag' '"id" AS "ID", "name" AS "Name"' 'condition_array' "$flag" '.mode column' 'condition_array')
+  tags=$(select_from 'tag' '"id" AS "ID", "name" AS "Name"' 'condition_array' "$flag" '.mode column' 'id')
   if [[ -z "$tags" ]]; then
     say 'You did not register any tag yet'
     return 0
@@ -114,7 +114,7 @@ function register_tag()
   local tag="$2"
 
   if ! is_tag_already_registered "$flag" "$tag"; then
-    insert_into 'tag' "('name')" "('${tag}')" '' "$flag"
+    insert_into 'tag' "('name')" "('${tag}')" '' '' "$flag"
   fi
 }
 
@@ -187,7 +187,7 @@ function register_data_for_report()
 
   # Format the data and insert it into the database
   formatted_data="$(format_values_db 5 "${values[@]}")"
-  insert_into '"pomodoro_report"' "$columns" "${formatted_data}" '' "$flag"
+  insert_into '"pomodoro_report"' "$columns" "${formatted_data}" '' '' "$flag"
 }
 
 # This function checks if the time passed as argument is a valid one, i.e, is
