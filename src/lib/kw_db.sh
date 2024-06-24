@@ -47,6 +47,7 @@ function execute_command_db()
   local sql_cmd="$1"
   local db="${2:-"$DB_NAME"}"
   local db_folder="${3:-"$KW_DATA_DIR"}"
+  local db_path
 
   db_path="$(join_path "$db_folder" "$db")"
 
