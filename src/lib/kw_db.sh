@@ -70,17 +70,16 @@ function execute_command_db()
 #
 # Return:
 # 2 if db doesn't exist;
-# 22 if empty table or empty rows are passed;
 # 0 if succesful; non-zero otherwise
 function run_sql_query()
 {
   local query="$1"
   local db="${2:-"$DB_NAME"}"
-  local db_folder="${3:-$KW_DATA_DIR}"
+  local db_folder="${3:-"$KW_DATA_DIR"}"
   local flag=${4:-'SILENT'}
   local pre_cmd="$5"
-  local cmd
   local db_path
+  local cmd
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -104,9 +103,8 @@ function run_sql_query()
 # @columns:   Columns on the table where to add the data
 # @rows:      Rows of data to be added
 # @db:        Name of the database file
-# @flag:      Flag to control function output
 # @db_folder: Path to the folder that contains @db
-# @sql_command: Command to execute, can be INSERT or REPLACE
+# @flag:      Flag to control function output
 #
 # Return:
 # 2 if db doesn't exist;
@@ -118,8 +116,8 @@ function insert_into()
   local columns="$2"
   local rows="$3"
   local db="${4:-"$DB_NAME"}"
-  local flag=${5:-'SILENT'}
-  local db_folder="${6:-$KW_DATA_DIR}"
+  local db_folder="${5:-"$KW_DATA_DIR"}"
+  local flag=${6:-'SILENT'}
   local query
 
   if [[ -z "$table" || -z "$rows" ]]; then
@@ -131,7 +129,7 @@ function insert_into()
 
   query="INSERT INTO ${table} ${columns} VALUES ${rows};"
 
-  return run_sql_query "$query" "$db" "$db_folder" "$flag"
+  run_sql_query "$query" "$db" "$db_folder" "$flag"
 }
 
 # This function updates or insert rows into table of given database,
@@ -167,7 +165,7 @@ function replace_into()
 
   query="REPLACE INTO ${table} ${columns} VALUES ${rows};"
 
-  return run_sql_query "$query" "$db" "$db_folder" "$flag"
+  run_sql_query "$query" "$db" "$db_folder" "$flag"
 }
 
 # This function removes every matching row from a given table.
@@ -200,7 +198,7 @@ function remove_from()
   where_clause="$(generate_where_clause "$_condition_array")"
   query="DELETE FROM ${table} ${where_clause} ;"
 
-  return run_sql_query "$query" "$db" "$db_folder" "$flag"
+  run_sql_query "$query" "$db" "$db_folder" "$flag"
 }
 
 # This function gets the values in the table of given database
@@ -247,7 +245,7 @@ function select_from()
     query="${query::-2} ORDER BY ${order_by} ;"
   fi
 
-  return run_sql_query "query" "$db" "$db_folder" "$flag" "$pre_cmd"
+  run_sql_query "$query" "$db" "$db_folder" "$flag" "$pre_cmd"
 }
 
 # This function updates the set of values in the table of given database
@@ -292,7 +290,7 @@ function update_into()
 
   query="UPDATE ${table} SET ${set_clause} ${where_clause} ;"
 
-  return run_sql_query "$query" "$db" "$db_folder" "$flag" "$pre_cmd"
+  run_sql_query "$query" "$db" "$db_folder" "$flag" "$pre_cmd"
 }
 
 # This function receives a condition_array and then generate

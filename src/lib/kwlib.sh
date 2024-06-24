@@ -402,7 +402,7 @@ function statistics_manager()
 
   row=$(format_values_db 5 "$label_name" "$status" "$start_date" "$start_time" "$elapsed_time_in_secs")
 
-  insert_into '"statistics_report"' "$database_columns" "$row" '' "$flag"
+  insert_into '"statistics_report"' "$database_columns" "$row" '' '' "$flag"
 }
 
 # This function checks if a certain command can be run
