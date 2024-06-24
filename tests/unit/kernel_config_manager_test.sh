@@ -292,21 +292,21 @@ function test_remove_config()
   # Case 1: We should have two files
   output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
   assert_equals_helper "We expected 2 files but got ${output}" "$LINENO" 2 "$output"
-  output=$(select_from 'kernel_config' 'count(*)' '' '')
+  output=$(select_from 'kernel_config' 'count(*)')
   assert_equals_helper "We expected 2 entries in the db but got ${output}" "$LINENO" 2 "$output"
 
   # Case 2: Remove one config file
   remove_config "$NAME_1" 1 > /dev/null 2>&1
   output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
   assert_equals_helper "We expected 1 file but got ${output}" "$LINENO" 1 "$output"
-  output=$(select_from 'kernel_config' 'count(*)' '' '')
+  output=$(select_from 'kernel_config' 'count(*)')
   assert_equals_helper "We expected 1 entry in the db but got ${output}" "$LINENO" 1 "$output"
 
   # Case 3: Remove all config files
   remove_config "$NAME_2" 1 > /dev/null 2>&1
   output=$(find "${dot_configs_dir}" -mindepth 1 -type f | wc -l)
   assert_equals_helper "We expected no files but got ${output}" "$LINENO" 0 "$output"
-  output=$(select_from 'kernel_config' 'count(*)' '' '')
+  output=$(select_from 'kernel_config' 'count(*)')
   assert_equals_helper "We expected no entry in the db but got ${output}" "$LINENO" 0 "$output"
 }
 

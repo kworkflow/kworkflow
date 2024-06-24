@@ -235,14 +235,14 @@ function test_select_from()
   assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
-  output=$(select_from '' "$entries" '' '')
+  output=$(select_from '' "$entries")
   ret="$?"
   expected='Empty table.'
   assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   # valid
-  output=$(select_from 'pomodoro' "$entries" '' '')
+  output=$(select_from 'pomodoro' "$entries")
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM "pomodoro" ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
@@ -514,13 +514,13 @@ function test_update_into()
   assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
-  output=$(update_into '' 'updates_array' '' '')
+  output=$(update_into '' 'updates_array')
   ret="$?"
   expected='Empty table.'
   assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
-  output=$(update_into table 'update_array' '' '')
+  output=$(update_into table 'update_array')
   ret="$?"
   expected='Empty condition or updates array.'
   assert_equals_helper 'Empty condition array expected' "$LINENO" 22 "$ret"

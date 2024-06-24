@@ -12,6 +12,7 @@ declare -g DB_NAME='kw.db'
 # @db_folder: Path to the folder that contains @db
 #
 # Return:
+# 2 if db doesn't exist;
 # 0 if succesful; non-zero otherwise
 function execute_sql_script()
 {
@@ -58,62 +59,59 @@ function execute_command_db()
   sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -bail -batch "$sql_cmd"
 }
 
-# This function insert or replace rows into table of given database,
-# depending if the rows already exist or not.
+# This function runs a sql command in a given database and
+# executes a pre command if it is passed.
 #
-# @table:     Table to replace/insert data into
-# @columns:   Columns on the table where to update/add the data
-# @rows:      Rows of data to be added
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
-# @sql_command: Command to execute, can be INSERT or REPLACE
+# @query:     SQL query that will be executed
+# @flag:      Flag to control function output
+# @pre_cmd:   Pre command to executed, if passed
 #
 # Return:
 # 2 if db doesn't exist;
 # 22 if empty table or empty rows are passed;
-# 0 if succesful.
-function insert_replace_cmd()
+# 0 if succesful; non-zero otherwise
+function run_sql_query()
 {
-  local table="$1"
-  local columns="$2"
-  local rows="$3"
-  local db="${4:-"$DB_NAME"}"
-  local flag=${5:-'SILENT'}
-  local db_folder="${6:-$KW_DATA_DIR}"
-  local sql_command="$7"
-  local db_path
-  local cmd
+	local db="${1:-"$DB_NAME"}"
+	local db_folder="${2:-$KW_DATA_DIR}"
+	local query="$3"
+	local flag=${4:-'SILENT'}
+	local pre_cmd="$5"
+	local cmd
+	local db_path
 
-  db_path="$(join_path "$db_folder" "$db")"
+	db_path="$(join_path "$db_folder" "$db")"
 
-  if [[ ! -f "$db_path" ]]; then
-    complain 'Database does not exist'
-    return 2 # ENOENT
-  fi
+	if [[ ! -f "$db_path" ]]; then
+    	  complain 'Database does not exist'
+    	  return 2 # ENOENT
+  	fi
 
-  if [[ -z "$table" || -z "$rows" ]]; then
-    complain 'Empty table or rows.'
-    return 22 # EINVAL
-  fi
+	if [[ -z "$pre_cmd" ]]; then
+	  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
+	else
+	  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${query}\""
+	fi
 
-  [[ -n "$entries" && ! "$entries" =~ ^\(.*\)$ ]] && entries="($entries)"
-
-  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${sql_command} INTO ${table} ${entries} VALUES ${values};\""
-  cmd_manager "$flag" "$cmd"
+	cmd_manager "$flag" "$cmd"
 }
 
 # This function inserts values into table of given database
 #
 # @table:     Table to insert data into
 # @columns:   Columns on the table where to add the data
-# @rows:    Rows of data to be added
+# @rows:      Rows of data to be added
 # @db:        Name of the database file
+# @flag:      Flag to control function output
 # @db_folder: Path to the folder that contains @db
+# @sql_command: Command to execute, can be INSERT or REPLACE
 #
 # Return:
 # 2 if db doesn't exist;
 # 22 if empty table or empty rows are passed;
-# 0 if succesful; non-zero otherwise
+# 0 if successful; non-zero otherwise
 function insert_into()
 {
   local table="$1"
@@ -122,11 +120,18 @@ function insert_into()
   local db="${4:-"$DB_NAME"}"
   local flag=${5:-'SILENT'}
   local db_folder="${6:-$KW_DATA_DIR}"
-  local sql_cmd
+  local query
 
-  sql_cmd="INSERT"
+  if [[ -z "$table" || -z "$rows" ]]; then
+    complain 'Empty table or rows.'
+    return 22 # EINVAL
+  fi
 
-  insert_replace_cmd "$table" "$columns" "$rows" "$db" "$flag" "$db_folder" "$sql_cmd"
+  [[ -n "$columns" && ! "$columns" =~ ^\(.*\)$ ]] && columns="($columns)"
+
+  query="INSERT INTO ${table} ${columns} VALUES ${rows};"
+
+  return run_sql_query "$db" "$db_folder" "$query" "$flag"
 }
 
 # This function updates or insert rows into table of given database,
@@ -136,12 +141,13 @@ function insert_into()
 # @columns:   Columns on the table where to update/add the data
 # @rows:      Rows of data to be added
 # @db:        Name of the database file
+# @flag:      Flag to control function output
 # @db_folder: Path to the folder that contains @db
 #
 # Return:
 # 2 if db doesn't exist;
 # 22 if empty table or empty rows are passed;
-# 0 if succesful.
+# 0 if succesful; non-zero otherwise
 function replace_into()
 {
   local table="$1"
@@ -150,11 +156,18 @@ function replace_into()
   local db="${4:-"$DB_NAME"}"
   local flag=${5:-'SILENT'}
   local db_folder="${6:-"$KW_DATA_DIR"}"
-  local sql_cmd
+  local query
 
-  sql_cmd="REPLACE"
+  if [[ -z "$table" || -z "$rows" ]]; then
+    complain 'Empty table or rows.'
+    return 22 # EINVAL
+  fi
 
-  insert_replace_cmd "$table" "$entries" "$rows" "$db" "$flag" "$db_folder" "$sql_cmd"
+  [[ -n "$columns" && ! "$columns" =~ ^\(.*\)$ ]] && columns="($columns)"
+
+  query="REPLACE INTO ${table} ${columns} VALUES ${rows};"
+
+  return run_sql_query "$db" "$db_folder" "$query" "$flag"
 }
 
 # This function removes every matching row from a given table.
@@ -164,11 +177,12 @@ function replace_into()
 #                    <column,value> to match rows
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
+# @flag:      Flag to control function output
 #
 # Return:
 # 2 if db doesn't exist;
 # 22 if empty table, columns or values are passed;
-# 0 if succesful.
+# 0 if succesful; non-zero otherwise
 function remove_from()
 {
   local table="$1"
@@ -177,14 +191,6 @@ function remove_from()
   local db_folder="${4:-"${KW_DATA_DIR}"}"
   local flag=${5:-'SILENT'}
   local where_clause=''
-  local db_path
-
-  db_path="$(join_path "${db_folder}" "$db")"
-
-  if [[ ! -f "${db_path}" ]]; then
-    complain 'Database does not exist'
-    return 2 # ENOENT
-  fi
 
   if [[ -z "$table" || -z "$_condition_array" ]]; then
     complain 'Empty table or condition array.'
@@ -194,8 +200,7 @@ function remove_from()
   where_clause="$(generate_where_clause "$_condition_array")"
   query="DELETE FROM ${table} ${where_clause} ;"
 
-  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${query}\""
-  cmd_manager "$flag" "$cmd"
+  return run_sql_query "$db" "$db_folder" "$query" "$flag"
 }
 
 # This function gets the values in the table of given database
@@ -203,11 +208,11 @@ function remove_from()
 #
 # @table:     Table to select info from
 # @columns:   Columns of the table to get
-# @pre_cmd:   Pre command to execute
 # @_condition_array: An array reference of condition pairs. In case there is no
 #   WHERE clause, an empty value must be passed
-# @order_by:  List of attributes to use for ordering
 # @flag:      Flag to control function output
+# @pre_cmd:   Pre command to execute
+# @order_by:  List of attributes to use for ordering
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
 #
@@ -218,24 +223,14 @@ function select_from()
 {
   local table="$1"
   local columns="${2:-"*"}"
-  #local pre_cmd="$3"
-  local _condition_array="$3" # antigo 4
-  #local order_by=${5:-''}
-  local flag=${4:-'SILENT'} # antigo 6
-  local pre_cmd="$5" # antigo 3
-  local order_by=${6:-''} # antigo 5
+  local _condition_array="$3"
+  local flag=${4:-'SILENT'}
+  local pre_cmd="$5"
+  local order_by=${6:-''}
   local db="${7:-"$DB_NAME"}"
   local db_folder="${8:-"$KW_DATA_DIR"}"
   local where_clause
-  local db_path
   local query
-
-  db_path="$(join_path "$db_folder" "$db")"
-
-  if [[ ! -f "$db_path" ]]; then
-    complain 'Database does not exist'
-    return 2 # ENOENT
-  fi
 
   if [[ -z "$table" ]]; then
     complain 'Empty table.'
@@ -252,8 +247,7 @@ function select_from()
     query="${query::-2} ORDER BY ${order_by} ;"
   fi
 
-  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
-  cmd_manager "$flag" "$cmd"
+  return run_sql_query "$db" "$db_folder" "$query" "$flag" "$pre_cmd"
 }
 
 # This function updates the set of values in the table of given database
@@ -262,11 +256,10 @@ function select_from()
 # @table: Table to select info from
 # @_updates_array: An array reference of updates pairs that will be updated
 #   in the db
-# @pre_cmd: Pre command to execute
 # @_condition_array: An array reference of condition pairs specifing the data
-#   that will be updated
-# @flag: Flag to control function output
 # @db: Name of the database file
+# @pre_cmd: Pre command to execute
+# @flag: Flag to control function output
 # @db_folder: Path to the folder that contains @db
 #
 # Return:
@@ -276,23 +269,13 @@ function update_into()
 {
   local table="$1"
   local _updates_array="$2"
-  #local pre_cmd="$3"
-  local _condition_array="$3" # antigo 4
-  #local flag=${5:-'SILENT'}
-  local db="${4:-"$DB_NAME"}" # antigo 6
-  local pre_cmd="$5" # antigo 3
-  local flag=${6:-'SILENT'} # antigo 5
+  local _condition_array="$3"
+  local db="${4:-"$DB_NAME"}"
+  local pre_cmd="$5"
+  local flag=${6:-'SILENT'}
   local db_folder="${7:-"$KW_DATA_DIR"}"
   local where_clause=''
-  local db_path
   local query
-
-  db_path="$(join_path "$db_folder" "$db")"
-
-  if [[ ! -f "$db_path" ]]; then
-    complain 'Database does not exist'
-    return 2 # ENOENT
-  fi
 
   if [[ -z "$table" ]]; then
     complain 'Empty table.'
@@ -309,8 +292,7 @@ function update_into()
 
   query="UPDATE ${table} SET ${set_clause} ${where_clause} ;"
 
-  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
-  cmd_manager "$flag" "$cmd"
+  return run_sql_query "$db" "$db_folder" "$query" "$flag" "$pre_cmd"
 }
 
 # This function receives a condition_array and then generate
