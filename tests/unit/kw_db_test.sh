@@ -145,30 +145,71 @@ function test_execute_command_db()
   assert_equals_helper 'Testing with concatenate_with_commas' "$LINENO" "$expected" "$output"
 }
 
-function test_insert_into()
+function test_run_sql_query()
 {
   local output
   local expected
   local ret
   local entries
-  local values
+  local query
+
+  output=$(run_sql_query 'some_query' 'invalid_db.db' 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected.' "$LINENO" 2 "$ret"
+  assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
+
+  output=$(run_sql_query 'SELECT * FROM tags;')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM tags;')
+  assert_equals_helper 'No error expected.' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output.' "$LINENO" "$expected" "$output"
+
+  output=$(run_sql_query 'SELECT * FROM not_a_table;' 2>&1)
+  ret="$?"
+  expected='no such table: not_a_table'
+  assert_equals_helper 'Invalid table.' "$LINENO" 1 "$ret"
+  assert_substring_match 'Wrong output.' "($LINENO)" "$expected" "$output"
+
+  output=$(run_sql_query 'SELEC * FROM tags;' 2>&1)
+  ret="$?"
+  expected='near "SELEC": syntax error'
+  assert_equals_helper 'Invalid table.' "$LINENO" 1 "$ret"
+  assert_substring_match 'Wrong output.' "($LINENO)" "$expected" "$output"
+
+  entries="$(concatenate_with_commas name start_date)"
+
+  output=$(run_sql_query "SELECT $entries FROM statistics;")
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT name,start_date FROM statistics;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Testing with concatenate_with_commas' "$LINENO" "$expected" "$output"
+}
+
+function test_insert_into()
+{
+  local output
+  local expected
+  local ret
+  local columns
+  local rows
 
   # invalid
-  output=$(insert_into table entries values 'wrong/path/invalid_db.db')
+  output=$(insert_into table columns rows 'invalid_db.db' 'wrong/path/')
   ret="$?"
   expected='Database does not exist'
   assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
-  output=$(insert_into '' entries values)
+  output=$(insert_into '' columns rows)
   ret="$?"
-  expected='Empty table or values.'
+  expected='Empty table or rows.'
   assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
-  output=$(insert_into table entries '')
+  output=$(insert_into table columns '')
   ret="$?"
-  expected='Empty table or values.'
+  expected='Empty table or rows.'
   assert_equals_helper 'Empty values, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
@@ -235,14 +276,14 @@ function test_select_from()
   assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
-  output=$(select_from '' "$entries" '' '')
+  output=$(select_from '' "$entries")
   ret="$?"
   expected='Empty table.'
   assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   # valid
-  output=$(select_from 'pomodoro' "$entries" '' '')
+  output=$(select_from 'pomodoro' "$entries")
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM "pomodoro" ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
@@ -250,56 +291,56 @@ function test_select_from()
 
   entries=$(concatenate_with_commas '"start_date"' '"start_time"' '"description"')
   condition_array=(['start_time']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time < '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <= '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,>']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time > '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,>=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time >= '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,!=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time != '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   condition_array=(['start_time,<>']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
   ret="$?"
   expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <> '2021-11-18' ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
@@ -360,7 +401,7 @@ function test_remove_from()
   local ret
 
   # invalid operations
-  output=$(remove_from 'table' '' 'wrong/path/invalid_db.db')
+  output=$(remove_from 'table' 'condition_array' 'wrong/path/invalid_db.db')
   ret="$?"
   expected='Database does not exist'
   assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
@@ -508,19 +549,19 @@ function test_update_into()
   local ret
 
   # invalid operations
-  output=$(update_into 'table' 'updates_array' '' '' '' 'wrong/path/invalid_db.db')
+  output=$(update_into 'table' 'updates_array' 'condition_array' 'wrong/path/invalid_db.db')
   ret="$?"
   expected='Database does not exist'
   assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
-  output=$(update_into '' 'updates_array' '' '')
+  output=$(update_into '' 'updates_array')
   ret="$?"
   expected='Empty table.'
   assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
-  output=$(update_into table 'update_array' '' '')
+  output=$(update_into table 'update_array')
   ret="$?"
   expected='Empty condition or updates array.'
   assert_equals_helper 'Empty condition array expected' "$LINENO" 22 "$ret"
@@ -538,7 +579,7 @@ function test_update_into()
   # update one row using one unique attribute
   condition_array=(['name']='name19')
   updates_array=(['attribute1']='att1.1')
-  update_into 'fake_table' 'updates_array' '' 'condition_array'
+  update_into 'fake_table' 'updates_array' 'condition_array'
   ret="$?"
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT attribute1 FROM 'fake_table' WHERE name='name19' ;")
   expected='att1.1'
@@ -548,7 +589,7 @@ function test_update_into()
   # update multiple rows using one unique attribute
   condition_array=(['name']='name19')
   updates_array=(['attribute1']='att1.2' ['attribute2']='att2.2' ['rank']='10')
-  update_into 'fake_table' 'updates_array' '' 'condition_array'
+  update_into 'fake_table' 'updates_array' 'condition_array'
   ret="$?"
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT attribute1, attribute2, rank FROM 'fake_table' WHERE name='name19' ;")
   expected='att1.2|att2.2|10'
@@ -558,7 +599,7 @@ function test_update_into()
   # update one row using non unique attribute
   condition_array=(['rank']='2')
   updates_array=(['attribute1']='att1.3')
-  update_into 'fake_table' 'updates_array' '' 'condition_array'
+  update_into 'fake_table' 'updates_array' 'condition_array'
   ret="$?"
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT attribute1 FROM 'fake_table' WHERE rank='2' ;")
   expected=$'att1.3\natt1.3'
@@ -568,7 +609,7 @@ function test_update_into()
   # update multiple rows using non unique attribute
   condition_array=(['rank,>=']='10')
   updates_array=(['attribute1']='att1.4' ['attribute2']='att2.4' ['rank']='3')
-  update_into 'fake_table' 'updates_array' '' 'condition_array'
+  update_into 'fake_table' 'updates_array' 'condition_array'
   ret="$?"
   output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name,attribute1,attribute2,rank FROM 'fake_table' WHERE rank='3' ;")
   expected=$'name19|att1.4|att2.4|3\nname20|att1.4|att2.4|3'
