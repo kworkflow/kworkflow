@@ -121,7 +121,7 @@ function insert_into()
   local query
 
   if [[ -z "$table" || -z "$rows" ]]; then
-    complain 'Empty table or values.'
+    complain 'Empty table or rows.'
     return 22 # EINVAL
   fi
 
