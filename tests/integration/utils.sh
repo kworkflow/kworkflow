@@ -43,6 +43,8 @@ function build_distro_image()
 # Build container images and create containers used accross the tests.
 function setup_container_environment()
 {
+  local verbose="$1"
+  local feature="$2"
   local working_directory # working directory in the container
   local container_name
   local container_img
@@ -50,6 +52,10 @@ function setup_container_environment()
   local total_steps
   local distros_ok # array of distros whose setup succeeded
   local distro
+
+  if [[ "$verbose" -eq 1 ]]; then
+    say "Preparing environment for kw ${feature} integration tests..."
+  fi
 
   distros_ok=()
   current_step=0
@@ -67,7 +73,10 @@ function setup_container_environment()
     image_exists "${container_img}"
     if [[ "$?" -ne 0 ]]; then
       current_step=$((current_step + 1))
-      say "[${current_step}/${total_steps}] Building container image for ${distro}. This might take a while..."
+
+      if [[ "$verbose" -eq 1 ]]; then
+        say "[${current_step}/${total_steps}] Building container image for ${distro}. This might take a while..."
+      fi
 
       build_distro_image "$distro"
       if [[ "$?" -ne 0 ]]; then
@@ -80,7 +89,10 @@ function setup_container_environment()
       fi
     else
       current_step=$((current_step + 1))
-      say "[${current_step}/${total_steps}] Using cached container image for ${distro}."
+
+      if [[ "$verbose" -eq 1 ]]; then
+        say "[${current_step}/${total_steps}] Using cached container image for ${distro}."
+      fi
     fi
 
     # If container exists, we tear it down and create a new one in order to
@@ -91,7 +103,10 @@ function setup_container_environment()
     fi
 
     current_step=$((current_step + 1))
-    say "[${current_step}/${total_steps}] Creating ${distro} container."
+
+    if [[ "$verbose" -eq 1 ]]; then
+      say "[${current_step}/${total_steps}] Creating ${distro} container."
+    fi
 
     # Podman containers are isolated environments designed to run a single
     # process. After the process ends, the container is destroyed. In order to
@@ -152,8 +167,10 @@ function teardown_single_container()
   container_exists "${container}"
 
   if [[ "$?" -eq 0 ]]; then
-    # Destroy container sending SIGKILL instantly.
-    podman container rm --force --time 0 "${container}" > /dev/null 2>&1
+    # Stop the container with no wait time
+    podman stop --time 0 "$container" > /dev/null 2>&1
+    # Remove the container forcefully
+    podman container rm --force "$container" > /dev/null 2>&1
   fi
 }
 
