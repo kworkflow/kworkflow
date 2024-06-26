@@ -89,7 +89,7 @@ function run_sql_query()
     return 2 # ENOENT
   fi
 
-  if [[ ! -z "$pre_cmd" ]]; then
+  if [[ -n "$pre_cmd" ]]; then
     cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
   else
     cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${query}\""

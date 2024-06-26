@@ -62,49 +62,6 @@ function test_execute_sql_script()
   assert_equals_helper 'Expected 4 statistic entries' "$LINENO" 4 "$output"
 }
 
-function test_format_values_db()
-{
-  local output
-  local expected
-  local ret
-
-  output=$(format_values_db 0)
-  ret="$?"
-  expected='No arguments given'
-  assert_equals_helper 'Invalid db, error expected' "$LINENO" 22 "$ret"
-  assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
-
-  output=$(format_values_db 3 'first' 'second' 'third')
-  ret="$?"
-  expected="('first','second','third')"
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  output=$(format_values_db 2 "some_func('lala xpto')" "somefunc2('lala xpto')")
-  ret="$?"
-  expected="(some_func('lala xpto'),somefunc2('lala xpto'))"
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  output=$(format_values_db 2 'first 1' 'second 1' 'first 2' 'second 2')
-  ret="$?"
-  expected="('first 1','second 1'),('first 2','second 2')"
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  output=$(format_values_db 1 "some 'quotes'")
-  ret="$?"
-  expected="('some ''quotes''')"
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  output=$(format_values_db 2 'first' 'NULL')
-  ret="$?"
-  expected="('first',NULL)"
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-}
-
 function test_execute_command_db()
 {
   local output
@@ -261,93 +218,7 @@ function test_insert_into()
   assert_equals_helper 'Testing with format functions' "$LINENO" "$expected" "$output"
 }
 
-function test_select_from()
-{
-  local output
-  local expected
-  local ret
-  local entries
-  declare -A condition_array
-
-  # invalid
-  output=$(select_from table columns '' '' '' '' 'wrong/path/invalid_db.db')
-  ret="$?"
-  expected='Database does not exist'
-  assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
-  assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
-
-  output=$(select_from '' "$entries")
-  ret="$?"
-  expected='Empty table.'
-  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
-  assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
-
-  # valid
-  output=$(select_from 'pomodoro' "$entries")
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM "pomodoro" ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  entries=$(concatenate_with_commas '"start_date"' '"start_time"' '"description"')
-  condition_array=(['start_time']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" 'condition_array')
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  condition_array=(['start_time,=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" 'condition_array')
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  condition_array=(['start_time,<']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" 'condition_array')
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time < '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  condition_array=(['start_time,<=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" 'condition_array')
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <= '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  condition_array=(['start_time,>']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" 'condition_array')
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time > '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  condition_array=(['start_time,>=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" 'condition_array')
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time >= '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  condition_array=(['start_time,!=']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" 'condition_array')
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time != '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-
-  condition_array=(['start_time,<>']='2021-11-18')
-  output=$(select_from 'pomodoro' "$entries" 'condition_array')
-  ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <> '2021-11-18' ;')
-  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
-}
-
-test_replace_into()
+function test_replace_into()
 {
   local output
   local expected
@@ -538,6 +409,92 @@ function test_remove_from()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
+function test_select_from()
+{
+  local output
+  local expected
+  local ret
+  local entries
+  declare -A condition_array
+
+  # invalid
+  output=$(select_from table columns '' '' '' '' 'wrong/path/invalid_db.db')
+  ret="$?"
+  expected='Database does not exist'
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" 2 "$ret"
+  assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
+
+  output=$(select_from '' "$entries")
+  ret="$?"
+  expected='Empty table.'
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
+
+  # valid
+  output=$(select_from 'pomodoro' "$entries")
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM "pomodoro" ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  entries=$(concatenate_with_commas '"start_date"' '"start_time"' '"description"')
+  condition_array=(['start_time']='2021-11-18')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  condition_array=(['start_time,=']='2021-11-18')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  condition_array=(['start_time,<']='2021-11-18')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time < '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  condition_array=(['start_time,<=']='2021-11-18')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <= '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  condition_array=(['start_time,>']='2021-11-18')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time > '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  condition_array=(['start_time,>=']='2021-11-18')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time >= '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  condition_array=(['start_time,!=']='2021-11-18')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time != '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  condition_array=(['start_time,<>']='2021-11-18')
+  output=$(select_from 'pomodoro' "$entries" 'condition_array')
+  ret="$?"
+  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <> '2021-11-18' ;')
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+}
+
 function test_update_into()
 {
   local columnns
@@ -666,6 +623,49 @@ function test_generate_set_clause()
   ret="$?"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected no error' "$LINENO" 0 "$ret"
+}
+
+function test_format_values_db()
+{
+  local output
+  local expected
+  local ret
+
+  output=$(format_values_db 0)
+  ret="$?"
+  expected='No arguments given'
+  assert_equals_helper 'Invalid db, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
+
+  output=$(format_values_db 3 'first' 'second' 'third')
+  ret="$?"
+  expected="('first','second','third')"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  output=$(format_values_db 2 "some_func('lala xpto')" "somefunc2('lala xpto')")
+  ret="$?"
+  expected="(some_func('lala xpto'),somefunc2('lala xpto'))"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  output=$(format_values_db 2 'first 1' 'second 1' 'first 2' 'second 2')
+  ret="$?"
+  expected="('first 1','second 1'),('first 2','second 2')"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  output=$(format_values_db 1 "some 'quotes'")
+  ret="$?"
+  expected="('some ''quotes''')"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+
+  output=$(format_values_db 2 'first' 'NULL')
+  ret="$?"
+  expected="('first',NULL)"
+  assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
+  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
 invoke_shunit
