@@ -28,3 +28,4 @@ procps-ng
 pciutils
 libnotify
 python3-sphinx
+psmisc

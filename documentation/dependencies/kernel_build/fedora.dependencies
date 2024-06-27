@@ -10,3 +10,5 @@ elfutils-libelf-devel
 openssl
 dwarves
 llvm
+clang
+lld
