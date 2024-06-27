@@ -76,7 +76,6 @@ function run_sql_query()
   local query="$1"
   local db="${2:-"$DB_NAME"}"
   local db_folder="${3:-"$KW_DATA_DIR"}"
-  #local db_path ="$2"
   local flag=${4:-'SILENT'}
   local pre_cmd="$5"
   local cmd
@@ -279,7 +278,7 @@ function update_into()
 
   if [[ -z "$_condition_array" || -z "$_updates_array" ]]; then
     complain 'Empty condition or updates array.'
-    return 22 #EINVAL
+    return 22 # EINVAL
   fi
 
   where_clause="$(generate_where_clause "$_condition_array")"
@@ -367,7 +366,7 @@ function format_values_db()
 
   if [[ "$#" == 0 ]]; then
     complain 'No arguments given'
-    return 22
+    return 22 # EINVAL
   fi
 
   for val in "$@"; do
