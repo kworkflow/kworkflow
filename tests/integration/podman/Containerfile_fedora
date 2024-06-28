@@ -5,3 +5,10 @@ RUN dnf install -y git
 COPY ./clone_and_install_kw.sh .
 
 RUN bash ./clone_and_install_kw.sh
+
+# Copy scripts from the "tests/integration/podman/scripts/" folder to a
+# temporary directory
+COPY scripts/ /tmp/scripts/
+
+# Make all files in /tmp/scripts/ executable and move them to /bin/
+RUN find /tmp/scripts/ -type f -exec chmod +x {} + && mv /tmp/scripts/* /bin/
