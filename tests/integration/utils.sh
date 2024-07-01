@@ -130,7 +130,7 @@ function setup_container_environment()
 
     # Container images already have kw installed. Install it again, overwriting
     # the installation.
-    container_exec "${container_name}" './setup.sh --install --force --skip-checks --skip-docs > /dev/null 2>&1'
+    container_exec "${container_name}" './setup.sh --install --force --skip-docs > /dev/null 2>&1'
 
     if [[ "$?" -ne 0 ]]; then
       fail "(${LINENO}): Failed to install kw in the container ${container_name}"
