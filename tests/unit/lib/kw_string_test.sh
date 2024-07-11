@@ -321,6 +321,36 @@ function test_str_has_special_characters()
 
   output=$(str_has_special_characters 'We have a special char!')
   assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char@')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char#')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char$')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char^')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char&')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char()')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char)')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char+')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char%')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
+
+  output=$(str_has_special_characters 'We have a special char,')
+  assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
 }
 
 function test_str_get_value_under_double_quotes()

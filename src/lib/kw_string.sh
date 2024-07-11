@@ -195,7 +195,7 @@ function concatenate_with_commas()
 }
 
 # This function check if a string has some special character associated with
-# it. By special character, we refer to: !, @, #, $, %, ^, &, (, ), and +.
+# it. By special character, we refer to: !, @, #, $, %, ^, &, (, ), (' ), (" ) and +.
 #
 # @str: Target string
 #
@@ -205,7 +205,7 @@ function str_has_special_characters()
 {
   local str="$*"
 
-  [[ "$str" == *['!'@#\$%^\&*\(\)+]* ]] && return 0
+  [[ "$str" =~ ['!'@#\$%^\&*\(\)+,\"\'] ]] && return 0
   return 1 # EPERM
 }
 
