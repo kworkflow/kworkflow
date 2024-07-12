@@ -88,7 +88,7 @@ function run_tests()
       test_dir=$(dirname "${target}")
 
       # Format the test name to be displayed in the output.
-      current_test="$(basename "$test_dir")/$(basename "$target" | sed 's/.sh//')"
+      current_test="$(basename "$test_dir")/$(basename "$target" | sed 's/\.sh//')"
 
       say "Running test [${current_test}]"
       say "$SEPARATOR"
