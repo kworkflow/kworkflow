@@ -1,0 +1,99 @@
+# TODO: Use a separate provisioning script for all of these commands below.
+#
+
+Vagrant.configure("2") do |config|
+  # Debian VM
+  config.vm.define 'kw-debian' do |debian|
+    debian.vm.box = 'generic/debian12'
+
+    # Sync a folder from the host to the VM
+    debian.vm.synced_folder '../scripts', '/home/vagrant/scripts'
+
+    # Set up the default configuration for ssh connection
+    debian.vm.provision "shell", inline: <<-SHELL
+      echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+      sed -i 's/#PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+      service ssh restart
+      cp /home/vagrant/.ssh/authorized_keys /root/.ssh/authorized_keys
+    SHELL
+
+    # Provisioning shell script example
+    debian.vm.provision 'shell', inline: <<-SHELL
+      apt update -y && apt install git -y
+      chmod +x /home/vagrant/scripts/clone_and_install_kw.sh
+
+      # Run the script as the 'vagrant' user
+      sudo -u vagrant bash /home/vagrant/scripts/clone_and_install_kw.sh
+
+      # Ensure kw is accessible globally by adding it to PATH for all users
+      if [ -d "/home/vagrant/.local/bin" ]; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/vagrant/.bashrc
+      fi
+    SHELL
+  end
+
+  # Fedora VM
+  config.vm.define 'kw-fedora' do |fedora|
+    fedora.vm.box = 'generic/fedora39'
+
+    # Sync a folder from the host to the VM
+    fedora.vm.synced_folder '../scripts', '/home/vagrant/scripts'
+
+    # Set up the default configuration for ssh connection
+    fedora.vm.provision "shell", inline: <<-SHELL
+      echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+      sed -i 's/#PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+      systemctl restart sshd
+      cp /home/vagrant/.ssh/authorized_keys /root/.ssh/authorized_keys
+    SHELL
+
+    # Provisioning shell script example
+    fedora.vm.provision 'shell', inline: <<-SHELL
+      dnf update -y && dnf install git -y
+      chmod +x /home/vagrant/scripts/clone_and_install_kw.sh
+
+      # Run the script as the 'vagrant' user
+      sudo -u vagrant bash /home/vagrant/scripts/clone_and_install_kw.sh
+
+      # Ensure kw is accessible globally by adding it to PATH for all users
+      if [ -d "/home/vagrant/.local/bin" ]; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/vagrant/.bashrc
+      fi
+    SHELL
+  end
+
+  # Arch Linux VM
+  config.vm.define 'kw-archlinux' do |arch|
+    arch.vm.box = 'generic/arch'
+
+    # Sync a folder from the host to the VM
+    arch.vm.synced_folder '../scripts', '/home/vagrant/scripts'
+
+    # Set up the default configuration for ssh connection
+    arch.vm.provision "shell", inline: <<-SHELL
+      echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+      sed -i 's/#PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+      systemctl restart sshd
+      cp /home/vagrant/.ssh/authorized_keys /root/.ssh/authorized_keys
+    SHELL
+
+    # Provisioning shell script example
+    arch.vm.provision 'shell', inline: <<-SHELL
+      pacman -Syu --noconfirm && pacman -S git --noconfirm
+      chmod +x /home/vagrant/scripts/clone_and_install_kw.sh
+
+      # Run the script as the 'vagrant' user
+      sudo -u vagrant bash /home/vagrant/scripts/clone_and_install_kw.sh
+
+      # Ensure kw is accessible globally by adding it to PATH for all users
+      if [ -d "/home/vagrant/.local/bin" ]; then
+        echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/vagrant/.bashrc
+      fi
+    SHELL
+
+    # Ensure SSH is properly configured and restart the service
+    arch.vm.provision "shell", inline: <<-SHELL
+      systemctl restart sshd
+    SHELL
+  end
+end

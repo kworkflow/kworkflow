@@ -14,4 +14,4 @@ kw_dir='/tmp/kw'
 git clone https://github.com/kworkflow/kworkflow "${kw_dir}"
 cd "$kw_dir" || exit 1
 git checkout unstable
-./setup.sh --install --force --skip-docs
+./setup.sh --full-installation --force --skip-docs

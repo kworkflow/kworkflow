@@ -144,6 +144,15 @@ function setup_container_environment()
   DISTROS=("${distros_ok[@]}")
 }
 
+function setup_vm_environment()
+{
+  local virtual_machine_name="$1"
+
+  export VAGRANT_CWD="${script_dir}/vagrant"
+
+  vagrant up "$virtual_machine_name"
+}
+
 # Destroy all containers used in the tests.
 function teardown_containers()
 {
@@ -452,4 +461,44 @@ function container_inspect()
   if [[ "$?" -ne 0 ]]; then
     fail "(${LINENO}): Failed to inspect the container."
   fi
+}
+
+# This function executes commands inside the vm environment
+#
+# @vm_name The name of the virtual machine
+# @vm_cmmand Command to be executed
+function vm_exec()
+{
+  local vm_name="$1"
+  local vm_command="$2"
+  local cmd='vagrant ssh'
+
+  cmd+=" ${vm_name} -c '${vm_command}' 2> /dev/null"
+  eval "$cmd"
+
+  if [[ "$?" -ne 0 ]]; then
+    say "$cmd"
+    fail "(${LINENO}): Failed to execute the command in the VM."
+  fi
+}
+
+function teardown_single_vm()
+{
+  local vm="$1"
+
+  # make this more robust
+  vagrant destroy --force "$vm" > /dev/null 2>&1
+}
+
+# Using a function to randomly select a distro from the DISTROS array. This
+# ensures that we use a different distro each time the script is run, which
+# helps in testing the build feature across various environments while reducing
+# the consumption of resources by not looping through all distros.
+function select_random_distro()
+{
+  local random_index
+
+  random_index=$((RANDOM % ${#DISTROS[@]}))
+
+  printf "%s\n" "${DISTROS[$random_index]}"
 }
