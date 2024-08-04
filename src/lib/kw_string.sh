@@ -280,3 +280,30 @@ function string_to_unix_filename()
 
   printf '%s' "$filename"
 }
+
+# This function get the position of the first given char in the given string
+#
+# @string: Target string
+# @char: Target char
+#
+# Return:
+# The position of the first occurence of the char in the string, 0 otherwise
+function str_get_char_position()
+{
+  local string="$1"
+  local char="$2"
+  local pos
+  local aux
+  local length
+
+  aux="${string%%"$char"*}"
+  pos=$((${#aux} + 1))
+  length=${#string}
+
+  if [[ "$length" -lt "$pos" ]]; then
+    printf '%s' 0
+    return
+  fi
+
+  printf '%s' "$pos"
+}
