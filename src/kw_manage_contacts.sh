@@ -60,6 +60,14 @@ function manage_contacts_main()
     fi
   fi
 
+  if [[ -n "${options_values['GROUPS_ADD']}" ]]; then
+    add_email_contacts "${options_values['GROUPS_ADD']}" "${options_values['GROUP']}"
+
+    if [[ "$?" -eq 0 ]]; then
+      success 'Contacts added successfully!'
+    fi
+  fi
+
   return 0
 }
 
@@ -311,6 +319,287 @@ function rename_group()
   return 0
 }
 
+# This function add a new contact to a given kw mail group
+#
+# @contacts_string: The string with all the contacts informations
+# @group_name: The name of the group which the contacts will be added.
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function add_email_contacts()
+{
+  local contacts_list="$1"
+  local group_name="$2"
+  local group_id
+  declare -A _contacts_array
+
+  if [[ -z "$contacts_list" ]]; then
+    complain 'The contacts list is empty'
+    return 61 # ENODATA
+  fi
+
+  if [[ -z "$group_name" ]]; then
+    complain 'The group name is empty'
+    return 61 # ENODATA
+  fi
+
+  check_existent_group "$group_name"
+  group_id="$?"
+
+  if [[ "$group_id" -eq 0 ]]; then
+    complain 'Error, ubable to add contacts to unexistent group'
+    return 22 # EINVAL
+  fi
+
+  split_contact_infos "$contacts_list" _contacts_array
+
+  if [[ "$?" -ne 0 ]]; then
+    return 22 # EINVAL
+  fi
+
+  add_contacts _contacts_array
+
+  if [[ "$?" -ne 0 ]]; then
+    return 22 # EINVAL
+  fi
+
+  add_contact_group _contacts_array "$group_id"
+
+  if [[ "$?" -ne 0 ]]; then
+    return 22 # EINVAL
+  fi
+
+  return 0
+}
+
+# This function split the columns in the given contact string passed
+# as parameter and create an associative array with the infos.
+#
+# @contacts_list: An string formed as "CONTACT_NAME <CONTACT_EMAIL>, CONTACT_NAME <CONTACT_EMAIL>, ..."
+# @contacts_array: An associative array formed as "<CONTACT_EMAIL>:<CONTACT_NAME>"
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function split_contact_infos()
+{
+  local contacts_list="$1"
+  local -n contacts_array="$2"
+  local contacts_infos_array
+  local contact_info
+  local ret
+  local name
+  local email
+  local added_contacts=0
+
+  readarray -t contacts_infos_array < <(awk -v RS=", " '{print}' <<< "$contacts_list")
+
+  for contact_info in "${contacts_infos_array[@]}"; do
+    if [[ -z "$contact_info" ]]; then
+      continue
+    fi
+
+    check_infos_sintaxe "$contact_info"
+
+    if [[ "$?" -ne 0 ]]; then
+      return 22 #EINVAL
+    fi
+
+    email="$(cut --delimiter='<' --fields=2 <<< "$contact_info" | cut --delimiter='>' --fields=1)"
+    name="$(cut --delimiter='<' --fields=1 <<< "$contact_info")"
+
+    validate_contact_infos "$email" "$name"
+
+    if [[ "$?" -ne 0 ]]; then
+      return 22 #EINVAL
+    fi
+
+    contacts_array["$email"]="$name"
+    ((added_contacts++))
+  done
+
+  if [[ "$added_contacts" -ne "${#contacts_array[@]}" ]]; then
+    complain 'Error, Some of the contacts must have a repeated email'
+    return 22 #EINVAL
+  fi
+
+  return 0
+}
+
+# This function validate if the string with the contact infos is valid
+#
+# @contact_info: The string with the contact info,
+# formed as: "CONTACT_NAME <CONTACT_EMAIL>"
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function check_infos_sintaxe()
+{
+  local contact_info="$1"
+  local lt_pos
+  local lt_count
+  local gt_pos
+  local gt_count
+
+  gt_count=$(str_count_char_repetition "$contact_info" '>')
+  lt_count=$(str_count_char_repetition "$contact_info" '<')
+
+  gt_pos=$(str_get_char_position "$contact_info" '>')
+  lt_pos=$(str_get_char_position "$contact_info" '<')
+
+  if [[ "$lt_count" -eq 0 ]]; then
+    complain 'Syntax error in the contacts list, there is a missing "<" in some of the contacts <email>'
+    return 22 #EINVAL
+  elif [[ "$gt_count" -eq 0 ]]; then
+    complain 'Syntax error in the contacts list, there is a missing ">" in some of the contacts <email>'
+    return 22 #EINVAL
+  elif [[ "$lt_pos" -gt "$gt_pos" ]]; then
+    complain 'Syntax error in the contacts list, the contact info should be like: name <email>'
+    return 22 #EINVAL
+  elif [[ "$lt_count" -ne 1 ]]; then
+    complain 'Syntax error in the contacts list, there is a remaining "<" in some of the contacts <email>'
+    return 22 #EINVAL
+  elif [[ "$gt_count" -ne 1 ]]; then
+    complain 'Syntax error in the contacts list, there is a remaining ">" in some of the contacts <email>'
+    return 22 #EINVAL
+  fi
+
+  return 0
+}
+
+# This function check if the contacts infos email and name are valid
+#
+# @email: The contact email
+# @name: The contact name
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function validate_contact_infos()
+{
+  local email="$1"
+  local name="$2"
+
+  if [[ -z "$email" || -z "$name" ]]; then
+    complain 'Error, Some of the contact names or emails must be empty'
+    return 61 #EINVAL
+  fi
+
+  validate_email "$email"
+
+  if [[ "$?" -ne 0 ]]; then
+    return 22 #EINVAL
+  fi
+
+  return 0
+}
+
+# This function add a contact in the database
+#
+# @contacts_array: The contact name
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function add_contacts()
+{
+  local -n contacts_array="$1"
+  local values
+  local result
+  local email
+  local contact_id
+  local contact_name
+  local message
+  local entries
+  local existent_contact
+  local sql_operation_result
+  local ret
+
+  for email in "${!contacts_array[@]}"; do
+    condition_array=(["email"]="${email}")
+    entries=$(concatenate_with_commas '"id"' '"name"')
+    existent_contact=$(select_from "$DATABASE_TABLE_CONTACT" "$entries" "" "condition_array" '')
+
+    IFS='|' read -r contact_id contact_name <<< "$existent_contact"
+
+    if [[ -n "$contact_name" ]]; then
+      if [[ "${contact_name}" != "${contacts_array["$email"]}" ]]; then
+        message="The email '${email}' you provided is already associated with contact '${contact_name}'."
+        message+=$'\n'
+        message+="Use the existing contact name '${contact_name}' instead of renaming it to '${contacts_array["$email"]}'?"
+
+        if [[ "$(ask_yN "$message")" =~ '0' ]]; then
+          updates_array=(["name"]="${contacts_array["$email"]}")
+          condition_array=(["id"]="${contact_id}")
+          update_into "$DATABASE_TABLE_CONTACT" "updates_array" '' "condition_array"
+          continue
+        fi
+        contacts_array["$email"]="$contact_name"
+      fi
+      continue
+    fi
+
+    values=$(format_values_db 2 "${contacts_array["$email"]}" "${email}")
+
+    sql_operation_result=$(insert_into "$DATABASE_TABLE_CONTACT" '(name, email)' "$values" '' 'VERBOSE')
+    ret="$?"
+
+    if [[ "$ret" -eq 61 || "$ret" -eq 2 ]]; then
+      complain "$sql_operation_result"
+      return 22 # EINVAL
+    elif [[ "$ret" -ne 0 ]]; then
+      complain "($LINENO):" 'Error while trying to insert contact into the database with the command:\n'"${sql_operation_result}"
+      return 22 # EINVAL
+    fi
+
+  done
+
+  return 0
+}
+
+# This function add the association between the contacts
+# and its group in the database
+#
+# @contacts_array: The contact name
+# @group_id: The id of group which the contacts will be associated
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function add_contact_group()
+{
+  local -n contacts_array="$1"
+  local group_id="$2"
+  local values
+  local email
+  local contact_id
+  local ctt_group_association
+  local sql_operation_result
+  local ret
+
+  for email in "${!contacts_array[@]}"; do
+    condition_array=(['email']="${email}")
+    contact_id="$(select_from "$DATABASE_TABLE_CONTACT" 'id' '' 'condition_array')"
+    values="$(format_values_db 2 "$contact_id" "$group_id")"
+
+    condition_array=(['contact_id']="${contact_id}" ['group_id']="${group_id}")
+    ctt_group_association="$(select_from "$DATABASE_TABLE_CONTACT_GROUP" 'contact_id, group_id' '' 'condition_array')"
+    if [[ -n "$ctt_group_association" ]]; then
+      continue
+    fi
+
+    sql_operation_result=$(insert_into "$DATABASE_TABLE_CONTACT_GROUP" '(contact_id, group_id)' "$values" '' 'VERBOSE')
+    ret="$?"
+
+    if [[ "$ret" -eq 2 || "$ret" -eq 61 ]]; then
+      complain "$sql_operation_result"
+      return 22 # EINVAL
+    elif [[ "$ret" -ne 0 ]]; then
+      complain "($LINENO):" $'Error while trying to insert contact group into the database with the command:\n'"${sql_operation_result}"
+      return 22 # EINVAL
+    fi
+
+  done
+
+  return 0
+}
+
 function parse_manage_contacts_options()
 {
   local index
@@ -318,8 +607,8 @@ function parse_manage_contacts_options()
   local setup_token=0
   local patch_version=''
   local commit_count=''
-  local short_options='c:,r:,'
-  local long_options='group-create:,group-remove:,group-rename:,'
+  local short_options='c:,r:,a:,'
+  local long_options='group-create:,group-remove:,group-rename:,group-add:,'
   local pass_option_to_send_email
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -336,6 +625,7 @@ function parse_manage_contacts_options()
   options_values['GROUP_CREATE']=''
   options_values['GROUP_REMOVE']=''
   options_values['GROUP_RENAME']=''
+  options_values['GROUP_ADD']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -350,6 +640,10 @@ function parse_manage_contacts_options()
         ;;
       --group-rename)
         options_values['GROUP_RENAME']="$2"
+        shift 2
+        ;;
+      --group-add | -a)
+        options_values['GROUP_ADD']="$2"
         shift 2
         ;;
       --)
@@ -368,8 +662,11 @@ function manage_contacts_help()
     kworkflow_man 'manage-contacts'
     exit
   fi
-  printf '%s\n' 'kw manage-contacts:' \
+  printf '%s\n' 'kw manage-contacts:'
+
+  printf '%s\n' 'kw manager:' \
     '  manage-contacts (-c | --group-create) [<name>] - create new group' \
     '  manage-contacts (-r | --group-remove) [<name>] - remove existing group' \
-    '  manage-contacts --group-rename [<old_name>:<new_name>] - rename existent group'
+    '  manage-contacts --group-rename [<old_name>:<new_name>] - rename existent group' \
+    '  manage-contacts --group-add "[<group_name>]:[<contact1_name>] <[<contact1_email>]>, [<contact2_name>] <[<contact2_email>]>, ..." - add contact to existent group'
 }
