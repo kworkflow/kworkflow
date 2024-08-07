@@ -51,6 +51,9 @@ declare -r CONFIGS_PATH='configs'
 
 declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
 
+# patch-hub latest release endpoint
+declare -r PATCH_HUB_LATEST_RELEASE='https://github.com/kworkflow/patch-hub/releases/latest/download/patch-hub-x86_64-unknown-linux-gnu.tar.xz'
+
 # This function identifies the missing packages required by the distribution.
 #
 # @distro: The distribution name (arch, debian, fedora, etc.)
@@ -431,6 +434,9 @@ function clean_legacy()
   # Remove etc files
   [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
 
+  # Remove patch-hub binary
+  [[ -f "${binpath}/patch-hub" ]] && mv "${binpath}/patch-hub" "$trash"
+
   # Completely remove user data
   if [[ "$completely_remove" =~ '-d' ]]; then
     mv "$datadir" "$trash/userdata"
@@ -650,8 +656,46 @@ function install_home()
   # Show current environment in terminal
   setup_bashrc_to_show_current_kw_env
 
+  install_patch_hub
+  if [[ "$?" != 0 ]]; then
+    warning ''
+    warning '-> Could not install the latest release of `patch-hub`.'
+    warning '   To use the `kw patch-hub` feature, you will need to install the `patch-hub` executable.'
+    warning '   Either try re-running this script or following the instructions below.'
+    warning '   Install instructions: https://github.com/kworkflow/patch-hub?tab=readme-ov-file#package-how-to-install.'
+  fi
+
   warning ''
   warning '-> For a better experience with kw, please, open a new terminal.'
+}
+
+function install_patch_hub()
+{
+  local tmp_dir
+  local ret
+
+  say ''
+  say 'Installing `patch-hub`...'
+
+  tmp_dir="$(mktemp --directory)"
+
+  curl --silent --location --output "${tmp_dir}/patch-hub.tar.xz" "$PATCH_HUB_LATEST_RELEASE"
+  ret="$?"
+  if [[ "$?" != 0 ]]; then
+    return "$ret"
+  fi
+
+  tar xf "${tmp_dir}/patch-hub.tar.xz" --directory="$tmp_dir" --strip-components=1
+  ret="$?"
+  if [[ "$?" != 0 ]]; then
+    return "$ret"
+  fi
+
+  cp "${tmp_dir}/patch-hub" "${binpath}"
+  ret="$?"
+  if [[ "$?" != 0 ]]; then
+    return "$ret"
+  fi
 }
 
 function full_installation()

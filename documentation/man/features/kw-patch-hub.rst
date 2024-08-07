@@ -1,6 +1,6 @@
-===============================================
-kw-patch-hub - UI with lore.kernel.org archives
-===============================================
+========================================================================
+kw-patch-hub - Terminal UI to interact with patches from lore.kernel.org
+========================================================================
 
 .. _patch-hub-doc:
 
@@ -10,22 +10,27 @@ SYNOPSIS
 
 DESCRIPTION
 ===========
-The `kw patch-hub` feature provides an interface with the public mailing lists
-archived on `https://lore.kernel.org`, focusing on patch series. The feature can
-be used to just consult patch series from a given list, but, as it integrates
-with other kw features, it simplifies the process of reviewing patch series,
-like:
+The `kw patch-hub` feature provides a TUI (*Terminal User Interface*) that
+streamlines the interaction of Linux developers with patches archived on
+lore.kernel.org. The feature can be used to just consult patchsets from a
+target list, but, as it integrates with other kw features, it simplifies the
+process of reviewing patchset, like:
 
-- Applying a patch series to a git tree
-- Building the series version of the kernel
-- Deploying the series version of the kernel
-- Replying with `Reviewed-by/Tested-by`
+- Applying a patchset to a git tree
+- Building the patchset version of the Linux kernel
+- Deploying the patchset version of the Linux kernel
+- Replying with `Reviewed-by/Tested-by` tags
 
-`kw patch-hub` provides routines to automate and simplify these actions.
+`kw patch-hub` is an integrated interface to automate and simplify these
+actions.
+
+.. note::
+  `patch-hub` is a `standalone sub-project
+  <https://github.com/kworkflow/patch-hub>`_ from the kw organization and it is
+  under heavy development. We welcome contributions!
 
 EXAMPLES
 ========
-The feature is screen-focused, and to open the UI with the public mailing lists,
-just run::
+To launch `kw patch-hub` simply run::
 
   kw patch-hub
