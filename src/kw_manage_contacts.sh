@@ -68,6 +68,14 @@ function manage_contacts_main()
     fi
   fi
 
+  if [[ -n "${options_values['GROUP_REMOVE_EMAIL']}" ]]; then
+    remove_email_contact "${options_values['GROUP']}" "${options_values['GROUP_REMOVE_EMAIL']}"
+
+    if [[ "$?" -eq 0 ]]; then
+      success 'Contact removed successfully!'
+    fi
+  fi
+
   return 0
 }
 
@@ -600,6 +608,84 @@ function add_contact_group()
   return 0
 }
 
+# This function removes a kw mail contact associations
+# from the database.
+#
+# @contact_email: The email which will be removed
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function remove_email_contact()
+{
+  local group_name="$1"
+  local contact_email="$2"
+  local contact_id
+
+  if [[ -z "$group_name" ]]; then
+    complain 'Error, the group name is empty'
+    return 61 # ENODATA
+  fi
+
+  if [[ -z "$contact_email" ]]; then
+    complain 'Error, contact email is empty'
+    return 61 # EINVAL
+  fi
+
+  check_existent_group "$group_name"
+
+  if [[ "$?" -eq 0 ]]; then
+    complain 'Error, this group doesnt exist'
+    return 22 # EINVAL
+  fi
+
+  condition_array=(['email']="${contact_email}")
+  contact_id="$(select_from "$DATABASE_TABLE_CONTACT" 'id' '' 'condition_array')"
+
+  if [[ -z "$contact_id" ]]; then
+    complain 'Error, this email is not associated with a contact'
+    return 22 # EINVAL
+  fi
+
+  condition_array=(['name']="${group_name}")
+  remove_contact "$contact_id"
+
+  if [[ "$?" -ne 0 ]]; then
+    complain 'Error while removing contacts without group'
+    return 22 # EINVAL
+  fi
+
+  return 0
+}
+
+# This function removes associated groups from a contact
+#
+# @contact_id: The id of the contact which will be
+# removed
+#
+# Returns:
+# returns 0 if successful, non-zero otherwise
+function remove_contact()
+{
+  local contact_id="$1"
+  local sql_operation_result
+  local ret
+
+  condition_array=(['id']="${contact_id}")
+
+  sql_operation_result=$(remove_from "$DATABASE_TABLE_CONTACT" 'condition_array' '' '' 'VERBOSE')
+  ret="$?"
+
+  if [[ "$ret" -eq 2 || "$ret" -eq 61 ]]; then
+    complain "$sql_operation_result"
+    return 22 # EINVAL
+  elif [[ "$ret" -ne 0 ]]; then
+    complain "($LINENO): "$'Error while removing contact from the database with the command:\n'"${sql_operation_result}"
+    return 22 # EINVAL
+  fi
+
+  return 0
+}
+
 function parse_manage_contacts_options()
 {
   local index
@@ -608,7 +694,7 @@ function parse_manage_contacts_options()
   local patch_version=''
   local commit_count=''
   local short_options='c:,r:,a:,'
-  local long_options='group-create:,group-remove:,group-rename:,group-add:,'
+  local long_options='group-create:,group-remove:,group-rename:,group-add:,group-remove-email:,'
   local pass_option_to_send_email
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
@@ -626,6 +712,7 @@ function parse_manage_contacts_options()
   options_values['GROUP_REMOVE']=''
   options_values['GROUP_RENAME']=''
   options_values['GROUP_ADD']=''
+  options_values['GROUP_REMOVE_EMAIL']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -644,6 +731,11 @@ function parse_manage_contacts_options()
         ;;
       --group-add | -a)
         options_values['GROUP_ADD']="$2"
+        shift 2
+        ;;
+      --group-remove-email)
+        options_values['GROUP']=$(printf "%s\n" "$2" | cut -d':' -f1)
+        options_values['GROUP_REMOVE_EMAIL']=$(printf "%s\n" "$2" | cut -d':' -f2-)
         shift 2
         ;;
       --)
@@ -668,5 +760,6 @@ function manage_contacts_help()
     '  manage-contacts (-c | --group-create) [<name>] - create new group' \
     '  manage-contacts (-r | --group-remove) [<name>] - remove existing group' \
     '  manage-contacts --group-rename [<old_name>:<new_name>] - rename existent group' \
-    '  manage-contacts --group-add "[<group_name>]:[<contact1_name>] <[<contact1_email>]>, [<contact2_name>] <[<contact2_email>]>, ..." - add contact to existent group'
+    '  manage-contacts --group-add "[<group_name>]:[<contact1_name>] <[<contact1_email>]>, [<contact2_name>] <[<contact2_email>]>, ..." - add contact to existent group' \
+    '  manage-contacts --group-remove-email "[<group_name>]:[<contact_name>]" - add contact to existent group'
 }

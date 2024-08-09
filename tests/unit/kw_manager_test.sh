@@ -287,26 +287,26 @@ function test_add_email_contacts()
   local ret
 
   # invalid values
-  output="$(add_email_contacts 'add_emmail_ctt <add_email_ctt@email.com>' 'unexistent_group')"
+  output=$(add_email_contacts 'add_emmail_ctt <add_email_ctt@email.com>' 'unexistent_group')
   ret="$?"
   expected='Error, ubable to add contacts to unexistent group'
   assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
 
-  output="$(add_email_contacts '' "$TEST_GROUP_NAME")"
+  output=$(add_email_contacts '' "$TEST_GROUP_NAME")
   ret="$?"
   expected='The contacts list is empty'
   assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 61
 
-  output="$(add_email_contacts 'add_emmail_ctt <add_ema il_ctt@email.com>' "$TEST_GROUP_NAME")"
+  output=$(add_email_contacts 'add_emmail_ctt <add_ema il_ctt@email.com>' "$TEST_GROUP_NAME")
   ret="$?"
   expected='Invalid email: add_ema il_ctt@email.com'
   assert_equals_helper 'Expected no error' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
 
   # valid values
-  output="$(add_email_contacts 'add_emmail_ctt <add_email_ctt@email.com>' "$TEST_GROUP_NAME")"
+  output=$(add_email_contacts 'add_emmail_ctt <add_email_ctt@email.com>' "$TEST_GROUP_NAME")
   ret="$?"
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
 }
@@ -321,21 +321,21 @@ function test_split_contact_infos()
 
   # invalid values
   contacts_list="Test Contact 1 <test1@email.com>, Test Contact 1 <test1@email.com>"
-  output="$(split_contact_infos "$contacts_list" 'output_arr')"
+  output=$(split_contact_infos "$contacts_list" 'output_arr')
   ret="$?"
   expected='Error, Some of the contacts must have a repeated email'
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
   assert_equals_helper 'Contact infos should not have been splitted' "$LINENO" "$expected" "$output"
 
   contacts_list="Test Contact 1 <>, Test Contact 1 <test1@email.com>"
-  output="$(split_contact_infos "$contacts_list" 'output_arr')"
+  output=$(split_contact_infos "$contacts_list" 'output_arr')
   ret="$?"
   expected='Error, Some of the contact names or emails must be empty'
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
   assert_equals_helper 'Contact infos should not have been splitted' "$LINENO" "$expected" "$output"
 
   contacts_list="Test Contact 1 <test1@email.com>, <test2@email.com>"
-  output="$(split_contact_infos "$contacts_list" 'output_arr')"
+  output=$(split_contact_infos "$contacts_list" 'output_arr')
   ret="$?"
   expected='Error, Some of the contact names or emails must be empty'
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
@@ -368,38 +368,38 @@ function test_check_infos_sintaxe()
   local ret
 
   # invalid values
-  output="$(check_infos_sintaxe 'Test Contact >test@email.com>')"
+  output=$(check_infos_sintaxe 'Test Contact >test@email.com>')
   ret="$?"
   expected='Syntax error in the contacts list, there is a missing "<" in some of the contacts <email>'
   assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
-  output="$(check_infos_sintaxe 'Test Contact <test@email.com<')"
+  output=$(check_infos_sintaxe 'Test Contact <test@email.com<')
   ret="$?"
   expected='Syntax error in the contacts list, there is a missing ">" in some of the contacts <email>'
   assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
-  output="$(check_infos_sintaxe 'Test Contact >test@email.com<')"
+  output=$(check_infos_sintaxe 'Test Contact >test@email.com<')
   ret="$?"
   expected='Syntax error in the contacts list, the contact info should be like: name <email>'
   assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
-  output="$(check_infos_sintaxe 'Test Contact <<test@email.com>')"
+  output=$(check_infos_sintaxe 'Test Contact <<test@email.com>')
   ret="$?"
   expected='Syntax error in the contacts list, there is a remaining "<" in some of the contacts <email>'
   assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
-  output="$(check_infos_sintaxe 'Test Contact <test@email.com>>')"
+  output=$(check_infos_sintaxe 'Test Contact <test@email.com>>')
   ret="$?"
   expected='Syntax error in the contacts list, there is a remaining ">" in some of the contacts <email>'
   assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 22
 
   #valid values
-  output="$(check_infos_sintaxe 'Test Contact <test@email.com>')"
+  output=$(check_infos_sintaxe 'Test Contact <test@email.com>')
   ret="$?"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 0
 }
@@ -411,19 +411,19 @@ function test_validate_contact_infos()
   local ret
 
   # invalid values
-  output="$(validate_contact_infos 'email@mail.com' '')"
+  output=$(validate_contact_infos 'email@mail.com' '')
   ret="$?"
   expected='Error, Some of the contact names or emails must be empty'
   assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 61
 
-  output="$(validate_contact_infos '' 'Name')"
+  output=$(validate_contact_infos '' 'Name')
   ret="$?"
   expected='Error, Some of the contact names or emails must be empty'
   assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected an error' "$LINENO" "$ret" 61
 
-  output="$(validate_contact_infos 'email' 'Name')"
+  output=$(validate_contact_infos 'email' 'Name')
   ret="$?"
   expected='Invalid email: email'
   assert_equals_helper 'Contact infos should be wrong' "$LINENO" "$expected" "$output"
@@ -489,7 +489,7 @@ Test Add Contact 3|testaddctt3@email.com'
   )
   add_contacts '_contacts_arr'
   ret="$?"
-  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name, email FROM \"${DATABASE_TABLE_CONTACT}\" WHERE email='testaddctt4@email.com';")"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name, email FROM \"${DATABASE_TABLE_CONTACT}\" WHERE email='testaddctt4@email.com';")
   expected='Test Add Contact 4|testaddctt4@email.com'
   assert_equals_helper 'Contacts were not created' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
@@ -501,7 +501,7 @@ Test Add Contact 3|testaddctt3@email.com'
   (printf 'y\n' | add_contacts '_contacts_arr')
 
   ret="$?"
-  output="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name, email FROM \"${DATABASE_TABLE_CONTACT}\" WHERE email='testaddctt4@email.com';")"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT name, email FROM \"${DATABASE_TABLE_CONTACT}\" WHERE email='testaddctt4@email.com';")
   expected='Test Add Contact 4|testaddctt4@email.com'
   assert_equals_helper 'Contacts were not created' "$LINENO" "$expected" "$output"
   assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
@@ -563,6 +563,87 @@ function test_add_contact_group()
   assert_equals_helper 'Expected error' "$LINENO" "$ret" 22
 }
 
+function test_remove_contact()
+{
+  local expected
+  local output
+  local ret
+
+  local contact_id
+
+  # invalid values
+  output=$(remove_contact "abc1'")
+  ret="$?"
+  expected=$'Error while removing contact from the database with the command:\nsqlite3 -init '
+  expected+="${KW_DB_DIR}/pre_cmd.sql \"${KW_DATA_DIR}/kw.db\" "
+  expected+="-batch \"DELETE FROM email_contact WHERE id='abc1'' ;\""
+  assertContains 'Contact was not removed' "$output" "$expected"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  # valid values
+  remove_contact 99999999 # Unexistent id
+  ret="$?"
+  expected=''
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_CONTACT}\" (name, email) VALUES ('Remove Contact Group', 'rmcttgroup@email.com') ;"
+  contact_id="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM \"${DATABASE_TABLE_CONTACT}\" WHERE email='rmcttgroup@email.com' ;")"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_CONTACT_GROUP}\" (contact_id, group_id) VALUES (\"${contact_id}\", \"${TEST_GROUP_ID}\") ;"
+
+  remove_contact "$contact_id"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM \"${DATABASE_TABLE_CONTACT}\" WHERE id=\"${contact_id}\" ;")
+  ret="$?"
+  expected=''
+  assert_equals_helper 'Contact was not removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM \"${DATABASE_TABLE_CONTACT_GROUP}\" WHERE contact_id=\"${contact_id}\" ;")
+  assert_equals_helper 'Contact was not removed' "$LINENO" "$expected" "$output"
+}
+
+function test_remove_email_contact()
+{
+  local expected
+  local output
+  local ret
+
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_CONTACT}\" (name, email) VALUES ('Remove Contact', 'rmctt@email.com') ;"
+  contact_id="$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT id FROM \"${DATABASE_TABLE_CONTACT}\" WHERE email='rmctt@email.com' ;")"
+  sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO \"${DATABASE_TABLE_CONTACT_GROUP}\" (contact_id, group_id) VALUES (\"${contact_id}\", \"${TEST_GROUP_ID}\") ;"
+
+  # invalid values
+  output=$(remove_email_contact '' 'rmctt@email.com')
+  ret="$?"
+  expected='Error, the group name is empty'
+  assert_equals_helper 'Contact should not have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 61
+
+  output=$(remove_email_contact "$TEST_GROUP_NAME" '')
+  ret="$?"
+  expected='Error, contact email is empty'
+  assert_equals_helper 'Contact should not have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 61
+
+  output=$(remove_email_contact 'unexistent_group' 'rmctt@email.com')
+  ret="$?"
+  expected='Error, this group doesnt exist'
+  assert_equals_helper 'Contact should not have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  output=$(remove_email_contact 'unexistent_group' 'unexistent_contact@email.com')
+  ret="$?"
+  expected='Error, this group doesnt exist'
+  assert_equals_helper 'Contact should not have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 22
+
+  # valid values
+  remove_email_contact "$TEST_GROUP_NAME" 'rmctt@email.com'
+  ret="$?"
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT * FROM \"${DATABASE_TABLE_CONTACT}\" WHERE email='rmctt@email.com' ;")
+  expected=''
+  assert_equals_helper 'Contact should not have been removed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected no error' "$LINENO" "$ret" 0
+}
+
 function test_manage_contacts_parser()
 {
   local expected
@@ -596,6 +677,12 @@ function test_manage_contacts_parser()
   parse_manage_contacts_options '--group-add' 'group:ctt1 <email1>, ctt2 <email2>'
   expected='group:ctt1 <email1>, ctt2 <email2>'
   assert_equals_helper 'Set group add' "$LINENO" "${options_values['GROUP_ADD']}" "$expected"
+
+  parse_manage_contacts_options '--group-remove-email' 'group:email'
+  expected='email'
+  assert_equals_helper 'Set group remove-email' "$LINENO" "${options_values['GROUP_REMOVE_EMAIL']}" "$expected"
+  expected='group'
+  assert_equals_helper 'Set group remove-email' "$LINENO" "${options_values['GROUP']}" "$expected"
 }
 
 invoke_shunit
