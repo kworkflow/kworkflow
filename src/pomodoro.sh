@@ -172,9 +172,10 @@ function timer_thread()
 
   flag=${flag:-'SILENT'}
 
-  if [[ -n "${options_values['TAG']}" ]]; then
-    register_data_for_report "$flag"
+  if [[ -z "${options_values['TAG']}" ]]; then
+    options_values['TAG']='NO_TAG'
   fi
+  register_data_for_report "$flag"
 
   cmd_manager "$flag" "sleep ${options_values['TIMER']}"
   alert_completion "Pomodoro: Your ${options_values['TIMER']} timebox ended" '--alert=vs'
