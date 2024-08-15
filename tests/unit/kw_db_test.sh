@@ -163,13 +163,13 @@ function test_insert_into()
   output=$(insert_into '' entries values)
   ret="$?"
   expected='Empty table or values.'
-  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 61 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   output=$(insert_into table entries '')
   ret="$?"
   expected='Empty table or values.'
-  assert_equals_helper 'Empty values, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Empty values, error expected' "$LINENO" 61 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   # valid
@@ -238,7 +238,7 @@ function test_select_from()
   output=$(select_from '' "$entries" '' '')
   ret="$?"
   expected='Empty table.'
-  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 61 "$ret"
   assert_equals_helper 'Expected error msg' "$LINENO" "$expected" "$output"
 
   # valid
@@ -322,13 +322,13 @@ test_replace_into()
   output=$(replace_into '' columns rows)
   ret="$?"
   expected='Empty table or rows.'
-  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 61 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
   output=$(replace_into table columns '')
   ret="$?"
   expected='Empty table or rows.'
-  assert_equals_helper 'Empty rows, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Empty rows, error expected' "$LINENO" 61 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
   # valid operation with non-existent row
@@ -369,13 +369,13 @@ function test_remove_from()
   output=$(remove_from '' '')
   ret="$?"
   expected='Empty table or condition array.'
-  assert_equals_helper 'Empty table, error expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Empty table, error expected' "$LINENO" 61 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
   output=$(remove_from table '')
   ret="$?"
   expected='Empty table or condition array.'
-  assert_equals_helper 'Empty condition array expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Empty condition array expected' "$LINENO" 61 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
   # remove one row using one unique attribute
@@ -523,7 +523,7 @@ function test_update_into()
   output=$(update_into table 'update_array' '' '')
   ret="$?"
   expected='Empty condition or updates array.'
-  assert_equals_helper 'Empty condition array expected' "$LINENO" 22 "$ret"
+  assert_equals_helper 'Empty condition array expected' "$LINENO" 61 "$ret"
   assert_equals_helper 'Wrong error message' "$LINENO" "$expected" "$output"
 
   columns=$(concatenate_with_commas 'name' 'attribute1' 'attribute2' 'rank')
