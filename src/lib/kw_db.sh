@@ -89,7 +89,7 @@ function insert_into()
 
   if [[ -z "$table" || -z "$values" ]]; then
     complain 'Empty table or values.'
-    return 22 # EINVAL
+    return 61 # ENODATA
   fi
 
   [[ -n "$entries" && ! "$entries" =~ ^\(.*\)$ ]] && entries="($entries)"
@@ -131,7 +131,7 @@ function replace_into()
 
   if [[ -z "$table" || -z "$rows" ]]; then
     complain 'Empty table or rows.'
-    return 22 # EINVAL
+    return 61 # ENODATA
   fi
 
   [[ -n "$columns" && ! "$columns" =~ ^\(.*\)$ ]] && columns="($columns)"
@@ -171,7 +171,7 @@ function remove_from()
 
   if [[ -z "$table" || -z "$_condition_array" ]]; then
     complain 'Empty table or condition array.'
-    return 22 # EINVAL
+    return 61 # ENODATA
   fi
 
   where_clause="$(generate_where_clause "$_condition_array")"
@@ -220,7 +220,7 @@ function select_from()
 
   if [[ -z "$table" ]]; then
     complain 'Empty table.'
-    return 22 # EINVAL
+    return 61 # ENODATA
   fi
 
   if [[ -n "$_condition_array" ]]; then
@@ -280,7 +280,7 @@ function update_into()
 
   if [[ -z "$_condition_array" || -z "$_updates_array" ]]; then
     complain 'Empty condition or updates array.'
-    return 22 #EINVAL
+    return 61 # ENODATA
   fi
 
   where_clause="$(generate_where_clause "$_condition_array")"
