@@ -17,7 +17,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt install -y shunit2 podman
+          sudo apt install -y shunit2 podman vagrant libvirt-daemon-system libvirt-clients
+          sudo chmod 777 /var/run/libvirt/libvirt-sock
 
       - name: Integration tests
         run: ./run_tests.sh --integration
