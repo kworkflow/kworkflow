@@ -1,6 +1,6 @@
-========
-kw-build
-========
+=======================
+kw-build - Build kernel
+=======================
 
 .. _build-doc:
 
@@ -17,6 +17,7 @@ SYNOPSIS
 | *kw* (*b* | *build*) [(-c | \--clean)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [(-f | \--full-cleanup)] [\--alert=(s | v | (sv | vs) | n)]
 | *kw* (*b* | *build*) [\--cflags]
+| *kw* (*b* | *build*) [\--from-sha <SHA>]
 | *kw* (*b* | *build*) [\--verbose]
 
 DESCRIPTION
@@ -40,7 +41,7 @@ OPTIONS
 
 -n, \--menu:
   The menu option invokes the kernel menuconfig. Notice that the default menu
-  config can be changed in the **kworkflow.config** file by setting a different
+  config can be changed in the **build.config** file by setting a different
   option in *menu_config*. If the user is working in a *cross-compile*
   environment, it is recommended to use this option to avoid messing with the
   config file manually.
@@ -48,7 +49,7 @@ OPTIONS
 -d, \--doc:
   The doc option provides a mechanism for building the kernel-doc; by default,
   it will build htmldocs. Users can change the default documentation output by
-  changing the parameter *doc_type* in the **kworkflow.config** file.
+  changing the parameter *doc_type* in the **build.config** file.
 
 -S, \--cpu-scaling:
   The cpu-scaling option lets the user set whichever CPU usage they want from
@@ -61,12 +62,12 @@ OPTIONS
 
 -w, \--warnings (1 | 2 | 3 | 12 | 13 | 23 | 123):
   This can be used to enable compilation warnings accordingly. You can set the
-  default log level via `build.config` file under the option `warning_level`.
+  default log level via **build.config** file under the option `warning_level`.
   Please check the kernel's ``make help`` for more info.
 
--s, \--save-log-to=path:
+-s, \--save-log-to path:
   This option will save the full compilation log with the enabled warnings to
-  the specified path. You can set the default log path in the `build.config`
+  the specified path. You can set the default log path in the **build.config**
   file via `log_path` option.
 
 \--llvm:
@@ -102,10 +103,15 @@ OPTIONS
     | **sv** or **vs** enables both.
     | **n** (or any other option) disables notifications (this is the default).
 
+\--from-sha:
+  Build every commit after <SHA> to branch head. Useful for testing if all patches in
+  patchset compile.
+
 EXAMPLES
 ========
-For these examples, we suppose the fields in your **kworkflow.config** file are
-already configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 For building and installing a new module version based on the current kernel
 version, you can use::
@@ -141,7 +147,7 @@ using::
 Sometimes we have a lot of error message that does not fit in the terminal
 buffer; in these cases it is helpful to save all logs in a file::
 
-  kw b --warnings 123 --save-log-to=ALL_WARNINGS.log
+  kw b --warnings 123 --save-log-to ALL_WARNINGS.log
 
 If you want to use llvm::
 
@@ -158,3 +164,11 @@ If you want to reset the kernel tree to its default, `all config and script outp
 If you want to use cflags::
 
   kw b --cflags "-O3 -pipe -march=native"
+
+If you want to build every commit after HEAD~2 to HEAD::
+
+  kw b --from-sha HEAD~2
+
+If you want to build every commit after ee3b5 to HEAD::
+
+  kw b --from-sha ee3b5

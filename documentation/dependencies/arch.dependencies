@@ -26,3 +26,7 @@ curl
 perl-xml-xpath
 coreutils
 b4
+procps-ng
+pciutils
+libnotify
+python-sphinx

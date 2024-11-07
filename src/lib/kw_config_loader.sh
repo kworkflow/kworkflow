@@ -6,8 +6,8 @@ CONFIG_FILENAME='kworkflow.config'
 BUILD_CONFIG_FILENAME='build.config'
 DEPLOY_CONFIG_FILENAME='deploy.config'
 VM_CONFIG_FILENAME='vm.config'
-MAIL_CONFIG_FILENAME='mail.config'
-MAIL_CONFIG_FILENAME='lore.config'
+SEND_PATCH_CONFIG_FILENAME='send_patch.config'
+SEND_PATCH_CONFIG_FILENAME='lore.config'
 KW_DIR='.kw'
 
 # Basic targets
@@ -20,124 +20,41 @@ TARGET="$VM_TARGET"
 
 # Default configuration
 declare -gA configurations
+declare -gA configurations_global
+declare -gA configurations_local
 
 # Build configuration
 declare -gA build_config
+declare -gA build_config_global
+declare -gA build_config_local
 
 # Deploy configuration
 declare -gA deploy_config
+declare -gA deploy_config_global
+declare -gA deploy_config_local
 
 # VM configuration
 declare -gA vm_config
+declare -gA vm_config_global
+declare -gA vm_config_local
 
-# Mail configuration
-declare -gA mail_config
+# Send patch configuration
+declare -gA send_patch_config
+declare -gA send_patch_config_global
+declare -gA send_patch_config_local
 
 # Notification configuration
 declare -gA notification_config
+declare -gA notification_config_global
+declare -gA notification_config_local
 
 # Notification configuration
 declare -gA lore_config
+declare -gA lore_config_global
+declare -gA lore_config_local
 
 # Default target option from kworkflow.config
 declare -gA deploy_target_opt=(['local']=2 ['remote']=3)
-
-# This function is used to show the current set up used by kworkflow.
-function show_variables_main()
-{
-  local test_mode=0
-  local has_local_config='No'
-
-  load_all_config
-
-  if [[ "$1" =~ ^-h|^--help ]]; then
-    vars_help "$@"
-    exit 0
-  fi
-
-  # TODO: Drop [[ -f "$PWD/$CONFIG_FILENAME" ]] in the future
-  if [[ -f "${PWD}/${KW_DIR}/${CONFIG_FILENAME}" || -f "${PWD}/${CONFIG_FILENAME}" ]]; then
-    has_local_config='Yes'
-  fi
-
-  if [[ "$1" == 'TEST_MODE' ]]; then
-    test_mode=1
-  fi
-
-  local -Ar ssh=(
-    [ssh_user]='SSH user'
-    [ssh_ip]='SSH address'
-    [ssh_port]='SSH port'
-    [ssh_configfile]='SSH configuration file'
-    [hostname]='Hostname of the target in the SSH configuration file'
-  )
-
-  local -Ar misc=(
-    [disable_statistics_data_track]='Disable tracking of statistical data'
-    [gui_on]='Command to activate GUI'
-    [gui_off]='Command to deactivate GUI'
-    [checkpatch_opts]='Options to be used in the checkpatch script'
-    [get_maintainer_opts]='Options to be used in the get_maintainer script'
-  )
-
-  local -Ar group_descriptions=(
-    [build]='Kernel build options'
-    [deploy]='Kernel deploy options'
-    [mail]='Send-email options'
-    [ssh]='SSH options'
-    [vm]='VM options'
-    [notification]='Notification options'
-    [misc]='Miscellaneous options'
-    [lore]='Upstream patches from Lore options'
-  )
-
-  groups=(
-    'deploy'
-    'mail'
-    'ssh'
-    'vm'
-    'notification'
-    'misc'
-    'build'
-    'lore'
-  )
-
-  say 'kw configuration variables:'
-  printf '%s\n' "  Local config file: $has_local_config"
-
-  for group in "${groups[@]}"; do
-    local -n descriptions="$group"
-    case "$group" in
-      'build')
-        show_build_variables "$@"
-        continue
-        ;;
-      'deploy')
-        show_deploy_variables "$@"
-        continue
-        ;;
-      'mail')
-        show_mail_variables "$@"
-        continue
-        ;;
-      'notification')
-        show_notification_variables "$@"
-        continue
-        ;;
-      'vm')
-        show_vm_variables "$@"
-        continue
-        ;;
-      'lore')
-        show_lore_variables "$@"
-        continue
-        ;;
-    esac
-
-    printf '%s\n' "  ${group_descriptions["$group"]}:"
-    print_array configurations descriptions "$test_mode"
-  done
-}
 
 # This is a helper function that prints the option description followed by the
 # option value.
@@ -190,8 +107,8 @@ function show_build_variables()
     [cflags]='Specify compilation flags'
   )
 
-  printf '%s\n' "  Kernel build options:"
-  local -n descriptions="build"
+  printf '%s\n' '  Kernel build options:'
+  local -n descriptions='build'
 
   print_array build_config build
 }
@@ -222,35 +139,35 @@ function show_deploy_variables()
     [strip_modules_debug_option]='Modules will be stripped after they are installed which will reduce the initramfs size'
   )
 
-  printf '%s\n' "  Kernel deploy options:"
-  local -n descriptions="deploy"
+  printf '%s\n' '  Kernel deploy options:'
+  local -n descriptions='deploy'
   print_array deploy_config deploy
 }
 
-function show_mail_variables()
+function show_send_patch_variables()
 {
   local test_mode=0
-  local has_local_mail_config='No'
+  local has_local_send_patch_config='No'
 
-  [[ -f "${PWD}/${KW_DIR}/${MAIL_CONFIG_FILENAME}" ]] && has_local_mail_config='Yes'
+  [[ -f "${PWD}/${KW_DIR}/${SEND_PATCH_CONFIG_FILENAME}" ]] && has_local_send_patch_config='Yes'
 
-  say 'kw Mail configuration variables:'
-  printf '%s\n' "  Local Mail config file: $has_local_mail_config"
+  say 'kw send-patch configuration variables:'
+  printf '%s\n' "  Local send patch config file: $has_local_send_patch_config"
 
   if [[ "$1" == 'TEST_MODE' ]]; then
     test_mode=1
   fi
 
-  local -Ar mail=(
+  local -Ar send_patch=(
     [send_opts]='Options to be used when sending a patch'
     [blocked_emails]='Blocked e-mail addresses'
     [default_to_recipients]='E-mail addresses to always be included as To: recipients'
     [default_cc_recipients]='E-mail addresses to always be included as CC: recipients'
   )
 
-  printf '%s\n' "  kw mail options:"
-  local -n descriptions="mail"
-  print_array mail_config mail
+  printf '%s\n' '  kw send-patch options:'
+  local -n descriptions='send-patch'
+  print_array send_patch_config send-patch
 }
 
 function show_vm_variables()
@@ -275,8 +192,8 @@ function show_vm_variables()
     [mount_point]='VM mount point'
   )
 
-  printf '%s\n' "  Kernel vm options:"
-  local -n descriptions="vm"
+  printf '%s\n' '  Kernel vm options:'
+  local -n descriptions='vm'
   print_array vm_config vm
 }
 
@@ -300,8 +217,8 @@ function show_notification_variables()
     [visual_alert_command]='Command for visual notification'
   )
 
-  printf '%s\n' "  Kernel notification options:"
-  local -n descriptions="notification"
+  printf '%s\n' '  Kernel notification options:'
+  local -n descriptions='notification'
 
   print_array notification_config notification
 }
@@ -324,7 +241,7 @@ function show_lore_variables()
     [lists]='List that you want to follow'
   )
 
-  printf '%s\n' "  Kernel upstream Lore options:"
+  printf '%s\n' '  Kernel upstream Lore options:'
   local -n descriptions='lore'
 
   print_array lore_config lore
@@ -338,13 +255,24 @@ function parse_configuration()
 {
   local config_path="$1"
   local config_array="${2:-configurations}"
+  local config_array_scope="$3"
   local value
 
   if [ ! -f "$config_path" ]; then
     return 22 # 22 means Invalid argument - EINVAL
   fi
+
+  # The `read` command will read all the characters untill it  finds  a  newline
+  # character and then write those characters onto the given variable  (in  this
+  # case, the `line` variable). If it does not find a newline `\n` character, it
+  # will exit with status code 1. This  evaluates  to  false,  which  means  the
+  # shellscript exits the loop. Therefore, if the last line  is  not  empty  but
+  # misses the newline character, the loop won't be  run  and  the  last  config
+  # option won't be read. We handle this edge case by checking if  line  is  not
+  # empty and proceeding to run the loop once more if necessary.
+  #
   # shellcheck disable=SC2162
-  while read line; do
+  while read line || [[ -n "$line" ]]; do
     # Line started with # or that are blank should be ignored
     [[ "$line" =~ ^# || "$line" =~ ^$ ]] && continue
 
@@ -354,6 +282,9 @@ function parse_configuration()
       value="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' <<< "$value")"
 
       eval "${config_array}"'["$varname"]="$value"'
+      if [[ -n "${config_array_scope}" ]]; then
+        eval "${config_array_scope}"'["$varname"]="$value"'
+      fi
     fi
   done < "$config_path"
 }
@@ -366,6 +297,8 @@ function load_configuration()
   local target_config="$1"
   local target_config_file
   local target_array='configurations'
+  local target_array_global=''
+  local target_array_local=''
   local -a config_dirs
   local config_dirs_size
   local IFS=:
@@ -379,8 +312,8 @@ function load_configuration()
     'deploy')
       target_array='deploy_config'
       ;;
-    'mail')
-      target_array='mail_config'
+    'send_patch')
+      target_array='send_patch_config'
       ;;
     'notification')
       target_array='notification_config'
@@ -393,8 +326,11 @@ function load_configuration()
       ;;
   esac
 
+  target_array_global="${target_array}_global"
+  target_array_local="${target_array}_local"
+
   target_config_file="${target_config}.config"
-  parse_configuration "${KW_ETC_DIR}/${target_config_file}" "$target_array"
+  parse_configuration "${KW_ETC_DIR}/${target_config_file}" "$target_array" "$target_array_global"
 
   # XDG_CONFIG_DIRS is a colon-separated list of directories for config
   # files to be searched, in order of preference. Since this function
@@ -405,10 +341,10 @@ function load_configuration()
   # /etc/xdg.
   config_dirs_size="${#config_dirs[@]}"
   for ((i = config_dirs_size - 1; i >= 0; i--)); do
-    parse_configuration "${config_dirs["$i"]}/${KWORKFLOW}/${target_config_file}" "$target_array"
+    parse_configuration "${config_dirs["$i"]}/${KWORKFLOW}/${target_config_file}" "$target_array" "$target_array_global"
   done
 
-  parse_configuration "${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}/${target_config_file}" "$target_array"
+  parse_configuration "${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}/${target_config_file}" "$target_array" "$target_array_global"
 
   # Old users may have kworkflow.config at $PWD
   if [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
@@ -418,12 +354,12 @@ function load_configuration()
       mkdir -p "$PWD/$KW_DIR/"
       mv "$PWD/$CONFIG_FILENAME" "$PWD/$KW_DIR/$CONFIG_FILENAME"
     else
-      parse_configuration "${PWD}/${CONFIG_FILENAME}" "$target_array"
+      parse_configuration "${PWD}/${CONFIG_FILENAME}" "$target_array" "$target_array_local"
     fi
   fi
 
   if [[ -f "${PWD}/${KW_DIR}/${target_config_file}" ]]; then
-    parse_configuration "${PWD}/${KW_DIR}/${target_config_file}" "$target_array"
+    parse_configuration "${PWD}/${KW_DIR}/${target_config_file}" "$target_array" "$target_array_local"
   fi
 }
 
@@ -442,9 +378,9 @@ load_vm_config()
   load_configuration 'vm'
 }
 
-load_mail_config()
+load_send_patch_config()
 {
-  load_configuration 'mail'
+  load_configuration 'send_patch'
 }
 
 load_kworkflow_config()
@@ -468,18 +404,7 @@ load_all_config()
   load_kworkflow_config
   load_deploy_config
   load_build_config
-  load_mail_config
+  load_send_patch_config
   load_lore_config
   load_vm_config
-}
-
-function vars_help()
-{
-  if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'vars'
-    return
-  fi
-  printf '%s\n' 'kw vars:' \
-    '  vars - Show current variable values being used by kw.'
 }

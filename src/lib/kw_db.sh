@@ -75,8 +75,10 @@ function insert_into()
   local entries="$2"
   local values="$3"
   local db="${4:-"$DB_NAME"}"
-  local db_folder="${5:-"$KW_DATA_DIR"}"
+  local flag=${5:-'SILENT'}
+  local db_folder="${6:-$KW_DATA_DIR}"
   local db_path
+  local cmd
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -87,12 +89,13 @@ function insert_into()
 
   if [[ -z "$table" || -z "$values" ]]; then
     complain 'Empty table or values.'
-    return 22 # EINVAL
+    return 61 # ENODATA
   fi
 
   [[ -n "$entries" && ! "$entries" =~ ^\(.*\)$ ]] && entries="($entries)"
 
-  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" -batch "INSERT INTO $table $entries VALUES $values;"
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"INSERT INTO ${table} ${entries} VALUES ${values};\""
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function updates or insert rows into table of given database,
@@ -114,8 +117,10 @@ function replace_into()
   local columns="$2"
   local rows="$3"
   local db="${4:-"$DB_NAME"}"
-  local db_folder="${5:-"$KW_DATA_DIR"}"
+  local flag=${5:-'SILENT'}
+  local db_folder="${6:-"$KW_DATA_DIR"}"
   local db_path
+  local cmd
 
   db_path="$(join_path "$db_folder" "$db")"
 
@@ -126,12 +131,13 @@ function replace_into()
 
   if [[ -z "$table" || -z "$rows" ]]; then
     complain 'Empty table or rows.'
-    return 22 # EINVAL
+    return 61 # ENODATA
   fi
 
   [[ -n "$columns" && ! "$columns" =~ ^\(.*\)$ ]] && columns="($columns)"
 
-  sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" "${db_path}" -batch "REPLACE INTO ${table} ${columns} VALUES ${rows};"
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"REPLACE INTO ${table} ${columns} VALUES ${rows};\""
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function removes every matching row from a given table.
@@ -149,9 +155,10 @@ function replace_into()
 function remove_from()
 {
   local table="$1"
-  local -n _condition_array="$2"
+  local _condition_array="$2"
   local db="${3:-"${DB_NAME}"}"
   local db_folder="${4:-"${KW_DATA_DIR}"}"
+  local flag=${5:-'SILENT'}
   local where_clause=''
   local db_path
 
@@ -162,27 +169,28 @@ function remove_from()
     return 2
   fi
 
-  if [[ -z "$table" || -z "${!_condition_array[*]}" ]]; then
+  if [[ -z "$table" || -z "$_condition_array" ]]; then
     complain 'Empty table or condition array.'
-    return 22 # EINVAL
+    return 61 # ENODATA
   fi
 
-  for column in "${!_condition_array[@]}"; do
-    where_clause+="$column='${_condition_array["${column}"]}'"
-    where_clause+=' AND '
-  done
-  # Remove trailing ' AND '
-  where_clause="${where_clause::-5}"
+  where_clause="$(generate_where_clause "$_condition_array")"
+  query="DELETE FROM ${table} ${where_clause} ;"
 
-  sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" "${db_path}" -batch "DELETE FROM ${table} WHERE ${where_clause};"
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" \"${db_path}\" -batch \"${query}\""
+  cmd_manager "$flag" "$cmd"
 }
 
 # This function gets the values in the table of given database
+# with the given conditions.
 #
 # @table:     Table to select info from
 # @columns:   Columns of the table to get
 # @pre_cmd:   Pre command to execute
+# @_condition_array: An array reference of condition pairs. In case there is no
+#   WHERE clause, an empty value must be passed
 # @order_by:  List of attributes to use for ordering
+# @flag:      Flag to control function output
 # @db:        Name of the database file
 # @db_folder: Path to the folder that contains @db
 #
@@ -194,9 +202,67 @@ function select_from()
   local table="$1"
   local columns="${2:-"*"}"
   local pre_cmd="$3"
-  local order_by="$4"
-  local db="${5:-"$DB_NAME"}"
-  local db_folder="${6:-"$KW_DATA_DIR"}"
+  local _condition_array="$4"
+  local order_by=${5:-''}
+  local flag=${6:-'SILENT'}
+  local db="${7:-"$DB_NAME"}"
+  local db_folder="${8:-"$KW_DATA_DIR"}"
+  local where_clause
+  local db_path
+  local query
+
+  db_path="$(join_path "$db_folder" "$db")"
+
+  if [[ ! -f "$db_path" ]]; then
+    complain 'Database does not exist'
+    return 2
+  fi
+
+  if [[ -z "$table" ]]; then
+    complain 'Empty table.'
+    return 61 # ENODATA
+  fi
+
+  if [[ -n "$_condition_array" ]]; then
+    where_clause="$(generate_where_clause "$_condition_array")"
+  fi
+
+  query="SELECT ${columns} FROM ${table} ${where_clause} ;"
+
+  if [[ -n "${order_by}" ]]; then
+    query="${query::-2} ORDER BY ${order_by} ;"
+  fi
+
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
+  cmd_manager "$flag" "$cmd"
+}
+
+# This function updates the set of values in the table of given database
+# with the given conditions.
+#
+# @table: Table to select info from
+# @_updates_array: An array reference of updates pairs that will be updated
+#   in the db
+# @pre_cmd: Pre command to execute
+# @_condition_array: An array reference of condition pairs specifing the data
+#   that will be updated
+# @flag: Flag to control function output
+# @db: Name of the database file
+# @db_folder: Path to the folder that contains @db
+#
+# Return:
+# 2 if db doesn't exist; 22 if table is empty
+# 0 if succesful; non-zero otherwise
+function update_into()
+{
+  local table="$1"
+  local _updates_array="$2"
+  local pre_cmd="$3"
+  local _condition_array="$4"
+  local flag=${5:-'SILENT'}
+  local db="${6:-"$DB_NAME"}"
+  local db_folder="${7:-"$KW_DATA_DIR"}"
+  local where_clause=''
   local db_path
   local query
 
@@ -212,11 +278,73 @@ function select_from()
     return 22 # EINVAL
   fi
 
-  query="SELECT $columns FROM $table ;"
-  if [[ -n "${order_by}" ]]; then
-    query="SELECT $columns FROM $table ORDER BY ${order_by} ;"
+  if [[ -z "$_condition_array" || -z "$_updates_array" ]]; then
+    complain 'Empty condition or updates array.'
+    return 61 # ENODATA
   fi
-  sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" -cmd "$pre_cmd" "$db_path" -batch "$query"
+
+  where_clause="$(generate_where_clause "$_condition_array")"
+  set_clause="$(generate_set_clause "$_updates_array")"
+
+  query="UPDATE ${table} SET ${set_clause} ${where_clause} ;"
+
+  cmd="sqlite3 -init "${KW_DB_DIR}/pre_cmd.sql" -cmd \"${pre_cmd}\" \"${db_path}\" -batch \"${query}\""
+  cmd_manager "$flag" "$cmd"
+}
+
+# This function receives a condition_array and then generate
+# the infos that will be used by the WHERE clause to specify
+# the data we want.
+#
+# @condition_array_ref: The condition array reference containing the conditions
+#
+# Returns:
+# A string containing the generated clause
+function generate_where_clause()
+{
+  local -n condition_array_ref="$1"
+  local clause
+  local relational_op='='
+  local attribute
+  local where_clause="WHERE "
+  local value
+
+  for clause in "${!condition_array_ref[@]}"; do
+    attribute="$(cut --delimiter=',' --fields=1 <<< "$clause")"
+    value="${condition_array_ref["${clause}"]}"
+
+    if [[ "$clause" =~ ',' ]]; then
+      relational_op=$(cut --delimiter=',' --fields=2 <<< "$clause")
+    fi
+
+    where_clause+="${attribute}${relational_op}'${value}'"
+    where_clause+=' AND '
+  done
+
+  printf '%s' "${where_clause::-5}" # Remove trailing ' AND '
+}
+
+# This function receives a updates_array and then generates the infos that
+# will be used by the SET clause to update the data fields we want.
+#
+# @updates_array_ref: The updates array reference containing the conditions updates
+#
+# Returns:
+# A string containing the generated clause
+function generate_set_clause()
+{
+  local -n updates_array_ref="$1"
+  local attribute
+  local set_clause
+  local value
+
+  for attribute in "${!updates_array_ref[@]}"; do
+    value="${updates_array_ref["${attribute}"]}"
+    set_clause+="${attribute} = '${value}'"
+    set_clause+=', '
+  done
+
+  printf '%s' "${set_clause::-2}" # Remove trailing ', '
 }
 
 # This function takes arguments and assembles them into the correct format to

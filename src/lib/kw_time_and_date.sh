@@ -18,7 +18,7 @@ function sec_to_format()
   local value="$1"
   local format="$2"
 
-  value=${value:-"0"}
+  value=${value:-'0'}
   format=${format:-'+%H:%M:%S'}
 
   date -d@"$value" -u "$format"

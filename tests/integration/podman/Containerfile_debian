@@ -1,0 +1,7 @@
+FROM docker.io/library/debian
+
+RUN apt update -y && apt upgrade -y && apt install git -y
+
+COPY ./clone_and_install_kw.sh .
+
+RUN bash ./clone_and_install_kw.sh

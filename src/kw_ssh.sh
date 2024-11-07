@@ -25,6 +25,7 @@ function kw_ssh_main()
   local remote_file_host
   local ssh_compose='ssh'
   local transfer_type=''
+  local ret
 
   parser_ssh_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -49,9 +50,11 @@ function kw_ssh_main()
   flag=${flag:-'SILENT'}
 
   is_ssh_connection_configured "$flag"
-  if [[ "$?" != 0 ]]; then
-    ssh_connection_failure_message
-    exit 101 # ENETUNREACH
+  ret="$?"
+  if [[ "$ret" != 0 ]]; then
+    [[ "$ret" == 125 ]] && return 125                                 # User canceled the operation
+    [[ "$ret" == 101 ]] && return 101                                 # Network is unreachable
+    [[ "$ret" != 0 ]] && ssh_connection_failure_message && return 101 # ENETUNREACH
   fi
 
   if [[ -n "$cmd" ]]; then
@@ -313,7 +316,7 @@ function parser_ssh_options()
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
           options_values['ERROR']="$option"
-          return 22
+          return 22 # EINVAL
         fi
         shift 2
         ;;
@@ -354,7 +357,7 @@ function parser_ssh_options()
         ;;
       *)
         options_values['ERROR']="$1"
-        return 22
+        return 22 # EINVAL
         ;;
     esac
   done

@@ -134,7 +134,7 @@ function restore_config()
         complain "It looks like that the file $config_file differs from the backup version."
         cmd="diff -u --color=always ${KW_DATA_DIR}/configs/configs/${config_file} ${file}"
         cmd_manager "$flag" "$cmd"
-        if [[ $(ask_yN 'Do you want to replace it and its metadata?') =~ "0" ]]; then
+        if [[ $(ask_yN 'Do you want to replace it and its metadata?') =~ '0' ]]; then
           continue
         fi
       fi

@@ -23,6 +23,7 @@ include "${KW_LIB_DIR}/ui/patch_hub/search_string_in_lore.sh"
 # These are references to data structures used all around the state-machine.
 declare -ga bookmarked_series
 declare -g current_mailing_list
+declare -g additional_filters
 
 # This associative array is used to determine the states and  topass arguments
 # between states.
@@ -64,7 +65,7 @@ function patch_hub_main_loop()
         ret="$?"
         ;;
       'latest_patchsets_from_mailing_list')
-        show_latest_patchsets_from_mailing_list "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
+        show_latest_patchsets_from_mailing_list
         ret="$?"
         ;;
       'bookmarked_patches')
@@ -217,7 +218,7 @@ function list_patches()
       case "${screen_sequence['SHOW_SCREEN']}" in
         'latest_patchsets_from_mailing_list')
           screen_sequence['PREVIOUS_SCREEN']='latest_patchsets_from_mailing_list'
-          screen_sequence['SHOW_SCREEN_PARAMETER']=${list_of_mailinglist_patches["$menu_return_string"]}
+          screen_sequence['SHOW_SCREEN_PARAMETER']=${representative_patches["$menu_return_string"]}
           ;;
         'bookmarked_patches')
           screen_sequence['PREVIOUS_SCREEN']='bookmarked_patches'

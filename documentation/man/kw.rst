@@ -1,12 +1,8 @@
-=====
- kw
-=====
+===============================================
+ kw - Inglorious kernel developer workflow tool
+===============================================
 
 .. _manual:
-
------------------------------------------
-Inglorious kernel developer workflow tool
------------------------------------------
 
 :Author: Rodrigo Siqueira <rodrigosiqueiramelo@gmail.com>
 :Author: Matheus Tavares <matheus.bernardino@usp.br>
@@ -23,8 +19,8 @@ DESCRIPTION
 ===========
 **kw** mission is: reduce the overhead related with infrastructure project
 setup in projects that have a similar workflow to the Linux Kernel. It can (and
-should) be customized by editing the **kworkflow.config** file, as discussed in
-section `ABOUT kworflow.config`_.
+should) be customized by editing its various configuration files (preferably 
+through the **kw config** command).
 
 COMMANDS
 ========
@@ -92,16 +88,16 @@ This section describes a tool available in **kw** to help developers keep track
 of configuration files and other features provided by **kw** that do not fit in
 the previous sections.
 
+  | :ref:`kw-config<config-doc>`
   | :ref:`kw-backup<backup-doc>`
   | :ref:`kw-init<init-doc>`
   | :ref:`kw-device<device-doc>`
   | :ref:`kw-ssh<ssh-doc>`
   | :ref:`kw-kernel-config-manager<kernel-config-manager-doc>`
-  | :ref:`kw-vars<vars-doc>`
   | :ref:`kw-diff<diff-doc>`
   | :ref:`kw-report<report-doc>`
   | :ref:`kw-pomodoro<pomodoro-doc>`
-  | :ref:`kw-mail<mail-doc>`
+  | :ref:`kw-send-patch<send-patch-doc>`
   | :ref:`kw-self-update<self-update-doc>`
 
 clear-cache
@@ -116,108 +112,11 @@ version, \--version, -v
 ~~~~~~~~~~~~~~~~~~~~~~~
 Show kworkflow version.
 
-ABOUT kworflow.config
-=====================
-.. _`ABOUT kworkflow.config`:
-
-**kw** reads its configuration from two files: the global
-*<path>/etc/kworkflow.config* file and the local **kworkflow.config** file
-present at the current working directory. The global **kworkflow.config** is a
-part of the **kw** code and provides the overall behavior for **kw**. Local
-**kworkflow.config** settings override global ones; you may have one
-**kworkflow.config** per project. In this section, we describe the possible
-fields you can specify in the configuration files.
-
-ssh_user=<user>
----------------
-Sets the user to be used by ssh. By default **kw** uses ``root``.
-
-ssh_ip=<ip>
------------
-Sets the IP address to be used by ssh. By default **kw** uses ``localhost``.
-
-ssh_port=<port>
----------------
-Sets the ssh port. By default **kw** uses ``2222``.
-
-ssh_configfile=<ssh-config-file>
---------------------------------
-Provides an optional SSH configuration file to be used by ssh. For more details
-see ``man ssh_config``.
-
-hostname=<hostname>
--------------------
-Sets the hostname to be used when an SSH configuration file is provided.
-
-arch=<architecture>
--------------------
-Allows you to specify the default architecture used by **kw**. By default,
-**kw** uses ``x86_64``.
-
-kernel_img_name=<kernel-image-name>
------------------------------------
-Use this option as a way to indicate to kw the kernel image name. This is the
-file present in the directory ``arch/*/boot/``; keep in mind that the kernel
-image name might change based on the user config file or target architecture.
-
-cross_compile=<cross-compile-toolchain-name>
---------------------------------------------
-Kw supports cross compile setup, use this option to indicate the target
-toolchain.
-
-menu_config=<menu-option>
--------------------------
-Default kernel menu used by **kw**, the default is ``nconfig``.
-
-alert=[vs | s | v | n]
-----------------------
-Default alert options, you have:
-
-1. v: enables visual notification.
-
-2. s: enables sound notification.
-
-3. vs or sv: enables both.
-
-4. n (or any other option): disables notifications.
-
-sound_alert_command=<command>
------------------------------
-Command to run for sound completion alert. By default, **kw** uses
-``paplay INSTALLPATH/sounds/complete.wav &``
-
-visual_alert_command=<command>
-------------------------------
-Command to run for visual completion alert. By default, **kw** uses
-``notify-send -i checkbox -t 10000 "kw" "Command: \\"$COMMAND\\" completed!"``
-
-.. note::
-  You may use the *COMMAND* variable, which will be replaced by the kw command
-  whose conclusion the user wished to be alerted of.
-
-default_deploy_target
----------------------
-By default, **kw** deploys in the *remote*; however, you can change this
-behavior with this variable. The available options are: *local* and *remote*.
-
-reboot_remote_by_default
-------------------------
-Reboot machine after the deploy finishes.
-
-gui_on=<command>
-----------------
-This option is disabled by default, if enabled, it requires a command that
-instructs kw to turn on the GUI.
-
-gui_off=<command>
------------------
-This option is disabled by default, if enabled, it requires a command that
-instructs kw to turn off the GUI.
-
 EXAMPLES
 ========
-For these examples, we suppose the fields in your **kworkflow.config** file is
-already configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 First, if you are working in a specific kernel module, and if you want to
 install your recent changes in your local machine you can use::

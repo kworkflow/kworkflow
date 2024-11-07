@@ -25,6 +25,7 @@ check:
    content/codingstyle
    content/developmentworkflow
    content/tracingandprofiling
+   content/awesome_kw
 
 Kw code doc
 ===========

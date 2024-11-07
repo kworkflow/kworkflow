@@ -28,3 +28,7 @@ curl
 libxml-xpath-perl
 coreutils
 b4
+procps
+pciutils
+libnotify-bin
+python3-sphinx

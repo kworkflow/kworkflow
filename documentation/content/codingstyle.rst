@@ -244,11 +244,11 @@ a developer. We also encourage using the ``assert_equals_helper`` helper
 function, which provides a wrapper capable of spitting a useful error message
 in case the assertion fails. Ideally, one should do either::
 
-   assert_equals_helper "$error_message" "($LINENO)" "$output" "$expected_output"
+   assert_equals_helper "$error_message" "($LINENO)" "$expected_output" "$output"
 
 or::
 
-   assertEquals "($LINENO)" "$output" "$expected_output"
+   assertEquals "($LINENO)" "$expected_output" "$output"
 
 Help functions
 --------------
@@ -279,6 +279,18 @@ depending on system and bash version. Therefore always use ``printf`` instead,
 it stays consistent across multiple platforms. If you need to add extra lines
 while generating a string you can use the ``$'\n'`` literal to add a new line
 character or other special characters.
+
+Single quotes instead double quotes
+-----------------------------------
+
+Whenever you have a variable that stands for a string that doesn’t contain 
+shell expansions, use single quotes instead of double quotes. For example::
+
+  var='literal-value' #Single quotes
+
+or::
+
+  path="${HOME}/path/to/file" #Double quotes
 
 String concatenation
 --------------------
@@ -316,6 +328,12 @@ Bad::
 Good::
 
   rsync --verbose --recursive dir1 dir2
+
+Declaring shebangs
+------------------
+
+Avoid using "#!/bin/bash" when writing new bash files. This usual shebang may not work for
+some linux distributions that don't follow FHS, such as NixOS. Use "#!/usr/bin/env bash" instead.
 
 Conclusion
 ----------

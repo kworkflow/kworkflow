@@ -1,6 +1,6 @@
-========================
-kw-kernel-config-manager
-========================
+=====================================================
+kw-kernel-config-manager - Kernel config file manager
+=====================================================
 
 .. _kernel-config-manager-doc:
 
@@ -62,8 +62,9 @@ OPTIONS
 
 EXAMPLES
 ========
-In the following examples, we assume your **kworkflow.config** file is already
-properly configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 In case you want **kw** to save your current **.config** file, you can use::
 

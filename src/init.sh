@@ -21,7 +21,7 @@ function init_main()
   local build_name='build.config'
   local deploy_name='deploy.config'
   local vm_name='vm.config'
-  local mail_name='mail.config'
+  local mail_name='send_patch.config'
   local notification_name='notification.config'
   local remote_name='remote.config'
   local config_file_template
@@ -63,7 +63,7 @@ function init_main()
   build_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/build_template.config"
   deploy_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/deploy.config"
   vm_config_file_template="${config_template_folder}/${options_values['TEMPLATE']}/vm_template.config"
-  mail_config_file_template="${KW_ETC_DIR}/mail.config"
+  mail_config_file_template="${KW_ETC_DIR}/send_patch.config"
   notification_config_file_template="${KW_ETC_DIR}/notification_template.config"
   remote_file_template="${KW_ETC_DIR}/remote.config"
 

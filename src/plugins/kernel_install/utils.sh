@@ -40,7 +40,7 @@ function cmd_manager()
       ;;
   esac
 
-  eval "$@"
+  eval "$*"
 }
 
 function command_exists()
@@ -197,7 +197,8 @@ function collect_deploy_info()
   bootloader="[bootloader]=$bootloader"
 
   # Get distro
-  distro=$(cat /etc/*-release | grep -w 'ID\(_LIKE\)\?' | cut -d = -f 2 | xargs echo)
+  distro=$(cat /etc/*-release | grep --word-regexp 'ID\(_LIKE\)\?' | cut --delimiter = --fields 2 | xargs printf '%s ')
+  distro="${distro::-1}"
   distro="[distro]='$distro'"
 
   # Build associative array data
@@ -550,32 +551,89 @@ function do_uninstall()
   fi
 }
 
+# Checks if an element is contained in a given array.
+#
+# @target_element: Target element to check
+# @_array: Indexed array reference to target array
+#
+# Return:
+# Returns 0 if `@target_element` is in `@_array` and 1 otherwise.
+function is_in_array()
+{
+  local target_element="$1"
+  local -n _array="$2"
+
+  for element in "${_array[@]}"; do
+    [[ "$element" == "$target_element" ]] && return 0
+  done
+  return 1
+}
+
+# Returns an unique list of names for the available kernels.
+#
+# @all_kernels: List all available kernels if set, besides those managed kw
+# @prefix: Base prefix for searching available kernels
+# @_processsed_installed_kernels: Indexed array reference where the list will be
+#    stored. The indexed array will be cleared prior to the storing.
+#
+# Return:
+# Returns array containing available kernels in `@_processed_installed_kernels`.
+function process_installed_kernels()
+{
+  local all_kernels="$1"
+  local prefix="$2"
+  local -n _processed_installed_kernels="$3"
+  local kernels
+
+  _processed_installed_kernels=()
+  kernels=$(list_installed_kernels 'SILENT' 1 "$all_kernels" "$prefix")
+  IFS=, read -r -a available_kernels <<< "$kernels"
+  mapfile -t _processed_installed_kernels <<< "$(printf "%s\n" "${available_kernels[@]}" | sort --unique)"
+}
+
 function kernel_uninstall()
 {
   local reboot="$1"
   local target="$2"
-  local kernel_list_string="$3"
+  local kernel_list_string_or_regex="$3"
   local flag="$4"
   local force="$5"
   local prefix="$6"
   local update_grub=0
+  local -a all_installed_kernels
+  local -a kw_managed_kernels
+  local prefix_for_regex='regex:'
+  local regex_expression
+  declare -A kernel_names
 
-  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
-  cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
-
-  kernel_list_string=$(printf '%s' "$kernel_list_string" | tr --delete ' ')
-
-  if [[ -z "$kernel_list_string" ]]; then
+  if [[ -z "$kernel_list_string_or_regex" ]]; then
     printf '%s\n' 'Invalid argument'
     exit 22 #EINVAL
   fi
 
-  IFS=', ' read -r -a kernel_names <<< "$kernel_list_string"
-  for kernel in "${kernel_names[@]}"; do
-    cmd="sudo grep -q '$kernel' '$INSTALLED_KERNELS_PATH'"
-    cmd_manager "$flag" "$cmd"
+  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
+  cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
+
+  process_installed_kernels 1 "$prefix" 'all_installed_kernels'
+  process_installed_kernels '' "$prefix" 'kw_managed_kernels'
+
+  IFS=', ' read -r -a kernel_names_array <<< "$kernel_list_string_or_regex"
+
+  for input_string in "${kernel_names_array[@]}"; do
+    for installed_kernel in "${all_installed_kernels[@]}"; do
+      if [[ "$input_string" =~ ^$prefix_for_regex ]]; then
+        regex_expression=^${input_string#"$prefix_for_regex"}$
+        [[ "$installed_kernel" =~ $regex_expression ]] && kernel_names["$installed_kernel"]=1
+      else
+        [[ "$installed_kernel" == "$input_string" ]] && kernel_names["$installed_kernel"]=1
+      fi
+    done
+  done
+
+  for kernel in "${!kernel_names[@]}"; do
+    is_in_array "$kernel" 'kw_managed_kernels'
     if [[ "$?" != 0 && -z "$force" ]]; then
-      printf '%s\n' "$kernel not managed by kw. Use --force/-f to uninstall anyway."
+      printf '%s\n' "${kernel} not managed by kw. Use --force/-f to uninstall anyway."
       continue # EINVAL
     fi
 

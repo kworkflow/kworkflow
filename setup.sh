@@ -1,14 +1,16 @@
-#!/bin/bash
+#!/usr/bin/env bash
 KW_LIB_DIR='src'
 . 'src/lib/kw_include.sh' --source-only
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
+include "${KW_LIB_DIR}/help.sh"
 
 SILENT=1
 VERBOSE=0
 FORCE=0
 SKIPCHECKS=0
+SKIPDOCS=0
 ENABLE_TRACING=0
 
 declare -r app_name='kw'
@@ -49,39 +51,94 @@ declare -r CONFIGS_PATH='configs'
 
 declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
 
+# patch-hub latest release endpoint
+declare -r PATCH_HUB_LATEST_RELEASE='https://github.com/kworkflow/patch-hub/releases/latest/download/patch-hub-x86_64-unknown-linux-gnu.tar.xz'
+
+# This function identifies the missing packages required by the distribution.
+#
+# @distro: The distribution name (arch, debian, fedora, etc.)
+# @deps_file: The path to the dependencies file for the distribution.
+#
+# Returns:
+# Outputs a space-separated string with the missing packages.
+function get_missing_packages()
+{
+  local distro="$1"
+  local deps_file="$2"
+  local package_list
+  local installed
+
+  if [[ "$distro" =~ 'arch' ]]; then
+    while IFS='' read -r package; do
+      pacman -Ql "$package" &> /dev/null
+      [[ "$?" != 0 ]] && package_list="${package} ${package_list}"
+    done < "$deps_file"
+  elif [[ "$distro" =~ 'debian' ]]; then
+    while IFS='' read -r package; do
+      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
+      [[ "$installed" -eq 0 ]] && package_list="${package} ${package_list}"
+    done < "$deps_file"
+  elif [[ "$distro" =~ 'fedora' ]]; then
+    while IFS='' read -r package; do
+      rpm -q "$package" &> /dev/null
+      [[ "$?" -ne 0 ]] && package_list="${package} ${package_list}"
+    done < "$deps_file"
+  fi
+
+  printf '%s\n' "$package_list"
+}
+
+# This function installs the given packages.
+#
+# @cmd: The installation command with the packages to be installed.
+#
+# Returns:
+# The return status of the installation command.
+function install_packages()
+{
+  local cmd="$1"
+
+  if [[ "$EUID" -eq 0 ]]; then
+    eval "$cmd"
+  else
+    eval "sudo ${cmd}"
+  fi
+}
+
+# This function checks and installs the necessary dependencies for the current
+# distribution.
+#
+# Returns:
+# Returns 0 if all dependencies are already installed or installation is
+# successful.
 function check_dependencies()
 {
-  local package_list=''
-  local cmd=''
+  local package_list
+  local cmd
   local distro
   local ret
 
   distro=$(detect_distro '/')
 
-  if [[ "$distro" =~ 'arch' ]]; then
-    while IFS='' read -r package; do
-      installed=$(pacman -Ql "$package" &> /dev/null)
-      [[ "$?" != 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/arch.dependencies"
-    cmd="pacman -S $package_list"
-  elif [[ "$distro" =~ 'debian' ]]; then
-    while IFS='' read -r package; do
-      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
-      [[ "$installed" -eq 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/debian.dependencies"
-    cmd="apt install -y $package_list"
-  elif [[ "$distro" =~ 'fedora' ]]; then
-    while IFS='' read -r package; do
-      installed=$(rpm -q "$package" &> /dev/null)
-      [[ "$?" -ne 0 ]] && package_list="$package $package_list"
-    done < "$DOCUMENTATION/dependencies/fedora.dependencies"
-    cmd="dnf install -y $package_list"
-  else
-    warning 'Unfortunately, we do not have official support for your distro (yet)'
-    warning 'Please, try to find the following packages:'
-    warning "$(cat "$DOCUMENTATION/dependencies/arch.dependencies")"
-    return 0
-  fi
+  package_list=$(get_missing_packages "$distro" "${DOCUMENTATION}/dependencies/${distro}.dependencies")
+
+  case "$distro" in
+    arch*)
+      cmd="pacman -Sy --noconfirm ${package_list}"
+      ;;
+    debian*)
+      cmd="apt install -y ${package_list}"
+      ;;
+    fedora*)
+      cmd="dnf install -y ${package_list}"
+      ;;
+    *)
+      warning 'Unfortunately, we do not have official support for your distro (yet)'
+      warning 'Please, try to find the following packages:'
+      warning "$(cat "${DOCUMENTATION}/dependencies/arch.dependencies")"
+      return 0
+      ;;
+  esac
 
   if [[ -n "$package_list" ]]; then
     if [[ "$FORCE" == 0 ]]; then
@@ -91,12 +148,7 @@ function check_dependencies()
       fi
     fi
 
-    # Install system packages
-    if [[ "$EUID" -eq 0 ]]; then
-      eval "$cmd"
-    else
-      eval "sudo $cmd"
-    fi
+    install_packages "$cmd"
     ret="$?"
 
     # Installation failed...
@@ -104,8 +156,88 @@ function check_dependencies()
       complain '[ERROR] Dependencies installation has failed. Aborting kw installation...'
       exit "$ret"
     fi
-
   fi
+}
+
+# This function checks and installs kernel build dependencies, i.e.,
+# dependencies that are necessary to build a Linux kernel. It supports three
+# Linux distributions: Debian, Arch Linux, and Fedora.
+#
+# @distro: Detect the current distribution.
+#
+# Returns:
+# Returns 0 if all necessary dependencies are already installed or installation
+# is successful.  and returns 22 (EINVAL), in case `@distro` is an unsupported
+# OS type. The function can also exit the execution with 125 (ECANCELED) in case
+# the user opts to abort the installation.
+function check_and_install_kernel_build_dependencies()
+{
+  local distro="$1"
+  local kernel_build_deps_file
+  local package_list
+  local cmd
+
+  kernel_build_deps_file="${DOCUMENTATION}/dependencies/kernel_build/${distro}.dependencies"
+
+  package_list=$(get_missing_packages "$distro" "$kernel_build_deps_file")
+
+  case "$distro" in
+    arch*)
+      cmd="pacman -Sy --noconfirm ${package_list}"
+      ;;
+    debian*)
+      cmd="apt install -y ${package_list}"
+      ;;
+    fedora*)
+      cmd="dnf install -y ${package_list}"
+      ;;
+    *)
+      complain "Unsupported OS type: ${distro}"
+      return 22 # EINVAL
+      ;;
+  esac
+
+  if [[ -z "$package_list" ]]; then
+    warning 'All necessary kernel build dependencies are already installed.'
+    return 0
+  fi
+
+  if [[ -n "$package_list" ]]; then
+    if [[ "$FORCE" == 0 ]]; then
+      if [[ $(ask_yN "The following packages are required to build the kernel: ${package_list}"$'\nMay we install them?') =~ '0' ]]; then
+        complain 'Aborting installation. Kernel build dependencies not installed.'
+        exit 125 # ECANCELED
+      fi
+    fi
+
+    install_packages "$cmd"
+
+    # Installation failed...
+    if [[ "$?" -ne 0 ]]; then
+      complain '[ERROR] Dependencies installation to build the kernel has failed. Aborting installation...'
+      exit "$?"
+    fi
+  fi
+}
+
+# This function initiates the process to ensure kernel build dependencies are
+# installed.
+function install_kernel_dev_deps()
+{
+  local distro
+  local ret
+
+  distro=$(detect_distro '/')
+
+  # Check if distro is equal to 'none'
+  if [[ "$distro" == 'none' ]]; then
+    complain 'Support for this distro is not available yet.'
+    exit 22 # EINVAL
+  fi
+
+  # Use check_and_install_kernel_build_dependencies() to handle dependency
+  # installation
+  check_and_install_kernel_build_dependencies "$distro"
 }
 
 function generate_documentation()
@@ -163,14 +295,14 @@ function remove_kw_from_PATH_variable()
 
 function update_path()
 {
-  local shellrc=${1:-'.bashrc'}
+  local shellrc="$1"
 
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
   for path in "${ALL_PATHS[@]}"; do
     [[ "$path" -ef "$binpath" ]] && return
   done
 
-  safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "${HOME}/${shellrc}"
+  safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "$shellrc"
 }
 
 function update_current_bash()
@@ -220,15 +352,18 @@ function usage()
   say 'usage: ./setup.sh option'
   say ''
   say 'Where option may be one of the following:'
-  say '--help      | -h     Display this usage message'
-  say "--install   | -i     Install $app_name"
-  say "--uninstall | -u     Uninstall $app_name"
-  say '--skip-checks        Skip checks (use this when packaging)'
-  say '--verbose            Explain what is being done'
-  say '--force              Never prompt'
-  say "--completely-remove  Remove $app_name and all files under its responsibility"
-  say "--docs               Build $app_name's documentation as HTML pages into ./build"
-  say "--enable-tracing     Install ${app_name} with tracing enabled (use it with --install)"
+  say '--help                     | -h    Display this usage message'
+  say "--install                  | -i    Install ${app_name}"
+  say '--install-kernel-dev-deps  | -k    Installs all necessary dependencies to build the kernel according to your distribution'
+  say "--full-installation        | -F    Install ${app_name} and its kernel development dependencies"
+  say "--uninstall                | -u    Uninstall ${app_name}"
+  say '--skip-checks              | -C    Skip checks (use this when packaging)'
+  say '--skip-docs                | -D    Skip creation of man pages (use this when installing)'
+  say '--verbose                  | -v    Explain what is being done'
+  say '--force                    | -f    Never prompt'
+  say "--completely-remove        | -r    Remove ${app_name} and all files under its responsibility"
+  say "--docs                     | -d    Build ${app_name}'s documentation as HTML pages into ./build"
+  say "--enable-tracing           | -t    Install ${app_name} with tracing enabled (use it with --install)"
 }
 
 function confirm_complete_removal()
@@ -299,6 +434,9 @@ function clean_legacy()
   # Remove etc files
   [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
 
+  # Remove patch-hub binary
+  [[ -f "${binpath}/patch-hub" ]] && mv "${binpath}/patch-hub" "$trash"
+
   # Completely remove user data
   if [[ "$completely_remove" =~ '-d' ]]; then
     mv "$datadir" "$trash/userdata"
@@ -368,22 +506,24 @@ function synchronize_files()
   ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
 
   # man file
-  mkdir -p "$mandir"
+  if [[ "$SKIPDOCS" == 0 ]]; then
+    mkdir -p "$mandir"
 
-  python3 -m venv "$DOCS_VIRTUAL_ENV"
+    python3 -m venv "$DOCS_VIRTUAL_ENV"
 
-  # Activate python virtual env
-  source "${DOCS_VIRTUAL_ENV}/bin/activate"
-  say 'Creating python virtual env...'
-  cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
-  eval "$cmd"
-  cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
-  # Deactivate python virtual env
-  deactivate
+    # Activate python virtual env
+    source "${DOCS_VIRTUAL_ENV}/bin/activate"
+    say 'Creating python virtual env...'
+    cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+    eval "$cmd"
+    cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
+    ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
+    # Deactivate python virtual env
+    deactivate
 
-  if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
-    rm -r "$DOCS_VIRTUAL_ENV"
+    if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+      rm -r "$DOCS_VIRTUAL_ENV"
+    fi
   fi
 
   # etc files
@@ -413,9 +553,9 @@ function synchronize_files()
 
   if command_exists 'bash'; then
     # Add tabcompletion to bashrc
-    if [[ -f "$HOME/.bashrc" || -L "$HOME/.bashrc" ]]; then
+    if [[ -f "${HOME}/.bashrc" || -L "${HOME}/.bashrc" ]]; then
       append_bashcompletion
-      update_path
+      update_path "${HOME}/.bashrc"
     else
       warning 'Unable to find a .bashrc file.'
     fi
@@ -424,9 +564,14 @@ function synchronize_files()
   if command_exists 'zsh'; then
     # Add tabcompletion to zshrc
     if [[ -f "${HOME}/.zshrc" || -L "${HOME}/.zshrc" ]]; then
-      remove_legacy_zshcompletion
-      append_zshcompletion
-      update_path '.zshrc'
+      remove_legacy_zshcompletion "${HOME}/.zshrc"
+      append_zshcompletion "${HOME}/.zshrc"
+      update_path "${HOME}/.zshrc"
+    # Check for alternative path for .zshrc
+    elif [[ -d "$ZDOTDIR" && -f "${ZDOTDIR}/.zshrc" ]]; then
+      remove_legacy_zshcompletion "${ZDOTDIR}/.zshrc"
+      append_zshcompletion "${ZDOTDIR}/.zshrc"
+      update_path "${ZDOTDIR}/.zshrc"
     else
       warning 'Unable to find a .zshrc file.'
     fi
@@ -452,16 +597,20 @@ function append_bashcompletion()
 
 function remove_legacy_zshcompletion()
 {
-  safe_remove '# Enable bash completion for zsh' "${HOME}/.zshrc"
-  safe_remove 'autoload bashcompinit && bashcompinit' "${HOME}/.zshrc"
-  safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.zshrc"
+  local zshrc_path="$1"
+
+  safe_remove '# Enable bash completion for zsh' "${zshrc_path}"
+  safe_remove 'autoload bashcompinit && bashcompinit' "${zshrc_path}"
+  safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${zshrc_path}"
 }
 
 function append_zshcompletion()
 {
-  safe_append "# ${app_name}" "${HOME}/.zshrc"
-  safe_append "export fpath=(${libdir} \$fpath)" "${HOME}/.zshrc"
-  safe_append 'autoload compinit && compinit -i' "${HOME}/.zshrc"
+  local zshrc_path="$1"
+
+  safe_append "# ${app_name}" "${zshrc_path}"
+  safe_append "export fpath=(${libdir} \$fpath)" "${zshrc_path}"
+  safe_append 'autoload compinit && compinit -i' "${zshrc_path}"
 }
 
 function safe_append()
@@ -483,19 +632,7 @@ function safe_remove()
 
 function update_version()
 {
-  local head_hash
-  local branch_name
-  local base_version
-
-  head_hash=$(git rev-parse --short HEAD)
-  branch_name=$(git rev-parse --short --abbrev-ref HEAD)
-  base_version=$(head -n 1 "$libdir/VERSION")
-
-  cat > "$libdir/VERSION" << EOF
-$base_version
-Branch: $branch_name
-Commit: $head_hash
-EOF
+  kworkflow_version_from_repo > "${libdir}/VERSION"
 }
 
 function install_home()
@@ -519,8 +656,54 @@ function install_home()
   # Show current environment in terminal
   setup_bashrc_to_show_current_kw_env
 
+  install_patch_hub
+  if [[ "$?" != 0 ]]; then
+    warning ''
+    warning '-> Could not install the latest release of `patch-hub`.'
+    warning '   To use the `kw patch-hub` feature, you will need to install the `patch-hub` executable.'
+    warning '   Either try re-running this script or following the instructions below.'
+    warning '   Install instructions: https://github.com/kworkflow/patch-hub?tab=readme-ov-file#package-how-to-install.'
+  fi
+
   warning ''
   warning '-> For a better experience with kw, please, open a new terminal.'
+}
+
+function install_patch_hub()
+{
+  local tmp_dir
+  local ret
+
+  say ''
+  say 'Installing `patch-hub`...'
+
+  tmp_dir="$(mktemp --directory)"
+
+  curl --silent --location --output "${tmp_dir}/patch-hub.tar.xz" "$PATCH_HUB_LATEST_RELEASE"
+  ret="$?"
+  if [[ "$?" != 0 ]]; then
+    return "$ret"
+  fi
+
+  tar xf "${tmp_dir}/patch-hub.tar.xz" --directory="$tmp_dir" --strip-components=1
+  ret="$?"
+  if [[ "$?" != 0 ]]; then
+    return "$ret"
+  fi
+
+  cp "${tmp_dir}/patch-hub" "${binpath}"
+  ret="$?"
+  if [[ "$?" != 0 ]]; then
+    return "$ret"
+  fi
+}
+
+function full_installation()
+{
+  say 'Starting kw installation...'
+  install_home
+  say 'Installing kernel dependencies for build...'
+  install_kernel_dev_deps
 }
 
 function setup_bashrc_to_show_current_kw_env()
@@ -551,30 +734,40 @@ function setup_global_config_file()
     fi
   else
     warning "setup could not find $config_file_template"
-    return 2
+    return 2 # ENOENT
   fi
 }
 
 # Options
 for arg; do
   shift
-  if [ "$arg" = '--verbose' ]; then
-    VERBOSE=1
-    continue
-  fi
-  if [ "$arg" = '--force' ]; then
-    FORCE=1
-    continue
-  fi
-  if [ "$arg" = '--skip-checks' ]; then
-    SKIPCHECKS=1
-    continue
-  fi
-  if [[ "$arg" = '--enable-tracing' ]]; then
-    include 'tracing/tracing.sh'
-    ENABLE_TRACING=1
-    continue
-  fi
+  case "$arg" in
+    --verbose | -v)
+      VERBOSE=1
+      continue
+      ;;
+    --force | -f)
+      FORCE=1
+      continue
+      ;;
+    # Usually short lowercase options enable some behavior. Thus, the option -C
+    # is uppercase to sign we disable the dependency-check behavior.
+    --skip-checks | -C)
+      SKIPCHECKS=1
+      continue
+      ;;
+    # Similarly, the lowercase short option -D signs we disable the default
+    # behavior of generating man pages.
+    --skip-docs | -D)
+      SKIPDOCS=1
+      continue
+      ;;
+    --enable-tracing | -t)
+      include 'tracing/tracing.sh'
+      ENABLE_TRACING=1
+      continue
+      ;;
+  esac
   set -- "$@" "$arg"
 done
 
@@ -591,15 +784,21 @@ case "$1" in
     # related to kw, e.g., '.config' file under kw controls. For this reason, we do
     # not want to add a short version, and the user has to be sure about this
     # operation.
-  --completely-remove)
+  --completely-remove | -r)
     confirm_complete_removal
     clean_legacy '-d'
     ;;
   --help | -h)
     usage
     ;;
-  --docs)
+  --docs | -d)
     generate_documentation
+    ;;
+  --install-kernel-dev-deps | -k)
+    install_kernel_dev_deps
+    ;;
+  --full-installation | -F)
+    full_installation
     ;;
   *)
     complain 'Invalid number of arguments'

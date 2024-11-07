@@ -1,6 +1,6 @@
-=========
-kw-deploy
-=========
+=========================
+kw-deploy - Deploy kernel
+=========================
 
 .. _deploy-doc:
 
@@ -31,22 +31,23 @@ executed:
 
 You can specify the deploy target via command line by using the flag
 ``--remote <remote>:<port>`` (e.g., ``--remote 172.16.254.1:22``); however, if
-you do this frequently you will probably prefer to add this information to your
-local **kworkflow.config**. See the example below::
+you plan on deploying to the same remote frequently can benefit from using the
+``kw remote`` feature to save the SSH information in a configuration file
+used by kw, for example::
 
-  default_deploy_target=remote
-  ssh_user=root
-  ssh_ip=172.16.254.1
-  ssh_port=22
+  kw remote --add origin root@172.16.254.1
+
+For more information, check ``kw remote --help``
 
 If you want to install a new kernel version in your host machine, you can use
 the flag ``--local``; you will need to use your root password.
 
-Another typical operation when deploying a new kernel to a test machine, it is
-the reboot after the update. You can explicitly say it for **kw** by adding the
-flag ``--reboot``, add this to the **kworkflow.config** with::
+Another typical operation when deploying a new kernel to a test machine is
+rebooting after the update. You can add the ``--reboot`` flag to a command to
+explicitly make **kw** reboot the machine afterwards, or you can set this to 
+always happen by modifying ``reboot_after_deploy`` flag in **deploy.config** with::
 
-  reboot_after_deploy=yes
+  kw config deploy.reboot_after_deploy yes
 
 This can be used with conjunction the :ref:`build<build-doc>` command by
 invoking ``kw bd``.
@@ -84,9 +85,10 @@ OPTIONS
 -s, \--ls-line:
   List available kernels separated by comma.
 
--u <kernel-name>[,...], \--uninstall <kernel-name>[,...]:
+-u (<kernel-name> | regex:<pattern>)[,...], \--uninstall (<kernel-name> | regex:<pattern>)[,...]:
   Remove a single kernel or multiple kernels; for removing
-  multiple kernels it is necessary to separate them with comma.
+  multiple kernels it is necessary to separate them with comma. A regex pattern
+  can also be passed as input, prefixed with 'regex:'.
 
 -f, \--force:
   Remove kernels even if they were not installed by kw (only valid with
@@ -117,8 +119,9 @@ OPTIONS
 
 EXAMPLES
 ========
-For these examples, we suppose the fields in your **kworkflow.config** file are
-already configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 First, if you are working in a specific kernel module, and if you want to
 install your recent changes in your local machine you can use::
@@ -151,3 +154,17 @@ any other kw user. If you want to install a custom kernel from this package,
 you can use::
 
   kw deploy --from-package 5.19.0-THIS-IS-AN-EXAMPLE+.kw.tar
+
+Below are examples of how to use `kw deploy --uninstall`:
+
+1) Full kernel name argument
+
+  kw deploy --uninstall 'kernel1'
+
+2) Regular expression argument
+
+  kw deploy --uninstall 'regex:kernel.*'
+
+3) Comma-separated list of full kernel names and regular expressions
+
+  kw deploy --uninstall 'regex:kernel[1-3],kernel4,regex:kernel[5-6]'

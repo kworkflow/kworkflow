@@ -13,15 +13,15 @@ function _kw_autocomplete()
   current_command="${COMP_WORDS[$COMP_CWORD]}"
   previous_command="${COMP_WORDS[$comp_curr - 1]}"
 
-  kw_options['kw']='init build deploy bd diff ssh vars codestyle self-update
+  kw_options['kw']='init build deploy bd diff ssh codestyle self-update
                     maintainers kernel-config-manager config remote explore
-                    pomodoro report device backup debug mail env patch-hub
+                    pomodoro report device backup debug send-patch env patch-hub
                     clear-cache drm vm version man help'
 
   kw_options['init']='--arch --remote --target --force --template --verbose'
 
   kw_options['build']='--help --info --menu --cpu-scaling --ccache --llvm --clean
-                       --full-cleanup --verbose --doc --warnings --save-log-to --cflags'
+                       --full-cleanup --verbose --doc --warnings --save-log-to --cflags --from-sha'
 
   kw_options['b']="${kw_options['build']}"
 
@@ -51,12 +51,12 @@ function _kw_autocomplete()
 
   kw_options['config']='--local --global --show --help --verbose'
 
-  kw_options['remote']='add remove rename --list --global --set-default --verbose'
+  kw_options['remote']='--add --remove --rename --list --global --set-default --verbose'
 
-  kw_options['explore']='--log --grep --all --only-header --only-source --exactly --verbose'
+  kw_options['explore']='--log --grep --all --only-header --only-source --exactly --show-context --verbose'
   kw_options['e']="${kw_options['explore']}"
 
-  kw_options['pomodoro']='--set-timer --check-timer --show-tags --tag --description --help --verbose'
+  kw_options['pomodoro']='--set-timer --check-timer --show-tags --tag --description --repeat-previous --help --verbose'
   kw_options['p']="${kw_options['pomodoro']}"
 
   kw_options['report']='--day --week --month --year --output --statistics --pomodoro --all --verbose'
@@ -66,10 +66,10 @@ function _kw_autocomplete()
 
   kw_options['backup']='--restore --force --verbose --help'
 
-  kw_options['debug']='--remote --local --event --ftrace --dmesg --cmd
+  kw_options['debug']='--remote --local --event --ftrace --dmesg --cmd --verbose
                        --history --disable --reset --list --follow --help'
 
-  kw_options['mail']='--list --send --to --cc --simulate --setup --email --name --smtpencryption
+  kw_options['send-patch']='--list --send --to --cc --simulate --setup --email --name --smtpencryption
                       --template --interactive --local --global --private --verify
                       --force --no-interactive --rfc --verbose --smtpuser --smtpserver
                       --smtpserverport --smtppass'
@@ -78,12 +78,15 @@ function _kw_autocomplete()
 
   kw_options['patch-hub']='--help'
 
-  kw_options['drm']='--remote --local --gui-on --gui-off --load-module
-                     --unload-module --conn-available --modes --verbose --help'
+  kw_options['drm']='--remote --local --gui-on --gui-off --gui-on-after-reboot --gui-off-after-reboot
+                     --load-module --unload-module --conn-available --modes --verbose --help'
 
   kw_options['vm']='--mount --umount --up --alert --help'
 
   kw_options['clear-cache']='--verbose'
+
+  kw_options['codestyle']='--verbose --help'
+  kw_options['c']="${kw_options['codestyle']}"
 
   mapfile -t COMPREPLY < <(compgen -W "${kw_options[${previous_command}]} " -- "${current_command}")
 

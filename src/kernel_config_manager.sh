@@ -30,7 +30,7 @@ function kernel_config_manager_main()
   flag=${flag:-'SILENT'}
 
   if [[ -z "$*" ]]; then
-    list_configs
+    list_configs "$flag"
     return "$?"
   fi
 
@@ -63,7 +63,7 @@ function kernel_config_manager_main()
   fi
 
   if [[ -n "${options_values['LIST']}" ]]; then
-    list_configs
+    list_configs "$flag"
     return "$?"
   fi
 
@@ -114,6 +114,7 @@ function save_config_file()
   local rows
   local cmd
   local ret
+  declare -A condition_array
 
   # Get env's kernel source tree
   if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
@@ -126,8 +127,11 @@ function save_config_file()
     return 2 # ENOENT
   fi
 
+  [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
+
   # Checks if there is already an entry for that kernel config file in the database
-  is_on_database="$(select_from "kernel_config WHERE name IS '${config_name}'")"
+  condition_array=(['name']="${config_name}")
+  is_on_database="$(select_from 'kernel_config' '' '' 'condition_array' '' "$flag")"
   if [[ -n "${is_on_database}" && "$force" != 1 ]]; then
     warning "Kernel config file named '${config_name}' already exists."
     if [[ $(ask_yN "Do you want to overwrite it?") =~ '0' ]]; then
@@ -173,7 +177,7 @@ function save_config_file()
   datetime=$(date '+%Y-%m-%d %H:%M:%S')
   values=("$config_name" "$description" "${kernel_configs_dir}/${config_name}" "$datetime")
   rows="$(format_values_db 4 "${values[@]}")"
-  replace_into '"kernel_config"' "$database_columns" "$rows"
+  replace_into '"kernel_config"' "$database_columns" "$rows" '' "$flag"
   ret="$?"
 
   if [[ "$ret" -gt 0 ]]; then
@@ -241,7 +245,7 @@ function get_config_from_proc()
   case "$target" in
     1) # VM
       # We do not support this option with VM
-      return 95
+      return 95 # ENOTSUP
       ;;
     2) # LOCAL
       # Try to find /proc/config, if we cannot find, attempt to load the module
@@ -255,13 +259,13 @@ function get_config_from_proc()
       return 0
       ;;
     3) # REMOTE
-      cmd_remotely "[ -f ${PROC_CONFIG_PATH} ]" "$flag"
+      cmd_remotely "$flag" "[ -f ${PROC_CONFIG_PATH} ]"
       if [[ "$?" != 0 ]]; then
-        cmd_remotely "$CMD_LOAD_CONFIG_MODULE" "$flag"
+        cmd_remotely "$flag" "$CMD_LOAD_CONFIG_MODULE"
         [[ "$?" != 0 ]] && return 95 # Operation not supported
       fi
 
-      cmd_remotely "$CMD_GET_CONFIG" "$flag"
+      cmd_remotely "$flag" "$CMD_GET_CONFIG"
       [[ "$?" != 0 ]] && return 95 # Operation not supported
       remote2host "$flag" "/tmp/${output}" "$config_base_path"
       return 0
@@ -309,8 +313,8 @@ function get_config_from_boot()
       return 0
       ;;
     3) # REMOTE
-      kernel_release=$(cmd_remotely 'uname -r' "$flag")
-      cmd_remotely "[ -f ${root}boot/config-${kernel_release} ]" "$flag"
+      kernel_release=$(cmd_remotely "$flag" 'uname -r')
+      cmd_remotely "$flag" "[ -f ${root}boot/config-${kernel_release} ]"
       [[ "$?" != 0 ]] && return 95 # ENOTSUP
 
       remote2host "$flag" "${root}boot/config-${kernel_release}" "$config_base_path"
@@ -421,7 +425,7 @@ function fetch_config()
   cmd_manager "$flag" "$cmd"
 
   if [[ -f "${config_base_path}/${output}" ]]; then
-    if [[ -z "$force" && $(ask_yN "Do you want to overwrite ${output} in your current directory?") =~ "0" ]]; then
+    if [[ -z "$force" && "$(ask_yN "Do you want to overwrite ${output} in your current directory?")" =~ '0' ]]; then
       warning 'Operation aborted'
       return 125 #ECANCELED
     fi
@@ -472,11 +476,11 @@ function fetch_config()
         mods=$(cmd_manager "$flag" 'lsmod')
         ;;
       3) # REMOTE
-        mods=$(cmd_remotely 'lsmod' "$flag")
+        mods=$(cmd_remotely "$flag" 'lsmod')
         ;;
     esac
 
-    printf "%s" "$mods" > "${KW_CACHE_DIR}/lsmod"
+    printf '%s' "$mods" > "${KW_CACHE_DIR}/lsmod"
 
     cmd="make localmodconfig LSMOD=${KW_CACHE_DIR}/lsmod${output_kbuild_flag}"
 
@@ -514,9 +518,12 @@ function fetch_config()
 # managed by kw.
 function list_configs()
 {
+  local flag="${1:-SILENT}"
   local configs
 
-  configs="$(select_from 'kernel_config' 'name AS "Name", description AS "Description", last_updated_datetime AS "Last updated"' '.mode column')"
+  [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
+
+  configs="$(select_from 'kernel_config' 'name AS \"Name\", description AS \"Description\", last_updated_datetime AS \"Last updated\"' '.mode column' '' '' "$flag")"
 
   if [[ -z "$configs" ]]; then
     say 'There are no .config files managed by kw'
@@ -549,13 +556,18 @@ function basic_config_validations()
   local flag="${5:-SILENT}"
   local query_output
   local -r kernel_configs_dir="${KW_DATA_DIR}/configs"
+  declare -A condition_array
 
   if [[ ! -f "${kernel_configs_dir}/${config_name}" ]]; then
     complain "Couldn't find config file named: ${config_name}"
     exit 2 # ENOENT
   fi
 
-  query_output=$(select_from "kernel_config WHERE name IS '${config_name}'")
+  [[ "$flag" == 'VERBOSE' ]] && flag='CMD_SUBSTITUTION_VERBOSE'
+
+  condition_array=(['name']="${config_name}")
+  query_output="$(select_from 'kernel_config' '' '' 'condition_array' '' "$flag")"
+
   if [[ -z "${query_output}" ]]; then
     complain "Couldn't find config in database named: ${config_name}"
     # Ask user what to do with hanging local .config
@@ -636,7 +648,7 @@ function remove_config()
   local -r msg="This operation will remove ${config_name} from kw management"
   local ret
 
-  basic_config_validations "$config_name" "$force" 'Remove' "$msg"
+  basic_config_validations "$config_name" "$force" 'Remove' "$msg" "$flag"
 
   if is_safe_path_to_remove "${kernel_configs_dir}/${config_name}"; then
     cmd_manager "$flag" "rm ${kernel_configs_dir}/${config_name}"
@@ -647,7 +659,7 @@ function remove_config()
   fi
 
   condition_array=(['name']="${config_name}")
-  remove_from '"kernel_config"' 'condition_array'
+  remove_from 'kernel_config' 'condition_array' '' '' "$flag"
 
   say "The ${config_name} config file was removed from kw management"
 }

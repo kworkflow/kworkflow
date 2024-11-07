@@ -172,15 +172,15 @@ man_pages = [
     ('man/features/kw-drm', 'kw-drm', 'drm subsystem support', [author], 1),
     ('man/features/kw-explore', 'kw-explore', 'git grep wrapper', [author], 1),
     ('man/features/kw-init', 'kw-init', 'initialize kworkflow.config', [author], 1),
-    ('man/features/kw-mail', 'kw-mail', 'git send-email wrapper', ['Rubens Gomes Neto'], 1),
+    ('man/features/kw-send-patch', 'kw-send-patch', 'git send-email wrapper', ['Rubens Gomes Neto'], 1),
     ('man/features/kw-maintainers', 'kw-maintainers', 'display module maintainers', [author], 1),
     ('man/features/kw-pomodoro', 'kw-pomodoro', 'pomodoro style time management', [author], 1),
     ('man/features/kw-report', 'kw-report', 'user data report support', [author], 1),
     ('man/features/kw-ssh', 'kw-ssh', 'ssh access', [author], 1),
-    ('man/features/kw-vars', 'kw-vars', 'view kw config values', [author], 1),
     ('man/features/kw-vm', 'kw-vm', 'commands to work with QEMU VMs', [author], 1),
     ('man/features/kw-self-update', 'kw-self-update', 'kw self-update mechanism', ['David Tadokoro, Everaldo Junior'], 1),
-    ('man/features/kw-patch-hub', 'kw-patch-hub', 'UI with lore.kernel.org archives', ['David Tadokoro, Rodrigo Siqueira'], 1),
+    ('man/features/kw-patch-hub', 'kw-patch-hub', 'Terminal UI to interact with patches from lore.kernel.org', ['David Tadokoro, Rodrigo Siqueira'], 1),
+    ('man/features/kw-bd', 'kw-bd', 'build and then deploy the kernel', ['Briza Mel de Sousa, Lorenzo Salvador'], 1),
 ]
 
 

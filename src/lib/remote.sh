@@ -15,6 +15,24 @@ REMOTE_KW_DEPLOY='/root/kw_deploy'
 
 declare -gA remote_parameters
 
+# This function checks if connecting to the host machine via ssh is possible.
+# It is helpful to invoke this function before performing any meaningful
+# operation that depends on the ssh connection.
+#
+# @flag: How to display a command, the default value is
+#   'SILENT'. For more options see `src/lib/kwlib.sh` function `cmd_manager`
+# @remote: IP or domain name.
+# @port: TCP Port. Default value is 22.
+# @user: User in the host machine. Default value is "root"
+# @remote_file: Path to the remote file
+# @remote_file_host: Hostname in the ssh file
+#
+# Returns:
+# In case of success, this function returns 0, otherwise, it can return:
+# 2   - It did not find the remote_file
+# 101 - Network is not reachable
+# 125 - The operation was canceled
+# 255 - Unknown error
 function is_ssh_connection_configured()
 {
   local flag=${1:-'SILENT'}
@@ -23,7 +41,8 @@ function is_ssh_connection_configured()
   local user=${4:-${remote_parameters['REMOTE_USER']}}
   local remote_file=${5:-${remote_parameters[REMOTE_FILE]}}
   local remote_file_host=${5:-${remote_parameters[REMOTE_FILE_HOST]}}
-  local ssh_cmd='ssh -q -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5'
+  local ssh_cmd='ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5'
+  local ret
 
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
     if [[ -n "${remote_file}" ]]; then
@@ -39,7 +58,138 @@ function is_ssh_connection_configured()
 
   ssh_cmd+=' exit'
 
-  cmd_manager "$flag" "$ssh_cmd"
+  output=$(cmd_manager "$flag" "$ssh_cmd" 2>&1)
+  if [[ "$?" == 255 ]]; then
+    ssh_error_handling "$output"
+    # The remove host identification issue
+    if [[ "$?" == 111 ]]; then
+      remove_key_from_kwown_hosts "$flag" "$ssh_cmd"
+      ret="$?"
+
+      # User canceled the manual update
+      [[ "$ret" == 125 ]] && return 125 # ECANCELED
+      # Some other unknown error occurred
+      [[ "$ret" != 0 ]] && return 101 # ENETUNREACH
+
+      # Retry the ssh command
+      cmd_manager "$flag" "$ssh_cmd"
+      [[ "$?" != 0 ]] && return 101 # ENETUNREACH
+      return 0
+    fi
+
+    return 255
+  fi
+
+  [[ "$flag" == 'TEST_MODE' ]] && printf '%s\n' "$output"
+
+  return 0
+}
+
+# This function is responsible for handling specific ssh errors. Unfortunately,
+# when the SSH command fails, it always returns 255, which does not provide a
+# fine-grained way to deal with particular issues. To workaround this
+# limitation, this function parses the error message.
+#
+# @error_message: String with the error message from the ssh command
+#
+# Return:
+# 0 - If does not find anything
+# 111 - If remote host identification has changed
+function ssh_error_handling()
+{
+  local error_message="$1"
+  local remote_host_change_message='.*WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED.*'
+
+  # Case 1: Remote host identification change, return 111
+  grep --line-regexp --quiet "$remote_host_change_message" <<< "$error_message"
+  if [[ "$?" == 0 ]]; then
+    return 111 # ECONNREFUSED
+  fi
+
+  return 0
+}
+
+# Remove current host from the known_hosts file.
+#
+# @flag: How to display a command, the default value is
+#   "HIGHLIGHT_CMD". For more options see `src/lib/kwlib.sh` function `cmd_manager`.
+# @ssh_cmd: The ssh command that failed to execute.
+#
+# Returns:
+# 0 - If everything is ok
+# 125 - if the user cancel the operation or the result code from ssh-keygen
+#       command.
+function remove_key_from_kwown_hosts()
+{
+  local flag=${1:-'SILENT'}
+  local ssh_cmd="$2"
+  local remove_key_cmd='ssh-keygen -q -f'
+
+  #shellcheck disable=SC2119
+  extract_remote_info_from_config_file
+
+  remove_key_cmd+=" '${HOME}/.ssh/known_hosts' -R '[${remote_parameters['REMOTE_IP']}]:${remote_parameters['REMOTE_PORT']}'"
+
+  warning 'kw was not able to ssh into:'
+  warning " Host: ${remote_parameters['REMOTE_IP']}"
+  warning " Port: ${remote_parameters['REMOTE_PORT']}"
+  warning " User: ${remote_parameters['REMOTE_USER']}"
+  warning 'Due to a remote host identification issue.'
+  if [[ $(ask_yN 'Do you want kw to remove the current host from the known_hosts file?') =~ '0' ]]; then
+    say ' No problem, the operation has been canceled.'
+    say ' You can try to manually check the kw issue by using the below command:'
+    say "  ${ssh_cmd}"
+    return 125 # ECANCELED
+  fi
+
+  cmd_manager "$flag" "$remove_key_cmd"
+}
+
+# This function converts part of the information in the ssh file into the
+# remote_parameters array.
+#
+# @remote_file_host: Hostname in the ssh file
+# @remote_file: Path to the remote file
+function extract_remote_info_from_config_file()
+{
+  local remote_file_host=${1:-${remote_parameters['REMOTE_FILE_HOST']}}
+  local remote_file=${2:-${remote_parameters['REMOTE_FILE']}}
+  local trimmed_remote_file
+  local line_number
+  local remote
+  local line
+  local port
+  local user
+
+  # Getting the line number of the target host
+  line_number=$(grep --line-number "^Host ${remote_file_host}\$" "$remote_file" | cut --delimiter=':' -f1)
+  ((line_number++))
+  # Trimming remote file from target host line upward
+  trimmed_remote_file=$(tail --lines "+${line_number}" "${remote_file}")
+  # Getting the line number of next host from target host, if it exists
+  line_number=$(printf '%s' "$trimmed_remote_file" | grep --line-number --max-count=1 '^Host' | cut --delimiter=':' -f1)
+  # In case next host exists, trim remote file again from next host line downward
+  if [[ -n "$line_number" ]]; then
+    ((line_number--))
+    trimmed_remote_file=$(printf '%s' "$trimmed_remote_file" | head --lines "$line_number")
+  fi
+
+  # Here, we are matching lines with Hostname/Port/User occurrences that happen between the target
+  # host line and the next host line (if it exists) in the remote config file and only have leading
+  # spaces (excludes commented lines). We then cut the resulting string to get only the value of
+  # the Hostname/Port/User line.
+  line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*Hostname')
+  remote=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
+
+  line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*Port')
+  port=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
+
+  line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*User')
+  user=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
+
+  remote_parameters['REMOTE_IP']="$remote"
+  remote_parameters['REMOTE_PORT']="$port"
+  remote_parameters['REMOTE_USER']="$user"
 }
 
 function ssh_connection_failure_message()
@@ -57,29 +207,11 @@ function ssh_connection_failure_message()
   # and user from the config file.
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
     if [[ -n "${remote_parameters['REMOTE_FILE']}" ]]; then
-      # Getting the line number of the target host
-      line_number=$(grep --line-number "^Host ${remote_file_host}\$" "$remote_file" | cut --delimiter=':' -f1)
-      ((line_number++))
-      # Trimming remote file from target host line upward
-      trimmed_remote_file=$(tail --lines "+${line_number}" "${remote_file}")
-      # Getting the line number of next host from target host, if it exists
-      line_number=$(printf '%s' "$trimmed_remote_file" | grep --line-number --max-count=1 '^Host' | cut --delimiter=':' -f1)
-      # In case next host exists, trim remote file again from next host line downward
-      if [[ -n "$line_number" ]]; then
-        ((line_number--))
-        trimmed_remote_file=$(printf '%s' "$trimmed_remote_file" | head --lines "$line_number")
-      fi
-
-      # Here, we are matching lines with Hostname/Port/User occurrences that happen between the target
-      # host line and the next host line (if it exists) in the remote config file and only have leading
-      # spaces (excludes commented lines). We then cut the resulting string to get only the value of
-      # the Hostname/Port/User line.
-      line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*Hostname')
-      remote=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
-      line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*Port')
-      port=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
-      line=$(printf '%s' "$trimmed_remote_file" | grep --max-count=1 '^[[:blank:]]*User')
-      user=$(printf '%s' "$line" | rev | cut --delimiter=' ' -f1 | rev)
+      #shellcheck disable=SC2119
+      extract_remote_info_from_config_file
+      remote="${remote_parameters['REMOTE_IP']}"
+      user="${remote_parameters['REMOTE_USER']}"
+      port="${remote_parameters['REMOTE_PORT']}"
     else
       complain 'Could not find remote config file.'
       complain 'Suggestion: check if there is a remote.config or try using'
@@ -89,9 +221,9 @@ function ssh_connection_failure_message()
   fi
 
   complain 'We could not reach the remote machine by using:'
-  complain " IP: $remote"
-  complain " User: $user"
-  complain " Port: $port"
+  complain " IP: ${remote}"
+  complain " User: ${user}"
+  complain " Port: ${port}"
   complain 'Please ensure that the above info is correct.'
   complain 'Suggestion: Check if your remote machine permits root login via ssh'
   complain 'or check if your public key is in the remote machine.'
@@ -114,8 +246,8 @@ function ssh_connection_failure_message()
 # If no command is specified, we finish the execution and return 22
 function cmd_remotely()
 {
-  local command="$1"
-  local flag=${2:-'HIGHLIGHT_CMD'}
+  local flag=${1:-'HIGHLIGHT_CMD'}
+  local command="$2"
   local remote=${3:-${remote_parameters['REMOTE_IP']}}
   local port=${4:-${remote_parameters['REMOTE_PORT']}}
   local user=${5:-${remote_parameters['REMOTE_USER']}}
@@ -239,7 +371,7 @@ function which_distro()
   local output
 
   cmd='cat /etc/os-release'
-  output=$(cmd_remotely "$cmd" "$flag" "$remote" "$port" "$user")
+  output=$(cmd_remotely "$flag" "$cmd" "$remote" "$port" "$user")
   # TODO: I think we can find a better way to test this...
   if [[ "$flag" =~ 'TEST_MODE' ]]; then
     printf '%s' "$output"

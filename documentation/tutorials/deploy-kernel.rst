@@ -70,7 +70,7 @@ Before trying to deploy your new kernel, let's first update
 `kworkflow.config` and `remote.config` by making sure that you set the following
 options correctly::
 
-  kw remote add my-x86-test-system root@<IP or NAME>:<PORT>
+  kw remote --add my-x86-test-system root@<IP or NAME>:<PORT>
 
 .. note::
    If you don't know anything about `kworkflow.config` or `remote.config`, take

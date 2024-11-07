@@ -1,6 +1,6 @@
-=======
-kw-init
-=======
+======================================
+kw-init - Create kw basic config files
+======================================
 
 .. _init-doc:
 
@@ -11,9 +11,9 @@ SYNOPSIS
 
 DESCRIPTION
 ===========
-This command creates a **.kw** folder containing a **kworkflow.config** file in
+This command creates a **.kw** folder containing default configuration files in
 the current kernel directory. The primary reason for running ``kw init`` is to
-pick up a freshly created config file.
+pick up freshly created config files.
 
 OPTIONS
 =======
@@ -25,7 +25,7 @@ OPTIONS
   creating the local config file.
 
 \--arch <arch>:
-  Set the variable `arch` from the newly created **kworkflow.config** file.
+  Set the variable `arch` from the newly created **build.config** file.
   Before actually changing it, this option checks if *<arch>* is a valid
   architecture found in the **arch** folder from the kernel directory.
 
@@ -34,7 +34,7 @@ OPTIONS
   and *<port>*, respectively.
 
 \--target <target>:
-  Set the variable `default_deploy_target` from **kworkflow.config** to
+  Set the variable `default_deploy_target` from **deploy.config** to
   *<target>*, which can be local or remote.
 
 \--verbose:
@@ -45,17 +45,19 @@ EXAMPLES
 For these examples, we suppose that the kernel directory is your current
 directory.
 
-For initializing a **kworkflow.config** with `arch` set to arm, use::
+For initializing a **build.config** with `arch` set to arm, use::
 
   kw init --arch arm
 
-To initialize **kworkflow.config** with `arch` set to x86, `ssh_user` set to
-john, `ssh_ip` set to localhost, and `ssh_port` set to 2222, run::
+To initialize **build.config** with `arch` set to x86 and a **kworkflow.config** 
+with `ssh_user` set to john, `ssh_ip` set to localhost, and `ssh_port` 
+set to 2222, run::
 
   kw init --arch x86 --remote john@localhost:2222
 
-For initializing a **kworkflow.config** with `arch` set to arm64, `target` set to
-remote, `ssh_user` mary, `ssh_ip` localhost, and `ssh_port` 1234, run::
+For initializing a **build.config** with `arch` set to arm64, a **deploy.config**
+with `target` set to remote and a **kworkflow.config** with `ssh_user` mary, 
+`ssh_ip` localhost, and `ssh_port` 1234, run::
 
   kw init --arch arm64 --remote mary@localhost:1234 --target remote
 

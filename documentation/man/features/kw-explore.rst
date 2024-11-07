@@ -1,13 +1,13 @@
-==========
-kw-explore
-==========
+===========================
+kw-explore - Explore folder
+===========================
 
 .. _explore-doc:
 
 SYNOPSIS
 ========
 *kw* (*e* | *explore*) [(-l | \--log) | (-g | \--grep) | (-a | \--all) | \--verbose]
-                       [(-c | \--only-source) | (-H | \--only-header)] <expr>
+                       [(-c | \--only-source) | (-H | \--only-header)] [(-C[<num>] | \--show-context[=<num>])] <expr>
                        [-p] [<dir> | <file>]
 
 DESCRIPTION
@@ -45,5 +45,23 @@ OPTIONS
 -H | \--only-header:
   With this option, it is possible to show only the results from the header.
 
+-C[<num>] | \--show-context[=<num>]:
+  Show <num> lines of additional context above and below the matched line.
+  If <num> is not specified, the default value of 3 will be used.
+
 \--verbose:
   Verbose mode allows the user to see the commands executed under the hood.
+
+EXAMPLES
+========
+To show matched line with context using long-form flag::
+
+  kw explore --show-context=5 search_string
+
+To show matched line with context using short flag::
+
+  kw explore -C5 search_string
+
+Search through all tracked and untracked files, default value of 3 will be used for context::
+
+  kw explore -C --all search_string

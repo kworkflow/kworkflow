@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:thr="http://purl.org/syndication/thread/1.0">
+	<entry>
+		<author>
+			<name>Bob Marley</name>
+			<email>bob.marley@reggae.jm</email>
+		</author>
+		<title>[PATCH v2 7/10] bob-marley/survavil: Add One Drop to album</title>
+		<updated>2023-08-09T21:27:00Z</updated>
+		<link href="http://lore.kernel.org/reggae/sequel"/>
+		<id>urn:uuid:2f9fa3da-2057-86a4-aa20-9ad0239ff7a3</id>
+		<content type="xhtml">
+			...
+		</content>
+	</entry>
+	<entry>
+		<author>
+			<name>Charlie Brown Jr.</name>
+			<email>charlie.brown@punk.br</email>
+		</author>
+		<title type="html">[PATCH 3/13] cbj/camisa10: Add Só os Loucos Sabem to album</title>
+		<updated>2023-08-09T19:10:26Z</updated>
+		<link href="http://lore.kernel.org/punk/sequel"/>
+		<id>urn:uuid:66fe77b1-55ad-6670-73ee-54e933cf5f63</id>
+		<content type="xhtml">
+			...
+		</content>
+	</entry>
+	<entry>
+		<author>
+			<name>Seu Jorge</name>
+			<email>seu.jorge@samba-pop.br</email>
+		</author>
+		<title type="html">[RFC] Release Músicas para Churrasco Vol.1</title>
+		<updated>2023-08-09T19:10:22Z</updated>
+		<link href="http://lore.kernel.org/samba-pop/introduction"/>
+		<id>urn:uuid:b09294a9-df54-a8b1-cf19-6f58c2febdd3</id>
+		<thr:in-reply-to href="http://lore.kernel.org/samba-pop/request"/>
+		<content type="xhtml">
+			...
+		</content>
+	</entry>
+</feed>

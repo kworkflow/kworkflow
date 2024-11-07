@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 KWORKFLOW=${KWORKFLOW:-'kw'}
 
@@ -24,7 +24,6 @@ if [[ -f "$KW_SYSTEM_WIDE_INSTALLATION" ]]; then
   KW_LIB_DIR='/usr/share/kw'
   KW_SOUND_DIR='/usr/share/sounds/kw'
   KW_DOC_DIR='/usr/share/doc/kw/html/'
-  KW_SOUND_DIR='/usr/share/sounds/kw'
   KW_ETC_DIR='/etc/kw'
 else
   KW_LIB_DIR="${KW_LIB_DIR:-"${HOME}/.local/lib"}/${KWORKFLOW}"
@@ -91,7 +90,12 @@ if [[ "${KW_REPO_MODE}" == 'y' ]]; then
   repo_mode_msg+=$'\t'"KW_PLUGINS_DIR=${KW_PLUGINS_DIR}"$'\n'
   repo_mode_msg+=$'\t'"KW_SOUND_DIR=${KW_SOUND_DIR}"$'\n'$'\n'
   repo_mode_msg+="${SEPARATOR}"
-  say "${repo_mode_msg}"
+
+  # Message is redirected to stderr such that it can be easily ignored if needed.
+  # Otherwise, it could mess up the output expected by  integration  tests  which
+  # are runnning kw in repo-mode and the tests would fail (we may eventually want
+  # such tests because in repo-mode we can execute kw without installing it).
+  say "${repo_mode_msg}" >&2
 fi
 
 function kw()
@@ -134,10 +138,9 @@ function kw()
       ;;
     bd)
       (
-        include "${KW_LIB_DIR}/deploy.sh"
-        include "${KW_LIB_DIR}/build.sh"
+        include "${KW_LIB_DIR}/build_and_deploy.sh"
 
-        build_kernel_main && deploy_main 1 "$@"
+        build_and_deploy_main "$@"
         local ret="$?"
         alert_completion 'kw bd' "$1"
         return "$ret"
@@ -156,18 +159,11 @@ function kw()
         kw_ssh_main "$@"
       )
       ;;
-    vars)
-      (
-        include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
-
-        show_variables_main "$@"
-      )
-      ;;
     codestyle | c)
       (
-        include "${KW_LIB_DIR}/checkpatch_wrapper.sh"
+        include "${KW_LIB_DIR}/codestyle.sh"
 
-        execute_checkpatch "$@"
+        codestyle_main "$@"
       )
       ;;
     self-update | u)
@@ -248,11 +244,11 @@ function kw()
         debug_main "$@"
       )
       ;;
-    mail)
+    send-patch)
       (
-        include "${KW_LIB_DIR}/mail.sh"
+        include "${KW_LIB_DIR}/send_patch.sh"
 
-        mail_main "$@"
+        send_patch_main "$@"
       )
       ;;
     env)
@@ -324,7 +320,7 @@ function kw()
 
         complain 'Invalid option'
         kworkflow_help
-        return 1
+        return 1 # EPERM
       )
       ;;
   esac

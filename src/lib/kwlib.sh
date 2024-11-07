@@ -4,6 +4,7 @@ include "${KW_LIB_DIR}/lib/kw_db.sh"
 include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
 
 ENV_DIR='envs'
+KW_SHARED_MEMORY_DEFAULT_DIR='/dev/shm'
 
 # Array with compression programs accepted by tar
 declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
@@ -110,12 +111,40 @@ function cmd_manager()
       say "$command_for_eval"
       return 0
       ;;
+    CMD_SUBSTITUTION_VERBOSE)
+      say "$command_for_eval" >&2
+      ;;
     *) # VERBOSE
       say "$command_for_eval"
       ;;
   esac
 
   eval "$command_for_eval"
+}
+
+function show_verbose()
+{
+  local flag="$1"
+  local cmd="$2"
+
+  [[ "$flag" == 'VERBOSE' ]] && say "$cmd"
+}
+
+# This function creates a temporary shared memory directory to be used by
+# concurrent processes. In case the default base directory defined in the global
+# variable `@KW_SHARED_MEMORY_DEFAULT_DIR` is not available, the function uses
+# the default base directory of `mktemp --directory`
+#
+# Returns:
+# Outputs the path to the shared memory directory created.
+function create_shared_memory_dir()
+{
+  if [[ -d "$KW_SHARED_MEMORY_DEFAULT_DIR" && -w "$KW_SHARED_MEMORY_DEFAULT_DIR" ]]; then
+    printf '%s' "$(mktemp --tmpdir="$KW_SHARED_MEMORY_DEFAULT_DIR" --directory)"
+    return
+  fi
+
+  printf '%s' "$(mktemp --directory)"
 }
 
 # Checks if a directory is a kernel tree root
@@ -140,7 +169,7 @@ function is_kernel_root()
     -d "${DIR}/scripts" ]]; then
     return 0
   fi
-  return 1
+  return 1 # EPERM
 }
 
 # Finds the root of the linux kernel repo containing the given file
@@ -239,7 +268,7 @@ function is_a_patch()
   local file_content
 
   if [[ ! -f "$FILE_PATH" ]]; then
-    return 1
+    return 1 # EPERM
   fi
 
   file_content=$(< "$FILE_PATH")
@@ -255,7 +284,7 @@ function is_a_patch()
 
   for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
     if [[ ! "$file_content" =~ $expected_str ]]; then
-      return 1
+      return 1 # EPERM
     fi
   done
 
@@ -353,6 +382,7 @@ function statistics_manager()
   local start_datetime_in_secs="$2"
   local elapsed_time_in_secs="$3"
   local status=${4:-'success'}
+  local flag=${5:-'SILENT'}
   local start_datetime
   local start_date
   local start_time
@@ -372,7 +402,7 @@ function statistics_manager()
 
   row=$(format_values_db 5 "$label_name" "$status" "$start_date" "$start_time" "$elapsed_time_in_secs")
 
-  insert_into '"statistics_report"' "$database_columns" "$row"
+  insert_into '"statistics_report"' "$database_columns" "$row" '' "$flag"
 }
 
 # This function checks if a certain command can be run

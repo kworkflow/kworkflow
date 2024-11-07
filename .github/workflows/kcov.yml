@@ -10,7 +10,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 3
 
@@ -37,7 +37,7 @@ jobs:
         run: |
           kcov --include-path=src,kw \
           --exclude-pattern=src/bash_autocomplete.sh,src/help.sh \
-          kcov_out/ ./run_tests.sh
+          kcov_out/ ./run_tests.sh --unit
 
       - name: Upload coverage do codecov
         run: |

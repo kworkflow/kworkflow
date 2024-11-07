@@ -1,6 +1,6 @@
-=====
-kw-vm
-=====
+======================================
+kw-vm - Commands to work with QEMU VMs
+======================================
 
 .. _vm-doc:
 
@@ -21,7 +21,7 @@ OPTIONS
 =======
 -m, \--mount:
   This mounts the QEMU image in a specific directory, based on the data available
-  in the **kworkflow.config** file. Notice that the configuration file has the
+  in the **vm.config** file. Notice that the configuration file has the
   information about the source image and destination mount point.
 
 .. note::
@@ -29,10 +29,10 @@ OPTIONS
 
 -n, \--umount:
   This unmounts the previously mounted QEMU image, based on the parameters
-  available in the **kworkflow.config** file.
+  available in the **vm.config** file.
 
 -u, \--up:
-  This starts the QEMU VM based on parameters in the **kworkflow.config** file.
+  This starts the QEMU VM based on parameters in the **vm.config** file.
 
 \--alert=(s | v | (sv | vs) | n):
   Defines the alert behaviour upon the command completion.

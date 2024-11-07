@@ -1,6 +1,6 @@
-==============
-kw-maintainers
-==============
+===========================================
+kw-maintainers - Display module maintainers
+===========================================
 
 .. _maintainers-doc:
 
@@ -36,8 +36,9 @@ OPTIONS
 
 EXAMPLES
 ========
-For these examples, we suppose the fields in your **kworkflow.config** file are
-already configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 If you want to check the maintainers::
 

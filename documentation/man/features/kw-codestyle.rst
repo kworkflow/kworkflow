@@ -1,12 +1,14 @@
-============
-kw-codestyle
-============
+=================================
+kw-codestyle - Checkpatch wrapper
+=================================
 
 .. _codestyle-doc:
 
 SYNOPSIS
 ========
-*kw* (*c* | *codestyle*) [<directory> | <file> | <patch>]
+| *kw* (*c* | *codestyle*)
+| *kw* (*c* | *codestyle*) [<directory> | <file> | <patch>]
+| *kw* (*c* | *codestyle*) [\--verbose] [<directory> | <file> | <patch>]
 
 DESCRIPTION
 ===========
@@ -22,10 +24,14 @@ OPTIONS
   Define which files to run checkpatch on. Defaults to current working
   directory if it is a kernel tree.
 
+\--verbose:
+  Display commands executed under the hood.
+
 EXAMPLES
 ========
-For these examples, we suppose the fields in your **kworkflow.config** file are
-already configured.
+For these examples, we assume that the relevant fields in your configuration 
+files (located by default in **.kw/**) have already been setup. We recommend
+the use of ``kw config`` for managing your local and global configurations.
 
 For checking the code style::
 

@@ -33,6 +33,9 @@ function build_kernel_main()
   local clean
   local output_kbuild_flag=''
   local cflags
+  local from_sha_arg
+  local sha_base
+  local merge_base
 
   parse_build_options "$@"
 
@@ -59,6 +62,7 @@ function build_kernel_main()
   clean=${options_values['CLEAN']}
   full_cleanup=${options_values['FULL_CLEANUP']}
   cflags=${options_values['CFLAGS']}
+  from_sha_arg=${options_values['FROM_SHA_ARG']}
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
   flag=${flag:-'SILENT'}
@@ -124,6 +128,41 @@ function build_kernel_main()
     return "$?"
   fi
 
+  if [[ -n "$from_sha_arg" ]]; then
+    # Check if there is a rebase in process.
+    if [[ -d .git/rebase-merge ]]; then
+      warning 'ERROR: Abort the repository rebase before continuing with build from sha (use "git rebase --abort")!'
+      return 125 # ECANCELED
+    elif [[ -f .git/MERGE_HEAD ]]; then
+      warning 'ERROR: Abort the repository merge before continuing with build from sha (use "git rebase --abort")!'
+      return 125 # ECANCELED
+    elif [[ -f .git/BISECT_LOG ]]; then
+      warning 'ERROR: Stop the repository bisect before continuing with build from sha (use "git bisect reset")!'
+      return 125 # ECANCELED
+    elif [[ -d .git/rebase-apply ]]; then
+      printf 'ERROR: Abort the repository patch apply before continuing with build from sha (use "git am --abort")!'
+      return 125 # ECANCELED
+    fi
+
+    # Check if given SHA represents real commit
+    cmd_manager 'SILENT' "git cat-file -e ${from_sha_arg}^{commit} 2> /dev/null"
+    if [[ "$?" != 0 ]]; then
+      complain "ERROR: The given SHA (${from_sha_arg}) does not represent a valid commit sha."
+      return 22 # EINVAL
+    fi
+
+    # Check if given SHA is in working tree.
+    sha_base=$(git rev-parse --verify "$from_sha_arg")
+    merge_base=$(git merge-base "$from_sha_arg" HEAD)
+    if [[ "$sha_base" != "$merge_base" ]]; then
+      complain "ERROR: Given SHA (${from_sha_arg}) is invalid. Check if it is an ancestor of the branch head."
+      return 22 # EINVAL
+    fi
+
+    build_from_sha "$flag" "$from_sha_arg"
+    return "$?"
+  fi
+
   command="make ${optimizations} ${llvm}ARCH=${platform_ops}${warnings}"
 
   if [[ -n "$cflags" ]]; then
@@ -142,9 +181,9 @@ function build_kernel_main()
   runtime=$((end - start))
 
   if [[ "$ret" != 0 ]]; then
-    statistics_manager 'build' "$start" "$runtime" 'failure'
+    statistics_manager 'build' "$start" "$runtime" 'failure' "$flag"
   else
-    statistics_manager 'build' "$start" "$runtime"
+    statistics_manager 'build' "$start" "$runtime" '' "$flag"
   fi
 
   return "$ret"
@@ -247,53 +286,33 @@ function full_cleanup()
   cmd_manager "$flag" "$cmd"
 }
 
-# This function loads the kw build configuration files into memory, populating
-# the $build_config hashtable. The files are parsed in a specific order,
-# allowing higher level setting definitions to overwrite lower level ones.
-function load_build_config()
+# This functions uses iteractive 'git rebase' with '--exec' flag under the hood
+# to apply a 'kw build' over each commit from SHA to branch head.
+#
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`.
+# @sha The SHA from the first commit to be compiled until the branch head.
+#
+# Return:
+# 0 if successfully compiled patchset, 125 (ECANCELED) otherwise.
+function build_from_sha()
 {
-  if [[ -v build_config && "$OVERRIDE_BUILD_CONFIG" != 1 ]]; then
-    unset OVERRIDE_BUILD_CONFIG
-    return
-  fi
+  local flag="$1"
+  local sha="$2"
+  local cmd
 
-  local -a config_dirs
-  local config_dirs_size
+  flag=${flag:-'SILENT'}
+  cmd="git rebase ${sha} --exec 'kw build'"
+  cmd_manager "$flag" "$cmd"
 
-  if [[ -v XDG_CONFIG_DIRS ]]; then
-    IFS=: read -ra config_dirs <<< "$XDG_CONFIG_DIRS"
-  else
-    [[ -d '/etc/xdg' ]] && config_dirs=('/etc/xdg')
-  fi
-
-  # Old users may not have split their configs yet
-  parse_configuration "$KW_ETC_DIR/$BUILD_CONFIG_FILENAME" build_config
-
-  # XDG_CONFIG_DIRS is a colon-separated list of directories for config
-  # files to be searched, in order of preference. Since this function
-  # reads config files in a reversed order of preference, we must
-  # traverse it from back to top. Example: if
-  # XDG_CONFIG_DIRS=/etc/xdg:/home/user/myconfig:/etc/myconfig
-  # we will want to parse /etc/myconfig, then /home/user/myconfig, then
-  # /etc/xdg.
-  config_dirs_size="${#config_dirs[@]}"
-  for ((i = config_dirs_size - 1; i >= 0; i--)); do
-    parse_configuration "${config_dirs["$i"]}/$KWORKFLOW/$BUILD_CONFIG_FILENAME" build_config
-  done
-
-  parse_configuration "${XDG_CONFIG_HOME:-"$HOME/.config"}/$KWORKFLOW/$BUILD_CONFIG_FILENAME" build_config
-
-  if [[ -f "$PWD/$KW_DIR/$BUILD_CONFIG_FILENAME" ]]; then
-    parse_configuration "$PWD/$KW_DIR/$BUILD_CONFIG_FILENAME" build_config
-  else
-    # Old users may not have used kw init yet, so they wouldn't have .kw
-    warning "Please use kw init to update your config files"
+  if [[ "$?" != 0 ]]; then
+    complain "kw build failed during the compilation of a patch! Check the rebase in progress for more information."
+    return 125 #ECANCELED
   fi
 }
 
 function parse_build_options()
 {
-  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags:'
+  local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags:,from-sha:'
   local short_options='h,i,n,d,S:,w::,s:,c,f'
   local doc_type
   local file_name_size
@@ -323,6 +342,7 @@ function parse_build_options()
   options_values['FULL_CLEANUP']=''
   options_values['VERBOSE']=''
   options_values['CFLAGS']="${build_config[cflags]}"
+  options_values['FROM_SHA_ARG']=''
 
   # Check llvm option
   if [[ ${options_values['USE_LLVM_TOOLCHAIN']} =~ 'yes' ]]; then
@@ -406,6 +426,10 @@ function parse_build_options()
         options_values['LOG_PATH']="$2"
         shift 2
         ;;
+      --from-sha)
+        options_values['FROM_SHA_ARG']="$2"
+        shift 2
+        ;;
       --)
         shift
         ;;
@@ -438,7 +462,8 @@ function build_help()
     '  build (-c | --clean) - Clean option integrated into env' \
     '  build (-f | --full-cleanup) - Reset the kernel tree to its default option integrated into env' \
     '  build (--cflags) - Customize kernel compilation with specific flags' \
-    '  build (--verbose) - Show a detailed output'
+    '  build (--verbose) - Show a detailed output' \
+    '  build (--from-sha <SHA>) - Build all commits from <SHA> to actual commit'
 }
 
 # Every time build.sh is loaded its proper configuration has to be loaded as well

@@ -139,7 +139,7 @@ function add_new_remote()
 
   # We expect at exact two parameters
   if [[ "${#add_parameters[*]}" != 2 ]]; then
-    complain 'Expected: add <name-without-space> <[user@]ip[:port]>'
+    complain 'Expected: --add <name-without-space> <[user@]ip[:port]>'
     exit 22 # EINVAL
   fi
 
@@ -168,9 +168,9 @@ function add_new_remote()
   # Check if remote name already exists
   grep --line-regexp --quiet "^Host ${name}$" "$remote_config_file"
   if [[ "$?" == 0 ]]; then
-    sed --in-place --regexp-extended "/^Host ${name}$/{n;s/Hostname.*/Hostname ${remote_parameters['REMOTE_IP']}/}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${name}$/{n;n;s/Port.*/Port ${remote_parameters['REMOTE_PORT']}/}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${name}$/{n;n;n;s/User.*/User ${remote_parameters['REMOTE_USER']}/}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${name}$/{n;s/Hostname.*/Hostname ${remote_parameters['REMOTE_IP']}/}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${name}$/{n;n;s/Port.*/Port ${remote_parameters['REMOTE_PORT']}/}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${name}$/{n;n;n;s/User.*/User ${remote_parameters['REMOTE_USER']}/}" "$remote_config_file"
     return
   fi
 
@@ -205,7 +205,7 @@ function set_default_remote()
   grep --line-regexp --quiet "^#kw-default=.*" "$remote_config_file"
   # We don't have the default header yet, let's add it
   if [[ "$?" != 0 ]]; then
-    sed --in-place "1s/^/#kw-default=${default_remote}\n/" "$remote_config_file"
+    sed --in-place --follow-symlinks "1s/^/#kw-default=${default_remote}\n/" "$remote_config_file"
     return "$?"
   fi
 
@@ -217,7 +217,7 @@ function set_default_remote()
   fi
 
   # We already have the default remote
-  sed --in-place --regexp-extended "s/^#kw-default=.*/#kw-default=${default_remote}/" "$remote_config_file"
+  sed --in-place --follow-symlinks --regexp-extended "s/^#kw-default=.*/#kw-default=${default_remote}/" "$remote_config_file"
 }
 
 function remove_remote()
@@ -236,7 +236,7 @@ function remove_remote()
 
   # We expect at exact two parameters
   if [[ "${#remove_parameters[*]}" != 1 ]]; then
-    complain 'Expected: remove <name-without-space>'
+    complain 'Expected: --remove <name-without-space>'
     exit 22 # EINVAL
   fi
 
@@ -249,14 +249,14 @@ function remove_remote()
     # Check if the target remote is the default
     if [[ "$?" == 0 ]]; then
       warning "'${target_remote}' was the default remote, please, set a new default"
-      sed --in-place "/^#kw-default=${target_remote}/d" "$remote_config_file"
+      sed --in-place --follow-symlinks "/^#kw-default=${target_remote}/d" "$remote_config_file"
     fi
 
-    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/Hostname.*/d}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/Port.*/d}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${target_remote}$/{n;/User.*/d}" "$remote_config_file"
-    sed --in-place --regexp-extended "/^Host ${target_remote}$/d" "$remote_config_file"
-    sed --in-place --regexp-extended '/^$/d' "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${target_remote}$/{n;/Hostname.*/d}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${target_remote}$/{n;/Port.*/d}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${target_remote}$/{n;/User.*/d}" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "/^Host ${target_remote}$/d" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended '/^$/d' "$remote_config_file"
   else
     complain "We could not find ${target_remote}"
     return 22 # EINVAL
@@ -280,7 +280,7 @@ function rename_remote()
 
   # We expect at exact two parameters
   if [[ "${#rename_parameters[*]}" != 2 ]]; then
-    complain 'Expected: rename <OLD-name-without-space> <NEW-name-without-space>'
+    complain 'Expected: --rename <OLD-name-without-space> <NEW-name-without-space>'
     exit 22 # EINVAL
   fi
 
@@ -306,7 +306,7 @@ function rename_remote()
   # Check if remote name already exists
   grep --line-regexp --quiet "^Host ${old_name}$" "$remote_config_file"
   if [[ "$?" == 0 ]]; then
-    sed --in-place --regexp-extended "s/^Host $old_name/Host $new_name/" "$remote_config_file"
+    sed --in-place --follow-symlinks --regexp-extended "s/^Host $old_name/Host $new_name/" "$remote_config_file"
 
     # Check if the target remote was marked as a default
     grep --line-regexp --quiet "^#kw-default=${old_name}$" "$remote_config_file"
@@ -359,15 +359,15 @@ function parse_remote_options()
         remote_help "$1"
         exit
         ;;
-      add)
+      --add)
         options_values['ADD']=1
         shift
         ;;
-      remove)
+      --remove)
         options_values['REMOVE']=1
         shift
         ;;
-      rename)
+      --rename)
         options_values['RENAME']=1
         shift
         ;;
@@ -406,12 +406,12 @@ function parse_remote_options()
     return 22 # EINVAL
   elif [[ "${options_values['DEFAULT_REMOTE']}" == 1 ]]; then
     options_values['ERROR']='Expected a string values after --set-default='
-    return 22
+    return 22 # EINVAL
   elif [[ -z "${options_values['ADD']}" && -z "${options_values['REMOVE']}" &&
     -z "${options_values['RENAME']}" && -z "${options_values['LIST']}" &&
     -z "${options_values['DEFAULT_REMOTE']}" ]]; then
     options_values['ERROR']='"kw remote" should be proceeded by valid option'$'\n'
-    options_values['ERROR']+='Usage: kw remote (add | remove | rename | --list | --set-default) <params>[...]'
+    options_values['ERROR']+='Usage: kw remote (--add | --remove | --rename | --list | --set-default) <params>[...]'
     return 22 # EINVAL
   fi
 }
@@ -425,10 +425,10 @@ function remote_help()
   fi
   printf '%s\n' 'kw remote:' \
     '  remote - handle remote options' \
-    '  remote add [--global] <name> <USER@IP:PORT> [--set-default] - Add new remote' \
-    '  remote remove [--global] <name> - Remove remote' \
-    '  remote rename [--global] <old> <new> - Rename remote' \
-    '  remote [--global] --set-default=<remonte-name> - Set default remote' \
+    '  remote [--global] --add <name> <USER@IP:PORT> [--set-default] - Add new remote' \
+    '  remote [--global] --remove <name> - Remove remote' \
+    '  remote [--global] --rename <old> <new> - Rename remote' \
+    '  remote [--global] --set-default=<remote-name> - Set default remote' \
     '  remote [--global] --list - List remotes' \
     '  remote [--global] (--verbose | -v) - be verbose'
 }
