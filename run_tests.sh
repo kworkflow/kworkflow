@@ -32,6 +32,16 @@ function show_help()
     '  test - runs the given test'
 }
 
+function handle_sigint_clear_cache_warning()
+{
+  if [[ "$TESTS_DIR" =~ '/integration' && "$VERBOSE" -eq 1 ]]; then
+    print_cache_clear_warning
+  fi
+  exit 1
+}
+
+trap handle_sigint_clear_cache_warning SIGINT
+
 # Reports tests results.
 # Arguments are: $1: # of tests, $2: # of succeeded tests, $3: # of notfound tests and
 # $4: # of failed tests
@@ -117,10 +127,18 @@ function run_tests()
     say '' # add new line after the last "OK"
     say 'Tearing down containers used in integration tests...'
     teardown_containers
+    print_cache_clear_warning
     say ''
   fi
 
   report_results "$total" "$success" "$notfound" "$fail" "$test_failure_list"
+}
+
+function print_cache_clear_warning()
+{
+  warning ''
+  warning 'To clear all cache, run the command:'
+  warning '- ./run_tests.sh --integration clear-cache'
 }
 
 function clear_unit_tests_cache()
