@@ -460,6 +460,7 @@ function update_bootloader()
   local distro="$5"
   local prefix="$6"
   local root_file_system="$7"
+  local force="$8"
   local deploy_data_string
   local bootloader_path_prefix
   local ret
@@ -504,13 +505,20 @@ function update_bootloader()
     if [[ "$ret" == 2 ]]; then
       printf 'The initramfs were not generated, which will cause boot issues.\n'
       printf 'Stop the deploy.\n'
-      exit "$ret"
+      return "$ret"
     fi
 
+    # We have an error, but it may not be fatal. Let the user decide.
     if [[ "$ret" == 68 ]]; then
-      printf 'Errors when trying to generate the temporary root file system\n'
-      # TODO: Introduce --force or ask
-      #exit "$ret"
+      printf '\n\t kw identified possible non-fatal errors in the generated initramfs.\n'
+      if [[ "$force" == 0 ]]; then
+
+        ask_yN 'There are some errors in the generated initramfs. Do you want to proceed with the installation?'
+        if [[ "$?" != 1 ]]; then
+          printf '%s\n' "Kernel ${kernel_image_name} installation canceled"
+          exit 124 # ECANCELED
+        fi
+      fi
     fi
   fi
 
@@ -668,7 +676,7 @@ function kernel_uninstall()
   # Each distro script should implement update_bootloader
   if [[ "$update_grub" -gt 0 ]]; then
     #printf '%s\n' "update_bootloader $kernel $target $flag"
-    update_bootloader "$flag" "$kernel" "$target" "$kernel_image_name" '' "$path_prefix"
+    update_bootloader "$flag" "$kernel" "$target" "$kernel_image_name" '' "$path_prefix" '' "$force"
 
     # Reboot
     reboot_machine "$reboot" "$target" "$flag"
@@ -681,7 +689,8 @@ function install_kernel()
   local distro="$1"
   local reboot="$2"
   local target="$3"
-  local flag="$4"
+  local force="$4"
+  local flag="$5"
   local sudo_cmd=''
   local cmd=''
   local path_test=''
@@ -741,7 +750,7 @@ function install_kernel()
   fi
 
   # Each distro has their own way to update their bootloader
-  update_bootloader "$flag" "$name" "$target" "$kernel_image_name" "$distro" "$path_test"
+  update_bootloader "$flag" "$name" "$target" "$kernel_image_name" "$distro" "$path_test" '' "$force"
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then

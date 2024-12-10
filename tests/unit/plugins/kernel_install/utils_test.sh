@@ -662,7 +662,7 @@ function test_install_kernel_remote()
   local path_prefix=''
   local output
 
-  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
+  output=$(install_kernel 'debian' "$reboot" "$target" '' 'TEST_MODE')
   ret="$?"
   assert_equals_helper 'Test invalid name' "$LINENO" 2 "$ret"
 
@@ -711,14 +711,14 @@ function test_install_kernel_remote()
   } > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   touch "${PWD}/boot/vmlinuz-${name}"
 
-  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
+  output=$(install_kernel 'debian' "$reboot" "$target" '' 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # Now add a .dtb file and remove vmlinuz
   touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/test.dtb"
   rm "${PWD}/boot/vmlinuz-${name}"
 
-  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
+  output=$(install_kernel 'debian' "$reboot" "$target" '' 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence2' "$output"
 
   cd "$TEST_ROOT_PATH" || {
@@ -767,7 +767,7 @@ function test_install_kernel_local()
     'sudo -E reboot'
   )
 
-  output=$(install_kernel 'debian' "$reboot" "$target" 'TEST_MODE')
+  output=$(install_kernel 'debian' "$reboot" "$target" '' 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {

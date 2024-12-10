@@ -84,6 +84,7 @@ function deploy_main()
   local return_tar_path
   local kernel_binary_image_name
   local cache_to_deploy_path
+  local force
 
   # Drop build_and_deploy flag
   shift
@@ -120,7 +121,7 @@ function deploy_main()
   list_all="${options_values['LS_ALL']}"
   list="${options_values['LS']}"
   uninstall="${options_values['UNINSTALL']}"
-  uninstall_force="${options_values['UNINSTALL_FORCE']}"
+  force="${options_values['FORCE']}"
   setup="${options_values['SETUP']}"
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
@@ -151,7 +152,7 @@ function deploy_main()
   # Uninstall option
   if [[ -n "$uninstall" ]]; then
     start=$(date +%s)
-    run_kernel_uninstall "$target" "$reboot" "$uninstall" "$flag" "$uninstall_force"
+    run_kernel_uninstall "$target" "$reboot" "$uninstall" "$force" "$flag"
     ret="$?"
     end=$(date +%s)
     runtime=$((end - start))
@@ -247,7 +248,7 @@ function deploy_main()
   if [[ "$modules" == 0 ]]; then
     start=$(date +%s)
     # Update name: release + alias
-    run_kernel_install "$return_tar_path" "$kernel_binary_image_name" "$flag"
+    run_kernel_install "$return_tar_path" "$kernel_binary_image_name" "$force" "$flag"
     ret="$?"
     end=$(date +%s)
     runtime=$((end - start))
@@ -740,8 +741,8 @@ function run_kernel_uninstall()
   local target="$1"
   local reboot="$2"
   local kernels_target_list="$3"
-  local flag="$4"
-  local force="$5"
+  local force="$4"
+  local flag="$5"
   local distro
   local remote
   local port
@@ -1281,7 +1282,8 @@ function run_kernel_install()
 {
   local return_tar_path="$1"
   local kernel_binary_image_name="$2"
-  local flag="$3"
+  local force="$3"
+  local flag="$4"
   local distro='none'
   local arch_target="${build_config[arch]:-${configurations[arch]}}"
   local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
@@ -1321,7 +1323,7 @@ function run_kernel_install()
       say '* Moving kernel package for local deploy'
       cmd_manager "$flag" "mv ${return_tar_path} ${KW_DEPLOY_TMP_FILE}"
 
-      install_kernel "$distro" "$reboot" 'local' "$flag"
+      install_kernel "$distro" "$reboot" 'local' "$force" "$flag"
       human_install_kernel_message "$?"
       return "$?"
       ;;
@@ -1334,7 +1336,7 @@ function run_kernel_install()
       cp2remote "$flag" "$return_tar_path" "$KW_DEPLOY_TMP_FILE"
 
       # Deploy
-      cmd_parameters="${distro} ${reboot} 'remote' ${flag}"
+      cmd_parameters="${distro} ${reboot} 'remote' ${force} ${flag}"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update $cmd_parameters"
 
@@ -1373,7 +1375,7 @@ function parse_deploy_options()
   options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
   options_values['TEST_MODE']='SILENT'
   options_values['UNINSTALL']=''
-  options_values['UNINSTALL_FORCE']=''
+  options_values['FORCE']=0
   options_values['MODULES']=0
   options_values['LS_LINE']=0
   options_values['LS']=0
@@ -1471,7 +1473,7 @@ function parse_deploy_options()
         shift
         ;;
       --force | -f)
-        options_values['UNINSTALL_FORCE']=1
+        options_values['FORCE']=1
         shift
         ;;
       --create-package | -p)
