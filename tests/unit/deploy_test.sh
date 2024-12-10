@@ -666,11 +666,11 @@ function test_kernel_uninstall()
   run_kernel_uninstall_cmd+=" sudo \"$deploy_remote_cmd\""
 
   # List of kernels
-  output=$(run_kernel_uninstall 3 0 "$kernel_list" 'TEST_MODE')
+  output=$(run_kernel_uninstall 3 0 "$kernel_list" '' 'TEST_MODE')
   assert_equals_helper 'Standard uninstall' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 
   # Reboot
-  output=$(run_kernel_uninstall 3 1 "$kernel_list" 'TEST_MODE')
+  output=$(run_kernel_uninstall 3 1 "$kernel_list" '' 'TEST_MODE')
   deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
   deploy_remote_cmd+=" --uninstall-kernels '1' 'remote' '$kernel_list' 'TEST_MODE' ''"
 
@@ -678,7 +678,7 @@ function test_kernel_uninstall()
   assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 
   # Single kernel
-  output=$(run_kernel_uninstall 3 1 "$single_kernel" 'TEST_MODE')
+  output=$(run_kernel_uninstall 3 1 "$single_kernel" '' 'TEST_MODE')
 
   deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
   deploy_remote_cmd+=" --uninstall-kernels '1' 'remote' '$single_kernel' 'TEST_MODE' ''"
@@ -686,7 +686,7 @@ function test_kernel_uninstall()
   assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 
   # Kernel with regex
-  output=$(run_kernel_uninstall 3 1 "regex:(5.*-rc7)" 'TEST_MODE' '' 1)
+  output=$(run_kernel_uninstall 3 1 "regex:(5.*-rc7)" '' 'TEST_MODE' '' 1)
   deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
   deploy_remote_cmd+=" --uninstall-kernels '1' 'remote' 'regex:(5.*-rc7)' 'TEST_MODE' ''"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"$deploy_remote_cmd\""
@@ -832,17 +832,17 @@ function test_parse_deploy_options()
   unset options_values
   declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto' --force
-  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['FORCE']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -u 'kernel_xpto' -f
-  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['FORCE']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto' --force
-  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['UNINSTALL_FORCE']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "($LINENO)" '1' "${options_values['FORCE']}"
 
   unset options_values
   declare -gA options_values
