@@ -237,15 +237,25 @@ function distro_deploy_setup()
   cmd_manager "$flag" "$install_package_cmd"
 }
 
+# This function is dedicated to asking for yes or no when we have an ssh
+# connection. Notice that this is a specialized function for deploy operation.
+#
+# @message: This is a string with the message to be displayed for the user.
+#   This function add " [y/N]: " as a prefix for the provided message.
+#
+# Return:
+# Return 1 if user say anything that matches [yY][eE][sS]|[yY], otherwise,
+# return 0.
 function ask_yN()
 {
   local message="$*"
 
-  read -r -p "$message [y/N] " response
+  printf '\n%s [y/N]: ' "$message"
+  read -r response
   if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-    printf '%s\n' '1'
+    return 1
   else
-    printf '%s\n' '0'
+    return 0
   fi
 }
 
@@ -310,7 +320,8 @@ list_installed_kernels_based_on_grub()
       printf '%s' 'For showing the available kernel in your system we have ' \
         'to take a look at "/boot/grub/grub.cfg", however, it looks like ' \
         ' you have no read permission.' $'\n'
-      if [[ $(ask_yN 'Do you want to proceed with sudo?') =~ '0' ]]; then
+      ask_yN 'Do you want to proceed with sudo?'
+      if [[ "$?" == 0 ]]; then
         printf '%s\n' 'List kernel operation aborted'
         return 0
       fi
