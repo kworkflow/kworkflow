@@ -14,6 +14,9 @@ function setUp()
   export KW_ETC_DIR='/fake/local/path'
   export REMOTE_KW_DEPLOY='/fake/run/kw/etc'
 
+  cp "tests/unit/samples/mkinitcpio_output/mkinitcpio_log_with_errors" "$SHUNIT_TMPDIR"
+  cp "tests/unit/samples/mkinitcpio_output/mkinitcpio_log_only_warnings" "$SHUNIT_TMPDIR"
+
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
@@ -36,6 +39,7 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
   local cmd=
   local sudo_cmd=''
   local qemu_mock_img="${SHUNIT_TMPDIR}/mock_image"
+  local ret
 
   # Local
   sudo_cmd='sudo -E'
@@ -44,6 +48,32 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
     "${sudo_cmd} mkinitcpio --generate /boot/initramfs-${name}.img --kernel ${name}"
   )
 
+  # Create fake initramfs
+  touch "initramfs-${name}.img"
+
+  output="$(
+    boot_prefix="${SHUNIT_TMPDIR}"
+    function command_exists()
+    {
+      return 0
+    }
+    generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'local' 'GRUB'
+  )"
+  ret="$?"
+
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+  assert_equals_helper 'Expected error code' "(${LINENO})" 0 "$ret"
+}
+
+function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio_fail_to_generate_initramfs()
+{
+  local name='xpto'
+  local path_prefix=''
+  local cmd=
+  local sudo_cmd=''
+  local qemu_mock_img="${SHUNIT_TMPDIR}/mock_image"
+  local ret
+
   output="$(
     function command_exists()
     {
@@ -51,7 +81,9 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
     }
     generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'local' 'GRUB'
   )"
-  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+  ret="$?"
+
+  assert_equals_helper 'Expected error code' "(${LINENO})" 2 "$ret"
 }
 
 function test_generate_arch_temporary_root_file_system_remote_and_mkinitcpio()
@@ -177,6 +209,78 @@ function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs_
   )"
 
   assert_equals_helper "Expected error message" "($LINENO)" "$expected_output" "$output"
+}
+
+function test_process_mkinitcpio_message_check_errors_return()
+{
+  local log_from_file
+  local output
+  local ret
+
+  log_from_file=$(< "mkinitcpio_log_with_errors")
+
+  output=$(process_mkinitcpio_message "$log_from_file")
+  ret="$?"
+
+  assert_equals_helper 'Expected error code' "(${LINENO})" 68 "$ret"
+}
+
+function test_process_mkinitcpio_message_check_warnings_return()
+{
+  local log_from_file
+  local output
+  local ret
+
+  log_from_file=$(< "mkinitcpio_log_only_warnings")
+
+  output=$(process_mkinitcpio_message "$log_from_file")
+  ret="$?"
+
+  assert_equals_helper 'Expected error code' "(${LINENO})" 42 "$ret"
+}
+
+function test_process_mkinitcpio_message_check_warning_message()
+{
+  local log_from_file
+  local output
+  local ret
+
+  declare -a output_sequence=(
+    "==> WARNING: Possibly missing firmware for module: 'xhci_pci'"
+    "==> WARNING: Possibly missing '/bin/bash' for script: /usr/bin/mount.steamos"
+    "==> WARNING: errors were encountered during the build. The image may not be complete."
+  )
+
+  log_from_file=$(< "mkinitcpio_log_only_warnings")
+
+  output=$(process_mkinitcpio_message "$log_from_file")
+
+  compare_command_sequence '' "$LINENO" 'output_sequence' "$output"
+}
+
+function test_process_mkinitcpio_message_check_error_warning_message()
+{
+  local log_from_file
+  local output
+  local ret
+
+  declare -a output_sequence=(
+    "==> ERROR: binary not found: 'plymouth'"
+    "==> ERROR: module not found: 'steamdeck'"
+    "==> ERROR: module not found: 'steamdeck_hwmon'"
+    "==> ERROR: module not found: 'leds_steamdeck'"
+    "==> ERROR: module not found: 'extcon_steamdeck'"
+    "==> ERROR: module not found: 'ulpi'"
+    "==> ERROR: module not found: 'uas'"
+    "==> WARNING: Possibly missing firmware for module: 'xhci_pci'"
+    "==> WARNING: Possibly missing '/bin/bash' for script: /usr/bin/mount.steamos"
+    "==> WARNING: errors were encountered during the build. The image may not be complete."
+  )
+
+  log_from_file=$(< "mkinitcpio_log_with_errors")
+  output=$(process_mkinitcpio_message "$log_from_file")
+
+  compare_command_sequence '' "$LINENO" 'output_sequence' "$output"
 }
 
 invoke_shunit
