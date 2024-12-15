@@ -488,9 +488,18 @@ function update_bootloader()
 
     cmd_manager "$flag" "$cmd"
     ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      printf 'Error when trying to generate the temporary root file system\n'
+    # If the generate root fs function returns 2, it means we don't have
+    # initramfs; hence, stop deploying.
+    if [[ "$ret" == 2 ]]; then
+      printf 'The initramfs were not generated, which will cause boot issues.\n'
+      printf 'Stop the deploy.\n'
       exit "$ret"
+    fi
+
+    if [[ "$ret" == 68 ]]; then
+      printf 'Errors when trying to generate the temporary root file system\n'
+      # TODO: Introduce --force or ask
+      #exit "$ret"
     fi
   fi
 

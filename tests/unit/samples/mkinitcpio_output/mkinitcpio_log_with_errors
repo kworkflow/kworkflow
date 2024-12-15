@@ -1,0 +1,25 @@
+==> Using drop-in configuration file: '20-steamdeck.conf'
+==> Starting build: '6.10.0-asdn-dec-9+'
+  -> Running build hook: [base]
+  -> Running build hook: [udev]
+  -> Running build hook: [steamos]
+==> ERROR: binary not found: 'plymouth'
+  -> Running build hook: [steam-deck]
+==> WARNING: Possibly missing firmware for module: 'xhci_pci'
+==> ERROR: module not found: 'steamdeck'
+==> ERROR: module not found: 'steamdeck_hwmon'
+==> ERROR: module not found: 'leds_steamdeck'
+==> ERROR: module not found: 'extcon_steamdeck'
+==> ERROR: module not found: 'ulpi'
+==> ERROR: module not found: 'uas'
+  -> Running build hook: [modconf]
+  -> Running build hook: [keyboard]
+  -> Running build hook: [block]
+  -> Running build hook: [filesystems]
+==> WARNING: Possibly missing '/bin/bash' for script: /usr/bin/mount.steamos
+  -> Running build hook: [resume]
+==> Generating module dependencies
+==> Creating zstd-compressed initcpio image: '/boot/initramfs-6.10.0-asdn-dec-9+.img'
+==> WARNING: errors were encountered during the build. The image may not be complete.
+Error when trying to generate the temporary root file system
+-> Execution time: 00:00:30
