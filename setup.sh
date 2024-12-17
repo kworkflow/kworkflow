@@ -48,6 +48,8 @@ declare -r BASH_AUTOCOMPLETE='bash_autocomplete'
 declare -r DOCUMENTATION='documentation'
 
 declare -r CONFIGS_PATH='configs'
+declare -r FISH_CONFIG_PATH="$HOME/.config/fish"
+declare -r FISH_COMPLETION_PATH="$FISH_CONFIG_PATH/completions"
 
 declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
 
@@ -455,6 +457,19 @@ function clean_legacy()
   remove_kw_from_PATH_variable
 }
 
+function synchronize_fish()
+{
+  local kw_fish_path="set -gx PATH $PATH:$kwbinpath"
+
+  say "Fish detected. Setting up fish support."
+  mkdir -p "$FISH_COMPLETION_PATH"
+  cmd_output_manager "rsync -vr $SRCDIR/kw.fish $FISH_COMPLETION_PATH/kw.fish"
+
+  if ! grep -F "$kw_fish_path" "$FISH_CONFIG_PATH"/config.fish > /dev/null; then
+    echo "$kw_fish_path" >> "$FISH_CONFIG_PATH"/config.fish
+  fi
+}
+
 function ASSERT_IF_NOT_EQ_ZERO()
 {
   local msg="$1"
@@ -575,6 +590,10 @@ function synchronize_files()
     else
       warning 'Unable to find a .zshrc file.'
     fi
+  fi
+
+  if command_exists "fish"; then
+    synchronize_fish
   fi
 
   say "$SEPARATOR"
