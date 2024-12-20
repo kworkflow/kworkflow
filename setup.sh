@@ -459,7 +459,7 @@ function clean_legacy()
 
 function synchronize_fish()
 {
-  local kw_fish_path="set -gx PATH ${PATH}:${kwbinpath}"
+  local kw_fish_path="set -gx PATH ${PATH}:${binpath}"
 
   say 'Fish detected. Setting up fish support.'
   mkdir --parents "${FISH_COMPLETION_PATH}"
