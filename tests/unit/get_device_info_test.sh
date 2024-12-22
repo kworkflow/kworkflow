@@ -57,6 +57,18 @@ function test_get_cpu_remote()
   compare_command_sequence 'inxi or unamed or both failed' "$LINENO" 'expected_cmd' "$output"
 }
 
+function test_get_disk()
+{
+  local cmd
+  local output
+  local expected_cmd
+
+  expected_cmd='inxi --tty --width 1 --color 0 --partitions-full'
+  output=$(get_disk 2 'TEST_MODE')
+
+  assert_equals_helper 'Get disk did not match the expected command' "(${LINENO})" "$expected_cmd" "$output"
+}
+
 function test_get_motherboard()
 {
   local cmd
@@ -95,9 +107,11 @@ function test_display_data()
     'RAM Type: DDR4'
     'RAM capacity: 128 GiB'
     'Total RAM installed: 2 GiB'
-    'Storage devices:'
+    'Storage boot partitions:'
     'Root filesystem: dev/something'
     'Size: 250G'
+    'Used size: 200G'
+    'File system type: ext4'
     'Mounted on: /'
     'Operating System:'
     'Distribution: Ubuntu'
@@ -128,6 +142,8 @@ function test_display_data()
   device_info_data['disk_size']='250G'
   device_info_data['root_path']='dev/something'
   device_info_data['fs_mount']='/'
+  device_info_data['fs_type']='ext4'
+  device_info_data['disk_used']='200G'
   device_info_data['os_name']='Ubuntu'
   device_info_data['os_id_like']='debian'
   device_info_data['os_version']='22.04.1 LTS (Jammy Jellyfish)'

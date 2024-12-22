@@ -23,6 +23,8 @@ declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
   ['disk_size']=''                       # Disk size in KB
   ['root_path']=''                       # Root directory path
   ['fs_mount']=''                        # Path where root is mounted
+  ['fs_type']=''                         # Filesystem type info
+  ['disk_used']=''                       # Total of used space
   ['os_name']=''                         # Distro's name
   ['os_version']=''                      # Distro's versios
   ['os_id_like']=''                      # Distro which this distro is based on
@@ -173,44 +175,44 @@ function get_disk()
 {
   local target="$1"
   local flag="$2"
-  local info
+  local partition_info
   local size
   local mount
   local cmd
   local fs
+  local dev
+  local used_size
+  local test_flag='SILENT'
 
-  cmd="df -h / | tail --lines=1 | tr --squeeze-repeats ' '"
+  flag=${flag:-'SILENT'}
+  [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
+
+  cmd='inxi --tty --width 1 --color 0 --partitions-full'
   case "$target" in
     2) # LOCAL_TARGET
       show_verbose "$flag" "$cmd"
-      info=$(cmd_manager 'SILENT' "$cmd")
+      partition_info=$(cmd_manager "$test_flag" "$cmd")
       ;;
     3) # REMOTE_TARGET
       show_verbose "$flag" "$cmd"
-      info=$(cmd_remotely 'SILENT' "$cmd")
+      partition_info=$(cmd_remotely "$test_flag" "$cmd")
       ;;
   esac
 
-  if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$info"
-    return 0
-  fi
+  partition_info=$(printf '%s' "$partition_info" | grep --extended-regexp --after-context=4 ': /$')
+  mount=$(printf '%s' "$partition_info" | head -1)
+  mount=$(get_string_after_delimiter "$mount" ':')
 
-  cmd="printf '%s\n' '${info}' | cut -d' ' -f1"
-  show_verbose "$flag" "$cmd"
-  fs=$(cmd_manager 'SILENT' "$cmd")
-
-  cmd="printf '%s\n' '${info}' | cut -d' ' -f2"
-  show_verbose "$flag" "$cmd"
-  size=$(cmd_manager 'SILENT' "$cmd")
-
-  cmd="printf '%s\n' '${info}' | cut -d' ' -f6"
-  show_verbose "$flag" "$cmd"
-  mount=$(cmd_manager 'SILENT' "$cmd")
+  fs=$(get_string_after_delimiter "$partition_info" 'fs: ')
+  size=$(get_string_after_delimiter "$partition_info" 'size: ')
+  used_size=$(get_string_after_delimiter "$partition_info" 'used: ')
+  dev=$(get_string_after_delimiter "$partition_info" 'dev: ')
 
   device_info_data['disk_size']="$size"
-  device_info_data['root_path']="$fs"
+  device_info_data['root_path']="$dev"
   device_info_data['fs_mount']="$mount"
+  device_info_data['fs_type']="$fs"
+  device_info_data['disk_used']="$used_size"
 }
 
 # This function populates the os and desktop environment variables from the
@@ -611,9 +613,11 @@ function show_data()
   printf '  RAM capacity: %s\n' "${device_info_data['ram_capacity']}"
   printf '  Total RAM installed: %s\n' "${device_info_data['ram_installed']}"
 
-  say 'Storage devices:'
+  say 'Storage boot partitions:'
   printf '  Root filesystem: %s\n' "${device_info_data['root_path']}"
   printf '  Size: %s\n' "${device_info_data['disk_size']}"
+  printf '  Used size: %s\n' "${device_info_data['disk_used']}"
+  printf '  File system type: %s\n' "${device_info_data['fs_type']}"
   printf '  Mounted on: %s\n' "${device_info_data['fs_mount']}"
 
   say 'Operating System:'
