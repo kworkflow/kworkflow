@@ -26,8 +26,6 @@ declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
   ['fs_type']=''                         # Filesystem type info
   ['disk_used']=''                       # Total of used space
   ['os_name']=''                         # Distro's name
-  ['os_version']=''                      # Distro's versios
-  ['os_id_like']=''                      # Distro which this distro is based on
   ['motherboard_name']=''                # Motherboard name
   ['motherboard_vendor']=''              # Motherboard vendor
   ['chassis']=''                         # Chassis type
@@ -225,56 +223,30 @@ function get_os()
 {
   local target="$1"
   local flag="$2"
-  local raw_os_release
-  local root_path
-  local os_release_path='/etc/os-release'
-  local cmd
+  local raw_system_info
+  local cmd='inxi --tty --width 1 --color 0 --system'
   local os_name
-  local os_version
-  local os_id_like
+  local test_flag='SILENT'
+
+  flag=${flag:-'SILENT'}
+  [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
   target=${target:-"${options_values['TARGET']}"}
 
   case "$target" in
     2) # LOCAL_TARGET
-      root_path='/'
-      cmd="cat $(join_path "$root_path" "$os_release_path")"
       show_verbose "$flag" "$cmd"
-      raw_os_release=$(cmd_manager 'SILENT' "$cmd")
+      raw_system_info=$(cmd_manager "$test_flag" "$cmd")
       ;;
     3) # REMOTE_TARGET
-      root_path='/'
-      cmd="cat $(join_path "$root_path" "$os_release_path")"
       show_verbose "$flag" "$cmd"
-      raw_os_release=$(cmd_remotely 'SILENT' "$cmd")
+      raw_system_info=$(cmd_remotely "$test_flag" "$cmd")
       ;;
   esac
 
-  cmd="printf '%s\n' '${raw_os_release}' | sed --quiet --expression='/^NAME=/p' --expression='/^VERSION=/p' --expression='/^ID_LIKE=/p'"
-  show_verbose "$flag" "$cmd"
-  raw_os_release=$(cmd_manager 'SILENT' "$cmd")
-
-  # the last sed serves to remove the double quotes if present
-  cmd="printf '%s\n' '${raw_os_release}' | sed --quiet --regexp-extended 's/^NAME=//p' | tail -n1 | sed --regexp-extended \"s|^(['\\\"])(.*)\1$|\2|g\""
-  show_verbose "$flag" "$cmd"
-  os_name=$(cmd_manager 'SILENT' "$cmd")
-
-  cmd="printf '%s\n' '${raw_os_release}' | sed --quiet --regexp-extended 's/^VERSION=//p' | tail -n1 | sed --regexp-extended \"s|^(['\\\"])(.*)\1$|\2|g\""
-  show_verbose "$flag" "$cmd"
-  os_version=$(cmd_manager 'SILENT' "$cmd")
-
-  cmd="printf '%s\n' '${raw_os_release}' | sed --quiet --regexp-extended 's/^ID_LIKE=//p' | tail -n1 | sed --regexp-extended \"s|^(['\\\"])(.*)\1$|\2|g\""
-  show_verbose "$flag" "$cmd"
-  os_id_like=$(cmd_manager 'SILENT' "$cmd")
-
-  if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$cmd"
-    return 0
-  fi
+  os_name=$(get_string_after_delimiter "$raw_system_info" 'Distro: ')
 
   device_info_data['os_name']="$os_name"
-  device_info_data['os_version']="$os_version"
-  device_info_data['os_id_like']="$os_id_like"
 }
 
 # This function populates the desktop environment variables from the
@@ -620,14 +592,8 @@ function show_data()
   printf '  File system type: %s\n' "${device_info_data['fs_type']}"
   printf '  Mounted on: %s\n' "${device_info_data['fs_mount']}"
 
-  say 'Operating System:'
+  say 'Distro info:'
   printf '  Distribution: %s\n' "${device_info_data['os_name']}"
-  if [[ -n "${device_info_data['os_version']}" ]]; then
-    printf '  Distribution version: %s\n' "${device_info_data['os_version']}"
-  fi
-  if [[ -n "${device_info_data['os_id_like']}" ]]; then
-    printf '  Distribution base: %s\n' "${device_info_data['os_id_like']}"
-  fi
   printf '  Desktop environments: %s\n' "${device_info_data['desktop_environment']}"
 
   say 'Kernel:'
