@@ -465,4 +465,176 @@ function test_string_to_unix_filename()
   assert_equals_helper 'Curly braces should be removed' "$LINENO" "$expected" "$output"
 }
 
+function test_convert_multiline_string_to_array_single_line()
+{
+  local sample_test
+  local -a array
+
+  sample_test="This is a multiple"
+  local -a expected_result=(
+    'This is a multiple'
+  )
+
+  convert_string_to_array_based_on_delimiter "$sample_test" array
+  compare_array_values expected_result array "$LINENO"
+  assert_equals_helper 'Array size is wrong' "$LINENO" "${#array[*]}" 1
+}
+
+function test_convert_multiline_string_to_array_using_other_char()
+{
+  local sample_test
+  local -a array
+
+  sample_test='We want to, split, this phrase based, on the, comma'
+  local -a expected_result=(
+    'We want to'
+    'split'
+    'this phrase based'
+    'on the'
+    'comma'
+  )
+
+  convert_string_to_array_based_on_delimiter "$sample_test" array ','
+  compare_array_values expected_result array "$LINENO"
+  assert_equals_helper 'Array size is wrong' "$LINENO" "${#array[*]}" 5
+}
+
+function test_convert_multiline_string_to_array_good_case()
+{
+  local sample_test
+  local -a array
+
+  sample_test=$'This is a multiple\n'
+  sample_test+=$'line string for\n'
+  sample_test+=$'validation.'
+
+  local -a expected_result=(
+    'This is a multiple'
+    'line string for'
+    'validation.'
+  )
+
+  # Multiple lines
+  convert_string_to_array_based_on_delimiter "$sample_test" array
+
+  compare_array_values expected_result array "$LINENO"
+  assert_equals_helper 'Array size is wrong' "$LINENO" "${#array[*]}" 3
+}
+
+function test_get_string_between_strings_delimiters_good_case()
+{
+  local sample_test
+  local first_mark
+  local second_mark
+  local expected_result
+  local output
+  local ret
+
+  sample_test="Hey, we want what is between 'we' and 'between'"
+  first_mark='we'
+  second_mark='between'
+  expected_result=' want what is '
+
+  output=$(get_string_between_strings_delimiters "$sample_test" "$first_mark" "$second_mark")
+  ret="$?"
+
+  assert_equals_helper 'Expected result did not match' "$LINENO" "$expected_result" "$output"
+  assert_equals_helper 'Expected 0' "$LINENO" 0 "$ret"
+}
+
+function test_get_string_between_strings_delimiters_wrong_parameters()
+{
+  local sample_test
+  local first_mark
+  local expected_result
+  local output
+  local ret
+
+  sample_test="Hey, we want what is between 'we' and 'between'"
+  first_mark='we'
+
+  output=$(get_string_between_strings_delimiters "$sample_test" "$first_mark" '')
+  ret="$?"
+
+  assert_equals_helper 'Expected 22' "$LINENO" 22 "$ret"
+
+  output=$(get_string_between_strings_delimiters "$sample_test" '' '')
+  ret="$?"
+
+  assert_equals_helper 'Expected 22' "$LINENO" 22 "$ret"
+
+  output=$(get_string_between_strings_delimiters '' '' '')
+  ret="$?"
+
+  assert_equals_helper 'Expected 22' "$LINENO" 22 "$ret"
+}
+
+function test_get_string_after_delimiter_good_cases()
+{
+  local sample_test
+  local prefix_mark
+  local expected_result
+  local output
+
+  sample_test='Model: this is something else'
+  expected_result='this is something else'
+  prefix_mark='Model: '
+
+  output=$(get_string_after_delimiter "$sample_test" "$prefix_mark")
+  assert_equals_helper 'Expected result did not match' "${LINENO}" "${expected_result}" "${output}"
+
+  sample_test='Model: this is something else'
+  expected_result='is something else'
+  prefix_mark='this '
+
+  output=$(get_string_after_delimiter "$sample_test" "$prefix_mark")
+  assert_equals_helper 'Expected result did not match' "${LINENO}" "${expected_result}" "${output}"
+
+  sample_test='Model: this is something else'
+  expected_result=' this is something else'
+  prefix_mark=':'
+
+  output=$(get_string_after_delimiter "$sample_test" "$prefix_mark")
+  assert_equals_helper 'Expected result did not match' "${LINENO}" "${expected_result}" "${output}"
+}
+
+function test_get_string_after_delimiter_empty_delimiter()
+{
+  local sample_test
+  local prefix_mark
+  local output
+
+  sample_test='Model: this is something else'
+  prefix_mark=''
+
+  output=$(get_string_after_delimiter "$sample_test" "$prefix_mark")
+  assert_equals_helper 'Expected result did not match' "${LINENO}" "${sample_test}" "${output}"
+}
+
+function test_get_string_after_delimiter_empty_string()
+{
+  local sample_test
+  local prefix_mark
+  local output
+
+  sample_test=''
+  prefix_mark='Something'
+
+  output=$(get_string_after_delimiter "$sample_test" "$prefix_mark")
+  assert_equals_helper 'Expected result did not match' "${LINENO}" "${sample_test}" "${output}"
+}
+
+function test_get_string_after_delimiter_no_delimiter_match()
+{
+  local sample_test
+  local prefix_mark
+  local output
+
+  sample_test='Model: this is something else'
+  prefix_mark='Unrelated'
+
+  output=$(get_string_after_delimiter "$sample_test" "$prefix_mark")
+  assert_equals_helper 'Expected result did not match' "${LINENO}" '' "${output}"
+}
+
 invoke_shunit
