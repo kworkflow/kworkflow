@@ -16,6 +16,10 @@ declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
   ['cpu_speed']=''                       # CPU speed in MHz
   ['cpu_total_cores']=''                 # Total of cores
   ['desktop_environment']=''             # Desktop environment
+  ['compositor']=''                      # Compositor name
+  ['window_system']=''                   # Window system type
+  ['gpu']=''                             # GPU name
+  ['gpu_driver']=''                      # GPU driver name
   ['kernel_name']=''                     # Kernel name
   ['kernel_release']=''                  # Kernel release
   ['kernel_version']=''                  # Kernel version
@@ -32,7 +36,7 @@ declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
   ['img_size']=''                        # Size of VM image in KB
   ['img_type']='')                       # Type of VM image
 
-declare -gA gpus
+declare -ga gpus
 
 declare -gA options_values
 
@@ -245,8 +249,10 @@ function get_os()
   esac
 
   os_name=$(get_string_after_delimiter "$raw_system_info" 'Distro: ')
+  desktop=$(get_string_after_delimiter "$raw_system_info" 'Desktop: ')
 
   device_info_data['os_name']="$os_name"
+  device_info_data['desktop_environment']="$desktop"
 }
 
 # This function populates the desktop environment variables from the
@@ -264,7 +270,7 @@ function get_desktop_environment()
   local cmd
   local desktop_env
   local formatted_de='unidentified'
-  local ux_regx="'gnome-shell$|kde|mate|cinnamon|lxsession|openbox$'"
+  local ux_regx="'gnome-shell$|kde|mate|cinnamon|lxsession|gamescope|openbox$'"
 
   target=${target:-"${options_values['TARGET']}"}
   cmd="ps -A | grep --invert-match dev | grep --ignore-case --only-matching --extended-regexp --max-count=1 ${ux_regx}"
@@ -299,9 +305,12 @@ function get_desktop_environment()
     cinnamon)
       formatted_de='cinnamon'
       ;;
+    gamescope)
+      formatted_de='gamescope'
+      ;;
   esac
 
-  device_info_data['desktop_environment']="$formatted_de"
+  device_info_data['compositor']="$formatted_de"
 }
 
 # This function populates kernel variables from the device_info_data
@@ -374,64 +383,52 @@ function get_kernel_info()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function get_gpu()
+function get_graphics()
 {
   local target="$1"
   local flag="$2"
-  local pci_addresses
-  local gpu_info
-  local cmd_pci_address
-  local cmd
+  local cmd='inxi --tty --width 1 --color 0 --graphics'
+  local -a _device_names=()
+  local -a _driver_names=()
+  local gpu_count
+  local window_system
+  local display_data
+  local graphics_data
+  local raw_devices
+  local raw_drivers
+  local test_flag='SILENT'
 
   flag=${flag:-'SILENT'}
+  [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
-  # The first thing we want to do is retrieve all PCI addresses from any GPU in
-  # the target machine. After that, we will get, for each GPU, the desired
-  # information.
-  cmd_pci_address="lspci | grep --regexp=VGA --regexp=Display --regexp=3D | cut --delimiter=' ' -f1"
   case "$target" in
     2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd_pci_address"
-      pci_addresses=$(cmd_manager 'SILENT' "$cmd_pci_address")
-      for g in $pci_addresses; do
-        cmd="lspci -v -s ${g}"
-        show_verbose "$flag" "$cmd"
-        gpu_info=$(cmd_manager 'SILENT' "$cmd")
-
-        cmd="printf '%s\n' '${gpu_info}' | sed --quiet --regexp-extended '/Subsystem/s/\s*.*:\s+(.*)/\1/p'"
-        show_verbose "$flag" "$cmd"
-        gpu_name=$(cmd_manager 'SILENT' "$cmd")
-
-        cmd="printf '%s\n' '${gpu_info}' | sed --quiet --regexp-extended '/controller/s/.+controller: *([^\[\(]+).+/\1/p'"
-        show_verbose "$flag" "$cmd"
-        gpu_provider=$(cmd_manager 'SILENT' "$cmd")
-        gpus["$g"]="${gpu_name};${gpu_provider}"
-      done
+      show_verbose "$flag" "$cmd"
+      graphics_data=$(cmd_manager "$test_flag" "$cmd")
       ;;
     3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd_pci_address"
-      pci_addresses=$(cmd_remotely 'SILENT' "$cmd_pci_address")
-      for g in $pci_addresses; do
-        cmd="lspci -v -s ${g}"
-        show_verbose "$flag" "$cmd"
-        gpu_info=$(cmd_remotely 'SILENT' "$cmd")
-
-        cmd="printf '%s\n' '${gpu_info}' | sed --quiet --regexp-extended '/Subsystem/s/\s*.*:\s+(.*)/\1/p'"
-        show_verbose "$flag" "$cmd"
-        gpu_name=$(cmd_manager 'SILENT' "$cmd")
-
-        cmd="printf '%s\n' '${gpu_info}' | sed --quiet --regexp-extended '/controller/s/.+controller: *([^\[\(]+).+/\1/p'"
-        show_verbose "$flag" "$cmd"
-        gpu_provider=$(cmd_manager 'SILENT' "$cmd")
-        gpus["$g"]="${gpu_name};${gpu_provider}"
-      done
-      ;;
+      show_verbose "$flag" "$cmd"
+      graphics_data=$(cmd_remotely "$test_flag" "$cmd")
   esac
 
-  if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$cmd_pci_address"
-    return 0
-  fi
+  display_data=$(printf '%s' "$graphics_data" | grep --extended-regexp --after-context=10 'Display: ')
+
+  while IFS= read -r line; do
+    _device_names+=("$line")
+  done < <(printf '%s' "$graphics_data" | grep --only-matching --perl-regexp 'Device-[0-9]+: \K.*')
+
+  while IFS= read -r line; do
+    _driver_names+=("$line")
+  done < <(printf '%s' "$graphics_data" | grep --only-matching --perl-regexp 'driver: \K.*')
+
+  window_system=$(get_string_after_delimiter "$display_data" 'Display: ')
+
+  gpu_count="${#_device_names[@]}"
+  for ((i = 0; i < gpu_count; i++)); do
+    gpus["$i"]="${_device_names[$i]},${_driver_names[$i]:-N/A}"
+  done
+
+  device_info_data['window_system']="$window_system"
 }
 
 # This function retrieves both the name and vendor from the motherboard of a
@@ -540,7 +537,7 @@ function learn_device()
   get_os "$target" "$flag"
   get_desktop_environment "$target" "$flag"
   get_kernel_info "$target" "$flag"
-  get_gpu "$target" "$flag"
+  get_graphics "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
 }
@@ -594,7 +591,17 @@ function show_data()
 
   say 'Distro info:'
   printf '  Distribution: %s\n' "${device_info_data['os_name']}"
-  printf '  Desktop environments: %s\n' "${device_info_data['desktop_environment']}"
+  if [[ -n ${device_info_data['desktop_environment']} ]]; then
+    printf '  Desktop environment: %s\n' "${device_info_data['desktop_environment']}"
+  fi
+
+  if [[ -n ${device_info_data['window_system']} ]]; then
+    printf '  Window System: %s\n' "${device_info_data['window_system']}"
+  fi
+
+  if [[ -n ${device_info_data['compositor']} ]]; then
+    printf '  Compositor: %s\n' "${device_info_data['compositor']}"
+  fi
 
   say 'Kernel:'
   printf '  Name: %s\n' "${device_info_data['kernel_name']}"
@@ -606,13 +613,11 @@ function show_data()
   printf '  Vendor: %s\n' "${device_info_data['motherboard_vendor']}"
   printf '  Name: %s\n' "${device_info_data['motherboard_name']}"
 
-  if [[ -n "${gpus[*]}" ]]; then
-    say 'GPU:'
-    for g in "${!gpus[@]}"; do
-      printf '  Model: %s\n' "$(printf '%s\n' "${gpus[$g]}" | cut -d';' -f1)"
-      printf '  Provider: %s\n' "$(printf '%s\n' "${gpus[$g]}" | cut -d';' -f2-)"
-    done
-  fi
+  say 'GPU:'
+  for gpu_info in "${gpus[@]}"; do
+    printf '  Device Name: %s\n' "${gpu_info%%,*}"
+    printf '  Driver Name: %s\n' "${gpu_info#*,}"
+  done
 }
 
 # This function parses the options provided to 'kw device' and makes the
