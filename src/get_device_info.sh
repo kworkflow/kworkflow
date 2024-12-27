@@ -37,6 +37,7 @@ declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
   ['img_type']='')                       # Type of VM image
 
 declare -ga gpus
+declare -ga monitors
 
 declare -gA options_values
 
@@ -498,6 +499,76 @@ function get_chassis()
   device_info_data['chassis']=$(get_string_after_delimiter "$inxi_machine_output" 'Type: ')
 }
 
+function get_monitors()
+{
+  local target="$1"
+  local flag="$2"
+  local cmd='inxi --tty --width 1 --color 0 --edid'
+  local raw_monitor_data
+  local test_flag='SILENT'
+  local monitor_index=0
+  local total_of_monitors=0
+  local monitors_data
+  local monitor_string
+  local monitor_model
+  local monitor_serial
+  local monitor_res
+  local connector_type
+
+  flag=${flag:-'SILENT'}
+  [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
+
+  case "$target" in
+    2) # LOCAL_TARGET
+      show_verbose "$flag" "$cmd"
+      raw_monitor_data=$(cmd_manager "$test_flag" "$cmd")
+      ;;
+    3) # REMOTE_TARGET
+      show_verbose "$flag" "$cmd"
+      raw_monitor_data=$(cmd_remotely "$test_flag" "$cmd")
+      ;;
+  esac
+
+  monitors_data=$(printf '%s' "$raw_monitor_data" | sed -n '/Monitor.*/,$p')
+
+  # Parse monitors
+  while IFS= read -r line; do
+    if [[ "$line" =~ \s*model.* ]]; then
+      monitor_model=$(get_string_after_delimiter "$line" 'model: ')
+      monitor_model="Model: ${monitor_model}"
+      continue
+    fi
+
+    if [[ "$line" =~ \s*serial:.* ]]; then
+      monitor_serial=$(get_string_after_delimiter "$line" 'serial: ')
+      monitor_serial="Serial: ${monitor_serial}"
+      continue
+    fi
+
+    if [[ "$line" =~ \s*res:.* ]]; then
+      monitor_res=$(get_string_after_delimiter "$line" 'res: ')
+      monitor_res="Preferred Resolution: ${monitor_res}"
+      continue
+    fi
+
+    if [[ "$line" =~ \s*Monitor-.* ]]; then
+      if [[ "$total_of_monitors" -ge 1 ]]; then
+        monitor_string="${connector_type},${monitor_model},${monitor_serial},${monitor_res}"
+        monitors["$monitor_index"]=${monitor_string}
+        ((monitor_index++))
+      fi
+
+      connector_type=$(get_string_after_delimiter "$line" ': ')
+      connector_type="Connector type: ${connector_type}"
+      ((total_of_monitors++))
+      continue
+    fi
+  done <<< "$monitors_data"
+
+  monitor_string="${connector_type},${monitor_model},${monitor_serial},${monitor_res}"
+  monitors["$monitor_index"]="${monitor_string}"
+}
+
 # This function populates the img_size and img_type values from the
 # device_info_data variable.
 function get_img_info()
@@ -540,6 +611,7 @@ function learn_device()
   get_graphics "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
+  get_monitors "$target" "$flag"
 }
 
 # This function shows the information stored in the device_info_data variable.
@@ -551,6 +623,8 @@ function show_data()
 {
   local flag="$1"
   local target
+  local monitor
+  local -a info_array
 
   target=${target:-"${options_values['TARGET']}"}
 
@@ -617,6 +691,18 @@ function show_data()
   for gpu_info in "${gpus[@]}"; do
     printf '  Device Name: %s\n' "${gpu_info%%,*}"
     printf '  Driver Name: %s\n' "${gpu_info#*,}"
+  done
+
+  say 'Display:'
+  monitor=1
+  for display_info in "${monitors[@]}"; do
+    printf '  Monitor: %s\n' "$monitor"
+    convert_string_to_array_based_on_delimiter "$display_info" info_array ','
+    for info in "${info_array[@]}"; do
+      [[ -z "$info" ]] && continue
+      printf '   %s\n' "${info}"
+    done
+    ((monitor++))
   done
 }
 
