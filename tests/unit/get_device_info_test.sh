@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-include './src/device_info.sh'
+include './src/get_device_info.sh'
 include './tests/unit/utils.sh'
 
 function oneTimeSetUp()

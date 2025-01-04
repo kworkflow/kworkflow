@@ -1,12 +1,12 @@
-=========================================
-kw-device - Retrieve hardware information
-=========================================
+==================================================
+kw-get-device-info - Retrieve hardware information
+==================================================
 
 .. _device-doc:
 
 SYNOPSIS
 ========
-*kw device* [\--local | \--remote [<remote>:<port>] [\--verbose]
+*kw get-device-info* [\--local | \--remote [<remote>:<port>] [\--verbose]
 
 DESCRIPTION
 ===========

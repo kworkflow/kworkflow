@@ -38,7 +38,7 @@ declare -gA options_values
 #
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function device_main()
+function device_info_main()
 {
   local flag
 

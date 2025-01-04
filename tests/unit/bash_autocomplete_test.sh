@@ -28,7 +28,7 @@ function get_sorted_bash_completions()
 # Validate KW command autocomplete in Bash
 function test_kw_completion_for_bash()
 {
-  local kw_options='init build deploy bd diff ssh self-update maintainers kernel-config-manager config remote explore pomodoro report device backup debug send-patch env patch-hub drm vm clear-cache codestyle version man help'
+  local kw_options='init build deploy bd diff ssh self-update maintainers kernel-config-manager config remote explore pomodoro report get-device-info backup debug send-patch env patch-hub drm vm clear-cache codestyle version man help'
 
   local sorted_expected="$(printf "%s\n" ${kw_options} | sort --dictionary-order)"
   local sorted_actual="$(get_sorted_bash_completions 'kw')"
