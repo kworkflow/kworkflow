@@ -19,17 +19,6 @@ function setUp()
 declare -gA configurations
 configurations[ssh_user]=john
 
-function test_get_ram_from_vm()
-{
-  local cmd
-  local output
-
-  vm_config[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
-  options_values['TARGET']="$VM_TARGET"
-  get_ram
-  assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
-}
-
 function test_get_ram_from_local()
 {
   local cmd

@@ -4,7 +4,6 @@ include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/distros.sh"
-include "${KW_LIB_DIR}/vm.sh"
 
 declare -gA device_info_data=(['ram']='' # RAM memory in KB
   ['cpu_model']=''                       # CPU model vendor
@@ -87,12 +86,6 @@ function get_ram()
   cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
 
   case "$target" in
-    1) # VM_TARGET
-      ram="$(printf '%s\n' "${vm_config[qemu_hw_options]}" | sed --regexp-extended 's/.*-m ?([0-9]+).*/\1/')"
-      cmd="numfmt --from-unit=M --to-unit=K ${ram}"
-      show_verbose "$flag" "$cmd"
-      ram=$(cmd_manager 'SILENT' "$cmd")
-      ;;
     2) # LOCAL_TARGET
       show_verbose "$flag" "$cmd"
       ram=$(cmd_manager 'SILENT' "$cmd")
@@ -134,12 +127,6 @@ function get_cpu()
   cmd_architecture="uname --machine"
 
   case "$target" in
-    1) #VM_TARGET
-      cpu_model='Virtual'
-
-      show_verbose "$flag" "$cmd_architecture"
-      cpu_architecture=$(cmd_manager 'SILENT' "$cmd_architecture")
-      ;;
     2) # LOCAL_TARGET
       show_verbose "$flag" "$cmd_model"
       cpu_model=$(cmd_manager 'SILENT' "$cmd_model")
@@ -210,11 +197,6 @@ function get_disk()
 
   cmd="df -h / | tail --lines=1 | tr --squeeze-repeats ' '"
   case "$target" in
-    1) # VM_TARGET
-      cmd="df -h ${vm_config[mount_point]} | tail --lines=1 | tr --squeeze-repeats ' '"
-      show_verbose "$flag" "$cmd"
-      info=$(cmd_manager 'SILENT' "$cmd")
-      ;;
     2) # LOCAL_TARGET
       show_verbose "$flag" "$cmd"
       info=$(cmd_manager 'SILENT' "$cmd")
@@ -268,12 +250,6 @@ function get_os()
   target=${target:-"${options_values['TARGET']}"}
 
   case "$target" in
-    1) # VM_TARGET
-      root_path="${vm_config[mount_point]}"
-      cmd="cat $(join_path "$root_path" "$os_release_path")"
-      show_verbose "$flag" "$cmd"
-      raw_os_release=$(cmd_manager 'SILENT' "$cmd")
-      ;;
     2) # LOCAL_TARGET
       root_path='/'
       cmd="cat $(join_path "$root_path" "$os_release_path")"
@@ -336,9 +312,6 @@ function get_desktop_environment()
   cmd="ps -A | grep --invert-match dev | grep --ignore-case --only-matching --extended-regexp --max-count=1 ${ux_regx}"
 
   case "$target" in
-    1) # VM_TARGET
-      desktop_env=$(find "${vm_config[mount_point]}/usr/share/xsessions" -type f -printf '%f ' | sed --regexp-extended 's/\.desktop//g')
-      ;;
     2) # LOCAL_TARGET
       show_verbose "$flag" "$cmd"
       desktop_env=$(cmd_manager 'SILENT' "$cmd")
@@ -600,9 +573,6 @@ function get_chassis()
   dmi_cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
 
   case "$target" in
-    1) # VM_TARGET
-      chassis_type=25
-      ;;
     2) # LOCAL_TARGET
       if [[ -f "$dmi_file_path" ]]; then
         show_verbose "$flag" "$dmi_cmd"
@@ -661,15 +631,6 @@ function learn_device()
 
   target=${target:-"${options_values['TARGET']}"}
 
-  if [[ "$target" == "$VM_TARGET" ]]; then
-    vm_mount > /dev/null
-    ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      complain 'Please shut down or unmount your VM to continue.'
-      exit "$ret"
-    fi
-  fi
-
   get_ram "$flag"
   get_cpu "$target" "$flag"
   get_disk "$target" "$flag"
@@ -679,16 +640,6 @@ function learn_device()
   get_gpu "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
-
-  if [[ "$target" == "$VM_TARGET" ]]; then
-    vm_umount > /dev/null
-    ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      complain 'We could not unmount your VM.'
-      exit "$ret"
-    fi
-    get_img_info
-  fi
 }
 
 # This function shows the information stored in the device_info_data variable.
@@ -704,11 +655,6 @@ function show_data()
   target=${target:-"${options_values['TARGET']}"}
 
   case "$target" in
-    1) # VM_TARGET
-      say 'Image:'
-      printf '  Type: %s\n' "${device_info_data['img_type']}"
-      printf '  Size: %s\n' "$(numfmt --from=si --to=iec "${device_info_data['img_size']}K")"
-      ;;
     3) # REMOTE_TARGET
       say 'Remote device'
       ;;
@@ -759,11 +705,9 @@ function show_data()
   printf '  Version: %s\n' "${device_info_data['kernel_version']}"
   printf '  Machine hardware name: %s\n' "${device_info_data['kernel_machine']}"
 
-  if [[ "$target" != "$VM_TARGET" ]]; then
-    say 'Motherboard:'
-    printf '  Vendor: %s\n' "${device_info_data['motherboard_vendor']}"
-    printf '  Name: %s\n' "${device_info_data['motherboard_name']}"
-  fi
+  say 'Motherboard:'
+  printf '  Vendor: %s\n' "${device_info_data['motherboard_vendor']}"
+  printf '  Name: %s\n' "${device_info_data['motherboard_name']}"
 
   if [[ -n "${gpus[*]}" ]]; then
     say 'GPU:'
@@ -861,4 +805,3 @@ function device_info_help()
 
 load_kworkflow_config
 load_deploy_config
-load_vm_config
