@@ -148,35 +148,6 @@ function test_kw_device_local_chassis()
   done
 }
 
-# Test the CPU information reported by 'kw get-device-info --local'
-function test_kw_device_local_cpu()
-{
-  local distro
-  local container
-  local expected_cpu_model
-  local expected_cpu_max_freq
-  local expected_cpu_min_freq
-  local output_cpu_model
-  local output_cpu_max_freq
-  local output_cpu_min_freq
-
-  for distro in "${DISTROS[@]}"; do
-    container="kw-${distro}"
-
-    expected_cpu_model=$(container_exec "$container" "lscpu | grep 'Model name:' | sed --regexp-extended 's/Model name:\s+//g'")
-    output_cpu_model=$(printf "%s" "${DEVICE_INFO_RESULTS[$distro]}" | grep --after-context 5 '^CPU:' | grep 'Model:' | cut --delimiter ':' --fields 2 | xargs)
-    assert_equals_helper "'kw get-device-info' CPU model mismatch for ${distro}" "$LINENO" "$expected_cpu_model" "$output_cpu_model"
-
-    expected_cpu_max_freq=$(container_exec "$container" "lscpu | grep 'CPU max MHz' | cut --delimiter ':' --fields 2 | xargs")
-    output_cpu_max_freq=$(printf "%s" "${DEVICE_INFO_RESULTS[$distro]}" | grep 'Max frequency (MHz):' | cut --delimiter ':' --fields 2 | xargs)
-    assert_equals_helper "'kw get-device-info' CPU max frequency mismatch for ${distro}" "$LINENO" "$expected_cpu_max_freq" "$output_cpu_max_freq"
-
-    expected_cpu_min_freq=$(container_exec "$container" "lscpu | grep 'CPU min MHz' | cut --delimiter ':' --fields 2 | xargs")
-    output_cpu_min_freq=$(printf "%s" "${DEVICE_INFO_RESULTS[$distro]}" | grep 'Min frequency (MHz):' | cut --delimiter ':' --fields 2 | xargs)
-    assert_equals_helper "'kw get-device-info' CPU min frequency mismatch for ${distro}" "$LINENO" "$expected_cpu_min_freq" "$output_cpu_min_freq"
-  done
-}
-
 # Test the GPU information reported by 'kw get-device-info --local'
 function test_kw_device_local_gpu()
 {

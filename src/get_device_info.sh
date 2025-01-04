@@ -11,10 +11,10 @@ declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
   ['ram_capacity']=''                          # Total RAM capacity
   ['ram_installed']=''                         # Total installed RAM
   ['cpu_model']=''                       # CPU model vendor
+  ['cpu_model_name']=''                  # CPU model vendor name
   ['cpu_architecture']=''                # CPU architecture
-  ['cpu_currently']=''                   # Current frequency of CPU in MHz
-  ['cpu_max']=''                         # Maximum frequency of CPU in MHz
-  ['cpu_min']=''                         # Minimum frequency of CPU in MHz
+  ['cpu_speed']=''                       # CPU speed in MHz
+  ['cpu_total_cores']=''                 # Total of cores
   ['desktop_environment']=''             # Desktop environment
   ['kernel_name']=''                     # Kernel name
   ['kernel_release']=''                  # Kernel release
@@ -116,70 +116,51 @@ function get_cpu()
 {
   local target="$1"
   local flag="$2"
-  local cpu_model
-  local cpu_frequency
-  local cpu_architecure
-  local cpu_currently
-  local cpu_max
-  local cpu_min
+  local cpu_info_output
+  local cpu_vendor_name
+  local cpu_total_cores
+  local cmd_cpu_info
+  local cmd_architecture
+  local cpu_architecture
+  local cpu_speed
   local cmd
+  local test_flag='SILENT'
 
   flag=${flag:-'SILENT'}
-  cmd_model="lscpu | grep 'Model name:' | sed --regexp-extended 's/Model name:\s+//g'"
-  cmd_frequency="lscpu | grep MHz | sed --regexp-extended 's/(CPU.*)/\t\t\1/'"
-  cmd_architecture="uname --machine"
+  cmd_cpu_info='inxi --tty --width 1 --color 0 --cpu'
+  cmd_architecture='uname --machine'
+
+  if [[ "$flag" == 'TEST_MODE' ]]; then
+    test_flag='TEST_MODE'
+  fi
 
   case "$target" in
     2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd_model"
-      cpu_model=$(cmd_manager 'SILENT' "$cmd_model")
-
-      show_verbose "$flag" "$cmd_frequency"
-      cpu_frequency=$(cmd_manager 'SILENT' "$cmd_frequency")
+      show_verbose "$flag" "$cmd_cpu_info"
+      cpu_info_output=$(cmd_manager "$test_flag" "$cmd_cpu_info")
 
       show_verbose "$flag" "$cmd_architecture"
-      cpu_architecture=$(cmd_manager 'SILENT' "$cmd_architecture")
+      cpu_architecture=$(cmd_manager "$test_flag" "$cmd_architecture")
       ;;
     3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd_model"
-      cpu_model=$(cmd_remotely 'SILENT' "$cmd_model")
-
-      show_verbose "$flag" "$cmd_frequency"
-      cpu_frequency=$(cmd_remotely 'SILENT' "$cmd_frequency")
+      show_verbose "$flag" "$cmd_cpu_info"
+      cpu_info_output=$(cmd_remotely "$test_flag" "$cmd_cpu_info")
 
       show_verbose "$flag" "$cmd_architecture"
-      cpu_architecture=$(cmd_remotely 'SILENT' "$cmd_architecture")
+      cpu_architecture=$(cmd_remotely "$test_flag" "$cmd_architecture")
       ;;
   esac
 
-  # Note: cpu_model may have multiple lines, that's why we added the tr at the end
-  device_info_data['cpu_model']=$(printf '%s' "$cpu_model" | tr '\n' ';' | tr --squeeze-repeats ' ')
+  cpu_vendor_name=$(get_string_after_delimiter "$cpu_info_output" 'model: ')
+  cpu_speed=$(get_string_after_delimiter "$cpu_info_output" 'avg: ')
+  cpu_total_cores=$(printf '%s' "$cpu_info_output" | tail -2 | head -1)
+  cpu_total_cores=$(printf '%s' "$cpu_total_cores" | cut --delimiter ':' --fields=1)
+  cpu_total_cores=$(str_strip "$cpu_total_cores")
+
+  device_info_data['cpu_model_name']="$cpu_vendor_name"
+  device_info_data['cpu_speed']="$cpu_speed"
+  device_info_data['cpu_total_cores']="$cpu_total_cores"
   device_info_data['cpu_architecture']="$cpu_architecture"
-
-  if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n%s\n' "$cpu_model" "$cpu_frequency"
-    return 0
-  fi
-
-  cmd="printf '%s\n' '${cpu_frequency}' | grep 'CPU MHz'"
-  show_verbose "$flag" "$cmd"
-  cpu_currently=$(cmd_manager 'SILENT' "$cmd")
-
-  cmd="printf '%s\n' '${cpu_frequency}' | grep 'CPU max MHz'"
-  show_verbose "$flag" "$cmd"
-  cpu_max=$(cmd_manager 'SILENT' "$cmd")
-
-  cmd="printf '%s\n' '${cpu_frequency}' | grep 'CPU min MHz'"
-  show_verbose "$flag" "$cmd"
-  cpu_min=$(cmd_manager 'SILENT' "$cmd")
-
-  cpu_currently=${cpu_currently//[!0-9,.]/}
-  cpu_max=${cpu_max//[!0-9,.]/}
-  cpu_min=${cpu_min//[!0-9,.]/}
-
-  device_info_data['cpu_currently']="$cpu_currently"
-  device_info_data['cpu_max']="$cpu_max"
-  device_info_data['cpu_min']="$cpu_min"
 }
 
 # This function populates the values from the size and fs (filesystem) key of
@@ -667,19 +648,15 @@ function show_data()
   printf '  Type: %s\n' "${device_info_data['chassis']}"
 
   say 'CPU:'
-  printf '  Model: %s\n' "${device_info_data['cpu_model']}"
+  printf '  Model: %s\n' "${device_info_data['cpu_model_name']}"
   printf '  Architecture: %s\n' "${device_info_data['cpu_architecture']}"
 
-  if [[ -n "${device_info_data['cpu_currently']}" ]]; then
-    printf '  Current frequency (MHz): %s\n' "${device_info_data['cpu_currently']}"
+  if [[ -n "${device_info_data['cpu_speed']}" ]]; then
+    printf '  Frequency (MHz/Avg): %s\n' "${device_info_data['cpu_speed']}"
   fi
 
-  if [[ -n "${device_info_data['cpu_max']}" ]]; then
-    printf '  Max frequency (MHz): %s\n' "${device_info_data['cpu_max']}"
-  fi
-
-  if [[ -n "${device_info_data['cpu_min']}" ]]; then
-    printf '  Min frequency (MHz): %s\n' "${device_info_data['cpu_min']}"
+  if [[ -n "${device_info_data['cpu_total_cores']}" ]]; then
+    printf '  Total Cores: %s\n' "${device_info_data['cpu_total_cores']}"
   fi
 
   say 'Memory:'

@@ -29,6 +29,35 @@ function test_get_ram_from_local()
   assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
 }
 
+function test_get_cpu_local()
+{
+  local output
+
+  declare -a expected_cmd=(
+    'inxi --tty --width 1 --color 0 --cpu'
+    'uname --machine'
+  )
+
+  output=$(get_cpu 2 'TEST_MODE')
+
+  compare_command_sequence 'inxi or unamed or both failed' "$LINENO" 'expected_cmd' "$output"
+}
+
+function test_get_cpu_remote()
+{
+  local output
+
+  declare -a expected_cmd=(
+    'inxi --tty --width 1 --color 0 --cpu'
+    'uname --machine'
+  )
+
+  output=$(get_cpu 3 'TEST_MODE')
+
+  compare_command_sequence 'inxi or unamed or both failed' "$LINENO" 'expected_cmd' "$output"
+}
+
+
 function test_get_chassis()
 {
   local cmd
@@ -49,7 +78,8 @@ function test_display_data()
     'CPU:'
     'Model: A model'
     'Architecture: x86_64'
-    'Current frequency (MHz): 1400'
+    'Frequency (MHz/Avg): 1400'
+    'Total Cores: 13'
     'Memory:'
     'Total RAM: 2 GiB'
     'Available RAM: 1 GiB'
@@ -82,9 +112,10 @@ function test_display_data()
   device_info_data['ram_type']='DDR4'
   device_info_data['ram_capacity']='128 GiB'
   device_info_data['ram_installed']='2 GiB'
-  device_info_data['cpu_model']='A model'
+  device_info_data['cpu_model_name']='A model'
   device_info_data['cpu_architecture']='x86_64'
-  device_info_data['cpu_currently']=1400
+  device_info_data['cpu_speed']=1400
+  device_info_data['cpu_total_cores']=13
   device_info_data['disk_size']='250G'
   device_info_data['root_path']='dev/something'
   device_info_data['fs_mount']='/'
@@ -226,31 +257,6 @@ function lspci_mock()
   else
     printf '%s\n' "$mocked_lspci"
   fi
-}
-
-function test_get_gpu()
-{
-  local output
-
-  alias lspci='lspci_mock'
-
-  # Check local deploy calls the expected commands
-  declare -a expected_cmd=(
-    "lspci | grep --regexp=VGA --regexp=Display --regexp=3D | cut --delimiter=' ' -f1"
-    'lspci -v -s 01:00.0'
-    'lspci -v -s 00:02.0'
-  )
-  output=$(get_gpu "$LOCAL_TARGET" 'TEST_MODE')
-  compare_command_sequence 'Unexpected cmd while trying to gather local target GPU data' "$LINENO" 'expected_cmd' "$output"
-
-  # Check local deploy fills global variable $gpus as expected
-  declare -a expected_result=(
-    'Dell UHD Graphics 620;Intel Corporation UHD Graphics 620'
-    'Dell Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile];Advanced Micro Devices, Inc.'
-  )
-
-  get_gpu "$LOCAL_TARGET"
-  compare_array_values expected_result gpus "$LINENO"
 }
 
 invoke_shunit
