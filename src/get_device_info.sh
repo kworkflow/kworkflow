@@ -470,65 +470,31 @@ function get_motherboard()
 {
   local target="$1"
   local flag="$2"
-  local mb_name
-  local mb_vendor
-  local cmd_name
-  local cmd_vendor
-  local fallback_name_cmd="cat /proc/cpuinfo | grep Model | cut --delimiter=':' -f2"
-  local fallback_vendor_cmd="cat /proc/cpuinfo | grep Hardware | cut --delimiter=':' -f2"
+  local motherboard_name
+  local motherboard_vendor
+  local inxi_machine_output
+  local cmd='inxi --tty --width 1 --color 0 --machine'
+  local test_flag='SILENT'
 
   flag=${flag:-'SILENT'}
-  cmd_name='[ -f /sys/devices/virtual/dmi/id/board_name ] && cat /sys/devices/virtual/dmi/id/board_name'
-  cmd_vendor='[ -f /sys/devices/virtual/dmi/id/board_vendor ] && cat /sys/devices/virtual/dmi/id/board_vendor'
+  [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
   case "$target" in
     2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd_name"
-      mb_name=$(cmd_manager 'SILENT' "$cmd_name")
-
-      show_verbose "$flag" "$cmd_vendor"
-      mb_vendor=$(cmd_manager 'SILENT' "$cmd_vendor")
-
-      # Fallback
-      if [[ -z "$mb_name" ]]; then
-        show_verbose "$flag" "$fallback_name_cmd"
-        mb_name=$(cmd_manager 'SILENT' "$fallback_name_cmd")
-      fi
-
-      if [[ -z "$mb_vendor" ]]; then
-        show_verbose "$flag" "$fallback_vendor_cmd"
-        mb_vendor=$(cmd_manager 'SILENT' "$fallback_vendor_cmd")
-      fi
-
+      show_verbose "$flag" "$cmd"
+      inxi_machine_output=$(cmd_manager "$test_flag" "$cmd")
       ;;
     3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd_name"
-      mb_name=$(cmd_remotely 'SILENT' "$cmd_name")
-
-      show_verbose "$flag" "$cmd_vendor"
-      mb_vendor=$(cmd_remotely 'SILENT' "$cmd_vendor")
-
-      # Fallback
-      if [[ -z "$mb_name" ]]; then
-        show_verbose "$flag" "$fallback_name_cmd"
-        mb_name=$(cmd_remotely 'SILENT' "$fallback_name_cmd")
-      fi
-
-      if [[ -z "$mb_vendor" ]]; then
-        show_verbose "$flag" "$fallback_vendor_cmd"
-        mb_vendor=$(cmd_remotely 'SILENT' "$fallback_vendor_cmd")
-      fi
+      show_verbose "$flag" "$cmd"
+      inxi_machine_output=$(cmd_remotely "$test_flag" "$cmd")
       ;;
   esac
 
-  if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$cmd_name" \
-      "$cmd_vendor"
-    return 0
-  fi
+  motherboard_vendor=$(get_string_after_delimiter "$inxi_machine_output" 'Mobo: ')
+  motherboard_model=$(get_string_after_delimiter "$inxi_machine_output" 'model: ')
 
-  device_info_data['motherboard_name']=$(str_strip "$mb_name")
-  device_info_data['motherboard_vendor']=$(str_strip "$mb_vendor")
+  device_info_data['motherboard_vendor']="$motherboard_vendor"
+  device_info_data['motherboard_name']="$motherboard_model"
 }
 
 # This function gets the chassis type of the target machine.
@@ -540,46 +506,25 @@ function get_chassis()
 {
   local target="$1"
   local flag="$2"
-  local dmi_cmd
-  local chassis_type=2 # Unknown
-  local dmi_file_path='/sys/devices/virtual/dmi/id/chassis_type'
-  local dmi_check_cmd="test -f ${dmi_file_path}"
-  local cmd
-
-  declare -a chassis_table=('Other' 'Unknown' 'Desktop' 'Low Profile Desktop'
-    'Pizza Box' 'Mini Tower' 'Tower' 'Portable' 'Laptop' 'Notebook' 'Hand Held'
-    'Docking Station' 'All in One' 'Sub Notebook' 'Space-Saving' 'Lunch Box'
-    'Main System Chassis' 'Expansion Chassis' 'SubChassis' 'Bus Expansion Chassis'
-    'Peripheral Chassis' 'Storage Chassis' 'Rack Mount Chassis' 'Sealed-Case PC'
-    'VM')
+  local cmd='inxi --tty --width 1 --color 0 --machine'
+  local inxi_machine_output
+  local test_flag='SILENT'
 
   flag=${flag:-'SILENT'}
-  dmi_cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
+  [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
   case "$target" in
     2) # LOCAL_TARGET
-      if [[ -f "$dmi_file_path" ]]; then
-        show_verbose "$flag" "$dmi_cmd"
-        chassis_type=$(cmd_manager 'SILENT' "$dmi_cmd")
-      fi
+      show_verbose "$flag" "$cmd"
+      inxi_machine_output=$(cmd_manager "$test_flag" "$cmd")
       ;;
     3) # REMOTE_TARGET
-      cmd="test -f ${dmi_file_path}"
       show_verbose "$flag" "$cmd"
-      cmd_remotely "$flag" "$cmd"
-      if [[ "$?" == 0 ]]; then
-        show_verbose "$flag" "$dmi_cmd"
-        chassis_type=$(cmd_remotely 'SILENT' "$dmi_cmd")
-      fi
+      inxi_machine_output=$(cmd_remotely "$test_flag" "$cmd")
       ;;
   esac
 
-  if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$dmi_cmd"
-    return 0
-  fi
-
-  device_info_data['chassis']="${chassis_table[((chassis_type - 1))]}"
+  device_info_data['chassis']=$(get_string_after_delimiter "$inxi_machine_output" 'Type: ')
 }
 
 # This function populates the img_size and img_type values from the

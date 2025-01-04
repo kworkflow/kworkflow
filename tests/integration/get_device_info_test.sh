@@ -3,6 +3,7 @@
 include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 include './src/get_device_info.sh'
+include './src/lib/kw_string.sh'
 
 declare -gA DEVICE_INFO_RESULTS
 
@@ -103,21 +104,21 @@ function test_kw_device_local_motherboard()
   local expected_motherboard_name
   local output_motherboard_vendor
   local output_motherboard_name
+  local raw_inxi_output
 
   for distro in "${DISTROS[@]}"; do
     container="kw-${distro}"
 
     motherboard_section=$(printf "%s" "${DEVICE_INFO_RESULTS[$distro]}" | grep --extended-regexp --after-context=3 'Motherboard:')
-    vendor_line=$(printf "%s" "$motherboard_section" | grep --extended-regexp 'Vendor:')
-    name_line=$(printf "%s" "$motherboard_section" | grep --extended-regexp 'Name:')
+    vendor_line=$(get_string_after_delimiter "$motherboard_section" 'Vendor: ')
+    name_line=$(get_string_after_delimiter "$motherboard_section" 'Name: ')
 
-    expected_motherboard_vendor=$(container_exec "$container" 'head --lines 1 /sys/devices/virtual/dmi/id/board_vendor')
-    output_motherboard_vendor=$(printf "%s" "$vendor_line" | cut --delimiter ':' --fields 2 | sed 's/^ *//g')
-    assert_equals_helper "'kw get-device-info' Motherboard vendor mismatch for ${distro}" "$LINENO" "$expected_motherboard_vendor" "$output_motherboard_vendor"
+    raw_inxi_output=$(container_exec "$container" 'inxi --tty --width 1 --color 0 --machine')
+    output_motherboard_vendor=$(get_string_after_delimiter "$raw_inxi_output" 'Mobo: ')
+    output_motherboard_name=$(get_string_after_delimiter "$raw_inxi_output" 'model: ')
 
-    expected_motherboard_name=$(container_exec "$container" 'head --lines 1 /sys/devices/virtual/dmi/id/board_name')
-    output_motherboard_name=$(printf "%s" "$name_line" | cut --delimiter=':' --fields=2 | sed 's/^ *//g')
-    assert_equals_helper "'kw get-device-info' Motherboard name mismatch for ${distro}" "$LINENO" "$expected_motherboard_name" "$output_motherboard_name"
+    assert_equals_helper "'kw get-device-info' Motherboard vendor mismatch for ${distro}" "$LINENO" "$vendor_line" "$output_motherboard_vendor"
+    assert_equals_helper "'kw get-device-info' Motherboard name mismatch for ${distro}" "$LINENO" "$name_line" "$output_motherboard_name"
   done
 }
 

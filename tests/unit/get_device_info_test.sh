@@ -57,15 +57,24 @@ function test_get_cpu_remote()
   compare_command_sequence 'inxi or unamed or both failed' "$LINENO" 'expected_cmd' "$output"
 }
 
+function test_get_motherboard()
+{
+  local cmd
+  local output
+
+  cmd='inxi --tty --width 1 --color 0 --machine'
+  output=$(get_motherboard 2 'TEST_MODE')
+  assert_equals_helper 'Wrong base ixi command' "(${LINENO})" "$cmd" "$output"
+}
 
 function test_get_chassis()
 {
   local cmd
   local output
 
-  cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
-  output=$(get_chassis "$LOCAL_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Failed to gather local target chassis data' "($LINENO)" "$cmd" "$output"
+  cmd='inxi --tty --width 1 --color 0 --machine'
+  output=$(get_chassis 2 'TEST_MODE')
+  assert_equals_helper 'Wrong base inxi command' "($LINENO)" "$cmd" "$output"
 }
 
 function test_display_data()
