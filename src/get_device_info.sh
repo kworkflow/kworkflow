@@ -37,6 +37,7 @@ declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
   ['img_type']='')                       # Type of VM image
 
 declare -ga gpus
+declare -gA crtcs
 declare -ga monitors
 
 declare -gA options_values
@@ -569,6 +570,120 @@ function get_monitors()
   monitors["$monitor_index"]="${monitor_string}"
 }
 
+function parse_dri_state()
+{
+  local dri_state_file="$1"
+  local collect_start=0
+  local current_crtc
+  local size
+  local type
+  local width
+  local color_encoding
+  local crtc_id
+  local capture_refresh_rate=0
+  local refresh_rate
+  local capture_connector=0
+  local connector_type
+  local crtc_active_re='[[:space:]]*crtc=[^(]'
+
+  while IFS=$'\n' read -r line; do
+    # Capture the active crtc
+    if [[ "$line" =~ $crtc_active_re ]]; then
+      collect_start=1
+      current_crtc=$(get_string_after_delimiter "$line" '=')
+      if [[ "$capture_connector" -eq 1 ]]; then
+        crtcs["$current_crtc"]+="connector=${connector_type};"
+      fi
+      continue
+    fi
+
+    if [[ "$line" =~ \s*crtc=\(null\) ]]; then
+      collect_start=0
+      capture_connector=0
+      connector_type=''
+      continue
+    fi
+
+    # Collect refresh rate
+    if [[ "$line" =~ crtc\[.*\]: ]]; then
+      crtc_id=$(get_string_after_delimiter "$line" ': ')
+
+      for crtc_key in "${!crtcs[@]}"; do
+        if [[ "$crtc_key" == "$crtc_id" ]]; then
+          current_crtc="$crtc_id"
+          capture_refresh_rate=1
+          continue
+        fi
+      done
+    fi
+
+    if [[ "$line" =~ mode: && "$capture_refresh_rate" -eq 1 ]]; then
+      refresh_rate=$(printf '%s' "$line" | cut --delimiter ':' --fields=2- | cut --delimiter ' ' --fields=3)
+      crtcs["$current_crtc"]+="refresh_rate=${refresh_rate};"
+      capture_refresh_rate=0
+      current_crtc=''
+    fi
+
+    # Capture the connector type
+    if [[ "$line" =~ connector\[.*\]: ]]; then
+      connector_type=$(get_string_after_delimiter "$line" ':')
+      connector_type=$(str_drop_all_spaces "$connector_type")
+      capture_connector=1
+    fi
+
+    # Get resolution
+    if [[ "$line" =~ \s*size=.*x.* && "$collect_start" -eq 1 ]]; then
+      size=$(get_string_after_delimiter "$line" '=')
+      width=$(get_string_after_delimiter "$size" 'x')
+
+      # Check if it is a cursor
+      type='primary'
+      if [[ "$width" -le '400' ]]; then
+        type='cursor'
+        continue
+      fi
+      crtcs["$current_crtc"]+="type=${type};resolution=${size};"
+    fi
+
+    if [[ "$line" =~ \s*color-encoding=.* && "$collect_start" -eq 1 && "$type" == 'primary' ]]; then
+      color_encoding=$(get_string_after_delimiter "$line" '=')
+      crtcs["$current_crtc"]+="color_encoding=${color_encoding};"
+    fi
+  done <<< "$dri_state_file"
+}
+
+function get_modesetting()
+{
+  local target="$1"
+  local flag="$2"
+  local cmd_get_kms_state
+  local kms_state_raw
+  local modesetting_list
+  local test_flag='SILENT'
+
+  flag=${flag:-'SILENT'}
+  [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
+
+  # The below command iterates over the kms devices and print the states
+  cmd_get_kms_state='for i in {0..10}; do '
+  cmd_get_kms_state+='[[ ! -f "/sys/kernel/debug/dri/${i}/state" ]] && continue; '
+  cmd_get_kms_state+='c=$(< "/sys/kernel/debug/dri/${i}/state") && [[ -n "$c" ]] && printf "%s" "$c"; done'
+
+  case "$target" in
+    2) # LOCAL_TARGET
+      cmd_get_kms_state="sudo bash -c '${cmd_get_kms_state}'"
+      show_verbose "$flag" "$cmd_get_kms_state"
+      kms_state_raw=$(cmd_manager "$test_flag" "$cmd_get_kms_state")
+      ;;
+    3) # REMOTE_TARGET
+      show_verbose "$flag" "$cmd_get_kms_state"
+      kms_state_raw=$(cmd_remotely "$test_flag" "$cmd_get_kms_state" '' '' '' '1')
+      ;;
+  esac
+
+  parse_dri_state "$kms_state_raw"
+}
+
 # This function populates the img_size and img_type values from the
 # device_info_data variable.
 function get_img_info()
@@ -612,6 +727,7 @@ function learn_device()
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
   get_monitors "$target" "$flag"
+  get_modesetting "$target" "$flag"
 }
 
 # This function shows the information stored in the device_info_data variable.
@@ -625,6 +741,10 @@ function show_data()
   local target
   local monitor
   local -a info_array
+  local modesetting
+  local -a crtc_key_values
+  local key
+  local value
 
   target=${target:-"${options_values['TARGET']}"}
 
@@ -703,6 +823,30 @@ function show_data()
       printf '   %s\n' "${info}"
     done
     ((monitor++))
+  done
+
+  say 'Modesetting:'
+  for crtc_id in "${!crtcs[@]}"; do
+
+    IFS=';' read -r -a crtc_key_values <<< "${crtcs[${crtc_id}]}"
+    modesetting=''
+    for key_value in "${crtc_key_values[@]}"; do
+      key=$(printf '%s' "$key_value" | cut --delimiter '=' --fields=1)
+      value=$(get_string_after_delimiter "$key_value" '=')
+
+      # Let's ignore those infos for now
+      [[ "$key" == 'type' || "$key" == 'connector' || "$key" == 'color_encoding' ]] && continue
+
+      [[ "$key" == 'resolution' ]] && modesetting="$value" && continue
+
+      if [[ "$key" == 'refresh_rate' ]]; then
+        modesetting+="@${value}"
+        continue
+      fi
+
+      printf '   %s\n' "$value"
+    done
+    [[ -n "$modesetting" ]] && printf '   %s\n' "$modesetting"
   done
 }
 

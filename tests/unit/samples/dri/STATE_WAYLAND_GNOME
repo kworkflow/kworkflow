@@ -1,0 +1,273 @@
+plane[40]: plane-0
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=0
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[43]: plane-1
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=0
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[46]: plane-2
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=0
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[49]: plane-3
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=0
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[52]: plane-4
+	crtc=crtc-1
+	fb=113
+		allocated by = gnome-shell
+		refcount=2
+		format=XR30 little-endian (0x30335258)
+		modifier=0x0
+		size=2560x1440
+		layers:
+			size[0]=2560x1440
+			pitch[0]=10240
+			offset[0]=0
+			obj[0]:
+				name=0
+				refcount=3
+				start=0011551e
+				size=15728640
+				imported=no
+	crtc-pos=2560x1440+0+0
+	src-pos=2560.000000x1440.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=0
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[55]: plane-5
+	crtc=crtc-0
+	fb=109
+		allocated by = gnome-shell
+		refcount=2
+		format=XR30 little-endian (0x30335258)
+		modifier=0x0
+		size=3840x2160
+		layers:
+			size[0]=3840x2160
+			pitch[0]=15360
+			offset[0]=0
+			obj[0]:
+				name=0
+				refcount=3
+				start=00101fa4
+				size=33423360
+				imported=no
+	crtc-pos=3840x2160+0+0
+	src-pos=3840.000000x2160.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=0
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[58]: plane-6
+	crtc=crtc-0
+	fb=119
+		allocated by = KMS thread
+		refcount=2
+		format=AR24 little-endian (0x34325241)
+		modifier=0x0
+		size=128x128
+		layers:
+			size[0]=128x128
+			pitch[0]=512
+			offset[0]=0
+			obj[0]:
+				name=0
+				refcount=3
+				start=00104e86
+				size=65536
+				imported=no
+	crtc-pos=128x128+2020+1139
+	src-pos=128.000000x128.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=1
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[61]: plane-7
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=1
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[64]: plane-8
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=ff
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[67]: plane-9
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=ff
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[70]: plane-10
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=ff
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+plane[73]: plane-11
+	crtc=(null)
+	fb=0
+	crtc-pos=0x0+0+0
+	src-pos=0.000000x0.000000+0.000000+0.000000
+	rotation=1
+	normalized-zpos=ff
+	color-encoding=ITU-R BT.601 YCbCr
+	color-range=YCbCr limited range
+	color_mgmt_changed=0
+crtc[60]: crtc-0
+	enable=1
+	active=1
+	self_refresh_active=0
+	planes_changed=1
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=60
+	connector_mask=1
+	encoder_mask=1
+	mode: "3840x2160": 60 533250 3840 3888 3920 4000 2160 2163 2168 2222 0x48 0x9
+crtc[63]: crtc-1
+	enable=1
+	active=1
+	self_refresh_active=0
+	planes_changed=1
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=10
+	connector_mask=4
+	encoder_mask=4
+	mode: "2560x1440": 120 497750 2560 2608 2640 2720 1440 1443 1448 1525 0x40 0x5
+crtc[66]: crtc-2
+	enable=0
+	active=0
+	self_refresh_active=0
+	planes_changed=0
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=0
+	connector_mask=0
+	encoder_mask=0
+	mode: "": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+crtc[69]: crtc-3
+	enable=0
+	active=0
+	self_refresh_active=0
+	planes_changed=0
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=0
+	connector_mask=0
+	encoder_mask=0
+	mode: "": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+crtc[72]: crtc-4
+	enable=0
+	active=0
+	self_refresh_active=0
+	planes_changed=0
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=0
+	connector_mask=0
+	encoder_mask=0
+	mode: "": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+crtc[75]: crtc-5
+	enable=0
+	active=0
+	self_refresh_active=0
+	planes_changed=0
+	mode_changed=0
+	active_changed=0
+	connectors_changed=0
+	color_mgmt_changed=0
+	plane_mask=0
+	connector_mask=0
+	encoder_mask=0
+	mode: "": 0 0 0 0 0 0 0 0 0 0 0x0 0x0
+connector[77]: DP-1
+	crtc=crtc-0
+	self_refresh_aware=0
+	max_requested_bpc=16
+	colorspace=Default
+connector[84]: DP-2
+	crtc=(null)
+	self_refresh_aware=0
+	max_requested_bpc=16
+	colorspace=Default
+connector[89]: DP-3
+	crtc=crtc-1
+	self_refresh_aware=0
+	max_requested_bpc=16
+	colorspace=Default
+connector[94]: HDMI-A-1
+	crtc=(null)
+	self_refresh_aware=0
+	max_requested_bpc=16
+	colorspace=Default
+	broadcast_rgb=Automatic
+	is_limited_range=n
+	output_bpc=0
+	output_format=RGB
+	tmds_char_rate=0
+connector[100]: DVI-D-1
+	crtc=(null)
+	self_refresh_aware=0
+	max_requested_bpc=16
+	colorspace=Default

@@ -89,6 +89,72 @@ function test_get_chassis()
   assert_equals_helper 'Wrong base inxi command' "($LINENO)" "$cmd" "$output"
 }
 
+function test_parse_dri_state_gnome_with_wayland()
+{
+  local dri_state_folder="$SHUNIT_TMPDIR"
+  local original="$PWD"
+  local expected_result_crtc_0=''
+  local expected_result_crtc_1=''
+  local raw_state=''
+
+  cp "${SAMPLES_DIR}/dri/STATE_WAYLAND_GNOME" "$dri_state_folder"
+
+  cd "$dri_state_folder" || {
+    fail "(${LINENO}) It was not possible to move to temporary directory"
+    return
+  }
+
+  raw_state=$(< STATE_WAYLAND_GNOME)
+
+  unset crtcs
+  declare -gA crtcs
+  parse_dri_state "$raw_state"
+
+  expected_result_crtc_0='type=primary;resolution=3840x2160;color_encoding=ITU-R BT.601 YCbCr;refresh_rate=60;connector=DP-1;'
+  expected_result_crtc_1='type=primary;resolution=2560x1440;color_encoding=ITU-R BT.601 YCbCr;refresh_rate=120;connector=DP-3;'
+
+  assert_equals_helper 'Wrong match for crtc 0' "(${LINENO})" "$expected_result_crtc_0" "${crtcs['crtc-0']}"
+  assert_equals_helper 'Wrong match for crtc 1' "(${LINENO})" "$expected_result_crtc_1" "${crtcs['crtc-1']}"
+
+  cd "$original" || {
+    fail "(${LINENO}) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_parse_dri_state_gnome_with_x11()
+{
+  local dri_state_folder="$SHUNIT_TMPDIR"
+  local original="$PWD"
+  local expected_result_crtc_0=''
+  local expected_result_crtc_1=''
+  local raw_state=''
+
+  cp "${SAMPLES_DIR}/dri/STATE_X11_GNOME" "$dri_state_folder"
+
+  cd "$dri_state_folder" || {
+    fail "(${LINENO}) It was not possible to move to temporary directory"
+    return
+  }
+
+  raw_state=$(< STATE_X11_GNOME)
+
+  unset crtcs
+  declare -gA crtcs
+  parse_dri_state "$raw_state"
+
+  expected_result_crtc_0='type=primary;resolution=7680x2160;color_encoding=ITU-R BT.601 YCbCr;refresh_rate=60;connector=DP-1;'
+  expected_result_crtc_1='type=primary;resolution=7680x2160;color_encoding=ITU-R BT.601 YCbCr;refresh_rate=60;connector=DP-3;'
+
+  assert_equals_helper 'Wrong match for crtc 0' "(${LINENO})" "$expected_result_crtc_0" "${crtcs['crtc-0']}"
+  assert_equals_helper 'Wrong match for crtc 1' "(${LINENO})" "$expected_result_crtc_1" "${crtcs['crtc-1']}"
+
+  cd "$original" || {
+    fail "(${LINENO}) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 function test_display_data()
 {
   local output
@@ -129,6 +195,9 @@ function test_display_data()
     'GPU:'
     'Device Name: AMD something'
     'Driver Name: amdgpu'
+    'Display:'
+    'Modesetting:'
+    '3840x2160@60'
   )
 
   options_values['target']="$LOCAL_TARGET"
@@ -159,6 +228,10 @@ function test_display_data()
   device_info_data['motherboard_name']='ABC123'
   device_info_data['gpu']='AMD something'
   device_info_data['gpu_driver']='amdgpu'
+
+  unset crtcs
+  declare -gA crtcs
+  crtcs['crtc-0']='type=primary;resolution=3840x2160;color_encoding=ITU-R BT.601 YCbCr;refresh_rate=60;connector=DP-1;'
 
   output=$(show_data)
 
