@@ -40,9 +40,9 @@ function test_kw_device_local_ram()
   for distro in "${DISTROS[@]}"; do
     container_name="kw-${distro}"
 
-    actual_ram_kb=$(container_exec "$container_name" "grep MemTotal /proc/meminfo | cut --delimiter ':' --fields 2 | tr --delete ' kB'")
-    expected_ram=$(container_exec "$container_name" "numfmt --from=si --to=iec ${actual_ram_kb}K")
-    output_ram=$(printf "%s" "${DEVICE_INFO_RESULTS[$distro]}" | grep "Total RAM" | cut --delimiter ' ' --fields 5)
+    # The cut part removes a percentage that might change and make this test fails for no good reason.
+    expected_ram=$(container_exec "$container_name" "inxi --memory-short" | grep "System RAM" | cut --delimiter 'u' --field 1)
+    output_ram=$(printf "%s" "${DEVICE_INFO_RESULTS[$distro]}" | grep "System RAM" | cut --delimiter 'u' --field 1)
 
     assert_equals_helper "'kw get-device-info' RAM check failed for ${distro}" "$LINENO" "$expected_ram" "$output_ram"
   done

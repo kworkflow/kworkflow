@@ -5,7 +5,11 @@ include "${KW_LIB_DIR}/lib/remote.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/distros.sh"
 
-declare -gA device_info_data=(['ram']='' # RAM memory in KB
+declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
+  ['ram_available']=''                         # Available RAM
+  ['ram_type']=''                              # Ram Type
+  ['ram_capacity']=''                          # Total RAM capacity
+  ['ram_installed']=''                         # Total installed RAM
   ['cpu_model']=''                       # CPU model vendor
   ['cpu_architecture']=''                # CPU architecture
   ['cpu_currently']=''                   # Current frequency of CPU in MHz
@@ -77,13 +81,13 @@ function device_info_main()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 function get_ram()
 {
-  local flag="$1"
-  local target=${options_values['TARGET']}
+  local target="$1"
+  local flag="$2"
   local ram
   local cmd
 
   flag=${flag:-'SILENT'}
-  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
+  cmd='inxi --tty --width 1 --color 0 --memory-short'
 
   case "$target" in
     2) # LOCAL_TARGET
@@ -96,12 +100,11 @@ function get_ram()
       ;;
   esac
 
-  if [[ "$flag" == 'TEST_MODE' ]]; then
-    printf '%s\n' "$ram"
-    return 0
-  fi
-
-  device_info_data['ram']="$ram"
+  device_info_data['ram_total']="$(get_string_after_delimiter "$ram" 'total: ')"
+  device_info_data['ram_available']="$(get_string_after_delimiter "$ram" 'available: ')"
+  device_info_data['ram_type']="$(get_string_after_delimiter "$ram" 'type: ')"
+  device_info_data['ram_capacity']="$(get_string_after_delimiter "$ram" 'capacity: ')"
+  device_info_data['ram_installed']="$(get_string_after_delimiter "$ram" 'installed: ')"
 }
 
 # This function provides the model and frequency of the CPU from a machine
@@ -631,7 +634,7 @@ function learn_device()
 
   target=${target:-"${options_values['TARGET']}"}
 
-  get_ram "$flag"
+  get_ram "$target" "$flag"
   get_cpu "$target" "$flag"
   get_disk "$target" "$flag"
   get_os "$target" "$flag"
@@ -679,10 +682,12 @@ function show_data()
     printf '  Min frequency (MHz): %s\n' "${device_info_data['cpu_min']}"
   fi
 
-  if [[ -n "${device_info_data['ram']}" ]]; then
-    say 'RAM:'
-    printf '  Total RAM: %s\n' "$(numfmt --from=si --to=iec "${device_info_data['ram']}K")"
-  fi
+  say 'Memory:'
+  printf '  Total RAM: %s\n' "${device_info_data['ram_total']}"
+  printf '  Available RAM: %s\n' "${device_info_data['ram_available']}"
+  printf '  RAM Type: %s\n' "${device_info_data['ram_type']}"
+  printf '  RAM capacity: %s\n' "${device_info_data['ram_capacity']}"
+  printf '  Total RAM installed: %s\n' "${device_info_data['ram_installed']}"
 
   say 'Storage devices:'
   printf '  Root filesystem: %s\n' "${device_info_data['root_path']}"

@@ -24,9 +24,8 @@ function test_get_ram_from_local()
   local cmd
   local output
 
-  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
-  options_values['TARGET']="$LOCAL_TARGET"
-  output=$(get_ram 'VERBOSE')
+  cmd='inxi --tty --width 1 --color 0 --memory-short'
+  output=$(get_ram "$LOCAL_TARGET" 'VERBOSE')
   assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
 }
 
@@ -51,8 +50,12 @@ function test_display_data()
     'Model: A model'
     'Architecture: x86_64'
     'Current frequency (MHz): 1400'
-    'RAM:'
-    'Total RAM: 16G'
+    'Memory:'
+    'Total RAM: 2 GiB'
+    'Available RAM: 1 GiB'
+    'RAM Type: DDR4'
+    'RAM capacity: 128 GiB'
+    'Total RAM installed: 2 GiB'
     'Storage devices:'
     'Root filesystem: dev/something'
     'Size: 250G'
@@ -74,7 +77,11 @@ function test_display_data()
 
   options_values['target']="$LOCAL_TARGET"
   device_info_data['chassis']='Pizza Box'
-  device_info_data['ram']='16777216'
+  device_info_data['ram_total']='2 GiB'
+  device_info_data['ram_available']='1 GiB'
+  device_info_data['ram_type']='DDR4'
+  device_info_data['ram_capacity']='128 GiB'
+  device_info_data['ram_installed']='2 GiB'
   device_info_data['cpu_model']='A model'
   device_info_data['cpu_architecture']='x86_64'
   device_info_data['cpu_currently']=1400
