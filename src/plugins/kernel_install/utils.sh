@@ -1,4 +1,4 @@
-declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+declare -g INSTALLED_KERNELS_PATH='/boot/INSTALLED_KERNELS'
 declare -g AB_ROOTFS_PARTITION='/dev/disk/by-partsets/self/rootfs'
 declare -g LIB_MODULES_PATH='/lib/modules'
 
@@ -259,6 +259,22 @@ function ask_yN()
   fi
 }
 
+# A/B partition system distros usually replace the entire /boot folder but
+# preserve the content in the /opt folder, creating inconsistencies with kw
+# after a distro update since the kw list will point to kernels that no longer
+# exist. To handle this case, we moved the INSTALLED_KERNEL list to the /boot
+# folder, but some old versions of the kw will be affected by this change; for
+# this reason, this function migrates those old files to the new scheme. At
+# some point, we can safely remove this migration function.
+#
+# TODO: Drop me in the future
+function migrate_old_kernel_list()
+{
+  local old_installed_location='/opt/kw/INSTALLED_KERNELS'
+
+  [[ -f "$old_installed_location" ]] && mv "$old_installed_location" '/boot/'
+}
+
 # List available kernels
 # @single_line If this option is set to 1 this function will display all
 #   available kernels in a single line separated by commas. If it gets 0 it
@@ -273,6 +289,9 @@ function list_installed_kernels()
   local prefix="$4"
   local -a available_kernels=()
   local cmd
+
+  # TODO: Drop me in the future
+  migrate_old_kernel_list
 
   cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
   cmd_manager "$flag" "sudo touch $INSTALLED_KERNELS_PATH"
@@ -639,6 +658,9 @@ function kernel_uninstall()
     exit 22 #EINVAL
   fi
 
+  # TODO: Drop me in the future
+  migrate_old_kernel_list
+
   cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
   cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
 
@@ -759,6 +781,9 @@ function install_kernel()
   fi
 
   # Registering a new kernel
+  # TODO: Drop me in the future
+  migrate_old_kernel_list
+
   if [[ ! -f "$INSTALLED_KERNELS_PATH" ]]; then
     cmd_manager "$flag" "touch $INSTALLED_KERNELS_PATH"
   fi
