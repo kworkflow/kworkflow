@@ -167,7 +167,6 @@ function test_list_unmanaged_kernels()
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
-  # arguments: $flag $single_line $prefix $all
   output=$(list_installed_kernels 'TEST_MODE' '1' '1' "$SHUNIT_TMPDIR")
   compare_command_sequence '' "$LINENO" 'expected' "$output"
 
@@ -178,15 +177,20 @@ function test_list_unmanaged_kernels()
   compare_command_sequence '' "$LINENO" 'expected' "$output"
 }
 
-function test_list_kernels_based_on_grub()
+function test_list_all_kernels_no_match()
 {
-  local output
-  local expected_str
+  local -a expected_result
   local -a available_kernels=()
 
-  list_installed_kernels_based_on_grub "$SHUNIT_TMPDIR" 'available_kernels'
-  expected_str='5.5.0-rc2-VKMS+ 5.6.0-rc2-AMDGPU+ linux'
-  assertEquals "($LINENO)" "$expected_str" "${available_kernels[*]}"
+  expected_result=()
+
+  # Remove all files from /boot to ensure an empty list
+  if [[ -d "${SHUNIT_TMPDIR}/boot" ]]; then
+    find "${SHUNIT_TMPDIR}/boot/" -maxdepth 1 -type f -delete
+  fi
+
+  list_all_kernels "$SHUNIT_TMPDIR" available_kernels 'TEST_MODE'
+  compare_array_values expected_result available_kernels "$LINENO"
 }
 
 function test_reboot_machine()

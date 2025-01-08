@@ -297,12 +297,7 @@ function list_installed_kernels()
   cmd_manager "$flag" "sudo touch $INSTALLED_KERNELS_PATH"
 
   if [[ -n "$all" ]]; then
-    if [[ -d "$prefix/boot/grub/" ]]; then
-      list_installed_kernels_based_on_grub "$prefix" 'available_kernels'
-    else
-      printf '%s\n' 'Could not find grub installed. Cannot list all installed kernels'
-      return 95 # ENOTSUP
-    fi
+    list_all_kernels "$prefix" available_kernels "$flag"
   else
     readarray -t available_kernels < "$INSTALLED_KERNELS_PATH"
     if [[ "${#available_kernels[@]}" -eq 0 ]]; then
@@ -322,43 +317,41 @@ function list_installed_kernels()
   return 0
 }
 
-list_installed_kernels_based_on_grub()
+# Based on  the kernel name pattern (vmlinuz), list all installed kernels.
+#
+# @prefix: Set a base prefix for searching for kernels.
+# @_available_kernels: Array reference to be fill out with the kernel names
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
+function list_all_kernels()
 {
   local prefix="$1"
   local -n _available_kernels="$2"
-  local grub_cfg
+  local flag="$3"
+  local cmd_get_kernels
   local output
-  local super=0
+  local index=0
+  local extension
+  local kernel_name
+  declare -a raw_kernel_name_list
 
-  grub_cfg="$prefix/boot/grub/grub.cfg"
+  [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd_get_kernels"
 
-  output=$(awk -F\' '/menuentry / {print $2}' "$grub_cfg" 2> /dev/null)
+  cmd_get_kernels="find ${prefix}/boot/ -name '*linuz*' -printf '%f\n' | sort --dictionary"
 
-  if [[ "$?" != 0 ]]; then
-    if ! [[ -r "$grub_cfg" ]]; then
-      printf '%s' 'For showing the available kernel in your system we have ' \
-        'to take a look at "/boot/grub/grub.cfg", however, it looks like ' \
-        ' you have no read permission.' $'\n'
-      ask_yN 'Do you want to proceed with sudo?'
-      if [[ "$?" == 0 ]]; then
-        printf '%s\n' 'List kernel operation aborted'
-        return 0
-      fi
-      super=1
-    fi
-  fi
+  output=$(cmd_manager 'SILENT' "$cmd_get_kernels")
+  readarray -t raw_kernel_name_list <<< "$output"
 
-  if [[ "$super" == 1 ]]; then
-    output=$(sudo awk -F\' '/menuentry / {print $2}' "$grub_cfg")
-  fi
+  for element in "${raw_kernel_name_list[@]}"; do
+    extension="${element##*.}"
+    [[ "$extension" == 'old' ]] && continue
 
-  output=$(printf '%s\n' "$output" | grep recovery -v | grep with | awk -F" " '{print $NF}')
+    # Remove kernel prefix (vmlinuz)
+    kernel_name=$(printf '%s' "$element" | cut --delimiter '-' --fields=2-)
 
-  while read -r kernel; do
-    if [[ -f "$prefix/boot/vmlinuz-$kernel" && ! "$kernel" =~ .*\.old$ ]]; then
-      _available_kernels+=("$kernel")
-    fi
-  done <<< "$output"
+    _available_kernels["$index"]="$kernel_name"
+    ((index++))
+  done
 }
 
 function reboot_machine()
