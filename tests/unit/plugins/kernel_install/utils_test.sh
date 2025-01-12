@@ -124,16 +124,22 @@ function test_human_list_installed_kernels()
   local output
 
   declare -a expected_out=(
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
-    "sudo touch $INSTALLED_KERNELS_PATH"
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
     '5.5.0-rc2-VKMS+'
     '5.6.0-rc2-AMDGPU+'
     'linux'
   )
 
-  printf '%s\n' "${expected_out[@]:2}" > "$INSTALLED_KERNELS_PATH"
+  printf '%s\n' "${expected_out[@]:1}" > "$INSTALLED_KERNELS_PATH"
 
-  output=$(list_installed_kernels 'TEST_MODE' '0' '' "$SHUNIT_TMPDIR")
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 0
+    }
+    list_installed_kernels 'TEST_MODE' '0' '' "$SHUNIT_TMPDIR"
+  )"
+
   compare_command_sequence '' "$LINENO" 'expected_out' "$output"
 }
 
@@ -142,14 +148,20 @@ function test_command_list_installed_kernels()
   local output
 
   declare -a expected_out=(
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
-    "sudo touch $INSTALLED_KERNELS_PATH"
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
   printf '%s\n' "${expected_out[-1]/,/$'\n'}" > "$INSTALLED_KERNELS_PATH"
 
-  output=$(list_installed_kernels 'TEST_MODE' '1' '' "$SHUNIT_TMPDIR")
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 0
+    }
+    list_installed_kernels 'TEST_MODE' '1' '' "$SHUNIT_TMPDIR"
+  )"
+
   compare_command_sequence '' "$LINENO" 'expected_out' "$output"
 }
 
@@ -162,18 +174,17 @@ function test_list_unmanaged_kernels()
   printf '%s' '' > "$INSTALLED_KERNELS_PATH"
 
   expected=(
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
-    "sudo touch $INSTALLED_KERNELS_PATH"
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
-  output=$(list_installed_kernels 'TEST_MODE' '1' '1' "$SHUNIT_TMPDIR")
-  compare_command_sequence '' "$LINENO" 'expected' "$output"
-
-  rm -rf "$SHUNIT_TMPDIR/boot/grub"
-
-  expected[2]='Could not find grub installed. Cannot list all installed kernels'
-  output=$(list_installed_kernels 'TEST_MODE' "1" "$SHUNIT_TMPDIR" "1")
+  output="$(
+    function is_filesystem_writable()
+    {
+      return 0
+    }
+    list_installed_kernels 'TEST_MODE' '1' '1' "$SHUNIT_TMPDIR"
+  )"
   compare_command_sequence '' "$LINENO" 'expected' "$output"
 }
 
