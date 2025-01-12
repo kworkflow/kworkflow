@@ -289,12 +289,24 @@ function list_installed_kernels()
   local prefix="$4"
   local -a available_kernels=()
   local cmd
+  local file_system_type
+  local ret=0
 
   # TODO: Drop me in the future
   migrate_old_kernel_list
 
-  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
-  cmd_manager "$flag" "sudo touch $INSTALLED_KERNELS_PATH"
+  file_system_type=$(detect_filesystem_type '')
+  is_filesystem_writable "$file_system_type" "$flag"
+  if [[ "$?" != 0 ]]; then
+    printf '%s\n' 'WARNING: /boot is read-only. Consider run: kw deploy --setup'
+    ret=30 # EROFS
+  fi
+
+  if [[ ! -f "${INSTALLED_KERNELS_PATH}" ]]; then
+    [[ "$ret" != 30 ]] && cmd_manager "$flag" "sudo touch ${INSTALLED_KERNELS_PATH}"
+  fi
+
+  cmd_manager "$flag" "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
 
   if [[ -n "$all" ]]; then
     list_all_kernels "$prefix" available_kernels "$flag"
