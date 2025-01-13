@@ -42,7 +42,7 @@ firefox build/index.html
 
 We are happy that you want to help us! If you are looking for a good starting
 point, check
-[those issues](https://github.com/kworkflow/kworkflow/labels/good%20first%20issue)
+[those issues](https://github.com/kworkflow/kworkflow/issues?q=is%3Aopen+label%3A%22good+first+issue%22+-label%3A%22done%3A+wait+for+stable%22)
 and don't forget to read our
 [Contribuitor's Guide](https://kworkflow.org/content/howtocontribute.html)
 (or [howtocontribute file](documentation/content/howtocontribute.rst)).
