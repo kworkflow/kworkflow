@@ -53,10 +53,6 @@ The best way to get help or make suggestions is by creating
 [issues](https://github.com/kworkflow/kworkflow/issues) or making a
 [pull request](https://github.com/kworkflow/kworkflow/pulls), someone is
 likely to reply to these in little time.
-You can also reach out to us at the `#kw-devel` channel on the
-[OFTC](https://www.oftc.net/) IRC server (**irc.of</span>tc.n</span>et**), or
-by joining or opening a new discussion on the
-[discussions](https://github.com/kworkflow/kworkflow/discussions) page.
 
 # License
 
