@@ -472,7 +472,7 @@ function test_extract_remote_info_from_config_file()
 
 function test_remove_key_from_kwown_hosts_by_user_request()
 {
-  local expected_cmd="ssh-keygen -q -f '${HOME}/.ssh/known_hosts' -R '[steamdeck]:8888'"
+  local expected_cmd="ssh-keygen -q -f '${HOME}/.ssh/known_hosts' -R 'steamdeck'"
 
   remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
   remote_parameters['REMOTE_FILE_HOST']='steamos'
