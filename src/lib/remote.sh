@@ -128,7 +128,7 @@ function remove_key_from_kwown_hosts()
   #shellcheck disable=SC2119
   extract_remote_info_from_config_file
 
-  remove_key_cmd+=" '${HOME}/.ssh/known_hosts' -R '[${remote_parameters['REMOTE_IP']}]:${remote_parameters['REMOTE_PORT']}'"
+  remove_key_cmd+=" '${HOME}/.ssh/known_hosts' -R '${remote_parameters['REMOTE_IP']}'"
 
   warning 'kw was not able to ssh into:'
   warning " Host: ${remote_parameters['REMOTE_IP']}"
