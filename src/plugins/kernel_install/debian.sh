@@ -42,7 +42,7 @@ function generate_debian_temporary_root_file_system()
   fi
 
   # We do not support initramfs outside grub scope
-  [[ "$bootloader_type" != 'GRUB' ]] && return
+  [[ "$bootloader_type" != 'GRUB' && "$bootloader_type" != 'RPI_BOOTLOADER' ]] && return
 
   cmd+=" $name"
 

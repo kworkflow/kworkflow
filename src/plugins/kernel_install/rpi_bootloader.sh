@@ -25,7 +25,7 @@ function run_bootloader_update()
   [[ "$target" == 'local' ]] && sudo_cmd='sudo'
 
   # Find kernel name
-  find_target=$(find "$BOOT_PATH" -name "*${name}*" -not -name '*.old' -not -name 'config-*')
+  find_target=$(find "$BOOT_PATH" -name "*${name}*" -not -name '*.old' -not -name 'config-*' -not -name 'initrd*')
   find_target=$(basename "$find_target")
 
   # Check if the kernel name were already added to config.txt
