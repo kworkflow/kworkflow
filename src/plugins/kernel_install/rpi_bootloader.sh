@@ -5,7 +5,7 @@
 # 2. run_bootloader_for_vm: Update GRUB in a virtual machine.
 
 BOOT_PATH='/boot'
-RPI_CONFIG_TXT_PATH="${BOOT_PATH}/config.txt"
+RPI_CONFIG_TXT_PATH="${BOOT_PATH}/firmware/config.txt"
 
 # Update raspberry bootloader in a target machine.
 # The standard Raspberry Pi
