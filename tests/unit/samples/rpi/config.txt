@@ -79,3 +79,4 @@ arm_boost=1
 
 [all]
 kernel=kernel-rpi-config.img
+initramfs=initrd.img-kernel-rpi-config
