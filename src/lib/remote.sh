@@ -42,6 +42,7 @@ function is_ssh_connection_configured()
   local remote_file=${5:-${remote_parameters[REMOTE_FILE]}}
   local remote_file_host=${5:-${remote_parameters[REMOTE_FILE_HOST]}}
   local ssh_cmd='ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5'
+  local output
   local ret
 
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
