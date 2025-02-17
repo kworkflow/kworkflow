@@ -707,7 +707,6 @@ function test_install_kernel_remote()
     "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/config-test /boot/"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
-    "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/*.dtb /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
     'run_bootloader_update_mock'
     "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
@@ -730,7 +729,6 @@ function test_install_kernel_remote()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # Now add a .dtb file and remove vmlinuz
-  touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/test.dtb"
   rm "${PWD}/boot/vmlinuz-${name}"
 
   output=$(install_kernel 'debian' "$reboot" "$target" '' 'TEST_MODE')

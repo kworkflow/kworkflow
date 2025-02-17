@@ -175,6 +175,7 @@ function move_kernel_files_to_firmware_folder()
   local cmd
   local init_name
   local error=0
+  local dtb_files
 
   flag=${flag:-'SILENT'}
 
@@ -201,6 +202,13 @@ function move_kernel_files_to_firmware_folder()
 
   if [[ "$error" == 1 ]]; then
     return 2 # ENOENT
+  fi
+
+  # Copy dtbs to /boot if exist
+  dtb_files=$(find "${KW_DEPLOY_TMP_FILE}/kw_pkg" -type f -name '*.dtb')
+  if [[ -n "$dtb_files" ]]; then
+    cmd="${sudo_cmd}cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/*.dtb ${BOOT_FIRMWARE_PATH}"
+    cmd_manager "$flag" "$cmd"
   fi
 
   # If there is no errors, move files to the right place

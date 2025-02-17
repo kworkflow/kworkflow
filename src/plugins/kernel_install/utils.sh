@@ -769,13 +769,6 @@ function install_kernel()
   cmd="${sudo_cmd}cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
   cmd_manager "$flag" "$cmd"
 
-  # Copy dtbs to /boot if exist
-  dtb_files=$(find "${KW_DEPLOY_TMP_FILE}"/kw_pkg -type f -name "*.dtb")
-  if [[ -n "$dtb_files" ]]; then
-    cmd="${sudo_cmd} cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/*.dtb /boot/"
-    cmd_manager "$flag" "$cmd"
-  fi
-
   # Each distro has their own way to update their bootloader
   update_bootloader "$flag" "$name" "$target" "$kernel_image_name" "$distro" "$path_test" '' "$force"
   ret="$?"
