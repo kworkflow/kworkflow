@@ -132,7 +132,7 @@ function is_filesystem_writable()
     ext4)
       # Is this A/b partition?
       if [[ -f "$AB_ROOTFS_PARTITION" ]]; then
-        cmd="tune2fs -l '$AB_ROOTFS_PARTITION' | grep -q '^Filesystem features: .*read-only.*$'"
+        cmd="tune2fs -l '${AB_ROOTFS_PARTITION}' | grep -q '^Filesystem features: .*read-only.*$'"
       fi
       ;;
     btrfs)
@@ -190,19 +190,19 @@ function collect_deploy_info()
   # XXX: We must remove the numeric value of target because this is not the
   # default here. i.e., if [["$target" == 'remote' ]]; ...
   if [[ "$target" == 3 || "$target" == 'remote' ]]; then
-    . "$REMOTE_KW_DEPLOY/bootloader_utils.sh" --source-only
+    . "${REMOTE_KW_DEPLOY}/bootloader_utils.sh" --source-only
   fi
 
   bootloader=$(identify_bootloader_from_files "$prefix" "$target")
-  bootloader="[bootloader]=$bootloader"
+  bootloader="[bootloader]=${bootloader}"
 
   # Get distro
   distro=$(cat /etc/*-release | grep --word-regexp 'ID\(_LIKE\)\?' | cut --delimiter = --fields 2 | xargs printf '%s ')
   distro="${distro::-1}"
-  distro="[distro]='$distro'"
+  distro="[distro]='${distro}'"
 
   # Build associative array data
-  printf '%s' "$bootloader $distro"
+  printf '%s' "${bootloader} ${distro}"
 }
 
 # This function is responsible for running a basic setup for the target machine
@@ -375,7 +375,7 @@ function reboot_machine()
   [[ "$local" == 'local' ]] && sudo_cmd='sudo -E '
 
   if [[ "$reboot" == '1' ]]; then
-    cmd="$sudo_cmd"'reboot'
+    cmd="${sudo_cmd}"'reboot'
     cmd_manager "$flag" "$cmd"
   fi
 }
@@ -494,12 +494,12 @@ function update_bootloader()
   [[ -z "$prefix" ]] && prefix='/'
 
   if [[ "$target" != 'remote' || "$flag" == 'TEST_MODE' ]]; then
-    bootloader_path_prefix="$KW_PLUGINS_DIR/kernel_install/"
+    bootloader_path_prefix="${KW_PLUGINS_DIR}/kernel_install/"
   fi
 
   deploy_data_string=$(collect_deploy_info "$flag" "$target" "$prefix")
 
-  declare -A deploy_data="($deploy_data_string)"
+  declare -A deploy_data="(${deploy_data_string})"
 
   case "${deploy_data['bootloader']}" in
     GRUB)
@@ -520,7 +520,7 @@ function update_bootloader()
   if [[ "$generate_initram" == 1 ]]; then
     # For example, Debian uses update-initramfs, Arch uses mkinitcpio, etc
     cmd="generate_${distro}_temporary_root_file_system"
-    cmd+=" $flag $name $target ${deploy_data['bootloader']} $path_prefix $root_file_system"
+    cmd+=" ${flag} ${name} ${target} ${deploy_data['bootloader']} ${path_prefix} ${root_file_system}"
 
     cmd_manager "$flag" "$cmd"
     ret="$?"
@@ -575,7 +575,7 @@ function do_uninstall()
     exit 22 # EINVAL
   fi
 
-  to_remove_from_boot=$(find "${prefix}/boot/" -name "*$kernel_name*" | sort)
+  to_remove_from_boot=$(find "${prefix}/boot/" -name "*${kernel_name}*" | sort)
   # shellcheck disable=SC2068
   for element in ${to_remove_from_boot[@]}; do
     if [[ -f "$element" ]]; then
@@ -596,7 +596,7 @@ function do_uninstall()
   done
 
   if [[ -d "$modules_lib_path" && "$modules_lib_path" != '/lib/modules' ]]; then
-    printf ' %s\n' "Removing: $modules_lib_path"
+    printf ' %s\n' "Removing: ${modules_lib_path}"
     cmd_manager "$flag" "${sudo_cmd}rm -rf ${modules_lib_path}"
   else
     printf ' %s\n' "Can't find ${modules_lib_path}"
@@ -666,8 +666,8 @@ function kernel_uninstall()
   # TODO: Drop me in the future
   migrate_old_kernel_list
 
-  cmd_manager "$flag" "sudo mkdir -p $REMOTE_KW_DEPLOY"
-  cmd_manager "$flag" "sudo touch '$INSTALLED_KERNELS_PATH'"
+  cmd_manager "$flag" "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+  cmd_manager "$flag" "sudo touch '${INSTALLED_KERNELS_PATH}'"
 
   process_installed_kernels 1 "$prefix" 'all_installed_kernels'
   process_installed_kernels '' "$prefix" 'kw_managed_kernels'
@@ -692,11 +692,11 @@ function kernel_uninstall()
       continue # EINVAL
     fi
 
-    printf '%s\n' "Removing: $kernel"
+    printf '%s\n' "Removing: ${kernel}"
     do_uninstall "$target" "$kernel" "$prefix" "$flag"
 
     # Clean from the log
-    cmd_manager "$flag" "sudo sed -i '/$kernel/d' '$INSTALLED_KERNELS_PATH'"
+    cmd_manager "$flag" "sudo sed -i '/${kernel}/d' '${INSTALLED_KERNELS_PATH}'"
     ((update_grub++))
   done
 
@@ -783,22 +783,23 @@ function install_kernel()
   migrate_old_kernel_list
 
   if [[ ! -f "$INSTALLED_KERNELS_PATH" ]]; then
-    cmd_manager "$flag" "touch $INSTALLED_KERNELS_PATH"
+    cmd_manager "$flag" "touch ${INSTALLED_KERNELS_PATH}"
   fi
 
   # See shellcheck warning SC2024: sudo doesn't affect redirects. That
   # is why we use tee. Also note that the stdin is passed to the eval
   # inside cmd_manager.
+# TODO
   cmd="${sudo_cmd}grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
   cmd_manager "$flag" "$cmd"
   if [[ "$?" != 0 ]]; then
-    cmd="$sudo_cmd tee -a '$INSTALLED_KERNELS_PATH' > /dev/null"
+    cmd="${sudo_cmd} tee -a '${INSTALLED_KERNELS_PATH}' > /dev/null"
     printf '%s\n' "$name" | cmd_manager "$flag" "$cmd"
   fi
 
   # Reboot
   if [[ "$reboot" == '1' ]]; then
-    cmd="$sudo_cmd reboot"
+    cmd="${sudo_cmd} reboot"
     reboot_machine "$reboot" "$target" "$flag"
   fi
 }

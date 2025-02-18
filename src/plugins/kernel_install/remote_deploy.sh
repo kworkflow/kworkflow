@@ -20,7 +20,7 @@
 # Global variable
 declare -g REMOTE_KW_DEPLOY='/opt/kw'
 declare -g KW_DEPLOY_TMP_FILE='/tmp/kw'
-declare -g INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+declare -g INSTALLED_KERNELS_PATH="${REMOTE_KW_DEPLOY}/INSTALLED_KERNELS"
 
 # Processing input data
 action=''
@@ -43,7 +43,7 @@ while true; do
   case "$1" in
     --kw-path)
       REMOTE_KW_DEPLOY="$2"
-      INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+      INSTALLED_KERNELS_PATH="${REMOTE_KW_DEPLOY}/INSTALLED_KERNELS"
       shift 2
       ;;
     --kw-tmp-files)

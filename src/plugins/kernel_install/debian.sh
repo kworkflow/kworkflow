@@ -44,10 +44,10 @@ function generate_debian_temporary_root_file_system()
   # We do not support initramfs outside grub scope
   [[ "$bootloader_type" != 'GRUB' && "$bootloader_type" != 'RPI_BOOTLOADER' ]] && return
 
-  cmd+=" $name"
+  cmd+=" ${name}"
 
   if [[ "$target" == 'local' ]]; then
-    cmd="sudo -E $cmd"
+    cmd="sudo -E ${cmd}"
   fi
 
   # Update initramfs

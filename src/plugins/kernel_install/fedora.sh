@@ -46,14 +46,14 @@ function generate_fedora_temporary_root_file_system()
   # We do not support initramfs outside grub scope
   [[ "$bootloader_type" != 'GRUB' ]] && return
 
-  cmd+=" $name"
+  cmd+=" ${name}"
 
   if [[ "$target" == 'local' ]]; then
     cmd_prefix="sudo -E"
   fi
 
-  cmd_manager "$flag" "$cmd_prefix grub2-editenv - unset menu_auto_hide"
-  cmd_manager "$flag" "$cmd_prefix sed -i -e '$grub_regex' /etc/default/grub"
+  cmd_manager "$flag" "${cmd_prefix} grub2-editenv - unset menu_auto_hide"
+  cmd_manager "$flag" "${cmd_prefix} sed -i -e '${grub_regex}' /etc/default/grub"
 
   # Update initramfs
   cmd_manager "$flag" "$cmd_prefix $cmd"
