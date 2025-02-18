@@ -879,7 +879,7 @@ function prepare_remote_list_of_files()
 {
   local distro="$1"
 
-  printf '{remote_deploy.sh,utils.sh,%s.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh}' "$distro"
+  printf '*'
 }
 
 function test_prepare_remote_dir()
