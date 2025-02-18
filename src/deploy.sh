@@ -515,14 +515,17 @@ function prepare_host_deploy_dir()
 # To deploy a new kernel or module, we have to prepare a directory in the
 # remote machine that will accommodate a set of files that we need to update
 # the kernel. This function checks if we support the target distribution and
-# finally prepared the remote machine for receiving the new kernel. Finally, it
-# creates a "/root/kw_deploy" directory inside the remote machine and prepare
+# prepared the remote machine for receiving the new kernel. Finally, it creates
+# a directory inside the remote machine (check "$REMOTE_KW_DEPLOY") and prepare
 # it for deploy.
 #
-# @remote IP address of the target machine
-# @port Destination for sending the file
-# @user User in the host machine. Default value is "root"
-# @flag How to display a command, default is SILENT
+# @remote: IP address of the target machine (default from config file)
+# @port: Destination for sending the file (default from config file)
+# @user: User in the host machine. Default value is "root" (default from config file)
+# @first_deploy: Force the use of scp instead of rsync. This is useful for the
+#                first deploy since the target machine does not have any kw
+#                file yet.
+# @flag: How to display a command, default is SILENT
 function prepare_remote_dir()
 {
   local remote="${1:-${remote_parameters['REMOTE_IP']}}"
@@ -531,39 +534,36 @@ function prepare_remote_dir()
   local first_deploy="$4"
   local flag="$5"
   local kw_deploy_cmd="mkdir --parents ${REMOTE_KW_DEPLOY}"
-  local distro_info=''
+  local files_to_send=''
   local distro=''
-  local remote_deploy_path="${KW_PLUGINS_DIR}/kernel_install/remote_deploy.sh"
-  local util_path="${KW_PLUGINS_DIR}/kernel_install/utils.sh"
-  local target_deploy_path="${KW_PLUGINS_DIR}/kernel_install/"
-  local files_to_send
+  local remote_file=${remote_parameters['REMOTE_FILE']}
+  local remote_file_host=${remote_parameters['REMOTE_FILE_HOST']}
+  local cmd
 
   flag=${flag:-'SILENT'}
 
-  distro_info=$(which_distro "$remote" "$port" "$user")
-  distro=$(detect_distro '/' "$distro_info")
-
+  distro=$(which_distro "$remote" "$port" "$user" "$flag")
   if [[ "$distro" =~ 'none' ]]; then
-    complain "Unfortunately, there's no support for '${distro_info}'"
+    complain "Unfortunately, there's no support for '${distro}'"
     exit 95 # ENOTSUP
   fi
 
-  target_deploy_path=$(join_path "$target_deploy_path" "${distro}.sh")
   files_to_send="${KW_PLUGINS_DIR}/kernel_install/*"
 
   # Send required scripts for running the deploy inside the target machine
-  # Note: --archive will force the creation of /root/kw_deploy in case it does
-  # not exits
+  # Note: --archive will force the creation of $REMOTE_KW_DEPLOY in case it
+  # does not exits
   if [[ -z "$first_deploy" ]]; then
-    cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" \
-      '--archive' "$remote" "$port" "$user" 'quiet'
+    cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" '--archive' "$remote" "$port" "$user" 'quiet'
   else
+    # First deploy should use ssh since rsync might not be available
     say '* Sending kw to the remote'
     cmd_remotely "$flag" "mkdir --parents ${REMOTE_KW_DEPLOY}"
-    if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
-      cmd="scp -q -F ${remote_parameters['REMOTE_FILE']} ${files_to_send} ${remote_parameters['REMOTE_FILE_HOST']}:${REMOTE_KW_DEPLOY}"
+
+    if [[ -n "$remote_file" && -n "$remote_file_host" ]]; then
+      cmd="scp -q -F ${remote_file} ${files_to_send} ${remote_file_host}:${REMOTE_KW_DEPLOY}"
     else
-      cmd="scp -q ${files_to_send} ${remote_parameters['REMOTE_USER']}@${remote_parameters['REMOTE_IP']}:${REMOTE_KW_DEPLOY}"
+      cmd="scp -q ${files_to_send} ${user}@${remote}:${REMOTE_KW_DEPLOY}"
     fi
 
     cmd_manager "$flag" "$cmd"
