@@ -507,9 +507,9 @@ function prepare_host_deploy_dir()
   fi
 
   # In case we need to create some of the basic directories
-  mkdir -p "$KW_CACHE_DIR"
-  mkdir -p "${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}"
-  mkdir -p "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
+  mkdir --parents "$KW_CACHE_DIR"
+  mkdir --parents "${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}"
+  mkdir --parents "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
 }
 
 # To deploy a new kernel or module, we have to prepare a directory in the
@@ -530,7 +530,7 @@ function prepare_remote_dir()
   local user="${3:-${remote_parameters['REMOTE_USER']}}"
   local first_deploy="$4"
   local flag="$5"
-  local kw_deploy_cmd="mkdir -p ${REMOTE_KW_DEPLOY}"
+  local kw_deploy_cmd="mkdir --parents ${REMOTE_KW_DEPLOY}"
   local distro_info=''
   local distro=''
   local remote_deploy_path="${KW_PLUGINS_DIR}/kernel_install/remote_deploy.sh"
@@ -559,7 +559,7 @@ function prepare_remote_dir()
       '--archive' "$remote" "$port" "$user" 'quiet'
   else
     say '* Sending kw to the remote'
-    cmd_remotely "$flag" "mkdir -p ${REMOTE_KW_DEPLOY}"
+    cmd_remotely "$flag" "mkdir --parents ${REMOTE_KW_DEPLOY}"
     if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
       cmd="scp -q -F ${remote_parameters['REMOTE_FILE']} ${files_to_send} ${remote_parameters['REMOTE_FILE_HOST']}:${REMOTE_KW_DEPLOY}"
     else
@@ -572,7 +572,7 @@ function prepare_remote_dir()
   # Removes temporary directory if already existent
   cmd_remotely "$flag" "rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}"
   # Create temporary folder
-  cmd_remotely "$flag" "mkdir -p $KW_DEPLOY_TMP_FILE"
+  cmd_remotely "$flag" "mkdir --parents ${KW_DEPLOY_TMP_FILE}"
 }
 
 # Create the temporary folder for local deploy.
@@ -803,11 +803,11 @@ function cleanup()
   fi
 
   if [[ -d "${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}" ]]; then
-    cmd_manager "$flag" "rm -rf ${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}/"*
+    cmd_manager "$flag" "rm --recursive --force ${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}/"*
   fi
 
   if [[ -d "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}" ]]; then
-    cmd_manager "$flag" "rm -rf ${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}/"*
+    cmd_manager "$flag" "rm --recursive --force ${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}/"*
   fi
 
   say 'Exiting...'
@@ -1108,7 +1108,7 @@ function get_dts_and_dtb_files_for_deploy()
     cmd_manager "$flag" "cp ${copy_pattern} ${base_kw_deploy_store_path}/"
 
     if [[ -d "${dts_base_path}/overlays" ]]; then
-      cmd_manager "$flag" "mkdir -p ${base_kw_deploy_store_path}/overlays"
+      cmd_manager "$flag" "mkdir --parents ${base_kw_deploy_store_path}/overlays"
       cmd_manager "$flag" "cp ${dts_base_path}/overlays/*.dtbo ${base_kw_deploy_store_path}/overlays"
     fi
   fi
@@ -1198,12 +1198,12 @@ function build_kw_kernel_package()
   # Ensure that we will not add anything else in the package
   if [[ -n "${KW_CACHE_DIR}" && -n "${LOCAL_TO_DEPLOY_DIR}" &&
     -x "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}" ]]; then
-    rm -rf "${cache_to_deploy_path:?}/*"
+    rm --recursive --force "${cache_to_deploy_path:?}/*"
   fi
 
   # Centralizing kernel files in a single place
-  mkdir -p "$cache_base_kw_pkg_store_path"
-  mkdir -p "$cache_kw_pkg_modules_path"
+  mkdir --parents "$cache_base_kw_pkg_store_path"
+  mkdir --parents "$cache_kw_pkg_modules_path"
 
   # 1. Prepare modules
   modules_install_to "${cache_kw_pkg_modules_path}" "$flag"

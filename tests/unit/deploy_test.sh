@@ -697,8 +697,8 @@ function test_kernel_uninstall()
 function test_cleanup()
 {
   local output=''
-  local cmd_remote="rm -rf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
-  local cmd_to_deploy="rm -rf $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/*"
+  local cmd_remote="rm --recursive --force $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
+  local cmd_to_deploy="rm --recursive --force $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/*"
 
   declare -a expected_cmd=(
     'Cleaning up temporary files...'
@@ -898,7 +898,7 @@ function test_prepare_remote_dir()
   declare -a expected_cmd=(
     "$debian_sync_files_cmd"
     "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}\""
-    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir --parents $KW_DEPLOY_TMP_FILE\""
   )
 
   output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
@@ -911,7 +911,7 @@ function test_prepare_remote_dir()
   declare -a expected_cmd=(
     "$arch_sync_files_cmd"
     "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}\""
-    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir --parents $KW_DEPLOY_TMP_FILE\""
     "$CONFIG_RSYNC $KW_ETC_DIR/template_mkinitcpio.preset $CONFIG_REMOTE:$REMOTE_KW_DEPLOY $STD_RSYNC_FLAG"
   )
 
@@ -927,10 +927,10 @@ function test_prepare_remote_dir()
 
   declare -a expected_cmd=(
     "$UPDATE_KW_REMOTE_MSG"
-    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $REMOTE_KW_DEPLOY\""
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir --parents $REMOTE_KW_DEPLOY\""
     "scp -q $scripts_path/$to_copy $CONFIG_REMOTE:$REMOTE_KW_DEPLOY"
     "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}\""
-    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir -p $KW_DEPLOY_TMP_FILE\""
+    "$CONFIG_SSH $CONFIG_REMOTE sudo \"mkdir --parents $KW_DEPLOY_TMP_FILE\""
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
