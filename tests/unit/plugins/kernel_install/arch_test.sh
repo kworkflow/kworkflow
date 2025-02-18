@@ -18,7 +18,7 @@ function setUp()
   cp "tests/unit/samples/mkinitcpio_output/mkinitcpio_log_only_warnings" "$SHUNIT_TMPDIR"
 
   cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 }
@@ -26,7 +26,7 @@ function setUp()
 function tearDown()
 {
   cd "$ORIGINAL_PATH" || {
-    fail "($LINENO) It was not possible to move to the kw folder"
+    fail "(${LINENO}) It was not possible to move to the kw folder"
     return
   }
   rm -rf "$SHUNIT_TMPDIR"
@@ -57,7 +57,7 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
     {
       return 0
     }
-    generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'local' 'GRUB'
+    generate_arch_temporary_root_file_system 'TEST_MODE' "${name}" 'local' 'GRUB'
   )"
   ret="$?"
 
@@ -79,7 +79,7 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio_fail
     {
       return 0
     }
-    generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'local' 'GRUB'
+    generate_arch_temporary_root_file_system 'TEST_MODE' "${name}" 'local' 'GRUB'
   )"
   ret="$?"
 
@@ -105,7 +105,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_mkinitcpio()
     {
       return 0
     }
-    generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'remote' 'GRUB'
+    generate_arch_temporary_root_file_system 'TEST_MODE' "${name}" 'remote' 'GRUB'
   )"
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
@@ -154,13 +154,13 @@ function test_generate_arch_temporary_root_file_system_remote_and_not_supported(
   output="$(
     function command_exists()
     {
-      [[ "$1" == 'mkinitcpio' ]] && return 1
-      [[ "$1" == 'dracut' ]] && return 1
+      [[ "${1}" == 'mkinitcpio' ]] && return 1
+      [[ "${1}" == 'dracut' ]] && return 1
     }
-    generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'remote' 'GRUB'
+    generate_arch_temporary_root_file_system 'TEST_MODE' "${name}" 'remote' 'GRUB'
   )"
 
-  assertEquals "($LINENO)" 22 "$?"
+  assertEquals "(${LINENO})" 22 "$?"
 }
 
 function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs()
@@ -173,7 +173,7 @@ function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs(
 
   # Remote
   declare -a cmd_sequence=(
-    "depmod --all $name"
+    "depmod --all ${name}"
     "DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid --hostonly /boot/initramfs-${name}.img ${name}"
   )
 
@@ -205,10 +205,10 @@ function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs_
     {
       return 1
     }
-    generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'remote' 'GRUB' '' 'xpto'
+    generate_arch_temporary_root_file_system 'TEST_MODE' "${name}" 'remote' 'GRUB' '' 'xpto'
   )"
 
-  assert_equals_helper "Expected error message" "($LINENO)" "$expected_output" "$output"
+  assert_equals_helper "Expected error message" "(${LINENO})" "$expected_output" "$output"
 }
 
 function test_process_mkinitcpio_message_check_errors_return()

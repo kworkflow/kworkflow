@@ -34,8 +34,8 @@ function oneTimeSetUp()
 
   . ./src/plugins/kernel_install/utils.sh --source-only
 
-  REMOTE_KW_DEPLOY="$PWD/tests/unit/samples"
-  INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
+  REMOTE_KW_DEPLOY="${PWD}/tests/unit/samples"
+  INSTALLED_KERNELS_PATH="${REMOTE_KW_DEPLOY}/INSTALLED_KERNELS"
 }
 
 function oneTimeTearDown()
@@ -55,14 +55,14 @@ function setUp()
   printf '\n%s' '5.6.0-rc2-AMDGPU+' >> "$INSTALLED_KERNELS_PATH"
 
   # Replace KW_DEPLOY_TMP_FILE
-  test_tmp_file="$SHUNIT_TMPDIR/tmp/kw"
-  REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR/opt/kw"
+  test_tmp_file="${SHUNIT_TMPDIR}/tmp/kw"
+  REMOTE_KW_DEPLOY="${SHUNIT_TMPDIR}/opt/kw"
   KW_DEPLOY_TMP_FILE="$test_tmp_file"
   mkdir --parents "$test_tmp_file"
 
   # Mock variables
-  KW_PLUGINS_DIR="$PWD/src/plugins"
-  REMOTE_KW_DEPLOY="$KW_PLUGINS_DIR/kernel_install"
+  KW_PLUGINS_DIR="${PWD}/src/plugins"
+  REMOTE_KW_DEPLOY="${KW_PLUGINS_DIR}/kernel_install"
 }
 
 function tearDown()
@@ -137,7 +137,7 @@ function test_human_list_installed_kernels()
     {
       return 0
     }
-    list_installed_kernels 'TEST_MODE' '0' '' "$SHUNIT_TMPDIR"
+    list_installed_kernels 'TEST_MODE' '0' '' "${SHUNIT_TMPDIR}"
   )"
 
   compare_command_sequence '' "$LINENO" 'expected_out' "$output"
@@ -159,7 +159,7 @@ function test_command_list_installed_kernels()
     {
       return 0
     }
-    list_installed_kernels 'TEST_MODE' '1' '' "$SHUNIT_TMPDIR"
+    list_installed_kernels 'TEST_MODE' '1' '' "${SHUNIT_TMPDIR}"
   )"
 
   compare_command_sequence '' "$LINENO" 'expected_out' "$output"
@@ -183,7 +183,7 @@ function test_list_unmanaged_kernels()
     {
       return 0
     }
-    list_installed_kernels 'TEST_MODE' '1' '1' "$SHUNIT_TMPDIR"
+    list_installed_kernels 'TEST_MODE' '1' '1' "${SHUNIT_TMPDIR}"
   )"
   compare_command_sequence '' "$LINENO" 'expected' "$output"
 }
@@ -268,7 +268,7 @@ function test_process_installed_kernels()
 function test_kernel_uninstall_regex_one_kernel()
 {
   local kernel_name='5.5.0-rc2-VKMS+'
-  local mkinitcpio_d_path_1="etc/mkinitcpio.d/$kernel_name.preset"
+  local mkinitcpio_d_path_1="etc/mkinitcpio.d/${kernel_name}.preset"
   local grub_cfg_path="${TARGET_PATH}/boot/grub/grub.cfg"
   local output
   local boot_files
@@ -305,7 +305,7 @@ function test_kernel_uninstall_regex_one_kernel()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
+    fail "(${LINENO}) It was not possible to move back from temp directory"
     return
   }
 }
@@ -322,7 +322,7 @@ function test_kernel_uninstall_regex_two_kernels()
 
   cd "$SHUNIT_TMPDIR" || {
 
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 
@@ -344,7 +344,7 @@ function test_kernel_uninstall_regex_two_kernels()
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name_1}"
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name_1}"
-  cmd_sequence["$((index++))"]="sudo sed -i '/${kernel_name_1}/d' '$INSTALLED_KERNELS_PATH'"
+  cmd_sequence["$((index++))"]="sudo sed -i '/${kernel_name_1}/d' '${INSTALLED_KERNELS_PATH}'"
   cmd_sequence["$((index++))"]="Removing: ${kernel_name_2}"
 
   boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name_2}*" | sort)
@@ -371,7 +371,7 @@ function test_kernel_uninstall_regex_two_kernels()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
+    fail "(${LINENO}) It was not possible to move back from temp directory"
     return
   }
 }
@@ -457,13 +457,13 @@ function test_remove_managed_kernel_local()
   local target='xpto'
   local prefix="./test"
   local kernel_name='5.5.0-rc2-VKMS+'
-  local kernel_boot_img_path="/boot/vmlinuz-$target"
-  local initrd_boot_path="/boot/initrd.img-$target"
-  local modules_lib_path="/lib/modules/$target"
-  local initramfs_tools_var_path="/var/lib/initramfs-tools/$target"
-  local initramfs_boot_img_path="/boot/initramfs-$kernel_name.img"
-  local initramfs_fallback_boot_img_path="/boot/initramfs-$kernel_name-fallback.img"
-  local mkinitcpio_d_path="etc/mkinitcpio.d/$kernel_name.preset"
+  local kernel_boot_img_path="/boot/vmlinuz-${target}"
+  local initrd_boot_path="/boot/initrd.img-${target}"
+  local modules_lib_path="/lib/modules/${target}"
+  local initramfs_tools_var_path="/var/lib/initramfs-tools/${target}"
+  local initramfs_boot_img_path="/boot/initramfs-${kernel_name}.img"
+  local initramfs_fallback_boot_img_path="/boot/initramfs-${kernel_name}-fallback.img"
+  local mkinitcpio_d_path="etc/mkinitcpio.d/${kernel_name}.preset"
   local output
   local boot_files
   local index
@@ -478,18 +478,18 @@ function test_remove_managed_kernel_local()
 
   # Composing command sequence list
   local -a cmd_sequence=(
-    "sudo mkdir --parents $REMOTE_KW_DEPLOY"
-    "sudo touch '$INSTALLED_KERNELS_PATH'"
-    "Removing: $kernel_name"
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "Removing: ${kernel_name}"
   )
 
   index=${#cmd_sequence[@]}
 
   local -a cmd_last_part=(
-    "Can't find ${TARGET_PATH}//$mkinitcpio_d_path"
-    "Can't find ${TARGET_PATH}//var/lib/initramfs-tools/$kernel_name"
-    "Can't find ${TARGET_PATH}//lib/modules/$kernel_name"
-    "sudo sed -i '/$kernel_name/d' '$INSTALLED_KERNELS_PATH'"
+    "Can't find ${TARGET_PATH}//${mkinitcpio_d_path}"
+    "Can't find ${TARGET_PATH}//var/lib/initramfs-tools/${kernel_name}"
+    "Can't find ${TARGET_PATH}//lib/modules/${kernel_name}"
+    "sudo sed -i '/${kernel_name}/d' '${INSTALLED_KERNELS_PATH}'"
     'run_bootloader_update_mock'
   )
 
@@ -497,9 +497,9 @@ function test_remove_managed_kernel_local()
 
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
-    cmd_sequence["$index"]="Removing: $file"
+    cmd_sequence["$index"]="Removing: ${file}"
     ((index++))
-    cmd_sequence["$index"]="sudo --preserve-env rm $file"
+    cmd_sequence["$index"]="sudo --preserve-env rm ${file}"
     ((index++))
   done
 
@@ -509,7 +509,7 @@ function test_remove_managed_kernel_local()
   done
 
   # Check
-  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' 1 "$SHUNIT_TMPDIR/")
+  output=$(kernel_uninstall 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' 1 "${SHUNIT_TMPDIR}/")
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
@@ -523,9 +523,9 @@ function test_do_uninstall_invalid_path_cmd_sequence()
   local output
 
   declare -a cmd_sequence=(
-    "Can't find $mkinitcpio_d_path"
-    "Can't find $initramfs_tools_var_path"
-    "Can't find $modules_lib_path"
+    "Can't find ${mkinitcpio_d_path}"
+    "Can't find ${initramfs_tools_var_path}"
+    "Can't find ${modules_lib_path}"
   )
 
   output=$(do_uninstall 'remote' "$kernel_name" "$prefix" 'TEST_MODE')
@@ -545,7 +545,7 @@ function test_do_uninstall_valid_path_cmd_sequence()
 
   # TEST 2: Valid paths
   cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 
@@ -563,12 +563,12 @@ function test_do_uninstall_valid_path_cmd_sequence()
   done
 
   declare -a cmd_sequence_last_part=(
-    "Removing: $mkinitcpio_d_path"
-    "rm $mkinitcpio_d_path"
-    "Removing: $initramfs_tools_var_path"
-    "rm $initramfs_tools_var_path"
-    "Removing: $modules_lib_path"
-    "rm --recursive --force $modules_lib_path"
+    "Removing: ${mkinitcpio_d_path}"
+    "rm ${mkinitcpio_d_path}"
+    "Removing: ${initramfs_tools_var_path}"
+    "rm ${initramfs_tools_var_path}"
+    "Removing: ${modules_lib_path}"
+    "rm --recursive --force ${modules_lib_path}"
   )
 
   for cmd in "${cmd_sequence_last_part[@]}"; do
@@ -580,7 +580,7 @@ function test_do_uninstall_valid_path_cmd_sequence()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
+    fail "(${LINENO}) It was not possible to move back from temp directory"
     return
   }
 }
@@ -612,11 +612,11 @@ function test_do_uninstall_partial_cmd_sequence()
   done
 
   declare -a cmd_sequence_last_part=(
-    "Removing: $mkinitcpio_d_path"
-    "rm $mkinitcpio_d_path"
-    "Removing: $initramfs_tools_var_path"
-    "rm $initramfs_tools_var_path"
-    "Can't find $modules_lib_path"
+    "Removing: ${mkinitcpio_d_path}"
+    "rm ${mkinitcpio_d_path}"
+    "Removing: ${initramfs_tools_var_path}"
+    "rm ${initramfs_tools_var_path}"
+    "Can't find ${modules_lib_path}"
   )
 
   for cmd in "${cmd_sequence_last_part[@]}"; do
@@ -628,7 +628,7 @@ function test_do_uninstall_partial_cmd_sequence()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move back from temp directory"
+    fail "(${LINENO}) It was not possible to move back from temp directory"
     return
   }
 }
@@ -644,7 +644,7 @@ function test_install_modules()
   assert_equals_helper 'We did not find required files' "$LINENO" 2 "$?"
 
   cd "$test_tmp_file" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 
@@ -655,11 +655,11 @@ function test_install_modules()
 
   install_modules 'remote'
 
-  assertTrue "($LINENO): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_1" ]]'
-  assertTrue "($LINENO): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_2" ]]'
+  assertTrue "(${LINENO}): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_1" ]]'
+  assertTrue "(${LINENO}): Expected kw_pkg" '[[ -f "${LIB_MODULES_PATH}/something_2" ]]'
 
   cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 
@@ -682,7 +682,7 @@ function test_install_kernel_remote()
   assert_equals_helper 'Test invalid name' "$LINENO" 2 "$ret"
 
   cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 
@@ -735,7 +735,7 @@ function test_install_kernel_remote()
   compare_command_sequence '' "$LINENO" 'cmd_sequence2' "$output"
 
   cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 }
@@ -753,7 +753,7 @@ function test_install_kernel_local()
   local output
 
   cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 
@@ -784,7 +784,7 @@ function test_install_kernel_local()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 }
@@ -807,7 +807,7 @@ function test_distro_deploy_setup()
   )
   output=$(distro_deploy_setup 'TEST_MODE')
 
-  expected_cmd="$package_manager_cmd ${required_packages[*]} "
+  expected_cmd="${package_manager_cmd} ${required_packages[*]} "
 
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
 }
@@ -974,7 +974,7 @@ function test_make_root_partition_writable()
 function test_uncompress_kw_package()
 {
   cd "$SHUNIT_TMPDIR" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 
@@ -982,10 +982,10 @@ function test_uncompress_kw_package()
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
 
   uncompress_kw_package
-  assertTrue "($LINENO): Expected kw_pkg" '[[ -d "${KW_DEPLOY_TMP_FILE}/kw_pkg" ]]'
+  assertTrue "(${LINENO}): Expected kw_pkg" '[[ -d "${KW_DEPLOY_TMP_FILE}/kw_pkg" ]]'
 
   cd "$TEST_ROOT_PATH" || {
-    fail "($LINENO) It was not possible to move to temporary directory"
+    fail "(${LINENO}) It was not possible to move to temporary directory"
     return
   }
 }
@@ -993,7 +993,7 @@ function test_uncompress_kw_package()
 function test_uncompress_kw_package_check_invalid_path()
 {
   uncompress_kw_package '/somethig/xpto/abc/kw.pkg.tar'
-  assert_equals_helper 'Invalid path' "($LINENO)" 2 "$?"
+  assert_equals_helper 'Invalid path' "(${LINENO})" 2 "$?"
 }
 
 function test_parse_kw_package_metadata()
@@ -1010,21 +1010,21 @@ function test_parse_kw_package_metadata()
   arch=${kw_package_metadata['architecture']}
   kernel_image_name=${kw_package_metadata['kernel_binary_image_file']}
 
-  assert_equals_helper 'Wrong kernel name' "($LINENO)" 'test' "${kw_package_metadata['kernel_name']}"
-  assert_equals_helper 'Wrong architecture' "($LINENO)" 'x86_64' "${kw_package_metadata['architecture']}"
-  assert_equals_helper 'Wrong binary image name' "($LINENO)" 'vmlinuz-test' "${kw_package_metadata['kernel_binary_image_file']}"
+  assert_equals_helper 'Wrong kernel name' "(${LINENO})" 'test' "${kw_package_metadata['kernel_name']}"
+  assert_equals_helper 'Wrong architecture' "(${LINENO})" 'x86_64' "${kw_package_metadata['architecture']}"
+  assert_equals_helper 'Wrong binary image name' "(${LINENO})" 'vmlinuz-test' "${kw_package_metadata['kernel_binary_image_file']}"
 }
 
 function test_parse_kw_package_metadata_invalid_path()
 {
   parse_kw_package_metadata '/an/invalid/folder'
-  assert_equals_helper 'Expected an error with invalid path' "($LINENO)" 22 "$?"
+  assert_equals_helper 'Expected an error with invalid path' "(${LINENO})" 22 "$?"
 }
 
 function test_parse_kw_package_metadata_no_pkg_info()
 {
   parse_kw_package_metadata ''
-  assert_equals_helper 'Expected an error due to the lack of info file' "($LINENO)" 22 "$?"
+  assert_equals_helper 'Expected an error due to the lack of info file' "(${LINENO})" 22 "$?"
 }
 
 invoke_shunit

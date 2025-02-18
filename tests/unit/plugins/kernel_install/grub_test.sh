@@ -31,7 +31,7 @@ function test_grub()
     local command="$1"
     local package=${command%% *}
 
-    if [[ $command == 'grub-mkconfig' ]]; then
+    if [[ "$command" == 'grub-mkconfig' ]]; then
       return 0
     fi
 
@@ -53,7 +53,7 @@ function test_grub()
     local command="$1"
     local package=${command%% *}
 
-    if [[ $command == 'grub2-mkconfig' ]]; then
+    if [[ "$command" == 'grub2-mkconfig' ]]; then
       return 0
     fi
 

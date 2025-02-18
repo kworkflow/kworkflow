@@ -73,13 +73,13 @@ function test_identify_bootloader_from_files()
   local output
 
   output=$(identify_bootloader_from_files "${SHUNIT_TMPDIR}/GRUB_FILES")
-  assertEquals "($LINENO): Expected Grub" 'GRUB' "$output"
+  assertEquals "(${LINENO}): Expected Grub" 'GRUB' "$output"
 
   output=$(identify_bootloader_from_files "${SHUNIT_TMPDIR}/SYSLINUX_FILES")
-  assertEquals "($LINENO): Expected Syslinux" 'SYSLINUX' "$output"
+  assertEquals "(${LINENO}): Expected Syslinux" 'SYSLINUX' "$output"
 
   output=$(identify_bootloader_from_files "${SHUNIT_TMPDIR}/RPI_FILES")
-  assertEquals "($LINENO): Expected Raspberry Pi" 'RPI_BOOTLOADER' "$output"
+  assertEquals "(${LINENO}): Expected Raspberry Pi" 'RPI_BOOTLOADER' "$output"
 }
 
 invoke_shunit

@@ -66,7 +66,7 @@ function test_remote_add_new_image()
 
   update_config_txt_file 'SILENT' 'remote' "$KERNEL_NAME" "$KERNEL_IMAGE_NAME"
   output=$(get_kernel_from_config)
-  assertEquals "($LINENO): " "kernel-$KERNEL_NAME.img" "$output"
+  assertEquals "(${LINENO}): " "kernel-${KERNEL_NAME}.img" "$output"
 }
 
 function test_remote_add_same_kernel_multiple_times()
@@ -76,7 +76,7 @@ function test_remote_add_same_kernel_multiple_times()
   update_config_txt_file 'SILENT' 'remote' "$KERNEL_NAME" "$KERNEL_IMAGE_NAME"
 
   output=$(get_kernel_from_config)
-  assertEquals "($LINENO): " "kernel-$KERNEL_NAME.img" "$output"
+  assertEquals "(${LINENO}): " "kernel-${KERNEL_NAME}.img" "$output"
 }
 
 function test_remote_add_two_different_kernels()
@@ -92,7 +92,7 @@ function test_remote_add_two_different_kernels()
   update_config_txt_file 'SILENT' 'remote' "${KERNEL_NAME}-42" "$kernel_image_name_2"
 
   output=$(get_kernel_from_config)
-  assertEquals "($LINENO): " "kernel-$KERNEL_NAME-42" "$output"
+  assertEquals "(${LINENO}): " "kernel-${KERNEL_NAME}-42" "$output"
 }
 
 function test_remote_other_files_with_similar_name()
@@ -103,10 +103,10 @@ function test_remote_other_files_with_similar_name()
 
   touch "${FAKE_FW_PATH}/${kernel_image_name}"
   touch "${FAKE_FW_PATH}/config-${kernel_name}-42"
-  update_config_txt_file 'SILENT' 'remote' "$kernel_name-42" "$kernel_image_name"
+  update_config_txt_file 'SILENT' 'remote' "${kernel_name}-42" "$kernel_image_name"
 
   output=$(get_kernel_from_config)
-  assertEquals "($LINENO): " "kernel-$kernel_name-42" "$output"
+  assertEquals "(${LINENO}): " "kernel-${kernel_name}-42" "$output"
 }
 
 function test_remote_add_the_same_kernel_twice()
@@ -121,14 +121,14 @@ function test_remote_add_the_same_kernel_twice()
   touch "${FAKE_FW_PATH}/kernel-${kernel_name}-41"
   touch "${FAKE_FW_PATH}/config-${kernel_name}-41"
 
-  update_config_txt_file 'SILENT' 'remote' "$kernel_name-42" "$kernel_image_name_1"
-  update_config_txt_file 'SILENT' 'remote' "$kernel_name-41" "$kernel_image_name_2"
-  update_config_txt_file 'SILENT' 'remote' "$kernel_name-42" "$kernel_image_name_1"
+  update_config_txt_file 'SILENT' 'remote' "${kernel_name}-42" "$kernel_image_name_1"
+  update_config_txt_file 'SILENT' 'remote' "${kernel_name}-41" "$kernel_image_name_2"
+  update_config_txt_file 'SILENT' 'remote' "${kernel_name}-42" "$kernel_image_name_1"
   output=$(get_kernel_from_config)
-  assertEquals "($LINENO): " "kernel-$kernel_name-42" "$output"
+  assertEquals "(${LINENO}): " "kernel-${kernel_name}-42" "$output"
 
   output=$(grep "#kernel=kernel-${kernel_name}-42" "${FAKE_RPI_PATH}")
-  assertEquals "($LINENO): " "" "$output"
+  assertEquals "(${LINENO}): " "" "$output"
 }
 
 function test_remote_remove_kernel()
@@ -138,7 +138,7 @@ function test_remote_remove_kernel()
   update_config_txt_file 'SILENT' 'remote' 'rpi-config' "$STD_KERNEL_NAME"
 
   output=$(get_kernel_from_config)
-  assertEquals "($LINENO): " '' "$output"
+  assertEquals "(${LINENO}): " '' "$output"
 }
 
 function test_remote_remove_kernel_check_around_kernel()
