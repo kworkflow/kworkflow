@@ -935,7 +935,7 @@ function test_prepare_remote_dir()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
   # Test 4: Unsupported distro
-  alias detect_distro='which_distro_none_mock'
+  alias which_distro='which_distro_none_mock'
 
   output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
   assert_equals_helper 'Wrong return value' "(${LINENO})" 95 "$?"
