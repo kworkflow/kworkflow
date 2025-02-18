@@ -28,17 +28,12 @@ include "${KW_LIB_DIR}/lib/signal_manager.sh"
 REMOTE_KW_DEPLOY='/opt/kw'
 KW_STATUS_BASE_PATH='/boot'
 KW_DEPLOY_TMP_FILE='/tmp/kw'
-REMOTE_INTERACE_CMD_PREFIX="bash $REMOTE_KW_DEPLOY/remote_deploy.sh --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/remote_deploy.sh --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
 LOCAL_TO_DEPLOY_DIR='to_deploy'
 LOCAL_REMOTE_DIR='remote'
-
-# We have a generic script named `distro_deploy.sh` that handles the essential
-# operation of installing a new kernel; it depends on "kernel_install" plugin
-# to work as expected
-DISTRO_DEPLOY_SCRIPT="$REMOTE_KW_DEPLOY/distro_deploy.sh"
 
 # Hash containing user options
 declare -gA options_values
@@ -344,8 +339,8 @@ function prepare_distro_for_deploy()
     2) # LOCAL_TARGET
       distro=$(detect_distro '/')
       # Distro must be loaded first to ensure the right variables
-      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/${distro}.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
 
       distro_deploy_setup "$flag" "${target}"
       ;;
@@ -495,8 +490,8 @@ function update_deploy_variables()
   REMOTE_KW_DEPLOY="${kw_remote_path:-$REMOTE_KW_DEPLOY}"
   KW_DEPLOY_TMP_FILE="${kw_tmp_files:-$KW_DEPLOY_TMP_FILE}"
 
-  REMOTE_INTERACE_CMD_PREFIX="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
-  REMOTE_INTERACE_CMD_PREFIX+=" --kw-path '$REMOTE_KW_DEPLOY' --kw-tmp-files '$KW_DEPLOY_TMP_FILE'"
+  REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/remote_deploy.sh"
+  REMOTE_INTERACE_CMD_PREFIX+=" --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
 }
 
 # Kw can deploy a new kernel image or modules (or both) in a target machine
@@ -506,15 +501,15 @@ function update_deploy_variables()
 function prepare_host_deploy_dir()
 {
   # If all the required paths already exist, let's not waste time
-  if [[ -d "$KW_CACHE_DIR" && -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" &&
-    -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
+  if [[ -d "$KW_CACHE_DIR" && -d "${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}" &&
+    -d "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}" ]]; then
     return
   fi
 
   # In case we need to create some of the basic directories
   mkdir -p "$KW_CACHE_DIR"
-  mkdir -p "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR"
-  mkdir -p "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR"
+  mkdir -p "${KW_CACHE_DIR}/${LOCAL_REMOTE_DIR}"
+  mkdir -p "${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}"
 }
 
 # To deploy a new kernel or module, we have to prepare a directory in the
@@ -535,12 +530,12 @@ function prepare_remote_dir()
   local user="${3:-${remote_parameters['REMOTE_USER']}}"
   local first_deploy="$4"
   local flag="$5"
-  local kw_deploy_cmd="mkdir -p $REMOTE_KW_DEPLOY"
+  local kw_deploy_cmd="mkdir -p ${REMOTE_KW_DEPLOY}"
   local distro_info=''
   local distro=''
-  local remote_deploy_path="$KW_PLUGINS_DIR/kernel_install/remote_deploy.sh"
-  local util_path="$KW_PLUGINS_DIR/kernel_install/utils.sh"
-  local target_deploy_path="$KW_PLUGINS_DIR/kernel_install/"
+  local remote_deploy_path="${KW_PLUGINS_DIR}/kernel_install/remote_deploy.sh"
+  local util_path="${KW_PLUGINS_DIR}/kernel_install/utils.sh"
+  local target_deploy_path="${KW_PLUGINS_DIR}/kernel_install/"
   local files_to_send
 
   flag=${flag:-'SILENT'}
@@ -549,12 +544,12 @@ function prepare_remote_dir()
   distro=$(detect_distro '/' "$distro_info")
 
   if [[ "$distro" =~ 'none' ]]; then
-    complain "Unfortunately, there's no support for '$distro_info'"
+    complain "Unfortunately, there's no support for '${distro_info}'"
     exit 95 # ENOTSUP
   fi
 
-  target_deploy_path=$(join_path "$target_deploy_path" "$distro.sh")
-  files_to_send="$KW_PLUGINS_DIR/kernel_install/{remote_deploy.sh,utils.sh,$distro.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh}"
+  target_deploy_path=$(join_path "$target_deploy_path" "${distro}.sh")
+  files_to_send="${KW_PLUGINS_DIR}/kernel_install/{remote_deploy.sh,utils.sh,${distro}.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh}"
 
   # Send required scripts for running the deploy inside the target machine
   # Note: --archive will force the creation of /root/kw_deploy in case it does
@@ -564,12 +559,11 @@ function prepare_remote_dir()
       '--archive' "$remote" "$port" "$user" 'quiet'
   else
     say '* Sending kw to the remote'
-    cmd_remotely "$flag" "mkdir -p $REMOTE_KW_DEPLOY"
-
+    cmd_remotely "$flag" "mkdir -p ${REMOTE_KW_DEPLOY}"
     if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
-      cmd="scp -q -F ${remote_parameters['REMOTE_FILE']} $files_to_send ${remote_parameters['REMOTE_FILE_HOST']}:$REMOTE_KW_DEPLOY"
+      cmd="scp -q -F ${remote_parameters['REMOTE_FILE']} ${files_to_send} ${remote_parameters['REMOTE_FILE_HOST']}:${REMOTE_KW_DEPLOY}"
     else
-      cmd="scp -q $files_to_send ${remote_parameters['REMOTE_USER']}@${remote_parameters['REMOTE_IP']}:$REMOTE_KW_DEPLOY"
+      cmd="scp -q ${files_to_send} ${remote_parameters['REMOTE_USER']}@${remote_parameters['REMOTE_IP']}:${REMOTE_KW_DEPLOY}"
     fi
 
     cmd_manager "$flag" "$cmd"
@@ -657,12 +651,12 @@ function run_list_installed_kernels()
 
   case "$target" in
     2) # LOCAL_TARGET
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       list_installed_kernels "$flag" "$single_line" "$all"
       ;;
     3) # REMOTE_TARGET
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --list-kernels $flag $single_line $all"
+      cmd+=" --list-kernels ${flag} ${single_line} ${all}"
 
       cmd_remotely "$flag" "$cmd"
       ;;
@@ -699,21 +693,21 @@ function collect_target_info_for_deploy()
 
   case "$target" in
     2) # LOCAL_TARGET
-      include "$KW_PLUGINS_DIR/kernel_install/bootloader_utils.sh"
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/bootloader_utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       data=$(collect_deploy_info "$flag" "$target")
       ;;
     3) # REMOTE_TARGET
       # Query bootload type
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --collect-info $flag $target"
+      cmd+=" --collect-info ${flag} ${target}"
 
       data=$(cmd_remotely "$flag" "$cmd")
       ;;
   esac
 
   # Populate associative array
-  declare -gA target_deploy_info="($data)"
+  declare -gA target_deploy_info="(${data})"
   distro=$(detect_distro '/' "${target_deploy_info['distro']}")
 
   if [[ "$distro" =~ 'none' ]]; then
@@ -760,8 +754,8 @@ function run_kernel_uninstall()
 
       # Local Deploy
       # We need to update grub, for this reason we to load specific scripts.
-      include "$KW_PLUGINS_DIR/kernel_install/$distro.sh"
-      include "$KW_PLUGINS_DIR/kernel_install/utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/${distro}.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       include "${KW_PLUGINS_DIR}/kernel_install/bootloader_utils.sh"
       # Let's ensure that we are using the right variables
       update_deploy_variables
@@ -780,7 +774,7 @@ function run_kernel_uninstall()
       # It would be better if `cmd_remotely` handle the extra space added by
       # line break with `\`; this may allow us to break a huge line like this.
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --uninstall-kernels '$reboot' 'remote' '$kernels_target_list' '$flag' '$force'"
+      cmd+=" --uninstall-kernels '${reboot}' 'remote' '${kernels_target_list}' '${flag}' '${force}'"
       cmd_remotely "$flag" "$cmd"
       ;;
   esac
@@ -853,7 +847,7 @@ function modules_install()
       say "* Sending kernel package (${release}) to the remote"
 
       # Execute script
-      cmd="$REMOTE_INTERACE_CMD_PREFIX --modules ${release}.kw.tar"
+      cmd="${REMOTE_INTERACE_CMD_PREFIX} --modules ${release}.kw.tar"
       cmd_remotely "$flag" "$cmd"
       ;;
   esac
@@ -1338,7 +1332,7 @@ function run_kernel_install()
       # Deploy
       cmd_parameters="${distro} ${reboot} 'remote' ${force} ${flag}"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --kernel-update $cmd_parameters"
+      cmd+=" --kernel-update ${cmd_parameters}"
 
       cmd_remotely "$flag" "$cmd" "$remote" "$port"
       human_install_kernel_message "$?"
@@ -1407,18 +1401,18 @@ function parse_deploy_options()
 
   populate_remote_info ''
   if [[ "$?" == 22 ]]; then
-    options_values['ERROR']="Invalid remote: $remote"
+    options_values['ERROR']="Invalid remote: ${remote}"
     return 22 # EINVAL
   fi
 
-  eval "set -- $options"
+  eval "set -- ${options}"
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
       --remote)
         populate_remote_info "$2"
         if [[ "$?" == 22 ]]; then
-          options_values['ERROR']="Invalid remote: $2"
+          options_values['ERROR']="Invalid remote: ${2}"
           return 22 # EINVAL
         fi
         options_values['TARGET']="$REMOTE_TARGET"
@@ -1513,7 +1507,7 @@ function parse_deploy_options()
 function deploy_help()
 {
   if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
+    include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'deploy'
     return
   fi
