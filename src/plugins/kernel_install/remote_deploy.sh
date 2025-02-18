@@ -28,7 +28,7 @@ options_string=''
 
 long_options='kw-path:,kw-tmp-files:,modules,kernel-update,uninstall-kernels,'
 long_options+='list-kernels,deploy-setup,collect-info'
-options="$(getopt -o '' --longoptions "$long_options" -- "$@")"
+options="$(getopt --options '' --longoptions "$long_options" -- "$@")"
 eval "set -- $options"
 
 # Tiny hack to extract actions parameters

@@ -39,12 +39,12 @@ function test_grub()
   }
 
   output=$(run_bootloader_update 'TEST_MODE' 'local')
-  expected_cmd='sudo -E grub-mkconfig -o /boot/grub/grub.cfg'
+  expected_cmd='sudo --preserve-env grub-mkconfig --output=/boot/grub/grub.cfg'
 
   assert_equals_helper 'Local update' "$LINENO" "$expected_cmd" "$output"
 
   output=$(run_bootloader_update 'TEST_MODE' 'remote')
-  expected_cmd='grub-mkconfig -o /boot/grub/grub.cfg'
+  expected_cmd='grub-mkconfig --output=/boot/grub/grub.cfg'
 
   assert_equals_helper 'Remote update' "$LINENO" "$expected_cmd" "$output"
 
@@ -61,12 +61,12 @@ function test_grub()
   }
 
   output=$(run_bootloader_update 'TEST_MODE' 'local')
-  expected_cmd='sudo -E grub2-mkconfig -o /boot/grub2/grub.cfg'
+  expected_cmd='sudo --preserve-env grub2-mkconfig --output=/boot/grub2/grub.cfg'
 
   assert_equals_helper 'Local update' "$LINENO" "$expected_cmd" "$output"
 
   output=$(run_bootloader_update 'TEST_MODE' 'remote')
-  expected_cmd='grub2-mkconfig -o /boot/grub2/grub.cfg'
+  expected_cmd='grub2-mkconfig --output=/boot/grub2/grub.cfg'
 
   assert_equals_helper 'Remote update' "$LINENO" "$expected_cmd" "$output"
 }

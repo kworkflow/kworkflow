@@ -20,7 +20,7 @@ function test_update_fedora_boot_loader()
 
   declare -a cmd_sequence=(
     'grub2-editenv - unset menu_auto_hide'
-    'sed -i -e '\'s/GRUB_ENABLE_BLSCFG=true/GRUB_ENABLE_BLSCFG=false/g\'' /etc/default/grub'
+    'sed --in-place --expression='\'s/GRUB_ENABLE_BLSCFG=true/GRUB_ENABLE_BLSCFG=false/g\'' /etc/default/grub'
     'dracut --force --kver xpto'
   )
 
@@ -28,9 +28,9 @@ function test_update_fedora_boot_loader()
   compare_command_sequence 'Check simple flow' "$LINENO" 'cmd_sequence' "$output"
 
   declare -a cmd_sequence=(
-    'sudo -E grub2-editenv - unset menu_auto_hide'
-    'sudo -E sed -i -e '\'s/GRUB_ENABLE_BLSCFG=true/GRUB_ENABLE_BLSCFG=false/g\'' /etc/default/grub'
-    'sudo -E dracut --force --kver xpto'
+    'sudo --preserve-env grub2-editenv - unset menu_auto_hide'
+    'sudo --preserve-env sed --in-place --expression='\'s/GRUB_ENABLE_BLSCFG=true/GRUB_ENABLE_BLSCFG=false/g\'' /etc/default/grub'
+    'sudo --preserve-env dracut --force --kver xpto'
   )
 
   output=$(generate_fedora_temporary_root_file_system 'TEST_MODE' 'xpto' 'local' 'GRUB')

@@ -22,7 +22,7 @@ function test_update_debian_boot_loader()
   assert_equals_helper 'Check simple flow' "$LINENO" "$cmd" "$output"
 
   output=$(generate_debian_temporary_root_file_system 'TEST_MODE' 'xpto' 'local' 'GRUB')
-  cmd='sudo -E update-initramfs -c -k xpto'
+  cmd='sudo --preserve-env update-initramfs -c -k xpto'
   assert_equals_helper 'Check local deploy' "$LINENO" "$cmd" "$output"
 }
 

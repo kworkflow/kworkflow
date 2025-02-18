@@ -49,11 +49,11 @@ function generate_fedora_temporary_root_file_system()
   cmd+=" ${name}"
 
   if [[ "$target" == 'local' ]]; then
-    cmd_prefix="sudo -E"
+    cmd_prefix="sudo --preserve-env"
   fi
 
   cmd_manager "$flag" "${cmd_prefix} grub2-editenv - unset menu_auto_hide"
-  cmd_manager "$flag" "${cmd_prefix} sed -i -e '${grub_regex}' /etc/default/grub"
+  cmd_manager "$flag" "${cmd_prefix} sed --in-place --expression='${grub_regex}' /etc/default/grub"
 
   # Update initramfs
   cmd_manager "$flag" "$cmd_prefix $cmd"

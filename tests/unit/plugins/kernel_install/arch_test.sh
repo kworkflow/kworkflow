@@ -42,7 +42,7 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
   local ret
 
   # Local
-  sudo_cmd='sudo -E'
+  sudo_cmd='sudo --preserve-env'
   declare -a cmd_sequence=(
     "${sudo_cmd} depmod --all ${name}"
     "${sudo_cmd} mkinitcpio --generate /boot/initramfs-${name}.img --kernel ${name}"

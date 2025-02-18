@@ -129,7 +129,7 @@ function generate_arch_temporary_root_file_system()
   # We do not support initramfs outside grub scope
   [[ "$bootloader_type" != 'GRUB' ]] && return
 
-  [[ "$target" == 'local' ]] && sudo_cmd='sudo -E '
+  [[ "$target" == 'local' ]] && sudo_cmd='sudo --preserve-env '
 
   # Step 2: Make sure that we are generating a consistent modules.dep and map
   cmd="${sudo_cmd}depmod --all ${name}"

@@ -2,7 +2,7 @@
 # follows the bootloader API. In other words, we have one entry point
 # functions: run_bootloader_update: Update GRUB in a local and remote machine.
 
-declare -g DEFAULT_GRUB_CMD_UPDATE='grub-mkconfig -o /boot/grub/grub.cfg'
+declare -g DEFAULT_GRUB_CMD_UPDATE='grub-mkconfig --output=/boot/grub/grub.cfg'
 
 # Some distributions, such as Fedora, use GRUB2 as the default bootloader. On
 # those systems, grub-mkconfig command is replaced by grub2-mkconfig. This function
@@ -25,7 +25,7 @@ function define_grub_cmd_update()
     if ! command_exists "$grub2_cmd"; then
       return 2 # ENOENT
     fi
-    DEFAULT_GRUB_CMD_UPDATE="grub2-mkconfig -o /boot/grub2/grub.cfg"
+    DEFAULT_GRUB_CMD_UPDATE="grub2-mkconfig --output=/boot/grub2/grub.cfg"
   fi
 
   return 0
@@ -41,7 +41,7 @@ function run_bootloader_update()
   local total_count
 
   if [[ "$target" == 'local' ]]; then
-    cmd_sudo='sudo -E '
+    cmd_sudo='sudo --preserve-env '
     cmd_grub+="$cmd_sudo"
   fi
 
@@ -68,9 +68,9 @@ function total_of_installed_kernels()
   local flag="$1"
   local target="$2"
   local total_count
-  local find_cmd="find /boot -name 'vmlinuz*' | wc -l"
+  local find_cmd="find /boot -name 'vmlinuz*' | wc --lines"
 
-  [[ "$target" == 'local' ]] && find_cmd="sudo -E $find_cmd"
+  [[ "$target" == 'local' ]] && find_cmd="sudo --preserve-env ${find_cmd}"
 
   [[ "$flag" != 'TEST_MODE' ]] && total_count=$(eval "$find_cmd")
   total_count=$((total_count * 2 + 7))

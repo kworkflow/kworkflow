@@ -87,7 +87,7 @@ function update_config_txt_file()
     fi
 
     # Remove kernel/initramfs entries
-    cmd="${sudo_cmd}sed -i '/${name}/d' ${RPI_CONFIG_TXT_PATH}"
+    cmd="${sudo_cmd}sed --in-place '/${name}/d' ${RPI_CONFIG_TXT_PATH}"
     cmd_manager "$flag" "$cmd"
     return
   fi
@@ -110,13 +110,13 @@ function update_config_txt_file()
   # and add it to the end of the file (easier to debug).
   grep --quiet --extended-regexp "#kernel=*.${kernel_name}" "$RPI_CONFIG_TXT_PATH"
   if [[ "$?" == 0 ]]; then
-    cmd="${sudo_cmd}sed -i '/#kernel=*.${find_target}/d' ${RPI_CONFIG_TXT_PATH}"
+    cmd="${sudo_cmd}sed --in-place '/#kernel=*.${find_target}/d' ${RPI_CONFIG_TXT_PATH}"
     cmd_manager "$flag" "$cmd"
   fi
 
   grep --quiet --extended-regexp "#initramfs=*.${init_name}" "$RPI_CONFIG_TXT_PATH"
   if [[ "$?" == 0 ]]; then
-    cmd="${sudo_cmd}sed -i '/#initramfs=*.${init_name}/d' $RPI_CONFIG_TXT_PATH"
+    cmd="${sudo_cmd}sed --in-place '/#initramfs=*.${init_name}/d' $RPI_CONFIG_TXT_PATH"
     cmd_manager "$flag" "$cmd"
   fi
 

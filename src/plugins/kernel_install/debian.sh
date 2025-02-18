@@ -47,7 +47,7 @@ function generate_debian_temporary_root_file_system()
   cmd+=" ${name}"
 
   if [[ "$target" == 'local' ]]; then
-    cmd="sudo -E ${cmd}"
+    cmd="sudo --preserve-env ${cmd}"
   fi
 
   # Update initramfs
