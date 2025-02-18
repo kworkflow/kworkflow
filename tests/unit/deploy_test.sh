@@ -268,7 +268,7 @@ function test_prepare_distro_for_deploy_ext4()
     'sudo -E pacman-key --init'
     'sudo -E pacman-key --populate'
     'yes | sudo -E pacman -Syu'
-    'sudo -E yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools'
+    'sudo --preserve-env yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
@@ -321,7 +321,7 @@ function test_prepare_distro_for_deploy_btrfs()
     'sudo -E pacman-key --init'
     'sudo -E pacman-key --populate'
     'yes | sudo -E pacman -Syu'
-    'sudo -E yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools'
+    'sudo --preserve-env yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"

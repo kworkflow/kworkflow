@@ -42,7 +42,7 @@ function oneTimeTearDown()
 {
   rm -f "$INSTALLED_KERNELS_PATH"
   # shellcheck disable=SC2115
-  [[ -d ${TARGET_PATH} ]] && rm -rf "${TARGET_PATH}/*"
+  [[ -d ${TARGET_PATH} ]] && rm --recursive --force "${TARGET_PATH}/*"
 }
 
 function setUp()
@@ -58,7 +58,7 @@ function setUp()
   test_tmp_file="$SHUNIT_TMPDIR/tmp/kw"
   REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR/opt/kw"
   KW_DEPLOY_TMP_FILE="$test_tmp_file"
-  mkdir -p "$test_tmp_file"
+  mkdir --parents "$test_tmp_file"
 
   # Mock variables
   KW_PLUGINS_DIR="$PWD/src/plugins"
@@ -67,8 +67,8 @@ function setUp()
 
 function tearDown()
 {
-  rm -rf "$SHUNIT_TMPDIR"
-  mkdir -p "$SHUNIT_TMPDIR"
+  rm --recursive --force "$SHUNIT_TMPDIR"
+  mkdir --parents "$SHUNIT_TMPDIR"
 }
 
 function total_of_installed_kernels_mock()
@@ -215,10 +215,10 @@ function test_reboot_machine()
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" '' "$output"
 
   output=$(reboot_machine '1' 'local' 'TEST_MODE')
-  assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
+  assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo --preserve-env reboot' "$output"
 
   output=$(reboot_machine '1' 'local' 'TEST_MODE')
-  assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
+  assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo --preserve-env reboot' "$output"
 }
 
 function test_is_in_array()
@@ -281,7 +281,7 @@ function test_kernel_uninstall_regex_one_kernel()
 
   # Composing expected command sequence
   local -a cmd_sequence=(
-    "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
     "sudo touch '${INSTALLED_KERNELS_PATH}'"
     "Removing: ${kernel_name}"
   )
@@ -291,7 +291,7 @@ function test_kernel_uninstall_regex_one_kernel()
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$((index++))"]="Removing: ${file}"
-    cmd_sequence["$((index++))"]="sudo -E rm ${file}"
+    cmd_sequence["$((index++))"]="sudo --preserve-env rm ${file}"
   done
 
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
@@ -328,7 +328,7 @@ function test_kernel_uninstall_regex_two_kernels()
 
   # Composing expected command sequence
   local -a cmd_sequence=(
-    "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
     "sudo touch '${INSTALLED_KERNELS_PATH}'"
     "Removing: ${kernel_name_1}"
   )
@@ -338,7 +338,7 @@ function test_kernel_uninstall_regex_two_kernels()
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$((index++))"]="Removing: ${file}"
-    cmd_sequence["$((index++))"]="sudo -E rm ${file}"
+    cmd_sequence["$((index++))"]="sudo --preserve-env rm ${file}"
   done
 
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
@@ -351,7 +351,7 @@ function test_kernel_uninstall_regex_two_kernels()
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$((index++))"]="Removing: ${file}"
-    cmd_sequence["$((index++))"]="sudo -E rm ${file}"
+    cmd_sequence["$((index++))"]="sudo --preserve-env rm ${file}"
   done
 
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_2}"
@@ -387,12 +387,12 @@ function test_kernel_uninstall_unmanaged()
   # Notice that we are only testing the force feature, we did not create fake
   # files, as a result we can't find files.
   local -a cmd_sequence=(
-    "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
     "sudo touch '${INSTALLED_KERNELS_PATH}'"
     "${target} not managed by kw. Use --force/-f to uninstall anyway."
   )
 
-  mkdir -p "${TARGET_PATH}/boot"
+  mkdir --parents "${TARGET_PATH}/boot"
   printf '%s\n' "menuentry 'Arch Linux, with Linux 5.5.0-rc2-NOTMANAGED'" >> "${TARGET_PATH}/boot/grub/grub.cfg"
   touch "${TARGET_PATH}/boot/vmlinuz-5.5.0-rc2-NOTMANAGED"
   output=$(kernel_uninstall 0 'local' '5.5.0-rc2-NOTMANAGED' 'TEST_MODE' '' "$TARGET_PATH")
@@ -414,25 +414,25 @@ function test_kernel_force_uninstall_unmanaged()
   # Notice that we are only testing the force feature, we did not create fake
   # files, as a result we can't find files.
   local -a cmd_sequence=(
-    "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
     "sudo touch '${INSTALLED_KERNELS_PATH}'"
     "Removing: ${target}"
     "Removing: ${boot_path}"
-    "sudo -E rm ${boot_path}"
+    "sudo --preserve-env rm ${boot_path}"
     "Removing: ${mkinitcpio_d_path}"
-    "sudo -E rm ${mkinitcpio_d_path}"
+    "sudo --preserve-env rm ${mkinitcpio_d_path}"
     "Removing: ${initramfs_tools_var_path}"
-    "sudo -E rm ${initramfs_tools_var_path}"
+    "sudo --preserve-env rm ${initramfs_tools_var_path}"
     "Removing: ${modules_lib_path}"
-    "sudo -E rm -rf ${modules_lib_path}"
+    "sudo --preserve-env rm --recursive --force ${modules_lib_path}"
     "sudo sed -i '/${target}/d' '${INSTALLED_KERNELS_PATH}'"
     'run_bootloader_update_mock'
   )
 
-  mkdir -p "${TARGET_PATH}/boot"
-  mkdir -p "${TARGET_PATH}/lib/modules/"
-  mkdir -p "${TARGET_PATH}/var/lib/initramfs-tools"
-  mkdir -p "${TARGET_PATH}/etc/mkinitcpio.d"
+  mkdir --parents "${TARGET_PATH}/boot"
+  mkdir --parents "${TARGET_PATH}/lib/modules/"
+  mkdir --parents "${TARGET_PATH}/var/lib/initramfs-tools"
+  mkdir --parents "${TARGET_PATH}/etc/mkinitcpio.d"
 
   tmp_grub_cfg="${TARGET_PATH}/tmp/grub.cfg"
   cp "$grub_cfg_path" "$tmp_grub_cfg"
@@ -440,7 +440,7 @@ function test_kernel_force_uninstall_unmanaged()
   touch "$boot_path"
   touch "$mkinitcpio_d_path"
   touch "$initramfs_tools_var_path"
-  mkdir -p "$modules_lib_path"
+  mkdir --parents "$modules_lib_path"
 
   output=$(kernel_uninstall 0 'local' '5.5.0-rc2-NOTMANAGED' 'TEST_MODE' 1 "$TARGET_PATH")
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
@@ -449,7 +449,7 @@ function test_kernel_force_uninstall_unmanaged()
   rm "$boot_path"
   rm "$mkinitcpio_d_path"
   rm "$initramfs_tools_var_path"
-  rm -rf "$modules_lib_path"
+  rm --recursive --force "$modules_lib_path"
 }
 
 function test_remove_managed_kernel_local()
@@ -469,7 +469,7 @@ function test_remove_managed_kernel_local()
   local index
 
   # Adding mock file
-  mkdir -p "${TARGET_PATH}/boot"
+  mkdir --parents "${TARGET_PATH}/boot"
   touch "${TARGET_PATH}/boot/vmlinuz-${kernel_name}"
   touch "${TARGET_PATH}/boot/initrd.img-${kernel_name}"
   touch "${TARGET_PATH}/boot/initramfs-${kernel_name}.img"
@@ -478,7 +478,7 @@ function test_remove_managed_kernel_local()
 
   # Composing command sequence list
   local -a cmd_sequence=(
-    "sudo mkdir -p $REMOTE_KW_DEPLOY"
+    "sudo mkdir --parents $REMOTE_KW_DEPLOY"
     "sudo touch '$INSTALLED_KERNELS_PATH'"
     "Removing: $kernel_name"
   )
@@ -499,7 +499,7 @@ function test_remove_managed_kernel_local()
   for file in ${boot_files[@]}; do
     cmd_sequence["$index"]="Removing: $file"
     ((index++))
-    cmd_sequence["$index"]="sudo -E rm $file"
+    cmd_sequence["$index"]="sudo --preserve-env rm $file"
     ((index++))
   done
 
@@ -549,7 +549,7 @@ function test_do_uninstall_valid_path_cmd_sequence()
     return
   }
 
-  mkdir -p "$prefix"
+  mkdir --parents "$prefix"
   mk_fake_remote_system "$prefix" "$kernel_name"
 
   # Composing command
@@ -568,7 +568,7 @@ function test_do_uninstall_valid_path_cmd_sequence()
     "Removing: $initramfs_tools_var_path"
     "rm $initramfs_tools_var_path"
     "Removing: $modules_lib_path"
-    "rm -rf $modules_lib_path"
+    "rm --recursive --force $modules_lib_path"
   )
 
   for cmd in "${cmd_sequence_last_part[@]}"; do
@@ -596,10 +596,10 @@ function test_do_uninstall_partial_cmd_sequence()
   local index=0
   local boot_files
 
-  mkdir -p "$prefix"
+  mkdir --parents "$prefix"
   mk_fake_remote_system "$prefix" "$kernel_name"
 
-  rm -rf "$modules_lib_path"
+  rm --recursive --force "$modules_lib_path"
 
   # Composing command
   boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name}*" | sort)
@@ -651,7 +651,7 @@ function test_install_modules()
   # Test preparation
   mk_fake_tar_file_to_deploy "$PWD"
   LIB_MODULES_PATH="${KW_DEPLOY_TMP_FILE}${LIB_MODULES_PATH}"
-  mkdir -p "$LIB_MODULES_PATH"
+  mkdir --parents "$LIB_MODULES_PATH"
 
   install_modules 'remote'
 
@@ -688,7 +688,7 @@ function test_install_kernel_remote()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    "rm --recursive --force ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
     "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
     "cp ${PWD}/boot/vmlinuz-${name} ${PWD}/boot/vmlinuz-${name}.old"
@@ -696,26 +696,26 @@ function test_install_kernel_remote()
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
     'run_bootloader_update_mock'
-    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+    "grep --fixed-strings --line-regexp --quiet ${name} ${INSTALLED_KERNELS_PATH}"
     'reboot'
   )
 
   # Check remote kernel installation with dtb
   declare -a cmd_sequence2=(
-    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    "rm --recursive --force ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
     "rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/config-test /boot/"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
     'run_bootloader_update_mock'
-    "grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+    "grep --fixed-strings --line-regexp --quiet ${name} ${INSTALLED_KERNELS_PATH}"
     'reboot'
   )
 
   # Test preparation
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE" "$name"
-  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  mkdir --parents "${KW_DEPLOY_TMP_FILE}/kw_pkg"
   touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   {
     printf 'kernel_name=%s\n' "$name"
@@ -748,7 +748,7 @@ function test_install_kernel_local()
   local architecture='x86_64'
   local target='local'
   local flag='TEST_MODE'
-  local sudo_cmd='sudo -E'
+  local sudo_cmd='sudo --preserve-env'
   local path_prefix=''
   local output
 
@@ -759,7 +759,7 @@ function test_install_kernel_local()
 
   # Test preparation
   mk_fake_tar_file_to_deploy "$PWD" "$KW_DEPLOY_TMP_FILE"
-  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  mkdir --parents "${KW_DEPLOY_TMP_FILE}/kw_pkg"
   touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   {
     printf 'kernel_name=%s\n' "$name"
@@ -769,15 +769,15 @@ function test_install_kernel_local()
 
   # Check standard remote kernel installation
   declare -a cmd_sequence=(
-    "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    "rm --recursive --force ${KW_DEPLOY_TMP_FILE}/kw_pkg"
     "tar --touch --auto-compress --extract --file='${KW_DEPLOY_TMP_FILE}/${name}.kw.tar' --directory='${SHUNIT_TMPDIR}/tmp/kw' --no-same-owner"
-    "sudo -E rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
-    "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/config-test /boot/"
-    "sudo -E cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
+    "sudo --preserve-env rsync --archive ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/modules/lib/modules/* /lib/modules"
+    "sudo --preserve-env cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/config-test /boot/"
+    "sudo --preserve-env cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
     'run_bootloader_update_mock'
-    "sudo -E grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
-    'sudo -E reboot'
+    "sudo --preserve-env grep --fixed-strings --line-regexp --quiet ${name} ${INSTALLED_KERNELS_PATH}"
+    'sudo --preserve-env reboot'
   )
 
   output=$(install_kernel 'debian' "$reboot" "$target" '' 'TEST_MODE')
@@ -826,7 +826,7 @@ function test_distro_deploy_setup_local()
 
   output=$(distro_deploy_setup 'TEST_MODE' 2)
 
-  expected_cmd="sudo -E ${package_manager_cmd} ${required_packages[*]} "
+  expected_cmd="sudo --preserve-env ${package_manager_cmd} ${required_packages[*]} "
 
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
 }
@@ -914,7 +914,7 @@ function test_is_filesystem_writable()
 
   AB_ROOTFS_PARTITION="${PWD}/kw"
   output=$(is_filesystem_writable 'ext4' 'TEST_MODE')
-  expected_cmd="tune2fs -l '$AB_ROOTFS_PARTITION' | grep -q '^Filesystem features: .*read-only.*$'"
+  expected_cmd="tune2fs -l '$AB_ROOTFS_PARTITION' | grep --quiet '^Filesystem features: .*read-only.*$'"
   assert_equals_helper 'Expected tune2fs command' "$LINENO" "$expected_cmd" "$output"
 }
 
@@ -947,7 +947,7 @@ function test_make_root_partition_writable()
   )"
   expected_sequence=(
     "tune2fs -O ^read-only ${AB_ROOTFS_PARTITION}"
-    'mount -o remount,rw /'
+    'mount --options remount,rw /'
   )
   compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
 
@@ -965,7 +965,7 @@ function test_make_root_partition_writable()
     make_root_partition_writable 'TEST_MODE'
   )"
   expected_sequence=(
-    'mount -o remount,rw /'
+    'mount --options remount,rw /'
     'btrfs property set / ro false'
   )
   compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
@@ -999,7 +999,7 @@ function test_uncompress_kw_package_check_invalid_path()
 function test_parse_kw_package_metadata()
 {
   # Prepare fake kw.pkg.info
-  mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
+  mkdir --parents "${KW_DEPLOY_TMP_FILE}/kw_pkg"
   touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   printf 'kernel_name=test\n' > "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
   printf 'kernel_binary_image_file=vmlinuz-test\n' >> "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"

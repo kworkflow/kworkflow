@@ -106,9 +106,9 @@ function parse_kw_package_metadata()
     [[ "$line" =~ ^# || "$line" =~ ^$ ]] && continue
 
     if grep -qF = <<< "$line"; then
-      varname="$(cut -d '=' -f 1 <<< "$line" | tr -d '[:space:]')"
-      value="$(cut -d '=' -f 2- <<< "${line%#*}")"
-      value="$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' <<< "$value")"
+      varname="$(cut --delimiter='=' --fields=1 <<< "$line" | tr --delete '[:space:]')"
+      value="$(cut --delimiter='=' --fields=2- <<< "${line%#*}")"
+      value="$(sed --expression='s/^[[:space:]]*//' --expression='s/[[:space:]]*$//' <<< "$value")"
 
       eval "${config_array}"'["$varname"]="$value"'
     fi
@@ -132,7 +132,7 @@ function is_filesystem_writable()
     ext4)
       # Is this A/b partition?
       if [[ -f "$AB_ROOTFS_PARTITION" ]]; then
-        cmd="tune2fs -l '${AB_ROOTFS_PARTITION}' | grep -q '^Filesystem features: .*read-only.*$'"
+        cmd="tune2fs -l '${AB_ROOTFS_PARTITION}' | grep --quiet '^Filesystem features: .*read-only.*$'"
       fi
       ;;
     btrfs)
@@ -167,10 +167,10 @@ function make_root_partition_writable()
     case "$file_system_type" in
       ext4)
         cmd_manager "$flag" "tune2fs -O ^read-only ${AB_ROOTFS_PARTITION}"
-        cmd_manager "$flag" 'mount -o remount,rw /'
+        cmd_manager "$flag" 'mount --options remount,rw /'
         ;;
       btrfs)
-        cmd_manager "$flag" 'mount -o remount,rw /'
+        cmd_manager "$flag" 'mount --options remount,rw /'
         cmd_manager "$flag" 'btrfs property set / ro false'
         ;;
     esac
@@ -197,7 +197,7 @@ function collect_deploy_info()
   bootloader="[bootloader]=${bootloader}"
 
   # Get distro
-  distro=$(cat /etc/*-release | grep --word-regexp 'ID\(_LIKE\)\?' | cut --delimiter = --fields 2 | xargs printf '%s ')
+  distro=$(cat /etc/*-release | grep --word-regexp 'ID\(_LIKE\)\?' | cut --delimiter='=' --fields=2 | xargs printf '%s ')
   distro="${distro::-1}"
   distro="[distro]='${distro}'"
 
@@ -231,7 +231,7 @@ function distro_deploy_setup()
   install_package_cmd="${package_manager_cmd} ${package_list}"
 
   if [[ "$target" == 2 ]]; then
-    install_package_cmd="sudo -E ${install_package_cmd}"
+    install_package_cmd="sudo --preserve-env ${install_package_cmd}"
   fi
 
   cmd_manager "$flag" "$install_package_cmd"
@@ -359,7 +359,7 @@ function list_all_kernels()
     [[ "$extension" == 'old' ]] && continue
 
     # Remove kernel prefix (vmlinuz)
-    kernel_name=$(printf '%s' "$element" | cut --delimiter '-' --fields=2-)
+    kernel_name=$(printf '%s' "$element" | cut --delimiter='-' --fields=2-)
 
     _available_kernels["$index"]="$kernel_name"
     ((index++))
@@ -372,7 +372,7 @@ function reboot_machine()
   local local="$2"
   local flag="$3"
 
-  [[ "$local" == 'local' ]] && sudo_cmd='sudo -E '
+  [[ "$local" == 'local' ]] && sudo_cmd='sudo --preserve-env '
 
   if [[ "$reboot" == '1' ]]; then
     cmd="${sudo_cmd}"'reboot'
@@ -411,7 +411,7 @@ function uncompress_kw_package()
 
   # Clean target folder
   if [[ -d ${KW_DEPLOY_TMP_FILE}/kw_pkg ]]; then
-    cmd_manager "$flag" "rm -rf ${KW_DEPLOY_TMP_FILE}/kw_pkg"
+    cmd_manager "$flag" "rm --recursive --force ${KW_DEPLOY_TMP_FILE}/kw_pkg"
   fi
 
   cmd="tar --touch --auto-compress --extract --file='${kw_pkg_tar_path}' --directory='${KW_DEPLOY_TMP_FILE}' --no-same-owner"
@@ -444,7 +444,7 @@ function install_modules()
   flag=${flag:-'SILENT'}
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E '
+    sudo_cmd='sudo --preserve-env '
   fi
 
   # 1. If kw package was not extracted yet, do it now
@@ -567,7 +567,7 @@ function do_uninstall()
   )
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E '
+    sudo_cmd='sudo --preserve-env '
   fi
 
   if [[ -z "$kernel_name" ]]; then
@@ -597,7 +597,7 @@ function do_uninstall()
 
   if [[ -d "$modules_lib_path" && "$modules_lib_path" != '/lib/modules' ]]; then
     printf ' %s\n' "Removing: ${modules_lib_path}"
-    cmd_manager "$flag" "${sudo_cmd}rm -rf ${modules_lib_path}"
+    cmd_manager "$flag" "${sudo_cmd}rm --recursive --force ${modules_lib_path}"
   else
     printf ' %s\n' "Can't find ${modules_lib_path}"
   fi
@@ -666,7 +666,7 @@ function kernel_uninstall()
   # TODO: Drop me in the future
   migrate_old_kernel_list
 
-  cmd_manager "$flag" "sudo mkdir -p ${REMOTE_KW_DEPLOY}"
+  cmd_manager "$flag" "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
   cmd_manager "$flag" "sudo touch '${INSTALLED_KERNELS_PATH}'"
 
   process_installed_kernels 1 "$prefix" 'all_installed_kernels'
@@ -696,7 +696,7 @@ function kernel_uninstall()
     do_uninstall "$target" "$kernel" "$prefix" "$flag"
 
     # Clean from the log
-    cmd_manager "$flag" "sudo sed -i '/${kernel}/d' '${INSTALLED_KERNELS_PATH}'"
+    cmd_manager "$flag" "sudo sed --in-place '/${kernel}/d' '${INSTALLED_KERNELS_PATH}'"
     ((update_grub++))
   done
 
@@ -731,7 +731,7 @@ function install_kernel()
   [[ "$flag" == 'TEST_MODE' ]] && path_test="$PWD"
 
   if [[ "$target" == 'local' ]]; then
-    sudo_cmd='sudo -E '
+    sudo_cmd='sudo --preserve-env '
   fi
 
   # Uncompress kw package
@@ -789,11 +789,10 @@ function install_kernel()
   # See shellcheck warning SC2024: sudo doesn't affect redirects. That
   # is why we use tee. Also note that the stdin is passed to the eval
   # inside cmd_manager.
-# TODO
-  cmd="${sudo_cmd}grep -Fxq ${name} ${INSTALLED_KERNELS_PATH}"
+  cmd="${sudo_cmd}grep --fixed-strings --line-regexp --quiet ${name} ${INSTALLED_KERNELS_PATH}"
   cmd_manager "$flag" "$cmd"
   if [[ "$?" != 0 ]]; then
-    cmd="${sudo_cmd} tee -a '${INSTALLED_KERNELS_PATH}' > /dev/null"
+    cmd="${sudo_cmd} tee --append '${INSTALLED_KERNELS_PATH}' > /dev/null"
     printf '%s\n' "$name" | cmd_manager "$flag" "$cmd"
   fi
 
