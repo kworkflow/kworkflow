@@ -534,11 +534,13 @@ function prepare_remote_dir()
   local first_deploy="$4"
   local flag="$5"
   local kw_deploy_cmd="mkdir --parents ${REMOTE_KW_DEPLOY}"
-  local files_to_send=''
+  local kernel_plugin_files="${KW_PLUGINS_DIR}/kernel_install/*"
+  local kw_lib_files="${KW_SRC_LIB_DIR}"
   local distro=''
   local remote_file=${remote_parameters['REMOTE_FILE']}
   local remote_file_host=${remote_parameters['REMOTE_FILE_HOST']}
-  local cmd
+  local cmd_plugin
+  local cmd_lib
 
   flag=${flag:-'SILENT'}
 
@@ -548,25 +550,30 @@ function prepare_remote_dir()
     exit 95 # ENOTSUP
   fi
 
-  files_to_send="${KW_PLUGINS_DIR}/kernel_install/*"
-
   # Send required scripts for running the deploy inside the target machine
   # Note: --archive will force the creation of $REMOTE_KW_DEPLOY in case it
   # does not exits
   if [[ -z "$first_deploy" ]]; then
-    cp2remote "$flag" "$files_to_send" "$REMOTE_KW_DEPLOY" '--archive' "$remote" "$port" "$user" 'quiet'
+    cp2remote "$flag" "$kernel_plugin_files" "$REMOTE_KW_DEPLOY" '--archive' "$remote" "$port" "$user" 'quiet'
+    cp2remote "$flag" "$kw_lib_files" "${REMOTE_KW_DEPLOY}" '--archive' "$remote" "$port" "$user" 'quiet'
   else
+    # TODO: If we find a way to install rsync first, we could get rid of this
+    # entire block.
+    #
     # First deploy should use ssh since rsync might not be available
     say '* Sending kw to the remote'
-    cmd_remotely "$flag" "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    cmd_remotely "$flag" "mkdir --parents ${REMOTE_KW_DEPLOY}/lib"
 
     if [[ -n "$remote_file" && -n "$remote_file_host" ]]; then
-      cmd="scp -q -F ${remote_file} ${files_to_send} ${remote_file_host}:${REMOTE_KW_DEPLOY}"
+      cmd_plugin="scp -q -F ${remote_file} ${kernel_plugin_files} ${remote_file_host}:${REMOTE_KW_DEPLOY}"
+      cmd_lib="scp -r -q -F ${remote_file} ${kw_lib_files} ${remote_file_host}:${REMOTE_KW_DEPLOY}"
     else
-      cmd="scp -q ${files_to_send} ${user}@${remote}:${REMOTE_KW_DEPLOY}"
+      cmd_plugin="scp -q ${kernel_plugin_files} ${user}@${remote}:${REMOTE_KW_DEPLOY}"
+      cmd_lib="scp -r -q ${kw_lib_files} ${user}@${remote}:${REMOTE_KW_DEPLOY}"
     fi
 
-    cmd_manager "$flag" "$cmd"
+    cmd_manager "$flag" "$cmd_plugin"
+    cmd_manager "$flag" "$cmd_lib"
   fi
 
   # Removes temporary directory if already existent

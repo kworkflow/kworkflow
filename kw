@@ -29,6 +29,7 @@ else
   KW_LIB_DIR="${KW_LIB_DIR:-"${HOME}/.local/lib"}/${KWORKFLOW}"
 fi
 
+KW_SRC_LIB_DIR="${KW_SRC_LIB_DIR:-"${KW_LIB_DIR}/lib"}"
 KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"${KW_LIB_DIR}/plugins"}"
 
 # User specific data files (currently this collapses with the share dir,
@@ -59,6 +60,7 @@ if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
   KW_DB_DIR="${KW_BASE_DIR}/database"
   KW_ETC_DIR="${KW_BASE_DIR}/etc"
   KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
+  KW_SRC_LIB_DIR="${KW_LIB_DIR}/lib"
   # KW_CACHE_DIR # use default cache folder
 fi
 ##END-REPO-MODE##
@@ -88,6 +90,7 @@ if [[ "${KW_REPO_MODE}" == 'y' ]]; then
   repo_mode_msg+=$'\t'"KW_LIB_DIR=${KW_LIB_DIR}"$'\n'
   repo_mode_msg+=$'\t'"KW_MAN_DIR=${KW_MAN_DIR}"$'\n'
   repo_mode_msg+=$'\t'"KW_PLUGINS_DIR=${KW_PLUGINS_DIR}"$'\n'
+  repo_mode_msg+=$'\t'"KW_SRC_LIB_DIR=${KW_SRC_LIB_DIR}"$'\n'
   repo_mode_msg+=$'\t'"KW_SOUND_DIR=${KW_SOUND_DIR}"$'\n'$'\n'
   repo_mode_msg+="${SEPARATOR}"
 

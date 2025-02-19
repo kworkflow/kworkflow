@@ -21,6 +21,7 @@ function setUp()
   export KW_ETC_DIR="${SAMPLES_DIR}/etc"
   export DEPLOY_SCRIPT="${test_path}/${kernel_install_path}/deploy.sh"
   export KW_PLUGINS_DIR="${PWD}/src/plugins"
+  export KW_SRC_LIB_DIR="${PWD}/src/lib"
   export REMOTE_KW_DEPLOY='/opt/kw'
   export KW_STATUS_BASE_PATH="$SHUNIT_TMPDIR"
 
@@ -875,27 +876,23 @@ function test_prepare_host_deploy_dir()
   assertTrue "(${LINENO}): Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR ]]'
 }
 
-function prepare_remote_list_of_files()
-{
-  local distro="$1"
-
-  printf '*'
-}
-
 function test_prepare_remote_dir()
 {
   local scripts_path="${KW_PLUGINS_DIR}/kernel_install"
-  local debian_sync_files_cmd
+  local lib_path="${KW_SRC_LIB_DIR}"
+  local sync_plugins_files
+  local sync_lib_files
   local arch_sync_files_cmd
   local output
   local rsync_quiet="rsync  -e '${CONFIG_SSH}'"
 
-  to_copy=$(prepare_remote_list_of_files 'debian')
-  debian_sync_files_cmd="${rsync_quiet} ${scripts_path}/${to_copy} ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY} ${STD_RSYNC_FLAG} --archive"
+  sync_plugins_files="${rsync_quiet} ${scripts_path}/* ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY} ${STD_RSYNC_FLAG} --archive"
+  sync_lib_files="${rsync_quiet} ${lib_path} ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY} ${STD_RSYNC_FLAG} --archive"
 
   # Test 1: Normal remote prepare
   declare -a expected_cmd=(
-    "$debian_sync_files_cmd"
+    "$sync_plugins_files"
+    "$sync_lib_files"
     "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}\""
     "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"mkdir --parents ${KW_DEPLOY_TMP_FILE}\""
   )
@@ -903,31 +900,16 @@ function test_prepare_remote_dir()
   output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 
-  # Test 2: Force ArchLinux
-  expected_cmd=()
-  to_copy=$(prepare_remote_list_of_files 'arch')
-  arch_sync_files_cmd="${rsync_quiet} ${scripts_path}/${to_copy} ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY} ${STD_RSYNC_FLAG} --archive"
-  declare -a expected_cmd=(
-    "$arch_sync_files_cmd"
-    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}\""
-    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"mkdir --parents ${KW_DEPLOY_TMP_FILE}\""
-    "${CONFIG_RSYNC} ${KW_ETC_DIR}/template_mkinitcpio.preset ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY} ${STD_RSYNC_FLAG}"
-  )
-
-  alias detect_distro='detect_distro_arch_mock'
-  output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-
-  # Test 3: First deploy
+  # Test 2: First deploy
   alias detect_distro='which_distro_mock'
-  to_copy=$(prepare_remote_list_of_files 'debian')
   expected_cmd=()
   output=$(prepare_remote_dir '' '' '' 1 'TEST_MODE')
 
   declare -a expected_cmd=(
     "$UPDATE_KW_REMOTE_MSG"
-    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"mkdir --parents ${REMOTE_KW_DEPLOY}\""
-    "scp -q ${scripts_path}/${to_copy} ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY}"
+    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"mkdir --parents ${REMOTE_KW_DEPLOY}/lib\""
+    "scp -q ${scripts_path}/* ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY}"
+    "scp -r -q ${lib_path} ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY}"
     "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}\""
     "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"mkdir --parents ${KW_DEPLOY_TMP_FILE}\""
   )
