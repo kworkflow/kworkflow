@@ -1,18 +1,21 @@
-# This script will be executed via ssh, because of this, I can't see any good
-# reason (until now) for making things complicated here.
+# This file is executed via ssh, i.e., it is used in the remote machine. This
+# code works as an entry point between the code under source and kernel_install
+# files; for this reason, it also has some variable adaptations to ensure that
+# lib and other files work as expected in the remote.
 #
 # There are a few things to notice about this file from the kw perspective:
-# 1. We need one specific file script per distro; this code is in the
-#    `distro_deploy.sh` file on the remote machine. This file is copied from
-#    `src/plugins/kernel_install/DISTRO_NAME`.
-# 2. The script related to the distro deploy can have any function as far it
-#    implements `install_modules` and `install_kernel` (I think the function
-#    names already explain what it does).
+#
+# 1. We need one specific file distro based on the target distro (e.g.,
+#    ArchLinux requires arch.sh, Ubuntu require debian.sh, etc.
+# 2. The code associted with the distro deploy can have any function as far it
+#    implements install_modules, install_kernel, kernel_uninstall, and
+#    list_installed_kernels (I think the function names already explain what it
+#    does).
 #
 # The following parameter sequence must be followed:
 #
-# --kw-path: Path where kw scripts will live
-# --kw-tmp-files: Temporary directories
+# --kw-path: Path where kw code is available in the remote machine.
+# --kw-tmp-files: Temporary directories to receive kw package and others.
 # --modules|--kernel-update|--list-kernels|--uninstall-kernels: Which action we
 #   want to uxecute in the target. It is only allowed to request one execution
 #   at time.
@@ -21,6 +24,16 @@
 declare -g REMOTE_KW_DEPLOY='/opt/kw'
 declare -g KW_DEPLOY_TMP_FILE='/tmp/kw'
 declare -g INSTALLED_KERNELS_PATH="${REMOTE_KW_DEPLOY}/INSTALLED_KERNELS"
+
+# ATTENTION:
+#
+# All files from lib are prefixed with the variable KW_LIB_DIR. Since this
+# script is only executed in the remote machine, we can safely override this
+# variable value to the correct path which is REMOTE_KW_DEPLOY.
+KW_LIB_DIR="${REMOTE_KW_DEPLOY}"
+
+# Allow include function to be used in the kernel_install plugin
+. "${REMOTE_KW_DEPLOY}/lib/kw_include.sh" --source-only
 
 # Processing input data
 action=''
@@ -104,19 +117,23 @@ fi
 #shellcheck disable=SC2164
 cd "$REMOTE_KW_DEPLOY"
 
-# Load specific distro script
-if [[ -f 'debian.sh' ]]; then
-  . 'debian.sh' --source-only
-elif [[ -f 'arch.sh' ]]; then
-  . 'arch.sh' --source-only
-elif [[ -f 'fedora.sh' ]]; then
-  . 'fedora.sh' --source-only
-else
+# Include base files
+include "${REMOTE_KW_DEPLOY}/utils.sh"
+include "${KW_LIB_DIR}/lib/kwlib.sh"
+
+# Identify which distro this script will run, and load the correct file (e.g.,
+# ArchLinux should load arch.sh, Fedora should load fedora.sh, etc)
+#
+distro=$(detect_distro '/')
+
+if [[ "$distro" =~ 'none' ]]; then
   printf '%s\n' 'It looks like kw does not support your distro'
   exit 95 # Not supported
 fi
 
-. utils.sh --source-only
+# Load the correct distro file is important to ensure that kw calls the correct
+# function.
+include "${REMOTE_KW_DEPLOY}/${distro}.sh"
 
 case "$action" in
   'modules')
