@@ -2,6 +2,7 @@
 
 # We load utils in the oneTimeSetUp() to ensure we can replace some kw functions
 include './tests/unit/utils.sh'
+include './src/lib/kwlib.sh'
 include './src/lib/kwio.sh'
 
 declare -r TEST_ROOT_PATH="$PWD"
@@ -807,7 +808,7 @@ function test_distro_deploy_setup()
   )
   output=$(distro_deploy_setup 'TEST_MODE')
 
-  expected_cmd="${package_manager_cmd} ${required_packages[*]} "
+  expected_cmd="${package_manager_cmd} ${required_packages[*]}"
 
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
 }
@@ -826,65 +827,9 @@ function test_distro_deploy_setup_local()
 
   output=$(distro_deploy_setup 'TEST_MODE' 2)
 
-  expected_cmd="sudo --preserve-env ${package_manager_cmd} ${required_packages[*]} "
+  expected_cmd="sudo --preserve-env ${package_manager_cmd} ${required_packages[*]}"
 
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
-}
-
-function test_ask_yn_say_yes()
-{
-  local output
-  local ret
-
-  local -a output_sequence=(
-    ''
-    'Are you sure? [y/N]:'
-  )
-
-  output=$(printf 'y' | ask_yN 'Are you sure?')
-  ret="$?"
-
-  compare_command_sequence '' "$LINENO" 'output_sequence' "$output"
-  assert_equals_helper 'Wrong return' "(${LINENO})" 1 "$ret"
-
-  output=$(printf 'Y' | ask_yN 'Are you sure?')
-  ret="$?"
-  assert_equals_helper 'Wrong return' "(${LINENO})" 1 "$ret"
-
-  output=$(printf 'Yes' | ask_yN 'Are you sure?')
-  ret="$?"
-  assert_equals_helper 'Wrong return' "(${LINENO})" 1 "$ret"
-
-  output=$(printf 'yEs' | ask_yN 'Are you sure?')
-  ret="$?"
-  assert_equals_helper 'Wrong return' "(${LINENO})" 1 "$ret"
-}
-
-function test_ask_yn_say_no()
-{
-  local output
-  local ret
-
-  local -a output_sequence=(
-    ''
-    'Are you sure? [y/N]:'
-  )
-
-  output=$(printf 'N' | ask_yN 'Are you sure?')
-  ret="$?"
-
-  compare_command_sequence '' "$LINENO" 'output_sequence' "$output"
-  assert_equals_helper 'Wrong return' "(${LINENO})" 0 "$ret"
-
-  output=$(printf 'n' | ask_yN 'Are you sure?')
-  ret="$?"
-
-  assert_equals_helper 'Wrong return' "(${LINENO})" 0 "$ret"
-
-  output=$(printf 'No' | ask_yN 'Are you sure?')
-  ret="$?"
-
-  assert_equals_helper 'Wrong return' "(${LINENO})" 0 "$ret"
 }
 
 function test_detect_filesystem_type()

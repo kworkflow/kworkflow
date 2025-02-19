@@ -120,6 +120,7 @@ cd "$REMOTE_KW_DEPLOY"
 # Include base files
 include "${REMOTE_KW_DEPLOY}/utils.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
+include "${KW_LIB_DIR}/lib/kwio.sh"
 
 # Identify which distro this script will run, and load the correct file (e.g.,
 # ArchLinux should load arch.sh, Fedora should load fedora.sh, etc)

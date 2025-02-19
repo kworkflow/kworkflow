@@ -3,6 +3,7 @@
 include './src/plugins/kernel_install/utils.sh'
 include './src/plugins/kernel_install/rpi_bootloader.sh'
 include './tests/unit/utils.sh'
+include './src/lib/kwlib.sh'
 
 function setUp()
 {
