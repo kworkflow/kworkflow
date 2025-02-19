@@ -190,7 +190,7 @@ function collect_deploy_info()
   # XXX: We must remove the numeric value of target because this is not the
   # default here. i.e., if [["$target" == 'remote' ]]; ...
   if [[ "$target" == 3 || "$target" == 'remote' ]]; then
-    . "${REMOTE_KW_DEPLOY}/bootloader_utils.sh" --source-only
+    include "${REMOTE_KW_DEPLOY}/bootloader_utils.sh"
   fi
 
   bootloader=$(identify_bootloader_from_files "$prefix" "$target")
@@ -486,14 +486,14 @@ function update_bootloader()
   local root_file_system="$7"
   local force="$8"
   local deploy_data_string
-  local bootloader_path_prefix
+  local bootloader_path_prefix="${REMOTE_KW_DEPLOY}/"
   local ret
   local generate_initram=0
 
   [[ -n "$distro" ]] && generate_initram=1
   [[ -z "$prefix" ]] && prefix='/'
 
-  if [[ "$target" != 'remote' || "$flag" == 'TEST_MODE' ]]; then
+  if [[ "$target" == 'local' || "$flag" == 'TEST_MODE' ]]; then
     bootloader_path_prefix="${KW_PLUGINS_DIR}/kernel_install/"
   fi
 
@@ -514,7 +514,7 @@ function update_bootloader()
   esac
 
   # Load specific bootloader action
-  . "$bootloader_path_prefix" --source-only
+  include "$bootloader_path_prefix"
 
   # Each distro has their own way to generate their temporary root file system.
   if [[ "$generate_initram" == 1 ]]; then
