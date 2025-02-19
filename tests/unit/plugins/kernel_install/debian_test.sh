@@ -3,6 +3,7 @@
 include './src/plugins/kernel_install/utils.sh'
 include './src/plugins/kernel_install/debian.sh'
 include './src/lib/kwio.sh'
+include './src/lib/kwlib.sh'
 include './tests/unit/utils.sh'
 
 function setUp()

@@ -5,60 +5,6 @@ declare -g LIB_MODULES_PATH='/lib/modules'
 # kw package metadata
 declare -gA kw_package_metadata
 
-# ATTENTION:
-# This function follows the cmd_manager signature (src/lib/kwlib.sh) because we
-# share the specific distro in the kw main code. However, when we deploy for a
-# remote machine, we need this function, and this is the reason that we added
-# this function.
-function cmd_manager()
-{
-  local flag="$1"
-
-  case "$flag" in
-    SILENT)
-      shift 1
-      ;;
-    WARNING)
-      shift 1
-      printf '%s\n' 'WARNING' "$@"
-      ;;
-    SUCCESS)
-      shift 1
-      printf '%s\n' 'SUCCESS' "$@"
-      ;;
-    TEST_MODE)
-      shift 1
-      printf '%s\n' "$@"
-      return 0
-      ;;
-    VERBOSE)
-      shift 1
-      printf '%s\n' "$@"
-      ;;
-    *) # VERBOSE
-      printf '%s\n' "$@"
-      ;;
-  esac
-
-  eval "$*"
-}
-
-function command_exists()
-{
-  local cmd="$1"
-  local package=${cmd%% *}
-
-  if [[ ! -x "$(command -v "$package")" ]]; then
-    # Fallback
-    # TODO: Right now, this fallback is a workaround that will work until some
-    # distro removes the r-x permission from /usr/sbin. We must find a more
-    # definitive solution to this problem.
-    [[ -x "/usr/sbin/${package}" ]] && return 0
-    return 22 # EINVAL
-  fi
-  return 0
-}
-
 # Identify partition type
 #
 # @target_path By default, it is / but developers can set any path.
@@ -235,28 +181,6 @@ function distro_deploy_setup()
   fi
 
   cmd_manager "$flag" "$install_package_cmd"
-}
-
-# This function is dedicated to asking for yes or no when we have an ssh
-# connection. Notice that this is a specialized function for deploy operation.
-#
-# @message: This is a string with the message to be displayed for the user.
-#   This function add " [y/N]: " as a prefix for the provided message.
-#
-# Return:
-# Return 1 if user say anything that matches [yY][eE][sS]|[yY], otherwise,
-# return 0.
-function ask_yN()
-{
-  local message="$*"
-
-  printf '\n%s [y/N]: ' "$message"
-  read -r response
-  if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
-    return 1
-  else
-    return 0
-  fi
 }
 
 # A/B partition system distros usually replace the entire /boot folder but

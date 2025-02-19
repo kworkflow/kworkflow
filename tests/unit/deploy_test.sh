@@ -315,7 +315,6 @@ function test_prepare_distro_for_deploy_btrfs()
   output=$(prepare_distro_for_deploy 2 'TEST_MODE')
   expected_cmd=(
     '-> Basic distro set up'
-    '' # Extra space for the \n
     ''
     'btrfs property get / ro | grep "ro=false" --silent'
     'sudo -E mv /etc/skel/.screenrc /tmp'

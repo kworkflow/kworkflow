@@ -2,6 +2,7 @@
 
 include './src/plugins/kernel_install/utils.sh'
 include './src/plugins/kernel_install/grub.sh'
+include './src/lib/kwlib.sh'
 include './src/lib/kwio.sh'
 include './tests/unit/utils.sh'
 
