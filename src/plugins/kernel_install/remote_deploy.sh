@@ -119,6 +119,7 @@ cd "$REMOTE_KW_DEPLOY"
 
 # Include base files
 include "${REMOTE_KW_DEPLOY}/utils.sh"
+include "${REMOTE_KW_DEPLOY}/bootloader_utils.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
 

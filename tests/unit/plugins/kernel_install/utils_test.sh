@@ -2,6 +2,7 @@
 
 # We load utils in the oneTimeSetUp() to ensure we can replace some kw functions
 include './tests/unit/utils.sh'
+include './src/plugins/kernel_install/bootloader_utils.sh'
 include './src/lib/kwlib.sh'
 include './src/lib/kwio.sh'
 
@@ -696,7 +697,7 @@ function test_install_kernel_remote()
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/config-test /boot/"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
-    'run_bootloader_update_mock'
+    'update-grub'
     "grep --fixed-strings --line-regexp --quiet ${name} ${INSTALLED_KERNELS_PATH}"
     'reboot'
   )
@@ -709,7 +710,7 @@ function test_install_kernel_remote()
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/config-test /boot/"
     "cp ${SHUNIT_TMPDIR}/tmp/kw/kw_pkg/bzImage /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test remote GRUB'
-    'run_bootloader_update_mock'
+    'update-grub'
     "grep --fixed-strings --line-regexp --quiet ${name} ${INSTALLED_KERNELS_PATH}"
     'reboot'
   )
@@ -727,6 +728,7 @@ function test_install_kernel_remote()
   touch "${PWD}/boot/vmlinuz-${name}"
 
   output=$(install_kernel 'debian' "$reboot" "$target" '' 'TEST_MODE')
+
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 
   # Now add a .dtb file and remove vmlinuz
@@ -776,7 +778,7 @@ function test_install_kernel_local()
     "sudo --preserve-env cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/config-test /boot/"
     "sudo --preserve-env cp ${KW_DEPLOY_TMP_FILE}/kw_pkg/${kernel_image_name} /boot/"
     'generate_debian_temporary_root_file_system TEST_MODE test local GRUB'
-    'run_bootloader_update_mock'
+    'sudo --preserve-env update-grub'
     "sudo --preserve-env grep --fixed-strings --line-regexp --quiet ${name} ${INSTALLED_KERNELS_PATH}"
     'sudo --preserve-env reboot'
   )
