@@ -152,6 +152,7 @@ case "$action" in
     list_installed_kernels ${action_parameters[@]}
     ;;
   'uninstall_kernels')
+    include "${REMOTE_KW_DEPLOY}/uninstall.sh"
     # shellcheck disable=SC2068
     kernel_uninstall ${action_parameters[@]}
     ;;
