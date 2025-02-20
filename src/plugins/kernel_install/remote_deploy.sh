@@ -143,6 +143,7 @@ case "$action" in
     install_modules ${action_parameters[@]}
     ;;
   'kernel_update')
+    include "${REMOTE_KW_DEPLOY}/install.sh"
     # shellcheck disable=SC2068
     install_kernel ${action_parameters[@]}
     ;;
