@@ -1320,6 +1320,7 @@ function run_kernel_install()
       include "${KW_PLUGINS_DIR}/kernel_install/${distro}.sh"
       include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       include "${KW_PLUGINS_DIR}/kernel_install/bootloader_utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/install.sh"
       update_deploy_variables # Ensure that we are using the right variable
 
       say '* Moving kernel package for local deploy'
