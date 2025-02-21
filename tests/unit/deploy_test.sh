@@ -62,7 +62,7 @@ function setUp()
   CONFIG_RSYNC="rsync --info=progress2 -e '${CONFIG_SSH}'"
   STD_RSYNC_FLAG="-LrlptD --rsync-path='sudo rsync'"
 
-  DEPLOY_REMOTE_PREFIX="bash ${REMOTE_KW_DEPLOY}/remote_deploy.sh"
+  DEPLOY_REMOTE_PREFIX="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh"
   DEPLOY_REMOTE_PREFIX+=" --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
 
   # Default deploy messages
@@ -239,7 +239,7 @@ function test_prepare_distro_for_deploy_ext4()
 {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
-  local cmd="bash ${REMOTE_KW_DEPLOY}/remote_deploy.sh"
+  local cmd="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh"
 
   alias detect_filesystem_type='detect_filesystem_type_mock_ext4'
 
@@ -289,7 +289,7 @@ function test_prepare_distro_for_deploy_btrfs()
 {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
-  local cmd="bash ${REMOTE_KW_DEPLOY}/remote_deploy.sh"
+  local cmd="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh"
 
   alias detect_filesystem_type='detect_filesystem_type_mock_btrfs'
   alias btrfs='btrfs_property_get_root_ro_mock'
@@ -569,7 +569,7 @@ function test_kernel_modules()
   # Rsync script command
   rsync_debian="${CONFIG_RSYNC} ${kernel_install_path}/debian.sh ${CONFIG_REMOTE}:${remote_path}/distro_deploy.sh ${STD_RSYNC_FLAG}"
 
-  rsync_deploy="${CONFIG_RSYNC} ${kernel_install_path}/remote_deploy.sh ${CONFIG_REMOTE}:${remote_path}/ ${STD_RSYNC_FLAG}"
+  rsync_deploy="${CONFIG_RSYNC} ${kernel_install_path}/kw_remote_proxy_hub.sh ${CONFIG_REMOTE}:${remote_path}/ ${STD_RSYNC_FLAG}"
 
   rsync_utils="${CONFIG_RSYNC} ${kernel_install_path}/utils.sh ${CONFIG_REMOTE}:${remote_path}/ ${STD_RSYNC_FLAG}"
 

@@ -1,7 +1,10 @@
+# Summary: This file works as a proxy between the kw in the dev machine and the
+# files in the remote.
+#
 # This file is executed via ssh, i.e., it is used in the remote machine. This
-# code works as an entry point between the code under source and kernel_install
-# files; for this reason, it also has some variable adaptations to ensure that
-# lib and other files work as expected in the remote.
+# code works as an entry point between the code under src/deploy.sh and
+# kernel_install files; for this reason, it also has some variable adaptations
+# to ensure that lib and other files work as expected in the remote.
 #
 # There are a few things to notice about this file from the kw perspective:
 #
