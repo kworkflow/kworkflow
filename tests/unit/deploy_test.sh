@@ -927,7 +927,7 @@ function test_collect_target_info_for_deploy()
   local output
 
   # Avoid alias overwrite
-  include "${KW_PLUGINS_DIR}/kernel_install/bootloader_utils.sh"
+  include "${KW_PLUGINS_DIR}/kernel_install/bootloader.sh"
   include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
 
   # LOCAL

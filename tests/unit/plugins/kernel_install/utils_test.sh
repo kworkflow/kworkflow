@@ -2,7 +2,7 @@
 
 # We load utils in the oneTimeSetUp() to ensure we can replace some kw functions
 include './tests/unit/utils.sh'
-include './src/plugins/kernel_install/bootloader_utils.sh'
+include './src/plugins/kernel_install/bootloader.sh'
 include './src/lib/kwlib.sh'
 include './src/lib/kwio.sh'
 

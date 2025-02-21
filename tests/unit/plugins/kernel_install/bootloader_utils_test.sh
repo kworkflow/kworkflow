@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-include './src/plugins/kernel_install/bootloader_utils.sh'
+include './src/plugins/kernel_install/bootloader.sh'
 include './tests/unit/utils.sh'
 
 declare -r TEST_ROOT_PATH="$PWD"
