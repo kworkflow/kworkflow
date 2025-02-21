@@ -700,7 +700,7 @@ function collect_target_info_for_deploy()
 
   case "$target" in
     2) # LOCAL_TARGET
-      include "${KW_PLUGINS_DIR}/kernel_install/bootloader_utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/bootloader.sh"
       include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
       data=$(collect_deploy_info "$flag" "$target")
       ;;
@@ -763,7 +763,7 @@ function run_kernel_uninstall()
       # We need to update grub, for this reason we to load specific scripts.
       include "${KW_PLUGINS_DIR}/kernel_install/${distro}.sh"
       include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
-      include "${KW_PLUGINS_DIR}/kernel_install/bootloader_utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/bootloader.sh"
       include "${KW_PLUGINS_DIR}/kernel_install/uninstall.sh"
       # Let's ensure that we are using the right variables
       update_deploy_variables
@@ -1320,7 +1320,7 @@ function run_kernel_install()
 
       include "${KW_PLUGINS_DIR}/kernel_install/${distro}.sh"
       include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
-      include "${KW_PLUGINS_DIR}/kernel_install/bootloader_utils.sh"
+      include "${KW_PLUGINS_DIR}/kernel_install/bootloader.sh"
       include "${KW_PLUGINS_DIR}/kernel_install/install.sh"
       update_deploy_variables # Ensure that we are using the right variable
 

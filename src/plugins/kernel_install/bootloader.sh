@@ -140,12 +140,12 @@ function collect_deploy_info()
   local distro
   local bootloader
 
-  # Let's include the bootloader_utils in the remote, and local should
+  # Let's include the bootloader in the remote, and local should
   # include themselves
   # XXX: We must remove the numeric value of target because this is not the
   # default here. i.e., if [["$target" == 'remote' ]]; ...
   if [[ "$target" == 3 || "$target" == 'remote' ]]; then
-    include "${REMOTE_KW_DEPLOY}/bootloader_utils.sh"
+    include "${REMOTE_KW_DEPLOY}/bootloader.sh"
   fi
 
   bootloader=$(identify_bootloader_from_files "$prefix" "$target")
