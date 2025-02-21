@@ -28,7 +28,7 @@ include "${KW_LIB_DIR}/lib/signal_manager.sh"
 REMOTE_KW_DEPLOY='/opt/kw'
 KW_STATUS_BASE_PATH='/boot'
 KW_DEPLOY_TMP_FILE='/tmp/kw'
-REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/remote_deploy.sh --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
+REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
@@ -490,7 +490,7 @@ function update_deploy_variables()
   REMOTE_KW_DEPLOY="${kw_remote_path:-$REMOTE_KW_DEPLOY}"
   KW_DEPLOY_TMP_FILE="${kw_tmp_files:-$KW_DEPLOY_TMP_FILE}"
 
-  REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/remote_deploy.sh"
+  REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh"
   REMOTE_INTERACE_CMD_PREFIX+=" --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
 }
 

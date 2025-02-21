@@ -9,7 +9,7 @@ declare -g LIB_MODULES_PATH='/lib/modules'
 # The install_kernel function works as a template for each step of the kernel
 # installation. This function calls the specific bootloader and distro
 # operations via abstractions previously loaded by other files (e.g.,
-# src/deploy or remote_deploy.sh).
+# src/deploy or kw_remote_proxy_hub.sh).
 #
 # @distro: Distro name
 # @reboot: Set to 1 if user wants the system to be reboot.
