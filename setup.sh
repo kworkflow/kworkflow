@@ -85,6 +85,11 @@ function get_missing_packages()
       rpm -q "$package" &> /dev/null
       [[ "$?" -ne 0 ]] && package_list="${package} ${package_list}"
     done < "$deps_file"
+  elif [[ "$distro" =~ 'macos' ]]; then
+    while IFS='' read -r package; do
+      brew list --formula "$package" &> /dev/null
+      [[ "$?" -ne 0 ]] && package_list="${package} ${package_list}"
+    done < "$deps_file"
   fi
 
   printf '%s\n' "$package_list"
@@ -100,7 +105,8 @@ function install_packages()
 {
   local cmd="$1"
 
-  if [[ "$EUID" -eq 0 ]]; then
+  # In MacOS, Homebrew doesn't allow `sudo`
+  if [[ "$EUID" -eq 0 || "$(uname --kernel-name)" == 'Darwin' ]]; then
     eval "$cmd"
   else
     eval "sudo ${cmd}"
@@ -122,6 +128,11 @@ function check_dependencies()
 
   distro=$(detect_distro '/')
 
+  # If distro is equal to 'none', it can still be MacOS
+  if [[ "$distro" == 'none' && "$(uname --kernel-name)" == 'Darwin' ]]; then
+    distro='macos'
+  fi
+
   package_list=$(get_missing_packages "$distro" "${DOCUMENTATION}/dependencies/${distro}.dependencies")
 
   case "$distro" in
@@ -133,6 +144,9 @@ function check_dependencies()
       ;;
     fedora*)
       cmd="dnf install -y ${package_list}"
+      ;;
+    macos*)
+      cmd="brew install -q ${package_list}"
       ;;
     *)
       warning 'Unfortunately, we do not have official support for your distro (yet)'
@@ -193,6 +207,9 @@ function check_and_install_kernel_build_dependencies()
     fedora*)
       cmd="dnf install -y ${package_list}"
       ;;
+    macos*)
+      cmd="brew install -q ${package_list}"
+      ;;
     *)
       complain "Unsupported OS type: ${distro}"
       return 22 # EINVAL
@@ -231,8 +248,10 @@ function install_kernel_dev_deps()
 
   distro=$(detect_distro '/')
 
-  # Check if distro is equal to 'none'
-  if [[ "$distro" == 'none' ]]; then
+  # If distro is equal to 'none', it can still be MacOS
+  if [[ "$distro" == 'none' && "$(uname --kernel-name)" == 'Darwin' ]]; then
+    distro='macos'
+  elif [[ "$distro" == 'none' ]]; then
     complain 'Support for this distro is not available yet.'
     exit 22 # EINVAL
   fi

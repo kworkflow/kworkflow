@@ -339,6 +339,11 @@ function detect_distro()
   local os_release_process
   declare -a os_family=('debian' 'arch' 'fedora')
 
+  # If the system is MacOS, don't bother to do the other checks
+  if [[ "$(uname --kernel-name)" == 'Darwin' ]]; then
+    printf '%s\n' 'none'
+  fi
+
   etc_path=$(join_path "$root_path" '/etc')
 
   if [[ -d "$etc_path" && -z "$str_check" && -z "$raw_os_release" ]]; then
