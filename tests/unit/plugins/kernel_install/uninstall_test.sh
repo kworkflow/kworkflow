@@ -508,4 +508,73 @@ function test_do_uninstall_partial_cmd_sequence()
   }
 }
 
+# List of all kernels for validate kernel_to_be_removed_based_on_user_input
+declare -a all_installed_kernels_test=(
+  '6.12.0-TEST-CONFIG+'
+  '6.12.0-TEST-CONFIG-V3+'
+  'linux'
+)
+
+function test_kernel_to_be_removed_based_on_user_input_single_input()
+{
+  local input
+  local output
+
+  declare -a kw_managed_kernels_test=(
+    '6.12.0-TEST-CONFIG-V3+'
+  )
+
+  declare -a kernel_to_remove_test
+
+  kernel_to_be_removed_based_on_user_input \
+    'kw_managed_kernels_test' \
+    'all_installed_kernels_test' \
+    'kernel_to_remove_test'
+  ret="$?"
+
+  assert_equals_helper 'Kernel name did not match' "$LINENO" '6.12.0-TEST-CONFIG-V3+' "${kernel_to_remove_test[@]}"
+}
+
+function test_kernel_to_be_removed_based_on_user_input_single_no_match()
+{
+  local input
+  local output
+
+  declare -a kw_managed_kernels_test=(
+    'it_should_be_empty'
+  )
+
+  declare -a kernel_to_remove_test
+
+  kernel_to_be_removed_based_on_user_input \
+    'kw_managed_kernels_test' \
+    'all_installed_kernels_test' \
+    'kernel_to_remove_test'
+  ret="$?"
+
+  assert_equals_helper 'Kernel name did not match' "$LINENO" '' "${kernel_to_remove_test[@]}"
+}
+
+function test_kernel_to_be_removed_based_on_user_input_regex_input()
+{
+  local input
+  local output
+
+  declare -a kw_managed_kernels_test=(
+    'regex:.*TEST-CONFIG.*'
+  )
+
+  declare -a kernel_to_remove_test
+
+  kernel_to_be_removed_based_on_user_input \
+    'kw_managed_kernels_test' \
+    'all_installed_kernels_test' \
+    'kernel_to_remove_test'
+  ret="$?"
+
+  assert_equals_helper 'Kernel name did not match' "$LINENO" '6.12.0-TEST-CONFIG+' "${kernel_to_remove_test[0]}"
+  assert_equals_helper 'Kernel name did not match' "$LINENO" '6.12.0-TEST-CONFIG-V3+' "${kernel_to_remove_test[1]}"
+  assert_equals_helper 'It should return 2 elements' "$LINENO" 2 "$ret"
+}
+
 invoke_shunit

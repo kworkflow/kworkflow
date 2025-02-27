@@ -22,11 +22,14 @@ function kernel_uninstall()
   local force="$5"
   local prefix="$6"
   local update_grub=0
+  local index=0
   local -a all_installed_kernels
   local -a kw_managed_kernels
-  local prefix_for_regex='regex:'
   local regex_expression
-  declare -A kernel_names
+  local ret
+
+  # From user request, this array keeps the list of kernels to be removed
+  declare -a kernel_to_remove
 
   if [[ -z "$kernel_list_string_or_regex" ]]; then
     printf '%s\n' 'Invalid argument'
@@ -44,18 +47,10 @@ function kernel_uninstall()
 
   IFS=', ' read -r -a kernel_names_array <<< "$kernel_list_string_or_regex"
 
-  for input_string in "${kernel_names_array[@]}"; do
-    for installed_kernel in "${all_installed_kernels[@]}"; do
-      if [[ "$input_string" =~ ^$prefix_for_regex ]]; then
-        regex_expression=^${input_string#"$prefix_for_regex"}$
-        [[ "$installed_kernel" =~ $regex_expression ]] && kernel_names["$installed_kernel"]=1
-      else
-        [[ "$installed_kernel" == "$input_string" ]] && kernel_names["$installed_kernel"]=1
-      fi
-    done
-  done
+  kernel_to_be_removed_based_on_user_input 'kernel_names_array' 'all_installed_kernels' 'kernel_to_remove'
+  ret="$?"
 
-  for kernel in "${!kernel_names[@]}"; do
+  for kernel in "${kernel_to_remove[@]}"; do
     is_in_array "$kernel" 'kw_managed_kernels'
     if [[ "$?" != 0 && -z "$force" ]]; then
       printf '%s\n' "${kernel} not managed by kw. Use --force/-f to uninstall anyway."
@@ -78,6 +73,45 @@ function kernel_uninstall()
     # Reboot
     reboot_machine "$reboot" "$target" "$flag"
   fi
+}
+
+# Matches the user input with available kernels to be removed.
+#
+# @_kernel_names_array: Array with kernel names maintained by kw.
+# @_all_installed_kernels: Array with all kernels available.
+# @_kernel_to_remove: Array to be returned with all the kernels that can be removed.
+#
+# Return:
+# Return the total of kernels to be removed, and fill out the _kernel_to_remove
+# array with all kernels that must be removed.
+function kernel_to_be_removed_based_on_user_input()
+{
+  local input_string
+  local -n _kernel_names_array="$1"
+  local -n _all_installed_kernels="$2"
+  local -n _kernel_to_remove="$3"
+  local index=0
+
+  for input_string in "${_kernel_names_array[@]}"; do
+    input_string=$(str_remove_char_from_string "$input_string" "'")
+    for installed_kernel in "${_all_installed_kernels[@]}"; do
+      # Note: the prefix 'regex:' is mandatory if the user want to use regex
+      if [[ "$input_string" =~ ^regex: ]]; then
+        regex_expression=^${input_string#'regex:'}$
+        if [[ "$installed_kernel" =~ $regex_expression ]]; then
+          _kernel_to_remove["$index"]="$installed_kernel"
+          ((index++))
+        fi
+      else
+        if [[ "$installed_kernel" == "$input_string" ]]; then
+          _kernel_to_remove["$index"]="$installed_kernel"
+          ((index++))
+        fi
+      fi
+    done
+  done
+
+  return "$index"
 }
 
 # Checks if an element is contained in a given array.
