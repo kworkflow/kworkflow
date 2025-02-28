@@ -330,7 +330,14 @@ function load_configuration()
   target_array_local="${target_array}_local"
 
   target_config_file="${target_config}.config"
-  parse_configuration "${KW_ETC_DIR}/${target_config_file}" "$target_array" "$target_array_global"
+
+  # Check if the target configuration file already exists in the expected locations
+  if [[ -f "${KW_ETC_DIR}/${target_config_file}" || -f "${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}/${target_config_file}" || -f "${PWD}/${KW_DIR}/${target_config_file}" ]]; then
+    echo "Configuration file ${target_config_file} already exists. Skipping creation to avoid duplication."
+    return
+  fi
+
+  parse_configuration "${KW_ETC_DIR}/${target_config_file}" "$target_array" "$target_array_global" 
 
   # XDG_CONFIG_DIRS is a colon-separated list of directories for config
   # files to be searched, in order of preference. Since this function
@@ -341,10 +348,10 @@ function load_configuration()
   # /etc/xdg.
   config_dirs_size="${#config_dirs[@]}"
   for ((i = config_dirs_size - 1; i >= 0; i--)); do
-    parse_configuration "${config_dirs["$i"]}/${KWORKFLOW}/${target_config_file}" "$target_array" "$target_array_global"
+    parse_configuration "${config_dirs["$i"]}/${KWORKFLOW}/${target_config_file}" "$target_array" "$target_array_global" 
   done
 
-  parse_configuration "${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}/${target_config_file}" "$target_array" "$target_array_global"
+  parse_configuration "${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}/${target_config_file}" "$target_array" "$target_array_global" 
 
   # Old users may have kworkflow.config at $PWD
   if [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
