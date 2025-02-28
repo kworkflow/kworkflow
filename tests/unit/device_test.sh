@@ -3,163 +3,153 @@
 include './src/device_info.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
-  shopt -s expand_aliases
+function oneTimeSetUp() {
+	shopt -s expand_aliases
 }
 
-function setUp()
-{
-  options_values['TARGET']="$LOCAL_TARGET"
-  remote_parameters['REMOTE_USER']='john'
-  remote_parameters['REMOTE_IP']='something'
-  remote_parameters['REMOTE_PORT']='2222'
+function setUp() {
+	options_values['TARGET']="$LOCAL_TARGET"
+	remote_parameters['REMOTE_USER']='john'
+	remote_parameters['REMOTE_IP']='something'
+	remote_parameters['REMOTE_PORT']='2222'
 }
 
 declare -gA configurations
 configurations[ssh_user]=john
 
-function test_get_ram_from_vm()
-{
-  local cmd
-  local output
+function test_get_ram_from_vm() {
+	local cmd
+	local output
 
-  vm_config[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
-  options_values['TARGET']="$VM_TARGET"
-  get_ram
-  assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
+	vm_config[qemu_hw_options]='-enable-kvm -daemonize -smp 2 -m 1024'
+	options_values['TARGET']="$VM_TARGET"
+	get_ram
+	assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
 }
 
-function test_get_ram_from_local()
-{
-  local cmd
-  local output
+function test_get_ram_from_local() {
+	local cmd
+	local output
 
-  cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
-  options_values['TARGET']="$LOCAL_TARGET"
-  output=$(get_ram 'VERBOSE')
-  assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
+	cmd="[ -f '/proc/meminfo' ] && cat /proc/meminfo | grep 'MemTotal' | grep --only-matching '[0-9]*'"
+	options_values['TARGET']="$LOCAL_TARGET"
+	output=$(get_ram 'VERBOSE')
+	assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
 }
 
-function test_get_chassis()
-{
-  local cmd
-  local output
+function test_get_chassis() {
+	local cmd
+	local output
 
-  cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
-  output=$(get_chassis "$LOCAL_TARGET" 'TEST_MODE')
-  assert_equals_helper 'Failed to gather local target chassis data' "($LINENO)" "$cmd" "$output"
+	cmd='cat /sys/devices/virtual/dmi/id/chassis_type'
+	output=$(get_chassis "$LOCAL_TARGET" 'TEST_MODE')
+	assert_equals_helper 'Failed to gather local target chassis data' "($LINENO)" "$cmd" "$output"
 }
 
-function test_display_data()
-{
-  local output
+function test_display_data() {
+	local output
 
-  declare -a expected_cmd=(
-    'Chassis:'
-    'Type: Pizza Box'
-    'CPU:'
-    'Model: A model'
-    'Architecture: x86_64'
-    'Current frequency (MHz): 1400'
-    'RAM:'
-    'Total RAM: 16G'
-    'Storage devices:'
-    'Root filesystem: dev/something'
-    'Size: 250G'
-    'Mounted on: /'
-    'Operating System:'
-    'Distribution: Ubuntu'
-    'Distribution version: 22.04.1 LTS (Jammy Jellyfish)'
-    'Distribution base: debian'
-    'Desktop environments: gnome'
-    'Kernel:'
-    'Name: Linux'
-    'Release: 1.0.0-0'
-    'Version: #29~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Jan  1 00:00:00 UTC 2'
-    'Machine hardware name: Machine-type'
-    'Motherboard:'
-    'Vendor: Vendor'
-    'Name: ABC123'
-  )
+	declare -a expected_cmd=(
+		'Chassis:'
+		'Type: Pizza Box'
+		'CPU:'
+		'Model: A model'
+		'Architecture: x86_64'
+		'Current frequency (MHz): 1400'
+		'RAM:'
+		'Total RAM: 16G'
+		'Storage devices:'
+		'Root filesystem: dev/something'
+		'Size: 250G'
+		'Mounted on: /'
+		'Operating System:'
+		'Distribution: Ubuntu'
+		'Distribution version: 22.04.1 LTS (Jammy Jellyfish)'
+		'Distribution base: debian'
+		'Desktop environments: gnome'
+		'Kernel:'
+		'Name: Linux'
+		'Release: 1.0.0-0'
+		'Version: #29~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Jan  1 00:00:00 UTC 2'
+		'Machine hardware name: Machine-type'
+		'Motherboard:'
+		'Vendor: Vendor'
+		'Name: ABC123'
+	)
 
-  options_values['target']="$LOCAL_TARGET"
-  device_info_data['chassis']='Pizza Box'
-  device_info_data['ram']='16777216'
-  device_info_data['cpu_model']='A model'
-  device_info_data['cpu_architecture']='x86_64'
-  device_info_data['cpu_currently']=1400
-  device_info_data['disk_size']='250G'
-  device_info_data['root_path']='dev/something'
-  device_info_data['fs_mount']='/'
-  device_info_data['os_name']='Ubuntu'
-  device_info_data['os_id_like']='debian'
-  device_info_data['os_version']='22.04.1 LTS (Jammy Jellyfish)'
-  device_info_data['desktop_environment']='gnome'
-  device_info_data['kernel_name']='Linux'
-  device_info_data['kernel_release']='1.0.0-0'
-  device_info_data['kernel_version']='#29~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Jan  1 00:00:00 UTC 2'
-  device_info_data['kernel_machine']='Machine-type'
-  device_info_data['motherboard_vendor']='Vendor'
-  device_info_data['motherboard_name']='ABC123'
-  output=$(show_data)
+	options_values['target']="$LOCAL_TARGET"
+	device_info_data['chassis']='Pizza Box'
+	device_info_data['ram']='16777216'
+	device_info_data['cpu_model']='A model'
+	device_info_data['cpu_architecture']='x86_64'
+	device_info_data['cpu_currently']=1400
+	device_info_data['disk_size']='250G'
+	device_info_data['root_path']='dev/something'
+	device_info_data['fs_mount']='/'
+	device_info_data['os_name']='Ubuntu'
+	device_info_data['os_id_like']='debian'
+	device_info_data['os_version']='22.04.1 LTS (Jammy Jellyfish)'
+	device_info_data['desktop_environment']='gnome'
+	device_info_data['kernel_name']='Linux'
+	device_info_data['kernel_release']='1.0.0-0'
+	device_info_data['kernel_version']='#29~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Jan  1 00:00:00 UTC 2'
+	device_info_data['kernel_machine']='Machine-type'
+	device_info_data['motherboard_vendor']='Vendor'
+	device_info_data['motherboard_name']='ABC123'
+	output=$(show_data)
 
-  compare_command_sequence 'Failed to set target data' "$LINENO" 'expected_cmd' "$output"
+	compare_command_sequence 'Failed to set target data' "$LINENO" 'expected_cmd' "$output"
 }
 
-function detect_distro_mock()
-{
-  printf '%s\n' 'lala'
+function detect_distro_mock() {
+	printf '%s\n' 'lala'
 }
 
-function which_distro_mock()
-{
-  printf '%s\n' 'xpto'
+function which_distro_mock() {
+	printf '%s\n' 'xpto'
 }
 
-function ps_mock()
-{
-  printf '%s\n' "$1"
+function ps_mock() {
+	printf '%s\n' "$1"
 }
 
-function test_get_desktop_environment()
-{
-  local cmd
-  local output
+function test_get_desktop_environment() {
+	local cmd
+	local output
 
-  # Check local deploy and some DE variations
-  alias ps='ps_mock lxsession'
-  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
-  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'lxde' "${device_info_data['desktop_environment']}"
+	# Check local deploy and some DE variations
+	alias ps='ps_mock lxsession'
+	get_desktop_environment "$LOCAL_TARGET" 'SILENT'
+	assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'lxde' "${device_info_data['desktop_environment']}"
 
-  alias ps='ps_mock kde'
-  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
-  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'kde' "${device_info_data['desktop_environment']}"
+	alias ps='ps_mock kde'
+	get_desktop_environment "$LOCAL_TARGET" 'SILENT'
+	assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'kde' "${device_info_data['desktop_environment']}"
 
-  alias ps='ps_mock mate'
-  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
-  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'mate' "${device_info_data['desktop_environment']}"
+	alias ps='ps_mock mate'
+	get_desktop_environment "$LOCAL_TARGET" 'SILENT'
+	assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'mate' "${device_info_data['desktop_environment']}"
 
-  alias ps='ps_mock cinnamon'
-  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
-  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'cinnamon' "${device_info_data['desktop_environment']}"
+	alias ps='ps_mock cinnamon'
+	get_desktop_environment "$LOCAL_TARGET" 'SILENT'
+	assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'cinnamon' "${device_info_data['desktop_environment']}"
 
-  alias ps='ps_mock openbox'
-  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
-  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'openbox' "${device_info_data['desktop_environment']}"
+	alias ps='ps_mock openbox'
+	get_desktop_environment "$LOCAL_TARGET" 'SILENT'
+	assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'openbox' "${device_info_data['desktop_environment']}"
 
-  alias ps='ps_mock gnome-shell'
-  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
-  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'gnome' "${device_info_data['desktop_environment']}"
+	alias ps='ps_mock gnome-shell'
+	get_desktop_environment "$LOCAL_TARGET" 'SILENT'
+	assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'gnome' "${device_info_data['desktop_environment']}"
 
-  alias ps='ps_mock something'
-  get_desktop_environment "$LOCAL_TARGET" 'SILENT'
-  assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'unidentified' "${device_info_data['desktop_environment']}"
+	alias ps='ps_mock something'
+	get_desktop_environment "$LOCAL_TARGET" 'SILENT'
+	assert_equals_helper 'Failed to set/gather local target DE data' "($LINENO)" 'unidentified' "${device_info_data['desktop_environment']}"
 }
 
 # mocked data for get_gpu test
 mocked_lspci=$(
-  cat << EOF
+	cat <<EOF
 00:00.0 Host bridge: Intel Corporation Xeon E3-1200 v6/7th Gen Core Processor Host Bridge/DRAM Registers (rev 08)
 00:02.0 VGA compatible controller: Intel Corporation UHD Graphics 620 (rev 07)
 00:04.0 Signal processing controller: Intel Corporation Xeon E3-1200 v5/E3-1500 v5/6th Gen Core Processor Thermal Subsystem (rev 08)
@@ -183,7 +173,7 @@ EOF
 
 # Mocked lspci verbose output for the device identified by "01:00.0"
 mocked_lspci_verbose_select_01_00_0=$(
-  cat << EOF
+	cat <<EOF
 01:00.0 Display controller: Advanced Micro Devices, Inc. [AMD/ATI] Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile] (rev c3)
   Subsystem: Dell Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile]
   Flags: bus master, fast devsel, latency 0, IRQ 129
@@ -205,7 +195,7 @@ EOF
 
 # Mocked lspci verbose output for the device identified by "00:02.0"
 mocked_lspci_verbose_select_00_02_0=$(
-  cat << EOF
+	cat <<EOF
 00:02.0 VGA compatible controller: Intel Corporation UHD Graphics 620 (rev 07) (prog-if 00 [VGA controller])
   DeviceName:  Onboard IGD
   Subsystem: Dell UHD Graphics 620
@@ -220,41 +210,39 @@ mocked_lspci_verbose_select_00_02_0=$(
 EOF
 )
 
-function lspci_mock()
-{
-  local raw_options="$*"
-  if [[ $raw_options == '-v -s 01:00.0' ]]; then
-    printf '%s\n' "$mocked_lspci_verbose_select_01_00_0"
-  elif [[ $raw_options == '-v -s 00:02.0' ]]; then
-    printf '%s\n' "$mocked_lspci_verbose_select_00_02_0"
-  else
-    printf '%s\n' "$mocked_lspci"
-  fi
+function lspci_mock() {
+	local raw_options="$*"
+	if [[ $raw_options == '-v -s 01:00.0' ]]; then
+		printf '%s\n' "$mocked_lspci_verbose_select_01_00_0"
+	elif [[ $raw_options == '-v -s 00:02.0' ]]; then
+		printf '%s\n' "$mocked_lspci_verbose_select_00_02_0"
+	else
+		printf '%s\n' "$mocked_lspci"
+	fi
 }
 
-function test_get_gpu()
-{
-  local output
+function test_get_gpu() {
+	local output
 
-  alias lspci='lspci_mock'
+	alias lspci='lspci_mock'
 
-  # Check local deploy calls the expected commands
-  declare -a expected_cmd=(
-    "lspci | grep --regexp=VGA --regexp=Display --regexp=3D | cut --delimiter=' ' -f1"
-    'lspci -v -s 01:00.0'
-    'lspci -v -s 00:02.0'
-  )
-  output=$(get_gpu "$LOCAL_TARGET" 'TEST_MODE')
-  compare_command_sequence 'Unexpected cmd while trying to gather local target GPU data' "$LINENO" 'expected_cmd' "$output"
+	# Check local deploy calls the expected commands
+	declare -a expected_cmd=(
+		"lspci | grep --regexp=VGA --regexp=Display --regexp=3D | cut --delimiter=' ' -f1"
+		'lspci -v -s 01:00.0'
+		'lspci -v -s 00:02.0'
+	)
+	output=$(get_gpu "$LOCAL_TARGET" 'TEST_MODE')
+	compare_command_sequence 'Unexpected cmd while trying to gather local target GPU data' "$LINENO" 'expected_cmd' "$output"
 
-  # Check local deploy fills global variable $gpus as expected
-  declare -a expected_result=(
-    'Dell UHD Graphics 620;Intel Corporation UHD Graphics 620'
-    'Dell Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile];Advanced Micro Devices, Inc.'
-  )
+	# Check local deploy fills global variable $gpus as expected
+	declare -a expected_result=(
+		'Dell UHD Graphics 620;Intel Corporation UHD Graphics 620'
+		'Dell Jet PRO [Radeon R5 M230 / R7 M260DX / Radeon 520 Mobile];Advanced Micro Devices, Inc.'
+	)
 
-  get_gpu "$LOCAL_TARGET"
-  compare_array_values expected_result gpus "$LINENO"
+	get_gpu "$LOCAL_TARGET"
+	compare_array_values expected_result gpus "$LINENO"
 }
 
 invoke_shunit

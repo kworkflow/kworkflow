@@ -1,4 +1,3 @@
-function foo()
-{
-  command &
+function foo() {
+	command &
 }

@@ -8,48 +8,46 @@
 
 # Debian package names
 declare -ag required_packages=(
-  'rsync'
-  'screen'
-  'pv'
-  'bzip2'
-  'lzip'
-  'xz-utils'
-  'lzop'
-  'zstd'
+	'rsync'
+	'screen'
+	'pv'
+	'bzip2'
+	'lzip'
+	'xz-utils'
+	'lzop'
+	'zstd'
 )
 
 # Debian package manager command
 declare -g package_manager_cmd='apt-get install -y'
 
 # Setup hook
-function distro_pre_setup()
-{
-  : # NOTHING
+function distro_pre_setup() {
+	: # NOTHING
 }
 
-function generate_debian_temporary_root_file_system()
-{
-  local flag="$1"
-  local name="$2"
-  local target="$3"
-  local bootloader_type="$4"
-  local path_prefix="$5"
-  local cmd='update-initramfs -c -k'
-  local prefix='/'
+function generate_debian_temporary_root_file_system() {
+	local flag="$1"
+	local name="$2"
+	local target="$3"
+	local bootloader_type="$4"
+	local path_prefix="$5"
+	local cmd='update-initramfs -c -k'
+	local prefix='/'
 
-  if [[ -n "$path_prefix" ]]; then
-    prefix="${path_prefix}"
-  fi
+	if [[ -n "$path_prefix" ]]; then
+		prefix="${path_prefix}"
+	fi
 
-  # We do not support initramfs outside grub scope
-  [[ "$bootloader_type" != 'GRUB' ]] && return
+	# We do not support initramfs outside grub scope
+	[[ "$bootloader_type" != 'GRUB' ]] && return
 
-  cmd+=" $name"
+	cmd+=" $name"
 
-  if [[ "$target" == 'local' ]]; then
-    cmd="sudo -E $cmd"
-  fi
+	if [[ "$target" == 'local' ]]; then
+		cmd="sudo -E $cmd"
+	fi
 
-  # Update initramfs
-  cmd_manager "$flag" "$cmd"
+	# Update initramfs
+	cmd_manager "$flag" "$cmd"
 }

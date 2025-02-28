@@ -8,7 +8,7 @@ KW_SHARED_MEMORY_DEFAULT_DIR='/dev/shm'
 
 # Array with compression programs accepted by tar
 declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
-  'xz' 'auto-compress')
+	'xz' 'auto-compress')
 
 # A common task used inside kw is a string separation based on a delimiter, for
 # this reason, this function tries to handle this scenario by getting a
@@ -29,29 +29,28 @@ declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
 # error, "string" is displayed in the printf command and EINVAL code is
 # returned.Probably, you want to execute this function is a subshell and save
 # the output in a variable.
-function get_based_on_delimiter()
-{
-  local string="$1"
-  local delimiter="$2"
-  local position="$3"
-  local output=''
-  local ret=0
+function get_based_on_delimiter() {
+	local string="$1"
+	local delimiter="$2"
+	local position="$3"
+	local output=''
+	local ret=0
 
-  delimiter=${delimiter:-':'}
+	delimiter=${delimiter:-':'}
 
-  output=$(printf '%s\n' "$string" | grep -i "$delimiter")
-  if [[ "$?" != 0 ]]; then
-    printf '%s\n' "$string"
-    return 22 # EINVAL
-  fi
+	output=$(printf '%s\n' "$string" | grep -i "$delimiter")
+	if [[ "$?" != 0 ]]; then
+		printf '%s\n' "$string"
+		return 22 # EINVAL
+	fi
 
-  output=$(printf '%s\n' "$string" | cut -d "$delimiter" -f"$position")
-  if [[ -z "$output" ]]; then
-    output="$string"
-    ret=22 # EINVAL
-  fi
-  printf '%s\n' "$output"
-  return "$ret"
+	output=$(printf '%s\n' "$string" | cut -d "$delimiter" -f"$position")
+	if [[ -z "$output" ]]; then
+		output="$string"
+		ret=22 # EINVAL
+	fi
+	printf '%s\n' "$output"
+	return "$ret"
 }
 
 # This function executes any command and provides a mechanism to display the
@@ -68,66 +67,64 @@ function get_based_on_delimiter()
 # Returns:
 # Return the exit status of the command defined by the string or 0 in the case
 # of TEST_MODE
-function cmd_manager()
-{
-  local flag="$1"
-  shift 1 # Let's remove flag parameter
-  local command_for_eval_array=("$@")
-  local redirect_mode="${*: -2:1}" # Last but one
-  local output_path="${*: -1}"     # Last
-  local command_for_eval=''
-  local base_path
+function cmd_manager() {
+	local flag="$1"
+	shift 1 # Let's remove flag parameter
+	local command_for_eval_array=("$@")
+	local redirect_mode="${*: -2:1}" # Last but one
+	local output_path="${*: -1}"     # Last
+	local command_for_eval=''
+	local base_path
 
-  if [[ "$redirect_mode" == 'KW_REDIRECT_MODE' ]]; then
-    base_path="${output_path%/*}"
-    unset 'command_for_eval_array[-1]' # Remove output_path
-    unset 'command_for_eval_array[-1]' # Remove redirect_mode
+	if [[ "$redirect_mode" == 'KW_REDIRECT_MODE' ]]; then
+		base_path="${output_path%/*}"
+		unset 'command_for_eval_array[-1]' # Remove output_path
+		unset 'command_for_eval_array[-1]' # Remove redirect_mode
 
-    if [[ ! -w "$base_path" ]]; then
-      return 13 # EACCES
-    fi
+		if [[ ! -w "$base_path" ]]; then
+			return 13 # EACCES
+		fi
 
-    command_for_eval_array+=("| tee $output_path")
-  fi
+		command_for_eval_array+=("| tee $output_path")
+	fi
 
-  # Convert command_for_eval to a simple string
-  command_for_eval=$(str_strip "${command_for_eval_array[*]}")
+	# Convert command_for_eval to a simple string
+	command_for_eval=$(str_strip "${command_for_eval_array[*]}")
 
-  case "$flag" in
-    SILENT) ;;
-    COMPLAIN)
-      complain "$command_for_eval"
-      ;;
-    WARNING)
-      warning "$command_for_eval"
-      ;;
-    SUCCESS)
-      success "$command_for_eval"
-      ;;
-    HIGHLIGHT_CMD)
-      warning "$command_for_eval"
-      ;;
-    TEST_MODE)
-      say "$command_for_eval"
-      return 0
-      ;;
-    CMD_SUBSTITUTION_VERBOSE)
-      say "$command_for_eval" >&2
-      ;;
-    *) # VERBOSE
-      say "$command_for_eval"
-      ;;
-  esac
+	case "$flag" in
+	SILENT) ;;
+	COMPLAIN)
+		complain "$command_for_eval"
+		;;
+	WARNING)
+		warning "$command_for_eval"
+		;;
+	SUCCESS)
+		success "$command_for_eval"
+		;;
+	HIGHLIGHT_CMD)
+		warning "$command_for_eval"
+		;;
+	TEST_MODE)
+		say "$command_for_eval"
+		return 0
+		;;
+	CMD_SUBSTITUTION_VERBOSE)
+		say "$command_for_eval" >&2
+		;;
+	*) # VERBOSE
+		say "$command_for_eval"
+		;;
+	esac
 
-  eval "$command_for_eval"
+	eval "$command_for_eval"
 }
 
-function show_verbose()
-{
-  local flag="$1"
-  local cmd="$2"
+function show_verbose() {
+	local flag="$1"
+	local cmd="$2"
 
-  [[ "$flag" == 'VERBOSE' ]] && say "$cmd"
+	[[ "$flag" == 'VERBOSE' ]] && say "$cmd"
 }
 
 # This function creates a temporary shared memory directory to be used by
@@ -137,14 +134,13 @@ function show_verbose()
 #
 # Returns:
 # Outputs the path to the shared memory directory created.
-function create_shared_memory_dir()
-{
-  if [[ -d "$KW_SHARED_MEMORY_DEFAULT_DIR" && -w "$KW_SHARED_MEMORY_DEFAULT_DIR" ]]; then
-    printf '%s' "$(mktemp --tmpdir="$KW_SHARED_MEMORY_DEFAULT_DIR" --directory)"
-    return
-  fi
+function create_shared_memory_dir() {
+	if [[ -d "$KW_SHARED_MEMORY_DEFAULT_DIR" && -w "$KW_SHARED_MEMORY_DEFAULT_DIR" ]]; then
+		printf '%s' "$(mktemp --tmpdir="$KW_SHARED_MEMORY_DEFAULT_DIR" --directory)"
+		return
+	fi
 
-  printf '%s' "$(mktemp --directory)"
+	printf '%s' "$(mktemp --directory)"
 }
 
 # Checks if a directory is a kernel tree root
@@ -153,23 +149,22 @@ function create_shared_memory_dir()
 #
 # Returns:
 # True if given dir is a kernel tree root and false otherwise.
-function is_kernel_root()
-{
-  local -r DIR="$*"
+function is_kernel_root() {
+	local -r DIR="$*"
 
-  # The following files are some of the files expected to be at a linux
-  # tree root and not expected to change. Their presence (or abscense)
-  # is used to tell if a directory is a linux tree root or not. (They
-  # are the same ones used by get_maintainer.pl)
-  if [[ -f "${DIR}/COPYING" && -f "${DIR}/CREDITS" && -f "${DIR}/Kbuild" &&
-    -e "${DIR}/MAINTAINERS" && -f "${DIR}/Makefile" && -f "${DIR}/README" &&
-    -d "${DIR}/Documentation" && -d "${DIR}/arch" && -d "${DIR}/include" &&
-    -d "${DIR}/drivers" && -d "${DIR}/fs" && -d "${DIR}/init" &&
-    -d "${DIR}/ipc" && -d "${DIR}/kernel" && -d "${DIR}/lib" &&
-    -d "${DIR}/scripts" ]]; then
-    return 0
-  fi
-  return 1 # EPERM
+	# The following files are some of the files expected to be at a linux
+	# tree root and not expected to change. Their presence (or abscense)
+	# is used to tell if a directory is a linux tree root or not. (They
+	# are the same ones used by get_maintainer.pl)
+	if [[ -f "${DIR}/COPYING" && -f "${DIR}/CREDITS" && -f "${DIR}/Kbuild" &&
+		-e "${DIR}/MAINTAINERS" && -f "${DIR}/Makefile" && -f "${DIR}/README" &&
+		-d "${DIR}/Documentation" && -d "${DIR}/arch" && -d "${DIR}/include" &&
+		-d "${DIR}/drivers" && -d "${DIR}/fs" && -d "${DIR}/init" &&
+		-d "${DIR}/ipc" && -d "${DIR}/kernel" && -d "${DIR}/lib" &&
+		-d "${DIR}/scripts" ]]; then
+		return 0
+	fi
+	return 1 # EPERM
 }
 
 # Finds the root of the linux kernel repo containing the given file
@@ -179,31 +174,30 @@ function is_kernel_root()
 # Returns:
 # The path of the kernel tree root (string) which the file or dir belongs to, or
 # an empty string if no root was found.
-function find_kernel_root()
-{
-  local -r FILE_OR_DIR="$*"
-  local current_dir
-  local kernel_root=''
+function find_kernel_root() {
+	local -r FILE_OR_DIR="$*"
+	local current_dir
+	local kernel_root=''
 
-  if [[ -f "$FILE_OR_DIR" ]]; then
-    current_dir="$(dirname "$FILE_OR_DIR")"
-  else
-    current_dir="$FILE_OR_DIR"
-  fi
+	if [[ -f "$FILE_OR_DIR" ]]; then
+		current_dir="$(dirname "$FILE_OR_DIR")"
+	else
+		current_dir="$FILE_OR_DIR"
+	fi
 
-  if is_kernel_root "$current_dir"; then
-    kernel_root="$current_dir"
-  else
-    while [[ "$current_dir" != '.' && "$current_dir" != '/' ]]; do
-      current_dir="$(dirname "$current_dir")"
-      if is_kernel_root "$current_dir"; then
-        kernel_root="$current_dir"
-        break
-      fi
-    done
-  fi
+	if is_kernel_root "$current_dir"; then
+		kernel_root="$current_dir"
+	else
+		while [[ "$current_dir" != '.' && "$current_dir" != '/' ]]; do
+			current_dir="$(dirname "$current_dir")"
+			if is_kernel_root "$current_dir"; then
+				kernel_root="$current_dir"
+				break
+			fi
+		done
+	fi
 
-  printf '%s\n' "$kernel_root"
+	printf '%s\n' "$kernel_root"
 }
 
 # Get the kernel release based on the command kernelrelease.
@@ -213,23 +207,22 @@ function find_kernel_root()
 #
 # Note: Make sure that you called is_kernel_root before trying to execute this
 # function.
-function get_kernel_release()
-{
-  local flag="$1"
-  local env_name
-  # TODO: Maybe we need to remove this error redirection
-  local cmd='make kernelrelease'
+function get_kernel_release() {
+	local flag="$1"
+	local env_name
+	# TODO: Maybe we need to remove this error redirection
+	local cmd='make kernelrelease'
 
-  env_name=$(get_current_env_name)
-  if [[ "$?" == 0 ]]; then
-    cmd+=" O=${KW_CACHE_DIR}/${ENV_DIR}/${env_name} --silent"
-  fi
+	env_name=$(get_current_env_name)
+	if [[ "$?" == 0 ]]; then
+		cmd+=" O=${KW_CACHE_DIR}/${ENV_DIR}/${env_name} --silent"
+	fi
 
-  cmd+=" 2> /dev/null"
+	cmd+=" 2> /dev/null"
 
-  [[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
+	[[ "$flag" != 'TEST_MODE' ]] && flag='SILENT'
 
-  cmd_manager "$flag" "$cmd"
+	cmd_manager "$flag" "$cmd"
 }
 
 # Get the kernel version name.
@@ -239,21 +232,20 @@ function get_kernel_release()
 #
 # Note: Make sure that you called is_kernel_root before trying to execute this
 # function.
-function get_kernel_version()
-{
-  local flag="$1"
-  # TODO: Maybe we need to remove this error redirection
-  local cmd='make kernelversion 2> /dev/null'
-  local env_name
+function get_kernel_version() {
+	local flag="$1"
+	# TODO: Maybe we need to remove this error redirection
+	local cmd='make kernelversion 2> /dev/null'
+	local env_name
 
-  env_name=$(get_current_env_name)
-  if [[ "$?" == 0 ]]; then
-    cmd="make kernelversion O=${KW_CACHE_DIR}/${ENV_DIR}/${env_name} --silent 2> /dev/null"
-  fi
+	env_name=$(get_current_env_name)
+	if [[ "$?" == 0 ]]; then
+		cmd="make kernelversion O=${KW_CACHE_DIR}/${ENV_DIR}/${env_name} --silent 2> /dev/null"
+	fi
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "$cmd"
+	cmd_manager "$flag" "$cmd"
 }
 
 # Checks if the given path is a patch file
@@ -262,33 +254,32 @@ function get_kernel_version()
 #
 # Returns:
 # True if given path is a patch file and false otherwise.
-function is_a_patch()
-{
-  local -r FILE_PATH="$*"
-  local file_content
+function is_a_patch() {
+	local -r FILE_PATH="$*"
+	local file_content
 
-  if [[ ! -f "$FILE_PATH" ]]; then
-    return 1 # EPERM
-  fi
+	if [[ ! -f "$FILE_PATH" ]]; then
+		return 1 # EPERM
+	fi
 
-  file_content=$(< "$FILE_PATH")
+	file_content=$(<"$FILE_PATH")
 
-  # The following array stores strings that are expected to be present
-  # in a patch file. The absence of any of these strings makes the
-  # given file be considered NOT a patch
-  local -ar PATCH_EXPECTED_STRINGS=(
-    'diff --git'
-    '---'
-    '@@'
-  )
+	# The following array stores strings that are expected to be present
+	# in a patch file. The absence of any of these strings makes the
+	# given file be considered NOT a patch
+	local -ar PATCH_EXPECTED_STRINGS=(
+		'diff --git'
+		'---'
+		'@@'
+	)
 
-  for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
-    if [[ ! "$file_content" =~ $expected_str ]]; then
-      return 1 # EPERM
-    fi
-  done
+	for expected_str in "${PATCH_EXPECTED_STRINGS[@]}"; do
+		if [[ ! "$file_content" =~ $expected_str ]]; then
+			return 1 # EPERM
+		fi
+	done
 
-  return 0
+	return 0
 }
 
 # This function joins one path components intelligently. The return value is
@@ -299,21 +290,20 @@ function is_a_patch()
 #
 # Returns:
 # Return the concatenation of path and member, removing any extra slashes '/'
-function join_path()
-{
-  local target_path=$1
-  local member=$2
-  local joined
+function join_path() {
+	local target_path=$1
+	local member=$2
+	local joined
 
-  # TODO: Extended pattern matching. We should consider to use it as a default
-  # in this project.
-  shopt -s extglob
-  member=${member%%+(/)}
-  member=${member##+(/)}
+	# TODO: Extended pattern matching. We should consider to use it as a default
+	# in this project.
+	shopt -s extglob
+	member=${member%%+(/)}
+	member=${member##+(/)}
 
-  joined="${target_path%%+(/)}/$member"
+	joined="${target_path%%+(/)}/$member"
 
-  printf '%s\n' "$joined" | tr -s '/'
+	printf '%s\n' "$joined" | tr -s '/'
 }
 
 # This function checks if the target distro is supported by kw. This function
@@ -329,40 +319,39 @@ function join_path()
 #
 # Returns:
 # It returns the family name in lowercase, otherwise return none.
-function detect_distro()
-{
-  local root_path="$1"
-  local str_check="$2"
-  local raw_os_release="$3"
-  local distro_ids='none'
-  local etc_path
-  local os_release_process
-  declare -a os_family=('debian' 'arch' 'fedora')
+function detect_distro() {
+	local root_path="$1"
+	local str_check="$2"
+	local raw_os_release="$3"
+	local distro_ids='none'
+	local etc_path
+	local os_release_process
+	declare -a os_family=('debian' 'arch' 'fedora')
 
-  etc_path=$(join_path "$root_path" '/etc')
+	etc_path=$(join_path "$root_path" '/etc')
 
-  if [[ -d "$etc_path" && -z "$str_check" && -z "$raw_os_release" ]]; then
-    os_release_process=$(< "${etc_path}/os-release")
-  elif [[ -n "$raw_os_release" ]]; then
-    os_release_process="$raw_os_release"
-  fi
+	if [[ -d "$etc_path" && -z "$str_check" && -z "$raw_os_release" ]]; then
+		os_release_process=$(<"${etc_path}/os-release")
+	elif [[ -n "$raw_os_release" ]]; then
+		os_release_process="$raw_os_release"
+	fi
 
-  if [[ -n "$os_release_process" ]]; then
-    distro_ids=$(printf '%s' "$os_release_process" | grep -w 'ID\(_LIKE\)\?' | tr -d '"' | cut -d = -f 2)
-  fi
+	if [[ -n "$os_release_process" ]]; then
+		distro_ids=$(printf '%s' "$os_release_process" | grep -w 'ID\(_LIKE\)\?' | tr -d '"' | cut -d = -f 2)
+	fi
 
-  if [[ -n "$str_check" ]]; then
-    distro_ids="$str_check"
-  fi
+	if [[ -n "$str_check" ]]; then
+		distro_ids="$str_check"
+	fi
 
-  for distro_id in $distro_ids; do
-    if [[ ${os_family[*]} =~ ${distro_id} ]]; then
-      printf '%s\n' "$distro_id"
-      return
-    fi
-  done
+	for distro_id in $distro_ids; do
+		if [[ ${os_family[*]} =~ ${distro_id} ]]; then
+			printf '%s\n' "$distro_id"
+			return
+		fi
+	done
 
-  printf '%s\n' 'none'
+	printf '%s\n' 'none'
 }
 
 # This function maps a label with a value that is used to store statistics data
@@ -376,52 +365,50 @@ function detect_distro()
 #
 # Return:
 # Print a execution time info
-function statistics_manager()
-{
-  local label_name="$1"
-  local start_datetime_in_secs="$2"
-  local elapsed_time_in_secs="$3"
-  local status=${4:-'success'}
-  local flag=${5:-'SILENT'}
-  local start_datetime
-  local start_date
-  local start_time
-  local row
-  local database_columns='("label_name","status","date","time","elapsed_time_in_secs")'
+function statistics_manager() {
+	local label_name="$1"
+	local start_datetime_in_secs="$2"
+	local elapsed_time_in_secs="$3"
+	local status=${4:-'success'}
+	local flag=${5:-'SILENT'}
+	local start_datetime
+	local start_date
+	local start_time
+	local row
+	local database_columns='("label_name","status","date","time","elapsed_time_in_secs")'
 
-  start_datetime=$(date --date @"${start_datetime_in_secs}" '+%Y-%m-%d %H:%M:%S')
-  start_date=$(printf '%s' "$start_datetime" | cut --delimiter=' ' --fields=1)
-  start_time=$(printf '%s' "$start_datetime" | cut --delimiter=' ' --fields=2)
+	start_datetime=$(date --date @"${start_datetime_in_secs}" '+%Y-%m-%d %H:%M:%S')
+	start_date=$(printf '%s' "$start_datetime" | cut --delimiter=' ' --fields=1)
+	start_time=$(printf '%s' "$start_datetime" | cut --delimiter=' ' --fields=2)
 
-  elapsed_time=$(sec_to_format "$elapsed_time_in_secs")
-  say "-> Execution time: $elapsed_time"
+	elapsed_time=$(sec_to_format "$elapsed_time_in_secs")
+	say "-> Execution time: $elapsed_time"
 
-  [[ ${configurations[disable_statistics_data_track]} == 'yes' ]] && return
+	[[ ${configurations[disable_statistics_data_track]} == 'yes' ]] && return
 
-  [[ -z "$label_name" || -z "$status" || -z "$start_date" || -z "$start_time" || -z "$elapsed_time_in_secs" ]] && return 22 # EINVAL
+	[[ -z "$label_name" || -z "$status" || -z "$start_date" || -z "$start_time" || -z "$elapsed_time_in_secs" ]] && return 22 # EINVAL
 
-  row=$(format_values_db 5 "$label_name" "$status" "$start_date" "$start_time" "$elapsed_time_in_secs")
+	row=$(format_values_db 5 "$label_name" "$status" "$start_date" "$start_time" "$elapsed_time_in_secs")
 
-  insert_into '"statistics_report"' "$database_columns" "$row" '' "$flag"
+	insert_into '"statistics_report"' "$database_columns" "$row" '' "$flag"
 }
 
 # This function checks if a certain command can be run
 #
 # @command The whole command that is meant to be executed
-function command_exists()
-{
-  local cmd="$1"
-  local package=${cmd%% *}
+function command_exists() {
+	local cmd="$1"
+	local package=${cmd%% *}
 
-  if [[ ! -x "$(command -v "$package")" ]]; then
-    # Fallback
-    # TODO: Right now, this fallback is a workaround that will work until some
-    # distro removes the r-x permission from /usr/sbin. We must find a more
-    # definitive solution to this problem.
-    [[ -x "/usr/sbin/${package}" ]] && return 0
-    return 22 # EINVAL
-  fi
-  return 0
+	if [[ ! -x "$(command -v "$package")" ]]; then
+		# Fallback
+		# TODO: Right now, this fallback is a workaround that will work until some
+		# distro removes the r-x permission from /usr/sbin. We must find a more
+		# definitive solution to this problem.
+		[[ -x "/usr/sbin/${package}" ]] && return 0
+		return 22 # EINVAL
+	fi
+	return 0
 }
 
 # This function exits with a custom error message
@@ -429,13 +416,12 @@ function command_exists()
 # @err The error code to be used on exit, it takes the return code of the
 #        last command executed as default
 # @msg The custom message to be displayed
-function exit_msg()
-{
-  local err=${2:-"$?"}
-  local msg=${1:-'Something went wrong!'}
+function exit_msg() {
+	local err=${2:-"$?"}
+	local msg=${1:-'Something went wrong!'}
 
-  complain "$msg"
-  exit "$err"
+	complain "$msg"
+	exit "$err"
 }
 
 # This function parses command line arguments. Each option may be
@@ -449,15 +435,14 @@ function exit_msg()
 #
 # Returns:
 # Parsed command line arguments.
-function kw_parse()
-{
-  local short_options="$1"
-  local long_options="$2"
-  shift 2
+function kw_parse() {
+	local short_options="$1"
+	local long_options="$2"
+	shift 2
 
-  getopt -q --options "$short_options" \
-    --longoptions "$long_options" \
-    -- "$@"
+	getopt -q --options "$short_options" \
+		--longoptions "$long_options" \
+		-- "$@"
 }
 
 # This function gets the error messages for a kw_parse call. The same
@@ -470,19 +455,18 @@ function kw_parse()
 #
 # Returns:
 # Error messages separated by a newline and prefixed with @name
-function kw_parse_get_errors()
-{
-  local name="$1"
-  local short_options="$2"
-  local long_options="$3"
-  shift 3
+function kw_parse_get_errors() {
+	local name="$1"
+	local short_options="$2"
+	local long_options="$3"
+	shift 3
 
-  {
-    getopt --name "$name" \
-      --options "$short_options" \
-      --longoptions "$long_options" \
-      -- "$@" > /dev/null
-  } 2>&1
+	{
+		getopt --name "$name" \
+			--options "$short_options" \
+			--longoptions "$long_options" \
+			-- "$@" >/dev/null
+	} 2>&1
 }
 
 # This function compresses a given path to a .tar.gz file
@@ -492,48 +476,47 @@ function kw_parse_get_errors()
 # @compression_type compression program used
 # @dir_name The directory to be compressed, inside go_to_path_to_compress
 # @flag How to display (or not) the command used
-function generate_tarball()
-{
-  local go_to_path_to_compress="$1"
-  local file_path="$2"
-  local compression_type="$3"
-  local dir_name="$4"
-  local flag="$5"
-  local ret
-  local cmd
+function generate_tarball() {
+	local go_to_path_to_compress="$1"
+	local file_path="$2"
+	local compression_type="$3"
+	local dir_name="$4"
+	local flag="$5"
+	local ret
+	local cmd
 
-  flag=${flag:-'SILENT'}
-  dir_name=${dir_name:-'.'}
+	flag=${flag:-'SILENT'}
+	dir_name=${dir_name:-'.'}
 
-  if [[ ! -d "$go_to_path_to_compress" ]]; then
-    complain "$go_to_path_to_compress" 'does not exist'
-    exit 22 #EINVAL
-  fi
+	if [[ ! -d "$go_to_path_to_compress" ]]; then
+		complain "$go_to_path_to_compress" 'does not exist'
+		exit 22 #EINVAL
+	fi
 
-  if [[ -n "$compression_type" ]]; then
-    if [[ "${compression_programs[*]}" =~ $compression_type ]]; then
-      compression_type="--$compression_type"
-    else
-      complain 'Invalid compression type:' "$compression_type"
-      return 22 # EINVAL
-    fi
-  fi
+	if [[ -n "$compression_type" ]]; then
+		if [[ "${compression_programs[*]}" =~ $compression_type ]]; then
+			compression_type="--$compression_type"
+		else
+			complain 'Invalid compression type:' "$compression_type"
+			return 22 # EINVAL
+		fi
+	fi
 
-  compression_type=${compression_type:-'--auto-compress'}
+	compression_type=${compression_type:-'--auto-compress'}
 
-  # --directory: Go to $go_to_path_to_compress directory
-  # --create --file: Compress the directory named $dir_name (inside
-  # $go_to_path_to_compress) to $file_path
-  cmd="tar $compression_type --directory='$go_to_path_to_compress'"
-  cmd+=" --create --file='$file_path' $dir_name"
-  cmd_manager "$flag" "$cmd"
+	# --directory: Go to $go_to_path_to_compress directory
+	# --create --file: Compress the directory named $dir_name (inside
+	# $go_to_path_to_compress) to $file_path
+	cmd="tar $compression_type --directory='$go_to_path_to_compress'"
+	cmd+=" --create --file='$file_path' $dir_name"
+	cmd_manager "$flag" "$cmd"
 
-  ret="$?"
+	ret="$?"
 
-  if [[ "$ret" != 0 ]]; then
-    complain 'Error archiving modules.'
-    exit "$ret"
-  fi
+	if [[ "$ret" != 0 ]]; then
+		complain 'Error archiving modules.'
+		exit "$ret"
+	fi
 }
 
 # This function extracts a .tar.gz file to a given path
@@ -542,39 +525,38 @@ function generate_tarball()
 # @path Where to extract the file
 # @compression_type compression program used
 # @flag How to display (or not) the command used
-function extract_tarball()
-{
-  local file_to_extract="$1"
-  local path="$2"
-  local compression_type="$3"
-  local flag="$4"
-  local cmd
+function extract_tarball() {
+	local file_to_extract="$1"
+	local path="$2"
+	local compression_type="$3"
+	local flag="$4"
+	local cmd
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  if [[ ! -f "$file_to_extract" ]]; then
-    complain 'We could not find' "$file_to_extract"
-    exit 22 #EINVAL
-  fi
+	if [[ ! -f "$file_to_extract" ]]; then
+		complain 'We could not find' "$file_to_extract"
+		exit 22 #EINVAL
+	fi
 
-  if [[ ! -d "$path" ]]; then
-    complain "$path" 'does not exist'
-    exit 22 #EINVAL
-  fi
+	if [[ ! -d "$path" ]]; then
+		complain "$path" 'does not exist'
+		exit 22 #EINVAL
+	fi
 
-  if [[ -n "$compression_type" ]]; then
-    if [[ "${compression_programs[*]}" =~ $compression_type ]]; then
-      compression_type="--$compression_type"
-    else
-      complain 'Invalid compression type:' "$compression_type"
-      return 22 # EINVAL
-    fi
-  fi
+	if [[ -n "$compression_type" ]]; then
+		if [[ "${compression_programs[*]}" =~ $compression_type ]]; then
+			compression_type="--$compression_type"
+		else
+			complain 'Invalid compression type:' "$compression_type"
+			return 22 # EINVAL
+		fi
+	fi
 
-  compression_type=${compression_type:-'--auto-compress'}
+	compression_type=${compression_type:-'--auto-compress'}
 
-  cmd="tar $compression_type -xf $file_to_extract -C $path"
-  cmd_manager "$flag" "$cmd"
+	cmd="tar $compression_type -xf $file_to_extract -C $path"
+	cmd_manager "$flag" "$cmd"
 }
 
 # Given a file path, this function returns only the file name. For instance, for
@@ -582,11 +564,10 @@ function extract_tarball()
 # empty, then this function returns an empty string.
 #
 # @ file_path: path to a file
-function get_file_name_from_path()
-{
-  local file_path="$1"
+function get_file_name_from_path() {
+	local file_path="$1"
 
-  printf '%s\n' "${file_path##*/}"
+	printf '%s\n' "${file_path##*/}"
 }
 
 # Checks if the command is being run inside a git work-tree
@@ -595,14 +576,13 @@ function get_file_name_from_path()
 #
 # Returns:
 # 0 if is inside a git work-tree root and 128 otherwise.
-function is_inside_work_tree()
-{
-  local flag="$1"
-  local cmd='git rev-parse --is-inside-work-tree &> /dev/null'
+function is_inside_work_tree() {
+	local flag="$1"
+	local cmd='git rev-parse --is-inside-work-tree &> /dev/null'
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "$cmd"
+	cmd_manager "$flag" "$cmd"
 }
 
 # Get all instances of a given git config with their scope
@@ -615,29 +595,28 @@ function is_inside_work_tree()
 #
 # Returns:
 # All values of the given config with their respective scopes
-function get_all_git_config()
-{
-  local config="$1"
-  local scope="$2"
-  local flag="$3"
-  local cmd='git config --get-all'
-  local -A output
-  local scp
+function get_all_git_config() {
+	local config="$1"
+	local scope="$2"
+	local flag="$3"
+	local cmd='git config --get-all'
+	local -A output
+	local scp
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  # shellcheck disable=2119
-  if ! is_inside_work_tree; then
-    scope='global'
-  fi
+	# shellcheck disable=2119
+	if ! is_inside_work_tree; then
+		scope='global'
+	fi
 
-  for scp in {'global','local'}; do
-    if [[ -z "$scope" || "$scope" == "$scp" ]]; then
-      output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp $config" | sed -E "s/^/$scp\t/g")"
-    fi
-  done
+	for scp in {'global','local'}; do
+		if [[ -z "$scope" || "$scope" == "$scp" ]]; then
+			output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp $config" | sed -E "s/^/$scp\t/g")"
+		fi
+	done
 
-  printf '%s\n' "${output[@]}"
+	printf '%s\n' "${output[@]}"
 }
 
 # Get all instances of a given git config with their scope
@@ -650,29 +629,28 @@ function get_all_git_config()
 #
 # Returns:
 # All config values that match the given regular expression
-function get_git_config_regex()
-{
-  local regexp="$1"
-  local scope="$2"
-  local flag="$3"
-  local cmd='git config --get-regexp'
-  local -A output
-  local scp
+function get_git_config_regex() {
+	local regexp="$1"
+	local scope="$2"
+	local flag="$3"
+	local cmd='git config --get-regexp'
+	local -A output
+	local scp
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  # shellcheck disable=2119
-  if ! is_inside_work_tree; then
-    scope='global'
-  fi
+	# shellcheck disable=2119
+	if ! is_inside_work_tree; then
+		scope='global'
+	fi
 
-  for scp in {'global','local'}; do
-    if [[ -z "$scope" || "$scope" == "$scp" ]]; then
-      output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp '$regexp'" | sed -E "s/^/$scp\t/g")"
-    fi
-  done
+	for scp in {'global','local'}; do
+		if [[ -z "$scope" || "$scope" == "$scp" ]]; then
+			output["$scp"]="$(cmd_manager "$flag" "$cmd --$scp '$regexp'" | sed -E "s/^/$scp\t/g")"
+		fi
+	done
 
-  printf '%s\n' "${output[@]}"
+	printf '%s\n' "${output[@]}"
 }
 
 # This function checks if the user is running kw under a env.
@@ -680,19 +658,18 @@ function get_git_config_regex()
 # Return:
 # Return the current env name and 0 if users are inside a env. Otherwise,
 # return an empty string and 1.
-function get_current_env_name()
-{
-  local current_env="${PWD}/.kw/env.current"
-  local output
-  local ret=1
+function get_current_env_name() {
+	local current_env="${PWD}/.kw/env.current"
+	local output
+	local ret=1
 
-  if [[ -f "${current_env}" ]]; then
-    output=$(< "$current_env")
-    printf '%s' "$output"
-    ret=0
-  fi
+	if [[ -f "${current_env}" ]]; then
+		output=$(<"$current_env")
+		printf '%s' "$output"
+		ret=0
+	fi
 
-  return "$ret"
+	return "$ret"
 }
 
 # A common task is to remove files/directories. This function is a predicate
@@ -703,14 +680,13 @@ function get_current_env_name()
 # Return:
 # Returns 0 if the path is safe to remove, 1 if it is not and 2 if it doesn't
 # exists.
-function is_safe_path_to_remove()
-{
-  local path="$1"
+function is_safe_path_to_remove() {
+	local path="$1"
 
-  [[ ! -e "$path" ]] && return 2   # ENOENT
-  [[ "$path" == '/' ]] && return 1 # EPERM
+	[[ ! -e "$path" ]] && return 2   # ENOENT
+	[[ "$path" == '/' ]] && return 1 # EPERM
 
-  return 0
+	return 0
 }
 
 # This function gets the local branches of a given git repository. The data is transmitted
@@ -725,30 +701,29 @@ function is_safe_path_to_remove()
 # Return:
 # Returns data regarding the repository branches through the array reference passed as
 # argument.
-function get_git_repository_branches()
-{
-  local git_repository_path="$1"
-  local -n _branches="$2"
-  local flag="$3"
-  local output
-  local branch
-  local branch_metadata
+function get_git_repository_branches() {
+	local git_repository_path="$1"
+	local -n _branches="$2"
+	local flag="$3"
+	local output
+	local branch
+	local branch_metadata
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  output=$(cmd_manager "$flag" "git -C ${git_repository_path} branch --verbose")
-  # Clean output by removing asterisks and withespaces in the beginning of each line
-  output=$(printf '%s' "$output" | sed 's/\*//g')
-  output=$(printf '%s' "$output" | sed 's/^[ \t]*//g')
+	output=$(cmd_manager "$flag" "git -C ${git_repository_path} branch --verbose")
+	# Clean output by removing asterisks and withespaces in the beginning of each line
+	output=$(printf '%s' "$output" | sed 's/\*//g')
+	output=$(printf '%s' "$output" | sed 's/^[ \t]*//g')
 
-  # Resetting associative array reference to prevent false branches
-  _branches=()
+	# Resetting associative array reference to prevent false branches
+	_branches=()
 
-  while IFS=$'\n' read -r line; do
-    # Format of "$line": '<branch_name><whitespaces><HEAD_commit_SHA> <HEAD_commit_subject>'
-    branch=$(printf '%s' "$line" | cut --delimiter=' ' -f1)
-    # Below we are: 1) cutting the branch name; 2) removing any whitespace in the beginning; 3) cutting the commit SHA
-    branch_metadata=$(printf '%s' "$line" | cut --delimiter=' ' -f2- | sed 's/^[ \t]*//' | cut --delimiter=' ' -f2-)
-    _branches["$branch"]="$branch_metadata"
-  done <<< "$output"
+	while IFS=$'\n' read -r line; do
+		# Format of "$line": '<branch_name><whitespaces><HEAD_commit_SHA> <HEAD_commit_subject>'
+		branch=$(printf '%s' "$line" | cut --delimiter=' ' -f1)
+		# Below we are: 1) cutting the branch name; 2) removing any whitespace in the beginning; 3) cutting the commit SHA
+		branch_metadata=$(printf '%s' "$line" | cut --delimiter=' ' -f2- | sed 's/^[ \t]*//' | cut --delimiter=' ' -f2-)
+		_branches["$branch"]="$branch_metadata"
+	done <<<"$output"
 }

@@ -14,27 +14,26 @@
 #
 # Returns:
 # Relevant list of recipients to the patch
-function to_cc_main()
-{
-  local kw_cache="$1"
-  local to_cc="$2"
-  local patch_path="$3"
-  local patch
-  local patch_cache="${kw_cache}/patches/${to_cc}"
-  local recipients_path
-  local recipients
+function to_cc_main() {
+	local kw_cache="$1"
+	local to_cc="$2"
+	local patch_path="$3"
+	local patch
+	local patch_cache="${kw_cache}/patches/${to_cc}"
+	local recipients_path
+	local recipients
 
-  [[ -z "$to_cc" || -z "$patch_path" ]] && return 22 # EINVAL
+	[[ -z "$to_cc" || -z "$patch_path" ]] && return 22 # EINVAL
 
-  patch="$(basename "$patch_path")"
+	patch="$(basename "$patch_path")"
 
-  if [[ "$patch" =~ cover-letter ]]; then
-    cat "${patch_cache}/cover-letter"
-    exit 0
-  fi
+	if [[ "$patch" =~ cover-letter ]]; then
+		cat "${patch_cache}/cover-letter"
+		exit 0
+	fi
 
-  cat "${patch_cache}/${patch}"
-  exit 0
+	cat "${patch_cache}/${patch}"
+	exit 0
 }
 
 to_cc_main "$@"

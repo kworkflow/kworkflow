@@ -78,24 +78,22 @@ declare -g MIN_INDEX=0
 # Return:
 # Returns 0 if the lore data directory was created successfully and the failing
 # status code otherwise (probably 111 EACCESS).
-function create_lore_data_dir()
-{
-  local ret
+function create_lore_data_dir() {
+	local ret
 
-  [[ -d "${LORE_DATA_DIR}" ]] && return
+	[[ -d "${LORE_DATA_DIR}" ]] && return
 
-  mkdir -p "${LORE_DATA_DIR}"
-  ret="$?"
-  if [[ "$ret" != 0 ]]; then
-    complain "Could not create lore data dir in ${LORE_DATA_DIR}"
-  fi
+	mkdir -p "${LORE_DATA_DIR}"
+	ret="$?"
+	if [[ "$ret" != 0 ]]; then
+		complain "Could not create lore data dir in ${LORE_DATA_DIR}"
+	fi
 
-  return "$ret"
+	return "$ret"
 }
 
-function setup_cache()
-{
-  mkdir -p "${CACHE_LORE_DIR}"
+function setup_cache() {
+	mkdir -p "${CACHE_LORE_DIR}"
 }
 
 # This function downloads lore archive pages and retrieves names and
@@ -105,44 +103,43 @@ function setup_cache()
 # adjacent pages until there are no more mailing lists to be listed.
 #
 # @flag Flag to control function output
-function retrieve_available_mailing_lists()
-{
-  local flag="$1"
-  local index=''
-  local pre_processed
-  local entries=0
-  local page_filename
-  local page=0
-  local offset=0
+function retrieve_available_mailing_lists() {
+	local flag="$1"
+	local index=''
+	local pre_processed
+	local entries=0
+	local page_filename
+	local page=0
+	local offset=0
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  setup_cache
+	setup_cache
 
-  # When there are no more mailing lists to be listed, only the `all` list is returned
-  while [[ "$entries" -ne 1 ]]; do
+	# When there are no more mailing lists to be listed, only the `all` list is returned
+	while [[ "$entries" -ne 1 ]]; do
 
-    entries=0
-    page_filename="${MAILING_LISTS_PAGE_NAME}_${page}.${MAILING_LISTS_PAGE_EXTENSION}"
+		entries=0
+		page_filename="${MAILING_LISTS_PAGE_NAME}_${page}.${MAILING_LISTS_PAGE_EXTENSION}"
 
-    offset=$((LORE_PAGE_SIZE * page))
-    page_url="${LORE_URL}/?&o=${offset}"
+		offset=$((LORE_PAGE_SIZE * page))
+		page_url="${LORE_URL}/?&o=${offset}"
 
-    download "$page_url" "$page_filename" "$CACHE_LORE_DIR" "$flag" || return "$?"
-    pre_processed=$(sed -nE -e 's/^href="(.*)\/?">\1<\/a>$/\1/p; s/^  (.*)$/\1/p' "${CACHE_LORE_DIR}/${page_filename}")
+		download "$page_url" "$page_filename" "$CACHE_LORE_DIR" "$flag" || return "$?"
+		pre_processed=$(sed -nE -e 's/^href="(.*)\/?">\1<\/a>$/\1/p; s/^  (.*)$/\1/p' "${CACHE_LORE_DIR}/${page_filename}")
 
-    while IFS= read -r line; do
-      if [[ -z "$index" ]]; then
-        index="$line"
-        ((entries++))
-      else
-        available_lore_mailing_lists["$index"]="$line"
-        index=''
-      fi
-    done <<< "$pre_processed"
+		while IFS= read -r line; do
+			if [[ -z "$index" ]]; then
+				index="$line"
+				((entries++))
+			else
+				available_lore_mailing_lists["$index"]="$line"
+				index=''
+			fi
+		done <<<"$pre_processed"
 
-    ((page++))
-  done
+		((page++))
+	done
 }
 
 # This function extracts the patch metadata of a lore message title. A patch
@@ -157,16 +154,15 @@ function retrieve_available_mailing_lists()
 #
 # Return: If the function finds a patch metadata as a substring of `@message_title`,
 # outputs the patch metadata, otherwise, output an empty string.
-function get_patch_metadata()
-{
-  local message_title="$1"
-  local patch_metadata
+function get_patch_metadata() {
+	local message_title="$1"
+	local patch_metadata
 
-  if [[ "$message_title" =~ \[[^\]]*([Rr][Ff][Cc]|[Pp][Aa][Tt][Cc][Hh])[^\[]*\] ]]; then
-    patch_metadata="${BASH_REMATCH[0]}"
-  fi
+	if [[ "$message_title" =~ \[[^\]]*([Rr][Ff][Cc]|[Pp][Aa][Tt][Cc][Hh])[^\[]*\] ]]; then
+		patch_metadata="${BASH_REMATCH[0]}"
+	fi
 
-  printf '%s' "$patch_metadata"
+	printf '%s' "$patch_metadata"
 }
 
 # This function extracts the version number of a patch from a patch metadata.
@@ -181,26 +177,25 @@ function get_patch_metadata()
 # Return:
 # If `@patch_metadata` is non-empty, output the version and return 0. Otherwise,
 # return 2 (ENOENT) and output 'X', meaning 'undefined'.
-function get_patch_version()
-{
-  local patch_metadata="$1"
-  local version=''
+function get_patch_version() {
+	local patch_metadata="$1"
+	local version=''
 
-  if [[ -z "$patch_metadata" ]]; then
-    printf 'X'
-    return 2 # ENOENT
-  fi
+	if [[ -z "$patch_metadata" ]]; then
+		printf 'X'
+		return 2 # ENOENT
+	fi
 
-  # Grab pattern 'v<number>' or 'V<number>' from patch metadata
-  if [[ "$patch_metadata" =~ [v|V]+[[:space:]]*[[:digit:]]+ ]]; then
-    version="${BASH_REMATCH[0]}"
-    # Grab number from string
-    [[ "$version" =~ [[:digit:]]+ ]] && version="${BASH_REMATCH[0]}"
-  fi
-  # Versions 1 don't have pattern 'v<number>' nor 'V<number>' in the patch metadata
-  [[ -z "$version" ]] && version=1
+	# Grab pattern 'v<number>' or 'V<number>' from patch metadata
+	if [[ "$patch_metadata" =~ [v|V]+[[:space:]]*[[:digit:]]+ ]]; then
+		version="${BASH_REMATCH[0]}"
+		# Grab number from string
+		[[ "$version" =~ [[:digit:]]+ ]] && version="${BASH_REMATCH[0]}"
+	fi
+	# Versions 1 don't have pattern 'v<number>' nor 'V<number>' in the patch metadata
+	[[ -z "$version" ]] && version=1
 
-  printf '%s' "$version"
+	printf '%s' "$version"
 }
 
 # This function extracts the pattern `<number>/<number>` with an arbitrary count
@@ -210,16 +205,15 @@ function get_patch_version()
 #
 # Return:
 # Outputs the matched `<number>/<number>` pattern, returning 0 in any case.
-function get_number_slash_number_pattern()
-{
-  local patch_metadata="$1"
-  local number_slash_number_pattern=''
+function get_number_slash_number_pattern() {
+	local patch_metadata="$1"
+	local number_slash_number_pattern=''
 
-  if [[ "$patch_metadata" =~ [[:digit:]]+[[:space:]]*/[[:space:]]*[[:digit:]]+ ]]; then
-    number_slash_number_pattern="${BASH_REMATCH[0]}"
-  fi
+	if [[ "$patch_metadata" =~ [[:digit:]]+[[:space:]]*/[[:space:]]*[[:digit:]]+ ]]; then
+		number_slash_number_pattern="${BASH_REMATCH[0]}"
+	fi
 
-  printf '%s' "$number_slash_number_pattern"
+	printf '%s' "$number_slash_number_pattern"
 }
 
 # This function extracts the patch number in the series from a patch metadata.
@@ -235,32 +229,31 @@ function get_number_slash_number_pattern()
 # Return:
 # If `@patch_metadata` is non-empty, output the number in the series and return 0.
 # Otherwise, return 2 (ENOENT) and output 'X', meaning 'undefined'.
-function get_patch_number_in_series()
-{
-  local patch_metadata="$1"
-  local number_slash_number_pattern=''
-  local number_in_series=''
+function get_patch_number_in_series() {
+	local patch_metadata="$1"
+	local number_slash_number_pattern=''
+	local number_in_series=''
 
-  if [[ -z "$patch_metadata" ]]; then
-    printf 'X'
-    return 2 # ENOENT
-  fi
+	if [[ -z "$patch_metadata" ]]; then
+		printf 'X'
+		return 2 # ENOENT
+	fi
 
-  number_slash_number_pattern=$(get_number_slash_number_pattern "$patch_metadata")
-  # Grab number from start of string
-  [[ "$number_slash_number_pattern" =~ ^[[:digit:]]+ ]] && number_in_series="${BASH_REMATCH[0]}"
+	number_slash_number_pattern=$(get_number_slash_number_pattern "$patch_metadata")
+	# Grab number from start of string
+	[[ "$number_slash_number_pattern" =~ ^[[:digit:]]+ ]] && number_in_series="${BASH_REMATCH[0]}"
 
-  # Remove leading zeroes
-  if [[ "$number_in_series" =~ ^0+$ ]]; then
-    number_in_series=0
-  else
-    number_in_series=$(printf '%s' "$number_in_series" | sed 's/^0*//')
-  fi
+	# Remove leading zeroes
+	if [[ "$number_in_series" =~ ^0+$ ]]; then
+		number_in_series=0
+	else
+		number_in_series=$(printf '%s' "$number_in_series" | sed 's/^0*//')
+	fi
 
-  # Patchsets with one patch don't have pattern '<number>/<number>' in the patch metadata
-  [[ -z "$number_in_series" ]] && number_in_series=1
+	# Patchsets with one patch don't have pattern '<number>/<number>' in the patch metadata
+	[[ -z "$number_in_series" ]] && number_in_series=1
 
-  printf '%s' "$number_in_series"
+	printf '%s' "$number_in_series"
 }
 
 # This function extracts the total number of patches in the series from a patch
@@ -275,25 +268,24 @@ function get_patch_number_in_series()
 # Return:
 # If `@patch_metadata` is non-empty, output the total in the series and return 0.
 # Otherwise, return 2 (ENOENT) and output 'X', meaning 'undefined'.
-function get_patch_total_in_series()
-{
-  local patch_metadata="$1"
-  local number_slash_number_pattern=''
-  local total_in_series=''
+function get_patch_total_in_series() {
+	local patch_metadata="$1"
+	local number_slash_number_pattern=''
+	local total_in_series=''
 
-  if [[ -z "$patch_metadata" ]]; then
-    printf 'X'
-    return 2 # ENOENT
-  fi
+	if [[ -z "$patch_metadata" ]]; then
+		printf 'X'
+		return 2 # ENOENT
+	fi
 
-  number_slash_number_pattern=$(get_number_slash_number_pattern "$patch_metadata")
-  # Grab number from end of string
-  [[ "$number_slash_number_pattern" =~ [[:digit:]]+$ ]] && total_in_series="${BASH_REMATCH[0]}"
+	number_slash_number_pattern=$(get_number_slash_number_pattern "$patch_metadata")
+	# Grab number from end of string
+	[[ "$number_slash_number_pattern" =~ [[:digit:]]+$ ]] && total_in_series="${BASH_REMATCH[0]}"
 
-  # Patchsets with one patch don't have pattern '<number>/<number>' in the patch metadata
-  [[ -z "$total_in_series" ]] && total_in_series=1
+	# Patchsets with one patch don't have pattern '<number>/<number>' in the patch metadata
+	[[ -z "$total_in_series" ]] && total_in_series=1
 
-  printf '%s' "$total_in_series"
+	printf '%s' "$total_in_series"
 }
 
 # This function removes a patch metadata substring from a message title.
@@ -312,20 +304,19 @@ function get_patch_total_in_series()
 # If `@message_title` and `@patch_metadata` are non-empty, output `@message_title`
 # stripped of `@patch_metadata` (assuming it is a substring). Otherwise, output an
 # empty string.
-function remove_patch_metadata_from_message_title()
-{
-  local message_title="$1"
-  local patch_metadata="$2"
+function remove_patch_metadata_from_message_title() {
+	local message_title="$1"
+	local patch_metadata="$2"
 
-  # This conditional prevents `sed` 'previous regular expression' error
-  if [[ -n "$patch_metadata" && -n "$message_title" ]]; then
-    # Escape chars '[', ']', and '/' from patch metadata
-    patch_metadata=$(printf '%s' "$patch_metadata" | sed 's/\[/\\\[/g' | sed 's/\]/\\\]/g' | sed 's/\//\\\//g')
-    message_title=$(printf '%s' "$message_title" | sed "s/${patch_metadata}//")
-    message_title=$(str_strip "$message_title")
-  fi
+	# This conditional prevents `sed` 'previous regular expression' error
+	if [[ -n "$patch_metadata" && -n "$message_title" ]]; then
+		# Escape chars '[', ']', and '/' from patch metadata
+		patch_metadata=$(printf '%s' "$patch_metadata" | sed 's/\[/\\\[/g' | sed 's/\]/\\\]/g' | sed 's/\//\\\//g')
+		message_title=$(printf '%s' "$message_title" | sed "s/${patch_metadata}//")
+		message_title=$(str_strip "$message_title")
+	fi
 
-  printf '%s' "$message_title"
+	printf '%s' "$message_title"
 }
 
 # Some people set their names like "Second name, First name", this extra comma
@@ -336,22 +327,21 @@ function remove_patch_metadata_from_message_title()
 #
 # Return:
 # Return a string name without comma
-function process_name()
-{
-  local name_str="$1"
+function process_name() {
+	local name_str="$1"
 
-  IFS=',' read -r -a full_name <<< "$name_str"
+	IFS=',' read -r -a full_name <<<"$name_str"
 
-  if [[ ${#full_name[@]} -eq 1 ]]; then
-    printf '%s' "$name_str"
-    return
-  fi
+	if [[ ${#full_name[@]} -eq 1 ]]; then
+		printf '%s' "$name_str"
+		return
+	fi
 
-  full_name[0]=$(str_strip "${full_name[0]}")
-  full_name[1]=$(str_strip "${full_name[1]}")
+	full_name[0]=$(str_strip "${full_name[0]}")
+	full_name[1]=$(str_strip "${full_name[1]}")
 
-  # We need to handle "Second_name, name"
-  printf '%s' "${full_name[1]} ${full_name[0]}"
+	# We need to handle "Second_name, name"
+	printf '%s' "${full_name[1]} ${full_name[0]}"
 }
 
 # This function resets all data structures that constitute the current fetch
@@ -361,15 +351,14 @@ function process_name()
 #   3. Table with all representative patches processed;
 #   4. Total number of representative patches processed;
 #   5. Earliest page processed.
-function reset_current_lore_fetch_session()
-{
-  representative_patches=()
-  unset individual_patches_metadata
-  declare -Ag individual_patches_metadata
-  unset processed_representative_patches
-  declare -Ag processed_representative_patches
-  REPRESENTATIVE_PATCHES_PROCESSED=0
-  MIN_INDEX=0
+function reset_current_lore_fetch_session() {
+	representative_patches=()
+	unset individual_patches_metadata
+	declare -Ag individual_patches_metadata
+	unset processed_representative_patches
+	declare -Ag processed_representative_patches
+	REPRESENTATIVE_PATCHES_PROCESSED=0
+	MIN_INDEX=0
 }
 
 # This function composes a query URL to a public mailing list archived
@@ -389,29 +378,28 @@ function reset_current_lore_fetch_session()
 # Returns 22 in case the URL produced is invalid or `@target_mailing_list`
 # is empty. In case the URL produced is valid, the function returns 0 and
 # outputs the query URL.
-function compose_lore_query_url_with_verification()
-{
-  local target_mailing_list="$1"
-  local min_index="$2"
-  local additional_filters="$3"
-  local query_filter
-  local query_url
+function compose_lore_query_url_with_verification() {
+	local target_mailing_list="$1"
+	local min_index="$2"
+	local additional_filters="$3"
+	local query_filter
+	local query_url
 
-  if [[ -z "$target_mailing_list" || -z "$min_index" ]]; then
-    return 22 # EINVAL
-  fi
+	if [[ -z "$target_mailing_list" || -z "$min_index" ]]; then
+		return 22 # EINVAL
+	fi
 
-  # TODO: Add verification for `@target_mailing_list`.
+	# TODO: Add verification for `@target_mailing_list`.
 
-  # Verifying if minimum index is valid, i.e., is an integer
-  if [[ ! "$min_index" =~ ^-?[0-9]+$ ]]; then
-    return 22 # EINVAL
-  fi
+	# Verifying if minimum index is valid, i.e., is an integer
+	if [[ ! "$min_index" =~ ^-?[0-9]+$ ]]; then
+		return 22 # EINVAL
+	fi
 
-  query_filter="?x=A&o=${min_index}&q=((s:patch+OR+s:rfc)+AND+NOT+s:re:)"
-  [[ -n "$additional_filters" ]] && query_filter+="+AND+(${additional_filters})"
-  query_url="${LORE_URL}/${target_mailing_list}/${query_filter}"
-  printf '%s' "$query_url"
+	query_filter="?x=A&o=${min_index}&q=((s:patch+OR+s:rfc)+AND+NOT+s:re:)"
+	[[ -n "$additional_filters" ]] && query_filter+="+AND+(${additional_filters})"
+	query_url="${LORE_URL}/${target_mailing_list}/${query_filter}"
+	printf '%s' "$query_url"
 }
 
 # This function pre-processes a raw XML containing a list of patches. The `xpath`
@@ -442,22 +430,21 @@ function compose_lore_query_url_with_verification()
 # Return:
 # The status code is the same as the `xpath` command and the pre-processed XML file
 # is outputted to the standard output
-function pre_process_raw_xml()
-{
-  local raw_xml="$1"
-  local xpath_query
-  local xpath_output
-  local -r NAME_EXP='//entry/author/name/text()'
-  local -r EMAIL_EXP='//entry/author/email/text()'
-  local -r TITLE_EXP='//entry/title/text()'
-  local -r UPDATED_EXP='//entry/updated/text()'
-  local -r LINK_EXP='//entry/link/@href'
-  local -r IN_REPLY_TO_EXP='//entry/thr:in-reply-to/@href'
+function pre_process_raw_xml() {
+	local raw_xml="$1"
+	local xpath_query
+	local xpath_output
+	local -r NAME_EXP='//entry/author/name/text()'
+	local -r EMAIL_EXP='//entry/author/email/text()'
+	local -r TITLE_EXP='//entry/title/text()'
+	local -r UPDATED_EXP='//entry/updated/text()'
+	local -r LINK_EXP='//entry/link/@href'
+	local -r IN_REPLY_TO_EXP='//entry/thr:in-reply-to/@href'
 
-  xpath_query="${NAME_EXP}|${EMAIL_EXP}|${TITLE_EXP}|${UPDATED_EXP}|${LINK_EXP}|${IN_REPLY_TO_EXP}"
-  xpath_output=$(printf '%s' "$raw_xml" | xpath -q -e "$xpath_query" | sed 's/^[ \t]*//')
+	xpath_query="${NAME_EXP}|${EMAIL_EXP}|${TITLE_EXP}|${UPDATED_EXP}|${LINK_EXP}|${IN_REPLY_TO_EXP}"
+	xpath_output=$(printf '%s' "$raw_xml" | xpath -q -e "$xpath_query" | sed 's/^[ \t]*//')
 
-  printf '%s\n ' "$xpath_output"
+	printf '%s\n ' "$xpath_output"
 }
 
 # This function is used to process individual patches in parallel. As a worker
@@ -475,38 +462,37 @@ function pre_process_raw_xml()
 # @i: Index of patch to be processed.
 # @shared_dir_for_parallelism: Path to directory where the parallel processing
 #   results will be stored.
-function thread_for_process_individual_patch()
-{
-  local message_id="$1"
-  local message_title="$2"
-  local author_name="$3"
-  local author_email="$4"
-  local updated="$5"
-  local in_reply_to="$6"
-  local i="$7"
-  local shared_dir_for_parallelism="$8"
-  local version=''
-  local number_in_series=''
-  local total_in_series=''
-  local patch_metadata=''
-  local processed_patch=''
+function thread_for_process_individual_patch() {
+	local message_id="$1"
+	local message_title="$2"
+	local author_name="$3"
+	local author_email="$4"
+	local updated="$5"
+	local in_reply_to="$6"
+	local i="$7"
+	local shared_dir_for_parallelism="$8"
+	local version=''
+	local number_in_series=''
+	local total_in_series=''
+	local patch_metadata=''
+	local processed_patch=''
 
-  patch_metadata=$(get_patch_metadata "$message_title")
-  version=$(get_patch_version "$patch_metadata")
-  number_in_series=$(get_patch_number_in_series "$patch_metadata")
-  total_in_series=$(get_patch_total_in_series "$patch_metadata")
-  message_title=$(remove_patch_metadata_from_message_title "$message_title" "$patch_metadata")
+	patch_metadata=$(get_patch_metadata "$message_title")
+	version=$(get_patch_version "$patch_metadata")
+	number_in_series=$(get_patch_number_in_series "$patch_metadata")
+	total_in_series=$(get_patch_total_in_series "$patch_metadata")
+	message_title=$(remove_patch_metadata_from_message_title "$message_title" "$patch_metadata")
 
-  processed_patch="${message_id}${SEPARATOR_CHAR}${message_title}${SEPARATOR_CHAR}"
-  processed_patch+="${author_name}${SEPARATOR_CHAR}${author_email}${SEPARATOR_CHAR}"
-  processed_patch+="${version}${SEPARATOR_CHAR}${number_in_series}${SEPARATOR_CHAR}"
-  processed_patch+="${total_in_series}${SEPARATOR_CHAR}${updated}${SEPARATOR_CHAR}"
-  if [[ "$in_reply_to" =~ ^href= ]]; then
-    processed_patch+=$(str_get_value_under_double_quotes "$in_reply_to")
-  fi
+	processed_patch="${message_id}${SEPARATOR_CHAR}${message_title}${SEPARATOR_CHAR}"
+	processed_patch+="${author_name}${SEPARATOR_CHAR}${author_email}${SEPARATOR_CHAR}"
+	processed_patch+="${version}${SEPARATOR_CHAR}${number_in_series}${SEPARATOR_CHAR}"
+	processed_patch+="${total_in_series}${SEPARATOR_CHAR}${updated}${SEPARATOR_CHAR}"
+	if [[ "$in_reply_to" =~ ^href= ]]; then
+		processed_patch+=$(str_get_value_under_double_quotes "$in_reply_to")
+	fi
 
-  printf '%s' "$processed_patch" > "${shared_dir_for_parallelism}/${i}"
-  printf '%s,%s,%s' "$message_id" "$version" "$number_in_series" > "${shared_dir_for_parallelism}/${i}-metadata"
+	printf '%s' "$processed_patch" >"${shared_dir_for_parallelism}/${i}"
+	printf '%s,%s,%s' "$message_id" "$version" "$number_in_series" >"${shared_dir_for_parallelism}/${i}-metadata"
 }
 
 # This function processes a list of individual patches from an Atom feed into an
@@ -517,73 +503,72 @@ function thread_for_process_individual_patch()
 #
 # @raw_xml: String with Atom feed containing the list of individual patches.
 # @_individual_patches: Indexed array reference to store processed patches.
-function process_individual_patches()
-{
-  local raw_xml="$1"
-  local -n _individual_patches="$2"
-  local pre_processed_patches
-  local shared_dir_for_parallelism=''
-  local message_id=''
-  local message_title=''
-  local author_name=''
-  local author_email=''
-  local patch_attribute_number=0
-  local i=0
-  local -a pids
-  local -a patch_metadata
+function process_individual_patches() {
+	local raw_xml="$1"
+	local -n _individual_patches="$2"
+	local pre_processed_patches
+	local shared_dir_for_parallelism=''
+	local message_id=''
+	local message_title=''
+	local author_name=''
+	local author_email=''
+	local patch_attribute_number=0
+	local i=0
+	local -a pids
+	local -a patch_metadata
 
-  pre_processed_patches=$(pre_process_raw_xml "$raw_xml")
-  shared_dir_for_parallelism=$(create_shared_memory_dir)
+	pre_processed_patches=$(pre_process_raw_xml "$raw_xml")
+	shared_dir_for_parallelism=$(create_shared_memory_dir)
 
-  while IFS=$'\n' read -r line; do
-    if [[ "$patch_attribute_number" == 5 ]]; then
-      thread_for_process_individual_patch "$message_id" "$message_title" "$author_name" \
-        "$author_email" "$updated" "$line" "$i" "$shared_dir_for_parallelism" &
-      pids["$i"]="$!"
+	while IFS=$'\n' read -r line; do
+		if [[ "$patch_attribute_number" == 5 ]]; then
+			thread_for_process_individual_patch "$message_id" "$message_title" "$author_name" \
+				"$author_email" "$updated" "$line" "$i" "$shared_dir_for_parallelism" &
+			pids["$i"]="$!"
 
-      patch_attribute_number=0
-      ((i++))
+			patch_attribute_number=0
+			((i++))
 
-      # In case the patch has a 'In-Reply-To' field, `line` contains this value,
-      # so process it and read next line of pre processed.
-      [[ "$line" =~ ^href= ]] && continue
-    fi
+			# In case the patch has a 'In-Reply-To' field, `line` contains this value,
+			# so process it and read next line of pre processed.
+			[[ "$line" =~ ^href= ]] && continue
+		fi
 
-    case "$patch_attribute_number" in
-      0) # Author's name
-        author_name=$(process_name "$line")
-        ;;
-      1) # Author's email
-        author_email="$line"
-        ;;
-      2) # Message title
-        message_title="$line"
-        ;;
-      3) # Updated
-        updated="$line"
-        updated=$(printf '%s' "$updated" | sed 's/-/\//g' | sed 's/T/ /')
-        updated="${updated:0:-4}"
-        ;;
-      4) # Message-ID
-        message_id=$(str_get_value_under_double_quotes "$line")
-        ;;
-    esac
+		case "$patch_attribute_number" in
+		0) # Author's name
+			author_name=$(process_name "$line")
+			;;
+		1) # Author's email
+			author_email="$line"
+			;;
+		2) # Message title
+			message_title="$line"
+			;;
+		3) # Updated
+			updated="$line"
+			updated=$(printf '%s' "$updated" | sed 's/-/\//g' | sed 's/T/ /')
+			updated="${updated:0:-4}"
+			;;
+		4) # Message-ID
+			message_id=$(str_get_value_under_double_quotes "$line")
+			;;
+		esac
 
-    ((patch_attribute_number++))
-  done <<< "$pre_processed_patches"
+		((patch_attribute_number++))
+	done <<<"$pre_processed_patches"
 
-  # Wait for specific PID to avoid interfering in other functionalities.
-  for pid in "${pids[@]}"; do
-    wait "$pid"
-  done
+	# Wait for specific PID to avoid interfering in other functionalities.
+	for pid in "${pids[@]}"; do
+		wait "$pid"
+	done
 
-  for j in $(seq 0 "$((i - 1))"); do
-    _individual_patches["$j"]=$(< "${shared_dir_for_parallelism}/${j}")
-    # Mark individual patch as processed and store metadata
-    patch_metadata=()
-    IFS=',' read -ra patch_metadata <<< "$(< "${shared_dir_for_parallelism}/${j}-metadata")"
-    individual_patches_metadata["${patch_metadata[0]}"]=$(printf '%s,%s' "${patch_metadata[1]}" "${patch_metadata[2]}")
-  done
+	for j in $(seq 0 "$((i - 1))"); do
+		_individual_patches["$j"]=$(<"${shared_dir_for_parallelism}/${j}")
+		# Mark individual patch as processed and store metadata
+		patch_metadata=()
+		IFS=',' read -ra patch_metadata <<<"$(<"${shared_dir_for_parallelism}/${j}-metadata")"
+		individual_patches_metadata["${patch_metadata[0]}"]=$(printf '%s,%s' "${patch_metadata[1]}" "${patch_metadata[2]}")
+	done
 }
 
 # This function makes the lore request to get the raw contents of a lore
@@ -594,79 +579,77 @@ function process_individual_patches()
 #
 # Returns:
 # - Output: Response from requisiton to raw lore message.
-function get_raw_lore_message()
-{
-  local message_id="$1"
-  local flag="${2:-SILENT}"
-  local raw_message_url
+function get_raw_lore_message() {
+	local message_id="$1"
+	local flag="${2:-SILENT}"
+	local raw_message_url
 
-  if [[ "$message_id" =~ /$ ]]; then
-    raw_message_url=$(replace_http_by_https "${message_id}raw")
-  else
-    raw_message_url=$(replace_http_by_https "${message_id}/raw")
-  fi
+	if [[ "$message_id" =~ /$ ]]; then
+		raw_message_url=$(replace_http_by_https "${message_id}raw")
+	else
+		raw_message_url=$(replace_http_by_https "${message_id}/raw")
+	fi
 
-  # TODO: Add cache functionality
-  cmd_manager "$flag" "curl --silent '${raw_message_url}'"
+	# TODO: Add cache functionality
+	cmd_manager "$flag" "curl --silent '${raw_message_url}'"
 }
 
-function thread_for_process_representative_patch()
-{
-  local patch="$1"
-  local i="$2"
-  local shared_dir_for_parallelism="$3"
-  local is_representative_patch
-  local message_id
-  local in_reply_to_message_id
-  local -a patch_metadata
-  local -a in_reply_to_metadata
-  local in_reply_to_title
-  local in_reply_to_patch_metadata
+function thread_for_process_representative_patch() {
+	local patch="$1"
+	local i="$2"
+	local shared_dir_for_parallelism="$3"
+	local is_representative_patch
+	local message_id
+	local in_reply_to_message_id
+	local -a patch_metadata
+	local -a in_reply_to_metadata
+	local in_reply_to_title
+	local in_reply_to_patch_metadata
 
-  unset patch_dict
-  declare -A patch_dict
+	unset patch_dict
+	declare -A patch_dict
 
-  read_patch_into_dict "$patch" 'patch_dict'
+	read_patch_into_dict "$patch" 'patch_dict'
 
-  # Get patch and In-Reply-To message IDs
-  message_id="${patch_dict['message_id']}"
-  in_reply_to_message_id="${patch_dict['in_reply_to']}"
+	# Get patch and In-Reply-To message IDs
+	message_id="${patch_dict['message_id']}"
+	in_reply_to_message_id="${patch_dict['in_reply_to']}"
 
-  is_representative_patch=''
+	is_representative_patch=''
 
-  # Assume that patch number 0 is always the representative as the cover letter
-  if [[ "${patch_dict['number_in_series']}" == 0 ]]; then
-    is_representative_patch=1
-  # Assume that, when there is no patch number 0, number 1 is the representative
-  # if it is a root of a thread
-  elif [[ "${patch_dict['number_in_series']}" == 1 && -z "$in_reply_to_message_id" ]]; then
-    is_representative_patch=1
-  # Assume that, if 'In-Reply-To' is not patch number 0 from the same version,
-  # number 1 is the representative
-  elif [[ "${patch_dict['number_in_series']}" == 1 ]]; then
-    patch_metadata=()
-    in_reply_to_metadata=()
-    IFS=',' read -ra patch_metadata <<< "${individual_patches_metadata["$message_id"]}"
+	# Assume that patch number 0 is always the representative as the cover letter
+	if [[ "${patch_dict['number_in_series']}" == 0 ]]; then
+		is_representative_patch=1
+	# Assume that, when there is no patch number 0, number 1 is the representative
+	# if it is a root of a thread
+	elif [[ "${patch_dict['number_in_series']}" == 1 && -z "$in_reply_to_message_id" ]]; then
+		is_representative_patch=1
+	# Assume that, if 'In-Reply-To' is not patch number 0 from the same version,
+	# number 1 is the representative
+	elif [[ "${patch_dict['number_in_series']}" == 1 ]]; then
+		patch_metadata=()
+		in_reply_to_metadata=()
+		IFS=',' read -ra patch_metadata <<<"${individual_patches_metadata["$message_id"]}"
 
-    if [[ -n "${individual_patches_metadata["$in_reply_to_message_id"]}" ]]; then
-      IFS=',' read -ra in_reply_to_metadata <<< "${individual_patches_metadata["$in_reply_to_message_id"]}"
-    else
-      in_reply_to_title=$(get_raw_lore_message "$message_id" | grep --perl-regexp '^Subject:' | sed 's/^Subject: //')
-      in_reply_to_patch_metadata=$(get_patch_metadata "$in_reply_to_title")
-      if [[ -n "$in_reply_to_patch_metadata" ]]; then
-        in_reply_to_metadata[0]=$(get_patch_version "$in_reply_to_patch_metadata")
-        in_reply_to_metadata[1]=$(get_patch_number_in_series "$in_reply_to_patch_metadata")
-      fi
-    fi
+		if [[ -n "${individual_patches_metadata["$in_reply_to_message_id"]}" ]]; then
+			IFS=',' read -ra in_reply_to_metadata <<<"${individual_patches_metadata["$in_reply_to_message_id"]}"
+		else
+			in_reply_to_title=$(get_raw_lore_message "$message_id" | grep --perl-regexp '^Subject:' | sed 's/^Subject: //')
+			in_reply_to_patch_metadata=$(get_patch_metadata "$in_reply_to_title")
+			if [[ -n "$in_reply_to_patch_metadata" ]]; then
+				in_reply_to_metadata[0]=$(get_patch_version "$in_reply_to_patch_metadata")
+				in_reply_to_metadata[1]=$(get_patch_number_in_series "$in_reply_to_patch_metadata")
+			fi
+		fi
 
-    if [[ "${patch_metadata[0]}" != "${in_reply_to_metadata[0]}" || "${in_reply_to_metadata[1]}" != 0 ]]; then
-      is_representative_patch=1
-    fi
-  fi
+		if [[ "${patch_metadata[0]}" != "${in_reply_to_metadata[0]}" || "${in_reply_to_metadata[1]}" != 0 ]]; then
+			is_representative_patch=1
+		fi
+	fi
 
-  if [[ -n "$is_representative_patch" ]]; then
-    printf '%s' "$patch" > "${shared_dir_for_parallelism}/${i}"
-  fi
+	if [[ -n "$is_representative_patch" ]]; then
+		printf '%s' "$patch" >"${shared_dir_for_parallelism}/${i}"
+	fi
 }
 
 # This function processes representative patches (i.e. the first message in a
@@ -680,41 +663,40 @@ function thread_for_process_representative_patch()
 #
 # @_individual_patches_array: Indexed array reference with processed list of
 #   individual patches.
-function process_representative_patches()
-{
-  local -n _individual_patches_array="$1"
-  local patch
-  local message_id
-  local shared_dir_for_parallelism
-  local -a pids
-  local i=0
+function process_representative_patches() {
+	local -n _individual_patches_array="$1"
+	local patch
+	local message_id
+	local shared_dir_for_parallelism
+	local -a pids
+	local i=0
 
-  shared_dir_for_parallelism=$(create_shared_memory_dir)
+	shared_dir_for_parallelism=$(create_shared_memory_dir)
 
-  for patch in "${_individual_patches_array[@]}"; do
-    thread_for_process_representative_patch "$patch" "$i" "$shared_dir_for_parallelism" &
-    pids["$i"]="$!"
-    ((i++))
-  done
+	for patch in "${_individual_patches_array[@]}"; do
+		thread_for_process_representative_patch "$patch" "$i" "$shared_dir_for_parallelism" &
+		pids["$i"]="$!"
+		((i++))
+	done
 
-  # Wait for specific PID to avoid interfering in other functionalities.
-  for pid in "${pids[@]}"; do
-    wait "$pid"
-  done
+	# Wait for specific PID to avoid interfering in other functionalities.
+	for pid in "${pids[@]}"; do
+		wait "$pid"
+	done
 
-  for i in $(seq 0 "$((i - 1))"); do
-    if [[ -f "${shared_dir_for_parallelism}/${i}" ]]; then
-      patch=$(< "${shared_dir_for_parallelism}/${i}")
-      message_id=$(printf '%s' "$patch" | awk -F "$SEPARATOR_CHAR" '{print $1}')
+	for i in $(seq 0 "$((i - 1))"); do
+		if [[ -f "${shared_dir_for_parallelism}/${i}" ]]; then
+			patch=$(<"${shared_dir_for_parallelism}/${i}")
+			message_id=$(printf '%s' "$patch" | awk -F "$SEPARATOR_CHAR" '{print $1}')
 
-      # Avoid duplications
-      [[ -n "${processed_representative_patches["$message_id"]}" ]] && continue
+			# Avoid duplications
+			[[ -n "${processed_representative_patches["$message_id"]}" ]] && continue
 
-      representative_patches["$REPRESENTATIVE_PATCHES_PROCESSED"]="$patch"
-      ((REPRESENTATIVE_PATCHES_PROCESSED++))
-      processed_representative_patches["$message_id"]=1
-    fi
-  done
+			representative_patches["$REPRESENTATIVE_PATCHES_PROCESSED"]="$patch"
+			((REPRESENTATIVE_PATCHES_PROCESSED++))
+			processed_representative_patches["$message_id"]=1
+		fi
+	done
 }
 
 # This function is primarily a mediator to manage the complex action of fetching
@@ -745,52 +727,51 @@ function process_representative_patches()
 # Return:
 # If either step 1 or 2 fails, returns the error code from these steps, and 0, otherwise.
 # If the fetch has failed (i.e. the returned file is an HTML), return 22 (ENOENT).
-function fetch_latest_patchsets_from()
-{
-  local target_mailing_list="$1"
-  local page="$2"
-  local patchsets_per_page="$3"
-  local additional_filters="$4"
-  local flag="$5"
-  local xml_result_file_name
-  local lore_query_url
-  local raw_xml
-  local ret
+function fetch_latest_patchsets_from() {
+	local target_mailing_list="$1"
+	local page="$2"
+	local patchsets_per_page="$3"
+	local additional_filters="$4"
+	local flag="$5"
+	local xml_result_file_name
+	local lore_query_url
+	local raw_xml
+	local ret
 
-  flag=${flag:-'SILENT'}
-  xml_result_file_name="${target_mailing_list}-patches.xml"
+	flag=${flag:-'SILENT'}
+	xml_result_file_name="${target_mailing_list}-patches.xml"
 
-  while [[ "$REPRESENTATIVE_PATCHES_PROCESSED" -lt "$((page * patchsets_per_page))" ]]; do
-    # Building URL for querying lore servers for a xml file with patches.
-    lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$MIN_INDEX" "$additional_filters")
-    ret="$?"
-    [[ "$ret" != 0 ]] && return "$ret"
+	while [[ "$REPRESENTATIVE_PATCHES_PROCESSED" -lt "$((page * patchsets_per_page))" ]]; do
+		# Building URL for querying lore servers for a xml file with patches.
+		lore_query_url=$(compose_lore_query_url_with_verification "$target_mailing_list" "$MIN_INDEX" "$additional_filters")
+		ret="$?"
+		[[ "$ret" != 0 ]] && return "$ret"
 
-    # Request xml file with patches.
-    download "$lore_query_url" "$xml_result_file_name" "$CACHE_LORE_DIR" "$flag"
-    ret="$?"
-    [[ "$ret" != 0 ]] && return "$ret"
+		# Request xml file with patches.
+		download "$lore_query_url" "$xml_result_file_name" "$CACHE_LORE_DIR" "$flag"
+		ret="$?"
+		[[ "$ret" != 0 ]] && return "$ret"
 
-    # If the returned file is an HTML, then the fetch has failed and we should signal the caller.
-    if is_html_file "${CACHE_LORE_DIR}/${xml_result_file_name}"; then
-      return 22 # ENOENT
-    fi
+		# If the returned file is an HTML, then the fetch has failed and we should signal the caller.
+		if is_html_file "${CACHE_LORE_DIR}/${xml_result_file_name}"; then
+			return 22 # ENOENT
+		fi
 
-    raw_xml=$(< "${CACHE_LORE_DIR}/${xml_result_file_name}")
+		raw_xml=$(<"${CACHE_LORE_DIR}/${xml_result_file_name}")
 
-    # If the resulting file doesn't contain any patches, it will be an "empty" XML with
-    # just '</feed>' and we can stop the fetch. This is different from a failed fetch
-    # and can be considered a heuristic.
-    if [[ "$raw_xml" == '</feed>' ]]; then
-      break
-    fi
+		# If the resulting file doesn't contain any patches, it will be an "empty" XML with
+		# just '</feed>' and we can stop the fetch. This is different from a failed fetch
+		# and can be considered a heuristic.
+		if [[ "$raw_xml" == '</feed>' ]]; then
+			break
+		fi
 
-    process_individual_patches "$raw_xml" 'individual_patches'
-    process_representative_patches 'individual_patches'
+		process_individual_patches "$raw_xml" 'individual_patches'
+		process_representative_patches 'individual_patches'
 
-    # Update minimum exclusive index.
-    MIN_INDEX=$((MIN_INDEX + LORE_PAGE_SIZE))
-  done
+		# Update minimum exclusive index.
+		MIN_INDEX=$((MIN_INDEX + LORE_PAGE_SIZE))
+	done
 }
 
 # This function formats a range of patchsets metadata from `representative_patches`
@@ -802,18 +783,17 @@ function fetch_latest_patchsets_from()
 # @_formatted_patchsets_list: Array reference to output formatted range of patchsets metadata
 # @starting_index: Starting index of range from `representative_patches`
 # @ending_index: Ending index of range `representative_patches`
-function format_patchsets()
-{
-  local -n _formatted_patchsets_list="$1"
-  local starting_index="$2"
-  local ending_index="$3"
-  declare -A patchset
+function format_patchsets() {
+	local -n _formatted_patchsets_list="$1"
+	local starting_index="$2"
+	local ending_index="$3"
+	declare -A patchset
 
-  for i in $(seq "$starting_index" "$ending_index"); do
-    read_patch_into_dict "${representative_patches["$i"]}" 'patchset'
-    _formatted_patchsets_list["$i"]=$(printf 'V%-2s |#%-3s| ' "${patchset['version']}" "${patchset['total_in_series']}")
-    _formatted_patchsets_list["$i"]+=$(printf '%-60.60s | %s | %-30.30s' "${patchset['message_title']}" "${patchset['updated']:0:-6}" "${patchset['author_name']}")
-  done
+	for i in $(seq "$starting_index" "$ending_index"); do
+		read_patch_into_dict "${representative_patches["$i"]}" 'patchset'
+		_formatted_patchsets_list["$i"]=$(printf 'V%-2s |#%-3s| ' "${patchset['version']}" "${patchset['total_in_series']}")
+		_formatted_patchsets_list["$i"]+=$(printf '%-60.60s | %s | %-30.30s' "${patchset['message_title']}" "${patchset['updated']:0:-6}" "${patchset['author_name']}")
+	done
 }
 
 # This function outputs the starting index in the `representative_patches` array of a given
@@ -822,18 +802,17 @@ function format_patchsets()
 #
 # @page: Number of the target page.
 # @patchsets_per_page: Number of patchsets per page
-function get_page_starting_index()
-{
-  local page="$1"
-  local patchsets_per_page="$2"
-  local starting_index
+function get_page_starting_index() {
+	local page="$1"
+	local patchsets_per_page="$2"
+	local starting_index
 
-  starting_index=$(((page - 1) * patchsets_per_page))
-  # Avoid an starting index greater than the max index of `representative_patches`
-  if [[ "$starting_index" -gt "$((${#representative_patches[@]} - 1))" ]]; then
-    starting_index=$((${#representative_patches[@]} - 1))
-  fi
-  printf '%s' "$starting_index"
+	starting_index=$(((page - 1) * patchsets_per_page))
+	# Avoid an starting index greater than the max index of `representative_patches`
+	if [[ "$starting_index" -gt "$((${#representative_patches[@]} - 1))" ]]; then
+		starting_index=$((${#representative_patches[@]} - 1))
+	fi
+	printf '%s' "$starting_index"
 }
 
 # This function outputs the ending index in the `representative_patches` array of a given
@@ -842,18 +821,17 @@ function get_page_starting_index()
 #
 # @page: Number of the target page
 # @patchsets_per_page: Number of patchsets per page
-function get_page_ending_index()
-{
-  local page="$1"
-  local patchsets_per_page="$2"
-  local ending_index
+function get_page_ending_index() {
+	local page="$1"
+	local patchsets_per_page="$2"
+	local ending_index
 
-  ending_index=$(((page * patchsets_per_page) - 1))
-  # Avoid an ending index greater than the max index of `representative_patches`
-  if [[ "$ending_index" -gt "$((${#representative_patches[@]} - 1))" ]]; then
-    ending_index=$((${#representative_patches[@]} - 1))
-  fi
-  printf '%s' "$ending_index"
+	ending_index=$(((page * patchsets_per_page) - 1))
+	# Avoid an ending index greater than the max index of `representative_patches`
+	if [[ "$ending_index" -gt "$((${#representative_patches[@]} - 1))" ]]; then
+		ending_index=$((${#representative_patches[@]} - 1))
+	fi
+	printf '%s' "$ending_index"
 }
 
 # This function downloads a patch series in a .mbx format to a given directory
@@ -872,52 +850,51 @@ function get_page_ending_index()
 # Return:
 # Return 0 if the thread was successfully downloaded, 22 if the series URL or the output
 # directory passed as arguments is empty and the error code of `b4` in case it fails.
-function download_series()
-{
-  local series_url="$1"
-  local save_to="$2"
-  local flag="$3"
-  local series_filename
-  local cmd
-  local ret
+function download_series() {
+	local series_url="$1"
+	local save_to="$2"
+	local flag="$3"
+	local series_filename
+	local cmd
+	local ret
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  # Safety checking
-  if [[ -z "$series_url" || -z "$save_to" ]]; then
-    return 22 # EINVAL
-  fi
+	# Safety checking
+	if [[ -z "$series_url" || -z "$save_to" ]]; then
+		return 22 # EINVAL
+	fi
 
-  # Create the output directory if it doesn't exists
-  cmd_manager "$flag" "mkdir --parents '${save_to}'"
-  ret="$?"
-  if [[ "$ret" != 0 ]]; then
-    complain "Couldn't create directory in ${save_to}"
-    return "$ret"
-  fi
+	# Create the output directory if it doesn't exists
+	cmd_manager "$flag" "mkdir --parents '${save_to}'"
+	ret="$?"
+	if [[ "$ret" != 0 ]]; then
+		complain "Couldn't create directory in ${save_to}"
+		return "$ret"
+	fi
 
-  # Although, by default, b4 uses the message-ID as the output name, we should assure it
-  series_filename=$(extract_message_id_from_url "$series_url")
+	# Although, by default, b4 uses the message-ID as the output name, we should assure it
+	series_filename=$(extract_message_id_from_url "$series_url")
 
-  # For safe-keeping, check the protocol used
-  series_url=$(replace_http_by_https "$series_url")
+	# For safe-keeping, check the protocol used
+	series_url=$(replace_http_by_https "$series_url")
 
-  # Issue the command to download the series
-  cmd="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '${series_filename}.mbx'"
-  cmd_manager "$flag" "$cmd"
-  ret="$?"
-  if [[ "$ret" == 1 ]]; then
-    # Unfortunately, unknown message-ID and invalid outdir errors are the same (errno #1)
-    complain 'An error occurred during the execution of b4'
-    complain "b4 command: ${cmd}"
-  elif [[ "$ret" == 2 ]]; then
-    complain 'b4 unrecognized arguments'
-    complain "b4 command: ${cmd}"
-  else
-    printf '%s/%s.mbx' "$save_to" "$series_filename"
-  fi
+	# Issue the command to download the series
+	cmd="b4 --quiet am '${series_url}' --no-cover --outdir '${save_to}' --mbox-name '${series_filename}.mbx'"
+	cmd_manager "$flag" "$cmd"
+	ret="$?"
+	if [[ "$ret" == 1 ]]; then
+		# Unfortunately, unknown message-ID and invalid outdir errors are the same (errno #1)
+		complain 'An error occurred during the execution of b4'
+		complain "b4 command: ${cmd}"
+	elif [[ "$ret" == 2 ]]; then
+		complain 'b4 unrecognized arguments'
+		complain "b4 command: ${cmd}"
+	else
+		printf '%s/%s.mbx' "$save_to" "$series_filename"
+	fi
 
-  return "$ret"
+	return "$ret"
 }
 
 # This function deletes a patch series from the local storage
@@ -929,22 +906,21 @@ function download_series()
 # Return:
 # Return 0 if the target file was found and deleted succesfully and 2 (ENOENT),
 # otherwise.
-function delete_series_from_local_storage()
-{
-  local download_dir_path="$1"
-  local series_url="$2"
-  local flag="$3"
-  local series_filename
+function delete_series_from_local_storage() {
+	local download_dir_path="$1"
+	local series_url="$2"
+	local flag="$3"
+	local series_filename
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  series_filename=$(extract_message_id_from_url "$series_url")
+	series_filename=$(extract_message_id_from_url "$series_url")
 
-  if [[ -f "${download_dir_path}/${series_filename}.mbx" ]]; then
-    cmd_manager "$flag" "rm ${download_dir_path}/${series_filename}.mbx"
-  else
-    return 2 # ENOENT
-  fi
+	if [[ -f "${download_dir_path}/${series_filename}.mbx" ]]; then
+		cmd_manager "$flag" "rm ${download_dir_path}/${series_filename}.mbx"
+	else
+		return 2 # ENOENT
+	fi
 }
 
 # This function creates the lore bookmarked series file if it doesn't
@@ -953,18 +929,17 @@ function delete_series_from_local_storage()
 # Return:
 # Returns 0 if the file is created successfully, and the return value of
 # create_lore_data_dir in case it isn't 0.
-function create_lore_bookmarked_file()
-{
-  local ret
+function create_lore_bookmarked_file() {
+	local ret
 
-  create_lore_data_dir
-  ret="$?"
-  if [[ "$ret" != 0 ]]; then
-    return "$ret"
-  fi
+	create_lore_data_dir
+	ret="$?"
+	if [[ "$ret" != 0 ]]; then
+		return "$ret"
+	fi
 
-  [[ -f "${BOOKMARKED_SERIES_PATH}" ]] && return
-  touch "${BOOKMARKED_SERIES_PATH}"
+	[[ -f "${BOOKMARKED_SERIES_PATH}" ]] && return
+	touch "${BOOKMARKED_SERIES_PATH}"
 }
 
 # This function adds an entry of a patchset instance to the local bookmarked database managed
@@ -979,25 +954,24 @@ function create_lore_bookmarked_file()
 # @raw_patchset: Raw data of patchset in the same format as representative_patches
 #   to be added to the local bookmarked database
 # @download_dir_path: The directory where the patchset .mbx was saved
-function add_patchset_to_bookmarked_database()
-{
-  local raw_patchset="$1"
-  local download_dir_path="$2"
-  local timestamp
-  local count
+function add_patchset_to_bookmarked_database() {
+	local raw_patchset="$1"
+	local download_dir_path="$2"
+	local timestamp
+	local count
 
-  create_lore_bookmarked_file
+	create_lore_bookmarked_file
 
-  timestamp=$(date '+%Y/%m/%d %H:%M')
+	timestamp=$(date '+%Y/%m/%d %H:%M')
 
-  count=$(grep --count "${raw_patchset}" "${BOOKMARKED_SERIES_PATH}")
-  if [[ "$count" == 0 ]]; then
-    {
-      printf '%s%s' "${raw_patchset}" "${SEPARATOR_CHAR}"
-      printf '%s%s' "${download_dir_path}" "${SEPARATOR_CHAR}"
-      printf '%s\n' "$timestamp"
-    } >> "${BOOKMARKED_SERIES_PATH}"
-  fi
+	count=$(grep --count "${raw_patchset}" "${BOOKMARKED_SERIES_PATH}")
+	if [[ "$count" == 0 ]]; then
+		{
+			printf '%s%s' "${raw_patchset}" "${SEPARATOR_CHAR}"
+			printf '%s%s' "${download_dir_path}" "${SEPARATOR_CHAR}"
+			printf '%s\n' "$timestamp"
+		} >>"${BOOKMARKED_SERIES_PATH}"
+	fi
 }
 
 # This function removes a patchset from the local bookmark database by its URL.
@@ -1008,19 +982,18 @@ function add_patchset_to_bookmarked_database()
 # Return:
 # Returns 2 (ENOENT) if there is no local bookmark database file and the status
 # code of the last command (sed), otherwise.
-function remove_patchset_from_bookmark_by_url()
-{
-  local patchset_url="$1"
+function remove_patchset_from_bookmark_by_url() {
+	local patchset_url="$1"
 
-  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
-    return 2 # ENOENT
-  fi
+	if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+		return 2 # ENOENT
+	fi
 
-  # Escape forward slashes in the URL
-  patchset_url=$(printf '%s' "$patchset_url" | sed 's/\//\\\//g')
+	# Escape forward slashes in the URL
+	patchset_url=$(printf '%s' "$patchset_url" | sed 's/\//\\\//g')
 
-  # Remove patchset entry
-  sed --in-place "/${patchset_url}/d" "${BOOKMARKED_SERIES_PATH}"
+	# Remove patchset entry
+	sed --in-place "/${patchset_url}/d" "${BOOKMARKED_SERIES_PATH}"
 }
 
 # This function removes a series from the local bookmark database by its index
@@ -1031,15 +1004,14 @@ function remove_patchset_from_bookmark_by_url()
 # Return:
 # Returns 2 (ENOENT) if there is no local bookmark database file and the status
 # code of the last command (sed), otherwise.
-function remove_series_from_bookmark_by_index()
-{
-  local series_index="$1"
+function remove_series_from_bookmark_by_index() {
+	local series_index="$1"
 
-  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
-    return 2 # ENOENT
-  fi
+	if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+		return 2 # ENOENT
+	fi
 
-  sed --in-place "${series_index}d" "${BOOKMARKED_SERIES_PATH}"
+	sed --in-place "${series_index}d" "${BOOKMARKED_SERIES_PATH}"
 }
 
 # This function populates an array passed as argument with all the bookmarked
@@ -1048,25 +1020,24 @@ function remove_series_from_bookmark_by_index()
 #
 # @_bookmarked_series: An array reference to be populated with all the bookmarked
 #   series.
-function get_bookmarked_series()
-{
-  local -n _bookmarked_series="$1"
-  declare -A series
-  local index=0
-  local timestamp
+function get_bookmarked_series() {
+	local -n _bookmarked_series="$1"
+	declare -A series
+	local index=0
+	local timestamp
 
-  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
-    return 2 # ENOENT
-  fi
+	if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+		return 2 # ENOENT
+	fi
 
-  _bookmarked_series=()
+	_bookmarked_series=()
 
-  while IFS='' read -r raw_patchset; do
-    read_patch_into_dict "${raw_patchset}" 'series'
-    _bookmarked_series["$index"]=$(printf ' %s | %-60.60s ' "${series['timestamp']}" "${series['message_title']}")
-    _bookmarked_series["$index"]+=$(printf '| %s' "${series['author_name']}")
-    ((index++))
-  done < "${BOOKMARKED_SERIES_PATH}"
+	while IFS='' read -r raw_patchset; do
+		read_patch_into_dict "${raw_patchset}" 'series'
+		_bookmarked_series["$index"]=$(printf ' %s | %-60.60s ' "${series['timestamp']}" "${series['message_title']}")
+		_bookmarked_series["$index"]+=$(printf '| %s' "${series['author_name']}")
+		((index++))
+	done <"${BOOKMARKED_SERIES_PATH}"
 }
 
 # This function gets a series from the local bookmark database by its index
@@ -1080,18 +1051,17 @@ function get_bookmarked_series()
 # TODO:
 # - Find an alternative way to identify a series, this one may not be the most
 #   reliable.
-function get_bookmarked_series_by_index()
-{
-  local series_index="$1"
-  local target_patch
+function get_bookmarked_series_by_index() {
+	local series_index="$1"
+	local target_patch
 
-  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
-    return 2 # ENOENT
-  fi
+	if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+		return 2 # ENOENT
+	fi
 
-  target_patch=$(sed "${series_index}!d" "${BOOKMARKED_SERIES_PATH}")
+	target_patch=$(sed "${series_index}!d" "${BOOKMARKED_SERIES_PATH}")
 
-  printf '%s' "${target_patch}"
+	printf '%s' "${target_patch}"
 }
 
 # This function parses raw data that represents a patch instance into an
@@ -1107,24 +1077,23 @@ function get_bookmarked_series_by_index()
 #
 # @raw_patch: Raw data of patch in the same format as in `representative_patches`
 # @_dict: Associative array reference to store parsed patch.
-function read_patch_into_dict()
-{
-  local raw_patch="$1"
-  local -n _dict="$2"
-  local columns
+function read_patch_into_dict() {
+	local raw_patch="$1"
+	local -n _dict="$2"
+	local columns
 
-  IFS="${SEPARATOR_CHAR}" read -ra columns <<< "$raw_patch"
-  _dict['message_id']="${columns[0]}"
-  _dict['message_title']="${columns[1]}"
-  _dict['author_name']="${columns[2]}"
-  _dict['author_email']="${columns[3]}"
-  _dict['version']="${columns[4]}"
-  _dict['number_in_series']="${columns[5]}"
-  _dict['total_in_series']="${columns[6]}"
-  _dict['updated']="${columns[7]}"
-  _dict['in_reply_to']="${columns[8]}"
-  _dict['download_dir_path']="${columns[9]}"
-  _dict['timestamp']="${columns[10]}"
+	IFS="${SEPARATOR_CHAR}" read -ra columns <<<"$raw_patch"
+	_dict['message_id']="${columns[0]}"
+	_dict['message_title']="${columns[1]}"
+	_dict['author_name']="${columns[2]}"
+	_dict['author_email']="${columns[3]}"
+	_dict['version']="${columns[4]}"
+	_dict['number_in_series']="${columns[5]}"
+	_dict['total_in_series']="${columns[6]}"
+	_dict['updated']="${columns[7]}"
+	_dict['in_reply_to']="${columns[8]}"
+	_dict['download_dir_path']="${columns[9]}"
+	_dict['timestamp']="${columns[10]}"
 }
 
 # This function gets the bookmark status of a patchset, 0 being not in the local
@@ -1135,23 +1104,22 @@ function read_patch_into_dict()
 #
 # Return:
 # Returns 22 (EINVAL)
-function get_patchset_bookmark_status()
-{
-  local message_id="$1"
-  local count
+function get_patchset_bookmark_status() {
+	local message_id="$1"
+	local count
 
-  [[ -z "$message_id" ]] && return 22 # EINVAL
+	[[ -z "$message_id" ]] && return 22 # EINVAL
 
-  if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
-    create_lore_bookmarked_file
-  fi
+	if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
+		create_lore_bookmarked_file
+	fi
 
-  count=$(grep --count "$message_id" "${BOOKMARKED_SERIES_PATH}")
-  if [[ "$count" == 0 ]]; then
-    printf '%s' 0
-  else
-    printf '%s' 1
-  fi
+	count=$(grep --count "$message_id" "${BOOKMARKED_SERIES_PATH}")
+	if [[ "$count" == 0 ]]; then
+		printf '%s' 0
+	else
+		printf '%s' 1
+	fi
 }
 
 # Every patch series has a message-ID that identifies it in a given public
@@ -1164,17 +1132,16 @@ function get_patchset_bookmark_status()
 # Return:
 # Returns 22 (EINVAL) in case the URL passed as argument is empty and 0,
 # otherwise.
-function extract_message_id_from_url()
-{
-  local series_url="$1"
-  local message_id
+function extract_message_id_from_url() {
+	local series_url="$1"
+	local message_id
 
-  if [[ -z "$series_url" ]]; then
-    return 22 # EINVAL
-  fi
+	if [[ -z "$series_url" ]]; then
+		return 22 # EINVAL
+	fi
 
-  message_id=$(printf '%s' "$series_url" | cut --delimiter '/' -f5)
-  printf '%s' "$message_id"
+	message_id=$(printf '%s' "$series_url" | cut --delimiter '/' -f5)
+	printf '%s' "$message_id"
 }
 
 # This function sets a configuration in a 'lore.config' file.
@@ -1185,16 +1152,15 @@ function extract_message_id_from_url()
 #
 # Return:
 # Returns 2 (ENOENT) if `@lore_config_path` doesn't exist and 0, otherwise.
-function save_new_lore_config()
-{
-  local setting="$1"
-  local new_value="$2"
-  local lore_config_path="$3"
+function save_new_lore_config() {
+	local setting="$1"
+	local new_value="$2"
+	local lore_config_path="$3"
 
-  if [[ ! -f "$lore_config_path" ]]; then
-    complain "${lore_config_path}: file doesn't exists"
-    return 2 # ENOENT
-  fi
+	if [[ ! -f "$lore_config_path" ]]; then
+		complain "${lore_config_path}: file doesn't exists"
+		return 2 # ENOENT
+	fi
 
-  sed --in-place --regexp-extended "s<(${setting}=).*<\1${new_value}<" "$lore_config_path"
+	sed --in-place --regexp-extended "s<(${setting}=).*<\1${new_value}<" "$lore_config_path"
 }

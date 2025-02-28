@@ -10,61 +10,60 @@ declare -gA options_values
 
 # The main entry point for the explore feature, if you want to add another
 # search mechanism, you probably wish to start by this function
-function explore_main()
-{
-  local flag
-  local search
-  local path
-  local context
-  local ret
+function explore_main() {
+	local flag
+	local search
+	local path
+	local context
+	local ret
 
-  if [[ "$1" =~ -h|--help ]]; then
-    explore_help "$1"
-    exit 0
-  fi
+	if [[ "$1" =~ -h|--help ]]; then
+		explore_help "$1"
+		exit 0
+	fi
 
-  parse_explore_options "$@"
-  if [[ "$?" -gt 0 ]]; then
-    complain "${options_values['ERROR']}"
-    return 22 # EINVAL
-  fi
+	parse_explore_options "$@"
+	if [[ "$?" -gt 0 ]]; then
+		complain "${options_values['ERROR']}"
+		return 22 # EINVAL
+	fi
 
-  flag="${options_values['TEST_MODE']:-'SILENT'}"
-  search="${options_values['SEARCH']}"
-  path="${options_values['PATH']:-'.'}"
-  context="${options_values['CONTEXT']:-0}"
+	flag="${options_values['TEST_MODE']:-'SILENT'}"
+	search="${options_values['SEARCH']}"
+	path="${options_values['PATH']:-'.'}"
+	context="${options_values['CONTEXT']:-0}"
 
-  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
+	[[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
-  if [[ "${options_values['SCOPE']}" == 'HEADER' ]]; then
-    path="${path}/*.h"
-  elif [[ "${options_values['SCOPE']}" == 'SOURCE' ]]; then
-    path="${path}/*.c"
-  fi
+	if [[ "${options_values['SCOPE']}" == 'HEADER' ]]; then
+		path="${path}/*.h"
+	elif [[ "${options_values['SCOPE']}" == 'SOURCE' ]]; then
+		path="${path}/*.c"
+	fi
 
-  if [[ "${options_values['TYPE']}" -eq 1 ]]; then
-    # LOG
-    explore_git_log "$search" "$path" "$flag"
-    return
-  fi
+	if [[ "${options_values['TYPE']}" -eq 1 ]]; then
+		# LOG
+		explore_git_log "$search" "$path" "$flag"
+		return
+	fi
 
-  if [[ "${options_values['TYPE']}" -eq 2 ]]; then
-    # Use GNU GREP
-    explore_files_gnu_grep "$search" "$path" "$context" "$flag"
-    return
-  fi
+	if [[ "${options_values['TYPE']}" -eq 2 ]]; then
+		# Use GNU GREP
+		explore_files_gnu_grep "$search" "$path" "$context" "$flag"
+		return
+	fi
 
-  if [[ "${options_values['TYPE']}" -eq 3 ]]; then
-    # Search in directories controlled or not by git
-    explore_all_files_git "$search" "$path" "$context" "$flag"
-    return
-  fi
+	if [[ "${options_values['TYPE']}" -eq 3 ]]; then
+		# Search in directories controlled or not by git
+		explore_all_files_git "$search" "$path" "$context" "$flag"
+		return
+	fi
 
-  if [[ -z "${options_values['TYPE']}" ]]; then
-    # Search in files under git control
-    explore_files_under_git "$search" "$path" "$context" "$flag"
-    return
-  fi
+	if [[ -z "${options_values['TYPE']}" ]]; then
+		# Search in files under git control
+		explore_files_under_git "$search" "$path" "$context" "$flag"
+		return
+	fi
 }
 
 # Tiny parameter parser, we try to keep this function isolate for making easy
@@ -75,132 +74,131 @@ function explore_main()
 #   0 if options are parsed successfully
 #   22 for invalid operation
 # This function also set options_values
-function parse_explore_options()
-{
-  local long_options='log,grep,all,only-header,only-source,exactly,verbose,show-context::'
-  local short_options='l,g,a,H,c,C::'
-  local options
+function parse_explore_options() {
+	local long_options='log,grep,all,only-header,only-source,exactly,verbose,show-context::'
+	local short_options='l,g,a,H,c,C::'
+	local options
 
-  if [[ "$#" -eq 0 ]]; then
-    options_values['ERROR']='Expected string or parameter. See man for detail.'
-    return 22 # EINVAL
-  fi
+	if [[ "$#" -eq 0 ]]; then
+		options_values['ERROR']='Expected string or parameter. See man for detail.'
+		return 22 # EINVAL
+	fi
 
-  options="$(kw_parse "$short_options" "$long_options" "$@")"
-  if [[ "$?" != 0 ]]; then
-    options_values['ERROR']="$(kw_parse_get_errors 'kw explore' \
-      "$short_options" "$long_options" "$@")"
-    return 22 # EINVAL
-  fi
+	options="$(kw_parse "$short_options" "$long_options" "$@")"
+	if [[ "$?" != 0 ]]; then
+		options_values['ERROR']="$(kw_parse_get_errors 'kw explore' \
+			"$short_options" "$long_options" "$@")"
+		return 22 # EINVAL
+	fi
 
-  options_values['TEST_MODE']='SILENT'
-  options_values['SEARCH']=''
-  options_values['PATH']=''
-  options_values['TYPE']=''
-  options_values['SCOPE']=''
-  options_values['EXACTLY']=''
-  options_values['CONTEXT']=''
-  options_values['VERBOSE']=''
+	options_values['TEST_MODE']='SILENT'
+	options_values['SEARCH']=''
+	options_values['PATH']=''
+	options_values['TYPE']=''
+	options_values['SCOPE']=''
+	options_values['EXACTLY']=''
+	options_values['CONTEXT']=''
+	options_values['VERBOSE']=''
 
-  eval "set -- $options"
+	eval "set -- $options"
 
-  while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-      --log | -l)
-        if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 1 ]]; then
-          options_values['ERROR']='Invalid arguments: Multiple search type!'
-          return 22 # EINVAL
-        fi
+	while [[ "$#" -gt 0 ]]; do
+		case "$1" in
+		--log | -l)
+			if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 1 ]]; then
+				options_values['ERROR']='Invalid arguments: Multiple search type!'
+				return 22 # EINVAL
+			fi
 
-        options_values['TYPE']=1
-        shift
-        ;;
-      --grep | -g)
-        if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 2 ]]; then
-          options_values['ERROR']='Invalid arguments: Multiple search type!'
-          return 22 # EINVAL
-        fi
+			options_values['TYPE']=1
+			shift
+			;;
+		--grep | -g)
+			if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 2 ]]; then
+				options_values['ERROR']='Invalid arguments: Multiple search type!'
+				return 22 # EINVAL
+			fi
 
-        options_values['TYPE']=2
-        shift
-        ;;
-      --all | -a)
-        if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 3 ]]; then
-          options_values['ERROR']='Invalid arguments: Multiple search type!'
-          return 22 # EINVAL
-        fi
+			options_values['TYPE']=2
+			shift
+			;;
+		--all | -a)
+			if [[ -n "${options_values['TYPE']}" && "${options_values['TYPE']}" -ne 3 ]]; then
+				options_values['ERROR']='Invalid arguments: Multiple search type!'
+				return 22 # EINVAL
+			fi
 
-        options_values['TYPE']=3
-        shift
-        ;;
-      --only-header | -H)
-        if [[ -n "${options_values['SCOPE']}" ]]; then
-          if [[ "${options_values['SCOPE']}" != 'HEADER' ]]; then
-            options_values['ERROR']='Invalid arguments: Multiple search scope!'
-            return 22 # EINVAL
-          fi
-        fi
+			options_values['TYPE']=3
+			shift
+			;;
+		--only-header | -H)
+			if [[ -n "${options_values['SCOPE']}" ]]; then
+				if [[ "${options_values['SCOPE']}" != 'HEADER' ]]; then
+					options_values['ERROR']='Invalid arguments: Multiple search scope!'
+					return 22 # EINVAL
+				fi
+			fi
 
-        options_values['SCOPE']='HEADER'
-        shift
-        ;;
-      --only-source | -c)
-        if [[ -n "${options_values['SCOPE']}" ]]; then
-          if [[ "${options_values['SCOPE']}" != 'SOURCE' ]]; then
-            options_values['ERROR']='Invalid arguments: Multiple search scope!'
-            return 22 # EINVAL
-          fi
-        fi
+			options_values['SCOPE']='HEADER'
+			shift
+			;;
+		--only-source | -c)
+			if [[ -n "${options_values['SCOPE']}" ]]; then
+				if [[ "${options_values['SCOPE']}" != 'SOURCE' ]]; then
+					options_values['ERROR']='Invalid arguments: Multiple search scope!'
+					return 22 # EINVAL
+				fi
+			fi
 
-        options_values['SCOPE']='SOURCE'
-        shift
-        ;;
-      --exactly)
-        options_values['EXACTLY']=1
-        shift
-        ;;
-      --verbose)
-        options_values['VERBOSE']=1
-        shift
-        ;;
-      --show-context | -C)
-        if [[ -n "${options_values['CONTEXT']}" ]]; then
-          options_values['ERROR']='Invalid arguments: Multiple context values!'
-          return 22 # EINVAL
-        fi
+			options_values['SCOPE']='SOURCE'
+			shift
+			;;
+		--exactly)
+			options_values['EXACTLY']=1
+			shift
+			;;
+		--verbose)
+			options_values['VERBOSE']=1
+			shift
+			;;
+		--show-context | -C)
+			if [[ -n "${options_values['CONTEXT']}" ]]; then
+				options_values['ERROR']='Invalid arguments: Multiple context values!'
+				return 22 # EINVAL
+			fi
 
-        if [[ ! "$2" ]]; then
-          options_values['CONTEXT']=3
-        elif [[ ! "$2" =~ ^[0-9]+$ ]]; then
-          options_values['ERROR']='Context value must be a non-negative integer!'
-          return 22 # EINVAL
-        else
-          options_values['CONTEXT']="$2"
-          shift
-        fi
+			if [[ ! "$2" ]]; then
+				options_values['CONTEXT']=3
+			elif [[ ! "$2" =~ ^[0-9]+$ ]]; then
+				options_values['ERROR']='Context value must be a non-negative integer!'
+				return 22 # EINVAL
+			else
+				options_values['CONTEXT']="$2"
+				shift
+			fi
 
-        shift
-        ;;
-      --) # End of options, beginning of arguments
-        shift
-        ;;
-      TEST_MODE)
-        options_values['TEST_MODE']='TEST_MODE'
-        shift
-        ;;
-      *)
-        if [[ -z "${options_values['SEARCH']}" ]]; then
-          options_values['SEARCH']="$1"
-        elif [[ -z "${options_values['PATH']}" ]]; then
-          options_values['PATH']="$1"
-        else
-          options_values['ERROR']='Too many parameters'
-          return 22 # EINVAL
-        fi
-        shift
-        ;;
-    esac
-  done
+			shift
+			;;
+		--) # End of options, beginning of arguments
+			shift
+			;;
+		TEST_MODE)
+			options_values['TEST_MODE']='TEST_MODE'
+			shift
+			;;
+		*)
+			if [[ -z "${options_values['SEARCH']}" ]]; then
+				options_values['SEARCH']="$1"
+			elif [[ -z "${options_values['PATH']}" ]]; then
+				options_values['PATH']="$1"
+			else
+				options_values['ERROR']='Too many parameters'
+				return 22 # EINVAL
+			fi
+			shift
+			;;
+		esac
+	done
 }
 
 # This function is responsible for handling the search in the log history.
@@ -209,15 +207,14 @@ function parse_explore_options()
 # @path This is an optional parameter for narrow down git log search
 # @flag How to display a command, the default value is "SILENT". For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
-function explore_git_log()
-{
-  local search_string="$1"
-  local path="$2"
-  local flag="$3"
+function explore_git_log() {
+	local search_string="$1"
+	local path="$2"
+	local flag="$3"
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "git log --grep='${search_string}' ${path}"
+	cmd_manager "$flag" "git log --grep='${search_string}' ${path}"
 }
 
 # This function searches string in files under git control.
@@ -226,16 +223,15 @@ function explore_git_log()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
-function explore_files_under_git()
-{
-  local regex="$1"
-  local path="$2"
-  local context="$3"
-  local flag="$4"
+function explore_files_under_git() {
+	local regex="$1"
+	local path="$2"
+	local context="$3"
+	local flag="$4"
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "git grep --context ${context} -e '${regex}' --line-number -I ${path}"
+	cmd_manager "$flag" "git grep --context ${context} -e '${regex}' --line-number -I ${path}"
 }
 
 # This function uses git grep tool to search string in files under or not git
@@ -246,16 +242,15 @@ function explore_files_under_git()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
-function explore_all_files_git()
-{
-  local regex="$1"
-  local path="$2"
-  local context="$3"
-  local flag="$4"
+function explore_all_files_git() {
+	local regex="$1"
+	local path="$2"
+	local context="$3"
+	local flag="$4"
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "git grep --no-index --context ${context} -e '${regex}' --line-number -I ${path}"
+	cmd_manager "$flag" "git grep --no-index --context ${context} -e '${regex}' --line-number -I ${path}"
 }
 
 # This function allows the use of gnu grep utility to manages the search for
@@ -265,32 +260,30 @@ function explore_all_files_git()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
-function explore_files_gnu_grep()
-{
-  local regex="$1"
-  local path="$2"
-  local context="$3"
-  local flag="$4"
+function explore_files_gnu_grep() {
+	local regex="$1"
+	local path="$2"
+	local context="$3"
+	local flag="$4"
 
-  flag=${flag:-'SILENT'}
+	flag=${flag:-'SILENT'}
 
-  cmd_manager "$flag" "grep --color --line-number --recursive -I ${path} --context ${context} -e '${regex}'"
+	cmd_manager "$flag" "grep --color --line-number --recursive -I ${path} --context ${context} -e '${regex}'"
 }
 
-function explore_help()
-{
-  if [[ "$1" == --help ]]; then
-    include "$KW_LIB_DIR/help.sh"
-    kworkflow_man 'explore'
-    return
-  fi
-  printf '%s\n' 'kw explore:' \
-    '  explore,e <string> [<path>] - Search for <string> based in <path> (./ by default)' \
-    '  explore,e --log,-l <string> - Search for <string> on git log' \
-    '  explore,e --grep,-g <string> - Search for <string> using the GNU grep tool' \
-    '  explore,e --all,-a <string> - Search for all <string> match under or not of git management' \
-    '  explore,e --only-source,-c <string> - Search for all <string> in source files' \
-    '  explore,e --only-header,-H <string> - Search for all <string> in header files' \
-    '  explore,e --show-context[=<num>],-C[<num>] <string> - Print <num> lines of output context (default: 3)' \
-    '  explore,e --verbose - Show a detailed output'
+function explore_help() {
+	if [[ "$1" == --help ]]; then
+		include "$KW_LIB_DIR/help.sh"
+		kworkflow_man 'explore'
+		return
+	fi
+	printf '%s\n' 'kw explore:' \
+		'  explore,e <string> [<path>] - Search for <string> based in <path> (./ by default)' \
+		'  explore,e --log,-l <string> - Search for <string> on git log' \
+		'  explore,e --grep,-g <string> - Search for <string> using the GNU grep tool' \
+		'  explore,e --all,-a <string> - Search for all <string> match under or not of git management' \
+		'  explore,e --only-source,-c <string> - Search for all <string> in source files' \
+		'  explore,e --only-header,-H <string> - Search for all <string> in header files' \
+		'  explore,e --show-context[=<num>],-C[<num>] <string> - Print <num> lines of output context (default: 3)' \
+		'  explore,e --verbose - Show a detailed output'
 }

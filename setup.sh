@@ -61,31 +61,30 @@ declare -r PATCH_HUB_LATEST_RELEASE='https://github.com/kworkflow/patch-hub/rele
 #
 # Returns:
 # Outputs a space-separated string with the missing packages.
-function get_missing_packages()
-{
-  local distro="$1"
-  local deps_file="$2"
-  local package_list
-  local installed
+function get_missing_packages() {
+	local distro="$1"
+	local deps_file="$2"
+	local package_list
+	local installed
 
-  if [[ "$distro" =~ 'arch' ]]; then
-    while IFS='' read -r package; do
-      pacman -Ql "$package" &> /dev/null
-      [[ "$?" != 0 ]] && package_list="${package} ${package_list}"
-    done < "$deps_file"
-  elif [[ "$distro" =~ 'debian' ]]; then
-    while IFS='' read -r package; do
-      installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2> /dev/null | grep -c 'ok installed')
-      [[ "$installed" -eq 0 ]] && package_list="${package} ${package_list}"
-    done < "$deps_file"
-  elif [[ "$distro" =~ 'fedora' ]]; then
-    while IFS='' read -r package; do
-      rpm -q "$package" &> /dev/null
-      [[ "$?" -ne 0 ]] && package_list="${package} ${package_list}"
-    done < "$deps_file"
-  fi
+	if [[ "$distro" =~ 'arch' ]]; then
+		while IFS='' read -r package; do
+			pacman -Ql "$package" &>/dev/null
+			[[ "$?" != 0 ]] && package_list="${package} ${package_list}"
+		done <"$deps_file"
+	elif [[ "$distro" =~ 'debian' ]]; then
+		while IFS='' read -r package; do
+			installed=$(dpkg-query -W --showformat='${Status}\n' "$package" 2>/dev/null | grep -c 'ok installed')
+			[[ "$installed" -eq 0 ]] && package_list="${package} ${package_list}"
+		done <"$deps_file"
+	elif [[ "$distro" =~ 'fedora' ]]; then
+		while IFS='' read -r package; do
+			rpm -q "$package" &>/dev/null
+			[[ "$?" -ne 0 ]] && package_list="${package} ${package_list}"
+		done <"$deps_file"
+	fi
 
-  printf '%s\n' "$package_list"
+	printf '%s\n' "$package_list"
 }
 
 # This function installs the given packages.
@@ -94,15 +93,14 @@ function get_missing_packages()
 #
 # Returns:
 # The return status of the installation command.
-function install_packages()
-{
-  local cmd="$1"
+function install_packages() {
+	local cmd="$1"
 
-  if [[ "$EUID" -eq 0 ]]; then
-    eval "$cmd"
-  else
-    eval "sudo ${cmd}"
-  fi
+	if [[ "$EUID" -eq 0 ]]; then
+		eval "$cmd"
+	else
+		eval "sudo ${cmd}"
+	fi
 }
 
 # This function checks and installs the necessary dependencies for the current
@@ -111,52 +109,51 @@ function install_packages()
 # Returns:
 # Returns 0 if all dependencies are already installed or installation is
 # successful.
-function check_dependencies()
-{
-  local package_list
-  local cmd
-  local distro
-  local ret
+function check_dependencies() {
+	local package_list
+	local cmd
+	local distro
+	local ret
 
-  distro=$(detect_distro '/')
+	distro=$(detect_distro '/')
 
-  package_list=$(get_missing_packages "$distro" "${DOCUMENTATION}/dependencies/${distro}.dependencies")
+	package_list=$(get_missing_packages "$distro" "${DOCUMENTATION}/dependencies/${distro}.dependencies")
 
-  case "$distro" in
-    arch*)
-      cmd="pacman -Sy --noconfirm ${package_list}"
-      ;;
-    debian*)
-      cmd="apt install -y ${package_list}"
-      ;;
-    fedora*)
-      cmd="dnf install -y ${package_list}"
-      ;;
-    *)
-      warning 'Unfortunately, we do not have official support for your distro (yet)'
-      warning 'Please, try to find the following packages:'
-      warning "$(cat "${DOCUMENTATION}/dependencies/arch.dependencies")"
-      return 0
-      ;;
-  esac
+	case "$distro" in
+	arch*)
+		cmd="pacman -Sy --noconfirm ${package_list}"
+		;;
+	debian*)
+		cmd="apt install -y ${package_list}"
+		;;
+	fedora*)
+		cmd="dnf install -y ${package_list}"
+		;;
+	*)
+		warning 'Unfortunately, we do not have official support for your distro (yet)'
+		warning 'Please, try to find the following packages:'
+		warning "$(cat "${DOCUMENTATION}/dependencies/arch.dependencies")"
+		return 0
+		;;
+	esac
 
-  if [[ -n "$package_list" ]]; then
-    if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "The following packages are required: ${package_list}"$'\nMay we install them?') =~ '0' ]]; then
-        complain 'Aborting kw installation...'
-        exit 125 # ECANCELED
-      fi
-    fi
+	if [[ -n "$package_list" ]]; then
+		if [[ "$FORCE" == 0 ]]; then
+			if [[ $(ask_yN "The following packages are required: ${package_list}"$'\nMay we install them?') =~ '0' ]]; then
+				complain 'Aborting kw installation...'
+				exit 125 # ECANCELED
+			fi
+		fi
 
-    install_packages "$cmd"
-    ret="$?"
+		install_packages "$cmd"
+		ret="$?"
 
-    # Installation failed...
-    if [[ "$ret" -ne 0 ]]; then
-      complain '[ERROR] Dependencies installation has failed. Aborting kw installation...'
-      exit "$ret"
-    fi
-  fi
+		# Installation failed...
+		if [[ "$ret" -ne 0 ]]; then
+			complain '[ERROR] Dependencies installation has failed. Aborting kw installation...'
+			exit "$ret"
+		fi
+	fi
 }
 
 # This function checks and installs kernel build dependencies, i.e.,
@@ -170,639 +167,614 @@ function check_dependencies()
 # is successful.  and returns 22 (EINVAL), in case `@distro` is an unsupported
 # OS type. The function can also exit the execution with 125 (ECANCELED) in case
 # the user opts to abort the installation.
-function check_and_install_kernel_build_dependencies()
-{
-  local distro="$1"
-  local kernel_build_deps_file
-  local package_list
-  local cmd
+function check_and_install_kernel_build_dependencies() {
+	local distro="$1"
+	local kernel_build_deps_file
+	local package_list
+	local cmd
 
-  kernel_build_deps_file="${DOCUMENTATION}/dependencies/kernel_build/${distro}.dependencies"
+	kernel_build_deps_file="${DOCUMENTATION}/dependencies/kernel_build/${distro}.dependencies"
 
-  package_list=$(get_missing_packages "$distro" "$kernel_build_deps_file")
+	package_list=$(get_missing_packages "$distro" "$kernel_build_deps_file")
 
-  case "$distro" in
-    arch*)
-      cmd="pacman -Sy --noconfirm ${package_list}"
-      ;;
-    debian*)
-      cmd="apt install -y ${package_list}"
-      ;;
-    fedora*)
-      cmd="dnf install -y ${package_list}"
-      ;;
-    *)
-      complain "Unsupported OS type: ${distro}"
-      return 22 # EINVAL
-      ;;
-  esac
+	case "$distro" in
+	arch*)
+		cmd="pacman -Sy --noconfirm ${package_list}"
+		;;
+	debian*)
+		cmd="apt install -y ${package_list}"
+		;;
+	fedora*)
+		cmd="dnf install -y ${package_list}"
+		;;
+	*)
+		complain "Unsupported OS type: ${distro}"
+		return 22 # EINVAL
+		;;
+	esac
 
-  if [[ -z "$package_list" ]]; then
-    warning 'All necessary kernel build dependencies are already installed.'
-    return 0
-  fi
+	if [[ -z "$package_list" ]]; then
+		warning 'All necessary kernel build dependencies are already installed.'
+		return 0
+	fi
 
-  if [[ -n "$package_list" ]]; then
-    if [[ "$FORCE" == 0 ]]; then
-      if [[ $(ask_yN "The following packages are required to build the kernel: ${package_list}"$'\nMay we install them?') =~ '0' ]]; then
-        complain 'Aborting installation. Kernel build dependencies not installed.'
-        exit 125 # ECANCELED
-      fi
-    fi
+	if [[ -n "$package_list" ]]; then
+		if [[ "$FORCE" == 0 ]]; then
+			if [[ $(ask_yN "The following packages are required to build the kernel: ${package_list}"$'\nMay we install them?') =~ '0' ]]; then
+				complain 'Aborting installation. Kernel build dependencies not installed.'
+				exit 125 # ECANCELED
+			fi
+		fi
 
-    install_packages "$cmd"
+		install_packages "$cmd"
 
-    # Installation failed...
-    if [[ "$?" -ne 0 ]]; then
-      complain '[ERROR] Dependencies installation to build the kernel has failed. Aborting installation...'
-      exit "$?"
-    fi
-  fi
+		# Installation failed...
+		if [[ "$?" -ne 0 ]]; then
+			complain '[ERROR] Dependencies installation to build the kernel has failed. Aborting installation...'
+			exit "$?"
+		fi
+	fi
 }
 
 # This function initiates the process to ensure kernel build dependencies are
 # installed.
-function install_kernel_dev_deps()
-{
-  local distro
-  local ret
+function install_kernel_dev_deps() {
+	local distro
+	local ret
 
-  distro=$(detect_distro '/')
+	distro=$(detect_distro '/')
 
-  # Check if distro is equal to 'none'
-  if [[ "$distro" == 'none' ]]; then
-    complain 'Support for this distro is not available yet.'
-    exit 22 # EINVAL
-  fi
+	# Check if distro is equal to 'none'
+	if [[ "$distro" == 'none' ]]; then
+		complain 'Support for this distro is not available yet.'
+		exit 22 # EINVAL
+	fi
 
-  # Use check_and_install_kernel_build_dependencies() to handle dependency
-  # installation
-  check_and_install_kernel_build_dependencies "$distro"
+	# Use check_and_install_kernel_build_dependencies() to handle dependency
+	# installation
+	check_and_install_kernel_build_dependencies "$distro"
 }
 
-function generate_documentation()
-{
-  local ret
+function generate_documentation() {
+	local ret
 
-  python3 -m venv "$DOCS_VIRTUAL_ENV"
+	python3 -m venv "$DOCS_VIRTUAL_ENV"
 
-  # Activate python virtual env
-  source "${DOCS_VIRTUAL_ENV}/bin/activate"
-  say 'Creating python virtual env...'
-  cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
-  eval "$cmd"
-  ret="$?"
+	# Activate python virtual env
+	source "${DOCS_VIRTUAL_ENV}/bin/activate"
+	say 'Creating python virtual env...'
+	cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+	eval "$cmd"
+	ret="$?"
 
-  if [[ "$ret" == 0 ]]; then
-    sphinx-build -nW -b html documentation/ build
-  else
-    complain 'Could not install pip dependencies'
-  fi
-  # Deactivate python virtual env
-  deactivate
+	if [[ "$ret" == 0 ]]; then
+		sphinx-build -nW -b html documentation/ build
+	else
+		complain 'Could not install pip dependencies'
+	fi
+	# Deactivate python virtual env
+	deactivate
 
-  if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
-    rm --recursive "$DOCS_VIRTUAL_ENV"
-  fi
-  return "$ret"
+	if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+		rm --recursive "$DOCS_VIRTUAL_ENV"
+	fi
+	return "$ret"
 }
 
 # TODO
 # Originally, kw get installed in the ~/.config and add the kw binary in the
 # path. We changed it; however, we keep this function for supporting the
 # migration from the old version to the new one.
-function remove_kw_from_PATH_variable()
-{
-  local new_path=''
-  local needs_update=0
+function remove_kw_from_PATH_variable() {
+	local new_path=''
+	local needs_update=0
 
-  IFS=':' read -ra ALL_PATHS <<< "$PATH"
-  for path in "${ALL_PATHS[@]}"; do
-    if [[ "$path" =~ '/kw' ]]; then
-      needs_update=1
-      continue
-    fi
-    # The first interaction introduce one extra ':'
-    new_path="$new_path:$path"
-  done
+	IFS=':' read -ra ALL_PATHS <<<"$PATH"
+	for path in "${ALL_PATHS[@]}"; do
+		if [[ "$path" =~ '/kw' ]]; then
+			needs_update=1
+			continue
+		fi
+		# The first interaction introduce one extra ':'
+		new_path="$new_path:$path"
+	done
 
-  if [[ "$needs_update" != 0 ]]; then
-    # Drop ':' introduced in the above loop
-    PATH="${new_path:1}"
-    export PATH
-  fi
+	if [[ "$needs_update" != 0 ]]; then
+		# Drop ':' introduced in the above loop
+		PATH="${new_path:1}"
+		export PATH
+	fi
 }
 
-function update_path()
-{
-  local shellrc="$1"
+function update_path() {
+	local shellrc="$1"
 
-  IFS=':' read -ra ALL_PATHS <<< "$PATH"
-  for path in "${ALL_PATHS[@]}"; do
-    [[ "$path" -ef "$binpath" ]] && return
-  done
+	IFS=':' read -ra ALL_PATHS <<<"$PATH"
+	for path in "${ALL_PATHS[@]}"; do
+		[[ "$path" -ef "$binpath" ]] && return
+	done
 
-  safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "$shellrc"
+	safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "$shellrc"
 }
 
-function update_current_bash()
-{
-  exec /bin/bash
+function update_current_bash() {
+	exec /bin/bash
 }
 
-function cmd_output_manager()
-{
-  local cmd="$1"
-  local unsilent_flag="$2"
+function cmd_output_manager() {
+	local cmd="$1"
+	local unsilent_flag="$2"
 
-  if [[ -z "$unsilent_flag" ]]; then
-    cmd="$cmd >/dev/null"
-  else
-    printf '%s\n' "$cmd"
-  fi
+	if [[ -z "$unsilent_flag" ]]; then
+		cmd="$cmd >/dev/null"
+	else
+		printf '%s\n' "$cmd"
+	fi
 
-  eval "$cmd"
-  return "$?"
+	eval "$cmd"
+	return "$?"
 }
 
 # TODO: Remove me one day
 # KW used git to track saved configs from kernel-config-manager.
 # It changed so this function removes the unused .git folder from
 # the dot_configs_dir
-function remove_legacy_git_from_kernel_config_manager()
-{
-  local -r original_path="$PWD"
+function remove_legacy_git_from_kernel_config_manager() {
+	local -r original_path="$PWD"
 
-  [[ ! -d "${dot_configs_dir}"/.git ]] && return
+	[[ ! -d "${dot_configs_dir}"/.git ]] && return
 
-  if pushd "$dot_configs_dir" &> /dev/null; then
-    rm -rf .git/
-    popd &> /dev/null || {
-      complain "Could not return to original path from dot_configs_dir=$dot_configs_dir"
-      exit 1
-    }
-  else
-    complain 'Could not cd to dot_configs_dir'
-    return
-  fi
+	if pushd "$dot_configs_dir" &>/dev/null; then
+		rm -rf .git/
+		popd &>/dev/null || {
+			complain "Could not return to original path from dot_configs_dir=$dot_configs_dir"
+			exit 1
+		}
+	else
+		complain 'Could not cd to dot_configs_dir'
+		return
+	fi
 }
 
-function usage()
-{
-  say 'usage: ./setup.sh option'
-  say ''
-  say 'Where option may be one of the following:'
-  say '--help                     | -h    Display this usage message'
-  say "--install                  | -i    Install ${app_name}"
-  say '--install-kernel-dev-deps  | -k    Installs all necessary dependencies to build the kernel according to your distribution'
-  say "--full-installation        | -F    Install ${app_name} and its kernel development dependencies"
-  say "--uninstall                | -u    Uninstall ${app_name}"
-  say '--skip-checks              | -C    Skip checks (use this when packaging)'
-  say '--skip-docs                | -D    Skip creation of man pages (use this when installing)'
-  say '--verbose                  | -v    Explain what is being done'
-  say '--force                    | -f    Never prompt'
-  say "--completely-remove        | -r    Remove ${app_name} and all files under its responsibility"
-  say "--docs                     | -d    Build ${app_name}'s documentation as HTML pages into ./build"
-  say "--enable-tracing           | -t    Install ${app_name} with tracing enabled (use it with --install)"
+function usage() {
+	say 'usage: ./setup.sh option'
+	say ''
+	say 'Where option may be one of the following:'
+	say '--help                     | -h    Display this usage message'
+	say "--install                  | -i    Install ${app_name}"
+	say '--install-kernel-dev-deps  | -k    Installs all necessary dependencies to build the kernel according to your distribution'
+	say "--full-installation        | -F    Install ${app_name} and its kernel development dependencies"
+	say "--uninstall                | -u    Uninstall ${app_name}"
+	say '--skip-checks              | -C    Skip checks (use this when packaging)'
+	say '--skip-docs                | -D    Skip creation of man pages (use this when installing)'
+	say '--verbose                  | -v    Explain what is being done'
+	say '--force                    | -f    Never prompt'
+	say "--completely-remove        | -r    Remove ${app_name} and all files under its responsibility"
+	say "--docs                     | -d    Build ${app_name}'s documentation as HTML pages into ./build"
+	say "--enable-tracing           | -t    Install ${app_name} with tracing enabled (use it with --install)"
 }
 
-function confirm_complete_removal()
-{
-  warning 'This operation will completely remove all files related to kw,'
-  warning 'including the kernel '.config' files under its controls.'
-  if [[ $(ask_yN 'Do you want to proceed?') =~ '0' ]]; then
-    exit 0
-  fi
+function confirm_complete_removal() {
+	warning 'This operation will completely remove all files related to kw,'
+	warning 'including the kernel '.config' files under its controls.'
+	if [[ $(ask_yN 'Do you want to proceed?') =~ '0' ]]; then
+		exit 0
+	fi
 }
 
 # This function moves the folders from the old directory structure to
 # folders of the new one.
-function legacy_folders()
-{
-  local prefix="$HOME/.local"
+function legacy_folders() {
+	local prefix="$HOME/.local"
 
-  if [[ -d "$HOME/.kw" ]]; then
-    say 'Found an obsolete installation of kw:'
-    say "Moving files in $HOME/.kw/ to $datadir..."
-    rsync -a "$HOME/.kw/" "$datadir"
+	if [[ -d "$HOME/.kw" ]]; then
+		say 'Found an obsolete installation of kw:'
+		say "Moving files in $HOME/.kw/ to $datadir..."
+		rsync -a "$HOME/.kw/" "$datadir"
 
-    rm -rf "$HOME/.kw"
-  fi
+		rm -rf "$HOME/.kw"
+	fi
 
-  [[ -d "$prefix/share/doc" ]] && rm -rf "$prefix/share/doc"
-  [[ -f "$prefix/share/man/kw.rst" ]] && rm -rf "$prefix/share/man/kw.rst"
-  [[ -d "$prefix/share/sound/kw" ]] && rm -rf "$prefix/share/sound/kw"
-  [[ -d "$prefix/share/man" ]] && rm -rf "$prefix/share/man"
-  [[ -d "$prefix/share/sound" ]] && rm -rf "$prefix/share/sound"
+	[[ -d "$prefix/share/doc" ]] && rm -rf "$prefix/share/doc"
+	[[ -f "$prefix/share/man/kw.rst" ]] && rm -rf "$prefix/share/man/kw.rst"
+	[[ -d "$prefix/share/sound/kw" ]] && rm -rf "$prefix/share/sound/kw"
+	[[ -d "$prefix/share/man" ]] && rm -rf "$prefix/share/man"
+	[[ -d "$prefix/share/sound" ]] && rm -rf "$prefix/share/sound"
 
-  # Legacy global config
-  if [[ -d "$prefix/etc/kw/" ]]; then
-    say "Moving $prefix/etc/kw to $etcdir..."
-    rsync -a "$prefix/etc/kw/" "$etcdir"
-    # We already check "$prefix"
-    # shellcheck disable=SC2115
-    rm -rf "$prefix/etc"
-  fi
+	# Legacy global config
+	if [[ -d "$prefix/etc/kw/" ]]; then
+		say "Moving $prefix/etc/kw to $etcdir..."
+		rsync -a "$prefix/etc/kw/" "$etcdir"
+		# We already check "$prefix"
+		# shellcheck disable=SC2115
+		rm -rf "$prefix/etc"
+	fi
 
 }
 
-function clean_legacy()
-{
-  local completely_remove="$1"
-  local toDelete="$app_name"
-  local trash
+function clean_legacy() {
+	local completely_remove="$1"
+	local toDelete="$app_name"
+	local trash
 
-  trash=$(mktemp -d)
+	trash=$(mktemp -d)
 
-  eval "sed -i '/\<$toDelete\>/d' $HOME/.bashrc"
+	eval "sed -i '/\<$toDelete\>/d' $HOME/.bashrc"
 
-  # Remove kw binary
-  [[ -f "$kwbinpath" ]] && mv "$kwbinpath" "$trash"
+	# Remove kw binary
+	[[ -f "$kwbinpath" ]] && mv "$kwbinpath" "$trash"
 
-  # Remove kw libriary
-  [[ -d "$libdir" ]] && mv "$libdir" "$trash/lib"
+	# Remove kw libriary
+	[[ -d "$libdir" ]] && mv "$libdir" "$trash/lib"
 
-  # Remove doc dir
-  [[ -d "$docdir" ]] && mv "$docdir" "$trash"
+	# Remove doc dir
+	[[ -d "$docdir" ]] && mv "$docdir" "$trash"
 
-  # Remove man
-  [[ -d "$mandir" ]] && mv "$mandir" "$trash"
+	# Remove man
+	[[ -d "$mandir" ]] && mv "$mandir" "$trash"
 
-  # Remove sound files
-  [[ -d "$sounddir" ]] && mv "$sounddir" "$trash/sound"
+	# Remove sound files
+	[[ -d "$sounddir" ]] && mv "$sounddir" "$trash/sound"
 
-  # Remove etc files
-  [[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
+	# Remove etc files
+	[[ -d "$etcdir" ]] && mv "$etcdir" "$trash/etc"
 
-  # Remove patch-hub binary
-  [[ -f "${binpath}/patch-hub" ]] && mv "${binpath}/patch-hub" "$trash"
+	# Remove patch-hub binary
+	[[ -f "${binpath}/patch-hub" ]] && mv "${binpath}/patch-hub" "$trash"
 
-  # Completely remove user data
-  if [[ "$completely_remove" =~ '-d' ]]; then
-    mv "$datadir" "$trash/userdata"
-    return 0
-  fi
+	# Completely remove user data
+	if [[ "$completely_remove" =~ '-d' ]]; then
+		mv "$datadir" "$trash/userdata"
+		return 0
+	fi
 
-  # TODO: Remove me one day
-  # Some old version of kw relies on a directory name `kw` at ~/, we changed
-  # this behaviour but we added the below code to clean up those legacy system.
-  # One day we could get rid of this code
-  if [[ -d "$HOME/kw" ]]; then
-    rm -rf "$HOME/kw/"
-  fi
+	# TODO: Remove me one day
+	# Some old version of kw relies on a directory name `kw` at ~/, we changed
+	# this behaviour but we added the below code to clean up those legacy system.
+	# One day we could get rid of this code
+	if [[ -d "$HOME/kw" ]]; then
+		rm -rf "$HOME/kw/"
+	fi
 
-  # Remove kw from PATH variable
-  remove_kw_from_PATH_variable
+	# Remove kw from PATH variable
+	remove_kw_from_PATH_variable
 }
 
-function ASSERT_IF_NOT_EQ_ZERO()
-{
-  local msg="$1"
-  local ret="$2"
-  if [[ "$ret" != 0 ]]; then
-    complain "$msg"
-    exit "$ret"
-  fi
+function ASSERT_IF_NOT_EQ_ZERO() {
+	local msg="$1"
+	local ret="$2"
+	if [[ "$ret" != 0 ]]; then
+		complain "$msg"
+		exit "$ret"
+	fi
 }
 
 # Synchronize .vim and .vimrc with repository.
-function synchronize_files()
-{
-  verbose=''
+function synchronize_files() {
+	verbose=''
 
-  [[ "$VERBOSE" == 1 ]] && verbose=1
+	[[ "$VERBOSE" == 1 ]] && verbose=1
 
-  # Copy kw main file
-  mkdir -p "$binpath"
-  if [[ "$ENABLE_TRACING" == 0 ]]; then
-    cmd_output_manager "cp $app_name $binpath" "$verbose"
-    ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
-  else
-    sync_main_kw_file_with_tracing "$app_name" "$binpath" "$TRACING_CODE_EXCERPTS_DIR"
-    ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw main file with tracing enabled' "$?"
-  fi
+	# Copy kw main file
+	mkdir -p "$binpath"
+	if [[ "$ENABLE_TRACING" == 0 ]]; then
+		cmd_output_manager "cp $app_name $binpath" "$verbose"
+		ASSERT_IF_NOT_EQ_ZERO "The command 'cp $app_name $binpath' failed" "$?"
+	else
+		sync_main_kw_file_with_tracing "$app_name" "$binpath" "$TRACING_CODE_EXCERPTS_DIR"
+		ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw main file with tracing enabled' "$?"
+	fi
 
-  # Lib files
-  mkdir -p "$libdir"
-  if [[ "$ENABLE_TRACING" == 0 ]]; then
-    cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
-    ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
-  else
-    sync_kw_lib_files_with_tracing "$SRCDIR" "$libdir"
-    ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw library files with tracing enabled' "$?"
-  fi
+	# Lib files
+	mkdir -p "$libdir"
+	if [[ "$ENABLE_TRACING" == 0 ]]; then
+		cmd_output_manager "rsync -vr $SRCDIR/ $libdir" "$verbose"
+		ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SRCDIR $libdir' failed" "$?"
+	else
+		sync_kw_lib_files_with_tracing "$SRCDIR" "$libdir"
+		ASSERT_IF_NOT_EQ_ZERO 'Could not sync kw library files with tracing enabled' "$?"
+	fi
 
-  # Sound files
-  mkdir -p "$sounddir"
-  cmd_output_manager "rsync -vr $SOUNDS/ $sounddir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sounddir' failed" "$?"
-  ## TODO: Remove me one day
-  # Old kworkflow.config uses complete.wav instead of bell
-  ln -s "$sounddir/bell.wav" "$sounddir/complete.wav"
+	# Sound files
+	mkdir -p "$sounddir"
+	cmd_output_manager "rsync -vr $SOUNDS/ $sounddir" "$verbose"
+	ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $SOUNDS $sounddir' failed" "$?"
+	## TODO: Remove me one day
+	# Old kworkflow.config uses complete.wav instead of bell
+	ln -s "$sounddir/bell.wav" "$sounddir/complete.wav"
 
-  # Documentation files
-  mkdir -p "$docdir"
-  cmd_output_manager "rsync -vr $DOCUMENTATION/ $docdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
+	# Documentation files
+	mkdir -p "$docdir"
+	cmd_output_manager "rsync -vr $DOCUMENTATION/ $docdir" "$verbose"
+	ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $DOCUMENTATION $docdir' failed" "$?"
 
-  # man file
-  if [[ "$SKIPDOCS" == 0 ]]; then
-    mkdir -p "$mandir"
+	# man file
+	if [[ "$SKIPDOCS" == 0 ]]; then
+		mkdir -p "$mandir"
 
-    python3 -m venv "$DOCS_VIRTUAL_ENV"
+		python3 -m venv "$DOCS_VIRTUAL_ENV"
 
-    # Activate python virtual env
-    source "${DOCS_VIRTUAL_ENV}/bin/activate"
-    say 'Creating python virtual env...'
-    cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
-    eval "$cmd"
-    cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
-    ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
-    # Deactivate python virtual env
-    deactivate
+		# Activate python virtual env
+		source "${DOCS_VIRTUAL_ENV}/bin/activate"
+		say 'Creating python virtual env...'
+		cmd="pip --quiet --require-virtualenv install --requirement \"${DOCUMENTATION}/dependencies/pip.dependencies\""
+		eval "$cmd"
+		cmd_output_manager "sphinx-build -nW -b man $DOCUMENTATION $mandir" "$verbose"
+		ASSERT_IF_NOT_EQ_ZERO "'sphinx-build -nW -b man $DOCUMENTATION $mandir' failed" "$?"
+		# Deactivate python virtual env
+		deactivate
 
-    if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
-      rm -r "$DOCS_VIRTUAL_ENV"
-    fi
-  fi
+		if [[ -d "$DOCS_VIRTUAL_ENV" ]]; then
+			rm -r "$DOCS_VIRTUAL_ENV"
+		fi
+	fi
 
-  # etc files
-  mkdir -p "$etcdir"
-  cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
+	# etc files
+	mkdir -p "$etcdir"
+	cmd_output_manager "rsync -vr $CONFIG_DIR/ $etcdir" "$verbose"
+	ASSERT_IF_NOT_EQ_ZERO "The command 'rsync -vr $CONFIG_DIR/ $etcdir $verbose' failed" "$?"
 
-  # Database files
-  mkdir -p "${databasedir}"
-  cmd_output_manager "rsync --verbose --recursive ${DATABASE}/ ${databasedir}" "$verbose"
-  ASSERT_IF_NOT_EQ_ZERO "The command 'rsync --verbose --recursive ${DATABASE} ${databasedir}' failed" "$?"
+	# Database files
+	mkdir -p "${databasedir}"
+	cmd_output_manager "rsync --verbose --recursive ${DATABASE}/ ${databasedir}" "$verbose"
+	ASSERT_IF_NOT_EQ_ZERO "The command 'rsync --verbose --recursive ${DATABASE} ${databasedir}' failed" "$?"
 
-  setup_global_config_file
+	setup_global_config_file
 
-  # User data
-  mkdir -p "$datadir"
-  mkdir -p "$datadir/statistics"
-  mkdir -p "$datadir/configs"
-  if [[ -x "${databasedir}/migrate_legacy_data_20220101.sh" ]]; then
-    eval "${databasedir}/migrate_legacy_data_20220101.sh"
-  else
-    execute_sql_script "${databasedir}/kwdb.sql"
-    if [[ "$?" != 0 ]]; then
-      complain 'Creation of database schema has failed.'
-    fi
-  fi
+	# User data
+	mkdir -p "$datadir"
+	mkdir -p "$datadir/statistics"
+	mkdir -p "$datadir/configs"
+	if [[ -x "${databasedir}/migrate_legacy_data_20220101.sh" ]]; then
+		eval "${databasedir}/migrate_legacy_data_20220101.sh"
+	else
+		execute_sql_script "${databasedir}/kwdb.sql"
+		if [[ "$?" != 0 ]]; then
+			complain 'Creation of database schema has failed.'
+		fi
+	fi
 
-  if command_exists 'bash'; then
-    # Add tabcompletion to bashrc
-    if [[ -f "${HOME}/.bashrc" || -L "${HOME}/.bashrc" ]]; then
-      append_bashcompletion
-      update_path "${HOME}/.bashrc"
-    else
-      warning 'Unable to find a .bashrc file.'
-    fi
-  fi
+	if command_exists 'bash'; then
+		# Add tabcompletion to bashrc
+		if [[ -f "${HOME}/.bashrc" || -L "${HOME}/.bashrc" ]]; then
+			append_bashcompletion
+			update_path "${HOME}/.bashrc"
+		else
+			warning 'Unable to find a .bashrc file.'
+		fi
+	fi
 
-  if command_exists 'zsh'; then
-    # Add tabcompletion to zshrc
-    if [[ -f "${HOME}/.zshrc" || -L "${HOME}/.zshrc" ]]; then
-      remove_legacy_zshcompletion "${HOME}/.zshrc"
-      append_zshcompletion "${HOME}/.zshrc"
-      update_path "${HOME}/.zshrc"
-    # Check for alternative path for .zshrc
-    elif [[ -d "$ZDOTDIR" && -f "${ZDOTDIR}/.zshrc" ]]; then
-      remove_legacy_zshcompletion "${ZDOTDIR}/.zshrc"
-      append_zshcompletion "${ZDOTDIR}/.zshrc"
-      update_path "${ZDOTDIR}/.zshrc"
-    else
-      warning 'Unable to find a .zshrc file.'
-    fi
-  fi
+	if command_exists 'zsh'; then
+		# Add tabcompletion to zshrc
+		if [[ -f "${HOME}/.zshrc" || -L "${HOME}/.zshrc" ]]; then
+			remove_legacy_zshcompletion "${HOME}/.zshrc"
+			append_zshcompletion "${HOME}/.zshrc"
+			update_path "${HOME}/.zshrc"
+		# Check for alternative path for .zshrc
+		elif [[ -d "$ZDOTDIR" && -f "${ZDOTDIR}/.zshrc" ]]; then
+			remove_legacy_zshcompletion "${ZDOTDIR}/.zshrc"
+			append_zshcompletion "${ZDOTDIR}/.zshrc"
+			update_path "${ZDOTDIR}/.zshrc"
+		else
+			warning 'Unable to find a .zshrc file.'
+		fi
+	fi
 
-  say "$SEPARATOR"
-  # Create ~/.cache/kw for support some of the operations
-  mkdir -p "$cachedir"
+	say "$SEPARATOR"
+	# Create ~/.cache/kw for support some of the operations
+	mkdir -p "$cachedir"
 
-  # Create ~/.local/kw/tracing for storing tracing reports of kw executions
-  if [[ "$ENABLE_TRACING" == 1 ]]; then
-    mkdir --parents "$tracingdir"
-  fi
+	# Create ~/.local/kw/tracing for storing tracing reports of kw executions
+	if [[ "$ENABLE_TRACING" == 1 ]]; then
+		mkdir --parents "$tracingdir"
+	fi
 
-  say "$app_name installed into $HOME"
+	say "$app_name installed into $HOME"
 }
 
-function append_bashcompletion()
-{
-  safe_append "# ${app_name}" "${HOME}/.bashrc"
-  safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.bashrc"
+function append_bashcompletion() {
+	safe_append "# ${app_name}" "${HOME}/.bashrc"
+	safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.bashrc"
 }
 
-function remove_legacy_zshcompletion()
-{
-  local zshrc_path="$1"
+function remove_legacy_zshcompletion() {
+	local zshrc_path="$1"
 
-  safe_remove '# Enable bash completion for zsh' "${zshrc_path}"
-  safe_remove 'autoload bashcompinit && bashcompinit' "${zshrc_path}"
-  safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${zshrc_path}"
+	safe_remove '# Enable bash completion for zsh' "${zshrc_path}"
+	safe_remove 'autoload bashcompinit && bashcompinit' "${zshrc_path}"
+	safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${zshrc_path}"
 }
 
-function append_zshcompletion()
-{
-  local zshrc_path="$1"
+function append_zshcompletion() {
+	local zshrc_path="$1"
 
-  safe_append "# ${app_name}" "${zshrc_path}"
-  safe_append "export fpath=(${libdir} \$fpath)" "${zshrc_path}"
-  safe_append 'autoload compinit && compinit -i' "${zshrc_path}"
+	safe_append "# ${app_name}" "${zshrc_path}"
+	safe_append "export fpath=(${libdir} \$fpath)" "${zshrc_path}"
+	safe_append 'autoload compinit && compinit -i' "${zshrc_path}"
 }
 
-function safe_append()
-{
-  if [[ $(grep -c -x "$1" "$2") == 0 ]]; then
-    printf '%s\n' "$1" >> "$2"
-  fi
+function safe_append() {
+	if [[ $(grep -c -x "$1" "$2") == 0 ]]; then
+		printf '%s\n' "$1" >>"$2"
+	fi
 }
 
-function safe_remove()
-{
-  local preprocessed_pattern
-  if [[ $(grep -c -x "$1" "$2") == 1 ]]; then
-    # Escape any foward slash as to not conflict with sed
-    preprocessed_pattern=$(printf '%s' "$1" | sed 's_/_\\/_g')
-    sed -i "/^${preprocessed_pattern}\$/d" "$2"
-  fi
+function safe_remove() {
+	local preprocessed_pattern
+	if [[ $(grep -c -x "$1" "$2") == 1 ]]; then
+		# Escape any foward slash as to not conflict with sed
+		preprocessed_pattern=$(printf '%s' "$1" | sed 's_/_\\/_g')
+		sed -i "/^${preprocessed_pattern}\$/d" "$2"
+	fi
 }
 
-function update_version()
-{
-  kworkflow_version_from_repo > "${libdir}/VERSION"
+function update_version() {
+	kworkflow_version_from_repo >"${libdir}/VERSION"
 }
 
-function install_home()
-{
-  # Check Dependencies
-  if [[ "$SKIPCHECKS" == 0 ]]; then
-    say 'Checking dependencies ...'
-    check_dependencies
-  fi
-  # Move old folder structure to new one
-  legacy_folders
-  # First clean old installation
-  clean_legacy
-  # Synchronize source files
-  say 'Installing ...'
-  synchronize_files
-  # Remove old git repo to manage .config files
-  remove_legacy_git_from_kernel_config_manager
-  # Update version based on the current branch
-  update_version
-  # Show current environment in terminal
-  setup_bashrc_to_show_current_kw_env
+function install_home() {
+	# Check Dependencies
+	if [[ "$SKIPCHECKS" == 0 ]]; then
+		say 'Checking dependencies ...'
+		check_dependencies
+	fi
+	# Move old folder structure to new one
+	legacy_folders
+	# First clean old installation
+	clean_legacy
+	# Synchronize source files
+	say 'Installing ...'
+	synchronize_files
+	# Remove old git repo to manage .config files
+	remove_legacy_git_from_kernel_config_manager
+	# Update version based on the current branch
+	update_version
+	# Show current environment in terminal
+	setup_bashrc_to_show_current_kw_env
 
-  install_patch_hub
-  if [[ "$?" != 0 ]]; then
-    warning ''
-    warning '-> Could not install the latest release of `patch-hub`.'
-    warning '   To use the `kw patch-hub` feature, you will need to install the `patch-hub` executable.'
-    warning '   Either try re-running this script or following the instructions below.'
-    warning '   Install instructions: https://github.com/kworkflow/patch-hub?tab=readme-ov-file#package-how-to-install.'
-  fi
+	install_patch_hub
+	if [[ "$?" != 0 ]]; then
+		warning ''
+		warning '-> Could not install the latest release of `patch-hub`.'
+		warning '   To use the `kw patch-hub` feature, you will need to install the `patch-hub` executable.'
+		warning '   Either try re-running this script or following the instructions below.'
+		warning '   Install instructions: https://github.com/kworkflow/patch-hub?tab=readme-ov-file#package-how-to-install.'
+	fi
 
-  warning ''
-  warning '-> For a better experience with kw, please, open a new terminal.'
+	warning ''
+	warning '-> For a better experience with kw, please, open a new terminal.'
 }
 
-function install_patch_hub()
-{
-  local tmp_dir
-  local ret
+function install_patch_hub() {
+	local tmp_dir
+	local ret
 
-  say ''
-  say 'Installing `patch-hub`...'
+	say ''
+	say 'Installing `patch-hub`...'
 
-  tmp_dir="$(mktemp --directory)"
+	tmp_dir="$(mktemp --directory)"
 
-  curl --silent --location --output "${tmp_dir}/patch-hub.tar.xz" "$PATCH_HUB_LATEST_RELEASE"
-  ret="$?"
-  if [[ "$?" != 0 ]]; then
-    return "$ret"
-  fi
+	curl --silent --location --output "${tmp_dir}/patch-hub.tar.xz" "$PATCH_HUB_LATEST_RELEASE"
+	ret="$?"
+	if [[ "$?" != 0 ]]; then
+		return "$ret"
+	fi
 
-  tar xf "${tmp_dir}/patch-hub.tar.xz" --directory="$tmp_dir" --strip-components=1
-  ret="$?"
-  if [[ "$?" != 0 ]]; then
-    return "$ret"
-  fi
+	tar xf "${tmp_dir}/patch-hub.tar.xz" --directory="$tmp_dir" --strip-components=1
+	ret="$?"
+	if [[ "$?" != 0 ]]; then
+		return "$ret"
+	fi
 
-  cp "${tmp_dir}/patch-hub" "${binpath}"
-  ret="$?"
-  if [[ "$?" != 0 ]]; then
-    return "$ret"
-  fi
+	cp "${tmp_dir}/patch-hub" "${binpath}"
+	ret="$?"
+	if [[ "$?" != 0 ]]; then
+		return "$ret"
+	fi
 }
 
-function full_installation()
-{
-  say 'Starting kw installation...'
-  install_home
-  say 'Installing kernel dependencies for build...'
-  install_kernel_dev_deps
+function full_installation() {
+	say 'Starting kw installation...'
+	install_home
+	say 'Installing kernel dependencies for build...'
+	install_kernel_dev_deps
 }
 
-function setup_bashrc_to_show_current_kw_env()
-{
-  local config_file_template="${etcdir}/kw_prompt_current_env_name.sh"
+function setup_bashrc_to_show_current_kw_env() {
+	local config_file_template="${etcdir}/kw_prompt_current_env_name.sh"
 
-  say ''
-  say ' Note: If you want to see kw env in the prompt, add something like the below line to your PS1:'
-  say ' PS1="${PS1/\\$/}" && PS1+="\$(kw_get_current_env_name)$ "'
+	say ''
+	say ' Note: If you want to see kw env in the prompt, add something like the below line to your PS1:'
+	say ' PS1="${PS1/\\$/}" && PS1+="\$(kw_get_current_env_name)$ "'
 
-  safe_append "source ${config_file_template}" "${HOME}/.bashrc"
+	safe_append "source ${config_file_template}" "${HOME}/.bashrc"
 }
 
-function setup_global_config_file()
-{
-  local config_files_path="$etcdir"
-  local config_file_template="$config_files_path/notification_template.config"
-  local global_config_name='notification.config'
+function setup_global_config_file() {
+	local config_files_path="$etcdir"
+	local config_file_template="$config_files_path/notification_template.config"
+	local global_config_name='notification.config'
 
-  if [[ -f "$config_file_template" ]]; then
-    # Default config
-    cp "$config_file_template" "$config_files_path/notification.config"
-    sed -i -e "s,SOUNDPATH,$sounddir,g" \
-      -e "/^#?.*/d" "$config_files_path/notification.config"
-    ret="$?"
-    if [[ "$ret" != 0 ]]; then
-      return "$ret"
-    fi
-  else
-    warning "setup could not find $config_file_template"
-    return 2 # ENOENT
-  fi
+	if [[ -f "$config_file_template" ]]; then
+		# Default config
+		cp "$config_file_template" "$config_files_path/notification.config"
+		sed -i -e "s,SOUNDPATH,$sounddir,g" \
+			-e "/^#?.*/d" "$config_files_path/notification.config"
+		ret="$?"
+		if [[ "$ret" != 0 ]]; then
+			return "$ret"
+		fi
+	else
+		warning "setup could not find $config_file_template"
+		return 2 # ENOENT
+	fi
 }
 
 # Options
 for arg; do
-  shift
-  case "$arg" in
-    --verbose | -v)
-      VERBOSE=1
-      continue
-      ;;
-    --force | -f)
-      FORCE=1
-      continue
-      ;;
-    # Usually short lowercase options enable some behavior. Thus, the option -C
-    # is uppercase to sign we disable the dependency-check behavior.
-    --skip-checks | -C)
-      SKIPCHECKS=1
-      continue
-      ;;
-    # Similarly, the lowercase short option -D signs we disable the default
-    # behavior of generating man pages.
-    --skip-docs | -D)
-      SKIPDOCS=1
-      continue
-      ;;
-    --enable-tracing | -t)
-      include 'tracing/tracing.sh'
-      ENABLE_TRACING=1
-      continue
-      ;;
-  esac
-  set -- "$@" "$arg"
+	shift
+	case "$arg" in
+	--verbose | -v)
+		VERBOSE=1
+		continue
+		;;
+	--force | -f)
+		FORCE=1
+		continue
+		;;
+	# Usually short lowercase options enable some behavior. Thus, the option -C
+	# is uppercase to sign we disable the dependency-check behavior.
+	--skip-checks | -C)
+		SKIPCHECKS=1
+		continue
+		;;
+	# Similarly, the lowercase short option -D signs we disable the default
+	# behavior of generating man pages.
+	--skip-docs | -D)
+		SKIPDOCS=1
+		continue
+		;;
+	--enable-tracing | -t)
+		include 'tracing/tracing.sh'
+		ENABLE_TRACING=1
+		continue
+		;;
+	esac
+	set -- "$@" "$arg"
 done
 
 case "$1" in
-  --install | -i)
-    install_home
-    #update_current_bash
-    ;;
-  --uninstall | -u)
-    clean_legacy
-    say 'kw was removed.'
-    ;;
-    # ATTENTION: This option is dangerous because it completely removes all files
-    # related to kw, e.g., '.config' file under kw controls. For this reason, we do
-    # not want to add a short version, and the user has to be sure about this
-    # operation.
-  --completely-remove | -r)
-    confirm_complete_removal
-    clean_legacy '-d'
-    ;;
-  --help | -h)
-    usage
-    ;;
-  --docs | -d)
-    generate_documentation
-    ;;
-  --install-kernel-dev-deps | -k)
-    install_kernel_dev_deps
-    ;;
-  --full-installation | -F)
-    full_installation
-    ;;
-  *)
-    complain 'Invalid number of arguments'
-    usage
-    exit 1
-    ;;
+--install | -i)
+	install_home
+	#update_current_bash
+	;;
+--uninstall | -u)
+	clean_legacy
+	say 'kw was removed.'
+	;;
+	# ATTENTION: This option is dangerous because it completely removes all files
+	# related to kw, e.g., '.config' file under kw controls. For this reason, we do
+	# not want to add a short version, and the user has to be sure about this
+	# operation.
+--completely-remove | -r)
+	confirm_complete_removal
+	clean_legacy '-d'
+	;;
+--help | -h)
+	usage
+	;;
+--docs | -d)
+	generate_documentation
+	;;
+--install-kernel-dev-deps | -k)
+	install_kernel_dev_deps
+	;;
+--full-installation | -F)
+	full_installation
+	;;
+*)
+	complain 'Invalid number of arguments'
+	usage
+	exit 1
+	;;
 esac

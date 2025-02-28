@@ -7,12 +7,11 @@ some_command "$arg1" "$arg2"
 #INJECT_CODE_TRACING_SETUP
 
 if [[ "$this_is_an" == 'an if statement' ]]; then
-  do_something
+	do_something
 fi
 
-function foo()
-{
-  bar
+function foo() {
+	bar
 
-  #INJECT_CODE_TRACING_COMMIT
+	#INJECT_CODE_TRACING_COMMIT
 }

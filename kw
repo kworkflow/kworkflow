@@ -21,12 +21,12 @@ KW_ETC_DIR="${XDG_CONFIG_HOME:-"${HOME}/.config"}/${KWORKFLOW}"
 
 # Set system-wide path
 if [[ -f "$KW_SYSTEM_WIDE_INSTALLATION" ]]; then
-  KW_LIB_DIR='/usr/share/kw'
-  KW_SOUND_DIR='/usr/share/sounds/kw'
-  KW_DOC_DIR='/usr/share/doc/kw/html/'
-  KW_ETC_DIR='/etc/kw'
+	KW_LIB_DIR='/usr/share/kw'
+	KW_SOUND_DIR='/usr/share/sounds/kw'
+	KW_DOC_DIR='/usr/share/doc/kw/html/'
+	KW_ETC_DIR='/etc/kw'
 else
-  KW_LIB_DIR="${KW_LIB_DIR:-"${HOME}/.local/lib"}/${KWORKFLOW}"
+	KW_LIB_DIR="${KW_LIB_DIR:-"${HOME}/.local/lib"}/${KWORKFLOW}"
 fi
 
 KW_PLUGINS_DIR="${KW_PLUGINS_DIR:-"${KW_LIB_DIR}/plugins"}"
@@ -49,17 +49,17 @@ KW_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
 KW_BASE_DIR="$(dirname "${KW_BIN}")"
 KW_REPO_MODE='n'
 if [ -f "${KW_BASE_DIR}/src/lib/kwlib.sh" ]; then
-  # running from source directory
-  KW_REPO_MODE='y'
-  KW_LIB_DIR="${KW_BASE_DIR}/src"
-  # KW_DATA_DIR # use default data folder
-  KW_DOC_DIR="${KW_BASE_DIR}/documentation"
-  KW_MAN_DIR="${KW_BASE_DIR}/documentation/man"
-  KW_SOUND_DIR="${KW_BASE_DIR}/sound"
-  KW_DB_DIR="${KW_BASE_DIR}/database"
-  KW_ETC_DIR="${KW_BASE_DIR}/etc"
-  KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
-  # KW_CACHE_DIR # use default cache folder
+	# running from source directory
+	KW_REPO_MODE='y'
+	KW_LIB_DIR="${KW_BASE_DIR}/src"
+	# KW_DATA_DIR # use default data folder
+	KW_DOC_DIR="${KW_BASE_DIR}/documentation"
+	KW_MAN_DIR="${KW_BASE_DIR}/documentation/man"
+	KW_SOUND_DIR="${KW_BASE_DIR}/sound"
+	KW_DB_DIR="${KW_BASE_DIR}/database"
+	KW_ETC_DIR="${KW_BASE_DIR}/etc"
+	KW_PLUGINS_DIR="${KW_LIB_DIR}/plugins"
+	# KW_CACHE_DIR # use default cache folder
 fi
 ##END-REPO-MODE##
 
@@ -76,256 +76,255 @@ include "${KW_LIB_DIR}/lib/signal_manager.sh"
 
 # Print a notice message if on REPO mode
 if [[ "${KW_REPO_MODE}" == 'y' ]]; then
-  repo_mode_msg=''
-  repo_mode_msg+="${SEPARATOR}"$'\n'
-  repo_mode_msg+='[INFO]: Running kw using repository executable.'$'\n'$'\n'
-  repo_mode_msg+='KW environment variables are set to the following:'$'\n'$'\n'
-  repo_mode_msg+=$'\t'"KW_CACHE_DIR=${KW_CACHE_DIR}"$'\n'
-  repo_mode_msg+=$'\t'"KW_DATA_DIR=${KW_DATA_DIR}"$'\n'
-  repo_mode_msg+=$'\t'"KW_DB_DIR=${KW_DB_DIR}"$'\n'
-  repo_mode_msg+=$'\t'"KW_DOC_DIR=${KW_DOC_DIR}"$'\n'
-  repo_mode_msg+=$'\t'"KW_ETC_DIR=${KW_ETC_DIR}"$'\n'
-  repo_mode_msg+=$'\t'"KW_LIB_DIR=${KW_LIB_DIR}"$'\n'
-  repo_mode_msg+=$'\t'"KW_MAN_DIR=${KW_MAN_DIR}"$'\n'
-  repo_mode_msg+=$'\t'"KW_PLUGINS_DIR=${KW_PLUGINS_DIR}"$'\n'
-  repo_mode_msg+=$'\t'"KW_SOUND_DIR=${KW_SOUND_DIR}"$'\n'$'\n'
-  repo_mode_msg+="${SEPARATOR}"
+	repo_mode_msg=''
+	repo_mode_msg+="${SEPARATOR}"$'\n'
+	repo_mode_msg+='[INFO]: Running kw using repository executable.'$'\n'$'\n'
+	repo_mode_msg+='KW environment variables are set to the following:'$'\n'$'\n'
+	repo_mode_msg+=$'\t'"KW_CACHE_DIR=${KW_CACHE_DIR}"$'\n'
+	repo_mode_msg+=$'\t'"KW_DATA_DIR=${KW_DATA_DIR}"$'\n'
+	repo_mode_msg+=$'\t'"KW_DB_DIR=${KW_DB_DIR}"$'\n'
+	repo_mode_msg+=$'\t'"KW_DOC_DIR=${KW_DOC_DIR}"$'\n'
+	repo_mode_msg+=$'\t'"KW_ETC_DIR=${KW_ETC_DIR}"$'\n'
+	repo_mode_msg+=$'\t'"KW_LIB_DIR=${KW_LIB_DIR}"$'\n'
+	repo_mode_msg+=$'\t'"KW_MAN_DIR=${KW_MAN_DIR}"$'\n'
+	repo_mode_msg+=$'\t'"KW_PLUGINS_DIR=${KW_PLUGINS_DIR}"$'\n'
+	repo_mode_msg+=$'\t'"KW_SOUND_DIR=${KW_SOUND_DIR}"$'\n'$'\n'
+	repo_mode_msg+="${SEPARATOR}"
 
-  # Message is redirected to stderr such that it can be easily ignored if needed.
-  # Otherwise, it could mess up the output expected by  integration  tests  which
-  # are runnning kw in repo-mode and the tests would fail (we may eventually want
-  # such tests because in repo-mode we can execute kw without installing it).
-  say "${repo_mode_msg}" >&2
+	# Message is redirected to stderr such that it can be easily ignored if needed.
+	# Otherwise, it could mess up the output expected by  integration  tests  which
+	# are runnning kw in repo-mode and the tests would fail (we may eventually want
+	# such tests because in repo-mode we can execute kw without installing it).
+	say "${repo_mode_msg}" >&2
 fi
 
-function kw()
-{
-  action="$1"
-  shift
+function kw() {
+	action="$1"
+	shift
 
-  signal_manager || warning 'Was not able to set signal handler'
+	signal_manager || warning 'Was not able to set signal handler'
 
-  mkdir -p "$KW_CACHE_DIR"
+	mkdir -p "$KW_CACHE_DIR"
 
-  case "$action" in
-    init)
-      (
-        include "${KW_LIB_DIR}/init.sh"
+	case "$action" in
+	init)
+		(
+			include "${KW_LIB_DIR}/init.sh"
 
-        init_main "$@"
-        return "$?"
-      )
-      ;;
-    build | b)
-      (
-        include "${KW_LIB_DIR}/build.sh"
+			init_main "$@"
+			return "$?"
+		)
+		;;
+	build | b)
+		(
+			include "${KW_LIB_DIR}/build.sh"
 
-        build_kernel_main '' "$@"
-        local ret="$?"
-        alert_completion 'kw build' "$1"
-        return "$ret"
-      )
-      ;;
-    deploy | d)
-      (
-        include "${KW_LIB_DIR}/deploy.sh"
+			build_kernel_main '' "$@"
+			local ret="$?"
+			alert_completion 'kw build' "$1"
+			return "$ret"
+		)
+		;;
+	deploy | d)
+		(
+			include "${KW_LIB_DIR}/deploy.sh"
 
-        deploy_main '' "$@"
-        local ret="$?"
-        alert_completion 'kw deploy' "$1"
-        return "$ret"
-      )
-      ;;
-    bd)
-      (
-        include "${KW_LIB_DIR}/build_and_deploy.sh"
+			deploy_main '' "$@"
+			local ret="$?"
+			alert_completion 'kw deploy' "$1"
+			return "$ret"
+		)
+		;;
+	bd)
+		(
+			include "${KW_LIB_DIR}/build_and_deploy.sh"
 
-        build_and_deploy_main "$@"
-        local ret="$?"
-        alert_completion 'kw bd' "$1"
-        return "$ret"
-      )
-      ;;
-    diff | df)
-      include "${KW_LIB_DIR}/diff.sh"
+			build_and_deploy_main "$@"
+			local ret="$?"
+			alert_completion 'kw bd' "$1"
+			return "$ret"
+		)
+		;;
+	diff | df)
+		include "${KW_LIB_DIR}/diff.sh"
 
-      diff_main "$@"
-      ;;
-    ssh | s)
-      (
-        include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
-        include "${KW_LIB_DIR}/kw_ssh.sh"
+		diff_main "$@"
+		;;
+	ssh | s)
+		(
+			include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
+			include "${KW_LIB_DIR}/kw_ssh.sh"
 
-        kw_ssh_main "$@"
-      )
-      ;;
-    codestyle | c)
-      (
-        include "${KW_LIB_DIR}/codestyle.sh"
+			kw_ssh_main "$@"
+		)
+		;;
+	codestyle | c)
+		(
+			include "${KW_LIB_DIR}/codestyle.sh"
 
-        codestyle_main "$@"
-      )
-      ;;
-    self-update | u)
-      (
-        include "${KW_LIB_DIR}/self_update.sh"
+			codestyle_main "$@"
+		)
+		;;
+	self-update | u)
+		(
+			include "${KW_LIB_DIR}/self_update.sh"
 
-        self_update_main "$@"
-      )
-      ;;
-    maintainers | m)
-      (
-        include "${KW_LIB_DIR}/maintainers.sh"
+			self_update_main "$@"
+		)
+		;;
+	maintainers | m)
+		(
+			include "${KW_LIB_DIR}/maintainers.sh"
 
-        maintainers_main "$@"
-      )
-      ;;
-    kernel-config-manager | k)
-      (
-        include "${KW_LIB_DIR}/kernel_config_manager.sh"
+			maintainers_main "$@"
+		)
+		;;
+	kernel-config-manager | k)
+		(
+			include "${KW_LIB_DIR}/kernel_config_manager.sh"
 
-        kernel_config_manager_main "$@"
-      )
-      ;;
-    config | g)
-      (
-        include "${KW_LIB_DIR}/config.sh"
+			kernel_config_manager_main "$@"
+		)
+		;;
+	config | g)
+		(
+			include "${KW_LIB_DIR}/config.sh"
 
-        config_main "$@"
-      )
-      ;;
-    remote)
-      (
-        include "${KW_LIB_DIR}/kw_remote.sh"
+			config_main "$@"
+		)
+		;;
+	remote)
+		(
+			include "${KW_LIB_DIR}/kw_remote.sh"
 
-        remote_main "$@"
-      )
-      ;;
-    explore | e)
-      (
-        include "${KW_LIB_DIR}/explore.sh"
+			remote_main "$@"
+		)
+		;;
+	explore | e)
+		(
+			include "${KW_LIB_DIR}/explore.sh"
 
-        explore_main "$@"
-        return "$?"
-      )
-      ;;
-    pomodoro | p)
-      (
-        include "${KW_LIB_DIR}/pomodoro.sh"
+			explore_main "$@"
+			return "$?"
+		)
+		;;
+	pomodoro | p)
+		(
+			include "${KW_LIB_DIR}/pomodoro.sh"
 
-        pomodoro_main "$@"
-      )
-      ;;
-    report | r)
-      (
-        include "${KW_LIB_DIR}/report.sh"
+			pomodoro_main "$@"
+		)
+		;;
+	report | r)
+		(
+			include "${KW_LIB_DIR}/report.sh"
 
-        report_main "$@"
-      )
-      ;;
-    device)
-      (
-        include "${KW_LIB_DIR}/device_info.sh"
+			report_main "$@"
+		)
+		;;
+	device)
+		(
+			include "${KW_LIB_DIR}/device_info.sh"
 
-        device_main "$@"
-      )
-      ;;
-    backup)
-      (
-        include "${KW_LIB_DIR}/backup.sh"
+			device_main "$@"
+		)
+		;;
+	backup)
+		(
+			include "${KW_LIB_DIR}/backup.sh"
 
-        backup "$@"
-      )
-      ;;
-    debug)
-      (
-        include "${KW_LIB_DIR}/debug.sh"
+			backup "$@"
+		)
+		;;
+	debug)
+		(
+			include "${KW_LIB_DIR}/debug.sh"
 
-        debug_main "$@"
-      )
-      ;;
-    send-patch)
-      (
-        include "${KW_LIB_DIR}/send_patch.sh"
+			debug_main "$@"
+		)
+		;;
+	send-patch)
+		(
+			include "${KW_LIB_DIR}/send_patch.sh"
 
-        send_patch_main "$@"
-      )
-      ;;
-    env)
-      (
-        include "${KW_LIB_DIR}/kw_env.sh"
+			send_patch_main "$@"
+		)
+		;;
+	env)
+		(
+			include "${KW_LIB_DIR}/kw_env.sh"
 
-        env_main "$@"
-      )
-      ;;
-    patch-hub)
-      (
-        include "${KW_LIB_DIR}/patch_hub.sh"
+			env_main "$@"
+		)
+		;;
+	patch-hub)
+		(
+			include "${KW_LIB_DIR}/patch_hub.sh"
 
-        patch_hub_main "$@"
-      )
-      ;;
-    clear-cache)
-      include "${KW_LIB_DIR}/deploy.sh"
+			patch_hub_main "$@"
+		)
+		;;
+	clear-cache)
+		include "${KW_LIB_DIR}/deploy.sh"
 
-      cleanup "$@"
-      ;;
-    # Subsystems support
-    drm)
-      (
-        include "${KW_PLUGINS_DIR}/subsystems/drm/drm.sh"
+		cleanup "$@"
+		;;
+	# Subsystems support
+	drm)
+		(
+			include "${KW_PLUGINS_DIR}/subsystems/drm/drm.sh"
 
-        drm_main "$@"
-      )
-      ;;
-    # VM
-    vm)
-      (
-        include "${KW_LIB_DIR}/vm.sh"
+			drm_main "$@"
+		)
+		;;
+	# VM
+	vm)
+		(
+			include "${KW_LIB_DIR}/vm.sh"
 
-        vm_main "$@"
-      )
-      ;;
-    version | --version | -v)
-      (
-        include "${KW_LIB_DIR}/help.sh"
+			vm_main "$@"
+		)
+		;;
+	version | --version | -v)
+		(
+			include "${KW_LIB_DIR}/help.sh"
 
-        kworkflow_version
-      )
-      ;;
-    man)
-      (
-        include "${KW_LIB_DIR}/help.sh"
+			kworkflow_version
+		)
+		;;
+	man)
+		(
+			include "${KW_LIB_DIR}/help.sh"
 
-        kworkflow_man "$@"
-      )
-      ;;
-    help | --help)
-      (
-        include "${KW_LIB_DIR}/help.sh"
+			kworkflow_man "$@"
+		)
+		;;
+	help | --help)
+		(
+			include "${KW_LIB_DIR}/help.sh"
 
-        kworkflow_man
-      )
-      ;;
-    h | -h)
-      (
-        include "${KW_LIB_DIR}/help.sh"
+			kworkflow_man
+		)
+		;;
+	h | -h)
+		(
+			include "${KW_LIB_DIR}/help.sh"
 
-        kworkflow_help
-      )
-      ;;
-    *)
-      (
-        include "${KW_LIB_DIR}/help.sh"
+			kworkflow_help
+		)
+		;;
+	*)
+		(
+			include "${KW_LIB_DIR}/help.sh"
 
-        complain 'Invalid option'
-        kworkflow_help
-        return 1 # EPERM
-      )
-      ;;
-  esac
+			complain 'Invalid option'
+			kworkflow_help
+			return 1 # EPERM
+		)
+		;;
+	esac
 
-  #INJECT_CODE_TRACING_COMMIT
+	#INJECT_CODE_TRACING_COMMIT
 }
 
 kw "$@"

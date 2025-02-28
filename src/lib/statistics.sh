@@ -24,21 +24,20 @@ declare -gA shared_data=(['deploy']='' ['build']='' ['list']='' ['uninstall']=''
 #
 # Note: Bash only support integer, if you pass a float point value you should
 # expect a syntax error.
-function calculate_average()
-{
-  local list_of_values="$1"
-  local count=0
-  local sum=0
-  local avg=0
+function calculate_average() {
+	local list_of_values="$1"
+	local count=0
+	local sum=0
+	local avg=0
 
-  for value in $list_of_values; do
-    sum=$((sum + value))
-    ((count++))
-  done
+	for value in $list_of_values; do
+		sum=$((sum + value))
+		((count++))
+	done
 
-  avg=$((sum / count))
+	avg=$((sum / count))
 
-  printf '%s\n' "$avg"
+	printf '%s\n' "$avg"
 }
 
 # Get the total of data in a list
@@ -47,11 +46,10 @@ function calculate_average()
 #
 # Return:
 # Return the total of elements in a list
-function calculate_total_of_data()
-{
-  local list_of_values="$1"
+function calculate_total_of_data() {
+	local list_of_values="$1"
 
-  printf '%s\n' "$list_of_values" | wc -w
+	printf '%s\n' "$list_of_values" | wc -w
 }
 
 # Find the highest value in a list of numbers.
@@ -60,16 +58,15 @@ function calculate_total_of_data()
 #
 # Return:
 # Return the max value from a list
-function max_value()
-{
-  local list_of_values="$1"
-  local max=0
+function max_value() {
+	local list_of_values="$1"
+	local max=0
 
-  for value in $list_of_values; do
-    [[ "$value" -gt "$max" ]] && max="$value"
-  done
+	for value in $list_of_values; do
+		[[ "$value" -gt "$max" ]] && max="$value"
+	done
 
-  printf '%s\n' "$max"
+	printf '%s\n' "$max"
 }
 
 # Find the lowest value in a list of numbers.
@@ -79,32 +76,30 @@ function max_value()
 #
 # Return:
 # Return the minimun value from a list
-function min_value()
-{
-  local list_of_values="$1"
-  local min="$2"
+function min_value() {
+	local list_of_values="$1"
+	local min="$2"
 
-  for value in $list_of_values; do
-    [[ "$value" -lt "$min" ]] && min="$value"
-  done
+	for value in $list_of_values; do
+		[[ "$value" -lt "$min" ]] && min="$value"
+	done
 
-  printf '%s\n' "$min"
+	printf '%s\n' "$min"
 }
 
 # Print results of "Total Max Min Average" organized in columns.
 #
 # Note: This function relies on a global variable named shared_data.
 #shellcheck disable=SC2059,SC2086
-function print_basic_data()
-{
-  local header_format='%20s %4s %8s %12s\n'
-  local row_format='%-14s %5d %s %s %s\n'
+function print_basic_data() {
+	local header_format='%20s %4s %8s %12s\n'
+	local row_format='%-14s %5d %s %s %s\n'
 
-  printf "$header_format" Total Max Min Average
-  for option in "${statistics_opt[@]}"; do
-    [[ -z "${shared_data[$option]}" ]] && continue
-    printf "$row_format" "${option^}" ${shared_data[$option]}
-  done
+	printf "$header_format" Total Max Min Average
+	for option in "${statistics_opt[@]}"; do
+		[[ -z "${shared_data[$option]}" ]] && continue
+		printf "$row_format" "${option^}" ${shared_data[$option]}
+	done
 }
 
 # This function expect a list of values organized as "<LABEL> <VALUE>", it will
@@ -117,31 +112,30 @@ function print_basic_data()
 #
 # Return:
 # This function fill out the shared array `shared_data`
-function basic_data_process()
-{
-  local all_data="$*"
-  # Calculate values from each operation
-  local avg_operation
-  local total_operation
-  local max
-  local min
+function basic_data_process() {
+	local all_data="$*"
+	# Calculate values from each operation
+	local avg_operation
+	local total_operation
+	local max
+	local min
 
-  for option in "${statistics_opt[@]}"; do
-    values=$(printf '%s\n' "$all_data" | grep "$option" | cut -d' ' -f2-)
-    [[ -z "$values" ]] && continue
+	for option in "${statistics_opt[@]}"; do
+		values=$(printf '%s\n' "$all_data" | grep "$option" | cut -d' ' -f2-)
+		[[ -z "$values" ]] && continue
 
-    # Calculate values
-    avg_operation=$(calculate_average "$values")
-    total_operation=$(calculate_total_of_data "$values")
-    max=$(max_value "$values")
-    min=$(min_value "$values" "$max")
+		# Calculate values
+		avg_operation=$(calculate_average "$values")
+		total_operation=$(calculate_total_of_data "$values")
+		max=$(max_value "$values")
+		min=$(min_value "$values" "$max")
 
-    ## Format values
-    max=$(sec_to_format "$max")
-    min=$(sec_to_format "$min")
-    avg=$(sec_to_format "$avg_operation")
-    shared_data["$option"]="$total_operation $max $min $avg"
-  done
+		## Format values
+		max=$(sec_to_format "$max")
+		min=$(sec_to_format "$min")
+		avg=$(sec_to_format "$avg_operation")
+		shared_data["$option"]="$total_operation $max $min $avg"
+	done
 }
 
 # This function relies on basic_data_process to calculate the data related to a
@@ -150,26 +144,25 @@ function basic_data_process()
 #
 # @date Target day
 # @day_path Path to the target day
-function day_statistics()
-{
-  local date="$1"
-  local day_path="$KW_DATA_DIR/statistics/$date"
+function day_statistics() {
+	local date="$1"
+	local day_path="$KW_DATA_DIR/statistics/$date"
 
-  if [[ ! -f "$day_path" ]]; then
-    say 'Currently, kw does not have any data for the present date.'
-    return 0
-  fi
+	if [[ ! -f "$day_path" ]]; then
+		say 'Currently, kw does not have any data for the present date.'
+		return 0
+	fi
 
-  # Check if the day file is empty
-  data=$(< "$day_path")
-  if [[ -z "$data" ]]; then
-    say 'There is no data in the kw records'
-    return 0
-  fi
+	# Check if the day file is empty
+	data=$(<"$day_path")
+	if [[ -z "$data" ]]; then
+		say 'There is no data in the kw records'
+		return 0
+	fi
 
-  say "$date summary"
-  basic_data_process "$data"
-  print_basic_data
+	say "$date summary"
+	basic_data_process "$data"
+	print_basic_data
 }
 
 # This function relies on basic_data_process to calculate the data related to a
@@ -177,93 +170,90 @@ function day_statistics()
 # terminal.
 #
 # @first First day of the week
-function week_statistics()
-{
-  local first="$1"
-  local all_data=''
+function week_statistics() {
+	local first="$1"
+	local all_data=''
 
-  first=${first:-$(get_today_info '+%Y/%m/%d')}
+	first=${first:-$(get_today_info '+%Y/%m/%d')}
 
-  # 7 -> week days
-  for ((i = 0; i < 7; i++)); do
-    day=$(date --date="${first} +${i} day" +%Y/%m/%d)
-    [[ ! -f "$KW_DATA_DIR/statistics/$day" ]] && continue
+	# 7 -> week days
+	for ((i = 0; i < 7; i++)); do
+		day=$(date --date="${first} +${i} day" +%Y/%m/%d)
+		[[ ! -f "$KW_DATA_DIR/statistics/$day" ]] && continue
 
-    all_file_data=$(< "$KW_DATA_DIR/statistics/$day")
-    [[ -z "$all_file_data" ]] && continue
+		all_file_data=$(<"$KW_DATA_DIR/statistics/$day")
+		[[ -z "$all_file_data" ]] && continue
 
-    all_data="${all_data}${all_file_data}"$'\n'
-  done
+		all_data="${all_data}${all_file_data}"$'\n'
+	done
 
-  if [[ -z "$all_data" ]]; then
-    say "Sorry, kw does not have any data from $first to $day"
-    return 0
-  fi
+	if [[ -z "$all_data" ]]; then
+		say "Sorry, kw does not have any data from $first to $day"
+		return 0
+	fi
 
-  basic_data_process "$all_data"
-  say "Week summary: From $first to $day"
-  print_basic_data
+	basic_data_process "$all_data"
+	say "Week summary: From $first to $day"
+	print_basic_data
 }
 
-function month_statistics()
-{
-  local month="$1"
-  local month_path="$KW_DATA_DIR/statistics/$month"
-  local all_data=''
-  local pretty_month
-  local current_path
+function month_statistics() {
+	local month="$1"
+	local month_path="$KW_DATA_DIR/statistics/$month"
+	local all_data=''
+	local pretty_month
+	local current_path
 
-  if [[ ! -d "$month_path" ]]; then
-    say 'Currently, kw does not have any data for the present month.'
-    return 0
-  fi
+	if [[ ! -d "$month_path" ]]; then
+		say 'Currently, kw does not have any data for the present month.'
+		return 0
+	fi
 
-  current_path=$(pwd)
-  cd "$month_path" || exit_msg 'It was not possible to move to month dir'
-  shopt -s nullglob
-  for day in *; do
-    all_file_data=$(< "$day")
-    [[ -z "$all_file_data" ]] && continue
+	current_path=$(pwd)
+	cd "$month_path" || exit_msg 'It was not possible to move to month dir'
+	shopt -s nullglob
+	for day in *; do
+		all_file_data=$(<"$day")
+		[[ -z "$all_file_data" ]] && continue
 
-    all_data="${all_data}${all_file_data}"$'\n'
-  done
-  cd "$current_path" || exit_msg 'It was not possible to move back from month dir'
+		all_data="${all_data}${all_file_data}"$'\n'
+	done
+	cd "$current_path" || exit_msg 'It was not possible to move back from month dir'
 
-  if [[ -z "$all_data" ]]; then
-    say "Sorry, kw does not have any record for $month"
-    return 0
-  fi
+	if [[ -z "$all_data" ]]; then
+		say "Sorry, kw does not have any record for $month"
+		return 0
+	fi
 
-  pretty_month=$(date_to_format "$1/01" '+%B')
-  basic_data_process "$all_data"
-  say "$pretty_month summary ($month/01)"
-  print_basic_data
+	pretty_month=$(date_to_format "$1/01" '+%B')
+	basic_data_process "$all_data"
+	say "$pretty_month summary ($month/01)"
+	print_basic_data
 }
 
-function year_statistics()
-{
-  local year="$1"
-  local year_path="$KW_DATA_DIR/statistics/$year"
-  local all_year_file
+function year_statistics() {
+	local year="$1"
+	local year_path="$KW_DATA_DIR/statistics/$year"
+	local all_year_file
 
-  if [[ ! -d "$year_path" ]]; then
-    say 'Currently, kw does not have any data for the requested year.'
-    return 0
-  fi
+	if [[ ! -d "$year_path" ]]; then
+		say 'Currently, kw does not have any data for the requested year.'
+		return 0
+	fi
 
-  all_year_file=$(find "$KW_DATA_DIR/statistics/$year" -follow)
+	all_year_file=$(find "$KW_DATA_DIR/statistics/$year" -follow)
 
-  # We did not add "" around all_year_file on purpose
-  for day_full_path in $all_year_file; do
-    [[ -d "$day_full_path" ]] && continue
+	# We did not add "" around all_year_file on purpose
+	for day_full_path in $all_year_file; do
+		[[ -d "$day_full_path" ]] && continue
 
-    all_file_data=$(< "$day_full_path")
-    [[ -z "$all_file_data" ]] && continue
+		all_file_data=$(<"$day_full_path")
+		[[ -z "$all_file_data" ]] && continue
 
-    all_data="${all_data}${all_file_data}"$'\n'
-  done
+		all_data="${all_data}${all_file_data}"$'\n'
+	done
 
-  basic_data_process "$all_data"
-  say "$year summary"
-  print_basic_data
+	basic_data_process "$all_data"
+	say "$year summary"
+	print_basic_data
 }
