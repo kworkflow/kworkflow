@@ -128,11 +128,17 @@ function migrate_old_kernel_list()
 }
 
 # List available kernels
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @single_line If this option is set to 1 this function will display all
 #   available kernels in a single line separated by commas. If it gets 0 it
 #   will display each kernel name by line.
-# @prefix Set a base prefix for searching for kernels.
 # @all List all available kernels, not only the ones installed by kw
+# @prefix Set a base prefix for searching for kernels.
+#
+# Return:
+# Return the total of kernel listed
 function list_installed_kernels()
 {
   local flag="$1"
@@ -178,7 +184,7 @@ function list_installed_kernels()
     printf '%s\n' "${available_kernels[*]}"
   fi
 
-  return 0
+  return "${#available_kernels}"
 }
 
 # Based on  the kernel name pattern (vmlinuz), list all installed kernels.

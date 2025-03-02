@@ -66,6 +66,7 @@ function deploy_main()
   local list=0
   local single_line=0
   local uninstall=''
+  local uninstall_remove_first=''
   local start=0
   local end=0
   local runtime=0
@@ -116,6 +117,7 @@ function deploy_main()
   list_all="${options_values['LS_ALL']}"
   list="${options_values['LS']}"
   uninstall="${options_values['UNINSTALL']}"
+  uninstall_remove_first="${options_values['UNINSTALL_REMOVE_FIRST']}"
   force="${options_values['FORCE']}"
   setup="${options_values['SETUP']}"
 
@@ -145,7 +147,7 @@ function deploy_main()
   fi
 
   # Uninstall option
-  if [[ -n "$uninstall" ]]; then
+  if [[ -n "$uninstall" || -n "$uninstall_remove_first" ]]; then
     start=$(date +%s)
     run_kernel_uninstall "$target" "$reboot" "$uninstall" "$force" "$flag"
     ret="$?"
@@ -1364,9 +1366,10 @@ function parse_deploy_options()
   local enable_collect_param=0
   local remote
   local options
-  local long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall:'
+  local after_options
+  local long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall::'
   long_options+=',list-all,force,setup,verbose,create-package,from-package:'
-  local short_options='r,m,l,s,u:,a,f,v,p,F:'
+  local short_options='r,m,l,s,u::,a,f,v,p,F:'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -1392,6 +1395,7 @@ function parse_deploy_options()
   options_values['CREATE_PACKAGE']=''
   options_values['FROM_PACKAGE']=''
   options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  options_values['UNINSTALL_REMOVE_FIRST']=''
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -1468,7 +1472,13 @@ function parse_deploy_options()
           options_values['ERROR']='Uninstall requires a kernel name'
           return 22 # EINVAL
         fi
-        options_values['UNINSTALL']+="$2"
+        after_options=${options##*'--'}
+
+        if [[ -z "$after_options" ]]; then
+          options_values['UNINSTALL_REMOVE_FIRST']=1
+        fi
+
+        options_values['UNINSTALL']+=$(str_strip "$after_options")
         options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift 2
         ;;
@@ -1490,11 +1500,13 @@ function parse_deploy_options()
         shift 2
         ;;
       --) # End of options, beginning of arguments
-        shift
-        ;;
-      TEST_MODE)
-        options_values['TEST_MODE']='TEST_MODE'
-        shift
+        # The uninstall command already handled parameters after --
+        after_options=${options##*'--'}
+        after_options=$(str_strip "$after_options")
+        if [[ "$after_options" == "'TEST_MODE'" ]]; then
+          options_values['TEST_MODE']='TEST_MODE'
+        fi
+        shift "${#@}"
         ;;
       *)
         options_values['ERROR']="Unrecognized argument: $1"
@@ -1529,7 +1541,7 @@ function deploy_help()
     '  deploy (--verbose | -v) - show a detailed output' \
     '  deploy (--setup) - set up target machine for deploy' \
     '  deploy (--modules | -m) - install only modules' \
-    '  deploy (--uninstall | -u) [(--force | -f)] <kernel-name>,... - uninstall given kernels' \
+    '  deploy (--uninstall | -u) [(--force | -f)] [<kernel-name>,...] - uninstall kernels' \
     '  deploy (--list | -l) - list kernels' \
     '  deploy (--ls-line | -s) - list kernels separeted by commas' \
     '  deploy (--list-all | -a) - list all available kernels' \

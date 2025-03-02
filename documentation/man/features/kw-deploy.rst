@@ -11,7 +11,7 @@ SYNOPSIS
                       [-r | \--reboot] [\--no-reboot]
                       [-m | \--modules] [-s | \--ls-line]
                       [-l | \--list] [-a | \--list-all]
-                      [(-u | \--uninstall) <kernel-name>[,...]] [-f \--force]
+                      [(-u | \--uninstall) [<kernel-name>[,...]]] [-f \--force]
                       [\--alert=(s | v | (sv | vs) | n)]
                       [-p | \--create-package]
                       [(-F | \--from-package) <kw-package-path>]
@@ -85,10 +85,11 @@ OPTIONS
 -s, \--ls-line:
   List available kernels separated by comma.
 
--u (<kernel-name> | regex:<pattern>)[,...], \--uninstall (<kernel-name> | regex:<pattern>)[,...]:
+-u (<kernel-name> | regex:<pattern>)[,...], \--uninstall [(<kernel-name> | regex:<pattern>)[,...]]:
   Remove a single kernel or multiple kernels; for removing
   multiple kernels it is necessary to separate them with comma. A regex pattern
-  can also be passed as input, prefixed with 'regex:'.
+  can also be passed as input, prefixed with 'regex:'. If no kernel name is
+  provided, remove the first kernel managed by kw it encounters.
 
 -f, \--force:
   Remove kernels even if they were not installed by kw (only valid with
@@ -168,3 +169,7 @@ Below are examples of how to use `kw deploy --uninstall`:
 3) Comma-separated list of full kernel names and regular expressions
 
   kw deploy --uninstall 'regex:kernel[1-3],kernel4,regex:kernel[5-6]'
+
+4) Removes the first kernel managed by kw:
+
+  kw deploy --uninstall
