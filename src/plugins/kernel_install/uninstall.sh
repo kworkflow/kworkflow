@@ -25,7 +25,9 @@ function kernel_uninstall()
   local index=0
   local -a all_installed_kernels
   local -a kw_managed_kernels
+  local total_of_kw_kernels
   local regex_expression
+  local total_kernels_managed_by_kw
   local ret
 
   # From user request, this array keeps the list of kernels to be removed
@@ -44,11 +46,21 @@ function kernel_uninstall()
 
   process_installed_kernels 1 "$prefix" 'all_installed_kernels'
   process_installed_kernels '' "$prefix" 'kw_managed_kernels'
+  total_kernels_managed_by_kw="$?"
 
   IFS=', ' read -r -a kernel_names_array <<< "$kernel_list_string_or_regex"
 
-  kernel_to_be_removed_based_on_user_input 'kernel_names_array' 'all_installed_kernels' 'kernel_to_remove'
-  ret="$?"
+  if [[ "$kernel_list_string_or_regex" != "''" ]]; then
+    kernel_to_be_removed_based_on_user_input 'kernel_names_array' 'all_installed_kernels' 'kernel_to_remove'
+    ret="$?"
+  # If user does not provide any input, remove the first kernel managed by kw
+  else
+    kernel_to_remove[0]="${kw_managed_kernels[0]}"
+    if [[ "$total_kernels_managed_by_kw" -eq 0 ]]; then
+      printf '%s\n' 'There is no kernel managed by kw.'
+      return 0 # There is no kernel managed by kw, in this case ignore -u with no parameter
+    fi
+  fi
 
   for kernel in "${kernel_to_remove[@]}"; do
     is_in_array "$kernel" 'kw_managed_kernels'
@@ -142,18 +154,24 @@ function is_in_array()
 #    stored. The indexed array will be cleared prior to the storing.
 #
 # Return:
-# Returns array containing available kernels in `@_processed_installed_kernels`.
+# Returns array containing available kernels in `@_processed_installed_kernels`
+# and the total of installed kernels.
 function process_installed_kernels()
 {
   local all_kernels="$1"
   local prefix="$2"
   local -n _processed_installed_kernels="$3"
   local kernels
+  local total_kernels
 
   _processed_installed_kernels=()
   kernels=$(list_installed_kernels 'SILENT' 1 "$all_kernels" "$prefix")
+  total_kernels="$?"
+
   IFS=, read -r -a available_kernels <<< "$kernels"
   mapfile -t _processed_installed_kernels <<< "$(printf "%s\n" "${available_kernels[@]}" | sort --unique)"
+
+  return "$total_kernels"
 }
 
 # Do the actual removal of kernel files.

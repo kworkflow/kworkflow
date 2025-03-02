@@ -173,6 +173,128 @@ function test_kernel_uninstall_regex_one_kernel()
   }
 }
 
+function test_kernel_uninstall_remove_first_kw_managed_kernel_empty_list()
+{
+  local kernel_name='5.5.0-rc2-VKMS+'
+  local mkinitcpio_d_path_1="etc/mkinitcpio.d/${kernel_name}.preset"
+  local grub_cfg_path="${TARGET_PATH}/boot/grub/grub.cfg"
+  local boot_files
+  local output
+  local index
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "(${LINENO}) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Composing expected command sequence
+  local -a cmd_sequence=(
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "There is no kernel managed by kw."
+  )
+
+  # Check
+  output="$(
+    function migrate_old_kernel_list()
+    {
+      return 0
+    }
+
+    function process_installed_kernels()
+    {
+      local all_kernels="$1"
+      local prefix="$2"
+      local -n _processed_installed_kernels="$3"
+    }
+
+    kernel_uninstall 0 'local' "''" 'TEST_MODE' '' "$SHUNIT_TMPDIR"
+  )"
+
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "(${LINENO}) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_uninstall_remove_first_kw_managed_kernel()
+{
+  local kernel_name='vmlinuz-5.5.0-rc2-VKMS+'
+  local mkinitcpio_d_path_1="etc/mkinitcpio.d/${kernel_name}.preset"
+  local grub_cfg_path="${TARGET_PATH}/boot/grub/grub.cfg"
+  local boot_files
+  local output
+  local index
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "(${LINENO}) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Composing expected command sequence
+  local -a cmd_sequence=(
+    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "Removing: ${kernel_name}"
+  )
+
+  index=${#cmd_sequence[@]}
+
+  boot_files=$(find "${TARGET_PATH}/boot/" -name "*${kernel_name}*" | sort --dictionary)
+  # shellcheck disable=SC2068
+  for file in ${boot_files[@]}; do
+    cmd_sequence["$((index++))"]="Removing: ${file}"
+    cmd_sequence["$((index++))"]="sudo --preserve-env rm ${file}"
+  done
+
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name}"
+  cmd_sequence["$((index++))"]="sudo sed --in-place '/${kernel_name}/d' '$INSTALLED_KERNELS_PATH'"
+  cmd_sequence["$((index++))"]='update_bootloader'
+  cmd_sequence["$((index++))"]='reboot'
+
+  # Check
+  output="$(
+    function migrate_old_kernel_list()
+    {
+      return 0
+    }
+
+    function process_installed_kernels()
+    {
+      local all_kernels="$1"
+      local prefix="$2"
+      local -n _processed_installed_kernels="$3"
+
+      _processed_installed_kernels[0]='vmlinuz-5.5.0-rc2-VKMS+'
+      _processed_installed_kernels[1]='vmlinuz-5.6.0-rc2-AMDGPU+'
+      return 2
+    }
+
+    function update_bootloader()
+    {
+      printf 'update_bootloader\n'
+    }
+
+    function reboot_machine()
+    {
+      printf 'reboot\n'
+    }
+
+    kernel_uninstall 0 'local' "''" 'TEST_MODE' '' "$SHUNIT_TMPDIR"
+  )"
+
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "(${LINENO}) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 function test_kernel_uninstall_unmanaged()
 {
   local target='5.5.0-rc2-NOTMANAGED'

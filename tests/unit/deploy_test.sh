@@ -821,17 +821,17 @@ function test_parse_deploy_options()
   unset options_values
   declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto'
-  assert_equals_helper 'Could not set deploy UNINSTALL' "(${LINENO})" 'kernel_xpto' "${options_values['UNINSTALL']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL' "(${LINENO})" "'kernel_xpto'" "${options_values['UNINSTALL']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options -u 'kernel_xpto'
-  assert_equals_helper 'Could not set deploy UNINSTALL' "(${LINENO})" 'kernel_xpto' "${options_values['UNINSTALL']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL' "(${LINENO})" "'kernel_xpto'" "${options_values['UNINSTALL']}"
 
   unset options_values
   declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto' --force
-  assert_equals_helper 'Could not set deploy UNINSTALL_FORCE' "(${LINENO})" '1' "${options_values['FORCE']}"
+  assert_equals_helper 'Could not set deploy UNINSTALL with FORCE' "(${LINENO})" '1' "${options_values['FORCE']}"
 
   unset options_values
   declare -gA options_values
@@ -852,7 +852,7 @@ function test_parse_deploy_options()
   unset options_values
   declare -gA options_values
   parse_deploy_options --remote 'user@127.0.2.1:8888' -m --ls-line -u 'kernel_xpto'
-  assert_equals_helper 'Option composition failed on UNINSTALL' "(${LINENO})" 'kernel_xpto' "${options_values['UNINSTALL']}"
+  assert_equals_helper 'Option composition failed on UNINSTALL' "(${LINENO})" "'kernel_xpto'" "${options_values['UNINSTALL']}"
   assert_equals_helper 'Option composition failed on MODULES' "(${LINENO})" '1' "${options_values['MODULES']}"
   assert_equals_helper 'Option composition failed on LS_LINE' "(${LINENO})" '1' "${options_values['LS_LINE']}"
   assert_equals_helper 'Option composition failed on REMOTE_USER' "(${LINENO})" 'user' "${remote_parameters['REMOTE_USER']}"
