@@ -1,20 +1,12 @@
+# Git Utils Library
+#
+# This library consolidates common Git-related operations into a single file.
+# Its primary goal is to centralize Git commands used within the KW repository,
+# allowing for standardized behavior and easier maintenance.
+
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
-include "${KW_LIB_DIR}/lib/kw_db.sh"
-include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
-
-declare -gA options_values
-declare -gA set_confs
-
-# flag that indicates if smtpuser was set based on user.email
-declare -g smtpuser_autoset=0
-
-declare -ga essential_config_options=('user.name' 'user.email'
-  'sendemail.smtpuser' 'sendemail.smtpserver' 'sendemail.smtpserverport')
-declare -ga optional_config_options=('sendemail.smtpencryption' 'sendemail.smtppass')
-
-declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
 
 # Functions from kwlib.sh
 
@@ -24,7 +16,7 @@ declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
 #
 # Returns:
 # 0 if is inside a git work-tree root and 128 otherwise.
-function is_inside_work_tree()
+function git_is_inside_work_tree()
 {
   local flag="$1"
   local cmd='git rev-parse --is-inside-work-tree &> /dev/null'
@@ -45,7 +37,7 @@ function is_inside_work_tree()
 #
 # Returns:
 # All values of the given config with their respective scopes
-function get_all_git_config()
+function git_get_all_git_config()
 {
   local config="$1"
   local scope="$2"
@@ -80,7 +72,7 @@ function get_all_git_config()
 #
 # Returns:
 # All config values that match the given regular expression
-function get_git_config_regex()
+function git_get_git_config_regex()
 {
   local regexp="$1"
   local scope="$2"
@@ -105,227 +97,49 @@ function get_git_config_regex()
   printf '%s\n' "${output[@]}"
 }
 
-
-# This function checks if any of the arguments in @args is a valid commit
-# reference
+# This function gets the local branches of a given git repository. The data is transmitted
+# using an associative array reference passed as argument. Each key-value pair of the
+# array is like:
+#  `array_reference[<name_of_branch>]='<HEAD_commit_subject>'`
 #
-# @args: arguments to be processed
+# @git_repository_path: Path to a git repository
+# @_branches: Associative array reference where data will be trasmitted
+# @flag Flag to control function output
 #
-# Returns:
-# 125 if nor inside git work tree;
-# 0 if any of the arguments is a valid reference to a commit; 22 otherwise
-function find_commit_references()
+# Return:
+# Returns data regarding the repository branches through the array reference passed as
+# argument.
+function git_get_git_repository_branches()
 {
-  local args="$*"
-  local arg=''
-  local parsed=''
-  local commit_range=''
+  local git_repository_path="$1"
+  local -n _branches="$2"
+  local flag="$3"
+  local output
+  local branch
+  local branch_metadata
 
-  [[ -z "$args" ]] && return 22 # EINVAL
+  flag=${flag:-'SILENT'}
 
-  if ! is_inside_work_tree; then
-    return 125 # ECANCELED
-  fi
+  output=$(cmd_manager "$flag" "git -C ${git_repository_path} branch --verbose")
+  # Clean output by removing asterisks and withespaces in the beginning of each line
+  output=$(printf '%s' "$output" | sed 's/\*//g')
+  output=$(printf '%s' "$output" | sed 's/^[ \t]*//g')
 
-  #shellcheck disable=SC2086
-  while read -r arg; do
-    parsed="$(git rev-parse "$arg" 2> /dev/null)"
-    while read -r rev; do
-      # check if the argument is a valid reference to a commit-ish object
-      if git rev-parse --verify --quiet --end-of-options "$rev^{commit}" > /dev/null; then
-        commit_range+="$arg "
-        continue 2
-      fi
-    done <<< "$parsed"
-    parsed=''
-  done <<< "$(git rev-parse -- $args 2> /dev/null)"
+  # Resetting associative array reference to prevent false branches
+  _branches=()
 
-  if [[ -n "$commit_range" ]]; then
-    printf '%s' "$(str_strip "$commit_range")"
-    return 0
-  fi
-
-  return 22 # EINVAL
+  while IFS=$'\n' read -r line; do
+    # Format of "$line": '<branch_name><whitespaces><HEAD_commit_SHA> <HEAD_commit_subject>'
+    branch=$(printf '%s' "$line" | cut --delimiter=' ' -f1)
+    # Below we are: 1) cutting the branch name; 2) removing any whitespace in the beginning; 3) cutting the commit SHA
+    branch_metadata=$(printf '%s' "$line" | cut --delimiter=' ' -f2- | sed 's/^[ \t]*//' | cut --delimiter=' ' -f2-)
+    _branches["$branch"]="$branch_metadata"
+  done <<< "$output"
 }
+
 
 #From send_patch.sh 
 
-#shellcheck disable=SC2119
-function send_patch_main()
-{
-  local flag
-
-  flag=${flag:-'SILENT'}
-
-  if [[ "$1" =~ -h|--help ]]; then
-    send_patch_help "$1"
-    exit 0
-  fi
-
-  parse_mail_options "$@"
-  if [[ "$?" -gt 0 ]]; then
-    complain "${options_values['ERROR']}"
-    send_patch_help
-    return 22 # EINVAL
-  fi
-
-  [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
-
-  if [[ -n "${options_values['SEND']}" ]]; then
-    mail_send "$flag"
-    return 0
-  fi
-
-  get_configs
-
-  if [[ "${options_values['VERIFY']}" == 1 ]]; then
-    mail_verify
-    exit
-  fi
-
-  if [[ -n "${options_values['TEMPLATE']}" ]]; then
-    template_setup
-  fi
-
-  is_inside_work_tree
-  if [[ "$?" -gt 0 && "${options_values['SCOPE']}" != 'global' ]]; then
-    complain 'Not in a git repository, aborting setup!'
-    say 'To apply settings globally rerun with "--global" flag.'
-    exit 22 # EINVAL
-  fi
-
-  if [[ -n "${options_values['INTERACTIVE']}" ]]; then
-    interactive_setup "$flag"
-    exit
-  fi
-
-  if [[ "${options_values['SETUP']}" == 1 ]]; then
-    mail_setup "$flag"
-    exit
-  fi
-
-  return 0
-}
-
-# This function prepares the appropriate options to send patches using
-# `git send-email`.
-#
-# @flag: Flag to control the behavior of 'cmd_manager'
-#
-# Return:
-# returns 0 if successful, non-zero otherwise
-function mail_send()
-{
-  local flag="$1"
-  local opts="${send_patch_config[send_opts]}"
-  local to_recipients="${options_values['TO']}"
-  local cc_recipients="${options_values['CC']}"
-  local dryrun="${options_values['SIMULATE']}"
-  local commit_range="${options_values['COMMIT_RANGE']}"
-  local version="${options_values['PATCH_VERSION']}"
-  local extra_opts="${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
-  local private="${options_values['PRIVATE']}"
-  local rfc="${options_values['RFC']}"
-  local kernel_root
-  local patch_count=0
-  local cmd='git send-email'
-
-  flag=${flag:-'SILENT'}
-
-  [[ -n "$dryrun" ]] && cmd+=" $dryrun"
-
-  if [[ -n "$to_recipients" ]]; then
-    validate_email_list "$to_recipients" || exit_msg 'Please review your `--to` list.'
-    cmd+=" --to=\"$to_recipients\""
-  fi
-
-  if [[ -n "$cc_recipients" ]]; then
-    validate_email_list "$cc_recipients" || exit_msg 'Please review your `--cc` list.'
-    cmd+=" --cc=\"$cc_recipients\""
-  fi
-
-  # Don't generate a cover letter when sending only one patch
-  patch_count="$(pre_generate_patches "$commit_range" "$version")"
-  if [[ "$patch_count" -eq 1 ]]; then
-    opts="$(sed 's/--cover-letter//g' <<< "$opts")"
-  fi
-
-  kernel_root="$(find_kernel_root "$PWD")"
-  # if inside a kernel repo use get_maintainer to populate recipients
-  if [[ -z "$private" && -n "$kernel_root" ]]; then
-    generate_kernel_recipients "$kernel_root"
-    cmd+=" --to-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} to'"
-    cmd+=" --cc-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} cc'"
-  fi
-
-  [[ -n "$opts" ]] && cmd+=" $opts"
-  [[ -n "$private" ]] && cmd+=" $private"
-  [[ -n "$rfc" ]] && cmd+=" $rfc"
-  [[ -n "$extra_opts" ]] && cmd+=" $extra_opts"
-
-  cmd_manager "$flag" "$cmd"
-}
-
-# Validates the recipient list given by the user to the options `--to` and
-# `--cc` to make sure the all the recipients are valid.
-#
-# @raw: The list of email recipients to be validated
-#
-# Return:
-# 22 if there are invalid entries; 0 otherwise
-function validate_email_list()
-{
-  local raw="$1"
-  local -a list
-  local value
-  local error=0
-
-  IFS=',' read -ra list <<< "$raw"
-
-  for value in "${list[@]}"; do
-    if [[ ! "$value" =~ ${email_regex} ]]; then
-      warning -n 'The given recipient: '
-      printf '%s' "$value"
-      warning ' does not contain a valid e-mail.'
-      error=1
-    fi
-  done
-
-  [[ "$error" == 1 ]] && return 22 # EINVAL
-  return 0
-}
-
-# This function generates the patches beforehand, these are used to count the
-# number of patches and later to generate the appropriate recipients
-#
-# @commit_range: The list of revisions used to generate the patches
-# @version:      The version of the patches
-#
-# Returns:
-# The count of how many patches were created
-function pre_generate_patches()
-{
-  local commit_range="$1"
-  local version="$2"
-  local patch_cache="${KW_CACHE_DIR}/patches"
-  local count=0
-
-  if [[ -d "$patch_cache" && ! "$patch_cache" =~ ^(~|/|"$HOME")$ ]]; then
-    rm -rf "$patch_cache"
-  fi
-  mkdir -p "$patch_cache"
-
-  cmd_manager 'SILENT' "git format-patch --quiet --output-directory $patch_cache $version $commit_range"
-
-  for patch_path in "${patch_cache}/"*; do
-    if is_a_patch "$patch_path"; then
-      ((count++))
-    fi
-  done
-
-  printf '%s\n' "$count"
-}
-
 # This function checks if any of the arguments in @args is a valid commit
 # reference
 #
@@ -334,7 +148,7 @@ function pre_generate_patches()
 # Returns:
 # 125 if nor inside git work tree;
 # 0 if any of the arguments is a valid reference to a commit; 22 otherwise
-function find_commit_references()
+function git_find_commit_references()
 {
   local args="$*"
   local arg=''
@@ -366,5 +180,20 @@ function find_commit_references()
   fi
 
   return 22 # EINVAL
+}
+
+function git_add_config()
+{
+  local option="$1"
+  local value="${2:-${options_values["$option"]}}"
+  local cmd_scope="${3:-${options_values['CMD_SCOPE']}}"
+  local flag="$4"
+  local cmd
+
+  flag=${flag:-'SILENT'}
+
+  cmd="git config --$cmd_scope $option '$value'"
+
+  cmd_manager "$flag" "$cmd"
 }
 

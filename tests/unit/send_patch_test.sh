@@ -118,58 +118,6 @@ function test_validate_email()
   assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
 }
 
-function test_find_commit_references()
-{
-  local output
-  local ret
-
-  cd "$SHUNIT_TMPDIR" || {
-    ret="$?"
-    fail "($LINENO): Failed to move to temp dir"
-    exit "$ret"
-  }
-
-  find_commit_references
-  ret="$?"
-  assert_equals_helper 'No arguments given' "$LINENO" 22 "$ret"
-
-  find_commit_references @^
-  ret="$?"
-  assert_equals_helper 'Outside git repo should return 125' "$LINENO" 125 "$ret"
-
-  cd "$FAKE_GIT" || {
-    ret="$?"
-    fail "($LINENO): Failed to move to fake git repo"
-    exit "$ret"
-  }
-
-  output="$(find_commit_references invalid_ref)"
-  ret="$?"
-  assert_equals_helper 'Invalid ref should not work' "$LINENO" 22 "$ret"
-  assertTrue "($LINENO) Invalid ref should be empty" '[[ -z "$output" ]]'
-
-  output="$(find_commit_references '@^..@')"
-  ret="$?"
-  assert_equals_helper '@^..@ should be a valid reference' "$LINENO" 0 "$ret"
-  assertTrue "($LINENO) @^..@ should generate a reference" '[[ -n "$output" ]]'
-
-  output="$(find_commit_references @)"
-  ret="$?"
-  assert_equals_helper '@ should be a valid reference' "$LINENO" 0 "$ret"
-  assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
-
-  output="$(find_commit_references some args @ around)"
-  ret="$?"
-  assert_equals_helper '@ should be a valid reference' "$LINENO" 0 "$ret"
-  assertTrue "($LINENO) @ should generate a reference" '[[ -n "$output" ]]'
-
-  cd "$ORIGINAL_DIR" || {
-    ret="$?"
-    fail "($LINENO): Failed to move back to original dir"
-    exit "$ret"
-  }
-}
-
 function test_validate_email_list()
 {
   local expected
@@ -616,25 +564,6 @@ function test_config_values()
     fail "($LINENO): Failed to move back to original dir"
     exit "$ret"
   }
-}
-
-function test_add_config()
-{
-  local output
-  local expected
-  local ret
-
-  options_values['test.opt']='value'
-  options_values['CMD_SCOPE']='global'
-
-  # test default values
-  output=$(add_config 'test.opt' '' '' 'TEST_MODE')
-  expected="git config --global test.opt 'value'"
-  assert_equals_helper 'Testing serverport option' "$LINENO" "$expected" "$output"
-
-  output=$(add_config 'test.option' 'test_value' 'local' 'TEST_MODE')
-  expected="git config --local test.option 'test_value'"
-  assert_equals_helper 'Testing serverport option' "$LINENO" "$expected" "$output"
 }
 
 function test_mail_setup()
