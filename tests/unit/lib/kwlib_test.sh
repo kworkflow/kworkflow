@@ -1016,4 +1016,67 @@ function test_check_if_create_shared_memory_dir_creates_dir_in_default_mktemp_di
   assertTrue "${LINENO}: Did not create directory at /tmp/ dir" '[[ $output =~ /tmp/ ]]'
 }
 
+function test_validate_email()
+{
+  local expected
+  local output
+  local ret
+
+  # invalid values
+  output="$(validate_email 'invalid email')"
+  ret="$?"
+  expected='Invalid email: invalid email'
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
+
+  output="$(validate_email 'lalala')"
+  ret="$?"
+  expected='Invalid email: lalala'
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
+
+  # valid values
+  validate_email 'test@email.com'
+  ret="$?"
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
+
+  validate_email 'test123@serious.gov'
+  ret="$?"
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
+}
+
+function test_validate_email_list()
+{
+  local expected
+  local output
+  local ret
+
+  # invalid values
+  output="$(validate_email_list 'invalid email')"
+  ret="$?"
+  expected='The given recipient: invalid email does not contain a valid e-mail.'
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
+
+  output="$(validate_email_list 'lalala')"
+  ret="$?"
+  expected='The given recipient: lalala does not contain a valid e-mail.'
+  assert_equals_helper 'Invalid email was passed' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
+
+  output="$(validate_email_list 'name1@lala.com,name2@lala.xpto,LastName, FirstName <last.first@lala.com>,test123@serious.gov')"
+  ret="$?"
+  expected='The given recipient: LastName does not contain a valid e-mail.'
+  assert_equals_helper 'Expected an error' "$LINENO" 22 "$ret"
+
+  # valid values
+  validate_email_list 'test@email.com'
+  ret="$?"
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
+
+  validate_email_list 'name1@lala.com,name2@lala.xpto,name3 second <name3second@lala.com>,test123@serious.gov'
+  ret="$?"
+  assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
+}
+
 invoke_shunit
