@@ -1,0 +1,30 @@
+From f0440260c76695e874af21a45e3156d3ba7a817b Mon Sep 17 00:00:00 2001
+From: kw <kw@kw.net>
+Date: Thu, 24 May 2024 13:26:52 -0300
+To: Jane Doe <janedoe@mail.xyz>,kernel@list.org
+Subject: [PATCH] kernel tag test
+
+This is just a dummy patch to test features.
+
+Signed-off-by: kw <kw@kw.net>
+Signed-off-by: Bob Brown <bob.brown@mail.xyz>
+Co-developed-by: Bob Brown <bob.brown@mail.xyz>
+---
+ sound/core/init.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/sound/core/init.c b/sound/core/init.c
+index b02a99766351..fa769ff80e09 100644
+--- a/sound/core/init.c
++++ b/sound/core/init.c
+@@ -19,6 +19,8 @@
+ #include <sound/control.h>
+ #include <sound/info.h>
+
++/* Testing... */
++
+ /* monitor files for graceful shutdown (hotplug) */
+ struct snd_monitor_file {
+ 	struct file *file;
+--
+2.30.0
