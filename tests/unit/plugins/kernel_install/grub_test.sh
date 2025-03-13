@@ -72,4 +72,56 @@ function test_grub()
   assert_equals_helper 'Remote update' "$LINENO" "$expected_cmd" "$output"
 }
 
+function test_setup_grub_reboot_for_new_kernel_grub_with_submenus()
+{
+  local grub_cfg_submenu_path="${SAMPLES_DIR}/grub/grub_cfg_submenus.cfg"
+  local kernel_name='6.12.0-GRUB-REBOOT-CHECK+'
+  local kernel_image_name="vmlinuz-${kernel_name}"
+  local submenu_title='Advanced options for Arch Linux'
+  local kernel_entry_title="Arch Linux, with Linux ${kernel_name}"
+  local expected_output
+  local output
+
+  GRUB_CFG_PATH="$grub_cfg_submenu_path"
+
+  expected_output="grub-reboot '${submenu_title}>${kernel_entry_title}'"
+  output=$(setup_grub_reboot_for_new_kernel "$kernel_name" "$kernel_image_name" '' 'TEST_MODE')
+
+  assert_equals_helper 'Grub reboot is wrong' "$LINENO" "$expected_output" "$output"
+}
+
+function test_setup_grub_reboot_for_new_kernel_grub_without_submenus()
+{
+  local grub_cfg_submenu_path="${SAMPLES_DIR}/grub/grub_cfg_no_submenus.cfg"
+  local kernel_name='6.12.0-GRUB-REBOOT-CHECK+'
+  local kernel_image_name="vmlinuz-${kernel_name}"
+  local kernel_entry_title="Arch Linux, with Linux ${kernel_name}"
+  local expected_output
+  local output
+
+  GRUB_CFG_PATH="$grub_cfg_submenu_path"
+
+  expected_output="grub-reboot '${kernel_entry_title}'"
+  output=$(setup_grub_reboot_for_new_kernel "$kernel_name" "$kernel_image_name" '' 'TEST_MODE')
+
+  assert_equals_helper 'Grub reboot is wrong' "$LINENO" "$expected_output" "$output"
+}
+
+function test_setup_grub_reboot_for_new_kernel_with_dual_ubuntu_installed()
+{
+  local grub_cfg_submenu_path="${SAMPLES_DIR}/grub/grub_cfg_dual_ubuntu.cfg"
+  local kernel_name='6.14.0-00150-gd1cf3dd25f0c'
+  local kernel_image_name="vmlinuz-${kernel_name}"
+  local submenu_title='Advanced options for Ubuntu'
+  local kernel_entry_title="Ubuntu, with Linux ${kernel_name}"
+  local expected_output
+  local output
+
+  GRUB_CFG_PATH="$grub_cfg_submenu_path"
+  expected_output="grub-reboot '${submenu_title}>${kernel_entry_title}'"
+  output=$(setup_grub_reboot_for_new_kernel "$kernel_name" "$kernel_image_name" '' 'TEST_MODE')
+
+  assert_equals_helper 'Grub reboot is wrong' "$LINENO" "$expected_output" "$output"
+}
+
 invoke_shunit

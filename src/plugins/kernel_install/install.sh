@@ -15,6 +15,7 @@ declare -g LIB_MODULES_PATH='/lib/modules'
 # @reboot: Set to 1 if user wants the system to be reboot.
 # @target: Remote our Local.
 # @force: If set, not questions are prompted.
+# @boot_into_new_kernel_once: Boot the deployed kernel one time.
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 #
@@ -29,7 +30,8 @@ function install_kernel()
   local reboot="$2"
   local target="$3"
   local force="$4"
-  local flag="$5"
+  local boot_into_new_kernel_once="$5"
+  local flag="$6"
   local sudo_cmd=''
   local cmd=''
   local path_test=''
@@ -82,7 +84,8 @@ function install_kernel()
   cmd_manager "$flag" "$cmd"
 
   # Each distro has their own way to update their bootloader
-  update_bootloader "$flag" "$name" "$target" "$kernel_image_name" "$distro" "$path_test" '' "$force"
+  update_bootloader "$flag" "$name" "$target" "$kernel_image_name" \
+    "$distro" "$path_test" '' "$force" "$boot_into_new_kernel_once"
   ret="$?"
 
   if [[ "$ret" != 0 ]]; then

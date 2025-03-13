@@ -27,7 +27,7 @@ function _kw_autocomplete()
 
   kw_options['deploy']='--remote --local --reboot --no-reboot --modules --list
                         --list-all --ls-line --setup --uninstall --verbose
-                        --force --create-package --from-package'
+                        --force --create-package --from-package --boot-into-new-kernel-once'
   kw_options['d']="${kw_options['deploy']}"
 
   kw_options['bd']='--verbose'

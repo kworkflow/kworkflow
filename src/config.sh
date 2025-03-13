@@ -12,7 +12,7 @@ declare -gA config_file_list=(
   ['send_patch']='send_opts blocked_emails default_to_recipients default_cc_recipients'
   ['deploy']='kw_files_remote_path deploy_temporary_files_path
               deploy_default_compression dtb_copy_pattern default_deploy_target
-              reboot_after_deploy strip_modules_debug_option'
+              reboot_after_deploy strip_modules_debug_option boot_into_new_kernel_once'
   ['notification']='alert sound_alert_command visual_alert_command'
   ['kworkflow']='ssh_user ssh_ip ssh_port ssh_configfile hostname
                  disable_statistics_data_track gui_on gui_off send_opts
