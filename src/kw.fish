@@ -19,7 +19,7 @@ complete -c kw -n "__fish_kw_no_commands" -a "build b" -d "Build Kernel and modu
 complete -c kw -n "__fish_seen_subcommand_from build b" -l help -l info -l menu -l cpu-scaling -l ccache -l llvm -l clean -l full-cleanup -l verbose -l doc -l warnings -l save-log-to -l cflags -l from-sha
 
 complete -c kw -n "__fish_kw_no_commands" -a "deploy d" -d "Deploy kernel and modules"
-complete -c kw -n "__fish_seen_subcommand_from deploy d" -l remote -l local -l reboot -l no-reboot -l modules -l list -l list-all -l ls-line -l setup -l uninstall -l verbose -l force -l create-package -l from-package
+complete -c kw -n "__fish_seen_subcommand_from deploy d" -l remote -l local -l reboot -l no-reboot -l modules -l list -l list-all -l ls-line -l setup -l uninstall -l verbose -l force -l create-package -l from-package -l boot-into-new-kernel-once
 
 complete -c kw -n "__fish_kw_no_commands" -a "bd" -d "Build and deploy"
 complete -c kw -n "__fish_seen_subcommand_from bd" -l verbose

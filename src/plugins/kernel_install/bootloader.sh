@@ -54,6 +54,7 @@ declare -gar SUPPORTED_BOOTLOADER=(
 # @prefix: Set a base prefix for searching for kernels.
 # @root_file_system: Specific rootfs
 # @force: Avoid question if initramfs has any error
+# @boot_into_new_kernel_once: Boot into the new kernel
 function update_bootloader()
 {
   local flag="$1"
@@ -64,6 +65,7 @@ function update_bootloader()
   local prefix="$6"
   local root_file_system="$7"
   local force="$8"
+  local boot_into_new_kernel_once="$9"
   local deploy_data_string
   local bootloader_path_prefix="${REMOTE_KW_DEPLOY}/"
   local ret
@@ -126,10 +128,9 @@ function update_bootloader()
   fi
 
   # Update bootloader
-  run_bootloader_update "$flag" "$target" "$name" "$kernel_image_name"
-  ret="$?"
+  run_bootloader_update "$flag" "$target" "$name" "$kernel_image_name" "$boot_into_new_kernel_once"
 
-  return "$ret"
+  return "$?"
 }
 
 function collect_deploy_info()

@@ -80,6 +80,7 @@ function deploy_main()
   local return_tar_path
   local kernel_binary_image_name
   local cache_to_deploy_path
+  local boot_into_new_kernel_once
   local force
 
   # Drop build_and_deploy flag
@@ -120,6 +121,7 @@ function deploy_main()
   uninstall_remove_first="${options_values['UNINSTALL_REMOVE_FIRST']}"
   force="${options_values['FORCE']}"
   setup="${options_values['SETUP']}"
+  boot_into_new_kernel_once="${options_values['BOOT_INTO_NEW_KERNEL_ONCE']}"
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
   flag=${flag:-'SILENT'}
@@ -1294,6 +1296,7 @@ function run_kernel_install()
   local reboot="${options_values['REBOOT']}"
   local target="${options_values['TARGET']}"
   local user="${remote_parameters['REMOTE_USER']}"
+  local boot_into_new_kernel_once="${options_values['BOOT_INTO_NEW_KERNEL_ONCE']}"
   local kernel_binary_file_name
   local cmd_parameters
   local remote
@@ -1329,7 +1332,7 @@ function run_kernel_install()
       say '* Moving kernel package for local deploy'
       cmd_manager "$flag" "mv ${return_tar_path} ${KW_DEPLOY_TMP_FILE}"
 
-      install_kernel "$distro" "$reboot" 'local' "$force" "$flag"
+      install_kernel "$distro" "$reboot" 'local' "$force" "$boot_into_new_kernel_once" "$flag"
       human_install_kernel_message "$?"
       return "$?"
       ;;
@@ -1342,7 +1345,7 @@ function run_kernel_install()
       cp2remote "$flag" "$return_tar_path" "$KW_DEPLOY_TMP_FILE"
 
       # Deploy
-      cmd_parameters="${distro} ${reboot} 'remote' ${force} ${flag}"
+      cmd_parameters="${distro} ${reboot} 'remote' ${force} ${boot_into_new_kernel_once} ${flag}"
       cmd="$REMOTE_INTERACE_CMD_PREFIX"
       cmd+=" --kernel-update ${cmd_parameters}"
 
@@ -1369,7 +1372,8 @@ function parse_deploy_options()
   local after_options
   local long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall::'
   long_options+=',list-all,force,setup,verbose,create-package,from-package:'
-  local short_options='r,m,l,s,u::,a,f,v,p,F:'
+  long_options+=',boot-into-new-kernel-once'
+  local short_options='r,m,l,s,u::,a,f,v,p,F:,n'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
@@ -1396,6 +1400,7 @@ function parse_deploy_options()
   options_values['FROM_PACKAGE']=''
   options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
   options_values['UNINSTALL_REMOVE_FIRST']=''
+  options_values['BOOT_INTO_NEW_KERNEL_ONCE']=1
 
   remote_parameters['REMOTE_IP']=''
   remote_parameters['REMOTE_PORT']=''
@@ -1411,6 +1416,10 @@ function parse_deploy_options()
 
   if [[ ${deploy_config[reboot_after_deploy]} == 'yes' ]]; then
     options_values['REBOOT']=1
+  fi
+
+  if [[ ${deploy_config[boot_into_new_kernel_once]} == 'no' ]]; then
+    options_values['BOOT_INTO_NEW_KERNEL_ONCE']=0
   fi
 
   populate_remote_info ''
@@ -1499,6 +1508,10 @@ function parse_deploy_options()
         options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift 2
         ;;
+      --boot-into-new-kernel-once | -n)
+        options_values['BOOT_INTO_NEW_KERNEL_ONCE']=1
+        shift
+        ;;
       --) # End of options, beginning of arguments
         # The uninstall command already handled parameters after --
         after_options=${options##*'--'}
@@ -1538,6 +1551,7 @@ function deploy_help()
     '  deploy (--remote <remote>:<port> | --local) - choose target' \
     '  deploy (--reboot | -r) - reboot machine after deploy' \
     '  deploy (--no-reboot) - do not reboot machine after deploy' \
+    '  deploy (--boot-into-new-kernel-once | -n) - Next boot into the new kernel' \
     '  deploy (--verbose | -v) - show a detailed output' \
     '  deploy (--setup) - set up target machine for deploy' \
     '  deploy (--modules | -m) - install only modules' \

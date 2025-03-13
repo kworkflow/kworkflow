@@ -272,7 +272,7 @@ function test_validates_install_kernel_to_remote_target()
       return 0
     }
 
-    install_kernel 'debian' '1' 'remote' '' 'TEST_MODE'
+    install_kernel 'debian' '1' 'remote' '' 0 'TEST_MODE'
   )"
 
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
@@ -333,7 +333,7 @@ function test_install_kernel_local()
       return 0
     }
 
-    install_kernel 'debian' '1' 'local' '' 'TEST_MODE'
+    install_kernel 'debian' '1' 'local' '' 1 'TEST_MODE'
   )"
 
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"

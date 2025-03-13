@@ -137,6 +137,7 @@ function show_deploy_variables()
     [dtb_copy_pattern]='How kw should copy dtb files to the boot folder'
     [old_kernel_backup]='Backup the previous kernel if the current kernel to be deployed has the same name'
     [strip_modules_debug_option]='Modules will be stripped after they are installed which will reduce the initramfs size'
+    [boot_into_new_kernel_once]='Only the next boot after deploy will be into the new kernel'
   )
 
   printf '%s\n' '  Kernel deploy options:'
