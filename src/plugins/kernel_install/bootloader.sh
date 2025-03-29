@@ -116,7 +116,7 @@ function update_bootloader()
       printf '\n\t kw identified possible non-fatal errors in the generated initramfs.\n'
       if [[ "$force" == 0 ]]; then
 
-        ask_yN 'There are some errors in the generated initramfs. Do you want to proceed with the installation?'
+        ask_yN_ssh 'There are some errors in the generated initramfs. Do you want to proceed with the installation?'
         if [[ "$?" != 1 ]]; then
           printf '%s\n' "Kernel ${kernel_image_name} installation canceled"
           exit 124 # ECANCELED

@@ -135,6 +135,29 @@ function ask_yN()
   fi
 }
 
+# This function option is to be used over SSH; if you need to ask for user
+# input in a code deployed in the remote, use this simplified version to avoid
+# weird issues with an interactive terminal via SSH.
+#
+# @message: This is a string with the message to be displayed for the user.
+#   This function add " [y/N]: " as a prefix for the provided message.
+#
+# Return:
+# Return 1 if user say anything that matches [yY][eE][sS]|[yY], otherwise,
+# return 0.
+function ask_yN_ssh()
+{
+  local message="$*"
+
+  printf '\n%s [y/N]: ' "$message"
+  read -r response
+  if [[ "$response" =~ ^([yY][eE][sS]|[yY])+$ ]]; then
+    return 1
+  else
+    return 0
+  fi
+}
+
 # Asks for user input
 #
 # @message A string with the message to be displayed to the user.
