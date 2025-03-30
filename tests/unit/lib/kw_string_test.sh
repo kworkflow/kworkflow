@@ -268,6 +268,20 @@ function test_str_count_char_repetition()
   assert_equals_helper 'Expected 0' "$LINENO" 1 "$output"
 }
 
+function test_str_remove_char_from_string()
+{
+  local output
+
+  output=$(str_remove_char_from_string 'Hey Joe' 'e')
+  assert_equals_helper 'Expected Hy Jo' "$LINENO" 'Hy Jo' "$output"
+
+  output=$(str_remove_char_from_string "'str1 str2'" "'")
+  assert_equals_helper 'Expected str1 str2' "$LINENO" 'str1 str2' "$output"
+
+  output=$(str_remove_char_from_string "banana" "na")
+  assert_equals_helper 'Expected banana' "$LINENO" 'banana' "$output"
+}
+
 function test_str_drop_all_spaces()
 {
   local output

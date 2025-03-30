@@ -167,6 +167,28 @@ function str_count_char_repetition()
   printf '%s' "${#matches}"
 }
 
+# This function removes all occurrences of a specific character from a string.
+#
+# @str: Base string
+# @char: Character to be removed
+#
+# Return:
+# String whithout $char
+function str_remove_char_from_string()
+{
+  local str="$1"
+  local char="$2"
+  local new_str
+
+  if [[ ${#char} -gt 1 ]]; then
+    printf '%s' "${str}"
+    return
+  fi
+
+  new_str=${str//"$char"/}
+  printf '%s' "${new_str}"
+}
+
 # Drop all spaces from the string
 #
 # @str: Target string
