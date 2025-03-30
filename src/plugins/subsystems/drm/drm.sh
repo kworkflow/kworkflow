@@ -264,8 +264,8 @@ function gui_control()
 
   case "$target" in
     2) # LOCAL TARGET
-      gui_control_cmd="sudo ${gui_control_cmd}"
-      bind_control_cmd="sudo ${bind_control_cmd}"
+      gui_control_cmd="sudo -- sh -c '${gui_control_cmd}'"
+      bind_control_cmd="sudo -- sh -c '${bind_control_cmd}'"
       cmd_manager "$flag" "$gui_control_cmd"
       cmd_manager "$flag" "$bind_control_cmd"
       ;;

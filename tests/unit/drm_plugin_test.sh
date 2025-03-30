@@ -346,16 +346,16 @@ function test_gui_control_local()
   configurations[gui_off_after_reboot]="$gui_off_after_reboot_cmd"
 
   declare -a expected_cmd_seq=(
-    "sudo ${gui_on_cmd}"
-    "sudo ${bind_cmd}"
+    "sudo -- sh -c '${gui_on_cmd}'"
+    "sudo -- sh -c '${bind_cmd}'"
   )
 
   output=$(gui_control 'ON' '2' '' 'TEST_MODE')
   compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 
   declare -a expected_cmd_seq=(
-    "sudo ${gui_off_cmd}"
-    "sudo ${unbind_cmd}"
+    "sudo -- sh -c '${gui_off_cmd}'"
+    "sudo -- sh -c '${unbind_cmd}'"
   )
 
   output=$(gui_control 'OFF' '2' '' 'TEST_MODE')
@@ -363,8 +363,8 @@ function test_gui_control_local()
 
   # Test GUI ON after reboot
   declare -a expected_cmd_seq=(
-    "sudo ${gui_on_after_reboot_cmd}"
-    "sudo ${bind_cmd}"
+    "sudo -- sh -c '${gui_on_after_reboot_cmd}'"
+    "sudo -- sh -c '${bind_cmd}'"
   )
 
   output=$(gui_control 'ON_AFTER_REBOOT' '2' '' 'TEST_MODE')
@@ -372,8 +372,8 @@ function test_gui_control_local()
 
   # Test GUI OFF after reboot
   declare -a expected_cmd_seq=(
-    "sudo ${gui_off_after_reboot_cmd}"
-    "sudo ${unbind_cmd}"
+    "sudo -- sh -c '${gui_off_after_reboot_cmd}'"
+    "sudo -- sh -c '${unbind_cmd}'"
   )
 
   output=$(gui_control 'OFF_AFTER_REBOOT' '2' '' 'TEST_MODE')
