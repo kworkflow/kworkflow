@@ -82,12 +82,11 @@ function kworkflow_version_from_repo()
 
   # get version info from the git repo
   git_dir=$(realpath "${KW_LIB_DIR}/../.git")
-
-  source "${KW_LIB_DIR}/lib/git_helper.sh"
-
+  source "$(dirname "0")/..lib/git_helper.sh"
   head_hash=$(kw_git_get_head_hash "${git_dir}")
   branch_name=$(kw_git_get_branch_name "${git_dir}")
-  
+  echo "HEAD hash: $head_hash"
+  echo "Branch name: $branch_name"
   base_version=$(head --lines 1 "${KW_LIB_DIR}/VERSION")
 
   printf '%s\nBranch: %s\nCommit: %s\n' "${base_version}" "${branch_name}" "${head_hash}"

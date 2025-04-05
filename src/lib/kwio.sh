@@ -1,9 +1,9 @@
 # NOTE: src/lib/kw_config_loader.sh must be included before this file
-declare -gr BLUECOLOR='\033[1;34;49m%s\033[m'
-declare -gr REDCOLOR='\033[1;31;49m%s\033[m'
-declare -gr YELLOWCOLOR='\033[1;33;49m%s\033[m'
-declare -gr GREENCOLOR='\033[1;32;49m%s\033[m'
-declare -gr SEPARATOR='========================================================='
+[[ -z  "$BLUECOLOR" ]] && BLUECOLOR='\033[1;34;49m%s\033[m'
+[[ -z  "$REDCOLOR" ]] && REDCOLOR='\033[1;31;49m%s\033[m'
+[[ -z  "$YELLOWCOLOR" ]] && YELLOWCOLOR='\033[1;33;49m%s\033[m'
+[[ -z "$GREENCOLOR" ]] && GREENCOLOR='\033[1;32;49m%s\033[m'
+[[ -z "SEPARATOR" ]] && SEPARATOR='========================================================='
 
 # Alerts command completion to the user.
 #
@@ -28,7 +28,7 @@ function alert_completion()
   while read -rN 1 option; do
     if [ "$option" == 'v' ]; then
       if command_exists "${notification_config[visual_alert_command]}"; then
-        eval "${notification_config[visual_alert_command]} &"
+        eval "${notification_config[visual_alert_command]}" &
       else
         warning 'The following command set in the visual_alert_command variable could not be run:'
         warning "${notification_config[visual_alert_command]}"

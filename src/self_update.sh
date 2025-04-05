@@ -1,7 +1,7 @@
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/help.sh"
-
+source "$(dirname "$0")/lib/git_helper.sh"
 declare -gA options_values
 
 function self_update_main()

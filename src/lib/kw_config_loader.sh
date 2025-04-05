@@ -1,3 +1,12 @@
+include() {
+   if [ -f "$1"  ]; then
+     source "$1"
+    else
+     echo "Error: include failed, file not found: $1" >&2
+     return 1
+    fi
+}
+
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 

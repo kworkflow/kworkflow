@@ -2,7 +2,7 @@
 include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/kw_db.sh"
 include "${KW_LIB_DIR}/lib/kw_time_and_date.sh"
-
+include "${KW_LIB_DIR}/lib/git_helper.sh"
 ENV_DIR='envs'
 KW_SHARED_MEMORY_DEFAULT_DIR='/dev/shm'
 
