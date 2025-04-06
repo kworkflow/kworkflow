@@ -3,8 +3,7 @@
 include './src/ui/patch_hub/patchset_details_and_actions.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   export LORE_DATA_DIR="${SHUNIT_TMPDIR}/lore"
   export BOOKMARKED_SERIES_PATH="${LORE_DATA_DIR}/lore_bookmarked_series"
   # shellcheck disable=SC2155
@@ -13,8 +12,7 @@ function oneTimeSetUp()
   cp "$sample_mbx_file_path" "$SHUNIT_TMPDIR"
 }
 
-function setUp()
-{
+function setUp() {
   screen_sequence['SHOW_SCREEN']=''
 
   export ORIGINAL_PATH="$PWD"
@@ -25,16 +23,14 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "${ORIGINAL_PATH}" || {
     fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
     return
   }
 }
 
-function test_show_patchset_details_and_actions()
-{
+function test_show_patchset_details_and_actions() {
   local raw_patchset='message_idÆmessage: titleÆJuca PiramaÆjuca@pirama.foo.barÆ4Æ8Æ42Æ2024/02/14 21:32Æin_reply_to_message_id'
   local output
   local expected_result='Patchset details and actions'
@@ -45,8 +41,7 @@ function test_show_patchset_details_and_actions()
   expected_result+=' Download to specific directory Bookmark'
 
   # shellcheck disable=SC2317
-  function create_simple_checklist()
-  {
+  function create_simple_checklist() {
     local title="$1"
     local message_box="$2"
     local -n _action_list="$3"
@@ -62,8 +57,7 @@ function test_show_patchset_details_and_actions()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected_result" "$output"
 }
 
-function test_get_actions_to_take()
-{
+function test_get_actions_to_take() {
   local -a actions_starting_status=()
   local selected_actions
   local output
@@ -123,8 +117,7 @@ function test_get_actions_to_take()
 # This behaviour may be explained by the fact that this unit test really downloads
 # the patchset using b4 and the network environment of the remote may be blocking
 # it, causing the download to fail and this unit test too.
-test_handle_download_action()
-{
+test_handle_download_action() {
   :
   # declare -A patchset
   # declare -A lore_config
@@ -148,28 +141,24 @@ test_handle_download_action()
   # assert_equals_helper 'File downloaded diverges from sample' "$LINENO" 0 "$?"
 }
 
-test_handle_bookmark_action()
-{
+test_handle_bookmark_action() {
   declare -A patchset
   local output
 
   # shellcheck disable=SC2317
-  function create_message_box()
-  {
+  function create_message_box() {
     return 0
   }
 
   # shellcheck disable=SC2317
-  function create_async_loading_screen_notification()
-  {
+  function create_async_loading_screen_notification() {
     while true; do
       sleep 0.1
     done
   }
 
   # shellcheck disable=SC2317
-  function stop_async_loading_screen_notification()
-  {
+  function stop_async_loading_screen_notification() {
     local loading_pid="$1"
     kill -15 "$loading_pid"
   }
@@ -177,8 +166,7 @@ test_handle_bookmark_action()
   # We need to mock download_series or else the test
   # fails in the remote CI/CD pipeline.
   # shellcheck disable=SC2317
-  function download_series()
-  {
+  function download_series() {
     return 0
   }
 
@@ -188,16 +176,14 @@ test_handle_bookmark_action()
   assert_equals_helper 'Should have added patchset entry to database' "$LINENO" 0 "$?"
 }
 
-test_handle_remove_bookmark_action()
-{
+test_handle_remove_bookmark_action() {
   declare -A patchset
   declare -A lore_config
   local mbx_file_path
   local output
 
   # shellcheck disable=SC2317
-  function create_message_box()
-  {
+  function create_message_box() {
     return 0
   }
 

@@ -4,41 +4,35 @@ include './src/pomodoro.sh'
 include './src/lib/kw_db.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   declare -g DB_FILES
   DB_FILES="$(realpath './tests/unit/samples/db_files')"
   export KW_DATA_DIR="${SHUNIT_TMPDIR}"
   KW_DB_DIR="$(realpath './database')"
 }
 
-function setUp()
-{
+function setUp() {
   declare -gA options_values
 
   setupDatabase
 }
 
-function tearDown()
-{
+function tearDown() {
   teardownDatabase
 }
 
-function setupDatabase()
-{
+function setupDatabase() {
   execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
 }
 
-function teardownDatabase()
-{
+function teardownDatabase() {
   is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
   if [[ "$?" == 0 ]]; then
     rm "${KW_DATA_DIR}/kw.db"
   fi
 }
 
-function test_show_active_pomodoro_timebox()
-{
+function test_show_active_pomodoro_timebox() {
   local columns='("tag_name","date","time","duration")'
   local values
   local current_timestamp
@@ -60,8 +54,7 @@ function test_show_active_pomodoro_timebox()
   fi
 
   # shellcheck disable=SC2317
-  function get_timestamp_sec()
-  {
+  function get_timestamp_sec() {
     # 2075/08/05 12:11:40 UTC
     printf '%s\n' '3332232700'
   }
@@ -113,8 +106,7 @@ function test_show_active_pomodoro_timebox()
   compare_command_sequence 'Should have two active timeboxes' "$LINENO" 'expected' "$output"
 }
 
-function test_parse_pomodoro()
-{
+function test_parse_pomodoro() {
   local output
 
   parse_pomodoro '-t' '10m'
@@ -180,8 +172,7 @@ function test_parse_pomodoro()
   assert_equals_helper 'No last session to repeat' "$LINENO" 1 "${options_values['REPEAT_PREVIOUS']}"
 }
 
-function test_register_data_for_report()
-{
+function test_register_data_for_report() {
   local start_date
   local output
   declare -a output_array
@@ -215,8 +206,7 @@ function test_register_data_for_report()
   assert_equals_helper 'Description inserted is wrong' "$LINENO" "${options_values['DESCRIPTION']}" "${output_array[6]}"
 }
 
-function test_register_tag()
-{
+function test_register_tag() {
   local output
 
   declare -a expected_content=(
@@ -239,8 +229,7 @@ function test_register_tag()
   compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 }
 
-function test_is_tag_already_registered()
-{
+function test_is_tag_already_registered() {
   is_tag_already_registered '' 'Tag 0'
   assertNotEquals "$LINENO: We should not get a success" "$?" 0
 
@@ -252,8 +241,7 @@ function test_is_tag_already_registered()
   assertEquals "$LINENO: We expect to find Tag 0" 0 "$?"
 }
 
-function test_get_tag_name()
-{
+function test_get_tag_name() {
   local output
   local expected
 
@@ -283,8 +271,7 @@ function test_get_tag_name()
   assert_equals_helper 'Out of range' "$LINENO" 22 "$?"
 }
 
-function test_is_valid_argument()
-{
+function test_is_valid_argument() {
   local expected_error
 
   is_valid_argument '--long-option' 'some-option'
@@ -301,8 +288,7 @@ function test_is_valid_argument()
   assert_equals_helper 'Valid argument should return 0' "$LINENO" 0 "$?"
 }
 
-function test_is_valid_time()
-{
+function test_is_valid_time() {
   local expected_error
 
   is_valid_time 'invalid-time'
@@ -335,8 +321,7 @@ function test_is_valid_time()
   assert_equals_helper 'Valid time should return 0' "$LINENO" 0 "$?"
 }
 
-function test_show_tags()
-{
+function test_show_tags() {
   local output
   local expected
   local values
@@ -383,8 +368,7 @@ function test_show_tags()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-function test_fetch_last_pomodoro_session_no_last_session()
-{
+function test_fetch_last_pomodoro_session_no_last_session() {
   local values
   local columns='("date","time","duration","tag_name","description")'
   local expected='No previous pomodoro session found'
@@ -394,8 +378,7 @@ function test_fetch_last_pomodoro_session_no_last_session()
   assert_equals_helper 'No last session to repeat' "$LINENO" "$expected" "${options_values['ERROR']}"
 }
 
-function test_fetch_last_pomodoro_session_one_session()
-{
+function test_fetch_last_pomodoro_session_one_session() {
   local values
   local columns='("date","time","duration","tag_name","description")'
 
@@ -409,8 +392,7 @@ function test_fetch_last_pomodoro_session_one_session()
   assert_equals_helper 'Wrong description' "$LINENO" 'this is not a drill' "${options_values['DESCRIPTION']}"
 }
 
-function test_fetch_last_pomodoro_session_multiple_sessions()
-{
+function test_fetch_last_pomodoro_session_multiple_sessions() {
   local values
   local columns='("date","time","duration","tag_name","description")'
 

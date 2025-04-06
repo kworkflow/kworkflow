@@ -3,8 +3,7 @@
 include './src/init.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   original_path="$PWD"
 
   export KW_SOUND_DIR="$PWD/tests/unit/samples/share/sound/kw"
@@ -21,8 +20,7 @@ function oneTimeSetUp()
   export PATH_TO_KW_NOTIFICATON_CONFIG="${PATH_TO_KW_DIR}/notification.config"
 }
 
-function setUp()
-{
+function setUp() {
   export KW_ETC_DIR="$PWD/etc"
 
   mkdir -p "${SHUNIT_TMPDIR}/${KWORKFLOW}"
@@ -35,8 +33,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   [[ -d "$SHUNIT_TMPDIR" ]] && rm -rf "$SHUNIT_TMPDIR"
 
   cd "$original_path" || {
@@ -45,8 +42,7 @@ function tearDown()
   }
 }
 
-function test_show_kernel_tree_message()
-{
+function test_show_kernel_tree_message() {
   local output
 
   # Remove kernel tree
@@ -58,8 +54,7 @@ function test_show_kernel_tree_message()
   assertEquals "($LINENO):" 'This command should be run in a kernel tree.' "$output"
 }
 
-function test_standard_init_check_variable_replacements()
-{
+function test_standard_init_check_variable_replacements() {
   local output
   local kworkflow_content
 
@@ -71,8 +66,7 @@ function test_standard_init_check_variable_replacements()
   assertEquals "($LINENO): SOUNDPATH wasn't updated to $KW_SOUND_DIR" "$KW_SOUND_DIR" "$kworkflow_content"
 }
 
-function test_abort_init_update()
-{
+function test_abort_init_update() {
   local output
   local expected
 
@@ -84,8 +78,7 @@ function test_abort_init_update()
   assertEquals "($LINENO): The init proccess didn't abort correctly" "$expect" "$output"
 }
 
-function test_use_arch_parameter()
-{
+function test_use_arch_parameter() {
   local output
   local kworkflow_content
 
@@ -94,8 +87,7 @@ function test_use_arch_parameter()
   assertEquals "($LINENO):" 'arch=arm64' "$kworkflow_content"
 }
 
-function test_try_to_set_an_invalid_arch()
-{
+function test_try_to_set_an_invalid_arch() {
   local output
   local kworkflow_content
 
@@ -113,8 +105,7 @@ function test_try_to_set_an_invalid_arch()
   compare_command_sequence '' "$LINENO" 'expected_content' "$output"
 }
 
-function test_force_unsupported_arch()
-{
+function test_force_unsupported_arch() {
   local output
   local kworkflow_content
 
@@ -123,8 +114,7 @@ function test_force_unsupported_arch()
   assertEquals "($LINENO):" 'arch=baroque' "$kworkflow_content"
 }
 
-function test_set_remote()
-{
+function test_set_remote() {
   local output
   local kworkflow_content
 
@@ -139,8 +129,7 @@ function test_set_remote()
   assertEquals "($LINENO)" 'ssh_port=2222' "$kworkflow_content"
 }
 
-function test_try_to_set_wrong_arch()
-{
+function test_try_to_set_wrong_arch() {
   local output
   local expected_content
 
@@ -149,8 +138,7 @@ function test_try_to_set_wrong_arch()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_set_default_target()
-{
+function test_set_default_target() {
   local output
   local kworkflow_content
 
@@ -159,8 +147,7 @@ function test_set_default_target()
   assertEquals "($LINENO)" 'default_deploy_target=local' "$kworkflow_content"
 }
 
-function test_set_an_invalid_target()
-{
+function test_set_an_invalid_target() {
   local output
   local kworkflow_content
 
@@ -169,8 +156,7 @@ function test_set_an_invalid_target()
   assertEquals "($LINENO)" 'Target can only be vm, local or remote.' "$output"
 }
 
-function test_force_wrong_etc_path()
-{
+function test_force_wrong_etc_path() {
   local kworkflow_content
   local output
 
@@ -181,8 +167,7 @@ function test_force_wrong_etc_path()
   assertEquals "($LINENO): We forced an error and expected to catch it" 2 "$ret"
 }
 
-function test_get_template_name_noniteractive()
-{
+function test_get_template_name_noniteractive() {
   options_values['TEMPLATE']='x86-64'
   get_template_name
   assertEquals "($LINENO)" 'x86-64' "${options_values['TEMPLATE']}"
@@ -193,8 +178,7 @@ function test_get_template_name_noniteractive()
   assertEquals "($LINENO)" 'rpi4-raspbian-64-cross-x86-arm' "${options_values['TEMPLATE']}"
 }
 
-function test_get_an_invalid_template_name()
-{
+function test_get_an_invalid_template_name() {
   local ret
 
   options_values['TEMPLATE']=':brasilia-sao-sebastiao'
@@ -204,8 +188,7 @@ function test_get_an_invalid_template_name()
   assertEquals "($LINENO) We expected an invalid template" 2 "$ret"
 }
 
-function test_get_template_interactive()
-{
+function test_get_template_interactive() {
   local output
 
   options_values['TEMPLATE']=''
@@ -218,8 +201,7 @@ function test_get_template_interactive()
   assertEquals "($LINENO)" 'rpi4-raspbian-64-cross-x86-arm' "$output"
 }
 
-function test_config_file_already_exist_question()
-{
+function test_config_file_already_exist_question() {
   mkdir -p "${PWD}/${KW_DIR}"
   touch "${PWD}/${KW_DIR}/kworkflow.config"
 
@@ -227,8 +209,7 @@ function test_config_file_already_exist_question()
   assertFalse "($LINENO): We should not have config file" "[[ -f ${PWD}/${KW_DIR}/kworkflow.config ]]"
 }
 
-function test_config_file_already_exist_question_force()
-{
+function test_config_file_already_exist_question_force() {
   mkdir -p "$PWD/$KW_DIR"
   touch "$PWD/$KW_DIR/kworkflow.config"
 
@@ -238,8 +219,7 @@ function test_config_file_already_exist_question_force()
   assertFalse "($LINENO): We should not have config file" "[[ -f $PWD/$KW_DIR/kworkflow.config ]]"
 }
 
-function test_parse_init_options()
-{
+function test_parse_init_options() {
   unset options_values
   declare -gA options_values
   parse_init_options --force

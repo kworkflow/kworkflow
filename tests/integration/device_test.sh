@@ -6,8 +6,7 @@ include './src/device_info.sh'
 
 declare -gA DEVICE_INFO_RESULTS
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   local distro
   local container
   local kw_device_container_output
@@ -29,8 +28,7 @@ function oneTimeSetUp()
 }
 
 # Test the RAM information reported by 'kw device --local'
-function test_kw_device_local_ram()
-{
+function test_kw_device_local_ram() {
   local distro
   local container_name
   local actual_ram_kb
@@ -49,8 +47,7 @@ function test_kw_device_local_ram()
 }
 
 # Test the storage information reported by 'kw device --local'
-function test_kw_device_local_storage()
-{
+function test_kw_device_local_storage() {
   local distro
   local container_name
   local output_root_filesystem
@@ -78,8 +75,7 @@ function test_kw_device_local_storage()
 }
 
 # Test the operating system information reported by 'kw device --local'
-function test_kw_device_local_os()
-{
+function test_kw_device_local_os() {
   local distro
   local container
   local expected_distro
@@ -95,8 +91,7 @@ function test_kw_device_local_os()
 }
 
 # Test the motherboard information reported by 'kw device --local'
-function test_kw_device_local_motherboard()
-{
+function test_kw_device_local_motherboard() {
   local distro
   local container
   local expected_motherboard_vendor
@@ -122,8 +117,7 @@ function test_kw_device_local_motherboard()
 }
 
 # Test the chassis information reported by 'kw device --local'
-function test_kw_device_local_chassis()
-{
+function test_kw_device_local_chassis() {
   local distro
   local container
   local output_chassis
@@ -149,8 +143,7 @@ function test_kw_device_local_chassis()
 }
 
 # Test the CPU information reported by 'kw device --local'
-function test_kw_device_local_cpu()
-{
+function test_kw_device_local_cpu() {
   local distro
   local container
   local expected_cpu_model
@@ -178,8 +171,7 @@ function test_kw_device_local_cpu()
 }
 
 # Test the GPU information reported by 'kw device --local'
-function test_kw_device_local_gpu()
-{
+function test_kw_device_local_gpu() {
   local distro
   local container
   local pci_addresses

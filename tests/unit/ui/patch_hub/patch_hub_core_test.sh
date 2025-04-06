@@ -3,8 +3,7 @@
 include './src/ui/patch_hub/patch_hub_core.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   screen_sequence['SHOW_SCREEN']=''
 
   export ORIGINAL_PATH="$PWD"
@@ -18,20 +17,17 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "${ORIGINAL_PATH}" || {
     fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
     return
   }
 }
 
-function test_show_dashboard()
-{
+function test_show_dashboard() {
   # Mock Register list
   # shellcheck disable=SC2317
-  function create_menu_options()
-  {
+  function create_menu_options() {
     menu_return_string=0
   }
 
@@ -40,8 +36,7 @@ function test_show_dashboard()
 
   # Mock bookmarked
   # shellcheck disable=SC2317
-  function create_menu_options()
-  {
+  function create_menu_options() {
     menu_return_string=1
   }
 
@@ -49,14 +44,12 @@ function test_show_dashboard()
   assert_equals_helper 'Expected register screen' "$LINENO" 'bookmarked_patches' "${screen_sequence['SHOW_SCREEN']}"
 }
 
-function test_list_patches_with_patches()
-{
+function test_list_patches_with_patches() {
   local -a patchsets_metadata_array
   declare -ag representative_patches
 
   # shellcheck disable=SC2317
-  function create_menu_options()
-  {
+  function create_menu_options() {
     menu_return_string=2
   }
 
@@ -85,13 +78,11 @@ function test_list_patches_with_patches()
   assert_equals_helper 'Wrong screen parameter' "$LINENO" 'more_patches_raw_data' "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
 }
 
-function test_list_patches_without_patches()
-{
+function test_list_patches_without_patches() {
   local -a target_array_list
 
   # shellcheck disable=SC2317
-  function create_message_box()
-  {
+  function create_message_box() {
     return
   }
 

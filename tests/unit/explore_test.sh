@@ -12,8 +12,7 @@ declare -a samples_names=(
   'codestyle_check.h'
 )
 
-function setUp()
-{
+function setUp() {
   local -r current_path="$PWD"
 
   cd "$SHUNIT_TMPDIR" || {
@@ -38,14 +37,12 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   rm -rf "$SHUNIT_TMPDIR"
   mkdir -p "$SHUNIT_TMPDIR"
 }
 
-function test_explore_files_under_git_repo()
-{
+function test_explore_files_under_git_repo() {
   local MSG_OUT
   local -r current_path="$PWD"
 
@@ -102,8 +99,7 @@ function test_explore_files_under_git_repo()
   }
 }
 
-function test_explore_git_log()
-{
+function test_explore_git_log() {
   local file_name
   local commit_msg
   local -r current_path="$PWD"
@@ -124,8 +120,7 @@ function test_explore_git_log()
   }
 }
 
-function test_explore_grep()
-{
+function test_explore_grep() {
   local expected_result
   local -r current_path="$PWD"
 
@@ -151,8 +146,7 @@ function test_explore_grep()
   }
 }
 
-function test_explore_git()
-{
+function test_explore_git() {
   local expected_result
   local -r current_path="$PWD"
 
@@ -185,8 +179,7 @@ function test_explore_git()
   }
 }
 
-function test_explore_context()
-{
+function test_explore_context() {
   local -r current_path="$PWD"
   local expected_context='3'
   local expected_match='avoid'
@@ -226,8 +219,7 @@ function test_explore_context()
   }
 }
 
-function test_parse_explore_options()
-{
+function test_parse_explore_options() {
   # Expected behaviour
   unset options_values
   declare -gA options_values

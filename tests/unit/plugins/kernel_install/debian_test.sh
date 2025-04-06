@@ -5,18 +5,15 @@ include './src/plugins/kernel_install/debian.sh'
 include './src/lib/kwio.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   mk_fake_boot "$SHUNIT_TMPDIR"
 }
 
-function tearDown()
-{
+function tearDown() {
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function test_update_debian_boot_loader()
-{
+function test_update_debian_boot_loader() {
   output=$(generate_debian_temporary_root_file_system 'TEST_MODE' 'xpto' '' 'GRUB')
   cmd='update-initramfs -c -k xpto'
   assert_equals_helper 'Check simple flow' "$LINENO" "$cmd" "$output"

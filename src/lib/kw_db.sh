@@ -13,8 +13,7 @@ declare -g DB_NAME='kw.db'
 #
 # Return:
 # 0 if succesful; non-zero otherwise
-function execute_sql_script()
-{
+function execute_sql_script() {
   local sql_path="$1"
   local db="${2:-"$DB_NAME"}"
   local db_folder="${3:-"$KW_DATA_DIR"}"
@@ -41,8 +40,7 @@ function execute_sql_script()
 # Return:
 # 2 if db doesn't exist;
 # 0 if succesful; non-zero otherwise
-function execute_command_db()
-{
+function execute_command_db() {
   local sql_cmd="$1"
   local db="${2:-"$DB_NAME"}"
   local db_folder="${3:-"$KW_DATA_DIR"}"
@@ -69,8 +67,7 @@ function execute_command_db()
 # Return:
 # 2 if db doesn't exist;
 # 0 if succesful; non-zero otherwise
-function insert_into()
-{
+function insert_into() {
   local table="$1"
   local entries="$2"
   local values="$3"
@@ -111,8 +108,7 @@ function insert_into()
 # 2 if db doesn't exist;
 # 22 if empty table or empty rows are passed;
 # 0 if succesful.
-function replace_into()
-{
+function replace_into() {
   local table="$1"
   local columns="$2"
   local rows="$3"
@@ -152,8 +148,7 @@ function replace_into()
 # 2 if db doesn't exist;
 # 22 if empty table, columns or values are passed;
 # 0 if succesful.
-function remove_from()
-{
+function remove_from() {
   local table="$1"
   local _condition_array="$2"
   local db="${3:-"${DB_NAME}"}"
@@ -197,8 +192,7 @@ function remove_from()
 # Return:
 # 2 if db doesn't exist; 22 if table is empty
 # 0 if succesful; non-zero otherwise
-function select_from()
-{
+function select_from() {
   local table="$1"
   local columns="${2:-"*"}"
   local pre_cmd="$3"
@@ -253,8 +247,7 @@ function select_from()
 # Return:
 # 2 if db doesn't exist; 22 if table is empty
 # 0 if succesful; non-zero otherwise
-function update_into()
-{
+function update_into() {
   local table="$1"
   local _updates_array="$2"
   local pre_cmd="$3"
@@ -300,8 +293,7 @@ function update_into()
 #
 # Returns:
 # A string containing the generated clause
-function generate_where_clause()
-{
+function generate_where_clause() {
   local -n condition_array_ref="$1"
   local clause
   local relational_op='='
@@ -331,8 +323,7 @@ function generate_where_clause()
 #
 # Returns:
 # A string containing the generated clause
-function generate_set_clause()
-{
+function generate_set_clause() {
   local -n updates_array_ref="$1"
   local attribute
   local set_clause
@@ -359,8 +350,7 @@ function generate_set_clause()
 # Return:
 # The arguments in formatted string to be used as values in an INSERT command
 # 22 if no arguments are given
-function format_values_db()
-{
+function format_values_db() {
   local length="$1"
   shift
   local values=''

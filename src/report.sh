@@ -30,8 +30,7 @@ yellow_color=$(tput setaf 3)
 green_color=$(tput setaf 2)
 normal_color=$(tput sgr0)
 
-function report_main()
-{
+function report_main() {
   local target_time
   local flag
 
@@ -76,8 +75,7 @@ function report_main()
 # The format of the raw data is the same as the returned by the local database. For
 # example, in the case of the 'statistics_report' table, the format will be
 # <ID>|<LABEL_NAME>|<STATUS>|<START_DATE>|<START_TIME>|<ELAPSED_TIME_IN_SECS>.
-function set_raw_data()
-{
+function set_raw_data() {
   local flag="$1"
   local date
   local regex_exp
@@ -123,8 +121,7 @@ function set_raw_data()
 # Return:
 # Raw output from database query related to a given table from a target period
 # of time.
-function get_raw_data_from_period_of_time()
-{
+function get_raw_data_from_period_of_time() {
   local table_name="$1"
   local regex_exp="$2"
   local flag="$3"
@@ -147,8 +144,7 @@ function get_raw_data_from_period_of_time()
 #
 # Return:
 # In case there is no statistics raw data to process, returns 2 (ENOENT).
-function process_and_format_statistics_raw_data()
-{
+function process_and_format_statistics_raw_data() {
   local flag="$1"
   local num_of_operations
   local max_time
@@ -191,8 +187,7 @@ function process_and_format_statistics_raw_data()
 #
 # Return:
 # In case there is no statistics raw data to process, returns 2 (ENOENT).
-function process_and_format_pomodoro_raw_data()
-{
+function process_and_format_pomodoro_raw_data() {
   local flag="$1"
   local tag
   local start_date
@@ -265,8 +260,7 @@ function process_and_format_pomodoro_raw_data()
 #
 # Return:
 # Prints the statistics report, the Pomodoro sessions report or both.
-function show_report()
-{
+function show_report() {
   local flag="$1"
 
   flag=${flag:-'SILENT'}
@@ -300,8 +294,7 @@ function show_report()
 #
 # Return:
 # In case of error, return an error code.
-function save_data_to()
-{
+function save_data_to() {
   local path="$1"
   local flag="$2"
   local ret
@@ -325,8 +318,7 @@ function save_data_to()
   success "${path}" | tr -s '/'
 }
 
-function parse_report_options()
-{
+function parse_report_options() {
   local reference_count=0
   local long_options='day::,week::,month::,year::,output:,statistics,pomodoro,all,verbose'
   local short_options='o:,s,p,a'
@@ -455,8 +447,7 @@ function parse_report_options()
   fi
 }
 
-function report_help()
-{
+function report_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'report'

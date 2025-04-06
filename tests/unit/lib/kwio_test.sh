@@ -15,20 +15,17 @@ declare -g load_module_text_path="$PWD/tests/unit/samples/load_module_text_test_
 sound_file="$PWD/tests/unit/lib/.kwio_test_aux/sound.file"
 visual_file="$PWD/tests/unit/lib/.kwio_test_aux/visual.file"
 
-function setUp()
-{
+function setUp() {
   mkdir -p tests/unit/lib/.kwio_test_aux
   notification_config['sound_alert_command']="touch $sound_file"
   notification_config['visual_alert_command']="touch $visual_file"
 }
 
-function tearDown()
-{
+function tearDown() {
   rm -rf tests/unit/lib/.kwio_test_aux
 }
 
-function test_alert_completion_options()
-{
+function test_alert_completion_options() {
   notification_config['alert']='n'
 
   rm -f "$sound_file" "$visual_file"
@@ -64,8 +61,7 @@ function test_alert_completion_options()
   true
 }
 
-function test_alert_completition_validate_config_file_options()
-{
+function test_alert_completition_validate_config_file_options() {
   mkdir -p tests/unit/lib/.kwio_test_aux
 
   rm -f "$sound_file" "$visual_file"
@@ -106,8 +102,7 @@ function test_alert_completition_validate_config_file_options()
   true
 }
 
-function test_alert_completion_visual_alert()
-{
+function test_alert_completion_visual_alert() {
   local output
   local expected='TESTING COMMAND'
 
@@ -116,8 +111,7 @@ function test_alert_completion_visual_alert()
   assertEquals 'Variable v should exist.' "$expected" "$output"
 }
 
-function test_alert_completion_sound_alert()
-{
+function test_alert_completion_sound_alert() {
   local output
   local expected='TESTING COMMAND'
 
@@ -126,8 +120,7 @@ function test_alert_completion_sound_alert()
   assertEquals 'Variable s should exist.' "$expected" "$output"
 }
 
-function test_ask_with_default()
-{
+function test_ask_with_default() {
   local output=''
   local expected_output=''
   local assert_equals_message=''
@@ -155,8 +148,7 @@ function test_ask_with_default()
   assert_equals_helper "$assert_equals_message" "$LINENO" "$expected_output" "$output"
 }
 
-function test_ask_yN()
-{
+function test_ask_yN() {
   local assert_equals_message=''
 
   assert_equals_message='Default answer: no, user answer: y'
@@ -239,8 +231,7 @@ function test_ask_yN()
   assert_equals_helper "$assert_equals_message" "$LINENO" '0' "$output"
 }
 
-function test_load_module_text_good_files()
-{
+function test_load_module_text_good_files() {
   local multiple_line_str
 
   load_module_text "$load_module_text_path/file_correct"
@@ -262,8 +253,7 @@ function test_load_module_text_good_files()
   assertEquals 'Key7' "$multiple_line_str" "${module_text_dictionary[key7]}"
 }
 
-function test_load_module_text_bad_keys()
-{
+function test_load_module_text_bad_keys() {
   local expected
   local output
 
@@ -281,8 +271,7 @@ function test_load_module_text_bad_keys()
   compare_command_sequence '' "$LINENO" 'expected_sequence' "$output"
 }
 
-function test_load_module_text_invalid_files()
-{
+function test_load_module_text_invalid_files() {
   local expected
   local output
 
@@ -297,8 +286,7 @@ function test_load_module_text_invalid_files()
   assertEquals "[$LINENO]: The ERROR message is not consistent with the error code or is incomplete." "$expected" "$output"
 }
 
-function test_load_module_text_no_files()
-{
+function test_load_module_text_no_files() {
   local expected
   local output
 
@@ -308,8 +296,7 @@ function test_load_module_text_no_files()
   assertEquals "[$LINENO]: The ERROR message is not consistent with the error code or is incomplete." "$expected" "$output"
 }
 
-function test_load_module_text_repeated_keys()
-{
+function test_load_module_text_repeated_keys() {
   local expected
   local output
 

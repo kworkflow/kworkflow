@@ -4,8 +4,7 @@ declare -gA opt
 declare -ga analysed_files
 
 # Get kw's current list of excluded warnings for shellcheck
-function get_shellcheck_exclude()
-{
+function get_shellcheck_exclude() {
   local travis_file='.github/workflows/shellcheck_reviewdog.yml'
   if [[ ! -f "$travis_file" ]]; then
     travis_file="../$travis_file"
@@ -15,13 +14,12 @@ function get_shellcheck_exclude()
     fi
   fi
 
-  grep 'shellcheck_flags:' "$travis_file" |
-    sed -E 's/.*--exclude=((SC[0-9]{4},?)*).*/\1/'
+  grep 'shellcheck_flags:' "$travis_file" \
+    | sed -E 's/.*--exclude=((SC[0-9]{4},?)*).*/\1/'
 }
 
 # Initialize the global variable opt with default options
-function init_options()
-{
+function init_options() {
   opt['branch']='unstable'
   opt['path']='.'
   opt['exclude']=''
@@ -41,8 +39,7 @@ function init_options()
 #
 # @raw_options All supplied arguments
 #
-function parse_args()
-{
+function parse_args() {
   local -a raw_options=("$@")
   local prog_name="$0"
   local short_options
@@ -132,8 +129,7 @@ function parse_args()
   done
 }
 
-function print_help()
-{
+function print_help() {
   printf '%s\n' 'Usage: kwreview [<options>] [<files>...]' \
     "Print formatting diff and linter revision for kw's bash files." \
     'If <files> are supplied, analyse them. If not, analyse all shell files' \
@@ -162,8 +158,7 @@ function print_help()
 }
 
 # List all files changed since opt['branch'] (unstable by default)
-function get_git_files()
-{
+function get_git_files() {
   local pathspec
   local branch
   local exclude
@@ -189,21 +184,19 @@ function get_git_files()
   else
     git diff-tree --no-commit-id --name-only -r \
       "$revision" -- \
-      "$pathspec" |
-      sort
+      "$pathspec" \
+      | sort
   fi
 }
 
 # List all shell script files
-function get_sh_files()
-{
+function get_sh_files() {
   shfmt -f . | sort
 }
 
 # Read the intersection of get_git_files and get_sh_files into
 # analysed_files
-function get_analysed_files()
-{
+function get_analysed_files() {
   if [[ -z "${opt['ignore_vcs']}" ]]; then
     mapfile -t analysed_files < <(comm -12 <(get_git_files) <(get_sh_files))
   fi
@@ -211,8 +204,7 @@ function get_analysed_files()
 
 # If -l or --list was passed, print all files subject to analysis and
 # exit
-function list()
-{
+function list() {
   if [[ "${opt['list']}" = 'TRUE' ]]; then
     for file in "${analysed_files[@]}"; do
       printf '%s\n' "$file"
@@ -221,8 +213,7 @@ function list()
   fi
 }
 
-function check_dependencies()
-{
+function check_dependencies() {
   if ! type shfmt > /dev/null 2>&1; then
     printf '%s\n' 'shfmt not found!'
     exit 125 # ECANCELED
@@ -235,8 +226,7 @@ function check_dependencies()
   fi
 }
 
-function run_shfmt()
-{
+function run_shfmt() {
   local shellcheck_only="${opt['shellcheck_only']}"
   local shfmt_inplace="${opt['shfmt_inplace']}"
   local branch="${opt['branch']}"
@@ -244,8 +234,8 @@ function run_shfmt()
 
   if [[ "$shellcheck_only" = 'FALSE' ]]; then
     if [[ "$shfmt_inplace" = 'FALSE' ]]; then
-      shfmt -d -i 2 -fn -ci -sr -ln bash "${analysed_files[@]}" |
-        reviewdog -f=diff -diff="git diff $branch" -f.diff.strip 0 \
+      shfmt -d -i 2 -fn -ci -sr -ln bash "${analysed_files[@]}" \
+        | reviewdog -f=diff -diff="git diff $branch" -f.diff.strip 0 \
           -filter-mode "$filter_mode"
     else
       shfmt -w -i 2 -fn -ci -sr -ln bash "${analysed_files[@]}"
@@ -253,8 +243,7 @@ function run_shfmt()
   fi
 }
 
-function run_shellcheck()
-{
+function run_shellcheck() {
   local shellcheck_exclude="${opt['shellcheck_exclude']}"
   local branch="${opt['branch']}"
   local shfmt_only="${opt['shfmt_only']}"
@@ -262,13 +251,12 @@ function run_shellcheck()
 
   if [[ "$shfmt_only" = 'FALSE' ]]; then
     shellcheck -f checkstyle "${analysed_files[@]}" \
-      --external-sources --shell=bash --exclude="$shellcheck_exclude" |
-      reviewdog -f=checkstyle -diff="git diff $branch" -filter-mode "$filter_mode"
+      --external-sources --shell=bash --exclude="$shellcheck_exclude" \
+      | reviewdog -f=checkstyle -diff="git diff $branch" -filter-mode "$filter_mode"
   fi
 }
 
-function kwreview()
-{
+function kwreview() {
   init_options
   parse_args "$@"
   get_analysed_files

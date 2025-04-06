@@ -22,13 +22,11 @@ declare -ag required_packages=(
 declare -g package_manager_cmd='dnf install -y'
 
 # Setup hook
-function distro_pre_setup()
-{
+function distro_pre_setup() {
   : # NOTHING
 }
 
-function generate_fedora_temporary_root_file_system()
-{
+function generate_fedora_temporary_root_file_system() {
   local flag="$1"
   local name="$2"
   local target="$3"

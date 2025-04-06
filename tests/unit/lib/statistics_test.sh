@@ -8,8 +8,7 @@ include './tests/unit/utils.sh'
 # Average: 14
 # Min: 4
 # Max: 9433
-function setUp()
-{
+function setUp() {
   export KW_DATA_DIR='tests/unit/samples'
 
   # Samples file data
@@ -40,8 +39,7 @@ function setUp()
   )
 }
 
-function test_calculate_average()
-{
+function test_calculate_average() {
   avg=$(calculate_average "10")
   assertEquals "($LINENO)" "10" "$avg"
 
@@ -49,8 +47,7 @@ function test_calculate_average()
   assertEquals "($LINENO)" "$pre_avg" "$avg"
 }
 
-function test_calculate_total_of_data()
-{
+function test_calculate_total_of_data() {
   total=$(calculate_total_of_data "1")
   assertEquals "($LINENO)" "1" "$total"
 
@@ -61,8 +58,7 @@ function test_calculate_total_of_data()
   assertEquals "($LINENO)" "$pre_total" "$total"
 }
 
-function test_max_value()
-{
+function test_max_value() {
   max=$(max_value "0")
   assertEquals "($LINENO)" 0 "$max"
 
@@ -73,8 +69,7 @@ function test_max_value()
   assertEquals "($LINENO)" "$pre_max" "$max"
 }
 
-function test_min_value()
-{
+function test_min_value() {
   min=$(min_value "0" "0")
   assertEquals "($LINENO)" 0 "$min"
 
@@ -89,8 +84,7 @@ function test_min_value()
 # These functions only concatenate the set of values before invoke
 # `basic_data_process`, for this reason, there is no point to validate this
 # operation in the weekly, monthly, and yearly tests.
-function test_basic_data_process()
-{
+function test_basic_data_process() {
   local data
   local day_path="$base_statistics/05/27"
 
@@ -109,8 +103,7 @@ function test_basic_data_process()
   assertEquals "($LINENO)" "" "$deploy"
 }
 
-function test_day_statistics()
-{
+function test_day_statistics() {
   local day_data
   local msg1='Currently, kw does not have any data for the present date.'
   local msg2='There is no data in the kw records'
@@ -125,8 +118,7 @@ function test_day_statistics()
   compare_command_sequence '' "$LINENO" 'may_27_2020' "$day_data"
 }
 
-function test_week_statistics()
-{
+function test_week_statistics() {
   local day_data
   local week_data
   local start_target_week='2019/05/05'
@@ -140,8 +132,7 @@ function test_week_statistics()
   compare_command_sequence '' "$LINENO" 'may_27_2020' "$week_data"
 }
 
-function test_month_statistics()
-{
+function test_month_statistics() {
   local target_month='2019/05'
   local month_data
   local msg='Currently, kw does not have any data for the present month.'
@@ -159,8 +150,7 @@ function test_month_statistics()
   rm -rf "$base_statistics/04"
 }
 
-function test_year_statistics()
-{
+function test_year_statistics() {
   local target_year='2019'
   local year_data
   local msg='Currently, kw does not have any data for the requested year.'

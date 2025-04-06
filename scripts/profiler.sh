@@ -4,8 +4,7 @@ include "${KW_LIB_DIR}/lib/kwlib.sh"
 
 declare -gA options_values
 
-function profiler_main()
-{
+function profiler_main() {
   local list_of_csv_filepaths
 
   parse_profiler_options "$@"
@@ -38,8 +37,7 @@ function profiler_main()
 #
 # @list_of_csv_filepaths: String containing all CSV filepaths separated by newline
 # @type_of_profile: String defining type of profile to be processed
-function process_csv_files()
-{
+function process_csv_files() {
   local list_of_csv_filepaths="$1"
   local type_of_profile="$2"
   local timestamp_difference
@@ -122,8 +120,7 @@ function process_csv_files()
 #
 # Return:
 # Outputs each thread execution profile in order of creation.
-function display_full_profile()
-{
+function display_full_profile() {
   local max_thread_number
 
   max_thread_number="${#full_profile[@]}"
@@ -139,15 +136,13 @@ function display_full_profile()
 #
 # Return:
 # Outputs the summary profile of the execution.
-function display_summary()
-{
+function display_summary() {
   for function_name in "${!summary[@]}"; do
     printf '%s,%s\n' "$function_name" "${summary["$function_name"]}"
   done
 }
 
-function parse_profiler_options()
-{
+function parse_profiler_options() {
   local long_options='full,summary,help'
   local short_options='h'
 
@@ -205,8 +200,7 @@ function parse_profiler_options()
   fi
 }
 
-function profiler_help()
-{
+function profiler_help() {
   printf '%s\n' 'profiler.sh: Tool for profiling of kw executions' \
     '  ./scripts/profiler.sh --full <tracing_dir> - Output full profile of execution flow' \
     '  ./scripts/profiler.sh --summary <tracing_dir> - Output summary of time spent in each function'

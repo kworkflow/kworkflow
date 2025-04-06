@@ -3,8 +3,7 @@
 # Return:
 # Returns a new String with the last character removed. Applying chop to an
 # empty string returns an empty string.
-function chop()
-{
+function chop() {
   printf '%s\n' "${@%?}"
 }
 
@@ -12,8 +11,7 @@ function chop()
 #
 # Return:
 # Returns the last character from the string provided in the string parameter.
-function last_char()
-{
+function last_char() {
   printf '%s\n' "${1: -1}"
 }
 
@@ -23,8 +21,7 @@ function last_char()
 #
 # Return
 # Returns 0 if the string is a number, otherwise, return 1.
-function str_is_a_number()
-{
+function str_is_a_number() {
   local value="$1"
 
   value=$(str_strip "$value")
@@ -38,8 +35,7 @@ function str_is_a_number()
 #
 # Return:
 # String length
-function str_length()
-{
+function str_length() {
   printf '%s\n' "${#1}"
 }
 
@@ -50,8 +46,7 @@ function str_length()
 #
 # Return:
 # Return a string limited by @size
-function str_trim()
-{
+function str_trim() {
   local str="$1"
   local size="$2"
 
@@ -64,8 +59,7 @@ function str_trim()
 #
 # Return:
 # Return string without spaces in the beginning and the end.
-function str_strip()
-{
+function str_strip() {
   local str
 
   str="$*"
@@ -82,8 +76,7 @@ function str_strip()
 #
 # Return:
 # Return string str without substring str_remove on the left side.
-function str_remove_prefix()
-{
+function str_remove_prefix() {
   local str="$1"
   local str_remove="$2"
 
@@ -99,8 +92,7 @@ function str_remove_prefix()
 #
 # Return:
 # Return string str without substring str_remove on the right side.
-function str_remove_suffix()
-{
+function str_remove_suffix() {
   local str="$1"
   local str_remove="$2"
 
@@ -113,8 +105,7 @@ function str_remove_suffix()
 #
 # Return:
 # Return string str with all uppercase characters
-function str_uppercase()
-{
+function str_uppercase() {
   printf '%s\n' "${1^^}"
 }
 
@@ -124,8 +115,7 @@ function str_uppercase()
 #
 # Return:
 # Return string str with all lowercase characters
-function str_lowercase()
-{
+function str_lowercase() {
   printf '%s\n' "${1,,}"
 }
 
@@ -137,8 +127,7 @@ function str_lowercase()
 # Return:
 # Return string str with all duplicated instances of the given charater
 # replaced with a single instance
-function str_remove_duplicates()
-{
+function str_remove_duplicates() {
   local str="$1"
   local char="$2"
 
@@ -157,8 +146,7 @@ function str_remove_duplicates()
 #
 # Return:
 # Return the number of occurencies of char inside the string.
-function str_count_char_repetition()
-{
+function str_count_char_repetition() {
   local str="$1"
   local char="${2:0:1}"
   local matches
@@ -173,8 +161,7 @@ function str_count_char_repetition()
 #
 # Return:
 # Return a string without space
-function str_drop_all_spaces()
-{
+function str_drop_all_spaces() {
   local str="$*"
 
   printf '%s' "$str" | tr --delete ' '
@@ -187,8 +174,7 @@ function str_drop_all_spaces()
 #
 # Return:
 # A string of the arguments separated by commas
-function concatenate_with_commas()
-{
+function concatenate_with_commas() {
   local IFS=','
 
   printf '%s\n' "$*"
@@ -201,8 +187,7 @@ function concatenate_with_commas()
 #
 # Return:
 # If match a special character, return 0. Otherwise retun 1.
-function str_has_special_characters()
-{
+function str_has_special_characters() {
   local str="$*"
 
   [[ "$str" == *['!'@#\$%^\&*\(\)+]* ]] && return 0
@@ -217,8 +202,7 @@ function str_has_special_characters()
 #
 # Return:
 # Return data between quotes, or 22 if the string is empty.
-function str_get_value_under_double_quotes()
-{
+function str_get_value_under_double_quotes() {
   local string="$1"
 
   [[ -z "$string" ]] && return 22 # EINVAL
@@ -237,8 +221,7 @@ function str_get_value_under_double_quotes()
 # Return:
 # Returns the string with all single quotes escaped, if any, or 22 (EINVAL) if
 # the string is empty.
-function str_escape_single_quotes()
-{
+function str_escape_single_quotes() {
   local string="$1"
 
   [[ -z "$string" ]] && return 22 # EINVAL
@@ -254,8 +237,7 @@ function str_escape_single_quotes()
 # Returns the Unix-friendly filename version of the string, or 22 (EINVAL) if
 # the string is empty, only composed of removable character, or has a net size
 # greater than 255 characters.
-function string_to_unix_filename()
-{
+function string_to_unix_filename() {
   local string="$1"
   local filename
 

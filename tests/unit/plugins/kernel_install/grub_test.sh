@@ -5,13 +5,11 @@ include './src/plugins/kernel_install/grub.sh'
 include './src/lib/kwio.sh'
 include './tests/unit/utils.sh'
 
-function test_grub()
-{
+function test_grub() {
   local output
   local expected_cmd
 
-  function command_exists()
-  {
+  function command_exists() {
     local command="$1"
     local package=${command%% *}
 
@@ -26,8 +24,7 @@ function test_grub()
   ret="$?"
   assert_equals_helper 'Remote update' "$LINENO" '125' "$ret"
 
-  function command_exists()
-  {
+  function command_exists() {
     local command="$1"
     local package=${command%% *}
 
@@ -48,8 +45,7 @@ function test_grub()
 
   assert_equals_helper 'Remote update' "$LINENO" "$expected_cmd" "$output"
 
-  function command_exists()
-  {
+  function command_exists() {
     local command="$1"
     local package=${command%% *}
 

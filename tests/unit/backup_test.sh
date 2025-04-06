@@ -4,8 +4,7 @@ include './src/backup.sh'
 include './src/lib/kwlib.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   KW_DATA_DIR="$SHUNIT_TMPDIR/data"
   decompress_path="$SHUNIT_TMPDIR/tmp-kw-backup"
 
@@ -17,8 +16,7 @@ function setUp()
   cp -r tests/unit/samples/statistics "$KW_DATA_DIR"
 }
 
-function test_create_backup()
-{
+function test_create_backup() {
   local output
   local filepath
   local current_path="$PWD"
@@ -42,8 +40,7 @@ function test_create_backup()
   compare_command_sequence '' "$LINENO" 'expected_files' "${tar_files[@]}"
 }
 
-function test_restore_backup()
-{
+function test_restore_backup() {
   local output
 
   output=$(restore_backup "$SHUNIT_TMPDIR"/random/path/backup.tar.gz)
@@ -60,8 +57,7 @@ function test_restore_backup()
     "[[ -f $KW_DATA_DIR/configs/configs/config-test ]] && [[ -f $KW_DATA_DIR/configs/metadata/config-test ]]"
 }
 
-function test_restore_config()
-{
+function test_restore_config() {
   local config_2_last_line
 
   rm -rf "${KW_DATA_DIR:?}"/*
@@ -96,8 +92,7 @@ function test_restore_config()
   assertEquals "$LINENO" '# This line is different' "$config_2_last_line"
 }
 
-function test_restore_data_from_dir()
-{
+function test_restore_data_from_dir() {
   declare -a expected_cmd=(
     'It looks like that the file 2021/04/04 differs from the backup version.'
     'Do you want to:'
@@ -127,8 +122,7 @@ function test_restore_data_from_dir()
   assertEquals "$LINENO" '# Another different line' "$(tail -n 1 "$KW_DATA_DIR/pomodoro/2021/04/04")"
 }
 
-function test_restore_pomodoro()
-{
+function test_restore_pomodoro() {
   rm -rf "${KW_DATA_DIR:?}"/*
   mkdir -p "$decompress_path/pomodoro/"
 
@@ -141,8 +135,7 @@ function test_restore_pomodoro()
     "cmp -s $KW_DATA_DIR/pomodoro/2021/04/04 $decompress_path/pomodoro/2021/04/04"
 }
 
-function test_restore_statistics()
-{
+function test_restore_statistics() {
   rm -rf "${KW_DATA_DIR:?}"/*
   mkdir -p "$decompress_path/statistics/"
 
@@ -154,8 +147,7 @@ function test_restore_statistics()
     "[[ -d $KW_DATA_DIR/statistics/2021/10 ]] && [[ -d $KW_DATA_DIR/statistics/2020/05 ]]"
 }
 
-function test_parse_backup_options()
-{
+function test_parse_backup_options() {
   local output
   local current_path="$PWD"
 
@@ -220,8 +212,7 @@ function test_parse_backup_options()
   }
 }
 
-test_restore_database()
-{
+test_restore_database() {
   local output
   local expected
 
@@ -237,8 +228,7 @@ test_restore_database()
   assert_equals_helper 'Wrong command issued' "$LINENO" "$expected" "$output"
 }
 
-test_restore_config_files()
-{
+test_restore_config_files() {
   local output
   local expected
 

@@ -2,8 +2,7 @@
 
 include './tests/unit/utils.sh'
 
-function test_src_permissions()
-{
+function test_src_permissions() {
   local perm
   local expected=6
   local -a files

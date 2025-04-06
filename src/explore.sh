@@ -10,8 +10,7 @@ declare -gA options_values
 
 # The main entry point for the explore feature, if you want to add another
 # search mechanism, you probably wish to start by this function
-function explore_main()
-{
+function explore_main() {
   local flag
   local search
   local path
@@ -75,8 +74,7 @@ function explore_main()
 #   0 if options are parsed successfully
 #   22 for invalid operation
 # This function also set options_values
-function parse_explore_options()
-{
+function parse_explore_options() {
   local long_options='log,grep,all,only-header,only-source,exactly,verbose,show-context::'
   local short_options='l,g,a,H,c,C::'
   local options
@@ -209,8 +207,7 @@ function parse_explore_options()
 # @path This is an optional parameter for narrow down git log search
 # @flag How to display a command, the default value is "SILENT". For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
-function explore_git_log()
-{
+function explore_git_log() {
   local search_string="$1"
   local path="$2"
   local flag="$3"
@@ -226,8 +223,7 @@ function explore_git_log()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
-function explore_files_under_git()
-{
+function explore_files_under_git() {
   local regex="$1"
   local path="$2"
   local context="$3"
@@ -246,8 +242,7 @@ function explore_files_under_git()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
-function explore_all_files_git()
-{
+function explore_all_files_git() {
   local regex="$1"
   local path="$2"
   local context="$3"
@@ -265,8 +260,7 @@ function explore_all_files_git()
 # @path Narrow down the search
 # @flag How to display a command, the default value is 'SILENT'. For more
 #       options see `src/lib/kwlib.sh` function `cmd_manager`
-function explore_files_gnu_grep()
-{
+function explore_files_gnu_grep() {
   local regex="$1"
   local path="$2"
   local context="$3"
@@ -277,8 +271,7 @@ function explore_files_gnu_grep()
   cmd_manager "$flag" "grep --color --line-number --recursive -I ${path} --context ${context} -e '${regex}'"
 }
 
-function explore_help()
-{
+function explore_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'explore'

@@ -26,8 +26,7 @@ declare -gr KW_DEBUG='kw_debug'
 #
 # Return:
 # Return 0 in a normal case or an errno code.
-function debug_main()
-{
+function debug_main() {
   local remote
   local flag='SILENT'
   local user_cmd=''
@@ -122,8 +121,7 @@ function debug_main()
 #
 # Return:
 # Return 22 in case of invalid option
-function list_debug()
-{
+function list_debug() {
   local target="$1"
   local list_target="$2"
   local flag="$3"
@@ -174,8 +172,7 @@ function list_debug()
 # @target: Target can be 1 (VM_TARGET), 2 (LOCAL_TARGET), or 3 (REMOTE_TARGET)
 # @flag: How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
-function reset_debug()
-{
+function reset_debug() {
   local target="$1"
   local flag="$2"
   local reset_cmd
@@ -224,8 +221,7 @@ function reset_debug()
 #
 # Return:
 # In case of an error, returns an errno code.
-function dmesg_debug()
-{
+function dmesg_debug() {
   local target="$1"
   local flag="$2"
   local base_log_path="$3"
@@ -295,8 +291,7 @@ function dmesg_debug()
 #
 # Return:
 # In case of an error, returns an errno code.
-function event_debug()
-{
+function event_debug() {
   local target="$1"
   local flag="$2"
   local event="$3"
@@ -414,8 +409,7 @@ function event_debug()
 #
 # Return:
 # Output all data in a list format
-function ftrace_list()
-{
+function ftrace_list() {
   local target="$1"
   local flag="$2"
   local raw_data=''
@@ -468,8 +462,7 @@ function ftrace_list()
 # @follow: Follow log in real-time.
 # @user_cmd: User specific command.
 # @list: List events.
-function ftrace_debug()
-{
+function ftrace_debug() {
   local target="$1"
   local flag="$2"
   local ftrace_syntax="$3"
@@ -558,8 +551,7 @@ function ftrace_debug()
 #
 # Return:
 # A string with the final command is composed.
-function build_ftrace_command_string()
-{
+function build_ftrace_command_string() {
   local ftrace_syntax="$1"
   local ftrace_disable="$2"
   local char_repetition
@@ -646,8 +638,7 @@ function build_ftrace_command_string()
 #
 # Return:
 # Returns a string containing the base path used to store the trace files.
-function prepare_log_database()
-{
+function prepare_log_database() {
   local keep_history="$1"
   local debug_files_dir="${PWD}/${KW_DEBUG}"
   local tmp_id=''
@@ -694,8 +685,7 @@ function prepare_log_database()
 #
 # Return:
 # Returns a status code
-function show_list()
-{
+function show_list() {
   local list="$1"
   local type="$2"
   local ret
@@ -720,8 +710,7 @@ function show_list()
 #
 # Return:
 # It shows a pretty output related to the debug options.
-function process_list()
-{
+function process_list() {
   local raw_output="$1"
   local event="$2"
 
@@ -751,8 +740,7 @@ function process_list()
 #
 # Return:
 # A string with the final command is composed.
-function build_event_command_string()
-{
+function build_event_command_string() {
   local list="$1"
   local enable="$2"
   local enable_events=''
@@ -823,8 +811,7 @@ function build_event_command_string()
 #
 # Return:
 # In case of an error, returns EINVAL (22).
-function convert_event_syntax_to_sys_path_hash()
-{
+function convert_event_syntax_to_sys_path_hash() {
   local events_str="$*"
 
   IFS=';' read -r -a events_str <<< "$events_str"
@@ -867,8 +854,7 @@ function convert_event_syntax_to_sys_path_hash()
   fi
 }
 
-function stop_debug()
-{
+function stop_debug() {
   local flag="$1"
   local remote
   local port
@@ -906,8 +892,7 @@ function stop_debug()
   fi
 }
 
-function parser_debug_options()
-{
+function parser_debug_options() {
   local options
   local short_options
   local long_options
@@ -1035,8 +1020,7 @@ function parser_debug_options()
   done
 }
 
-function debug_help()
-{
+function debug_help() {
   if [[ "$1" == --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'debug'

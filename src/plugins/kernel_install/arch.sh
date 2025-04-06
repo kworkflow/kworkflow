@@ -28,8 +28,7 @@ declare -g package_manager_cmd='yes | pacman -Syu'
 # @flag: How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
-function distro_pre_setup()
-{
+function distro_pre_setup() {
   local flag="$1"
   local target="$2"
   local cmd_prefix=''
@@ -55,8 +54,7 @@ function distro_pre_setup()
   cmd_manager "$flag" "$cmd"
 }
 
-function generate_arch_temporary_root_file_system()
-{
+function generate_arch_temporary_root_file_system() {
   local flag="$1"
   local name="$2"
   local target="$3"

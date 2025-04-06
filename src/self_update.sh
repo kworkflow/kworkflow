@@ -4,8 +4,7 @@ include "${KW_LIB_DIR}/help.sh"
 source "$(dirname "$0")/lib/git_helper.sh"
 declare -gA options_values
 
-function self_update_main()
-{
+function self_update_main() {
   local target_branch='master'
   local path_to_tmp_dir
   local ret
@@ -53,8 +52,7 @@ function self_update_main()
 # Return:
 # In case of success return 0, otherwise, return the error
 # code.
-function update_from_official_repo()
-{
+function update_from_official_repo() {
   local target_branch="$1"
   local path_to_tmp_dir="$2"
   local flag="$3"
@@ -125,8 +123,7 @@ function update_from_official_repo()
   return 0
 }
 
-function parse_self_update_options()
-{
+function parse_self_update_options() {
   local long_options='unstable,help,verbose'
   local short_options='u,h'
 
@@ -167,8 +164,7 @@ function parse_self_update_options()
   done
 }
 
-function self_update_help()
-{
+function self_update_help() {
   if [[ "$1" == --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'self-update'

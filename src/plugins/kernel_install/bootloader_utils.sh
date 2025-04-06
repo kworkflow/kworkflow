@@ -43,8 +43,7 @@ declare -gar SUPPORTED_BOOTLOADER=(
 #
 # Return:
 # Return a string with the bootloader type or an empty result
-function identify_bootloader_from_files()
-{
+function identify_bootloader_from_files() {
   local path_prefix="$1"
   local target="$2"
   local bootloader=''

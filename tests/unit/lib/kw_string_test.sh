@@ -3,8 +3,7 @@
 include './src/lib/kw_string.sh'
 include './tests/unit/utils.sh'
 
-function test_chop()
-{
+function test_chop() {
   local output
   local str_test='1234567'
 
@@ -18,8 +17,7 @@ function test_chop()
   assert_equals_helper 'Expected an empty string' "$LINENO" "" "$output"
 }
 
-function test_last_char()
-{
+function test_last_char() {
   local output
   local str_test='kworkflow'
 
@@ -35,8 +33,7 @@ function test_last_char()
   assert_equals_helper 'We did not get the last char' "$LINENO" '' "$output"
 }
 
-function test_str_is_a_number()
-{
+function test_str_is_a_number() {
   local output
   local str_test=333
 
@@ -62,8 +59,7 @@ function test_str_is_a_number()
 
 }
 
-function test_str_length()
-{
+function test_str_length() {
   local output
   local string_sample="let's check the string lenght" # 29
 
@@ -74,8 +70,7 @@ function test_str_length()
   assert_equals_helper 'Empty string should be 0 length' "$LINENO" 0 "$output"
 }
 
-function test_str_trim()
-{
+function test_str_trim() {
   local output
   local string_sample='This is a simple string'
   local expected_result='This is a s' # Trim at 11
@@ -93,8 +88,7 @@ function test_str_trim()
   assert_equals_helper 'Trim 0 should be empty' "$LINENO" '' "$output"
 }
 
-function test_str_strip
-{
+function test_str_strip {
   local output
   local string_sample='    lala xpto    '
   local expected_result='lala xpto'
@@ -116,8 +110,7 @@ function test_str_strip
   assert_equals_helper 'Did not drop extra spaces' "$LINENO" "$expected_result" "$output"
 }
 
-function test_str_remove_prefix()
-{
+function test_str_remove_prefix() {
   local output
   local string_sample='Hello world'
   local expected_result='world'
@@ -141,8 +134,7 @@ function test_str_remove_prefix()
   assert_equals_helper 'Removing emptiness from emptiness should have remained empty' "$LINENO" '' "$output"
 }
 
-function test_str_remove_suffix()
-{
+function test_str_remove_suffix() {
   local output
   local string_sample='Hello world'
   local expected_result='Hello'
@@ -166,8 +158,7 @@ function test_str_remove_suffix()
   assert_equals_helper 'Removing emptiness from emptiness should have remained empty' "$LINENO" '' "$output"
 }
 
-function test_str_uppercase()
-{
+function test_str_uppercase() {
   local expected
   local output
 
@@ -188,8 +179,7 @@ function test_str_uppercase()
   assert_equals_helper 'Expected empty string to remain empty' "$LINENO" "$expected" "$output"
 }
 
-function test_str_lowercase()
-{
+function test_str_lowercase() {
   local expected
   local output
 
@@ -210,8 +200,7 @@ function test_str_lowercase()
   assert_equals_helper 'Expected empty string to remain empty' "$LINENO" "$expected" "$output"
 }
 
-function test_str_remove_duplicates()
-{
+function test_str_remove_duplicates() {
   local expected
   local output
   local sample
@@ -244,8 +233,7 @@ function test_str_remove_duplicates()
   assert_equals_helper 'Expected empty string to remain empty' "$LINENO" "$expected" "$output"
 }
 
-function test_str_count_char_repetition()
-{
+function test_str_count_char_repetition() {
   local output
 
   output=$(str_count_char_repetition 'we*have*three*asterisks' '*')
@@ -268,8 +256,7 @@ function test_str_count_char_repetition()
   assert_equals_helper 'Expected 0' "$LINENO" 1 "$output"
 }
 
-function test_str_drop_all_spaces()
-{
+function test_str_drop_all_spaces() {
   local output
 
   output=$(str_drop_all_spaces '    la    lu  -   xpto    ')
@@ -285,8 +272,7 @@ function test_str_drop_all_spaces()
   assert_equals_helper 'Expected empty' "$LINENO" '' "$output"
 }
 
-function test_concatenate_with_commas()
-{
+function test_concatenate_with_commas() {
   local output
   local expected
   local ret
@@ -310,8 +296,7 @@ function test_concatenate_with_commas()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-function test_str_has_special_characters()
-{
+function test_str_has_special_characters() {
   local output
   local expected
   local ret
@@ -323,8 +308,7 @@ function test_str_has_special_characters()
   assert_equals_helper 'We expected a special char here' "$LINENO" 0 "$?"
 }
 
-function test_str_get_value_under_double_quotes()
-{
+function test_str_get_value_under_double_quotes() {
   local output
   local expected='value under quotes'
 
@@ -344,8 +328,7 @@ function test_str_get_value_under_double_quotes()
 
 }
 
-function test_str_escape_single_quotes()
-{
+function test_str_escape_single_quotes() {
   local output
   local expected
 
@@ -367,8 +350,7 @@ function test_str_escape_single_quotes()
   assert_equals_helper 'Did not escape all the single quotes' "$LINENO" "$expected" "$output"
 }
 
-function test_string_to_unix_filename()
-{
+function test_string_to_unix_filename() {
   local filename
   local output
   local expected

@@ -9,8 +9,7 @@ include "${KW_LIB_DIR}/lib/kwlib.sh"
 # @output      Name of the output file
 # @output_path Alternative output path
 # @flag        Flag to control output
-function download()
-{
+function download() {
   local url="$1"
   local output=${2:-'page.xml'}
   local output_path="$3"
@@ -35,8 +34,7 @@ function download()
 # Return:
 # Return a string that had http replaced by https. If there is no occurrence
 # of HTTP, it returns the same string and return status is 1.
-function replace_http_by_https()
-{
+function replace_http_by_https() {
   local url="$1"
   local new_url
   local ret=0
@@ -60,8 +58,7 @@ function replace_http_by_https()
 # Return:
 # Returns 0 if the function decided that the file is an HTML file, 1 if the function
 # decided it isn't, and 2 (ENOENT) if `@file_path` doesn't correspond to a file.
-function is_html_file()
-{
+function is_html_file() {
   local file_path="$1"
   local first_line_of_file
 
@@ -99,8 +96,7 @@ function is_html_file()
 # from the book 'pure bash bible', which is licensed under the MIT license. Also,
 # credits to meleu (https://github.com/meleu) who wrote a blogpost that can be
 # checked at https://meleu.sh/urlencode, from which this function was first found.
-function url_encode()
-{
+function url_encode() {
   local string="$1"
   local LC_ALL
   local char

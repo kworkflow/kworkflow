@@ -62,8 +62,7 @@ declare -gA target_deploy_info
 # welcome).
 #
 # Note: This function relies on the parameters set in the config file.
-function deploy_main()
-{
+function deploy_main() {
   local build_and_deploy="$1"
   local reboot=0
   local modules=0
@@ -286,8 +285,7 @@ function deploy_main()
 # If everything is alright, it returns 0, otherwise, it can return:
 # - 103: ssh-copy-id failed
 # - 101: ssh to the target machine failed
-function setup_remote_ssh_with_passwordless()
-{
+function setup_remote_ssh_with_passwordless() {
   local flag="$1"
   local copy_key_cmd
   local users="root ${remote_parameters['REMOTE_USER']}"
@@ -328,8 +326,7 @@ function setup_remote_ssh_with_passwordless()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
-function prepare_distro_for_deploy()
-{
+function prepare_distro_for_deploy() {
   local target="$1"
   local flag="$2"
   local distro
@@ -364,8 +361,7 @@ function prepare_distro_for_deploy()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
-function update_status_log()
-{
+function update_status_log() {
   local target="$1"
   local flag="$2"
   local cmd=''
@@ -405,8 +401,7 @@ function update_status_log()
 #
 # Return:
 # Return 0 if the setup was done before, or 2 if not.
-function check_setup_status()
-{
+function check_setup_status() {
   local target="$1"
   local flag="$2"
   local cmd="test -f ${KW_STATUS_BASE_PATH}/kw_status"
@@ -441,8 +436,7 @@ function check_setup_status()
 #
 # Return:
 # Return 0 in case of success, otherwise, it return a code error
-function deploy_setup()
-{
+function deploy_setup() {
   local target="$1"
   local flag="$2"
   # BatchMode ensure that the ssh fail if passwordless is not enabled
@@ -486,8 +480,7 @@ function deploy_setup()
 # We can include plugin scripts when dealing with local, which will override
 # some path variables. Since this will be a common task, this function is
 # intended to centralize these required updates.
-function update_deploy_variables()
-{
+function update_deploy_variables() {
   local kw_remote_path="${deploy_config[kw_files_remote_path]}"
   local kw_tmp_files="${deploy_config[deploy_temporary_files_path]}"
 
@@ -502,8 +495,7 @@ function update_deploy_variables()
 # based on a Linux repository; however, we need a place for adding the
 # intermediary archives that we will send to a remote device. This function
 # prepares such a directory.
-function prepare_host_deploy_dir()
-{
+function prepare_host_deploy_dir() {
   # If all the required paths already exist, let's not waste time
   if [[ -d "$KW_CACHE_DIR" && -d "$KW_CACHE_DIR/$LOCAL_REMOTE_DIR" &&
     -d "$KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR" ]]; then
@@ -527,8 +519,7 @@ function prepare_host_deploy_dir()
 # @port Destination for sending the file
 # @user User in the host machine. Default value is "root"
 # @flag How to display a command, default is SILENT
-function prepare_remote_dir()
-{
+function prepare_remote_dir() {
   local remote="${1:-${remote_parameters['REMOTE_IP']}}"
   local port="${2:-${remote_parameters['REMOTE_PORT']}}"
   local user="${3:-${remote_parameters['REMOTE_USER']}}"
@@ -589,8 +580,7 @@ function prepare_remote_dir()
 # In case of success return 0, otherwise it may return:
 # - EINVAL (22): If the temporary variable is not set or if kw cannot create the temporary folder.
 # - EPERM (1): If it fails to clean the temporary folder.
-function prepare_local_dir()
-{
+function prepare_local_dir() {
   local flag="$1"
   local ret
 
@@ -641,8 +631,7 @@ function prepare_local_dir()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @all If this option is set to one, this will list all kernels
 #   availble. If not, will list only kernels that were installed by kw.
-function run_list_installed_kernels()
-{
+function run_list_installed_kernels() {
   local flag="$1"
   local single_line="$2"
   local target="$3"
@@ -680,8 +669,7 @@ function run_list_installed_kernels()
 #
 # Return:
 # Populate target_deploy_info
-function collect_target_info_for_deploy()
-{
+function collect_target_info_for_deploy() {
   local target="$1"
   local flag="$2"
   local distro_info
@@ -735,8 +723,7 @@ function collect_target_info_for_deploy()
 #
 # Return:
 # Return 0 if everything is correct or an error in case of failure
-function run_kernel_uninstall()
-{
+function run_kernel_uninstall() {
   local target="$1"
   local reboot="$2"
   local kernels_target_list="$3"
@@ -791,8 +778,7 @@ function run_kernel_uninstall()
 # files at the end.
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
-function cleanup()
-{
+function cleanup() {
   local flag=${1:-'SILENT'}
 
   parse_deploy_options "$@"
@@ -831,8 +817,7 @@ function cleanup()
 # Note:
 # This function supposes that prepare_host_deploy_dir and prepare_remote_dir
 # were invoked before.
-function modules_install()
-{
+function modules_install() {
   local target="$1"
   local return_tar_path="$2"
   local flag="$3"
@@ -865,8 +850,7 @@ function modules_install()
 # @install_to Target path to install the output of the command `make
 #             modules_install`.
 # @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
-function modules_install_to()
-{
+function modules_install_to() {
   local install_to="$1"
   local flag="$2"
   local local_deploy="$3"
@@ -915,8 +899,7 @@ function modules_install_to()
 #
 # Return:
 # Return a string to be used in the source parameter of a cp command.
-function compose_copy_source_parameter_for_dtb()
-{
+function compose_copy_source_parameter_for_dtb() {
   local arch_target="$1"
   local copy_pattern
   local char_count
@@ -962,8 +945,7 @@ function compose_copy_source_parameter_for_dtb()
 #
 # Return:
 # Return the kernel binary name
-function get_kernel_binary_name()
-{
+function get_kernel_binary_name() {
   local kbuild_prefix="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
   local arch_target="${build_config[arch]:-${configurations[arch]}}"
   local kernel_binary_file_name
@@ -992,8 +974,7 @@ function get_kernel_binary_name()
 #
 # Return
 # In case of success return 0, otherwise return an error code.
-function get_config_file_for_deploy()
-{
+function get_config_file_for_deploy() {
   local kernel_name="$1"
   local cache_base_kw_pkg_store_path="$2"
   local flag="$3"
@@ -1040,8 +1021,7 @@ function get_config_file_for_deploy()
 #
 # Return:
 # In case of error return an errno code
-function get_kernel_image_for_deploy()
-{
+function get_kernel_image_for_deploy() {
   local arch="$1"
   local kernel_name="$2"
   local kernel_binary_file_name="$3"
@@ -1088,8 +1068,7 @@ function get_kernel_image_for_deploy()
 #
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
-function get_dts_and_dtb_files_for_deploy()
-{
+function get_dts_and_dtb_files_for_deploy() {
   local arch="$1"
   local base_boot_path="$2"
   local base_kw_deploy_store_path="$3"
@@ -1125,8 +1104,7 @@ function get_dts_and_dtb_files_for_deploy()
 # @kernel_name: Kernel name used for the binary image
 # @kernel_binary_file_name: The actual binary name
 # @base_kw_deploy_store_path: Path to store the binary file to be deployed
-function create_pkg_metadata_file_for_deploy()
-{
+function create_pkg_metadata_file_for_deploy() {
   local arch="$1"
   local kernel_name="$2"
   local kernel_binary_file_name="$3"
@@ -1154,8 +1132,7 @@ function create_pkg_metadata_file_for_deploy()
 # @kernel_img_name Kernel image file name, e.g., bzImage or Image.
 # @name Kernel name used during the deploy
 # @arch Target device architecture
-function build_kw_kernel_package()
-{
+function build_kw_kernel_package() {
   local -n _return_tar_path="$1"
   local -n _kernel_binary_image_name="$2"
   local flag="$3"
@@ -1242,8 +1219,7 @@ function build_kw_kernel_package()
   _return_tar_path="$cache_kw_pkg_tar_file_path"
 }
 
-function human_install_kernel_message()
-{
+function human_install_kernel_message() {
   local ret="$1"
   local flag="$2"
 
@@ -1277,8 +1253,7 @@ function human_install_kernel_message()
 # * Take a look at the available kernel plugins at: src/plugins/kernel_install
 # * This function supposes that prepare_host_deploy_dir and prepare_remote_dir
 # were invoked before.
-function run_kernel_install()
-{
+function run_kernel_install() {
   local return_tar_path="$1"
   local kernel_binary_image_name="$2"
   local flag="$3"
@@ -1353,8 +1328,7 @@ function run_kernel_install()
 # Return:
 # In case of successful return 0, otherwise, return 22.
 #
-function parse_deploy_options()
-{
+function parse_deploy_options() {
   local enable_collect_param=0
   local remote
   local options
@@ -1508,8 +1482,7 @@ function parse_deploy_options()
   esac
 }
 
-function deploy_help()
-{
+function deploy_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'deploy'

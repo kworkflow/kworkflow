@@ -3,8 +3,7 @@
 include './src/build.sh' > /dev/null
 include './tests/unit/utils.sh'
 
-oneTimeSetUp()
-{
+oneTimeSetUp() {
   original_dir="$PWD"
   FAKE_KERNEL="${SHUNIT_TMPDIR}/fake_kernel"
   KW_DATA_DIR="$SHUNIT_TMPDIR"
@@ -30,14 +29,12 @@ oneTimeSetUp()
   alias get_kernel_version='get_kernel_version_mock'
 }
 
-oneTimeTearDown()
-{
+oneTimeTearDown() {
   [[ -d "$SHUNIT_TMPDIR" ]] && rm -rf "$SHUNIT_TMPDIR"
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-setUp()
-{
+setUp() {
   [[ -d "$SHUNIT_TMPDIR" ]] || mkdir -p "$SHUNIT_TMPDIR"
   cp "$KW_BUILD_CONFIG_TEMPLATE" "$SHUNIT_TMPDIR/build.config"
 
@@ -55,8 +52,7 @@ setUp()
   }
 }
 
-tearDown()
-{
+tearDown() {
   [[ -d "$SHUNIT_TMPDIR" ]] && rm -rf "$SHUNIT_TMPDIR"
 
   cd "$original_dir" || {
@@ -65,18 +61,15 @@ tearDown()
   }
 }
 
-function get_kernel_release_mock()
-{
+function get_kernel_release_mock() {
   printf '%s\n' '5.4.0-rc7-test'
 }
 
-function get_kernel_version_mock()
-{
+function get_kernel_version_mock() {
   printf '%s\n' '5.4.0-rc7'
 }
 
-function assertConfigurations()
-{
+function assertConfigurations() {
   declare -n configurations_ref="$1"
   declare -n expected_configurations_ref="$2"
 
@@ -92,8 +85,7 @@ function assertConfigurations()
   done
 }
 
-function test_parse_build_config_success_exit_code()
-{
+function test_parse_build_config_success_exit_code() {
   local build_config=()
 
   parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
@@ -101,8 +93,7 @@ function test_parse_build_config_success_exit_code()
 }
 
 # Test if etc/init_templates/build_template.config contains all the expected settings
-function test_parse_build_config_standard_config()
-{
+function test_parse_build_config_standard_config() {
   build_config=()
 
   declare -A expected_build_configurations=(
@@ -121,8 +112,7 @@ function test_parse_build_config_standard_config()
 # To test the order of config file loading, we will put a file named
 # kworkflow.config in each place, in order, and remove the previous one.
 # The order is: PWD, XDG_CONFIG_HOME, XDG_CONFIG_DIRS, KW_ETC_DIR
-function test_parse_configuration_files_loading_order()
-{
+function test_parse_configuration_files_loading_order() {
   local -a expected
   local original_dir="$PWD"
 
@@ -142,8 +132,7 @@ function test_parse_configuration_files_loading_order()
   )
 
   output="$(
-    function parse_configuration()
-    {
+    function parse_configuration() {
       printf '%s\n' "$1"
     }
     load_build_config
@@ -165,8 +154,7 @@ function test_parse_configuration_files_loading_order()
   )
 
   output="$(
-    function parse_configuration()
-    {
+    function parse_configuration() {
       printf '%s\n' "$1"
     }
     load_build_config
@@ -175,8 +163,7 @@ function test_parse_configuration_files_loading_order()
   compare_command_sequence 'Wrong config file reading order' "$LINENO" 'expected' "$output"
 }
 
-function test_load_build_config()
-{
+function test_load_build_config() {
   local current_path="$PWD"
   local -a expected
 
@@ -199,8 +186,7 @@ function test_load_build_config()
   )
 
   output="$(
-    function parse_configuration()
-    {
+    function parse_configuration() {
       printf '%s\n' "$1"
     }
     load_build_config
@@ -209,8 +195,7 @@ function test_load_build_config()
   compare_command_sequence '' "$LINENO" 'expected' "$output"
 }
 
-function test_kernel_build_cross_compilation_flags()
-{
+function test_kernel_build_cross_compilation_flags() {
   local expected_result
   local output
   build_config=()
@@ -228,8 +213,7 @@ function test_kernel_build_cross_compilation_flags()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_menu_cross_compilation_flags()
-{
+function test_kernel_build_menu_cross_compilation_flags() {
   local expected_result
   local output
 
@@ -238,8 +222,7 @@ function test_kernel_build_menu_cross_compilation_flags()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_clean()
-{
+function test_kernel_build_clean() {
   local expected_result
   local output
 
@@ -251,8 +234,7 @@ function test_kernel_build_clean()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_full_cleanup()
-{
+function test_kernel_build_full_cleanup() {
   local expected_result
   local output
 
@@ -264,8 +246,7 @@ function test_kernel_build_full_cleanup()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_html_doc()
-{
+function test_kernel_build_html_doc() {
   local expected_result
   local output
 
@@ -277,8 +258,7 @@ function test_kernel_build_html_doc()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_html_doc_with_ccache()
-{
+function test_kernel_build_html_doc_with_ccache() {
   local expected_result
   local output
 
@@ -290,8 +270,7 @@ function test_kernel_build_html_doc_with_ccache()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_html_doc_with_save_log_option()
-{
+function test_kernel_build_html_doc_with_save_log_option() {
   local expected_result
   local output
 
@@ -300,8 +279,7 @@ function test_kernel_build_html_doc_with_save_log_option()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_invalid_flag()
-{
+function test_kernel_build_invalid_flag() {
   local output
   local ret
 
@@ -310,8 +288,7 @@ function test_kernel_build_invalid_flag()
   assertEquals "($LINENO)" 22 "$ret"
 }
 
-function test_kernel_build_outside_kernel_repository()
-{
+function test_kernel_build_outside_kernel_repository() {
   local ret
   local output
 
@@ -330,8 +307,7 @@ function test_kernel_build_outside_kernel_repository()
   }
 }
 
-function test_kernel_build_x86()
-{
+function test_kernel_build_x86() {
   local expected_result
   local output
 
@@ -361,8 +337,7 @@ function test_kernel_build_x86()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_parse_build_options_check_options_values()
-{
+function test_parse_build_options_check_options_values() {
   unset options_values
   declare -gA options_values
 
@@ -400,8 +375,7 @@ function test_parse_build_options_check_options_values()
     "($LINENO)" '' "${options_values['VERBOSE']}"
 }
 
-function test_parse_build_options()
-{
+function test_parse_build_options() {
   unset options_values
   declare -gA options_values
   local output
@@ -520,8 +494,7 @@ function test_parse_build_options()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_build_info()
-{
+function test_build_info() {
   local release='5.4.0-rc7-test'
   local version='5.4.0-rc7'
   local release_output="Name: ${release}"
@@ -546,8 +519,7 @@ function test_build_info()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_only_cpu_scaling_option()
-{
+function test_kernel_build_only_cpu_scaling_option() {
   local expected_result
   local output
 
@@ -559,8 +531,7 @@ function test_kernel_build_only_cpu_scaling_option()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_cpu_scaling_and_warning()
-{
+function test_kernel_build_cpu_scaling_and_warning() {
   local expected_result
   local output
 
@@ -572,8 +543,7 @@ function test_kernel_build_cpu_scaling_and_warning()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_cpu_scaling_with_save_log_to()
-{
+function test_kernel_build_cpu_scaling_with_save_log_to() {
   local expected_result
   local output
 
@@ -585,8 +555,7 @@ function test_kernel_build_cpu_scaling_with_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_cpu_scaling_llvm()
-{
+function test_kernel_build_cpu_scaling_llvm() {
   local expected_result
   local output
 
@@ -599,8 +568,7 @@ function test_kernel_build_cpu_scaling_llvm()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_warning_and_save_log_to()
-{
+function test_kernel_build_warning_and_save_log_to() {
   local expected_result
   local output
 
@@ -613,8 +581,7 @@ function test_kernel_build_warning_and_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_kernel_ccache_cpu_scaling_warning()
-{
+function test_kernel_build_kernel_ccache_cpu_scaling_warning() {
   local expected_result
   local output
 
@@ -640,8 +607,7 @@ function test_kernel_build_kernel_ccache_cpu_scaling_warning()
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_kernel_ccache_cpu_scaling_save_log_to()
-{
+function test_kernel_build_kernel_ccache_cpu_scaling_save_log_to() {
   local expected_result
   local output
 
@@ -653,8 +619,7 @@ function test_kernel_build_kernel_ccache_cpu_scaling_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_ccache_warning_save_log_to()
-{
+function test_kernel_build_ccache_warning_save_log_to() {
   local expected_result
   local output
 
@@ -666,8 +631,7 @@ function test_kernel_build_ccache_warning_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_with_llvm_warning()
-{
+function test_kernel_build_with_llvm_warning() {
   local expected_result
   local output
 
@@ -679,8 +643,7 @@ function test_kernel_build_with_llvm_warning()
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_with_llvm_save_log_to()
-{
+function test_kernel_build_with_llvm_save_log_to() {
   local expected_result
   local output
 
@@ -692,8 +655,7 @@ function test_kernel_build_with_llvm_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_ccache_cpu_scaling_llvm()
-{
+function test_kernel_build_ccache_cpu_scaling_llvm() {
   local expected_result
   local output
 
@@ -705,8 +667,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_ccache_cpu_scaling_warning()
-{
+function test_kernel_build_ccache_cpu_scaling_warning() {
   local expected_result
   local output
 
@@ -718,8 +679,7 @@ function test_kernel_build_ccache_cpu_scaling_warning()
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_ccache_cpu_scaling_save_log_to()
-{
+function test_kernel_build_ccache_cpu_scaling_save_log_to() {
   local expected_result
   local output
 
@@ -731,8 +691,7 @@ function test_kernel_build_ccache_cpu_scaling_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_ccache_llvm_warning()
-{
+function test_kernel_build_ccache_llvm_warning() {
   local expected_result
   local output
 
@@ -744,8 +703,7 @@ function test_kernel_build_ccache_llvm_warning()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_ccache_llvm_save_log_to()
-{
+function test_kernel_build_ccache_llvm_save_log_to() {
   local expected_result
   local output
 
@@ -757,8 +715,7 @@ function test_kernel_build_ccache_llvm_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_cpu_scaling_llvm_warning()
-{
+function test_kernel_cpu_scaling_llvm_warning() {
   local expected_result
   local output
 
@@ -770,8 +727,7 @@ function test_kernel_cpu_scaling_llvm_warning()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_cpu_scaling_llvm_save_log_to()
-{
+function test_kernel_cpu_scaling_llvm_save_log_to() {
   local expected_result
   local output
 
@@ -783,8 +739,7 @@ function test_kernel_cpu_scaling_llvm_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_cpu_scaling_warning_save_log_to()
-{
+function test_kernel_cpu_scaling_warning_save_log_to() {
   local expected_result
   local output
 
@@ -796,8 +751,7 @@ function test_kernel_cpu_scaling_warning_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_ccache_cpu_scaling_llvm_warning()
-{
+function test_kernel_build_ccache_cpu_scaling_llvm_warning() {
   local expected_result
   local output
 
@@ -809,8 +763,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm_warning()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_ccache_cpu_scaling_llvm_save_log_to()
-{
+function test_kernel_build_ccache_cpu_scaling_llvm_save_log_to() {
   local expected_result
   local output
 
@@ -822,8 +775,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_ccache_cpu_scaling_warning_save_log_to()
-{
+function test_kernel_build_ccache_cpu_scaling_warning_save_log_to() {
   local expected_result
   local output
 
@@ -835,8 +787,7 @@ function test_kernel_build_ccache_cpu_scaling_warning_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_ccache_llvm_warning_save_log_to()
-{
+function test_kernel_build_ccache_llvm_warning_save_log_to() {
   local expected_result
   local output
 
@@ -848,8 +799,7 @@ function test_kernel_build_ccache_llvm_warning_save_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_cpu_scaling_llvm_warning_sava_log_to()
-{
+function test_kernel_build_cpu_scaling_llvm_warning_sava_log_to() {
   local expected_result
   local output
 
@@ -861,8 +811,7 @@ function test_kernel_build_cpu_scaling_llvm_warning_sava_log_to()
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
 
-function test_kernel_build_from_sha()
-{
+function test_kernel_build_from_sha() {
   local expected_result
   local output
   local sha='HEAD^'
@@ -875,8 +824,7 @@ function test_kernel_build_from_sha()
   assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
-function test_kernel_build_from_sha_nonexisting_sha()
-{
+function test_kernel_build_from_sha_nonexisting_sha() {
   local expected_result
   local output
   local sha='fakesha'
@@ -889,8 +837,7 @@ function test_kernel_build_from_sha_nonexisting_sha()
   assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
-function test_kernel_build_from_sha_sha_not_ancestor()
-{
+function test_kernel_build_from_sha_sha_not_ancestor() {
   local expected_result
   local output
 
@@ -903,8 +850,7 @@ function test_kernel_build_from_sha_sha_not_ancestor()
   assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
-function test_kernel_build_from_sha_pending_rebase()
-{
+function test_kernel_build_from_sha_pending_rebase() {
   local expected_result
   local output
   local sha='HEAD^'
@@ -918,8 +864,7 @@ function test_kernel_build_from_sha_pending_rebase()
   assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
-function test_kernel_build_from_sha_pending_merge()
-{
+function test_kernel_build_from_sha_pending_merge() {
   local expected_result
   local output
   local sha='HEAD^'
@@ -933,8 +878,7 @@ function test_kernel_build_from_sha_pending_merge()
   assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
-function test_kernel_build_from_sha_pending_bisect()
-{
+function test_kernel_build_from_sha_pending_bisect() {
   local expected_result
   local output
   local sha='HEAD^'
@@ -948,8 +892,7 @@ function test_kernel_build_from_sha_pending_bisect()
   assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
-function test_kernel_build_from_sha_pending_apply()
-{
+function test_kernel_build_from_sha_pending_apply() {
   local expected_result
   local output
   local sha='HEAD^'
@@ -963,8 +906,7 @@ function test_kernel_build_from_sha_pending_apply()
   assertEquals "(${LINENO})" "$expected_result" "$output"
 }
 
-function test_kernel_build_inside_an_env()
-{
+function test_kernel_build_inside_an_env() {
   local output
   local expected_result
   local env_output="${KW_CACHE_DIR}/envs/fake_env"
@@ -984,8 +926,7 @@ function test_kernel_build_inside_an_env()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_html_doc_inside_env()
-{
+function test_kernel_build_html_doc_inside_env() {
   local expected_result
   local output
   local env_output="${KW_CACHE_DIR}/envs/fake_env"
@@ -1000,8 +941,7 @@ function test_kernel_build_html_doc_inside_env()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_menu_inside_env()
-{
+function test_kernel_build_menu_inside_env() {
   local expected_result
   local output
   local env_output="${KW_CACHE_DIR}/envs/fake_env"
@@ -1016,8 +956,7 @@ function test_kernel_build_menu_inside_env()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_clean_inside_env()
-{
+function test_kernel_build_clean_inside_env() {
   local expected_result
   local output
   local env_output="${KW_CACHE_DIR}/envs/fake_env"
@@ -1032,8 +971,7 @@ function test_kernel_build_clean_inside_env()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_full_cleanup_inside_env()
-{
+function test_kernel_build_full_cleanup_inside_env() {
   local expected_result
   local output
   local env_output="${KW_CACHE_DIR}/envs/fake_env"
@@ -1048,8 +986,7 @@ function test_kernel_build_full_cleanup_inside_env()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_kernel_build_cflags()
-{
+function test_kernel_build_cflags() {
   local expected_result
   local output
   local flag_name="-O3 -pipe -march=native"
@@ -1067,8 +1004,7 @@ function test_kernel_build_cflags()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_kernel_build_cflags_inside_env()
-{
+function test_kernel_build_cflags_inside_env() {
   local expected_result
   local output
   local flag_name='DMY_BEAUTIFUL_FLAG'

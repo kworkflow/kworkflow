@@ -78,8 +78,7 @@ declare -g MIN_INDEX=0
 # Return:
 # Returns 0 if the lore data directory was created successfully and the failing
 # status code otherwise (probably 111 EACCESS).
-function create_lore_data_dir()
-{
+function create_lore_data_dir() {
   local ret
 
   [[ -d "${LORE_DATA_DIR}" ]] && return
@@ -93,8 +92,7 @@ function create_lore_data_dir()
   return "$ret"
 }
 
-function setup_cache()
-{
+function setup_cache() {
   mkdir -p "${CACHE_LORE_DIR}"
 }
 
@@ -105,8 +103,7 @@ function setup_cache()
 # adjacent pages until there are no more mailing lists to be listed.
 #
 # @flag Flag to control function output
-function retrieve_available_mailing_lists()
-{
+function retrieve_available_mailing_lists() {
   local flag="$1"
   local index=''
   local pre_processed
@@ -157,8 +154,7 @@ function retrieve_available_mailing_lists()
 #
 # Return: If the function finds a patch metadata as a substring of `@message_title`,
 # outputs the patch metadata, otherwise, output an empty string.
-function get_patch_metadata()
-{
+function get_patch_metadata() {
   local message_title="$1"
   local patch_metadata
 
@@ -181,8 +177,7 @@ function get_patch_metadata()
 # Return:
 # If `@patch_metadata` is non-empty, output the version and return 0. Otherwise,
 # return 2 (ENOENT) and output 'X', meaning 'undefined'.
-function get_patch_version()
-{
+function get_patch_version() {
   local patch_metadata="$1"
   local version=''
 
@@ -210,8 +205,7 @@ function get_patch_version()
 #
 # Return:
 # Outputs the matched `<number>/<number>` pattern, returning 0 in any case.
-function get_number_slash_number_pattern()
-{
+function get_number_slash_number_pattern() {
   local patch_metadata="$1"
   local number_slash_number_pattern=''
 
@@ -235,8 +229,7 @@ function get_number_slash_number_pattern()
 # Return:
 # If `@patch_metadata` is non-empty, output the number in the series and return 0.
 # Otherwise, return 2 (ENOENT) and output 'X', meaning 'undefined'.
-function get_patch_number_in_series()
-{
+function get_patch_number_in_series() {
   local patch_metadata="$1"
   local number_slash_number_pattern=''
   local number_in_series=''
@@ -275,8 +268,7 @@ function get_patch_number_in_series()
 # Return:
 # If `@patch_metadata` is non-empty, output the total in the series and return 0.
 # Otherwise, return 2 (ENOENT) and output 'X', meaning 'undefined'.
-function get_patch_total_in_series()
-{
+function get_patch_total_in_series() {
   local patch_metadata="$1"
   local number_slash_number_pattern=''
   local total_in_series=''
@@ -312,8 +304,7 @@ function get_patch_total_in_series()
 # If `@message_title` and `@patch_metadata` are non-empty, output `@message_title`
 # stripped of `@patch_metadata` (assuming it is a substring). Otherwise, output an
 # empty string.
-function remove_patch_metadata_from_message_title()
-{
+function remove_patch_metadata_from_message_title() {
   local message_title="$1"
   local patch_metadata="$2"
 
@@ -336,8 +327,7 @@ function remove_patch_metadata_from_message_title()
 #
 # Return:
 # Return a string name without comma
-function process_name()
-{
+function process_name() {
   local name_str="$1"
 
   IFS=',' read -r -a full_name <<< "$name_str"
@@ -361,8 +351,7 @@ function process_name()
 #   3. Table with all representative patches processed;
 #   4. Total number of representative patches processed;
 #   5. Earliest page processed.
-function reset_current_lore_fetch_session()
-{
+function reset_current_lore_fetch_session() {
   representative_patches=()
   unset individual_patches_metadata
   declare -Ag individual_patches_metadata
@@ -389,8 +378,7 @@ function reset_current_lore_fetch_session()
 # Returns 22 in case the URL produced is invalid or `@target_mailing_list`
 # is empty. In case the URL produced is valid, the function returns 0 and
 # outputs the query URL.
-function compose_lore_query_url_with_verification()
-{
+function compose_lore_query_url_with_verification() {
   local target_mailing_list="$1"
   local min_index="$2"
   local additional_filters="$3"
@@ -442,8 +430,7 @@ function compose_lore_query_url_with_verification()
 # Return:
 # The status code is the same as the `xpath` command and the pre-processed XML file
 # is outputted to the standard output
-function pre_process_raw_xml()
-{
+function pre_process_raw_xml() {
   local raw_xml="$1"
   local xpath_query
   local xpath_output
@@ -475,8 +462,7 @@ function pre_process_raw_xml()
 # @i: Index of patch to be processed.
 # @shared_dir_for_parallelism: Path to directory where the parallel processing
 #   results will be stored.
-function thread_for_process_individual_patch()
-{
+function thread_for_process_individual_patch() {
   local message_id="$1"
   local message_title="$2"
   local author_name="$3"
@@ -517,8 +503,7 @@ function thread_for_process_individual_patch()
 #
 # @raw_xml: String with Atom feed containing the list of individual patches.
 # @_individual_patches: Indexed array reference to store processed patches.
-function process_individual_patches()
-{
+function process_individual_patches() {
   local raw_xml="$1"
   local -n _individual_patches="$2"
   local pre_processed_patches
@@ -594,8 +579,7 @@ function process_individual_patches()
 #
 # Returns:
 # - Output: Response from requisiton to raw lore message.
-function get_raw_lore_message()
-{
+function get_raw_lore_message() {
   local message_id="$1"
   local flag="${2:-SILENT}"
   local raw_message_url
@@ -610,8 +594,7 @@ function get_raw_lore_message()
   cmd_manager "$flag" "curl --silent '${raw_message_url}'"
 }
 
-function thread_for_process_representative_patch()
-{
+function thread_for_process_representative_patch() {
   local patch="$1"
   local i="$2"
   local shared_dir_for_parallelism="$3"
@@ -680,8 +663,7 @@ function thread_for_process_representative_patch()
 #
 # @_individual_patches_array: Indexed array reference with processed list of
 #   individual patches.
-function process_representative_patches()
-{
+function process_representative_patches() {
   local -n _individual_patches_array="$1"
   local patch
   local message_id
@@ -745,8 +727,7 @@ function process_representative_patches()
 # Return:
 # If either step 1 or 2 fails, returns the error code from these steps, and 0, otherwise.
 # If the fetch has failed (i.e. the returned file is an HTML), return 22 (ENOENT).
-function fetch_latest_patchsets_from()
-{
+function fetch_latest_patchsets_from() {
   local target_mailing_list="$1"
   local page="$2"
   local patchsets_per_page="$3"
@@ -802,8 +783,7 @@ function fetch_latest_patchsets_from()
 # @_formatted_patchsets_list: Array reference to output formatted range of patchsets metadata
 # @starting_index: Starting index of range from `representative_patches`
 # @ending_index: Ending index of range `representative_patches`
-function format_patchsets()
-{
+function format_patchsets() {
   local -n _formatted_patchsets_list="$1"
   local starting_index="$2"
   local ending_index="$3"
@@ -822,8 +802,7 @@ function format_patchsets()
 #
 # @page: Number of the target page.
 # @patchsets_per_page: Number of patchsets per page
-function get_page_starting_index()
-{
+function get_page_starting_index() {
   local page="$1"
   local patchsets_per_page="$2"
   local starting_index
@@ -842,8 +821,7 @@ function get_page_starting_index()
 #
 # @page: Number of the target page
 # @patchsets_per_page: Number of patchsets per page
-function get_page_ending_index()
-{
+function get_page_ending_index() {
   local page="$1"
   local patchsets_per_page="$2"
   local ending_index
@@ -872,8 +850,7 @@ function get_page_ending_index()
 # Return:
 # Return 0 if the thread was successfully downloaded, 22 if the series URL or the output
 # directory passed as arguments is empty and the error code of `b4` in case it fails.
-function download_series()
-{
+function download_series() {
   local series_url="$1"
   local save_to="$2"
   local flag="$3"
@@ -929,8 +906,7 @@ function download_series()
 # Return:
 # Return 0 if the target file was found and deleted succesfully and 2 (ENOENT),
 # otherwise.
-function delete_series_from_local_storage()
-{
+function delete_series_from_local_storage() {
   local download_dir_path="$1"
   local series_url="$2"
   local flag="$3"
@@ -953,8 +929,7 @@ function delete_series_from_local_storage()
 # Return:
 # Returns 0 if the file is created successfully, and the return value of
 # create_lore_data_dir in case it isn't 0.
-function create_lore_bookmarked_file()
-{
+function create_lore_bookmarked_file() {
   local ret
 
   create_lore_data_dir
@@ -979,8 +954,7 @@ function create_lore_bookmarked_file()
 # @raw_patchset: Raw data of patchset in the same format as representative_patches
 #   to be added to the local bookmarked database
 # @download_dir_path: The directory where the patchset .mbx was saved
-function add_patchset_to_bookmarked_database()
-{
+function add_patchset_to_bookmarked_database() {
   local raw_patchset="$1"
   local download_dir_path="$2"
   local timestamp
@@ -1008,8 +982,7 @@ function add_patchset_to_bookmarked_database()
 # Return:
 # Returns 2 (ENOENT) if there is no local bookmark database file and the status
 # code of the last command (sed), otherwise.
-function remove_patchset_from_bookmark_by_url()
-{
+function remove_patchset_from_bookmark_by_url() {
   local patchset_url="$1"
 
   if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
@@ -1031,8 +1004,7 @@ function remove_patchset_from_bookmark_by_url()
 # Return:
 # Returns 2 (ENOENT) if there is no local bookmark database file and the status
 # code of the last command (sed), otherwise.
-function remove_series_from_bookmark_by_index()
-{
+function remove_series_from_bookmark_by_index() {
   local series_index="$1"
 
   if [[ ! -f "${BOOKMARKED_SERIES_PATH}" ]]; then
@@ -1048,8 +1020,7 @@ function remove_series_from_bookmark_by_index()
 #
 # @_bookmarked_series: An array reference to be populated with all the bookmarked
 #   series.
-function get_bookmarked_series()
-{
+function get_bookmarked_series() {
   local -n _bookmarked_series="$1"
   declare -A series
   local index=0
@@ -1080,8 +1051,7 @@ function get_bookmarked_series()
 # TODO:
 # - Find an alternative way to identify a series, this one may not be the most
 #   reliable.
-function get_bookmarked_series_by_index()
-{
+function get_bookmarked_series_by_index() {
   local series_index="$1"
   local target_patch
 
@@ -1107,8 +1077,7 @@ function get_bookmarked_series_by_index()
 #
 # @raw_patch: Raw data of patch in the same format as in `representative_patches`
 # @_dict: Associative array reference to store parsed patch.
-function read_patch_into_dict()
-{
+function read_patch_into_dict() {
   local raw_patch="$1"
   local -n _dict="$2"
   local columns
@@ -1135,8 +1104,7 @@ function read_patch_into_dict()
 #
 # Return:
 # Returns 22 (EINVAL)
-function get_patchset_bookmark_status()
-{
+function get_patchset_bookmark_status() {
   local message_id="$1"
   local count
 
@@ -1164,8 +1132,7 @@ function get_patchset_bookmark_status()
 # Return:
 # Returns 22 (EINVAL) in case the URL passed as argument is empty and 0,
 # otherwise.
-function extract_message_id_from_url()
-{
+function extract_message_id_from_url() {
   local series_url="$1"
   local message_id
 
@@ -1185,8 +1152,7 @@ function extract_message_id_from_url()
 #
 # Return:
 # Returns 2 (ENOENT) if `@lore_config_path` doesn't exist and 0, otherwise.
-function save_new_lore_config()
-{
+function save_new_lore_config() {
   local setting="$1"
   local new_value="$2"
   local lore_config_path="$3"

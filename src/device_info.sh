@@ -37,8 +37,7 @@ declare -gA options_values
 #
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function device_main()
-{
+function device_main() {
   local flag
 
   if [[ "$1" =~ -h|--help ]]; then
@@ -75,8 +74,7 @@ function device_main()
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
-function get_ram()
-{
+function get_ram() {
   local flag="$1"
   local target=${options_values['TARGET']}
   local ram
@@ -115,8 +113,7 @@ function get_ram()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function get_cpu()
-{
+function get_cpu() {
   local target="$1"
   local flag="$2"
   local cpu_model
@@ -197,8 +194,7 @@ function get_cpu()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function get_disk()
-{
+function get_disk() {
   local target="$1"
   local flag="$2"
   local info
@@ -252,8 +248,7 @@ function get_disk()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function get_os()
-{
+function get_os() {
   local target="$1"
   local flag="$2"
   local raw_os_release
@@ -322,8 +317,7 @@ function get_os()
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 # @remote IP address of the target machine
 # @port Destination for sending the file
-function get_desktop_environment()
-{
+function get_desktop_environment() {
   local target="$1"
   local flag="$2"
   local cmd
@@ -378,8 +372,7 @@ function get_desktop_environment()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function get_kernel_info()
-{
+function get_kernel_info() {
   local target="$1"
   local flag="$2"
   local cmd_name
@@ -442,8 +435,7 @@ function get_kernel_info()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function get_gpu()
-{
+function get_gpu() {
   local target="$1"
   local flag="$2"
   local pci_addresses
@@ -508,8 +500,7 @@ function get_gpu()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function get_motherboard()
-{
+function get_motherboard() {
   local target="$1"
   local flag="$2"
   local mb_name
@@ -578,8 +569,7 @@ function get_motherboard()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function get_chassis()
-{
+function get_chassis() {
   local target="$1"
   local flag="$2"
   local dmi_cmd
@@ -629,8 +619,7 @@ function get_chassis()
 
 # This function populates the img_size and img_type values from the
 # device_info_data variable.
-function get_img_info()
-{
+function get_img_info() {
   local img_info
   local img_size
   local img_type
@@ -651,8 +640,7 @@ function get_img_info()
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
-function learn_device()
-{
+function learn_device() {
   local target="$1"
   local flag="$2"
 
@@ -695,8 +683,7 @@ function learn_device()
 # @flag How to display a command, the default value is
 #   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
 # @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
-function show_data()
-{
+function show_data() {
   local flag="$1"
   local target
 
@@ -778,8 +765,7 @@ function show_data()
 # the value from configurations[default_deploy_target] to the option variable;
 # if there is no value there either, then option is by default assigned to
 # local.
-function device_info_parser()
-{
+function device_info_parser() {
   local long_options='help,vm,local,remote:,verbose'
   local short_options='h'
 
@@ -844,8 +830,7 @@ function device_info_parser()
   done
 }
 
-function device_info_help()
-{
+function device_info_help() {
   if [[ "$1" == --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'device'

@@ -1,7 +1,7 @@
 # NOTE: src/lib/kw_config_loader.sh must be included before this file
-[[ -z  "$BLUECOLOR" ]] && BLUECOLOR='\033[1;34;49m%s\033[m'
-[[ -z  "$REDCOLOR" ]] && REDCOLOR='\033[1;31;49m%s\033[m'
-[[ -z  "$YELLOWCOLOR" ]] && YELLOWCOLOR='\033[1;33;49m%s\033[m'
+[[ -z "$BLUECOLOR" ]] && BLUECOLOR='\033[1;34;49m%s\033[m'
+[[ -z "$REDCOLOR" ]] && REDCOLOR='\033[1;31;49m%s\033[m'
+[[ -z "$YELLOWCOLOR" ]] && YELLOWCOLOR='\033[1;33;49m%s\033[m'
 [[ -z "$GREENCOLOR" ]] && GREENCOLOR='\033[1;32;49m%s\033[m'
 [[ -z "SEPARATOR" ]] && SEPARATOR='========================================================='
 
@@ -12,8 +12,7 @@
 #          ${notification_config[visual_alert_command]} uses it.
 # @ALERT_OPT Second argument is the string with the "--alert=" option or "" if
 #            no alert option was given by the user.
-function alert_completion()
-{
+function alert_completion() {
 
   local COMMAND=$1
   local ALERT_OPT=$2
@@ -54,8 +53,7 @@ function alert_completion()
 #   - the option '-n', to not output the trailing newline
 #   - text message to be printed
 #shellcheck disable=SC2059
-function colored_print()
-{
+function colored_print() {
   local message="${*:2}"
   local colored_format="${!1}"
 
@@ -76,26 +74,22 @@ function colored_print()
 }
 
 # Print normal message (e.g info messages).
-function say()
-{
+function say() {
   colored_print BLUECOLOR "$@"
 }
 
 # Print error message.
-function complain()
-{
+function complain() {
   colored_print REDCOLOR "$@"
 }
 
 # Warning error message.
-function warning()
-{
+function warning() {
   colored_print YELLOWCOLOR "$@"
 }
 
 # Print success message.
-function success()
-{
+function success() {
   colored_print GREENCOLOR "$@"
 }
 
@@ -113,8 +107,7 @@ function success()
 # Return "1" if the user accept the question, otherwise, return "0"
 # Note: ask_yN return the string '1' and '0', you have to handle it by
 # yourself in the code.
-function ask_yN()
-{
+function ask_yN() {
   local message="$1"
   local default_option="${2:-'n'}"
   local yes='y'
@@ -148,8 +141,7 @@ function ask_yN()
 # The user answer, guaranteed not to be empty.
 # Note: this function does not verify the given answer. You have to handle this
 # somewhere else.
-function ask_with_default()
-{
+function ask_with_default() {
   local message="$1"
   local default_option="$2"
   local show_default="$3"
@@ -196,8 +188,7 @@ function ask_with_default()
 # ENOKEY       : If a key is not found.
 # ENOENT       : If @text_file_to_be_loaded_path is invalid, or is not a text file.
 # ENODATA      : If the file given in @text_file_to_be_loaded_path is empty.
-function load_module_text()
-{
+function load_module_text() {
   local text_file_to_be_loaded_path="$1"
   local key=''
   local line_counter=0

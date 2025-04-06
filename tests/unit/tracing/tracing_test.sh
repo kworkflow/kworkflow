@@ -3,8 +3,7 @@
 include './tracing/tracing.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
 
   cd "${SHUNIT_TMPDIR}" || {
@@ -13,16 +12,14 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "${ORIGINAL_PATH}" || {
     fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
     return
   }
 }
 
-function test_sync_main_kw_file_with_tracing()
-{
+function test_sync_main_kw_file_with_tracing() {
   local kw_path='kw'
   local bin="${SHUNIT_TMPDIR}/bin"
   local output
@@ -72,8 +69,7 @@ EOF
   assert_equals_helper 'The file was not correctly generated' "$LINENO" "$expected" "$output"
 }
 
-function test_sync_kw_lib_files_with_tracing()
-{
+function test_sync_kw_lib_files_with_tracing() {
   local input_dir='src'
   local output_dir="${SHUNIT_TMPDIR}/lib"
   local output
@@ -91,8 +87,7 @@ function test_sync_kw_lib_files_with_tracing()
   assert_line_match "$LINENO" "${SHUNIT_TMPDIR}/lib/lib/stub.sh" "$output"
 }
 
-function test_inject_lib_file_with_tracing_nothing_to_inject()
-{
+function test_inject_lib_file_with_tracing_nothing_to_inject() {
   local output
   local expected
 
@@ -120,8 +115,7 @@ EOF
   assert_equals_helper 'The file was not correctly injected' "$LINENO" "$expected" "$output"
 }
 
-function test_inject_lib_file_with_alternate_return_and_exit()
-{
+function test_inject_lib_file_with_alternate_return_and_exit() {
   local output
   local expected
 
@@ -142,8 +136,7 @@ EOF
   assert_equals_helper 'The file was not correctly injected' "$LINENO" "$expected" "$output"
 }
 
-function test_inject_lib_file_with_background_execution()
-{
+function test_inject_lib_file_with_background_execution() {
   local output
   local expected
 
@@ -165,8 +158,7 @@ EOF
   assert_equals_helper 'The file was not correctly injected' "$LINENO" "$expected" "$output"
 }
 
-function test_process_function_line()
-{
+function test_process_function_line() {
   local line
   local function_name='foo'
   local output
@@ -208,8 +200,7 @@ function test_process_function_line()
   assert_equals_helper '&& exit should log exit in same line' "$LINENO" "$expected" "$output"
 }
 
-function test_get_tracing_log_line()
-{
+function test_get_tracing_log_line() {
   local output
   local expected
 

@@ -11,8 +11,7 @@ MAX_TAG_LENGTH=32
 MAX_DESCRIPTION_LENGTH=512
 
 # Pomodoro manager function.
-function pomodoro_main()
-{
+function pomodoro_main() {
   local flag
   local ret
 
@@ -71,8 +70,7 @@ function pomodoro_main()
 
 # This function inspects the Pomodoro file, and based on each line, information
 # tells the user the current status of his work section.
-function show_active_pomodoro_timebox()
-{
+function show_active_pomodoro_timebox() {
   local flag="$1"
   local current_timestamp
   local start_date
@@ -103,8 +101,7 @@ function show_active_pomodoro_timebox()
 }
 
 # Show registered tags with number identification.
-function show_tags()
-{
+function show_tags() {
   local flag=${1:-'SILENT'}
   local tags
   local cmd
@@ -126,8 +123,7 @@ function show_tags()
 # Register a new tag if it is not yet defined.
 #
 # @tag: tag name
-function register_tag()
-{
+function register_tag() {
   local flag="${1:-SILENT}"
   local tag="$2"
 
@@ -144,8 +140,7 @@ function register_tag()
 # Return:
 # Return 0 if it finds a match, or a value greater than 0 if it does not find
 # anything.
-function is_tag_already_registered()
-{
+function is_tag_already_registered() {
   local flag="${1:-SILENT}"
   local tag_name="$2"
   local is_tag_registered=''
@@ -163,8 +158,7 @@ function is_tag_already_registered()
 # section achieves its end. Do not add anything that can print a character
 # here; otherwise, it can be visible to users. This function captures the
 # current timestamp and uses it to register itself in the Pomodoro log file.
-function timer_thread()
-{
+function timer_thread() {
   local flag="$1"
   local timestamp
 
@@ -185,8 +179,7 @@ function timer_thread()
 
 # This function registers the tag name, the timer value, the starting time and
 # the description (if there is one) in the local database.
-function register_data_for_report()
-{
+function register_data_for_report() {
   local flag=${1:-'SILENT'}
   local start_date
   local start_time
@@ -216,8 +209,7 @@ function register_data_for_report()
 #
 # Return:
 # 0 if the time is valid an 22 otherwise.
-function is_valid_time()
-{
+function is_valid_time() {
   local time=$1
 
   if [[ ! "$time" =~ ^[0-9]+(h|m|s)$ ]]; then
@@ -240,8 +232,7 @@ function is_valid_time()
 #
 # Return:
 # 0 if the argument is valid an 22 otherwise.
-function is_valid_argument()
-{
+function is_valid_argument() {
   local argument=$1
   local option=$2
 
@@ -262,8 +253,7 @@ function is_valid_argument()
 # Return:
 # If @value is not a number, prints @value. If @value is number, prints tag name
 # if correspondent tag ID exists and returns 0. If fails, return 22 (EINVAL).
-function get_tag_name()
-{
+function get_tag_name() {
   local value="$1"
   local tag
   declare -A condition_array
@@ -296,8 +286,7 @@ function get_tag_name()
 # Return:
 # If there is a last pomodoro session, returns 0. If there isn't a last pomodoro
 # session, returns 2 (ENOENT).
-function fetch_last_pomodoro_session()
-{
+function fetch_last_pomodoro_session() {
   local flag=${1:-'SILENT'}
   local last_pomodoro_session
   local duration_in_secs
@@ -328,8 +317,7 @@ function fetch_last_pomodoro_session()
 #
 # Return:
 # Returns 0 if the user continues the operation, and 125 (ECANCELED), otherwise.
-function confirm_repeat_last_pomodoro_session()
-{
+function confirm_repeat_last_pomodoro_session() {
   local duration_in_secs
   local duration
 
@@ -354,8 +342,7 @@ function confirm_repeat_last_pomodoro_session()
 # Return:
 # Prints the formatted text. Returns 0 if the formatting was successful
 # and 22 if @option is invalid.
-function format_text()
-{
+function format_text() {
   local text="$1"
   local option="$2"
   local text_formatted
@@ -381,8 +368,7 @@ function format_text()
   return 0
 }
 
-function parse_pomodoro()
-{
+function parse_pomodoro() {
   local long_options='set-timer:,check-timer,show-tags,tag:,description:,repeat-previous,help,verbose'
   local short_options='t:,c,s,g:,d:,h'
   local options
@@ -467,8 +453,7 @@ function parse_pomodoro()
   done
 }
 
-function pomodoro_help()
-{
+function pomodoro_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'pomodoro'

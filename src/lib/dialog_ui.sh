@@ -16,8 +16,7 @@ declare -g DEFAULT_HEIGHT
 declare -g DIALOG_LAYOUT
 
 # Basic setup UI
-function ui_setup()
-{
+function ui_setup() {
   local default_layout="$1"
   local columns
 
@@ -63,8 +62,7 @@ function ui_setup()
 # If everything works as expected, the user option is saved in the
 # menu_return_string variable, and the return code is 0. Otherwise, an errno
 # code is returned.
-function create_menu_options()
-{
+function create_menu_options() {
   local box_title="$1"
   local message_box="$2"
   local -n _list_of_options_array="$3"
@@ -144,8 +142,7 @@ function create_menu_options()
 # If everything works as expected, the user option is saved in the
 # menu_return_string variable, and the return code is 0. Otherwise, an errno
 # code is returned.
-function create_simple_checklist()
-{
+function create_simple_checklist() {
   local box_title="$1"
   local message_box="$2"
   local -n _menu_list_string_array="$3"
@@ -209,8 +206,7 @@ function create_simple_checklist()
 # There is no return. The function just displays the infobox and returns,
 # assuming the next command is going to delay its completion and that another
 # screen is going to clear the current (the infobox).
-function create_loading_screen_notification()
-{
+function create_loading_screen_notification() {
   local loading_message="$1"
   local height="$2"
   local width="$3"
@@ -247,8 +243,7 @@ function create_loading_screen_notification()
 #
 # Return:
 # A frame of the spinner animation in string format.
-function spin_frame()
-{
+function spin_frame() {
   local frame_offset="$1"
   local spin='⣾⣽⣻⢿⡿⣟⣯⣷'
 
@@ -266,8 +261,7 @@ function spin_frame()
 # @width: Menu width in column size, the default value is 60.
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
-function create_async_loading_screen_notification()
-{
+function create_async_loading_screen_notification() {
   local loading_message="$1"
   local height="$2"
   local width="$3"
@@ -309,8 +303,7 @@ function create_async_loading_screen_notification()
 # Kill async loading process
 #
 # @loading_pid: PID of the async loading process
-function stop_async_loading_screen_notification()
-{
+function stop_async_loading_screen_notification() {
   local loading_pid="$1"
 
   kill -15 "$loading_pid"
@@ -329,8 +322,7 @@ function stop_async_loading_screen_notification()
 # Unlike other dialog screens, this one doesn't return a menu_return_string,
 # just the status code of the command which should be 0, if everything worked
 # as expected.
-function create_message_box()
-{
+function create_message_box() {
   local box_title="$1"
   local message_box="$2"
   local height="$3"
@@ -370,8 +362,7 @@ function create_message_box()
 # Returns 0 if the 'OK' button is pressed, 1 if the 'Cancel' button is pressed
 # and 2 if the 'Help' button is pressed. The string in the input box (current
 # path) is returned via the `menu_return_string` variable.
-function create_directory_selection_screen()
-{
+function create_directory_selection_screen() {
   local starting_path="$1"
   local box_title="$2"
   local height="$3"
@@ -414,8 +405,7 @@ function create_directory_selection_screen()
 # Returns 0 if the 'OK' button is pressed, 1 if the 'Cancel' button is pressed
 # and 2 if the 'Help' button is pressed. The string in the input box (current
 # path) is returned via the `menu_return_string` variable.
-function create_file_selection_screen()
-{
+function create_file_selection_screen() {
   local starting_path="$1"
   local box_title="$2"
   local extra_label="$3"
@@ -473,8 +463,7 @@ function create_file_selection_screen()
 # Returns 0 if the 'OK' button is pressed and 1 if the 'Cancel' button is pressed.
 # The key of the chosen pair (i.e. the `<choice>`) is returned via the
 # `menu_return_string` variable.
-function create_choice_list_screen()
-{
+function create_choice_list_screen() {
   local box_title="$1"
   local message_box="$2"
   local -n _choices="$3"
@@ -559,8 +548,7 @@ function create_choice_list_screen()
 # Return:
 # Returns 0 if the 'Yes' button is pressed, 1 if the 'No' button is pressed and
 # 3 if the 'Extra' button is pressed.
-function create_yes_no_prompt()
-{
+function create_yes_no_prompt() {
   local box_title="$1"
   local message_box="$2"
   local yes_label="$3"
@@ -617,8 +605,7 @@ function create_yes_no_prompt()
 # Returns 0 if the 'Ok' button is pressed, 1 if the 'Cancel' button is pressed
 # and 3 if the 'Extra' button is pressed. The menu_return_string will have all
 # the user input.
-function create_form_screen()
-{
+function create_form_screen() {
   local box_title="$1"
   local message_box="$2"
   local -n _fields_list="$3"
@@ -703,8 +690,7 @@ function create_form_screen()
 # Returns 0 if the 'Ok' button is pressed, 1 if the 'Cancel' button is pressed,
 # 2 if the 'Help' button is pressed, and 3 if the 'Extra' button is pressed.
 # The menu_return_string will store the user selected value.
-function create_rangebox_screen()
-{
+function create_rangebox_screen() {
   local box_title="$1"
   local message_box="$2"
   local min_value="$3"
@@ -776,8 +762,7 @@ function create_rangebox_screen()
 # The `menu_return_string` will store the string in the Inputbox if the user hits
 # either the 'Ok' button or the 'Extra' button. An empty string is also a valid
 # input.
-function create_inputbox_screen()
-{
+function create_inputbox_screen() {
   local box_title="$1"
   local message_box="$2"
   local extra_label="$3"
@@ -832,8 +817,7 @@ function create_inputbox_screen()
 #
 # Return:
 # Returns 2 (ENOENT) if there is no text file relative to @screen_name and 0, otherwise.
-function create_help_screen()
-{
+function create_help_screen() {
   local screen_name="$1"
   local flag="$2"
   local box_title
@@ -859,8 +843,7 @@ function create_help_screen()
 # @title: Main title of dialog box.
 # @back_title: Back title of dialog box. If null, use `KW_PATCH_HUB_TITLE` as the
 #   default back title.
-function build_dialog_command_preamble()
-{
+function build_dialog_command_preamble() {
   local title="$1"
   local back_title="$2"
   local cmd
@@ -894,8 +877,7 @@ function build_dialog_command_preamble()
 # The return value depends on the dialog command being run. Check the specific
 # dialog screen function for more details.
 # TODO: Is there a way to test this function?
-function run_dialog_command()
-{
+function run_dialog_command() {
   local dialog_cmd="$1"
   local flag="$2"
   local ret
@@ -912,8 +894,7 @@ function run_dialog_command()
 # This function is responsible for handling the dialog exit.
 #
 # @exit_status: Exit code
-function handle_exit()
-{
+function handle_exit() {
   local exit_status="$1"
 
   # Handling stop
@@ -925,8 +906,7 @@ function handle_exit()
   esac
 }
 
-function prettify_string()
-{
+function prettify_string() {
   local fixed_text="$1"
   local variable_to_concatenate="$2"
 

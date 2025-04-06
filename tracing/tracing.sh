@@ -21,8 +21,7 @@ declare -ga ignored_lib_files=(
 # Return:
 # Returns 2 (ENOENT) if either `@kw_path` or `@bin` isn't a valid file/dir path,
 # and 0, otherwise.
-function sync_main_kw_file_with_tracing()
-{
+function sync_main_kw_file_with_tracing() {
   local kw_path="$1"
   local bin="$2"
   local tracing_code_excerpts_dir="$3"
@@ -53,8 +52,7 @@ function sync_main_kw_file_with_tracing()
 #
 # @input_dir: Path to directory where base library files are stored
 # @output_dir: Path to directory where altered files with tracing will be installed
-function sync_kw_lib_files_with_tracing()
-{
+function sync_kw_lib_files_with_tracing() {
   local input_dir="$1"
   local output_dir="$2"
   local file_with_tracing
@@ -96,8 +94,7 @@ function sync_kw_lib_files_with_tracing()
 #
 # Return:
 # Outputs the file in `@filepath` injected with code that enables tracing.
-function inject_lib_file_with_tracing()
-{
+function inject_lib_file_with_tracing() {
   local filepath="$1"
   local file_with_tracing
   local inside_function
@@ -150,8 +147,7 @@ function inject_lib_file_with_tracing()
 #
 # Return:
 # Outputs the result of processing `@line`.
-function process_function_line()
-{
+function process_function_line() {
   local line="$1"
   local function_name="$2"
   local and_return_statement
@@ -212,8 +208,7 @@ function process_function_line()
 #
 # Return:
 # Outputs an expression ready to be evaluated.
-function get_tracing_log_line()
-{
+function get_tracing_log_line() {
   local tracing_event="$1"
   local function_name="$2"
   local expression

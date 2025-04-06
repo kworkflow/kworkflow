@@ -3,15 +3,13 @@
 include './src/self_update.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   export TEST_PATH="${SHUNIT_TMPDIR}/test_path"
   export original_dir="$PWD"
   export fake_dir_path="${SHUNIT_TMPDIR}/fake_dir"
 }
 
-function setUp()
-{
+function setUp() {
   mkdir -p "${fake_dir_path}" || {
     fail "($LINENO) It was not possible to create the fake directory"
     return
@@ -23,8 +21,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   rm -rf "${fake_dir_path}" || {
     fail "($LINENO) It was not possible to remove the fake directory"
     return
@@ -36,26 +33,22 @@ function tearDown()
   }
 }
 
-function test_update_from_official_repo_based_on_master()
-{
+function test_update_from_official_repo_based_on_master() {
   update_from_official_repo 'master' "${fake_dir_path}" 'TEST_MODE' > /dev/null 2>&1
   assertEquals "($LINENO) It should be able to update based on the master." 0 "$?"
 }
 
-function test_update_from_official_repo_based_on_unstable()
-{
+function test_update_from_official_repo_based_on_unstable() {
   update_from_official_repo 'unstable' "${fake_dir_path}" 'TEST_MODE' > /dev/null 2>&1
   assertEquals "($LINENO) It should be able to update based on the unstable." 0 "$?"
 }
 
-function test_update_from_official_repo_root_as_tmp_dir()
-{
+function test_update_from_official_repo_root_as_tmp_dir() {
   update_from_official_repo 'unstable' '/' 'TEST_MODE' > /dev/null 2>&1
   assertEquals "($LINENO) It should be abort the update." 1 "$?"
 }
 
-function test_parse_self_update_options()
-{
+function test_parse_self_update_options() {
   local expected_output=''
   local output=''
 

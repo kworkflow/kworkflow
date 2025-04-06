@@ -11,8 +11,7 @@ declare -g DEFAULT_GRUB_CMD_UPDATE='grub-mkconfig -o /boot/grub/grub.cfg'
 #
 # Returns:
 # 0 if a grub update command exists and 2 otherwise.
-function define_grub_cmd_update()
-{
+function define_grub_cmd_update() {
   local grub_cmd='grub-mkconfig'
   local grub2_cmd='grub2-mkconfig'
 
@@ -32,8 +31,7 @@ function define_grub_cmd_update()
 }
 
 # Update grub bootloader in a target machine.
-function run_bootloader_update()
-{
+function run_bootloader_update() {
   local flag="$1"
   local target="$2"
   local cmd_grub
@@ -63,8 +61,7 @@ function run_bootloader_update()
   cmd_manager "$flag" "$cmd_grub"
 }
 
-function total_of_installed_kernels()
-{
+function total_of_installed_kernels() {
   local flag="$1"
   local target="$2"
   local total_count

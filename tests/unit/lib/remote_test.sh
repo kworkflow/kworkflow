@@ -5,24 +5,20 @@ include './src/lib/kwlib.sh'
 include './src/lib/kw_config_loader.sh'
 include './tests/unit/utils.sh'
 
-function which_distro_mock()
-{
+function which_distro_mock() {
   printf '%s\n' 'debian'
 }
 
-function setupMockFunctions()
-{
+function setupMockFunctions() {
   shopt -s expand_aliases
   alias which_distro='which_distro_mock'
 }
 
-function tearDownMockFunctions()
-{
+function tearDownMockFunctions() {
   unalias which_distro
 }
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   local -r current_path="$PWD"
   local -r kernel_install_path='kernel_install'
 
@@ -53,14 +49,12 @@ function oneTimeSetUp()
   mk_fake_remote "$FAKE_KW" "$modules_path"
 }
 
-function oneTimeTearDown()
-{
+function oneTimeTearDown() {
   unset KW_CACHE_DIR
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function setUp()
-{
+function setUp() {
   local -r current_path="$PWD"
 
   cd "$TEST_PATH" || {
@@ -80,14 +74,12 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   remote_parameters=()
   configurations=()
 }
 
-function test_populate_remote_info()
-{
+function test_populate_remote_info() {
   local ret
   local output
   local -r current_path="$PWD"
@@ -131,8 +123,7 @@ function test_populate_remote_info()
   }
 }
 
-function test_is_ssh_connection_configured()
-{
+function test_is_ssh_connection_configured() {
   local remote='test_remote'
   local user='test_user'
   local port='22'
@@ -158,8 +149,7 @@ function test_is_ssh_connection_configured()
   }
 }
 
-function test_is_ssh_connection_configured_with_remote_config_file()
-{
+function test_is_ssh_connection_configured_with_remote_config_file() {
   local flag='TEST_MODE'
   local current_path="$PWD"
 
@@ -184,8 +174,7 @@ function test_is_ssh_connection_configured_with_remote_config_file()
   }
 }
 
-function test_is_ssh_connection_configured_no_remote_config_file()
-{
+function test_is_ssh_connection_configured_no_remote_config_file() {
   local flag='TEST_MODE'
   local current_path="$PWD"
 
@@ -210,8 +199,7 @@ function test_is_ssh_connection_configured_no_remote_config_file()
   }
 }
 
-function test_ssh_connection_failure_message()
-{
+function test_ssh_connection_failure_message() {
   local expected_remote='deb-tm'
   local expected_user='root'
   local expected_port='333'
@@ -266,8 +254,7 @@ function test_ssh_connection_failure_message()
   assertEquals "($LINENO):" "$no_config_file_failure_message" "$ret"
 }
 
-function test_ssh_connection_failure_message_with_bad_formatted_remote_config()
-{
+function test_ssh_connection_failure_message_with_bad_formatted_remote_config() {
   local displayed_ip
   local displayed_user
   local displayed_port
@@ -289,8 +276,7 @@ function test_ssh_connection_failure_message_with_bad_formatted_remote_config()
   assert_equals_helper 'Wrong Port displayed' "$LINENO" 123 "$displayed_port"
 }
 
-function test_ssh_connection_failure_message_with_invalid_host_in_remote_config()
-{
+function test_ssh_connection_failure_message_with_invalid_host_in_remote_config() {
   local displayed_ip
   local displayed_user
   local displayed_port
@@ -312,8 +298,7 @@ function test_ssh_connection_failure_message_with_invalid_host_in_remote_config(
   assert_equals_helper 'Wrong Port displayed' "$LINENO" '' "$displayed_port"
 }
 
-function test_cmd_remote()
-{
+function test_cmd_remote() {
   local log_path="${SHUNIT_TMPDIR}/cmd_remote_test.log"
   local command='ls -lah'
   local remote='178.31.38.12'
@@ -360,8 +345,7 @@ function test_cmd_remote()
   assertEquals "($LINENO):" "$expected_command" "$output"
 }
 
-function test_cp2remote()
-{
+function test_cp2remote() {
   local src='/any/path'
   local dst='/any/path/2'
   local remote='172.16.224.1'
@@ -412,8 +396,7 @@ function test_cp2remote()
   assert_equals_helper 'Default src, dst, remote, port, and user' "$LINENO" "$expected_cmd_str" "$output"
 }
 
-function test_remote2host()
-{
+function test_remote2host() {
   local flag='TEST_MODE'
   local src='/some/path'
   local dst='/another/path'
@@ -459,8 +442,7 @@ function test_remote2host()
   assert_equals_helper 'Default user' "$LINENO" "$expected_cmd_str" "$output"
 }
 
-function test_extract_remote_info_from_config_file()
-{
+function test_extract_remote_info_from_config_file() {
   remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
   remote_parameters['REMOTE_FILE_HOST']='steamos'
 
@@ -470,8 +452,7 @@ function test_extract_remote_info_from_config_file()
   assert_equals_helper 'User did not match' "$LINENO" 'jozzi' "${remote_parameters['REMOTE_USER']}"
 }
 
-function test_remove_key_from_kwown_hosts_by_user_request()
-{
+function test_remove_key_from_kwown_hosts_by_user_request() {
   local expected_cmd="ssh-keygen -q -f '${HOME}/.ssh/known_hosts' -R '[steamdeck]:8888'"
 
   remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
@@ -481,8 +462,7 @@ function test_remove_key_from_kwown_hosts_by_user_request()
   assert_equals_helper 'Remove identification command is wrong' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_remove_key_from_kwown_hosts_by_user_request_cancel_operation()
-{
+function test_remove_key_from_kwown_hosts_by_user_request_cancel_operation() {
   local output
 
   remote_parameters['REMOTE_FILE']="${TEST_PATH}/.kw/remote.config"
@@ -492,8 +472,7 @@ function test_remove_key_from_kwown_hosts_by_user_request_cancel_operation()
   assert_equals_helper 'User canceled the operation' "$LINENO" 125 "$?"
 }
 
-function test_ssh_error_handling()
-{
+function test_ssh_error_handling() {
   ssh_error_handling 'This is not a valid error'
   assert_equals_helper 'This is not a valid error' "$LINENO" 0 "$?"
 
@@ -501,8 +480,7 @@ function test_ssh_error_handling()
   assert_equals_helper 'Remote host change' "$LINENO" 111 "$?"
 }
 
-function test_which_distro()
-{
+function test_which_distro() {
   local cmd='cat /etc/os-release'
   local remote='172.16.224.1'
   local user='xpto'

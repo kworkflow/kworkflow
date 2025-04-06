@@ -3,8 +3,7 @@
 include './src/ui/patch_hub/search_string_in_lore.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
 
   cd "${SHUNIT_TMPDIR}" || {
@@ -13,30 +12,26 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "${ORIGINAL_PATH}" || {
     fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
     return
   }
 }
 
-function test_show_search_string_in_lore()
-{
+function test_show_search_string_in_lore() {
   local output
   local expected
   declare -g additional_filters=''
 
   # shellcheck disable=SC2317
-  function create_inputbox_screen()
-  {
+  function create_inputbox_screen() {
     menu_return_string=''
     return 0
   }
 
   # shellcheck disable=SC2317
-  function create_message_box()
-  {
+  function create_message_box() {
     printf '%s %s' "$1" "$2"
     return 0
   }
@@ -48,8 +43,7 @@ function test_show_search_string_in_lore()
   assert_equals_helper 'Wrong screen parameter' "$LINENO" '' "${screen_sequence['SHOW_SCREEN_PARAMETER']}"
 
   # shellcheck disable=SC2317
-  function create_inputbox_screen()
-  {
+  function create_inputbox_screen() {
     menu_return_string='query-string'
     return 0
   }
@@ -60,8 +54,7 @@ function test_show_search_string_in_lore()
   assert_equals_helper 'Wrong current list' "$LINENO" 'all' "$current_mailing_list"
 
   # shellcheck disable=SC2317
-  function create_inputbox_screen()
-  {
+  function create_inputbox_screen() {
     return 3
   }
 
@@ -72,15 +65,13 @@ function test_show_search_string_in_lore()
   assert_equals_helper 'Wrong current list' "$LINENO" 'all' "$current_mailing_list"
 }
 
-function test_search_string_in_lore()
-{
+function test_search_string_in_lore() {
   local output
   local expected
   declare -g additional_filters=''
 
   # shellcheck disable=SC2317
-  function create_message_box()
-  {
+  function create_message_box() {
     printf '%s %s' "$1" "$2"
     return 0
   }

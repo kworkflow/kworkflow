@@ -3,8 +3,7 @@
 include './src/send_patch.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   declare -gr ORIGINAL_DIR="$PWD"
   declare -gr FAKE_GIT="$SHUNIT_TMPDIR/fake_git/"
   declare -gr FAKE_KERNEL="$FAKE_GIT/fake_kernel/"
@@ -37,25 +36,21 @@ function oneTimeSetUp()
   }
 }
 
-function oneTimeTearDown()
-{
+function oneTimeTearDown() {
   rm -rf "$FAKE_GIT"
 }
 
-function setUp()
-{
+function setUp() {
   declare -gA options_values
   declare -gA set_confs
 }
 
-function tearDown()
-{
+function tearDown() {
   unset options_values
   unset set_confs
 }
 
-function test_validate_encryption()
-{
+function test_validate_encryption() {
   local ret
 
   # invalid values
@@ -89,8 +84,7 @@ function test_validate_encryption()
   assert_equals_helper 'Expected no error for tls' "$LINENO" 0 "$ret"
 }
 
-function test_validate_email()
-{
+function test_validate_email() {
   local expected
   local output
   local ret
@@ -118,8 +112,7 @@ function test_validate_email()
   assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
 }
 
-function test_find_commit_references()
-{
+function test_find_commit_references() {
   local output
   local ret
 
@@ -170,8 +163,7 @@ function test_find_commit_references()
   }
 }
 
-function test_validate_email_list()
-{
+function test_validate_email_list() {
   local expected
   local output
   local ret
@@ -204,8 +196,7 @@ function test_validate_email_list()
   assert_equals_helper 'Expected a success' "$LINENO" 0 "$ret"
 }
 
-function test_reposition_commit_count_arg()
-{
+function test_reposition_commit_count_arg() {
   local output
   local expected
 
@@ -226,8 +217,7 @@ function test_reposition_commit_count_arg()
   assert_equals_helper 'Should handle multiple arguments' "$LINENO" "$expected" "$output"
 }
 
-function test_remove_blocked_recipients()
-{
+function test_remove_blocked_recipients() {
   local output
   local expected
   local recipients=$'test@mail.com\nXpto Lala <xpto@mail.com>\nlala@mail.com\n'
@@ -253,8 +243,7 @@ function test_remove_blocked_recipients()
   multilineAssertEquals "($LINENO) Removing two emails." "$expected" "$output"
 }
 
-function test_mail_parser()
-{
+function test_mail_parser() {
   local output
   local expected
   local ret
@@ -422,8 +411,7 @@ function test_mail_parser()
 
 }
 
-function test_mail_send()
-{
+function test_mail_send() {
   local expected
   local output
   local ret
@@ -515,8 +503,7 @@ function test_mail_send()
   }
 }
 
-function test_get_configs()
-{
+function test_get_configs() {
   local output
   local expected
   local ret
@@ -559,8 +546,7 @@ function test_get_configs()
   }
 }
 
-function test_missing_options()
-{
+function test_missing_options() {
   local -a output
   local -a expected_arr
 
@@ -588,8 +574,7 @@ function test_missing_options()
   }
 }
 
-function test_config_values()
-{
+function test_config_values() {
   local -A output
   local -A expected
 
@@ -618,8 +603,7 @@ function test_config_values()
   }
 }
 
-function test_add_config()
-{
+function test_add_config() {
   local output
   local expected
   local ret
@@ -637,8 +621,7 @@ function test_add_config()
   assert_equals_helper 'Testing serverport option' "$LINENO" "$expected" "$output"
 }
 
-function test_mail_setup()
-{
+function test_mail_setup() {
   local expected
   local output
   local ret
@@ -745,8 +728,7 @@ function test_mail_setup()
   }
 }
 
-function test_interactive_prompt()
-{
+function test_interactive_prompt() {
   local expected
   local output
 
@@ -813,8 +795,7 @@ function test_interactive_prompt()
   }
 }
 
-function test_interactive_setup()
-{
+function test_interactive_setup() {
   local expected
   local output
   local ret
@@ -868,8 +849,7 @@ function test_interactive_setup()
   }
 }
 
-function test_load_template()
-{
+function test_load_template() {
   local output
   local expected
   local ret
@@ -897,8 +877,7 @@ function test_load_template()
   assert_equals_helper 'Load template 2 should not overwrite user given values' "$LINENO" "$expected" "${options_values['sendemail.smtpserver']}"
 }
 
-function test_template_setup()
-{
+function test_template_setup() {
   local output
   local expected
 
@@ -938,8 +917,7 @@ function test_template_setup()
 
 # This test can only be done on a local scope, as we have no control over the
 # user's system
-function test_mail_verify()
-{
+function test_mail_verify() {
   local expected
   local output
   local ret
@@ -1037,8 +1015,7 @@ function test_mail_verify()
   }
 }
 
-function test_mail_list()
-{
+function test_mail_list() {
   local expected
   local output
   local ret
@@ -1085,8 +1062,7 @@ function test_mail_list()
   }
 }
 
-function test_add_recipients()
-{
+function test_add_recipients() {
   local initial_recipients
   local additional_recipients
   local output

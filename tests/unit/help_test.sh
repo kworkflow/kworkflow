@@ -3,15 +3,13 @@
 include './tests/unit/utils.sh'
 include './src/help.sh'
 
-function test_kworkflow_help()
-{
+function test_kworkflow_help() {
   HELP_OUTPUT=$(kworkflow_help | head -n 1)
   [[ $HELP_OUTPUT =~ Usage:\ kw.* ]]
   assertTrue "Help text not displaying correctly." $?
 }
 
-function test_kworkflow_man()
-{
+function test_kworkflow_man() {
   export KW_MAN_DIR="$SHUNIT_TMPDIR"
   touch "$SHUNIT_TMPDIR/kw.1"
   expect="man -l $SHUNIT_TMPDIR/kw.1"
@@ -32,8 +30,7 @@ function test_kworkflow_man()
   assertEquals "($LINENO) We expected an error message." "$expect" "$output"
 }
 
-function test_kworkflow_version()
-{
+function test_kworkflow_version() {
   local KW_LIB_DIR
   local output
   local expected_output
@@ -51,8 +48,7 @@ function test_kworkflow_version()
   assert_equals_helper 'Got wrong kw version.' "(${LINENO})" "${expected_output}" "${output}"
 }
 
-function test_kworkflow_version_in_repomode()
-{
+function test_kworkflow_version_in_repomode() {
   local branch_name
   local head_hash
   local version_name

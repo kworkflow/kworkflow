@@ -4,8 +4,7 @@ include './src/plugins/kernel_install/utils.sh'
 include './src/plugins/kernel_install/rpi_bootloader.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   KERNEL_NAME='rpi-kw-5.13.0+'
   FAKE_RPI_PATH="$SHUNIT_TMPDIR"
   ORIGINAL_PATH="$PWD"
@@ -23,8 +22,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   # shellcheck disable=SC2115
   if [[ -d "${FAKE_RPI_PATH}" ]]; then
     find "${FAKE_RPI_PATH}" -type f -name "*" -exec rm -f {} \;
@@ -36,13 +34,11 @@ function tearDown()
   }
 }
 
-function get_kernel_from_config()
-{
+function get_kernel_from_config() {
   grep '^kernel' 'config.txt' | cut -d '=' -f2
 }
 
-function test_remote_add_new_image()
-{
+function test_remote_add_new_image() {
   local output
 
   run_bootloader_update 'SILENT' 'remote' "$KERNEL_NAME"
@@ -50,8 +46,7 @@ function test_remote_add_new_image()
   assertEquals "($LINENO): " "kernel-$KERNEL_NAME.img" "$output"
 }
 
-function test_remote_add_same_kernel_multiple_times()
-{
+function test_remote_add_same_kernel_multiple_times() {
   local output
 
   run_bootloader_update 'SILENT' 'remote' "$KERNEL_NAME"
@@ -61,8 +56,7 @@ function test_remote_add_same_kernel_multiple_times()
   assertEquals "($LINENO): " "kernel-$KERNEL_NAME.img" "$output"
 }
 
-function test_remote_add_two_different_kernels()
-{
+function test_remote_add_two_different_kernels() {
   local output
 
   touch "kernel-${KERNEL_NAME}-2"
@@ -75,8 +69,7 @@ function test_remote_add_two_different_kernels()
   assertEquals "($LINENO): " "kernel-$KERNEL_NAME-42" "$output"
 }
 
-function test_remote_other_files_with_similar_name()
-{
+function test_remote_other_files_with_similar_name() {
   local output
   local kernel_name='CASUAL'
 
@@ -88,8 +81,7 @@ function test_remote_other_files_with_similar_name()
   assertEquals "($LINENO): " "kernel-$kernel_name-42" "$output"
 }
 
-function test_remote_add_the_same_kernel_twice()
-{
+function test_remote_add_the_same_kernel_twice() {
   local output
   local kernel_name='CASUAL'
 
@@ -110,8 +102,7 @@ function test_remote_add_the_same_kernel_twice()
   assertEquals "($LINENO): " "" "$output"
 }
 
-function test_remote_remove_kernel()
-{
+function test_remote_remove_kernel() {
   local output
 
   run_bootloader_update 'SILENT' 'remote' "$STD_KERNEL_NAME"
@@ -120,8 +111,7 @@ function test_remote_remove_kernel()
   assertEquals "($LINENO): " '' "$output"
 }
 
-function test_local_remove_kernel()
-{
+function test_local_remove_kernel() {
   local output
 
   output=$(run_bootloader_update 'TEST_MODE' 'local' "$KERNEL_NAME")

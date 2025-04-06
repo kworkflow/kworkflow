@@ -4,8 +4,7 @@ include './tests/unit/utils.sh'
 include './src/lib/kw_config_loader.sh'
 include './src/vm.sh'
 
-function setUp()
-{
+function setUp() {
   export PREFIX="$SHUNIT_TMPDIR/"
   mkdir -p "$SHUNIT_TMPDIR/.kw/"
   cp -f "$KW_VM_CONFIG_SAMPLE" "$SHUNIT_TMPDIR/.kw/"
@@ -17,13 +16,11 @@ function setUp()
   mkdir -p "$etc"
 }
 
-function tearDown()
-{
+function tearDown() {
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function test_vm_mount()
-{
+function test_vm_mount() {
   local mount_point="${SHUNIT_TMPDIR}/lala"
   local qemu_path='/any/path'
   local -r current_path="$PWD"
@@ -39,8 +36,7 @@ function test_vm_mount()
 
   declare -a expected_cmd
 
-  function uname()
-  {
+  function uname() {
     printf '5.1'
   }
 
@@ -86,8 +82,7 @@ function test_vm_mount()
 
   output=$(
     # shellcheck disable=SC2317
-    function findmnt()
-    {
+    function findmnt() {
       printf '%s\n' 'anything'
     }
     vm_mount 'TEST_MODE'
@@ -119,8 +114,7 @@ function test_vm_mount()
   }
 }
 
-function test_vm_umount()
-{
+function test_vm_umount() {
   local mount_point="/"
   local -r current_path="$PWD"
   local ret
@@ -162,8 +156,7 @@ function test_vm_umount()
   }
 }
 
-function test_vm_up()
-{
+function test_vm_up() {
   local output=''
   local current_path="$PWD"
   local virtualizer='qemu-system-x86_64'
@@ -196,8 +189,7 @@ function test_vm_up()
 
 }
 
-function test_vm_parse_options()
-{
+function test_vm_parse_options() {
   unset options_values
   declare -gA options_values
   local output

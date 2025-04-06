@@ -21,8 +21,7 @@ declare -ga optional_config_options=('sendemail.smtpencryption' 'sendemail.smtpp
 declare -gr email_regex='[A-Za-z0-9_\.-]+@[A-Za-z0-9_-]+(\.[A-Za-z0-9]+)+'
 
 #shellcheck disable=SC2119
-function send_patch_main()
-{
+function send_patch_main() {
   local flag
 
   flag=${flag:-'SILENT'}
@@ -84,8 +83,7 @@ function send_patch_main()
 #
 # Return:
 # returns 0 if successful, non-zero otherwise
-function mail_send()
-{
+function mail_send() {
   local flag="$1"
   local opts="${send_patch_config[send_opts]}"
   local to_recipients="${options_values['TO']}"
@@ -143,8 +141,7 @@ function mail_send()
 #
 # Return:
 # 22 if there are invalid entries; 0 otherwise
-function validate_email_list()
-{
+function validate_email_list() {
   local raw="$1"
   local -a list
   local value
@@ -173,8 +170,7 @@ function validate_email_list()
 #
 # Returns:
 # The count of how many patches were created
-function pre_generate_patches()
-{
+function pre_generate_patches() {
   local commit_range="$1"
   local version="$2"
   local patch_cache="${KW_CACHE_DIR}/patches"
@@ -206,8 +202,7 @@ function pre_generate_patches()
 #
 # Returns:
 # Nothing
-function generate_kernel_recipients()
-{
+function generate_kernel_recipients() {
   local kernel_root="$1"
   local to=''
   local cc=''
@@ -267,8 +262,7 @@ function generate_kernel_recipients()
 #
 # Return:
 # Outputs the added list of recipients.
-function add_recipients()
-{
+function add_recipients() {
   local initial_recipients="$1"
   local additional_recipients="$2"
   local recipients
@@ -291,8 +285,7 @@ function add_recipients()
 #
 # Returns:
 # The filtered recipients list
-function remove_blocked_recipients()
-{
+function remove_blocked_recipients() {
   local recipients="$1"
   local blocked="$2"
   local -a blocked_arr=()
@@ -316,8 +309,7 @@ function remove_blocked_recipients()
 # Returns:
 # 125 if nor inside git work tree;
 # 0 if any of the arguments is a valid reference to a commit; 22 otherwise
-function find_commit_references()
-{
+function find_commit_references() {
   local args="$*"
   local arg=''
   local parsed=''
@@ -363,8 +355,7 @@ function find_commit_references()
 #
 # Return:
 # returns 0 if successful, exits with 1 otherwise
-function mail_setup()
-{
+function mail_setup() {
   local flag="$1"
   local curr_scope="${options_values['SCOPE']}"
   local cmd_scope="${options_values['CMD_SCOPE']}"
@@ -430,8 +421,7 @@ function mail_setup()
 #
 # Return:
 # Returns 0 if valid; 22 if invalid
-function validate_encryption()
-{
+function validate_encryption() {
   local value="$1"
 
   if [[ "$value" =~ ^(ssl|tls)$ ]]; then
@@ -452,8 +442,7 @@ function validate_encryption()
 #
 # Return:
 # Returns 0 if valid; 22 if invalid
-function validate_email()
-{
+function validate_email() {
   local value="$1"
 
   if [[ ! "$value" =~ ^${email_regex}$ ]]; then
@@ -471,8 +460,7 @@ function validate_email()
 # @option: the config option to get the values from
 #
 # Returns: Nothing
-function config_values()
-{
+function config_values() {
   local -n _values="$1"
   local option="$2"
   local scope
@@ -484,8 +472,7 @@ function config_values()
   _values['loaded']="${options_values["$option"]}"
 }
 
-function add_config()
-{
+function add_config() {
   local option="$1"
   local value="${2:-${options_values["$option"]}}"
   local cmd_scope="${3:-${options_values['CMD_SCOPE']}}"
@@ -508,8 +495,7 @@ function add_config()
 # @value:      The value to update the option to
 # @scope:      The scope of the given value
 #
-function get_configs()
-{
+function get_configs() {
   local cmd_scope="${options_values['CMD_SCOPE']}"
   local -a set_values
   local option
@@ -549,8 +535,7 @@ function get_configs()
 #
 # Returns:
 # Array with the missing configs
-function missing_options()
-{
+function missing_options() {
   local -n _config_options="$1"
   local -a missing_conf
   local index=0
@@ -577,8 +562,7 @@ function missing_options()
 #
 # Returns:
 # Returns 22 if missing any required configuration; 0 otherwise
-function mail_verify()
-{
+function mail_verify() {
   local -a missing_conf
   local -a missing_opt_conf
   local cmd_scope=${options_values['CMD_SCOPE']}
@@ -627,8 +611,7 @@ function mail_verify()
 
 # This function lists the required and optional options to use
 # git send-email. Also lists any values that are already set.
-function mail_list()
-{
+function mail_list() {
   get_configs
 
   success 'These are the essential configurations for git send-email:'
@@ -638,8 +621,7 @@ function mail_list()
   print_configs 'optional_config_options'
 }
 
-function print_configs()
-{
+function print_configs() {
   local -n _configs="$1"
   local config
   local option
@@ -676,8 +658,7 @@ function print_configs()
 
 # Complain and exit if user tries to pass configuration options before the
 # '--setup' flag
-function validate_setup_opt()
-{
+function validate_setup_opt() {
   if [[ "${options_values['SETUP']}" == 0 ]]; then
     complain -n 'You provided a flag that should only be used with '
     complain '`--setup`, `--template` or `--interactive`.'
@@ -696,8 +677,7 @@ function validate_setup_opt()
 #
 # Returns:
 # Returns non-zero if missing any required configuration; 0 otherwise
-function template_setup()
-{
+function template_setup() {
   local template="${options_values['TEMPLATE']:1}" # removes colon
   local -a available_templates
 
@@ -730,8 +710,7 @@ function template_setup()
 # @template: name of the template to be loaded
 #
 # Returns: 22 if template is not found
-function load_template()
-{
+function load_template() {
   local template="$1"
   local option
   local value
@@ -761,8 +740,7 @@ function load_template()
 #
 # Returns:
 # 0 if successful; non-zero otherwise
-function interactive_setup()
-{
+function interactive_setup() {
   local flag="$1"
   local curr_scope="${options_values['SCOPE']}"
   local cmd_scope="${options_values['CMD_SCOPE']}"
@@ -819,8 +797,7 @@ function interactive_setup()
 #
 # Returns:
 # Nothing
-function interactive_prompt()
-{
+function interactive_prompt() {
   local -n _config_options="$1"
   local essential="${2:-true}"
   local curr_scope="${options_values['SCOPE']}"
@@ -916,8 +893,7 @@ function interactive_prompt()
 #
 # Returns:
 # A string with the options correctly positioned
-function reposition_commit_count_arg()
-{
+function reposition_commit_count_arg() {
   local options=''
   local commit_count=''
   local dash_dash=0
@@ -943,8 +919,7 @@ function reposition_commit_count_arg()
   printf '%s' "$options"
 }
 
-function parse_mail_options()
-{
+function parse_mail_options() {
   local index
   local option
   local setup_token=0
@@ -1134,8 +1109,7 @@ function parse_mail_options()
   return 0
 }
 
-function send_patch_help()
-{
+function send_patch_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'send-patch'

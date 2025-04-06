@@ -5,8 +5,7 @@ include './src/plugins/kernel_install/arch.sh'
 include './src/lib/kwio.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
   mk_fake_boot "$SHUNIT_TMPDIR"
 
@@ -20,8 +19,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "$ORIGINAL_PATH" || {
     fail "($LINENO) It was not possible to move to the kw folder"
     return
@@ -29,8 +27,7 @@ function tearDown()
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
-{
+function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio() {
   local name='xpto'
   local path_prefix=''
   local cmd=
@@ -45,8 +42,7 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
   )
 
   output="$(
-    function command_exists()
-    {
+    function command_exists() {
       return 0
     }
     generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'local' 'GRUB'
@@ -54,8 +50,7 @@ function test_generate_arch_temporary_root_file_system_local_and_mkinitcpio()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
-function test_generate_arch_temporary_root_file_system_remote_and_mkinitcpio()
-{
+function test_generate_arch_temporary_root_file_system_remote_and_mkinitcpio() {
   local name='xpto'
   local path_prefix=''
   local cmd=
@@ -69,8 +64,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_mkinitcpio()
   )
 
   output="$(
-    function command_exists()
-    {
+    function command_exists() {
       return 0
     }
     generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'remote' 'GRUB'
@@ -78,8 +72,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_mkinitcpio()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
-function test_generate_arch_temporary_root_file_system_remote_and_dracut()
-{
+function test_generate_arch_temporary_root_file_system_remote_and_dracut() {
   local name='xpto'
   local path_prefix=''
   local cmd=
@@ -94,8 +87,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_dracut()
 
   # We want to force dracut
   output="$(
-    function command_exists()
-    {
+    function command_exists() {
       [[ "$1" == 'mkinitcpio' ]] && return 1
       return 0
     }
@@ -104,8 +96,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_dracut()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
-function test_generate_arch_temporary_root_file_system_remote_and_not_supported()
-{
+function test_generate_arch_temporary_root_file_system_remote_and_not_supported() {
   local name='xpto'
   local path_prefix=''
   local cmd=
@@ -120,8 +111,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_not_supported(
 
   # We want to force an unsupported tool
   output="$(
-    function command_exists()
-    {
+    function command_exists() {
       [[ "$1" == 'mkinitcpio' ]] && return 1
       [[ "$1" == 'dracut' ]] && return 1
     }
@@ -131,8 +121,7 @@ function test_generate_arch_temporary_root_file_system_remote_and_not_supported(
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs()
-{
+function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs() {
   local name='xpto'
   local path_prefix=''
   local cmd=
@@ -147,8 +136,7 @@ function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs(
 
   # We want to force an the prefered option
   output="$(
-    function command_exists()
-    {
+    function command_exists() {
       return 0
     }
     generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'remote' 'GRUB' '' 'dracut'
@@ -157,8 +145,7 @@ function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs(
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
-function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs_invalid()
-{
+function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs_invalid() {
   local name='xpto'
   local path_prefix=''
   local cmd=
@@ -169,8 +156,7 @@ function test_generate_arch_temporary_root_file_system_remote_preferred_root_fs_
 
   # We want to force an the prefered option
   output="$(
-    function command_exists()
-    {
+    function command_exists() {
       return 1
     }
     generate_arch_temporary_root_file_system 'TEST_MODE' "$name" 'remote' 'GRUB' '' 'xpto'

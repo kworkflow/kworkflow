@@ -6,17 +6,14 @@ include './src/lib/kwio.sh'
 
 declare -r TEST_ROOT_PATH="$PWD"
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   # Mocking the sudo function
-  function sudo()
-  {
+  function sudo() {
     eval "$*"
   }
   export -f sudo
 
-  function grub-mkconfig()
-  {
+  function grub-mkconfig() {
     printf ''
   }
   export -f grub-mkconfig
@@ -38,15 +35,13 @@ function oneTimeSetUp()
   INSTALLED_KERNELS_PATH="$REMOTE_KW_DEPLOY/INSTALLED_KERNELS"
 }
 
-function oneTimeTearDown()
-{
+function oneTimeTearDown() {
   rm -f "$INSTALLED_KERNELS_PATH"
   # shellcheck disable=SC2115
   [[ -d ${TARGET_PATH} ]] && rm -rf "${TARGET_PATH}/*"
 }
 
-function setUp()
-{
+function setUp() {
   mk_fake_boot "$SHUNIT_TMPDIR"
 
   # Creating fake installed kernels
@@ -65,53 +60,44 @@ function setUp()
   REMOTE_KW_DEPLOY="$KW_PLUGINS_DIR/kernel_install"
 }
 
-function tearDown()
-{
+function tearDown() {
   rm -rf "$SHUNIT_TMPDIR"
   mkdir -p "$SHUNIT_TMPDIR"
 }
 
-function total_of_installed_kernels_mock()
-{
+function total_of_installed_kernels_mock() {
   printf '5'
 }
 
-function identify_bootloader_from_files_mock()
-{
+function identify_bootloader_from_files_mock() {
   printf 'GRUB'
 }
 
-function run_bootloader_update_mock()
-{
+function run_bootloader_update_mock() {
   printf 'run_bootloader_update_mock\n'
 }
 
 # Mock funtions for install tests
-function generate_debian_temporary_root_file_system()
-{
+function generate_debian_temporary_root_file_system() {
   printf '%s\n' 'generate_debian_temporary_root_file_system_mock'
   return 0
 }
 
-function update_debian_boot_loader()
-{
+function update_debian_boot_loader() {
   printf '%s\n' 'update_debian_boot_loader_mock'
 }
 
-function findmnt_mock()
-{
+function findmnt_mock() {
   printf '%s\n' 'TARGET SOURCE         FSTYPE OPTIONS'
   printf '%s\n' '/home  /dev/lala ext4   rw,relatime'
 }
 
-function findmnt_only_filesystem_mock()
-{
+function findmnt_only_filesystem_mock() {
   # findmnt --first-only --noheadings --output FSTYPE "$target_path"
   printf 'btrfs'
 }
 
-function test_cmd_manager()
-{
+function test_cmd_manager() {
   local output
   local count=0
 
@@ -119,8 +105,7 @@ function test_cmd_manager()
   assert_equals_helper 'TEST_MODE' "$LINENO" 'ls something' "$output"
 }
 
-function test_human_list_installed_kernels()
-{
+function test_human_list_installed_kernels() {
   local output
 
   declare -a expected_out=(
@@ -137,8 +122,7 @@ function test_human_list_installed_kernels()
   compare_command_sequence '' "$LINENO" 'expected_out' "$output"
 }
 
-function test_command_list_installed_kernels()
-{
+function test_command_list_installed_kernels() {
   local output
 
   declare -a expected_out=(
@@ -153,8 +137,7 @@ function test_command_list_installed_kernels()
   compare_command_sequence '' "$LINENO" 'expected_out' "$output"
 }
 
-function test_list_unmanaged_kernels()
-{
+function test_list_unmanaged_kernels() {
   local output
   local -a expected
   local -a available_kernels=()
@@ -178,8 +161,7 @@ function test_list_unmanaged_kernels()
   compare_command_sequence '' "$LINENO" 'expected' "$output"
 }
 
-function test_list_kernels_based_on_grub()
-{
+function test_list_kernels_based_on_grub() {
   local output
   local expected_str
   local -a available_kernels=()
@@ -189,8 +171,7 @@ function test_list_kernels_based_on_grub()
   assertEquals "($LINENO)" "$expected_str" "${available_kernels[*]}"
 }
 
-function test_reboot_machine()
-{
+function test_reboot_machine() {
   local output
 
   output=$(reboot_machine '1' '' 'TEST_MODE')
@@ -206,8 +187,7 @@ function test_reboot_machine()
   assert_equals_helper 'Disable reboot in a non-local machine' "$LINENO" 'sudo -E reboot' "$output"
 }
 
-function test_is_in_array()
-{
+function test_is_in_array() {
   local -a array=(1 2 3 4 5)
 
   is_in_array 0 'array'
@@ -216,15 +196,13 @@ function test_is_in_array()
   assert_equals_helper 'Should return 0 (present)' "$LINENO" 0 "$?"
 }
 
-function test_process_installed_kernels()
-{
+function test_process_installed_kernels() {
   local -a processed_installed_kernels
   local original_list_installed_kernels_definition
 
   original_list_installed_kernels_definition=$(declare -f list_installed_kernels)
   # shellcheck disable=SC2317
-  function list_installed_kernels()
-  {
+  function list_installed_kernels() {
     local all_kernels="$3"
 
     if [[ -n "$all_kernels" ]]; then
@@ -250,8 +228,7 @@ function test_process_installed_kernels()
   eval "$original_list_installed_kernels_definition"
 }
 
-function test_kernel_uninstall_regex_one_kernel()
-{
+function test_kernel_uninstall_regex_one_kernel() {
   local kernel_name='5.5.0-rc2-VKMS+'
   local mkinitcpio_d_path_1="etc/mkinitcpio.d/$kernel_name.preset"
   local grub_cfg_path="${TARGET_PATH}/boot/grub/grub.cfg"
@@ -295,8 +272,7 @@ function test_kernel_uninstall_regex_one_kernel()
   }
 }
 
-function test_kernel_uninstall_regex_two_kernels()
-{
+function test_kernel_uninstall_regex_two_kernels() {
   local kernel_name_1='5.5.0-rc2-VKMS+'
   local kernel_name_2='5.6.0-rc2-AMDGPU+'
   local mkinitcpio_d_path_1="etc/mkinitcpio.d/${kernel_name_1}.preset"
@@ -361,8 +337,7 @@ function test_kernel_uninstall_regex_two_kernels()
   }
 }
 
-function test_kernel_uninstall_unmanaged()
-{
+function test_kernel_uninstall_unmanaged() {
   local target='5.5.0-rc2-NOTMANAGED'
   local modules_lib_path="${TARGET_PATH}/lib/modules/${target}"
   local initramfs_tools_var_path="${TARGET_PATH}/var/lib/initramfs-tools/${target}"
@@ -386,8 +361,7 @@ function test_kernel_uninstall_unmanaged()
   rm "${TARGET_PATH}/boot/vmlinuz-5.5.0-rc2-NOTMANAGED"
 }
 
-function test_kernel_force_uninstall_unmanaged()
-{
+function test_kernel_force_uninstall_unmanaged() {
   local target='5.5.0-rc2-NOTMANAGED'
   local grub_cfg_path="${TARGET_PATH}/boot/grub/grub.cfg"
   local boot_path="${TARGET_PATH}/boot/vmlinuz-${target}"
@@ -437,8 +411,7 @@ function test_kernel_force_uninstall_unmanaged()
   rm -rf "$modules_lib_path"
 }
 
-function test_remove_managed_kernel_local()
-{
+function test_remove_managed_kernel_local() {
   local target='xpto'
   local prefix="./test"
   local kernel_name='5.5.0-rc2-VKMS+'
@@ -498,8 +471,7 @@ function test_remove_managed_kernel_local()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
-function test_do_uninstall_invalid_path_cmd_sequence()
-{
+function test_do_uninstall_invalid_path_cmd_sequence() {
   local kernel_name='xpto'
   local prefix="${TARGET_PATH}"
   local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
@@ -517,8 +489,7 @@ function test_do_uninstall_invalid_path_cmd_sequence()
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
 
-function test_do_uninstall_valid_path_cmd_sequence()
-{
+function test_do_uninstall_valid_path_cmd_sequence() {
   local kernel_name='xpto'
   local prefix="${TARGET_PATH}"
   local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
@@ -570,8 +541,7 @@ function test_do_uninstall_valid_path_cmd_sequence()
   }
 }
 
-function test_do_uninstall_partial_cmd_sequence()
-{
+function test_do_uninstall_partial_cmd_sequence() {
   local kernel_name='xpto'
   local prefix="$TARGET_PATH"
   local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
@@ -618,8 +588,7 @@ function test_do_uninstall_partial_cmd_sequence()
   }
 }
 
-function test_install_modules()
-{
+function test_install_modules() {
   local module_target='5.9.0-rc5-NEW-VRR-TRACK+.tar'
   local cmd
   local output
@@ -651,8 +620,7 @@ function test_install_modules()
   LIB_MODULES_PATH="$lib_modules_path_bkp"
 }
 
-function test_install_kernel_remote()
-{
+function test_install_kernel_remote() {
   local name='test'
   local kernel_image_name='bzImage'
   local reboot='1'
@@ -727,8 +695,7 @@ function test_install_kernel_remote()
   }
 }
 
-function test_install_kernel_local()
-{
+function test_install_kernel_local() {
   local name='test'
   local kernel_image_name='bzImage'
   local reboot='1'
@@ -776,13 +743,11 @@ function test_install_kernel_local()
   }
 }
 
-function distro_pre_setup()
-{
+function distro_pre_setup() {
   :
 }
 
-function test_distro_deploy_setup()
-{
+function test_distro_deploy_setup() {
   local output
   local expected_cmd
 
@@ -799,8 +764,7 @@ function test_distro_deploy_setup()
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_distro_deploy_setup_local()
-{
+function test_distro_deploy_setup_local() {
   local output
   local expected_cmd
 
@@ -818,8 +782,7 @@ function test_distro_deploy_setup_local()
   assert_equals_helper 'Install packages' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_detect_filesystem_type()
-{
+function test_detect_filesystem_type() {
   local output
 
   alias findmnt='findmnt_only_filesystem_mock'
@@ -828,8 +791,7 @@ function test_detect_filesystem_type()
   assert_equals_helper 'We expected btrfs' "$LINENO" 'btrfs' "$output"
 }
 
-function test_is_filesystem_writable()
-{
+function test_is_filesystem_writable() {
   local output
   local expected_cmd
 
@@ -849,14 +811,12 @@ function test_is_filesystem_writable()
   assert_equals_helper 'Expected tune2fs command' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_make_root_partition_writable()
-{
+function test_make_root_partition_writable() {
   local output
   local expected_sequence
 
   output="$(
-    function is_filesystem_writable()
-    {
+    function is_filesystem_writable() {
       return 0
     }
     make_root_partition_writable 'TEST_MODE'
@@ -866,12 +826,10 @@ function test_make_root_partition_writable()
   # Check ext4
   AB_ROOTFS_PARTITION='/xpto/la'
   output="$(
-    function is_filesystem_writable()
-    {
+    function is_filesystem_writable() {
       return 1
     }
-    function detect_filesystem_type()
-    {
+    function detect_filesystem_type() {
       printf 'ext4'
     }
     make_root_partition_writable 'TEST_MODE'
@@ -885,12 +843,10 @@ function test_make_root_partition_writable()
   # Check btrfs
   AB_ROOTFS_PARTITION='/xpto/la'
   output="$(
-    function is_filesystem_writable()
-    {
+    function is_filesystem_writable() {
       return 1
     }
-    function detect_filesystem_type()
-    {
+    function detect_filesystem_type() {
       printf 'btrfs'
     }
     make_root_partition_writable 'TEST_MODE'
@@ -902,8 +858,7 @@ function test_make_root_partition_writable()
   compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
 }
 
-function test_uncompress_kw_package()
-{
+function test_uncompress_kw_package() {
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
@@ -921,14 +876,12 @@ function test_uncompress_kw_package()
   }
 }
 
-function test_uncompress_kw_package_check_invalid_path()
-{
+function test_uncompress_kw_package_check_invalid_path() {
   uncompress_kw_package '/somethig/xpto/abc/kw.pkg.tar'
   assert_equals_helper 'Invalid path' "($LINENO)" 2 "$?"
 }
 
-function test_parse_kw_package_metadata()
-{
+function test_parse_kw_package_metadata() {
   # Prepare fake kw.pkg.info
   mkdir -p "${KW_DEPLOY_TMP_FILE}/kw_pkg"
   touch "${KW_DEPLOY_TMP_FILE}/kw_pkg/kw.pkg.info"
@@ -946,14 +899,12 @@ function test_parse_kw_package_metadata()
   assert_equals_helper 'Wrong binary image name' "($LINENO)" 'vmlinuz-test' "${kw_package_metadata['kernel_binary_image_file']}"
 }
 
-function test_parse_kw_package_metadata_invalid_path()
-{
+function test_parse_kw_package_metadata_invalid_path() {
   parse_kw_package_metadata '/an/invalid/folder'
   assert_equals_helper 'Expected an error with invalid path' "($LINENO)" 22 "$?"
 }
 
-function test_parse_kw_package_metadata_no_pkg_info()
-{
+function test_parse_kw_package_metadata_no_pkg_info() {
   parse_kw_package_metadata ''
   assert_equals_helper 'Expected an error due to the lack of info file' "($LINENO)" 22 "$?"
 }

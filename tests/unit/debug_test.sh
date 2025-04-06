@@ -14,8 +14,7 @@ enable_amdgpu_dm_event="printf '%s\n' 1 > $event_path/amdgpu_dm/enable"
 disable_amdgpu_dm_filter="printf '0\n' > $event_path/amdgpu_dm/filter"
 igt_cmd_sample='$HOME/igt-gpu-tools/build/tests/kms_plane --run-subtest plane-position-covered'
 
-function setUp
-{
+function setUp {
   # Default config
   parse_configuration "$KW_CONFIG_SAMPLE"
 
@@ -48,21 +47,18 @@ exceptions ext4 fib fib6"
   done
 }
 
-function tearDown()
-{
+function tearDown() {
   if [[ -d "$SHUNIT_TMPDIR" ]]; then
     rm -rf "${SHUNIT_TMPDIR}"
   fi
 }
 
 # Mock function
-function get_today_info()
-{
+function get_today_info() {
   printf 'kw_2021_10_22-07_34_07'
 }
 
-function test_prepare_log_database()
-{
+function test_prepare_log_database() {
   local output=''
 
   cd "$SHUNIT_TMPDIR" || {
@@ -102,8 +98,7 @@ function test_prepare_log_database()
   assertTrue "($LINENO) Random file inside debug dir" '[[ -d "$PWD/$KW_DEBUG/$dir_id" ]]'
 }
 
-function test_process_list()
-{
+function test_process_list() {
   local raw_input=''
   local output=''
   local event=''
@@ -123,8 +118,7 @@ function test_process_list()
   assert_equals_helper 'Return error:' "($LINENO)" 22 "$ret"
 }
 
-function test_convert_event_syntax_to_sys_path_hash()
-{
+function test_convert_event_syntax_to_sys_path_hash() {
   local single_event='amdgpu_dm:amdgpu_dm_dc_clocks_state,amdgpu_dm_dce_clocks_state'
   local multiple_event='amdgpu_dm:amdgpu_dm_dc_clocks_state,amdgpu_dm_dce_clocks_state;kvm:kvm_entry,kvm_fpu'
   local single_filter_event='amdgpu_dm:amdgpu_dm_dc_clocks_state,amdgpu_dm_dce_clocks_state[sclk_khz > 0]'
@@ -237,8 +231,7 @@ function test_convert_event_syntax_to_sys_path_hash()
   assert_equals_helper 'Return error:' "($LINENO)" 22 "$ret"
 }
 
-function test_build_event_command_string()
-{
+function test_build_event_command_string() {
   local dummy_path="$TRACING_BASE_PATH/dummy"
   declare -lA events_hash
   declare -la commands_array
@@ -307,8 +300,7 @@ function test_build_event_command_string()
 }
 
 #debug [--remote [REMOTE:PORT]] --cmd=\"COMMAND\"\n" \
-function test_parser_debug_options_remote()
-{
+function test_parser_debug_options_remote() {
   # 1) Parser remote without config file.
   parser_debug_options --remote 'juca@localhost:33'
   assert_equals_helper 'Expected localhost' "$LINENO" 'localhost' "${remote_parameters['REMOTE_IP']}"
@@ -346,8 +338,7 @@ function test_parser_debug_options_remote()
   }
 }
 
-function test_parser_debug_options()
-{
+function test_parser_debug_options() {
   local event_str
   local fake_cmd='modprobe amdgpu'
 
@@ -411,8 +402,7 @@ function test_parser_debug_options()
   assert_equals_helper 'Expected ftrace string' "$LINENO" "$ftrace_str" "${options_values['FTRACE']}"
 }
 
-function test_build_ftrace_command_string()
-{
+function test_build_ftrace_command_string() {
   local output
   local expected_cmd
   local disable_trace="printf '0' > /sys/kernel/debug/tracing/tracing_on"
@@ -473,8 +463,7 @@ function test_build_ftrace_command_string()
   assert_equals_helper 'Expected disable command' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_ftrace_debug()
-{
+function test_ftrace_debug() {
   local output
   local expected_cmd
   local expected_cmd_base
@@ -568,8 +557,7 @@ function test_ftrace_debug()
   }
 }
 
-function test_ftrace_list()
-{
+function test_ftrace_list() {
   local output
   local expected_cmd
 
@@ -586,13 +574,11 @@ function test_ftrace_list()
   )
 
   # Let's overwrite cmd_manager behavior temporarily
-  function cmd_manager()
-  {
+  function cmd_manager() {
     printf '%s\n' 'hwlat blk mmiotrace function_graph wakeup_dl wakeup_rt wakeup function nop'
   }
 
-  function cmd_remotely()
-  {
+  function cmd_remotely() {
     printf '%s\n' 'hwlat blk mmiotrace function_graph wakeup_dl wakeup_rt wakeup function nop'
   }
 
@@ -625,8 +611,7 @@ function test_ftrace_list()
   source 'src/lib/remote.sh' --source-only
 }
 
-function test_dmesg_debug()
-{
+function test_dmesg_debug() {
   local output
   local expected_cmd
   local std_dmesg='dmesg --human --color=always'
@@ -748,8 +733,7 @@ function test_dmesg_debug()
   }
 }
 
-function test_event_debug()
-{
+function test_event_debug() {
   local expected_cmd="$default_ssh sudo \" $enable_amdgpu_dm_event && $debug_on\""
   local ret
 
@@ -812,8 +796,7 @@ function test_event_debug()
   }
 }
 
-function test_stop_debug()
-{
+function test_stop_debug() {
   local output
   local -a expected_cmd_sequence
   local std_ssh='ssh -p 3333 juca@127.0.0.1'
@@ -849,8 +832,7 @@ function test_stop_debug()
   assert_equals_helper 'Stop remote dmesg' "$LINENO" "$external_cmd" "$output"
 }
 
-function test_reset_debug()
-{
+function test_reset_debug() {
   local disable_cmd
   local std_ssh='ssh -p 3333 juca@127.0.0.1 sudo'
   local current_tracer='/sys/kernel/debug/tracing/current_tracer'

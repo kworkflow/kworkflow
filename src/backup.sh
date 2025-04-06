@@ -12,8 +12,7 @@ decompress_path="$KW_CACHE_DIR/tmp-kw-backup"
 
 # This is the main function that deals with the operations related to backup. It
 # recieves an argument and call other functions based on that.
-function backup()
-{
+function backup() {
   local flag
 
   flag=${flag:-'SILENT'}
@@ -41,8 +40,7 @@ function backup()
 # KW_DATA_DIR
 #
 # @path Path to the directory in which the compressed file should be stored.
-function create_backup()
-{
+function create_backup() {
   local path="$1"
   local flag="$2"
   local file_name
@@ -73,8 +71,7 @@ function create_backup()
 # KW_DATA_DIR.
 #
 # #path Path to the .tar.gz containing kw data
-function restore_backup()
-{
+function restore_backup() {
   local path="$1"
   local flag="$2"
   local ret
@@ -113,8 +110,7 @@ function restore_backup()
 
 # This function restores the config folder from KW_DATA_DIR
 #
-function restore_config()
-{
+function restore_config() {
   local flag="$1"
   local config_file
   local cmd
@@ -129,8 +125,8 @@ function restore_config()
 
     for file in "$decompress_path/"configs/configs/*; do
       config_file="$(get_file_name_from_path "$file")"
-      if [[ -f "$KW_DATA_DIR/configs/configs/$config_file" ]] &&
-        ! cmp -s "$KW_DATA_DIR/configs/configs/$config_file" "$file"; then
+      if [[ -f "$KW_DATA_DIR/configs/configs/$config_file" ]] \
+        && ! cmp -s "$KW_DATA_DIR/configs/configs/$config_file" "$file"; then
         complain "It looks like that the file $config_file differs from the backup version."
         cmd="diff -u --color=always ${KW_DATA_DIR}/configs/configs/${config_file} ${file}"
         cmd_manager "$flag" "$cmd"
@@ -146,8 +142,7 @@ function restore_config()
   fi
 }
 
-function restore_data_from_dir()
-{
+function restore_data_from_dir() {
   local dir="$1"
   local flag="$2"
   local decision
@@ -169,8 +164,8 @@ function restore_data_from_dir()
       cmd_manager "$flag" "$cmd"
       for day_file in "$month_dir"/*; do
         day="$(str_remove_prefix "$day_file" "$decompress_path/$dir/$year$month/")"
-        if [[ -f "$KW_DATA_DIR/$dir/$year$month/$day" ]] &&
-          ! cmp -s "$KW_DATA_DIR/$dir/$year$month/$day" "$day_file"; then
+        if [[ -f "$KW_DATA_DIR/$dir/$year$month/$day" ]] \
+          && ! cmp -s "$KW_DATA_DIR/$dir/$year$month/$day" "$day_file"; then
           if [[ -z "$decision" ]]; then
             complain "It looks like that the file $year$month/$day differs from the backup version."
             complain 'Do you want to:'
@@ -203,8 +198,7 @@ function restore_data_from_dir()
   done
 }
 
-function restore_pomodoro()
-{
+function restore_pomodoro() {
   local flag="$1"
   local decision
   local difference
@@ -216,8 +210,8 @@ function restore_pomodoro()
     restore_data_from_dir 'pomodoro' "$flag"
 
     if [[ -f "$decompress_path/pomodoro/tags" ]]; then
-      if [[ -f "$KW_DATA_DIR/pomodoro/tags" ]] &&
-        ! cmp -s "$KW_DATA_DIR/pomodoro/tags" "$decompress_path/pomodoro/tags"; then
+      if [[ -f "$KW_DATA_DIR/pomodoro/tags" ]] \
+        && ! cmp -s "$KW_DATA_DIR/pomodoro/tags" "$decompress_path/pomodoro/tags"; then
         if [[ -z "$decision" ]]; then
           complain 'pomodoro/tags already exists'
           complain 'Do you want to:'
@@ -247,8 +241,7 @@ function restore_pomodoro()
   fi
 }
 
-function restore_statistics()
-{
+function restore_statistics() {
   if [[ -d "$decompress_path/statistics" ]]; then
     restore_data_from_dir 'statistics'
   fi
@@ -257,8 +250,7 @@ function restore_statistics()
 # This function restores the kw SQLite database from `KW_DATA_DIR`.
 #
 # @flag: Flag to control function output
-function restore_database()
-{
+function restore_database() {
   local flag="$1"
   local cmd
   local ret
@@ -279,8 +271,7 @@ function restore_database()
 # This function restores the kernel config files from `KW_DATA_DIR`.
 #
 # @flag: Flag to control function output
-function restore_config_files()
-{
+function restore_config_files() {
   local flag="$1"
   local config_file_paths
   local config_filename
@@ -319,8 +310,7 @@ function restore_config_files()
 
 # This function parses the arguments provided to 'kw backup', validates them,
 # and populates the options_values variable accordingly.
-function parse_backup_options()
-{
+function parse_backup_options() {
   local long_options='help,restore:,force,verbose'
   local short_options='h,r:,f'
 
@@ -373,8 +363,7 @@ function parse_backup_options()
   done
 }
 
-function backup_help()
-{
+function backup_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'backup'

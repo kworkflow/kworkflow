@@ -2,8 +2,7 @@ include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
 
 # Returns the value of time as an integer number of seconds since the Epoch.
-function get_timestamp_sec()
-{
+function get_timestamp_sec() {
   date +%s
 }
 
@@ -13,8 +12,7 @@ function get_timestamp_sec()
 #
 # Return:
 # Return a string in the format H:M:S
-function sec_to_format()
-{
+function sec_to_format() {
   local value="$1"
   local format="$2"
 
@@ -35,8 +33,7 @@ function sec_to_format()
 # Return:
 # Return 0 and a string with the arbitrarily long value in H:M:S format
 # if @value is an integer. Return 22 (EINVAL) otherwise.
-function secs_to_arbitrarily_long_hours_mins_secs()
-{
+function secs_to_arbitrarily_long_hours_mins_secs() {
   local value="$1"
   local hours
   local minutes
@@ -61,8 +58,7 @@ function secs_to_arbitrarily_long_hours_mins_secs()
 #
 # @format: Date format parameter, for more information about formats, use
 #          `man date`.
-function get_today_info()
-{
+function get_today_info() {
   local format="$1"
   [[ -z "$format" ]] && date && return 0
   date "$format"
@@ -79,8 +75,7 @@ function get_today_info()
 # Return:
 # The first day of the week. If format is wrong, date will return an error
 # code.
-function get_week_beginning_day()
-{
+function get_week_beginning_day() {
   local date_param="$1"
   local format="$2"
 
@@ -105,8 +100,7 @@ function get_week_beginning_day()
 # String with all days of given week. If format is wrong, the call to the
 # 'get_week_beginning_day' function will return an error code that will be
 # returned by this function.
-function get_days_of_week()
-{
+function get_days_of_week() {
   local date_param="$1"
   local format=${2:-'+%Y/%m/%d'}
   local beginning_day_of_week
@@ -137,8 +131,7 @@ function get_days_of_week()
 #
 # Return:
 # Formated date
-function date_to_format()
-{
+function date_to_format() {
   local value="$1"
   local format="$2"
 
@@ -156,8 +149,7 @@ function date_to_format()
 # Return:
 # Return an integer number that represents the total days in the specific
 # month. In case of error, return 22.
-function days_in_the_month()
-{
+function days_in_the_month() {
   local month_number="$1"
   local year="$2"
   local days=31
@@ -199,8 +191,7 @@ function days_in_the_month()
 # Return:
 # If timebox is valid, returns 0 and a string with the time value in seconds.
 # Returns 22 (EINVAL) otherwise.
-function timebox_to_sec()
-{
+function timebox_to_sec() {
   local timebox="$1"
   local time_type
   local time_value

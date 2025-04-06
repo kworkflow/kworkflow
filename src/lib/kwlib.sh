@@ -29,8 +29,7 @@ declare -ga compression_programs=('gzip' 'bzip2' 'lzip' 'lzma' 'lzop' 'zstd'
 # error, "string" is displayed in the printf command and EINVAL code is
 # returned.Probably, you want to execute this function is a subshell and save
 # the output in a variable.
-function get_based_on_delimiter()
-{
+function get_based_on_delimiter() {
   local string="$1"
   local delimiter="$2"
   local position="$3"
@@ -68,8 +67,7 @@ function get_based_on_delimiter()
 # Returns:
 # Return the exit status of the command defined by the string or 0 in the case
 # of TEST_MODE
-function cmd_manager()
-{
+function cmd_manager() {
   local flag="$1"
   shift 1 # Let's remove flag parameter
   local command_for_eval_array=("$@")
@@ -122,8 +120,7 @@ function cmd_manager()
   eval "$command_for_eval"
 }
 
-function show_verbose()
-{
+function show_verbose() {
   local flag="$1"
   local cmd="$2"
 
@@ -137,8 +134,7 @@ function show_verbose()
 #
 # Returns:
 # Outputs the path to the shared memory directory created.
-function create_shared_memory_dir()
-{
+function create_shared_memory_dir() {
   if [[ -d "$KW_SHARED_MEMORY_DEFAULT_DIR" && -w "$KW_SHARED_MEMORY_DEFAULT_DIR" ]]; then
     printf '%s' "$(mktemp --tmpdir="$KW_SHARED_MEMORY_DEFAULT_DIR" --directory)"
     return
@@ -153,8 +149,7 @@ function create_shared_memory_dir()
 #
 # Returns:
 # True if given dir is a kernel tree root and false otherwise.
-function is_kernel_root()
-{
+function is_kernel_root() {
   local -r DIR="$*"
 
   # The following files are some of the files expected to be at a linux
@@ -179,8 +174,7 @@ function is_kernel_root()
 # Returns:
 # The path of the kernel tree root (string) which the file or dir belongs to, or
 # an empty string if no root was found.
-function find_kernel_root()
-{
+function find_kernel_root() {
   local -r FILE_OR_DIR="$*"
   local current_dir
   local kernel_root=''
@@ -213,8 +207,7 @@ function find_kernel_root()
 #
 # Note: Make sure that you called is_kernel_root before trying to execute this
 # function.
-function get_kernel_release()
-{
+function get_kernel_release() {
   local flag="$1"
   local env_name
   # TODO: Maybe we need to remove this error redirection
@@ -239,8 +232,7 @@ function get_kernel_release()
 #
 # Note: Make sure that you called is_kernel_root before trying to execute this
 # function.
-function get_kernel_version()
-{
+function get_kernel_version() {
   local flag="$1"
   # TODO: Maybe we need to remove this error redirection
   local cmd='make kernelversion 2> /dev/null'
@@ -262,8 +254,7 @@ function get_kernel_version()
 #
 # Returns:
 # True if given path is a patch file and false otherwise.
-function is_a_patch()
-{
+function is_a_patch() {
   local -r FILE_PATH="$*"
   local file_content
 
@@ -299,8 +290,7 @@ function is_a_patch()
 #
 # Returns:
 # Return the concatenation of path and member, removing any extra slashes '/'
-function join_path()
-{
+function join_path() {
   local target_path=$1
   local member=$2
   local joined
@@ -329,8 +319,7 @@ function join_path()
 #
 # Returns:
 # It returns the family name in lowercase, otherwise return none.
-function detect_distro()
-{
+function detect_distro() {
   local root_path="$1"
   local str_check="$2"
   local raw_os_release="$3"
@@ -376,8 +365,7 @@ function detect_distro()
 #
 # Return:
 # Print a execution time info
-function statistics_manager()
-{
+function statistics_manager() {
   local label_name="$1"
   local start_datetime_in_secs="$2"
   local elapsed_time_in_secs="$3"
@@ -408,8 +396,7 @@ function statistics_manager()
 # This function checks if a certain command can be run
 #
 # @command The whole command that is meant to be executed
-function command_exists()
-{
+function command_exists() {
   local cmd="$1"
   local package=${cmd%% *}
 
@@ -429,8 +416,7 @@ function command_exists()
 # @err The error code to be used on exit, it takes the return code of the
 #        last command executed as default
 # @msg The custom message to be displayed
-function exit_msg()
-{
+function exit_msg() {
   local err=${2:-"$?"}
   local msg=${1:-'Something went wrong!'}
 
@@ -449,8 +435,7 @@ function exit_msg()
 #
 # Returns:
 # Parsed command line arguments.
-function kw_parse()
-{
+function kw_parse() {
   local short_options="$1"
   local long_options="$2"
   shift 2
@@ -470,8 +455,7 @@ function kw_parse()
 #
 # Returns:
 # Error messages separated by a newline and prefixed with @name
-function kw_parse_get_errors()
-{
+function kw_parse_get_errors() {
   local name="$1"
   local short_options="$2"
   local long_options="$3"
@@ -492,8 +476,7 @@ function kw_parse_get_errors()
 # @compression_type compression program used
 # @dir_name The directory to be compressed, inside go_to_path_to_compress
 # @flag How to display (or not) the command used
-function generate_tarball()
-{
+function generate_tarball() {
   local go_to_path_to_compress="$1"
   local file_path="$2"
   local compression_type="$3"
@@ -542,8 +525,7 @@ function generate_tarball()
 # @path Where to extract the file
 # @compression_type compression program used
 # @flag How to display (or not) the command used
-function extract_tarball()
-{
+function extract_tarball() {
   local file_to_extract="$1"
   local path="$2"
   local compression_type="$3"
@@ -582,8 +564,7 @@ function extract_tarball()
 # empty, then this function returns an empty string.
 #
 # @ file_path: path to a file
-function get_file_name_from_path()
-{
+function get_file_name_from_path() {
   local file_path="$1"
 
   printf '%s\n' "${file_path##*/}"
@@ -595,8 +576,7 @@ function get_file_name_from_path()
 #
 # Returns:
 # 0 if is inside a git work-tree root and 128 otherwise.
-function is_inside_work_tree()
-{
+function is_inside_work_tree() {
   local flag="$1"
   local cmd='git rev-parse --is-inside-work-tree &> /dev/null'
 
@@ -615,8 +595,7 @@ function is_inside_work_tree()
 #
 # Returns:
 # All values of the given config with their respective scopes
-function get_all_git_config()
-{
+function get_all_git_config() {
   local config="$1"
   local scope="$2"
   local flag="$3"
@@ -650,8 +629,7 @@ function get_all_git_config()
 #
 # Returns:
 # All config values that match the given regular expression
-function get_git_config_regex()
-{
+function get_git_config_regex() {
   local regexp="$1"
   local scope="$2"
   local flag="$3"
@@ -680,8 +658,7 @@ function get_git_config_regex()
 # Return:
 # Return the current env name and 0 if users are inside a env. Otherwise,
 # return an empty string and 1.
-function get_current_env_name()
-{
+function get_current_env_name() {
   local current_env="${PWD}/.kw/env.current"
   local output
   local ret=1
@@ -703,8 +680,7 @@ function get_current_env_name()
 # Return:
 # Returns 0 if the path is safe to remove, 1 if it is not and 2 if it doesn't
 # exists.
-function is_safe_path_to_remove()
-{
+function is_safe_path_to_remove() {
   local path="$1"
 
   [[ ! -e "$path" ]] && return 2   # ENOENT
@@ -725,8 +701,7 @@ function is_safe_path_to_remove()
 # Return:
 # Returns data regarding the repository branches through the array reference passed as
 # argument.
-function get_git_repository_branches()
-{
+function get_git_repository_branches() {
   local git_repository_path="$1"
   local -n _branches="$2"
   local flag="$3"

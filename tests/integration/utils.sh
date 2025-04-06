@@ -28,8 +28,7 @@ DISTROS=(
 #
 # Return:
 # The status code of the command ran to build the image.
-function build_distro_image()
-{
+function build_distro_image() {
   local distro="$1"
   local file="${CONTAINER_DIR}/Containerfile_${distro}"
 
@@ -42,8 +41,7 @@ function build_distro_image()
 }
 
 # Build container images and create containers used accross the tests.
-function setup_container_environment()
-{
+function setup_container_environment() {
   local verbose="$1"
   local feature="$2"
   local working_directory # working directory in the container
@@ -145,8 +143,7 @@ function setup_container_environment()
 }
 
 # Destroy all containers used in the tests.
-function teardown_containers()
-{
+function teardown_containers() {
   local distro
   local i=0
   local total_distros="${#DISTROS[@]}"
@@ -161,8 +158,7 @@ function teardown_containers()
 # Destroy a single container
 #
 # @container    Container name or id.
-function teardown_single_container()
-{
+function teardown_single_container() {
   local container="$1"
 
   container_exists "${container}"
@@ -178,8 +174,7 @@ function teardown_single_container()
 # Completely remove the container environment: the containers and the images
 #
 # @flag   Optional. Currently, only accepts '-f' or '--force' to force removal of cached images.
-function teardown_container_environment()
-{
+function teardown_container_environment() {
   local flag="$1"
   local container_name
   local distro
@@ -251,8 +246,7 @@ function teardown_container_environment()
 # Check if the given image exists.
 #
 # @image    The image name or id.
-function image_exists()
-{
+function image_exists() {
   podman image exists "$1"
 }
 
@@ -261,8 +255,7 @@ function image_exists()
 # @flags    Optional flags to be passed to podman.
 #           If it is '-f' or '--force', then it should be the ONLY flag.
 # @images   Image names or ids.
-function image_rm()
-{
+function image_rm() {
   local force_remove=0
   local img
 
@@ -304,8 +297,8 @@ function image_rm()
     fi
 
     # Force remove all containers that depend on that image, one by one.
-    (podman container ls --all --quiet --filter ancestor="$img" |
-      xargs -n1 podman container rm --force --time 0) > /dev/null 2>&1
+    (podman container ls --all --quiet --filter ancestor="$img" \
+      | xargs -n1 podman container rm --force --time 0) > /dev/null 2>&1
 
     # Force remove the image now.
     podman image rm --force "$img" > /dev/null 2>&1
@@ -316,8 +309,7 @@ function image_rm()
 #
 # @options  Options to be passed to podman.
 # @images   Image names or ids.
-function image_ls()
-{
+function image_ls() {
   if [[ "$#" -le 1 ]]; then
     complain "(${LINENO}): no image provided to be listed."
     return 1
@@ -335,8 +327,7 @@ function image_ls()
 #
 # @options  Options to be passed to podman.
 # @images   Image names or ids.
-function image_inspect()
-{
+function image_inspect() {
   # shellcheck disable=SC2068
   podman image inspect $@
 
@@ -348,8 +339,7 @@ function image_inspect()
 # Build a container image.
 #
 # @args   Arguments to be passed to podman.
-function image_build()
-{
+function image_build() {
   # shellcheck disable=SC2068
   podman image build $@ > /dev/null 2>&1
 
@@ -361,8 +351,7 @@ function image_build()
 # Check existence of given container.
 #
 # @container    The container name or id.
-function container_exists()
-{
+function container_exists() {
   podman container exists "$1"
 }
 
@@ -370,8 +359,7 @@ function container_exists()
 #
 # @options      Options to be passed to podman if any.
 # @containers   Container names or ids.
-function container_rm()
-{
+function container_rm() {
   # shellcheck disable=SC2068
   podman container rm $@ > /dev/null 2>&1
 
@@ -383,8 +371,7 @@ function container_rm()
 # Run a container.
 #
 # @args   Arguments to be passed to podman.
-function container_run()
-{
+function container_run() {
   # shellcheck disable=SC2068
   podman container run $@
 
@@ -399,8 +386,7 @@ function container_run()
 # @container_command    The command to be executed within the container.
 # @podman_exec_options  Extra parameters for 'podman container exec' like
 #                       --workdir, --env, and other supported options.
-function container_exec()
-{
+function container_exec() {
   local container_name="$1"
   local container_command="$2"
   local podman_exec_options="$3"
@@ -427,8 +413,7 @@ function container_exec()
 # @container The container to copy files to.
 # @src       The file in the host.
 # @dst       The destination file or directory in the container.
-function container_copy()
-{
+function container_copy() {
   local container="$1"
   local src="$2"
   local dst="$3"
@@ -444,8 +429,7 @@ function container_copy()
 #
 # @options      Options to be passed to podman.
 # @containers   Container names or ids.
-function container_inspect()
-{
+function container_inspect() {
   # shellcheck disable=SC2068
   podman container inspect $@
 
@@ -457,8 +441,7 @@ function container_inspect()
 # This function generates a temporary directory inside a specified container.
 #
 # @container  The name of the container.
-function generate_temporary_directory_in_container()
-{
+function generate_temporary_directory_in_container() {
   local container="$1"
   local ret
 

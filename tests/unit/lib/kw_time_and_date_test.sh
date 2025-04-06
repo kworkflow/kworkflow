@@ -3,15 +3,13 @@
 include './src/lib/kw_time_and_date.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   # Samples file data
   pre_total_sec="1846"
   pre_formated_sec="00:30:46"
 }
 
-function test_sec_to_format()
-{
+function test_sec_to_format() {
   formatted_time=$(sec_to_format "$pre_total_sec")
   assertEquals "($LINENO)" "$pre_formated_sec" "$formatted_time"
 
@@ -25,8 +23,7 @@ function test_sec_to_format()
   assertEquals "($LINENO)" '46' "$formatted_time"
 }
 
-function test_secs_to_arbitrarily_long_hours_mins_secs()
-{
+function test_secs_to_arbitrarily_long_hours_mins_secs() {
   local output
   local expected
 
@@ -59,8 +56,7 @@ function test_secs_to_arbitrarily_long_hours_mins_secs()
   assert_equals_helper 'Wrong conversion' "$LINENO" "$expected" "$output"
 }
 
-function test_get_today_info()
-{
+function test_get_today_info() {
   local today
 
   today=$(date +%Y/%m/%d)
@@ -78,8 +74,7 @@ function test_get_today_info()
   assert_equals_helper 'No parameter' "$LINENO" "$today" "$formatted_today"
 }
 
-function test_get_week_beginning_day()
-{
+function test_get_week_beginning_day() {
   local ref_week='2021/05/19'
   local first_week_day='2021/05/16'
   local this_week_day
@@ -102,8 +97,7 @@ function test_get_week_beginning_day()
   assert_equals_helper 'The first day of this week' "$LINENO" "$first_week_day" "$week_day"
 }
 
-function test_get_days_of_week()
-{
+function test_get_days_of_week() {
   local current_day
   local week_day
   local beginning_day_of_week
@@ -147,8 +141,7 @@ function test_get_days_of_week()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-function test_date_to_format()
-{
+function test_date_to_format() {
   local formatted_date
 
   formatted_date=$(date_to_format '2020/3/1')
@@ -162,8 +155,7 @@ function test_date_to_format()
   assert_equals_helper 'Today' "$LINENO" "$today" "$formatted_date"
 }
 
-function test_days_in_the_month()
-{
+function test_days_in_the_month() {
   local total_days
   local this_year
   local this_month
@@ -224,8 +216,7 @@ function test_days_in_the_month()
   assert_equals_helper 'Invalid month' "$LINENO" 22 "$ret"
 }
 
-function test_timebox_to_sec()
-{
+function test_timebox_to_sec() {
   local output
 
   timebox_to_sec 'invalid' > /dev/null 2>&1

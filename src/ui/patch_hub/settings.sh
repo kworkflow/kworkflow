@@ -1,8 +1,7 @@
 include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
 # Screen that shows all types of settings available.
-function show_settings_screen()
-{
+function show_settings_screen() {
   local lore_config_path="${PWD}/.kw/lore.config"
   local -a menu_list_string_array
   local ret
@@ -57,8 +56,7 @@ function show_settings_screen()
 }
 
 # TODO: Document and test this function
-function change_save_patches_to_setting()
-{
+function change_save_patches_to_setting() {
   local lore_config_path="$1"
   local new_value
   local output
@@ -93,8 +91,7 @@ function change_save_patches_to_setting()
 }
 
 # TODO: Document and test this function
-function change_kernel_tree_path_setting()
-{
+function change_kernel_tree_path_setting() {
   local lore_config_path="$1"
   local new_value
 
@@ -128,8 +125,7 @@ function change_kernel_tree_path_setting()
 }
 
 # TODO: Document and test this function
-function change_kernel_tree_branch_setting()
-{
+function change_kernel_tree_branch_setting() {
   local lore_config_path="$1"
   local new_value
   local message_box
@@ -167,8 +163,7 @@ function change_kernel_tree_branch_setting()
 }
 
 # This function handles the action of changing the 'patchsets_per_page' setting of lore.
-function change_patchsets_per_page_setting()
-{
+function change_patchsets_per_page_setting() {
   local lore_config_path="$1"
   local message_box
   local new_value

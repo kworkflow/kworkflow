@@ -14,8 +14,7 @@ declare -gA options_values
 #
 # Returns:
 # In case of failure, this function returns ENOENT.
-function init_main()
-{
+function init_main() {
   local config_template_folder="${KW_ETC_DIR}/init_templates"
   local name='kworkflow.config'
   local build_name='build.config'
@@ -125,8 +124,7 @@ function init_main()
 #
 # @option: option name in kw config file
 # @value: value to set option to
-function set_config_value()
-{
+function set_config_value() {
   local option="$1"
   local value="$2"
   local path="${3:-"${PWD}/${KW_DIR}/${name}"}"
@@ -136,8 +134,7 @@ function set_config_value()
   cmd_manager "$flag" "$cmd"
 }
 
-function config_file_already_exist_question()
-{
+function config_file_already_exist_question() {
   local name='kworkflow.config'
   local flag=${flag:-'SILENT'}
 
@@ -158,8 +155,7 @@ function config_file_already_exist_question()
 # template to select.
 #
 # @_target_template: The variable reference used to save the template name
-function get_template_name()
-{
+function get_template_name() {
   local test_mode="$1"
   local template="${options_values['TEMPLATE']}" # removes colon
   local templates_path="$KW_ETC_DIR/init_templates"
@@ -199,8 +195,7 @@ function get_template_name()
   return 0
 }
 
-function parse_init_options()
-{
+function parse_init_options() {
   local long_options='arch:,remote:,target:,force,template::,verbose'
   local short_options='a:,r:,t:,f'
 
@@ -259,8 +254,7 @@ function parse_init_options()
   done
 }
 
-function init_help()
-{
+function init_help() {
   if [[ "$1" == --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'init'

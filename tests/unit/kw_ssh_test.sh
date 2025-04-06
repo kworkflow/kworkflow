@@ -8,14 +8,12 @@ include './tests/unit/utils.sh'
 # NOTE: We're not testing the ssh command here, just the kw ssh operation
 #
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   export TEST_PATH="$SHUNIT_TMPDIR/test_path"
   export original_dir="$PWD"
 }
 
-function setUp()
-{
+function setUp() {
   export INVALID_ARG='Invalid arguments'
   export NO_SUCH_FILE='No such file'
   export SSH_OK='ssh -p 3333 juca@127.0.0.1'
@@ -41,16 +39,14 @@ function setUp()
   populate_remote_info ''
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to back to the kw folder"
     return
   }
 }
 
-function test_parser_ssh_options_erros()
-{
+function test_parser_ssh_options_erros() {
   local ret
   local substring_output
   local error
@@ -72,8 +68,7 @@ function test_parser_ssh_options_erros()
     '[[ $substring_output =~ $error ]]'
 }
 
-function test_parser_ssh_options()
-{
+function test_parser_ssh_options() {
   parser_ssh_options --script 'something/xpto/la'
   assertEquals "($LINENO)" 'something/xpto/la' "${options_values['SCRIPT']}"
 
@@ -87,8 +82,7 @@ function test_parser_ssh_options()
   assertEquals "($LINENO)" 'something' "${remote_parameters['REMOTE_IP']}"
 }
 
-function test_kw_ssh_main_no_parameter()
-{
+function test_kw_ssh_main_no_parameter() {
   local output
 
   declare -a expected_cmd=(
@@ -101,8 +95,7 @@ function test_kw_ssh_main_no_parameter()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_kw_ssh_main_command()
-{
+function test_kw_ssh_main_command() {
   local output
 
   declare -a expected_cmd=(
@@ -118,8 +111,7 @@ function test_kw_ssh_main_command()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_kw_ssh_main_script()
-{
+function test_kw_ssh_main_script() {
   local output
   local msg
 
@@ -137,8 +129,7 @@ function test_kw_ssh_main_script()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_handle_ssh_with_config_file()
-{
+function test_handle_ssh_with_config_file() {
   local output
   local expected_result
 
@@ -153,8 +144,7 @@ function test_handle_ssh_with_config_file()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_handle_ssh_with_config_file_verbose()
-{
+function test_handle_ssh_with_config_file_verbose() {
   local output
   local expected_result
 
@@ -169,8 +159,7 @@ function test_handle_ssh_with_config_file_verbose()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_handle_ssh_with_port_user_remote()
-{
+function test_handle_ssh_with_port_user_remote() {
   local output
   local expected_result
 
@@ -191,8 +180,7 @@ function test_handle_ssh_with_port_user_remote()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_run_command_in_the_remote()
-{
+function test_run_command_in_the_remote() {
   local output
   local expected_result
 
@@ -206,8 +194,7 @@ function test_run_command_in_the_remote()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_run_script_in_the_remote()
-{
+function test_run_script_in_the_remote() {
   local output
   local expected_result
 
@@ -223,8 +210,7 @@ function test_run_script_in_the_remote()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_ssh_remote()
-{
+function test_ssh_remote() {
   local output
   local expected_result
 
@@ -238,8 +224,7 @@ function test_ssh_remote()
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
-function test_send_to_path_with_port_user_remote()
-{
+function test_send_to_path_with_port_user_remote() {
   local output
   local expected_cmd
 
@@ -284,8 +269,7 @@ function test_send_to_path_with_port_user_remote()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_get_from_path_with_port_user_remote()
-{
+function test_get_from_path_with_port_user_remote() {
   local output
   local expected_cmd
   local -a inputs=(

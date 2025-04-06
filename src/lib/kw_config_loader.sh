@@ -1,10 +1,10 @@
 include() {
-   if [ -f "$1"  ]; then
-     source "$1"
-    else
-     echo "Error: include failed, file not found: $1" >&2
-     return 1
-    fi
+  if [ -f "$1" ]; then
+    source "$1"
+  else
+    echo "Error: include failed, file not found: $1" >&2
+    return 1
+  fi
 }
 
 include "${KW_LIB_DIR}/lib/kwio.sh"
@@ -74,8 +74,7 @@ declare -gA deploy_target_opt=(['local']=2 ['remote']=3)
 #
 # Return:
 # Print <option description> (option): value
-function print_array()
-{
+function print_array() {
   local -n config_array="$1"
   local -n option_description="$2"
   local test_mode="$3"
@@ -88,8 +87,7 @@ function print_array()
 }
 
 # This function is used to show the current set up used by kworkflow.
-function show_build_variables()
-{
+function show_build_variables() {
   local test_mode=0
   local has_local_build_config='No'
 
@@ -123,8 +121,7 @@ function show_build_variables()
 }
 
 # This function is used to show the current set up used by kworkflow.
-function show_deploy_variables()
-{
+function show_deploy_variables() {
   local test_mode=0
   local has_local_deploy_config='No'
 
@@ -153,8 +150,7 @@ function show_deploy_variables()
   print_array deploy_config deploy
 }
 
-function show_send_patch_variables()
-{
+function show_send_patch_variables() {
   local test_mode=0
   local has_local_send_patch_config='No'
 
@@ -179,8 +175,7 @@ function show_send_patch_variables()
   print_array send_patch_config send-patch
 }
 
-function show_vm_variables()
-{
+function show_vm_variables() {
   local test_mode=0
   local has_local_vm_config='No'
 
@@ -206,8 +201,7 @@ function show_vm_variables()
   print_array vm_config vm
 }
 
-function show_notification_variables()
-{
+function show_notification_variables() {
   local test_mode=0
   local has_local_notification_config='No'
 
@@ -232,8 +226,7 @@ function show_notification_variables()
   print_array notification_config notification
 }
 
-function show_lore_variables()
-{
+function show_lore_variables() {
   local test_mode=0
   local has_local_lore_config='No'
 
@@ -260,8 +253,7 @@ function show_lore_variables()
 # it. For more information about the configuration file, take a look at
 # "etc/kworkflow.config" in the kworkflow directory.
 # @parameter: This function expects a path to the configuration file.
-function parse_configuration()
-{
+function parse_configuration() {
   local config_path="$1"
   local config_array="${2:-configurations}"
   local config_array_scope="$3"
@@ -301,8 +293,7 @@ function parse_configuration()
 # This function loads the kw configuration files into memory, populating the
 # $configurations hashtable. The files are parsed in a specific order, allowing
 # higher level setting definitions to overwrite lower level ones.
-function load_configuration()
-{
+function load_configuration() {
   local target_config="$1"
   local target_config_file
   local target_array='configurations'
@@ -358,8 +349,8 @@ function load_configuration()
   # Old users may have kworkflow.config at $PWD
   if [[ -f "$PWD/$CONFIG_FILENAME" ]]; then
     warning 'We will stop supporting kworkflow.config in the kernel root directory in favor of using a .kw/ directory.'
-    if is_kernel_root "$PWD" &&
-      [[ $(ask_yN 'Do you want to migrate to the new configuration file approach? (Recommended)') =~ 1 ]]; then
+    if is_kernel_root "$PWD" \
+      && [[ $(ask_yN 'Do you want to migrate to the new configuration file approach? (Recommended)') =~ 1 ]]; then
       mkdir -p "$PWD/$KW_DIR/"
       mv "$PWD/$CONFIG_FILENAME" "$PWD/$KW_DIR/$CONFIG_FILENAME"
     else
@@ -372,43 +363,35 @@ function load_configuration()
   fi
 }
 
-load_build_config()
-{
+load_build_config() {
   load_configuration 'build'
 }
 
-load_deploy_config()
-{
+load_deploy_config() {
   load_configuration 'deploy'
 }
 
-load_vm_config()
-{
+load_vm_config() {
   load_configuration 'vm'
 }
 
-load_send_patch_config()
-{
+load_send_patch_config() {
   load_configuration 'send_patch'
 }
 
-load_kworkflow_config()
-{
+load_kworkflow_config() {
   load_configuration 'kworkflow'
 }
 
-load_notification_config()
-{
+load_notification_config() {
   load_configuration 'notification'
 }
 
-load_lore_config()
-{
+load_lore_config() {
   load_configuration 'lore'
 }
 
-load_all_config()
-{
+load_all_config() {
   load_notification_config
   load_kworkflow_config
   load_deploy_config

@@ -3,13 +3,11 @@
 include './src/device_info.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   shopt -s expand_aliases
 }
 
-function setUp()
-{
+function setUp() {
   options_values['TARGET']="$LOCAL_TARGET"
   remote_parameters['REMOTE_USER']='john'
   remote_parameters['REMOTE_IP']='something'
@@ -19,8 +17,7 @@ function setUp()
 declare -gA configurations
 configurations[ssh_user]=john
 
-function test_get_ram_from_vm()
-{
+function test_get_ram_from_vm() {
   local cmd
   local output
 
@@ -30,8 +27,7 @@ function test_get_ram_from_vm()
   assert_equals_helper 'Failed to gather VM target RAM data' "($LINENO)" 1024000 "${device_info_data['ram']}"
 }
 
-function test_get_ram_from_local()
-{
+function test_get_ram_from_local() {
   local cmd
   local output
 
@@ -41,8 +37,7 @@ function test_get_ram_from_local()
   assert_equals_helper 'Local target RAM info gathering command did not match expectation' "($LINENO)" "$cmd" "$output"
 }
 
-function test_get_chassis()
-{
+function test_get_chassis() {
   local cmd
   local output
 
@@ -51,8 +46,7 @@ function test_get_chassis()
   assert_equals_helper 'Failed to gather local target chassis data' "($LINENO)" "$cmd" "$output"
 }
 
-function test_display_data()
-{
+function test_display_data() {
   local output
 
   declare -a expected_cmd=(
@@ -107,23 +101,19 @@ function test_display_data()
   compare_command_sequence 'Failed to set target data' "$LINENO" 'expected_cmd' "$output"
 }
 
-function detect_distro_mock()
-{
+function detect_distro_mock() {
   printf '%s\n' 'lala'
 }
 
-function which_distro_mock()
-{
+function which_distro_mock() {
   printf '%s\n' 'xpto'
 }
 
-function ps_mock()
-{
+function ps_mock() {
   printf '%s\n' "$1"
 }
 
-function test_get_desktop_environment()
-{
+function test_get_desktop_environment() {
   local cmd
   local output
 
@@ -220,8 +210,7 @@ mocked_lspci_verbose_select_00_02_0=$(
 EOF
 )
 
-function lspci_mock()
-{
+function lspci_mock() {
   local raw_options="$*"
   if [[ $raw_options == '-v -s 01:00.0' ]]; then
     printf '%s\n' "$mocked_lspci_verbose_select_01_00_0"
@@ -232,8 +221,7 @@ function lspci_mock()
   fi
 }
 
-function test_get_gpu()
-{
+function test_get_gpu() {
   local output
 
   alias lspci='lspci_mock'

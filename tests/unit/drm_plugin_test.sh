@@ -4,8 +4,7 @@ include './src/plugins/subsystems/drm/drm.sh'
 include './src/lib/kwlib.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   # Create a temporary directory for holding different config file
   export FAKE_DRM_SYSFS="${SHUNIT_TMPDIR}/sys/class/drm"
   export original_dir="$PWD"
@@ -31,8 +30,7 @@ function setUp()
   export unbind_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" 0 > $i; done; sleep 0.5'
 }
 
-function tearDown()
-{
+function tearDown() {
   configurations=()
   configurations[ssh_user]=juca
 
@@ -46,8 +44,7 @@ function tearDown()
   fi
 }
 
-function mk_fake_sys_class_drm()
-{
+function mk_fake_sys_class_drm() {
   declare -a fake_dirs=(
     "card0"
     "card0-DP-1"
@@ -103,8 +100,7 @@ END
 END
 }
 
-function test_drm_parser_options()
-{
+function test_drm_parser_options() {
   parse_drm_options --remote 'jozzi@something:3232'
   assertEquals "($LINENO)" 'something' "${remote_parameters['REMOTE_IP']}"
   assertEquals "($LINENO)" '3232' "${remote_parameters['REMOTE_PORT']}"
@@ -169,8 +165,7 @@ function test_drm_parser_options()
   assertEquals "($LINENO)" 'amdgpu,drm' "${options_values['UNLOAD_MODULE']}"
 }
 
-function test_gui_control_remote()
-{
+function test_gui_control_remote() {
   local gui_on_cmd='systemctl isolate graphical.target'
   local gui_off_cmd='systemctl isolate multi-user.target'
   local output
@@ -237,8 +232,7 @@ function test_gui_control_remote()
   compare_command_sequence '' "$LINENO" 'expected_cmd_seq' "$output"
 }
 
-function test_gui_control_on_after_reboot_local()
-{
+function test_gui_control_on_after_reboot_local() {
   local gui_on_after_reboot_cmd='systemctl set-default graphical.target'
   local output
 
@@ -283,8 +277,7 @@ function test_gui_control_on_after_reboot_local()
 
 }
 
-function test_gui_control_off_after_reboot_local()
-{
+function test_gui_control_off_after_reboot_local() {
   local gui_off_after_reboot_cmd='systemctl set-default multi-user.target'
   local output
 
@@ -330,8 +323,7 @@ function test_gui_control_off_after_reboot_local()
 
 }
 
-function test_gui_control_local()
-{
+function test_gui_control_local() {
   local gui_on_cmd='systemctl isolate graphical.target'
   local gui_off_cmd='systemctl isolate multi-user.target'
   local gui_on_after_reboot_cmd='systemctl set-default graphical.target'
@@ -381,8 +373,7 @@ function test_gui_control_local()
 
 }
 
-function test_get_available_connectors_local()
-{
+function test_get_available_connectors_local() {
   local output
 
   declare -a expected_output=(
@@ -405,14 +396,12 @@ function test_get_available_connectors_local()
 }
 
 # shellcheck disable=SC2317  # Disable shellchek warning about unreachable commands in this function
-function test_get_available_connectors_remote()
-{
+function test_get_available_connectors_remote() {
   local output
 
   # Remote
   output=$(
-    function cmd_remotely()
-    {
+    function cmd_remotely() {
       printf '/sys/class/drm/card0-%s,enabled\n' 'DP-1'
       printf '/sys/class/drm/card0-%s,disabled\n' 'eDP-1'
     }
@@ -427,8 +416,7 @@ function test_get_available_connectors_remote()
   compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 }
 
-function test_get_supported_mode_per_connector()
-{
+function test_get_supported_mode_per_connector() {
   declare -a expected_output=(
     "Modes per card"
     "${SHUNIT_TMPDIR}/card0-DP-3:"
@@ -463,8 +451,7 @@ function test_get_supported_mode_per_connector()
   compare_command_sequence '' "$LINENO" 'expected_output' "$output"
 }
 
-function test_module_control()
-{
+function test_module_control() {
   local default_ssh='ssh -p 3333 juca@127.0.0.1 sudo'
 
   expected="sudo bash -c \"modprobe  amdgpu\""
@@ -506,8 +493,7 @@ function test_module_control()
   assertEquals "($LINENO): Load modules with parameters" "$expected" "$output"
 }
 
-function test_convert_module_info()
-{
+function test_convert_module_info() {
   output=$(convert_module_info "LOAD" "amdgpu;vkms")
   expected="modprobe  amdgpu && modprobe  vkms"
   assertEquals "$LINENO" "$expected" "$output"

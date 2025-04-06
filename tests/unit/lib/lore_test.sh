@@ -3,8 +3,7 @@
 include './src/lib/lore.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   export KW_CACHE_DIR="${SHUNIT_TMPDIR}/cache"
   export CACHE_LORE_DIR="${KW_CACHE_DIR}/lore"
   export LIST_PAGE_PATH="${CACHE_LORE_DIR}/lore_main_page.html"
@@ -21,8 +20,7 @@ function oneTimeSetUp()
   cp --recursive "${SAMPLES_DIR}/lore/." "${SHUNIT_TMPDIR}/samples"
 }
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
 
   touch "${BOOKMARKED_SERIES_PATH}"
@@ -33,8 +31,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   if [[ -f "${BOOKMARKED_SERIES_PATH}" && "${BOOKMARKED_SERIES_PATH}" != '/' ]]; then
     rm "${BOOKMARKED_SERIES_PATH}"
   fi
@@ -45,8 +42,7 @@ function tearDown()
   }
 }
 
-function test_retrieve_available_mailing_lists()
-{
+function test_retrieve_available_mailing_lists() {
   local index
   local -A expected_lists=(
     ['all']='All of lore.kernel.org'
@@ -75,8 +71,7 @@ function test_retrieve_available_mailing_lists()
   done
 }
 
-function test_get_patch_metadata()
-{
+function test_get_patch_metadata() {
   local message_title
   local expected
   local output
@@ -187,8 +182,7 @@ function test_get_patch_metadata()
   assert_equals_helper 'Failed with arbitrary string in tag' "$LINENO" "$expected" "$output"
 }
 
-function test_get_patch_version()
-{
+function test_get_patch_version() {
   local patch_metadata
   local output
 
@@ -250,8 +244,7 @@ function test_get_patch_version()
   assert_equals_helper 'Failed for tag with version (V) with space separating number and letter' "$LINENO" 1234 "$output"
 }
 
-function test_get_patch_number_in_series()
-{
+function test_get_patch_number_in_series() {
   local patch_metadata
   local expected
 
@@ -309,8 +302,7 @@ function test_get_patch_number_in_series()
   assert_equals_helper 'Failed for tag with arbitrary number of spaces between numbers and foward-slash' "$LINENO" 123 "$output"
 }
 
-function test_get_patch_total_in_series()
-{
+function test_get_patch_total_in_series() {
   local patch_metadata
   local expected
 
@@ -368,8 +360,7 @@ function test_get_patch_total_in_series()
   assert_equals_helper 'Failed for tag with arbitrary number of spaces between numbers and foward-slash' "$LINENO" 345 "$output"
 }
 
-function test_remove_patch_metadata_from_message_title()
-{
+function test_remove_patch_metadata_from_message_title() {
   local message_title
   local expected
   local output
@@ -400,8 +391,7 @@ function test_remove_patch_metadata_from_message_title()
   assert_equals_helper 'Failed for complex patch metadata' "$LINENO" "$expected" "$output"
 }
 
-function test_process_name()
-{
+function test_process_name() {
   local output
   local expected='First Second'
 
@@ -417,8 +407,7 @@ function test_process_name()
   assertEquals "($LINENO)" "$expected" "$output"
 }
 
-function test_delete_series_from_local_storage()
-{
+function test_delete_series_from_local_storage() {
   local download_dir_path="${SHUNIT_TMPDIR}/some/dir"
   local series_url='https://lore.kernel.org/some-list/message-id/'
   local flag='TEST_MODE'
@@ -436,8 +425,7 @@ function test_delete_series_from_local_storage()
   assert_equals_helper 'Should delete .mbx file' "$LINENO" "$expected" "$output"
 }
 
-function test_create_lore_bookmarked_file()
-{
+function test_create_lore_bookmarked_file() {
   if [[ "${BOOKMARKED_SERIES_PATH}" != '/' ]]; then
     rm "${BOOKMARKED_SERIES_PATH}"
   fi
@@ -446,8 +434,7 @@ function test_create_lore_bookmarked_file()
   assertTrue "($LINENO) - Local bookmark database was not created" "[[ -f ${BOOKMARKED_SERIES_PATH} ]]"
 }
 
-function test_add_patchset_to_bookmarked_database()
-{
+function test_add_patchset_to_bookmarked_database() {
   local raw_patchset1='somepatchset1'
   local raw_patchset2='somepatchset2'
   local raw_patchset3='somepatchset3'
@@ -471,8 +458,7 @@ function test_add_patchset_to_bookmarked_database()
   assertEquals "($LINENO) - Should have 3 entries" 3 "$count"
 }
 
-function test_remove_patchset_from_bookmark_by_url()
-{
+function test_remove_patchset_from_bookmark_by_url() {
   local output
   local expected
 
@@ -494,8 +480,7 @@ function test_remove_patchset_from_bookmark_by_url()
   assertEquals "($LINENO) - Should only have entry 1" "$expected" "$output"
 }
 
-function test_remove_series_from_bookmark_by_index()
-{
+function test_remove_series_from_bookmark_by_index() {
   local output
   local expected
 
@@ -516,8 +501,7 @@ function test_remove_series_from_bookmark_by_index()
   assertEquals "($LINENO) - Should only have entry 1" "$expected" "$output"
 }
 
-function test_get_bookmarked_series()
-{
+function test_get_bookmarked_series() {
   local -a bookmarked_series=()
   local char="${SEPARATOR_CHAR}"
   local output
@@ -538,8 +522,7 @@ function test_get_bookmarked_series()
   assertEquals "($LINENO)" "$expected" "${bookmarked_series[2]}"
 }
 
-function test_get_bookmarked_series_by_index()
-{
+function test_get_bookmarked_series_by_index() {
   local output
   local expected
 
@@ -558,8 +541,7 @@ function test_get_bookmarked_series_by_index()
   assertEquals "($LINENO) - Should get the second entry" "$expected" "$output"
 }
 
-function test_get_patchset_bookmark_status()
-{
+function test_get_patchset_bookmark_status() {
   local output
 
   get_patchset_bookmark_status ''
@@ -578,8 +560,7 @@ function test_get_patchset_bookmark_status()
   assert_equals_helper 'Should output 0 (patch not bookmarked)' "$LINENO" 0 "$output"
 }
 
-function test_download_series()
-{
+function test_download_series() {
   local series_url='https://lore.kernel.org/some-list/1234567.789-1-email@email.com/'
   local save_to="${SHUNIT_TMPDIR}/kw_download"
   local flag='TEST_MODE'
@@ -605,8 +586,7 @@ function test_download_series()
   assert_equals_helper 'Wrong commands issued' "$LINENO" "$expected" "$output"
 }
 
-function test_extract_message_id_from_url()
-{
+function test_extract_message_id_from_url() {
   local output
   local expected
 
@@ -625,8 +605,7 @@ function test_extract_message_id_from_url()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-function test_save_new_lore_config()
-{
+function test_save_new_lore_config() {
   local setting
   local new_value
   local lore_config_path
@@ -662,8 +641,7 @@ function test_save_new_lore_config()
   assert_equals_helper 'Wrong lore.config contents' "$LINENO" "$expected" "$output"
 }
 
-function test_compose_lore_query_url_with_verification_invalid_cases()
-{
+function test_compose_lore_query_url_with_verification_invalid_cases() {
   local target_mailing_list
   local min_index
 
@@ -689,8 +667,7 @@ function test_compose_lore_query_url_with_verification_invalid_cases()
   assert_equals_helper 'Invalid `min_index` (not an integer) value should return 22' "$LINENO" 22 "$?"
 }
 
-function test_compose_lore_query_url_with_verification_valid_cases()
-{
+function test_compose_lore_query_url_with_verification_valid_cases() {
   local target_mailing_list
   local additional_filters
   local min_index
@@ -720,8 +697,7 @@ function test_compose_lore_query_url_with_verification_valid_cases()
   assert_equals_helper 'Wrong query URL outputted' "$LINENO" "$expected" "$output"
 }
 
-function test_pre_process_raw_xml()
-{
+function test_pre_process_raw_xml() {
   local raw_xml
   local output
   local expected
@@ -737,8 +713,7 @@ function test_pre_process_raw_xml()
   assert_equals_helper 'Wrong pre-processed result for sample 2' "$LINENO" "$expected" "$output"
 }
 
-function test_thread_for_process_individual_patch()
-{
+function test_thread_for_process_individual_patch() {
   local shared_dir_path="${SHUNIT_TMPDIR}/shared_dir"
   local message_id1='http://lore.kernel.org/foo/bar'
   local message_title1='[PATCH] some/subsys: Fix bug'
@@ -791,8 +766,7 @@ function test_thread_for_process_individual_patch()
   rm -rf "$shared_dir_path"
 }
 
-function test_process_individual_patches()
-{
+function test_process_individual_patches() {
   local -a individual_patches
   declare -A individual_patches_metadata
   local raw_xml
@@ -849,8 +823,7 @@ function test_process_individual_patches()
   assert_equals_helper 'Wrong metadata of patch 5' "$LINENO" "$expected" "${individual_patches_metadata['http://lore.kernel.org/samba-pop/introduction']}"
 }
 
-function test_process_representative_patches_general_case()
-{
+function test_process_representative_patches_general_case() {
   declare -a representative_patches=()
   declare -A individual_patches_metadata=()
   declare -A processed_representative_patches=()
@@ -886,8 +859,7 @@ function test_process_representative_patches_general_case()
   assert_equals_helper 'Representative patch 1 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id2']}"
 }
 
-function test_get_raw_lore_message()
-{
+function test_get_raw_lore_message() {
   local expected="curl --silent 'https://domain/list/message-id/raw'"
   local output
 
@@ -898,8 +870,7 @@ function test_get_raw_lore_message()
   assert_equals_helper 'Wrong command issued' "$LINENO" "$expected" "$output"
 }
 
-function test_process_representative_patches_subsequent_calls()
-{
+function test_process_representative_patches_subsequent_calls() {
   declare -a representative_patches=()
   declare -A individual_patches_metadata=()
   declare -A processed_representative_patches=()
@@ -957,8 +928,7 @@ function test_process_representative_patches_subsequent_calls()
   assert_equals_helper 'Representative patch 2 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id7']}"
 }
 
-function test_process_representative_patches_duplicated_patches()
-{
+function test_process_representative_patches_duplicated_patches() {
   declare -a representative_patches=()
   declare -A individual_patches_metadata=()
   declare -A processed_representative_patches=()
@@ -989,8 +959,7 @@ function test_process_representative_patches_duplicated_patches()
   assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
 }
 
-function test_process_representative_patches_in_reply_to_not_processed()
-{
+function test_process_representative_patches_in_reply_to_not_processed() {
   declare -a representative_patches=()
   declare -A individual_patches_metadata=()
   declare -A processed_representative_patches=()
@@ -1008,8 +977,7 @@ function test_process_representative_patches_in_reply_to_not_processed()
 
   # Case 1: In reply isn't a patch
   # shellcheck disable=SC2317
-  function get_raw_lore_message()
-  {
+  function get_raw_lore_message() {
     printf 'Subject: Some discussion'
   }
   process_representative_patches 'individual_patches'
@@ -1022,8 +990,7 @@ function test_process_representative_patches_in_reply_to_not_processed()
 
   # Case 2: In reply is patch from same patchset, but not cover letter
   # shellcheck disable=SC2317
-  function get_raw_lore_message()
-  {
+  function get_raw_lore_message() {
     printf 'Subject: [PATCH v2 2/3] Some title'
   }
   representative_patches=()
@@ -1039,8 +1006,7 @@ function test_process_representative_patches_in_reply_to_not_processed()
 
   # Case 3: In reply is patch from same patchset and cover letter
   # shellcheck disable=SC2317
-  function get_raw_lore_message()
-  {
+  function get_raw_lore_message() {
     printf 'Subject: [PATCH v2 0/3] Some title'
   }
   representative_patches=()
@@ -1054,8 +1020,7 @@ function test_process_representative_patches_in_reply_to_not_processed()
 
   # Case 4: In reply isn't patch from same patchset and isn't cover letter
   # shellcheck disable=SC2317
-  function get_raw_lore_message()
-  {
+  function get_raw_lore_message() {
     printf 'Subject: [PATCH 0/3] Some title'
   }
   representative_patches=()
@@ -1071,8 +1036,7 @@ function test_process_representative_patches_in_reply_to_not_processed()
 
   # Case 5: In reply isn't patch from same patchset, but is cover letter
   # shellcheck disable=SC2317
-  function get_raw_lore_message()
-  {
+  function get_raw_lore_message() {
     printf 'Subject: [PATCH 0/3] Some title'
   }
   representative_patches=()
@@ -1087,8 +1051,7 @@ function test_process_representative_patches_in_reply_to_not_processed()
   assert_equals_helper 'Representative patch 0 should be marked in hashtable' "$LINENO" 1 "${processed_representative_patches['id1']}"
 }
 
-function test_read_patch_into_dict()
-{
+function test_read_patch_into_dict() {
   local patch
   declare -A patch_dict
 
@@ -1135,8 +1098,7 @@ function test_read_patch_into_dict()
   assert_equals_helper 'Wrong value of timestamp' "$LINENO" 'timestamp1' "${patch_dict['timestamp']}"
 }
 
-function test_reset_current_lore_fetch_session()
-{
+function test_reset_current_lore_fetch_session() {
 
   representative_patches[0]=1
   representative_patches[1]=1
@@ -1164,8 +1126,7 @@ function test_reset_current_lore_fetch_session()
   assert_equals_helper 'Should reset `processed_representative_patches`' "$LINENO" 0 "${#processed_representative_patches[@]}"
 }
 
-function test_format_patchsets()
-{
+function test_format_patchsets() {
   local -a formatted_patchsets_list
   local output
 
@@ -1189,8 +1150,7 @@ function test_format_patchsets()
   assert_equals_helper 'Wrong formatted patchset 2' "$LINENO" "$expected" "$output"
 }
 
-function test_get_page_starting_index()
-{
+function test_get_page_starting_index() {
   local page
   local patchsets_per_page
   local output
@@ -1213,8 +1173,7 @@ function test_get_page_starting_index()
   assert_equals_helper 'Wrong starting index outputted' "$LINENO" 199 "$output"
 }
 
-function test_get_page_ending_index()
-{
+function test_get_page_ending_index() {
   local page
   local patchsets_per_page
   local output

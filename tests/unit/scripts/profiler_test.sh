@@ -3,8 +3,7 @@
 include './scripts/profiler.sh' > '/dev/null' 2>&1
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
 
   declare -ga full_profile
@@ -15,8 +14,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   unset full_profile
 
   cd "${ORIGINAL_PATH}" || {
@@ -25,8 +23,7 @@ function tearDown()
   }
 }
 
-function test_process_csv_files_full_single_threaded()
-{
+function test_process_csv_files_full_single_threaded() {
   local list_of_csv_filepaths="${SAMPLES_DIR}/scripts/profiler/single_threaded/0.csv"
   local expected
 
@@ -46,8 +43,7 @@ function test_process_csv_files_full_single_threaded()
   assert_equals_helper 'Wrong profile of thread 0' "$LINENO" "$expected" "${full_profile[0]}"
 }
 
-function test_process_csv_files_full_multi_threaded()
-{
+function test_process_csv_files_full_multi_threaded() {
   local list_of_csv_filepaths
   local expected
 
@@ -96,8 +92,7 @@ function test_process_csv_files_full_multi_threaded()
   assert_equals_helper 'Wrong profile of thread 2' "$LINENO" "$expected" "${full_profile[2]}"
 }
 
-function test_display_full_profile()
-{
+function test_display_full_profile() {
   local list_of_csv_filepaths
   local output
   local expected

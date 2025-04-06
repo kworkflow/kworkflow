@@ -11,8 +11,7 @@ include "${KW_LIB_DIR}/lib/kwio.sh"
 # of building a kernel from source and deploying it to a target machine.
 #
 # @raw_options String with all deploy options
-function build_and_deploy_main()
-{
+function build_and_deploy_main() {
   if [[ "$1" =~ -h|--help ]]; then
     build_and_deploy_help "$1"
     exit 0
@@ -40,8 +39,7 @@ function build_and_deploy_main()
   return 0
 }
 
-function parse_build_and_deploy_options()
-{
+function parse_build_and_deploy_options() {
   local long_options=''
   local short_options=''
 
@@ -66,8 +64,7 @@ function parse_build_and_deploy_options()
   done
 }
 
-function build_and_deploy_help()
-{
+function build_and_deploy_help() {
   if [[ "$1" == --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'bd'

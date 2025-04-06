@@ -5,8 +5,7 @@ declare -gA options_values
 declare -g local_remote_config_file="${PWD}/.kw/remote.config"
 declare -g global_remote_config_file="${KW_ETC_DIR}/remote.config"
 
-function remote_main()
-{
+function remote_main() {
   if [[ "$1" =~ -h|--help ]]; then
     remote_help "$1"
     exit 0
@@ -49,8 +48,7 @@ function remote_main()
 #
 # Returns:
 # The remote config file if found and 22 otherwise.
-function choose_correct_remote_config_file()
-{
+function choose_correct_remote_config_file() {
   local has_local_config='false'
   local has_global_config='false'
 
@@ -71,8 +69,7 @@ function choose_correct_remote_config_file()
   fi
 }
 
-function list_remotes()
-{
+function list_remotes() {
   local remote_config
   local str_process
   local remote_config_file
@@ -118,8 +115,7 @@ function list_remotes()
   done <<< "$remote_config"
 }
 
-function add_new_remote()
-{
+function add_new_remote() {
   local name
   local remote
   local first_time=''
@@ -190,8 +186,7 @@ function add_new_remote()
   fi
 }
 
-function set_default_remote()
-{
+function set_default_remote() {
   local default_remote="${options_values['DEFAULT_REMOTE']}"
   local remote_config_file
 
@@ -220,8 +215,7 @@ function set_default_remote()
   sed --in-place --follow-symlinks --regexp-extended "s/^#kw-default=.*/#kw-default=${default_remote}/" "$remote_config_file"
 }
 
-function remove_remote()
-{
+function remove_remote() {
   local target_remote
   local remote_config_file
 
@@ -263,8 +257,7 @@ function remove_remote()
   fi
 }
 
-function rename_remote()
-{
+function rename_remote() {
   local old_name
   local new_name
   local remote_config_file
@@ -322,8 +315,7 @@ function rename_remote()
   fi
 }
 
-function parse_remote_options()
-{
+function parse_remote_options() {
   local long_options='add,remove,rename,verbose,list,set-default::,global::'
   local short_options='v,s::'
   local default_option
@@ -416,8 +408,7 @@ function parse_remote_options()
   fi
 }
 
-function remote_help()
-{
+function remote_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'remote'

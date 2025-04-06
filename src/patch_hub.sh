@@ -6,8 +6,7 @@ declare -gA options_values
 
 include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
-function patch_hub_main()
-{
+function patch_hub_main() {
   local ret
 
   if ! command_exists 'patch-hub'; then

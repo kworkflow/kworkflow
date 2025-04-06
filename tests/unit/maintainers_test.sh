@@ -47,8 +47,7 @@ FAKE_KERNEL="tests/.tmp"
 # Original directory path to go back before each test function
 ORIGINAL_DIR="$PWD"
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   # This creates tests/.tmp which should mock a kernel tree root. A .git
   # dir is also created inside tests/.tmp so that get_maintainer.pl thinks
   # it is a git repo. This is done in order to avoid some warnings that
@@ -77,13 +76,11 @@ function oneTimeSetUp()
   parse_configuration "$KW_CONFIG_SAMPLE"
 }
 
-function oneTimeTearDown()
-{
+function oneTimeTearDown() {
   rm -rf "$FAKE_KERNEL"
 }
 
-function setUp()
-{
+function setUp() {
   # Ensure each test function starts running in ORIGINAL_DIR.
   cd "$ORIGINAL_DIR" || {
     fail "(${LINENO}) It was not possible to move to original dir"
@@ -91,8 +88,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   # Check if SHUNIT_TMPDIR can be safely removed and then remove it and remake it.
   is_safe_path_to_remove "$SHUNIT_TMPDIR"
   if [[ "$?" == 0 ]]; then
@@ -103,20 +99,17 @@ function tearDown()
   fi
 }
 
-function test_print_files_authors()
-{
+function test_print_files_authors() {
   local -r ret=$(print_files_authors "tests/unit/samples/print_file_author_test_dir/code1.c")
   multilineAssertEquals "$CORRECT_FILE_MSG" "$ret"
 }
 
-function test_print_files_authors_from_dir()
-{
+function test_print_files_authors_from_dir() {
   local -r ret=$(print_files_authors "tests/unit/samples/print_file_author_test_dir")
   multilineAssertEquals "$CORRECT_DIR_MSG" "$ret"
 }
 
-function test_maintainers_main()
-{
+function test_maintainers_main() {
   local ret
 
   ret="$(maintainers_main tests/.tmp)"
@@ -145,8 +138,7 @@ function test_maintainers_main()
 
 # This function tests expected behaviors for failure in
 # parse_maintainers_options.
-function test_parse_maintainers_options()
-{
+function test_parse_maintainers_options() {
   local return_status
 
   cd "$FAKE_KERNEL" || {
@@ -176,8 +168,7 @@ function test_parse_maintainers_options()
   assertEquals "(${LINENO})" 22 "$return_status"
 }
 
-function test_maintainers_main_update_patch_invalid_inputs()
-{
+function test_maintainers_main_update_patch_invalid_inputs() {
   local return_status
   local output_from_maintainers_main
 
@@ -199,8 +190,7 @@ function test_maintainers_main_update_patch_invalid_inputs()
 
 # This function tests cases where the maintainers_main is called outside
 # of a kernel tree and the given path is not in a kernel tree either.
-function test_maintainers_main_no_kernel()
-{
+function test_maintainers_main_no_kernel() {
   local return_status
   local output_from_maintainers_main
 
@@ -226,8 +216,7 @@ function test_maintainers_main_no_kernel()
 
 # This function tests cases where the maintainers_main is called inside
 # a kernel tree, but the given path is not a patch and is outside a kernel tree.
-function test_maintainers_main_path_out_of_tree()
-{
+function test_maintainers_main_path_out_of_tree() {
   local return_status
   local output_from_maintainers_main
 
@@ -243,8 +232,7 @@ function test_maintainers_main_path_out_of_tree()
 }
 
 # This function tests cases where the given paths to maintainers_main are invalid
-function test_maintainers_main_invalid_paths()
-{
+function test_maintainers_main_invalid_paths() {
   local return_status
   local output_from_maintainers_main
 
@@ -266,8 +254,7 @@ function test_maintainers_main_invalid_paths()
   assertEquals "(${LINENO})" 1 "$return_status"
 }
 
-function test_maintainers_main_patch()
-{
+function test_maintainers_main_patch() {
   local return_status
 
   cd "$FAKE_KERNEL" || {

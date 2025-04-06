@@ -98,8 +98,7 @@ if [[ "${KW_REPO_MODE}" == 'y' ]]; then
   say "${repo_mode_msg}" >&2
 fi
 
-function kw()
-{
+function kw() {
   action="$1"
   shift
 

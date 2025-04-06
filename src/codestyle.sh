@@ -10,8 +10,7 @@ declare -gA options_values
 # Runs checkpatch in the given path, which might be a file or directory.
 #
 # @FILE_OR_DIR_CHECK Target path for running checkpatch script
-function codestyle_main()
-{
+function codestyle_main() {
   local path
   local flag
   local checkpatch_options="${configurations[checkpatch_opts]}"
@@ -91,8 +90,7 @@ function codestyle_main()
 #
 # Return:
 # In case of successful return 0, otherwise, return 22.
-function parse_codestyle_options()
-{
+function parse_codestyle_options() {
   local long_options='verbose,help'
   local short_options='h'
   local options
@@ -136,8 +134,7 @@ function parse_codestyle_options()
   done
 }
 
-function codestyle_help()
-{
+function codestyle_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'codestyle'

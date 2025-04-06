@@ -14,8 +14,7 @@ declare -g PROC_CONFIG_PATH='/proc/config.gz'
 #
 # Returns:
 # Return 0 if everything ends well, otherwise return an errno code.
-function kernel_config_manager_main()
-{
+function kernel_config_manager_main() {
   local name_config
   local description_config
   local force
@@ -99,8 +98,7 @@ function kernel_config_manager_main()
 # Return:
 # Returns 0 if operation is successful or aborted (no overwrite) and 2 if
 # kw can't find a .config file to save.
-function save_config_file()
-{
+function save_config_file() {
   local -r force="$1"
   local -r config_name="$2"
   local description="$3"
@@ -194,8 +192,7 @@ function save_config_file()
 # overwritten. If the user decides to cancel the command, important
 # configuration files may be gone. To overcome that, we run use cleanup, to both
 # retrieve these files and remove the temporary ones left.
-function cleanup()
-{
+function cleanup() {
   local flag=${1:-'SILENT'}
   say 'Cleaning up and retrieving files...'
 
@@ -226,8 +223,7 @@ function cleanup()
 #
 # Return:
 # In case of successful return 0, otherwise, return 95.
-function get_config_from_proc()
-{
+function get_config_from_proc() {
   local flag="$1"
   local output="$2"
   local target="$3"
@@ -285,8 +281,7 @@ function get_config_from_proc()
 #
 # Return:
 # In case of successful return 0, otherwise, return 95.
-function get_config_from_boot()
-{
+function get_config_from_boot() {
   local flag="$1"
   local output="$2"
   local target="$3"
@@ -335,8 +330,7 @@ function get_config_from_boot()
 #
 # Return:
 # In case of successful return 0, otherwise, return 125.
-function get_config_from_defconfig()
-{
+function get_config_from_defconfig() {
   local flag="$1"
   local output="$2"
   local cross_compile
@@ -384,8 +378,7 @@ function get_config_from_defconfig()
 #         the .config file to be retrieved.
 # @optimize Optimize flag, if set then 'make localmodconfig' is used.
 # @target Target can be 2 (LOCAL_TARGET), and 3 (REMOTE_TARGET).
-function fetch_config()
-{
+function fetch_config() {
   local flag="$1"
   local force="$2"
   local output="$3"
@@ -516,8 +509,7 @@ function fetch_config()
 
 # List name, description and last updated datetime of all kernel config files
 # managed by kw.
-function list_configs()
-{
+function list_configs() {
   local flag="${1:-SILENT}"
   local configs
 
@@ -547,8 +539,7 @@ function list_configs()
 # Returns:
 # Exits with 0 if everything ends well, otherwise exits an errno code.
 # TODO: Best to return and let the caller handle it
-function basic_config_validations()
-{
+function basic_config_validations() {
   local config_name="$1"
   local force="$2"
   local operation="$3"
@@ -603,8 +594,7 @@ function basic_config_validations()
 #
 # Returns:
 # Exit with 0 if everything ends well, otherwise exit an errno code.
-function get_config()
-{
+function get_config() {
   local config_name="$1"
   local force="$2"
   local flag="$3"
@@ -638,8 +628,7 @@ function get_config()
 #
 # Returns:
 # Exit 0 if everything ends well, otherwise exit an errno code.
-function remove_config()
-{
+function remove_config() {
   local config_name="$1"
   local force="$2"
   local flag="${3:-SILENT}"
@@ -666,8 +655,7 @@ function remove_config()
 
 # This function parses the options from 'kw kernel-config-manager', and populates the global
 # variable options_values accordingly.
-function parse_kernel_config_manager_options()
-{
+function parse_kernel_config_manager_options() {
   local short_options
   local long_options
   local options
@@ -787,8 +775,7 @@ function parse_kernel_config_manager_options()
   fi
 }
 
-function config_manager_help()
-{
+function config_manager_help() {
   if [[ "$1" == --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'kernel-config-manager'

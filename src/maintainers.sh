@@ -20,8 +20,7 @@ declare -gA options_values
 #   with that patch
 # - Options --update-patch/-u is given and a field "To:" is already
 #   present in the patch
-function maintainers_main()
-{
+function maintainers_main() {
   local raw_options="$*"
   local FILE_OR_DIR
   local print_authors=false
@@ -143,8 +142,7 @@ function maintainers_main()
 # @FILE_OR_DIR The file or directory path for which authors should be printed.
 # If FILE_OR_DIR is a directory, it will process all files within the directory.
 # If FILE_OR_DIR is a file, it will process only that specific file.
-function print_files_authors()
-{
+function print_files_authors() {
   local FILE_OR_DIR="$1"
   local files=()
   if [[ -d "$FILE_OR_DIR" ]]; then
@@ -186,8 +184,7 @@ function print_files_authors()
   done
 }
 
-function parse_maintainers_options()
-{
+function parse_maintainers_options() {
   local long_options='authors,update-patch,verbose'
   local short_options='a,u'
 
@@ -237,8 +234,7 @@ function parse_maintainers_options()
   done
 }
 
-function maintainers_help()
-{
+function maintainers_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'maintainers'

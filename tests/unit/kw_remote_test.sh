@@ -3,8 +3,7 @@
 include './src/kw_remote.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
 
   export BASE_PATH_KW="${SHUNIT_TMPDIR}/.kw"
@@ -28,8 +27,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   options_values['DEFAULT_REMOTE']=''
 
   cd "${ORIGINAL_PATH}" || {
@@ -40,8 +38,7 @@ function tearDown()
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function test_add_new_remote_wrong_number_of_parameters()
-{
+function test_add_new_remote_wrong_number_of_parameters() {
   local output
 
   options_values['PARAMETERS']=''
@@ -57,8 +54,7 @@ function test_add_new_remote_wrong_number_of_parameters()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_add_new_remote_no_kw_folder()
-{
+function test_add_new_remote_no_kw_folder() {
   local output
 
   rm -rf ".kw"
@@ -70,8 +66,7 @@ function test_add_new_remote_no_kw_folder()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_add_new_remote_with_no_config_file()
-{
+function test_add_new_remote_with_no_config_file() {
   local output
   local expected_result
 
@@ -93,8 +88,7 @@ function test_add_new_remote_with_no_config_file()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_add_new_remote_multiple_different_instances()
-{
+function test_add_new_remote_multiple_different_instances() {
   local output
   local final_result_array
 
@@ -127,8 +121,7 @@ function test_add_new_remote_multiple_different_instances()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_add_new_remote_multiple_entry_with_duplication()
-{
+function test_add_new_remote_multiple_entry_with_duplication() {
   local output
   local final_result_array
 
@@ -167,8 +160,7 @@ function test_add_new_remote_multiple_entry_with_duplication()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_add_new_multiple_remotes_and_use_set_default_option()
-{
+function test_add_new_multiple_remotes_and_use_set_default_option() {
   local output
   local final_result_array
 
@@ -206,8 +198,7 @@ function test_add_new_multiple_remotes_and_use_set_default_option()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_remove_remote_wrong_parameters()
-{
+function test_remove_remote_wrong_parameters() {
   local output
 
   options_values['PARAMETERS']=''
@@ -220,8 +211,7 @@ function test_remove_remote_wrong_parameters()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_remove_remote_only_one_entry()
-{
+function test_remove_remote_only_one_entry() {
   local output
 
   # Remove a single remote
@@ -238,8 +228,7 @@ function test_remove_remote_only_one_entry()
   assertEquals "($LINENO)" '' "${final_result[*]}"
 }
 
-function test_remove_remote_try_to_remove_something_from_an_empty_file()
-{
+function test_remove_remote_try_to_remove_something_from_an_empty_file() {
   local output
 
   # Remove a single remote
@@ -250,8 +239,7 @@ function test_remove_remote_try_to_remove_something_from_an_empty_file()
   assertEquals "($LINENO)" '' "${final_result[*]}"
 }
 
-function test_remove_remote_drop_guard_between_others()
-{
+function test_remove_remote_drop_guard_between_others() {
   local output
 
   # Remove a remote option in the middle
@@ -277,8 +265,7 @@ function test_remove_remote_drop_guard_between_others()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_remove_remote_drop_remote_where_its_name_is_part_of_the_remote()
-{
+function test_remove_remote_drop_remote_where_its_name_is_part_of_the_remote() {
   local output
 
   # Remove a remote option in the middle
@@ -307,8 +294,7 @@ function test_remove_remote_drop_remote_where_its_name_is_part_of_the_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_remove_remote_try_to_drop_something_that_does_not_exists()
-{
+function test_remove_remote_try_to_drop_something_that_does_not_exists() {
   local output
 
   cp "${SAMPLES_DIR}/remote_samples/remote.config" "${BASE_PATH_KW}/remote.config"
@@ -319,8 +305,7 @@ function test_remove_remote_try_to_drop_something_that_does_not_exists()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_rename_remote_wrong_number_of_parameters()
-{
+function test_rename_remote_wrong_number_of_parameters() {
   local output
 
   options_values['PARAMETERS']=''
@@ -336,8 +321,7 @@ function test_rename_remote_wrong_number_of_parameters()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_rename_remote_try_to_rename_something_that_does_not_exists()
-{
+function test_rename_remote_try_to_rename_something_that_does_not_exists() {
   local output
 
   cp "${SAMPLES_DIR}/remote_samples/remote.config" "${BASE_PATH_KW}/remote.config"
@@ -347,8 +331,7 @@ function test_rename_remote_try_to_rename_something_that_does_not_exists()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_rename_remote_rename_to_something_that_already_exists()
-{
+function test_rename_remote_rename_to_something_that_already_exists() {
   local output
 
   cp "${SAMPLES_DIR}/remote_samples/remote.config" "${BASE_PATH_KW}/remote.config"
@@ -358,8 +341,7 @@ function test_rename_remote_rename_to_something_that_already_exists()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_rename_remote_change_a_valid_remote()
-{
+function test_rename_remote_change_a_valid_remote() {
   local output
 
   cp "${SAMPLES_DIR}/remote_samples/remote.config" "${BASE_PATH_KW}/remote.config"
@@ -389,8 +371,7 @@ function test_rename_remote_change_a_valid_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_set_default_remote_if_not_set_yet()
-{
+function test_set_default_remote_if_not_set_yet() {
   local output
 
   cp "${SAMPLES_DIR}/remote_samples/remote.config" "${BASE_PATH_KW}/remote.config"
@@ -421,8 +402,7 @@ function test_set_default_remote_if_not_set_yet()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_set_default_remote_try_to_set_an_invalid_remote()
-{
+function test_set_default_remote_try_to_set_an_invalid_remote() {
   local output
 
   cp "${SAMPLES_DIR}/remote_samples/remote_3.config" "${BASE_PATH_KW}/remote.config"
@@ -432,8 +412,7 @@ function test_set_default_remote_try_to_set_an_invalid_remote()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_set_default_remote_we_already_have_the_default_remote()
-{
+function test_set_default_remote_we_already_have_the_default_remote() {
   local output
 
   cp "${SAMPLES_DIR}/remote_samples/remote_3.config" "${BASE_PATH_KW}/remote.config"
@@ -464,8 +443,7 @@ function test_set_default_remote_we_already_have_the_default_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_parse_remote_options()
-{
+function test_parse_remote_options() {
   # Add option
   parse_remote_options --add origin 'root@la:3333'
   assert_equals_helper 'Request add' "($LINENO)" 1 "${options_values['ADD']}"
@@ -482,8 +460,7 @@ function test_parse_remote_options()
   assert_equals_helper 'Remote options' "($LINENO)" 'origin xpto ' "${options_values['PARAMETERS']}"
 }
 
-function test_list_remotes()
-{
+function test_list_remotes() {
   local output
 
   declare -a expected_result=(
@@ -504,8 +481,7 @@ function test_list_remotes()
   compare_command_sequence '' "$LINENO" 'expected_result' "$output"
 }
 
-function test_list_remotes_invalid()
-{
+function test_list_remotes_invalid() {
   rm "${local_remote_config_file}"
   output=$(list_remotes)
   assertEquals "($LINENO)" 22 "$?"
@@ -516,8 +492,7 @@ function test_list_remotes_invalid()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_kw_remote_without_valid_option()
-{
+function test_kw_remote_without_valid_option() {
   # kw remote (no option nor parameter)
   parse_remote_options
   assertEquals "($LINENO)" 22 "$?"
@@ -527,8 +502,7 @@ function test_kw_remote_without_valid_option()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_remove_remote_that_is_prefix_of_other_remote()
-{
+function test_remove_remote_that_is_prefix_of_other_remote() {
   local output
 
   declare -a expected_result=(
@@ -546,8 +520,7 @@ function test_remove_remote_that_is_prefix_of_other_remote()
   compare_command_sequence 'Should only remove the prefix remote' "$LINENO" 'expected_result' "$output"
 }
 
-function test_add_new_global_remote()
-{
+function test_add_new_global_remote() {
   local final_result_array
   local output
 
@@ -577,8 +550,7 @@ function test_add_new_global_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_remove_global_remote()
-{
+function test_remove_global_remote() {
   local final_result_array
   local output
 
@@ -599,8 +571,7 @@ function test_remove_global_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_rename_global_remote()
-{
+function test_rename_global_remote() {
   local final_result_array
   local output
 
@@ -626,8 +597,7 @@ function test_rename_global_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_set_default_global_remote()
-{
+function test_set_default_global_remote() {
   local final_result_array
   local output
 
@@ -653,8 +623,7 @@ function test_set_default_global_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_list_global_remotes()
-{
+function test_list_global_remotes() {
   local output
 
   declare -a expected_result=(
@@ -677,8 +646,7 @@ function test_list_global_remotes()
   compare_command_sequence 'Should list the global remote.config if there is no local one' "$LINENO" 'expected_result' "$output"
 }
 
-function test_global_option_rename_remote()
-{
+function test_global_option_rename_remote() {
   local final_result_array
   local output
 
@@ -703,8 +671,7 @@ function test_global_option_rename_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_global_options_set_default_remote()
-{
+function test_global_options_set_default_remote() {
   local final_result_array
   local output
 
@@ -729,8 +696,7 @@ function test_global_options_set_default_remote()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_global_option_list_remotes()
-{
+function test_global_option_list_remotes() {
   local final_result_array
   local output
 
@@ -755,16 +721,14 @@ function test_global_option_list_remotes()
   compare_array_values expected_result final_result_array "$LINENO"
 }
 
-function test_global_option_list_remote_invalid()
-{
+function test_global_option_list_remote_invalid() {
   rm "${global_remote_config_file}"
   options_values['GLOBAL']='1'
   output=$(list_remotes)
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function setup_for_symbolic_link_test()
-{
+function setup_for_symbolic_link_test() {
   local symlink="${BASE_PATH_KW}/remote.config"
   local output
   local base_value
@@ -798,8 +762,7 @@ EOF
   ln --symbolic "${SHUNIT_TMPDIR}/KW/remote.config" "${symlink}"
 }
 
-function test_ensure_add_remote_does_not_destroy_symbolic_link()
-{
+function test_ensure_add_remote_does_not_destroy_symbolic_link() {
   local symlink="${BASE_PATH_KW}/remote.config"
   local output
 
@@ -815,8 +778,7 @@ function test_ensure_add_remote_does_not_destroy_symbolic_link()
   assert_equals_helper 'After add a new remote, link was destroyed' "$LINENO" 0 "$?"
 }
 
-function test_ensure_set_default_remote_does_not_destroy_the_symbolic_link()
-{
+function test_ensure_set_default_remote_does_not_destroy_the_symbolic_link() {
   local symlink="${BASE_PATH_KW}/remote.config"
   local output
 
@@ -832,8 +794,7 @@ function test_ensure_set_default_remote_does_not_destroy_the_symbolic_link()
   assert_equals_helper 'After set default, link was destroyed' "$LINENO" 0 "$?"
 }
 
-function test_ensure_remove_remote_does_not_destroy_the_symbolic_link()
-{
+function test_ensure_remove_remote_does_not_destroy_the_symbolic_link() {
   local symlink="${BASE_PATH_KW}/remote.config"
   local output
 
@@ -849,8 +810,7 @@ function test_ensure_remove_remote_does_not_destroy_the_symbolic_link()
   assert_equals_helper 'After remove remote, link was destroyed' "$LINENO" 0 "$?"
 }
 
-function test_ensure_rename_remote_does_not_destroy_the_symbolic_link()
-{
+function test_ensure_rename_remote_does_not_destroy_the_symbolic_link() {
   local symlink="${BASE_PATH_KW}/remote.config"
   local output
 

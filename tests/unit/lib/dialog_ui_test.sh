@@ -3,8 +3,7 @@
 include './src/lib/dialog_ui.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
   export TMP_DIR="${SHUNIT_TMPDIR}/ui"
   export KW_ETC_DIR="${TMP_DIR}"
@@ -27,8 +26,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "$ORIGINAL_PATH" || {
     fail "($LINENO): tearDown: It was not possible to move into ${ORIGINAL_PATH}"
     return
@@ -38,8 +36,7 @@ function tearDown()
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function test_ui_setup_no_layout()
-{
+function test_ui_setup_no_layout() {
   ui_setup
 
   assert_equals_helper 'Expected height' "$LINENO" "$EXPECTED_DEFAULT_HEIGHT" "$DEFAULT_HEIGHT"
@@ -47,8 +44,7 @@ function test_ui_setup_no_layout()
   assert_equals_helper 'Expected no layout' "$LINENO" '' "$DIALOG_LAYOUT"
 }
 
-function test_ui_setup_with_layout()
-{
+function test_ui_setup_with_layout() {
   # create a fake default layout
   mkdir -p "${KW_ETC_DIR}/dialog_ui/"
   touch "${KW_ETC_DIR}/dialog_ui/lala"
@@ -58,8 +54,7 @@ function test_ui_setup_with_layout()
   assert_equals_helper 'Expected no layout' "$LINENO" "${KW_ETC_DIR}/dialog_ui/lala" "$DIALOG_LAYOUT"
 }
 
-function test_create_menu_options_rely_on_some_default_options()
-{
+function test_create_menu_options_rely_on_some_default_options() {
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
   local -a menu_list_string_array=("I'm number 0" "I'm number 1" "I'm number 2" "I'm number 3" "I'm number 4" "I'm number 5")
@@ -74,8 +69,7 @@ function test_create_menu_options_rely_on_some_default_options()
   assert_equals_helper 'Expected menu with some default options' "$LINENO" "$expected" "$output"
 }
 
-function test_create_menu_options_use_all_options()
-{
+function test_create_menu_options_use_all_options() {
   local menu_title='kunit test inside kw'
   local menu_message_box='This should be a useful message box'
   local -a menu_list_string_array=("I'm number 0" "I'm number 1" "I'm number 2" "I'm number 3" "I'm number 4" "I'm number 5")
@@ -92,8 +86,7 @@ function test_create_menu_options_use_all_options()
   assert_equals_helper 'Expected menu with with all custom options' "$LINENO" "$expected" "$output"
 }
 
-function test_create_simple_checklist_rely_on_some_default_options()
-{
+function test_create_simple_checklist_rely_on_some_default_options() {
   local menu_title='kunit test inside kw'
   local menu_message_box="This shouldn't be a useful dialog's screen message box"
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
@@ -110,8 +103,7 @@ function test_create_simple_checklist_rely_on_some_default_options()
   assert_equals_helper 'Expected simple checklist' "$LINENO" "${expected_cmd}" "${output}"
 }
 
-function test_create_simple_checklist_use_all_options()
-{
+function test_create_simple_checklist_use_all_options() {
   local menu_title='kunit test inside kw'
   local menu_message_box="This shouldn't be a useful dialog's screen message box"
   local -a menu_list_string_array=('Checklist 1' 'Checklist 2')
@@ -129,8 +121,7 @@ function test_create_simple_checklist_use_all_options()
   assert_equals_helper 'Expected simple checklist' "$LINENO" "${expected_cmd}" "${output}"
 }
 
-function test_create_loading_screen_notification_rely_on_some_default_options()
-{
+function test_create_loading_screen_notification_rely_on_some_default_options() {
   local loading_message="kunit's test inside kw"
   local expected_cmd="dialog --colors"
   local output
@@ -142,8 +133,7 @@ function test_create_loading_screen_notification_rely_on_some_default_options()
   assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${expected_cmd}" "${output}"
 }
 
-function test_create_loading_screen_notification_use_all_options()
-{
+function test_create_loading_screen_notification_use_all_options() {
   local loading_message="kunit's test inside kw"
   local expected_cmd="dialog --colors"
   local output
@@ -155,8 +145,7 @@ function test_create_loading_screen_notification_use_all_options()
   assert_equals_helper 'Expected loading screen with some default options' "$LINENO" "${expected_cmd}" "${output}"
 }
 
-function test_create_async_loading_screen_notification_rely_on_some_default_options()
-{
+function test_create_async_loading_screen_notification_rely_on_some_default_options() {
   local loading_message
   local expected_cmd
   local output_path
@@ -180,8 +169,7 @@ function test_create_async_loading_screen_notification_rely_on_some_default_opti
   assert_equals_helper 'Expected async loading screen with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_async_loading_screen_notification_use_all_options()
-{
+function test_create_async_loading_screen_notification_use_all_options() {
   local loading_message
   local expected_cmd
   local output_path
@@ -205,8 +193,7 @@ function test_create_async_loading_screen_notification_use_all_options()
   assert_equals_helper 'Expected async loading screen with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_message_box_rely_on_some_default_options()
-{
+function test_create_message_box_rely_on_some_default_options() {
   local box_title='Bookmarked patches'
   local message_box="There're no bookmarked patches..."
   local expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
@@ -219,8 +206,7 @@ function test_create_message_box_rely_on_some_default_options()
   assert_equals_helper 'Expected message box with some default options' "$LINENO" "${expected_cmd}" "$output"
 }
 
-function test_create_message_box_use_all_options()
-{
+function test_create_message_box_use_all_options() {
   local box_title='Bookmarked patches'
   local message_box="There're no bookmarked patches..."
   local expected_cmd=" dialog --backtitle $'${KW_PATCH_HUB_TITLE}'"
@@ -233,8 +219,7 @@ function test_create_message_box_use_all_options()
   assert_equals_helper 'Expected message box with all custom options' "$LINENO" "${expected_cmd}" "$output"
 }
 
-function test_create_directory_selection_screen_rely_on_some_default_options()
-{
+function test_create_directory_selection_screen_rely_on_some_default_options() {
   local starting_path='/some/creative/path'
   local box_title="Choose 'a' Directory!"
   local expected_cmd
@@ -248,8 +233,7 @@ function test_create_directory_selection_screen_rely_on_some_default_options()
   assert_equals_helper 'Expected directory selection with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_directory_selection_screen_use_all_options()
-{
+function test_create_directory_selection_screen_use_all_options() {
   local starting_path='/some/creative/path'
   local box_title="Choose 'a' Directory!"
   local expected_cmd
@@ -263,8 +247,7 @@ function test_create_directory_selection_screen_use_all_options()
   assert_equals_helper 'Expected directory selection with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_file_selection_screen_rely_on_some_default_options()
-{
+function test_create_file_selection_screen_rely_on_some_default_options() {
   local starting_path='/some/creative/path'
   local box_title="Choose 'a' File!"
   local expected_cmd
@@ -278,8 +261,7 @@ function test_create_file_selection_screen_rely_on_some_default_options()
   assert_equals_helper 'Expected file selection with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_file_selection_screen_use_all_options()
-{
+function test_create_file_selection_screen_use_all_options() {
   local starting_path='/some/creative/path'
   local box_title="Choose 'a' File!"
   local expected_cmd
@@ -293,8 +275,7 @@ function test_create_file_selection_screen_use_all_options()
   assert_equals_helper 'Expected file selection with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_help_screen()
-{
+function test_create_help_screen() {
   local expected_cmd
   local output
 
@@ -314,8 +295,7 @@ function test_create_help_screen()
   assert_equals_helper 'Wrong help screen for Directory Selection' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_choice_list_screen_with_indexed_array_rely_on_some_default_options()
-{
+function test_create_choice_list_screen_with_indexed_array_rely_on_some_default_options() {
   local box_title="Make 'a' choice!"
   local message_box="Select \`one' of the below options."
   # shellcheck disable=SC2190
@@ -334,8 +314,7 @@ function test_create_choice_list_screen_with_indexed_array_rely_on_some_default_
   assert_equals_helper 'Expected choice list with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_choice_list_screen_with_indexed_array_use_all_options()
-{
+function test_create_choice_list_screen_with_indexed_array_use_all_options() {
   local box_title="Make 'a' choice!"
   local message_box="Select \`one' of the below options."
   # shellcheck disable=SC2190
@@ -354,8 +333,7 @@ function test_create_choice_list_screen_with_indexed_array_use_all_options()
   assert_equals_helper 'Expected choice list with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_choice_list_screen_with_associative_array_rely_on_some_default_options()
-{
+function test_create_choice_list_screen_with_associative_array_rely_on_some_default_options() {
   local box_title="Make 'a' choice!"
   local message_box="Select \`one' of the below options."
   declare -A choices=(['choice1']='good choice' ['choice2']='bad choice' ['choice3']='a choice is a choice')
@@ -373,8 +351,7 @@ function test_create_choice_list_screen_with_associative_array_rely_on_some_defa
   assert_equals_helper 'Expected choice list with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_choice_list_screen_with_associative_array_use_all_options()
-{
+function test_create_choice_list_screen_with_associative_array_use_all_options() {
   local box_title="Make 'a' choice!"
   local message_box="Select \`one' of the below options."
   declare -A choices=(['choice1']='good choice' ['choice2']='bad choice' ['choice3']='a choice is a choice')
@@ -392,8 +369,7 @@ function test_create_choice_list_screen_with_associative_array_use_all_options()
   assert_equals_helper 'Expected choice list with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_yes_no_prompt_rely_on_some_default_options()
-{
+function test_create_yes_no_prompt_rely_on_some_default_options() {
   local box_title="Choose Yes 'or' No!"
   local message_box="This is \`a Yes/No' prompt."
   local expected_cmd
@@ -408,8 +384,7 @@ function test_create_yes_no_prompt_rely_on_some_default_options()
   assert_equals_helper 'Expected Yes/No prompt with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_yes_no_prompt_use_all_options()
-{
+function test_create_yes_no_prompt_use_all_options() {
   local box_title="Choose Yes 'or' No!"
   local message_box="This is \`a Yes/No' prompt."
   local expected_cmd
@@ -425,8 +400,7 @@ function test_create_yes_no_prompt_use_all_options()
   assert_equals_helper 'Expected Yes/No prompt with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_form_screen_default_options()
-{
+function test_create_form_screen_default_options() {
   local box_title='Simple form'
   local message_box='This is a simple form'
   declare -a fields_list=('User' 'IP' 'Port')
@@ -447,8 +421,7 @@ function test_create_form_screen_default_options()
   assert_equals_helper 'Expected form with default values' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_form_screen_all_options()
-{
+function test_create_form_screen_all_options() {
   local box_title='Simple form'
   local message_box='This is a simple form'
   local ok_label='Next'
@@ -473,8 +446,7 @@ function test_create_form_screen_all_options()
   assert_equals_helper 'Expected form with default values' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_rangebox_screen_rely_on_some_default_options()
-{
+function test_create_rangebox_screen_rely_on_some_default_options() {
   local box_title="Select a 'value' from this range"
   local message_box="This is \`a rangebox'."
   local expected_cmd
@@ -490,8 +462,7 @@ function test_create_rangebox_screen_rely_on_some_default_options()
   assert_equals_helper 'Expected Rangebox with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_rangebox_screen_use_all_options()
-{
+function test_create_rangebox_screen_use_all_options() {
   local box_title="Select a 'value' from this range"
   local message_box="This is \`a rangebox'."
   local expected_cmd
@@ -508,8 +479,7 @@ function test_create_rangebox_screen_use_all_options()
   assert_equals_helper 'Expected Rangebox with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_inputbox_screen_rely_on_some_default_options()
-{
+function test_create_inputbox_screen_rely_on_some_default_options() {
   local box_title="Type a 'string' here!"
   local message_box="This is \`a inputbox'."
   local expected_cmd
@@ -524,8 +494,7 @@ function test_create_inputbox_screen_rely_on_some_default_options()
   assert_equals_helper 'Expected Inputbox with some default options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_create_inputbox_screen_use_all_options()
-{
+function test_create_inputbox_screen_use_all_options() {
   local box_title="Type a 'string' here!"
   local message_box="This is \`a inputbox'."
   local expected_cmd
@@ -541,8 +510,7 @@ function test_create_inputbox_screen_use_all_options()
   assert_equals_helper 'Expected Inputbox with all custom options' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_build_dialog_command_preamble()
-{
+function test_build_dialog_command_preamble() {
   local output
   local expected
 
@@ -566,8 +534,7 @@ function test_build_dialog_command_preamble()
   assert_equals_helper 'Wrong command built' "$LINENO" "$expected" "$output"
 }
 
-function test_prettify_string_failures()
-{
+function test_prettify_string_failures() {
   prettify_string
   assert_equals_helper 'Expected failure' "$LINENO" 22 "$?"
 
@@ -575,8 +542,7 @@ function test_prettify_string_failures()
   assert_equals_helper 'Expected failure' "$LINENO" 22 "$?"
 }
 
-function test_prettify_string()
-{
+function test_prettify_string() {
   local output
   local expected_string='\Zb\Z6Series:\ZnSomething\n'
 

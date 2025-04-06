@@ -3,8 +3,7 @@
 include './src/diff.sh'
 include './tests/unit/utils.sh'
 
-function test_diff_main()
-{
+function test_diff_main() {
   local file_1="$SAMPLES_DIR/MAINTAINERS"
   local file_2="$SAMPLES_DIR/dmesg"
 
@@ -23,8 +22,7 @@ function test_diff_main()
   assertEquals "($LINENO) Default option:" "$expected_result" "$output"
 }
 
-function test_diff_folders()
-{
+function test_diff_folders() {
   local folder_1="${SAMPLES_DIR}/external"
   local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
 
@@ -33,8 +31,7 @@ function test_diff_folders()
   assertEquals "Only in ${folder_1}: get_maintainer.pl" "$output"
 }
 
-function test_diff_folders_no_difference()
-{
+function test_diff_folders_no_difference() {
   local folder_1="${SAMPLES_DIR}/db_files"
   local folder_2="${SAMPLES_DIR}/db_files"
 
@@ -42,8 +39,7 @@ function test_diff_folders_no_difference()
   assertEquals "" "$output"
 }
 
-function test_diff_folders_invalid_path()
-{
+function test_diff_folders_invalid_path() {
   local folder_1="${SAMPLES_DIR}/db_files"
   local folder_2="${SAMPLES_DIR}/first_set_of_bytes_from_disk"
 
@@ -54,8 +50,7 @@ function test_diff_folders_invalid_path()
   assertEquals "($LINENO) Expected 22" 22 "$?"
 }
 
-function test_diff_side_by_side()
-{
+function test_diff_side_by_side() {
   local file_1="$SAMPLES_DIR/MAINTAINERS"
   local file_2="$SAMPLES_DIR/dmesg"
   local columns
@@ -90,11 +85,9 @@ function test_diff_side_by_side()
 
 }
 
-function test_parse_diff_options()
-{
+function test_parse_diff_options() {
   # shellcheck disable=SC2317
-  function reset_options_values()
-  {
+  function reset_options_values() {
     unset options_values
     declare -gA options_values
   }

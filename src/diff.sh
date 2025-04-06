@@ -3,8 +3,7 @@ include "${KW_LIB_DIR}/lib/kwio.sh"
 
 declare -gA options_values
 
-function diff_main()
-{
+function diff_main() {
   local target_a="$1"
   local target_b="$2"
   local flag
@@ -58,8 +57,7 @@ function diff_main()
 #
 # Return:
 # In case of success, return 0, otherwise, return 22.
-function diff_folders()
-{
+function diff_folders() {
   local folder_1="$1"
   local folder_2="$2"
   local flag="$3"
@@ -86,8 +84,7 @@ function diff_folders()
 # @interactive If set to 1, it interactively displays the diff, otherwise, it
 #              just prints all diff at once.
 # @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
-function diff_side_by_side()
-{
+function diff_side_by_side() {
   local file_1="$1"
   local file_2="$2"
   local interactive="$3"
@@ -120,8 +117,7 @@ function diff_side_by_side()
 #
 # Return:
 # In case of successful return 0, otherwise, return 22.
-function parse_diff_options()
-{
+function parse_diff_options() {
   local long_options='help,no-interactive,verbose'
   local short_options='h'
 
@@ -168,8 +164,7 @@ function parse_diff_options()
   done
 }
 
-function diff_help()
-{
+function diff_help() {
   if [[ "$1" == --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'diff'

@@ -3,15 +3,13 @@
 include './src/lib/web.sh'
 include './tests/unit/utils.sh'
 
-oneTimeSetUp()
-{
+oneTimeSetUp() {
   export KW_CACHE_DIR='fake_cache'
 
   cp --recursive "${SAMPLES_DIR}/web/." "$SHUNIT_TMPDIR"
 }
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
 
   cd "${SHUNIT_TMPDIR}" || {
@@ -20,16 +18,14 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "${ORIGINAL_PATH}" || {
     fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
     return
   }
 }
 
-function test_download()
-{
+function test_download() {
   local output
   local expected
   local ret
@@ -53,8 +49,7 @@ function test_download()
   assert_equals_helper 'We expected a custom file name and path' "($LINENO)" "$expected" "$output"
 }
 
-function test_replace_http_by_https()
-{
+function test_replace_http_by_https() {
   local output
   local expected='https://lore.kernel.org/'
 
@@ -70,8 +65,7 @@ function test_replace_http_by_https()
   assert_equals_helper 'Expected https' "($LINENO)" "$expected" "$output"
 }
 
-function test_is_html_file_with_non_html_files()
-{
+function test_is_html_file_with_non_html_files() {
   local file_path
 
   file_path="${SHUNIT_TMPDIR}/inexistent.path"
@@ -85,8 +79,7 @@ function test_is_html_file_with_non_html_files()
   assert_equals_helper 'Non HTML file should return 1' "$LINENO" 1 "$?"
 }
 
-function test_is_html_file_with_html_files()
-{
+function test_is_html_file_with_html_files() {
   local file_path
 
   file_path="${SHUNIT_TMPDIR}/sample1.html"
@@ -114,8 +107,7 @@ function test_is_html_file_with_html_files()
   assert_equals_helper 'Valid HTML file should return 0' "$LINENO" 0 "$?"
 }
 
-function test_url_encode()
-{
+function test_url_encode() {
   local output
   local expected
 

@@ -7,8 +7,7 @@ declare -r TEST_ROOT_PATH="$PWD"
 
 declare -a fake_dev
 
-function setUp()
-{
+function setUp() {
   local count=0
   local bootloader_file=''
 
@@ -57,19 +56,16 @@ function setUp()
   done
 }
 
-function create_binary_file()
-{
+function create_binary_file() {
   local input="$1"
   local save_to="$2"
 }
 
-function tearDown()
-{
+function tearDown() {
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function test_identify_bootloader_from_files()
-{
+function test_identify_bootloader_from_files() {
   local output
 
   output=$(identify_bootloader_from_files "${SHUNIT_TMPDIR}/GRUB_FILES")

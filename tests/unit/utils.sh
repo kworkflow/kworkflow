@@ -38,8 +38,7 @@ readonly KW_COLOR_NONE='\033[0m'
 readonly KW_COLOR_RED='\033[1;31m'
 readonly KW_COLOR_GREEN='\033[1;32m'
 
-function init_env()
-{
+function init_env() {
   unset -v KW_LIB_DIR KWORKFLOW
   KW_LIB_DIR="./src"
   KWORKFLOW=".kw"
@@ -49,14 +48,12 @@ function init_env()
 
 # Receives a string with one or more lines and print each of
 # then prefixed by "> "
-function prefix_multiline()
-{
+function prefix_multiline() {
   printf '%s\n' "$@" | sed -E 's/^/> /g'
 }
 
 # Compare strings with multiple lines and prefix them with "> "
-function multilineAssertEquals()
-{
+function multilineAssertEquals() {
   local message
   local left
   local right
@@ -77,8 +74,7 @@ function multilineAssertEquals()
 }
 
 # Assert that two files are byte by byte the same
-function assertFileEquals()
-{
+function assertFileEquals() {
   local message
   local ret
 
@@ -97,8 +93,7 @@ function assertFileEquals()
 
 # Receives a path and creates a fake kernel root in it. The goal is to make this
 # path recognizable by src/lib/kwlib.sh:is_kernel_root().
-function mk_fake_kernel_root()
-{
+function mk_fake_kernel_root() {
   local -r path="$1"
   mkdir -p "$path"
   touch "$path/COPYING"
@@ -126,8 +121,7 @@ function mk_fake_kernel_root()
   printf 'This is a Image fake\n' > "$path/arch/arm64/boot/Image"
 }
 
-function mk_fake_remote()
-{
+function mk_fake_remote() {
   local -r FAKE_KW="$1"
   local -r modules_path="$2"
   local -r modules_name="test"
@@ -147,8 +141,7 @@ function mk_fake_remote()
 # @kernel_name: Kernel name. If not set, it is 'test'
 # @kernel_binary_name: Kernel binary name. If not set, it is 'vmlinuz-test'
 # @architecture: Target achitecture. If not set, it is 'x86_64'
-function mk_fake_tar_file_to_deploy()
-{
+function mk_fake_tar_file_to_deploy() {
   local FAKE_KW="$1"
   local output="$2"
   local kernel_name="$3"
@@ -187,8 +180,7 @@ function mk_fake_tar_file_to_deploy()
   rm -rf "${FAKE_KW}/kw_pkg/"
 }
 
-function mk_fake_remote_system()
-{
+function mk_fake_remote_system() {
   local prefix="$1"
   local target="$2"
   local kernelpath="$prefix/boot/vmlinuz-$target"
@@ -217,8 +209,7 @@ function mk_fake_remote_system()
   touch "$mkinitcpiofile"
 }
 
-function mock_target_machine()
-{
+function mock_target_machine() {
   local -r FAKE_KW="$1"
   local -r kernel_install_path="kernel_install"
   local -r remote_kw_deploy="kw_deploy"
@@ -230,8 +221,7 @@ function mock_target_machine()
   cp "$KERNEL_INSTALL_PLUGIN_PATH/debian.sh" "$FAKE_KW/$remote_kw_deploy/distro_deploy.sh"
 }
 
-function mk_fake_boot()
-{
+function mk_fake_boot() {
   local -r FAKE_BOOT_DIR=${1:-'./'}
 
   mkdir -p "$FAKE_BOOT_DIR"
@@ -240,8 +230,7 @@ function mk_fake_boot()
 
 # Creates a new git repository in the current path and configure it locally.
 # Note: Git folder must be deleted afterward manually.
-function mk_fake_git()
-{
+function mk_fake_git() {
   local -r path="$PWD"
 
   git init -q "$path"
@@ -268,8 +257,7 @@ function mk_fake_git()
 # Create a new git branch for current local repository and return to master branch afterwards.
 #
 # @branch_name The name of the new branch to be created.
-function mk_git_branch()
-{
+function mk_git_branch() {
   local branch_name="$1"
 
   git checkout --quiet HEAD^
@@ -280,8 +268,7 @@ function mk_git_branch()
   git checkout --quiet master
 }
 
-function mk_fake_kw_folder()
-{
+function mk_fake_kw_folder() {
   local target_folder="$1"
   local kw_config_folder="${target_folder}/.kw"
 
@@ -298,8 +285,7 @@ function mk_fake_kw_folder()
   cp "$KW_REMOTE_CONFIG_SAMPLE" "$kw_config_folder"
 }
 
-function mk_fake_kw_env()
-{
+function mk_fake_kw_env() {
   local env_kw="${PWD}/.kw/envs/fake_env"
 
   mkdir -p "$env_kw"
@@ -313,8 +299,7 @@ function mk_fake_kw_env()
 # @line $LINENO variable
 # @expected_res Name of the array variable containing expected strings
 # @result_to_compare A raw output from the string
-function compare_command_sequence()
-{
+function compare_command_sequence() {
   local msg="$1"
   local line="$2"
   # This variable name must be unique
@@ -341,8 +326,7 @@ function compare_command_sequence()
 # @line $LINENO variable
 # @expected Expected value
 # @result_to_compare Raw output to be compared
-function assert_substring_match()
-{
+function assert_substring_match() {
   local msg="$1"
   local line="$2"
   local expected="$3"
@@ -359,8 +343,7 @@ function assert_substring_match()
 # @lineno $LINENO variable
 # @expected_line Expected line
 # @result_to_compare Raw output to be compared
-function assert_line_match()
-{
+function assert_line_match() {
   local lineno="$1"
   local expected_line="$2"
   local result_to_compare="$3"
@@ -377,8 +360,7 @@ function assert_line_match()
 # @lineno $LINENO variable
 # @not_expected_line Not expected line
 # @result_to_compare Raw output to be compared
-function assert_no_line_match()
-{
+function assert_no_line_match() {
   local lineno="$1"
   local not_expected_line="$2"
   local result_to_compare="$3"
@@ -396,8 +378,7 @@ function assert_no_line_match()
 # @line $LINENO variable
 # @expected Expected value
 # @result_to_compare Raw output to be compared
-function assert_equals_helper()
-{
+function assert_equals_helper() {
   local msg="$1"
   local line="$2"
   local expected="$3"
@@ -415,14 +396,12 @@ function assert_equals_helper()
 }
 
 # Create an invalid file path
-function create_invalid_file_path()
-{
+function create_invalid_file_path() {
   invalid_path="$RANDOM/$RANDOM/$RANDOM/xptolala"
   printf '%s\n' "$invalid_path"
 }
 
-function compare_array_values()
-{
+function compare_array_values() {
   #shellcheck disable=SC2178
   local -n expected="$1"
   local -n result_to_compare="$2"
@@ -440,8 +419,7 @@ function compare_array_values()
   fi
 }
 
-function get_config_option_to_string()
-{
+function get_config_option_to_string() {
   local config_path="$1"
   local output
 
@@ -451,8 +429,7 @@ function get_config_option_to_string()
   printf '%s' "$output"
 }
 
-function invoke_shunit()
-{
+function invoke_shunit() {
   # Set some global variables to point to the source by default
   KW_LIB_DIR="$PWD/src"
   KW_PLUGINS_DIR="$PWD/src/plugins"

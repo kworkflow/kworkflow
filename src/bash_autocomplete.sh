@@ -1,5 +1,4 @@
-function _kw_autocomplete()
-{
+function _kw_autocomplete() {
   declare -A kw_options
 
   local current_command previous_command kw_options comp_curr

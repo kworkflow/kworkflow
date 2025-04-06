@@ -11,8 +11,7 @@ declare CLEAR_INTEGRATION_CACHE=0
 declare CLEAR_UNIT_CACHE=0
 declare VERBOSE=0
 
-function show_help()
-{
+function show_help() {
   printf '%s\n' "Usage: $0 [--flags] [help] [list] [test <tfile1> ...]" \
     'Run tests for kworkflow.' \
     "Example: $0 test kw_test" \
@@ -35,8 +34,7 @@ function show_help()
 # Reports tests results.
 # Arguments are: $1: # of tests, $2: # of succeeded tests, $3: # of notfound tests and
 # $4: # of failed tests
-function report_results()
-{
+function report_results() {
   local -i total="$1"
   local -i success="$2"
   local -i notfound="$3"
@@ -71,8 +69,7 @@ function report_results()
   fi
 }
 
-function run_tests()
-{
+function run_tests() {
   local -i total=${#TESTS[@]}
   local -i success=0
   local -i notfound=0
@@ -123,19 +120,16 @@ function run_tests()
   report_results "$total" "$success" "$notfound" "$fail" "$test_failure_list"
 }
 
-function clear_unit_tests_cache()
-{
+function clear_unit_tests_cache() {
   say 'Unit tests: nothing cached to clear.'
 }
 
-function clear_integration_tests_cache()
-{
+function clear_integration_tests_cache() {
   say 'Integration tests: cleaning cache...'
   teardown_container_environment "$@"
 }
 
-function set_tests()
-{
+function set_tests() {
   local file
   TESTS=()
   for file in "$@"; do
@@ -145,8 +139,7 @@ function set_tests()
   done
 }
 
-function list_tests()
-{
+function list_tests() {
   local index
   local files_list
 
@@ -162,8 +155,7 @@ function list_tests()
   done
 }
 
-function run_all_tests()
-{
+function run_all_tests() {
   local files_list
 
   files_list=$(find "$TESTS_DIR" -name '*_test.sh' | grep --extended-regexp --invert-match 'samples/.*|/shunit2/')
@@ -178,8 +170,7 @@ function run_all_tests()
   LANGUAGE=en_US.UTF_8 run_tests
 }
 
-function run_user_provided_tests()
-{
+function run_user_provided_tests() {
   local regex
   local files_list
 

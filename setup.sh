@@ -61,8 +61,7 @@ declare -r PATCH_HUB_LATEST_RELEASE='https://github.com/kworkflow/patch-hub/rele
 #
 # Returns:
 # Outputs a space-separated string with the missing packages.
-function get_missing_packages()
-{
+function get_missing_packages() {
   local distro="$1"
   local deps_file="$2"
   local package_list
@@ -94,8 +93,7 @@ function get_missing_packages()
 #
 # Returns:
 # The return status of the installation command.
-function install_packages()
-{
+function install_packages() {
   local cmd="$1"
 
   if [[ "$EUID" -eq 0 ]]; then
@@ -111,8 +109,7 @@ function install_packages()
 # Returns:
 # Returns 0 if all dependencies are already installed or installation is
 # successful.
-function check_dependencies()
-{
+function check_dependencies() {
   local package_list
   local cmd
   local distro
@@ -170,8 +167,7 @@ function check_dependencies()
 # is successful.  and returns 22 (EINVAL), in case `@distro` is an unsupported
 # OS type. The function can also exit the execution with 125 (ECANCELED) in case
 # the user opts to abort the installation.
-function check_and_install_kernel_build_dependencies()
-{
+function check_and_install_kernel_build_dependencies() {
   local distro="$1"
   local kernel_build_deps_file
   local package_list
@@ -222,8 +218,7 @@ function check_and_install_kernel_build_dependencies()
 
 # This function initiates the process to ensure kernel build dependencies are
 # installed.
-function install_kernel_dev_deps()
-{
+function install_kernel_dev_deps() {
   local distro
   local ret
 
@@ -240,8 +235,7 @@ function install_kernel_dev_deps()
   check_and_install_kernel_build_dependencies "$distro"
 }
 
-function generate_documentation()
-{
+function generate_documentation() {
   local ret
 
   python3 -m venv "$DOCS_VIRTUAL_ENV"
@@ -271,8 +265,7 @@ function generate_documentation()
 # Originally, kw get installed in the ~/.config and add the kw binary in the
 # path. We changed it; however, we keep this function for supporting the
 # migration from the old version to the new one.
-function remove_kw_from_PATH_variable()
-{
+function remove_kw_from_PATH_variable() {
   local new_path=''
   local needs_update=0
 
@@ -293,8 +286,7 @@ function remove_kw_from_PATH_variable()
   fi
 }
 
-function update_path()
-{
+function update_path() {
   local shellrc="$1"
 
   IFS=':' read -ra ALL_PATHS <<< "$PATH"
@@ -305,13 +297,11 @@ function update_path()
   safe_append "PATH=${HOME}/.local/bin:\$PATH # kw" "$shellrc"
 }
 
-function update_current_bash()
-{
+function update_current_bash() {
   exec /bin/bash
 }
 
-function cmd_output_manager()
-{
+function cmd_output_manager() {
   local cmd="$1"
   local unsilent_flag="$2"
 
@@ -329,8 +319,7 @@ function cmd_output_manager()
 # KW used git to track saved configs from kernel-config-manager.
 # It changed so this function removes the unused .git folder from
 # the dot_configs_dir
-function remove_legacy_git_from_kernel_config_manager()
-{
+function remove_legacy_git_from_kernel_config_manager() {
   local -r original_path="$PWD"
 
   [[ ! -d "${dot_configs_dir}"/.git ]] && return
@@ -347,8 +336,7 @@ function remove_legacy_git_from_kernel_config_manager()
   fi
 }
 
-function usage()
-{
+function usage() {
   say 'usage: ./setup.sh option'
   say ''
   say 'Where option may be one of the following:'
@@ -366,8 +354,7 @@ function usage()
   say "--enable-tracing           | -t    Install ${app_name} with tracing enabled (use it with --install)"
 }
 
-function confirm_complete_removal()
-{
+function confirm_complete_removal() {
   warning 'This operation will completely remove all files related to kw,'
   warning 'including the kernel '.config' files under its controls.'
   if [[ $(ask_yN 'Do you want to proceed?') =~ '0' ]]; then
@@ -377,8 +364,7 @@ function confirm_complete_removal()
 
 # This function moves the folders from the old directory structure to
 # folders of the new one.
-function legacy_folders()
-{
+function legacy_folders() {
   local prefix="$HOME/.local"
 
   if [[ -d "$HOME/.kw" ]]; then
@@ -406,8 +392,7 @@ function legacy_folders()
 
 }
 
-function clean_legacy()
-{
+function clean_legacy() {
   local completely_remove="$1"
   local toDelete="$app_name"
   local trash
@@ -455,8 +440,7 @@ function clean_legacy()
   remove_kw_from_PATH_variable
 }
 
-function ASSERT_IF_NOT_EQ_ZERO()
-{
+function ASSERT_IF_NOT_EQ_ZERO() {
   local msg="$1"
   local ret="$2"
   if [[ "$ret" != 0 ]]; then
@@ -466,8 +450,7 @@ function ASSERT_IF_NOT_EQ_ZERO()
 }
 
 # Synchronize .vim and .vimrc with repository.
-function synchronize_files()
-{
+function synchronize_files() {
   verbose=''
 
   [[ "$VERBOSE" == 1 ]] && verbose=1
@@ -589,14 +572,12 @@ function synchronize_files()
   say "$app_name installed into $HOME"
 }
 
-function append_bashcompletion()
-{
+function append_bashcompletion() {
   safe_append "# ${app_name}" "${HOME}/.bashrc"
   safe_append "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${HOME}/.bashrc"
 }
 
-function remove_legacy_zshcompletion()
-{
+function remove_legacy_zshcompletion() {
   local zshrc_path="$1"
 
   safe_remove '# Enable bash completion for zsh' "${zshrc_path}"
@@ -604,8 +585,7 @@ function remove_legacy_zshcompletion()
   safe_remove "source ${libdir}/${BASH_AUTOCOMPLETE}.sh" "${zshrc_path}"
 }
 
-function append_zshcompletion()
-{
+function append_zshcompletion() {
   local zshrc_path="$1"
 
   safe_append "# ${app_name}" "${zshrc_path}"
@@ -613,15 +593,13 @@ function append_zshcompletion()
   safe_append 'autoload compinit && compinit -i' "${zshrc_path}"
 }
 
-function safe_append()
-{
+function safe_append() {
   if [[ $(grep -c -x "$1" "$2") == 0 ]]; then
     printf '%s\n' "$1" >> "$2"
   fi
 }
 
-function safe_remove()
-{
+function safe_remove() {
   local preprocessed_pattern
   if [[ $(grep -c -x "$1" "$2") == 1 ]]; then
     # Escape any foward slash as to not conflict with sed
@@ -630,13 +608,11 @@ function safe_remove()
   fi
 }
 
-function update_version()
-{
+function update_version() {
   kworkflow_version_from_repo > "${libdir}/VERSION"
 }
 
-function install_home()
-{
+function install_home() {
   # Check Dependencies
   if [[ "$SKIPCHECKS" == 0 ]]; then
     say 'Checking dependencies ...'
@@ -669,8 +645,7 @@ function install_home()
   warning '-> For a better experience with kw, please, open a new terminal.'
 }
 
-function install_patch_hub()
-{
+function install_patch_hub() {
   local tmp_dir
   local ret
 
@@ -698,16 +673,14 @@ function install_patch_hub()
   fi
 }
 
-function full_installation()
-{
+function full_installation() {
   say 'Starting kw installation...'
   install_home
   say 'Installing kernel dependencies for build...'
   install_kernel_dev_deps
 }
 
-function setup_bashrc_to_show_current_kw_env()
-{
+function setup_bashrc_to_show_current_kw_env() {
   local config_file_template="${etcdir}/kw_prompt_current_env_name.sh"
 
   say ''
@@ -717,8 +690,7 @@ function setup_bashrc_to_show_current_kw_env()
   safe_append "source ${config_file_template}" "${HOME}/.bashrc"
 }
 
-function setup_global_config_file()
-{
+function setup_global_config_file() {
   local config_files_path="$etcdir"
   local config_file_template="$config_files_path/notification_template.config"
   local global_config_name='notification.config'

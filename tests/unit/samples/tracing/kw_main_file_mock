@@ -10,8 +10,7 @@ if [[ "$this_is_an" == 'an if statement' ]]; then
   do_something
 fi
 
-function foo()
-{
+function foo() {
   bar
 
   #INJECT_CODE_TRACING_COMMIT

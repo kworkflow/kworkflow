@@ -7,8 +7,7 @@ declare -gA options_values
 
 declare -g SYSFS_CLASS_DRM='/sys/class/drm'
 
-function drm_main()
-{
+function drm_main() {
   local target
   local gui_on
   local gui_off
@@ -108,8 +107,7 @@ function drm_main()
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
 # @parameters String passed via --[un]load-module=
 # @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`.
-function module_control()
-{
+function module_control() {
   local operation="$1"
   local target="$2"
   local unformatted_remote="$3"
@@ -148,8 +146,7 @@ function module_control()
 # Returns:
 # Return a string with the modprobe command assembled. In case of error return
 # an errno code.
-function convert_module_info()
-{
+function convert_module_info() {
   local unload="$1"
   shift
   local raw_modules_str="$*"
@@ -212,8 +209,7 @@ function convert_module_info()
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
 # @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`.
-function gui_control()
-{
+function gui_control() {
   local operation="$1"
   local target="$2"
   local unformatted_remote="$3"
@@ -280,8 +276,7 @@ function gui_control()
 #
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
-function get_available_connectors()
-{
+function get_available_connectors() {
   local target="$1"
   local unformatted_remote="$2"
   local flag="$3"
@@ -358,8 +353,7 @@ function get_available_connectors()
 #
 # @target Target can be VM_TARGET, LOCAL_TARGET, and REMOTE_TARGET.
 # @unformatted_remote It is the remote location formatted as REMOTE:PORT.
-function get_supported_mode_per_connector()
-{
+function get_supported_mode_per_connector() {
   local target="$1"
   local unformatted_remote="$2"
   local flag="$3"
@@ -394,8 +388,7 @@ function get_supported_mode_per_connector()
   printf '%s\n' "$modes"
 }
 
-function parse_drm_options()
-{
+function parse_drm_options() {
   local long_options='remote:,local,gui-on,gui-off,gui-on-after-reboot,gui-off-after-reboot'
   long_options+=',load-module:,unload-module:,help,verbose,conn-available,modes'
   local short_options='h'
@@ -523,8 +516,7 @@ function parse_drm_options()
   done
 }
 
-function drm_help()
-{
+function drm_help() {
   if [[ "$1" =~ --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'drm'

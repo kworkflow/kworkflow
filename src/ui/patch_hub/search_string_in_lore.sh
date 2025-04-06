@@ -2,8 +2,7 @@ include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
 # This function displays an input box that allows the user to search a string in
 # the lore archives.
-function show_search_string_in_lore()
-{
+function show_search_string_in_lore() {
   local -a list_of_options_array
   local message_box
   local ret
@@ -31,8 +30,7 @@ function show_search_string_in_lore()
 # the string as a query filter for the `latest_patchsets_from_mailing_list` screen.
 #
 # @string: String to be searched in lore.
-function search_string_in_lore()
-{
+function search_string_in_lore() {
   local string="$1"
 
   if [[ -z "$string" ]]; then

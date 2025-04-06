@@ -3,8 +3,7 @@
 include './src/ui/patch_hub/lore_mailing_lists.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   export ORIGINAL_PATH="$PWD"
 
   cd "${SHUNIT_TMPDIR}" || {
@@ -13,16 +12,14 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "${ORIGINAL_PATH}" || {
     fail "($LINENO): tearDown(): It was not possible to move into ${ORIGINAL_PATH}"
     return
   }
 }
 
-function test_convert_available_lore_mailing_lists_to_array()
-{
+function test_convert_available_lore_mailing_lists_to_array() {
   declare -A available_lore_mailing_lists=(
     ['A']='Description E'
     ['B']='Description A'
@@ -40,8 +37,7 @@ function test_convert_available_lore_mailing_lists_to_array()
   assert_equals_helper "$test_fail_message" "$LINENO" 0 "$?"
 }
 
-function test_get_lists_check_status()
-{
+function test_get_lists_check_status() {
   local -a lists=('List1' 'List2' 'List3' 'List4' 'List5')
   local -a lists_check_status
   local registered_lists_string='List2,List5'

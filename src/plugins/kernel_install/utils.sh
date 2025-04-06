@@ -10,8 +10,7 @@ declare -gA kw_package_metadata
 # share the specific distro in the kw main code. However, when we deploy for a
 # remote machine, we need this function, and this is the reason that we added
 # this function.
-function cmd_manager()
-{
+function cmd_manager() {
   local flag="$1"
 
   case "$flag" in
@@ -43,8 +42,7 @@ function cmd_manager()
   eval "$*"
 }
 
-function command_exists()
-{
+function command_exists() {
   local cmd="$1"
   local package=${cmd%% *}
 
@@ -65,8 +63,7 @@ function command_exists()
 #
 # Return:
 # Return filesystem type
-function detect_filesystem_type()
-{
+function detect_filesystem_type() {
   local target_path=${1:-'/'}
   local file_system
 
@@ -83,8 +80,7 @@ function detect_filesystem_type()
 #
 # Return:
 # Return an errno code in case of failure.
-function parse_kw_package_metadata()
-{
+function parse_kw_package_metadata() {
   local config_path="$1"
   local config_array='kw_package_metadata'
   local value
@@ -121,8 +117,7 @@ function parse_kw_package_metadata()
 #
 # Return
 # An error code in case of failure or 0 in case of success.
-function is_filesystem_writable()
-{
+function is_filesystem_writable() {
   local file_system_type="$1"
   local flag="$2"
   local cmd=''
@@ -155,8 +150,7 @@ function is_filesystem_writable()
 #
 # @flag How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
-function make_root_partition_writable()
-{
+function make_root_partition_writable() {
   local flag="$1"
   local file_system_type
 
@@ -177,8 +171,7 @@ function make_root_partition_writable()
   fi
 }
 
-function collect_deploy_info()
-{
+function collect_deploy_info() {
   local flag="$1"
   local target="$2"
   local prefix="$3"
@@ -212,8 +205,7 @@ function collect_deploy_info()
 #
 # Note: the array "required_packages" is in the distro specific file and
 # it must be load before invoke this function
-function distro_deploy_setup()
-{
+function distro_deploy_setup() {
   local flag="$1"
   local target="$2"
   local package_list
@@ -237,8 +229,7 @@ function distro_deploy_setup()
   cmd_manager "$flag" "$install_package_cmd"
 }
 
-function ask_yN()
-{
+function ask_yN() {
   local message="$*"
 
   read -r -p "$message [y/N] " response
@@ -255,8 +246,7 @@ function ask_yN()
 #   will display each kernel name by line.
 # @prefix Set a base prefix for searching for kernels.
 # @all List all available kernels, not only the ones installed by kw
-function list_installed_kernels()
-{
+function list_installed_kernels() {
   local flag="$1"
   local single_line="$2"
   local all="$3"
@@ -293,8 +283,7 @@ function list_installed_kernels()
   return 0
 }
 
-list_installed_kernels_based_on_grub()
-{
+list_installed_kernels_based_on_grub() {
   local prefix="$1"
   local -n _available_kernels="$2"
   local grub_cfg
@@ -331,8 +320,7 @@ list_installed_kernels_based_on_grub()
   done <<< "$output"
 }
 
-function reboot_machine()
-{
+function reboot_machine() {
   local reboot="$1"
   local local="$2"
   local flag="$3"
@@ -355,8 +343,7 @@ function reboot_machine()
 # In case of failure, return an errno code:
 # - ENOENT (2): kw package was not find
 # - EADV (68): Failed to uncompress
-function uncompress_kw_package()
-{
+function uncompress_kw_package() {
   local flag="$1"
   local kw_pkg_tar_path="${KW_DEPLOY_TMP_FILE}"
   local kw_pkg_modules_path="${KW_DEPLOY_TMP_FILE}/kw_pkg/modules/lib/modules"
@@ -396,8 +383,7 @@ function uncompress_kw_package()
 #
 # Return:
 # In case of failure, return an errno code.
-function install_modules()
-{
+function install_modules() {
   local target="$1"
   local flag="$2"
   local uncompressed_kw_pkg="${KW_DEPLOY_TMP_FILE}/kw_pkg"
@@ -440,8 +426,7 @@ function install_modules()
 # @kernel_image_name Kernel binary file name
 # @distro Target distro (e.g., arch or debian)
 # @prefix Set a base prefix for searching for kernels.
-function update_bootloader()
-{
+function update_bootloader() {
   local flag="$1"
   local name="$2"
   local target="$3"
@@ -501,8 +486,7 @@ function update_bootloader()
   return "$ret"
 }
 
-function do_uninstall()
-{
+function do_uninstall() {
   local target="$1"
   local kernel_name="$2"
   local prefix="$3"
@@ -558,8 +542,7 @@ function do_uninstall()
 #
 # Return:
 # Returns 0 if `@target_element` is in `@_array` and 1 otherwise.
-function is_in_array()
-{
+function is_in_array() {
   local target_element="$1"
   local -n _array="$2"
 
@@ -578,8 +561,7 @@ function is_in_array()
 #
 # Return:
 # Returns array containing available kernels in `@_processed_installed_kernels`.
-function process_installed_kernels()
-{
+function process_installed_kernels() {
   local all_kernels="$1"
   local prefix="$2"
   local -n _processed_installed_kernels="$3"
@@ -591,8 +573,7 @@ function process_installed_kernels()
   mapfile -t _processed_installed_kernels <<< "$(printf "%s\n" "${available_kernels[@]}" | sort --unique)"
 }
 
-function kernel_uninstall()
-{
+function kernel_uninstall() {
   local reboot="$1"
   local target="$2"
   local kernel_list_string_or_regex="$3"
@@ -656,8 +637,7 @@ function kernel_uninstall()
 }
 
 # Install kernel
-function install_kernel()
-{
+function install_kernel() {
   local distro="$1"
   local reboot="$2"
   local target="$3"

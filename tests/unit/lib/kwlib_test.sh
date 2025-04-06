@@ -4,8 +4,7 @@ include './src/maintainers.sh'
 include './src/lib/kwlib.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   declare -gr ORIGINAL_DIR="$PWD"
   declare -gr FAKE_DATA="${SHUNIT_TMPDIR}/db_testing"
 
@@ -17,13 +16,11 @@ function oneTimeSetUp()
   setupFakeKernelRepo
 }
 
-function setupPatch()
-{
+function setupPatch() {
   cp -f tests/unit/samples/test.patch "$SHUNIT_TMPDIR"
 }
 
-function setupFakeKernelRepo()
-{
+function setupFakeKernelRepo() {
   # This makes $SHUNIT_TMPDIR should mock a kernel tree root. A .git
   # dir is also created inside $SHUNIT_TMPDIR so that get_maintainer.pl thinks
   # it is a git repo. This is done in order to avoid some warnings that
@@ -57,29 +54,25 @@ function setupFakeKernelRepo()
   cp -f tests/unit/samples/MAINTAINERS "$SHUNIT_TMPDIR/MAINTAINERS"
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "$ORIGINAL_DIR" || {
     fail "($LINENO) It was not possible to move back to original directory"
     return
   }
 }
 
-function setupDatabase()
-{
+function setupDatabase() {
   execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
 }
 
-function teardownDatabase()
-{
+function teardownDatabase() {
   is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
   if [[ "$?" == 0 ]]; then
     rm "${KW_DATA_DIR}/kw.db"
   fi
 }
 
-function setupGitRepository()
-{
+function setupGitRepository() {
   declare -gr PATH_TO_GIT_REPOSITORY="${SHUNIT_TMPDIR}/git_repository"
   mkdir -p "$PATH_TO_GIT_REPOSITORY"
   git -C "$PATH_TO_GIT_REPOSITORY" init --initial-branch='master' --quiet
@@ -87,22 +80,19 @@ function setupGitRepository()
   git -C "$PATH_TO_GIT_REPOSITORY" config user.email kw@kw
 }
 
-function teardownGitRepository()
-{
+function teardownGitRepository() {
   is_safe_path_to_remove "$PATH_TO_GIT_REPOSITORY"
   if [[ "$?" == 0 ]]; then
     rm -rf "$PATH_TO_GIT_REPOSITORY"
   fi
 }
 
-function setupKwSharedMemoryDefaultDir()
-{
+function setupKwSharedMemoryDefaultDir() {
   KW_SHARED_MEMORY_DEFAULT_DIR="${SHUNIT_TMPDIR}/test/tmp_dir"
   mkdir --parents "$KW_SHARED_MEMORY_DEFAULT_DIR"
 }
 
-function teardownSharedMemoryDefaultDir()
-{
+function teardownSharedMemoryDefaultDir() {
   is_safe_path_to_remove "$KW_SHARED_MEMORY_DEFAULT_DIR"
   if [[ "$?" == 0 ]]; then
     rm --recursive "$KW_SHARED_MEMORY_DEFAULT_DIR"
@@ -111,15 +101,13 @@ function teardownSharedMemoryDefaultDir()
   fi
 }
 
-function test_is_kernel_root()
-{
+function test_is_kernel_root() {
   is_kernel_root "$SHUNIT_TMPDIR"
   [[ "$?" != 0 ]] && fail "Failed to check if a directory is a kernel root."
   true # Reset return value
 }
 
-function test_cmd_manager_eacces()
-{
+function test_cmd_manager_eacces() {
   local output
   local ret
 
@@ -128,8 +116,7 @@ function test_cmd_manager_eacces()
   assertEquals "($LINENO): We expected 13 as a return" 13 "$ret"
 }
 
-function test_cmd_manager_with_iterative_option()
-{
+function test_cmd_manager_with_iterative_option() {
   local output
   local fake_file_path="$SHUNIT_TMPDIR/fakefile.log"
   local expected_output
@@ -146,8 +133,7 @@ function test_cmd_manager_with_iterative_option()
   assertEquals "($LINENO): " "$expected_output" "$output"
 }
 
-function test_cmd_manager_check_silent_option()
-{
+function test_cmd_manager_check_silent_option() {
   local ret
 
   cd "$SHUNIT_TMPDIR" || {
@@ -172,8 +158,7 @@ function test_cmd_manager_check_silent_option()
 
 # The difference between say, complain, warning, and success it is the color
 # because of this we test all of them together
-function test_cmd_manager_say_complain_warning_highlight_cmd_success()
-{
+function test_cmd_manager_say_complain_warning_highlight_cmd_success() {
   local ret
 
   cd "$SHUNIT_TMPDIR" || {
@@ -212,8 +197,7 @@ function test_cmd_manager_say_complain_warning_highlight_cmd_success()
   assertTrue "($LINENO): We expected to find scripts" '[[ $ret =~ scripts ]]'
 }
 
-function test_cmd_manager_cmd_substitution_with_verbose_output
-{
+function test_cmd_manager_cmd_substitution_with_verbose_output {
   local cmd
   local output
   local verbose_output_path="${SHUNIT_TMPDIR}/verbose_output"
@@ -225,8 +209,7 @@ function test_cmd_manager_cmd_substitution_with_verbose_output
   assert_equals_helper "Should output the string \`${cmd}\`' to stderr" "$LINENO" "$cmd" "$(< "$verbose_output_path")"
 }
 
-function test_cmd_manager_check_test_mode_option()
-{
+function test_cmd_manager_check_test_mode_option() {
   local ret
 
   ret=$(cmd_manager 'TEST_MODE' 'pwd')
@@ -236,8 +219,7 @@ function test_cmd_manager_check_test_mode_option()
   assertEquals "Expected ls -lah, but we got ${ret}" "ls -lah" "$ret"
 }
 
-function test_detect_distro_root_path_only()
-{
+function test_detect_distro_root_path_only() {
   local root_path
   local output
 
@@ -286,8 +268,7 @@ function test_detect_distro_root_path_only()
   assert_equals_helper '' "$LINENO" 'none' "$output"
 }
 
-function test_detect_distro_str_check()
-{
+function test_detect_distro_str_check() {
   local root_path
   local output
 
@@ -310,8 +291,7 @@ function test_detect_distro_str_check()
   assert_equals_helper '' "$LINENO" 'arch' "$output"
 }
 
-function test_detect_distro_from_raw_data()
-{
+function test_detect_distro_from_raw_data() {
   local root_path_string
   local os_release_data
   local output
@@ -372,8 +352,7 @@ function test_detect_distro_from_raw_data()
   assert_equals_helper '' "$LINENO" 'none' "$output"
 }
 
-function test_join_path()
-{
+function test_join_path() {
   local base="/lala/xpto"
   local ret
 
@@ -393,8 +372,7 @@ function test_join_path()
   assertEquals "Expect /lala/" "/lala/" "$ret"
 }
 
-function test_find_kernel_root()
-{
+function test_find_kernel_root() {
   local fake_path="$SHUNIT_TMPDIR/lala/xpto"
   local kernel_path
 
@@ -410,16 +388,14 @@ function test_find_kernel_root()
   assertEquals "We should not find a path" "" "$kernel_path"
 }
 
-function test_is_a_patch()
-{
+function test_is_a_patch() {
   setupPatch
   is_a_patch "$SHUNIT_TMPDIR/test.patch"
   [[ "$?" != 0 ]] && fail "Failed to check if a file is a patch."
   true # Reset return value
 }
 
-function test_get_based_on_delimiter()
-{
+function test_get_based_on_delimiter() {
   local ip_port_str="IP:PORT"
   local hostname="kw@remote-machine"
   local a_weird_pattern="IP:PORT:kw@remote-machine"
@@ -468,8 +444,7 @@ function test_get_based_on_delimiter()
   assert_equals_helper 'We expected 0 as a return' "$LINENO" 0 "$ret"
 }
 
-function test_statistics_manager_with_individual_insertions()
-{
+function test_statistics_manager_with_individual_insertions() {
   local current_date_time_in_secs
   local current_date
   local current_time
@@ -498,8 +473,7 @@ function test_statistics_manager_with_individual_insertions()
   teardownDatabase
 }
 
-function test_statistics_manager_with_many_insertions()
-{
+function test_statistics_manager_with_many_insertions() {
   local fake_start_datetime_in_secs=906018600
   local output
 
@@ -524,8 +498,7 @@ function test_statistics_manager_with_many_insertions()
   teardownDatabase
 }
 
-function test_command_exists()
-{
+function test_command_exists() {
   local fake_command="a-non-existent-command -p"
   local real_command="mkdir"
 
@@ -538,8 +511,7 @@ function test_command_exists()
   assertEquals "$LINENO - We expected 0 as a return" 0 "$ret"
 }
 
-function test_exit_msg()
-{
+function test_exit_msg() {
   local default_msg='Something went wrong!'
   local custom_msg='Custom error message.'
 
@@ -565,8 +537,7 @@ function test_exit_msg()
   assertEquals "($LINENO) We expected 3 as a return" 3 "$ret"
 }
 
-function test_kw_parse()
-{
+function test_kw_parse() {
   local long_options='xpto:,foo,bar'
   local short_options='x:,f,b'
   local out
@@ -577,8 +548,7 @@ function test_kw_parse()
   assertEquals "($LINENO)" "$expected" "$out"
 }
 
-function test_kw_parse_get_errors()
-{
+function test_kw_parse_get_errors() {
   local long_options='xpto:,foo,bar'
   local short_options='x:,f,b'
   local out
@@ -592,8 +562,7 @@ function test_kw_parse_get_errors()
   compare_command_sequence '' "$LINENO" 'expected_output' "$out"
 }
 
-function test_generate_tarball()
-{
+function test_generate_tarball() {
   local path_to_compress="$SHUNIT_TMPDIR/files"
   local file_path="$SHUNIT_TMPDIR/compressed.tar.gz"
   local output
@@ -626,8 +595,7 @@ function test_generate_tarball()
   assertEquals "($LINENO)" 'Error archiving modules.' "$output"
 }
 
-function test_extract_tarball()
-{
+function test_extract_tarball() {
   local file="$SHUNIT_TMPDIR/compressed.tar.gz"
   local output
 
@@ -646,8 +614,7 @@ function test_extract_tarball()
   assertEquals "($LINENO)" 'Invalid compression type: zipper' "$output"
 }
 
-function test_get_file_name_from_path()
-{
+function test_get_file_name_from_path() {
   local file_path='documents/file.txt'
   local output
   local expected_result='file.txt'
@@ -667,8 +634,7 @@ function test_get_file_name_from_path()
   assertEquals "($LINENO) Should have returned an empty string" '' "$output"
 }
 
-function test_is_inside_work_tree()
-{
+function test_is_inside_work_tree() {
   local expected
   local output
   local ret
@@ -702,8 +668,7 @@ function test_is_inside_work_tree()
   }
 }
 
-function test_get_all_git_config()
-{
+function test_get_all_git_config() {
   local expected
   local output
   local ret
@@ -768,8 +733,7 @@ function test_get_all_git_config()
   }
 }
 
-function test_get_git_config_regex()
-{
+function test_get_git_config_regex() {
   local expected
   local output
   local ret
@@ -836,13 +800,11 @@ function test_get_git_config_regex()
   }
 }
 
-function test_get_kernel_release()
-{
+function test_get_kernel_release() {
   local output
 
   # shellcheck disable=SC2317
-  function get_current_env_name()
-  {
+  function get_current_env_name() {
     printf ''
     return 2
   }
@@ -851,14 +813,12 @@ function test_get_kernel_release()
   assertEquals "($LINENO)" 'make kernelrelease 2> /dev/null' "$output"
 }
 
-function test_get_kernel_release_with_env()
-{
+function test_get_kernel_release_with_env() {
   local output
   local expected="make kernelrelease O=${KW_CACHE_DIR}/envs/fake_env --silent 2> /dev/null"
 
   # shellcheck disable=SC2317
-  function get_current_env_name()
-  {
+  function get_current_env_name() {
     printf 'fake_env'
   }
 
@@ -866,13 +826,11 @@ function test_get_kernel_release_with_env()
   assertEquals "($LINENO)" "$expected" "$output"
 }
 
-function test_get_kernel_version()
-{
+function test_get_kernel_version() {
   local output
 
   # shellcheck disable=SC2317
-  function get_current_env_name()
-  {
+  function get_current_env_name() {
     printf ''
     return 2
   }
@@ -881,14 +839,12 @@ function test_get_kernel_version()
   assertEquals "($LINENO)" 'make kernelversion 2> /dev/null' "$output"
 }
 
-function test_get_kernel_version_with_env()
-{
+function test_get_kernel_version_with_env() {
   local output
   local expected="make kernelversion O=${KW_CACHE_DIR}/envs/fake_env --silent 2> /dev/null"
 
   # shellcheck disable=SC2317
-  function get_current_env_name()
-  {
+  function get_current_env_name() {
     printf 'fake_env'
   }
 
@@ -896,8 +852,7 @@ function test_get_kernel_version_with_env()
   assertEquals "($LINENO)" "$expected" "$output"
 }
 
-function test_get_current_env_name()
-{
+function test_get_current_env_name() {
   local output
 
   cd "$SHUNIT_TMPDIR" || {
@@ -917,8 +872,7 @@ function test_get_current_env_name()
   }
 }
 
-function test_is_safe_path_to_remove()
-{
+function test_is_safe_path_to_remove() {
   local path
 
   cd "${SHUNIT_TMPDIR}" || {
@@ -945,8 +899,7 @@ function test_is_safe_path_to_remove()
   }
 }
 
-function test_get_git_repository_branches()
-{
+function test_get_git_repository_branches() {
   declare -A branches
 
   setupGitRepository
@@ -977,16 +930,14 @@ function test_get_git_repository_branches()
   teardownGitRepository
 }
 
-function test_show_verbose_no_verbose()
-{
+function test_show_verbose_no_verbose() {
   local output
 
   output=$(show_verbose 'TEST_MODE' 'it shoud not display anything')
   assert_equals_helper 'Expected an empty string' "$LINENO" '' "$output"
 }
 
-function test_show_verbose()
-{
+function test_show_verbose() {
   local output
   local cmd='some command'
 
@@ -994,8 +945,7 @@ function test_show_verbose()
   assert_equals_helper 'Expected value of command' "$LINENO" "$cmd" "$output"
 }
 
-function test_check_if_create_shared_memory_dir_creates_dir_in_kw_shared_memory_default_dir()
-{
+function test_check_if_create_shared_memory_dir_creates_dir_in_kw_shared_memory_default_dir() {
   local output
 
   setupKwSharedMemoryDefaultDir
@@ -1007,8 +957,7 @@ function test_check_if_create_shared_memory_dir_creates_dir_in_kw_shared_memory_
   teardownSharedMemoryDefaultDir
 }
 
-function test_check_if_create_shared_memory_dir_creates_dir_in_default_mktemp_dir()
-{
+function test_check_if_create_shared_memory_dir_creates_dir_in_default_mktemp_dir() {
   local output
 
   output=$(create_shared_memory_dir)

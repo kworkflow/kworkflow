@@ -3,8 +3,7 @@
 include './src/deploy.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   local create_mkinitcpio="$1"
 
   FAKE_KERNEL="$SHUNIT_TMPDIR"
@@ -127,8 +126,7 @@ function setUp()
   mkdir -p "${NON_KERNEL_TREE}"
 }
 
-function get_deploy_cmd_helper()
-{
+function get_deploy_cmd_helper() {
   local deploy_params="$*"
   local deploy_cmd
 
@@ -138,8 +136,7 @@ function get_deploy_cmd_helper()
   printf '%s' "$CONFIG_SSH $CONFIG_REMOTE sudo \"$deploy_cmd\""
 }
 
-function tearDown()
-{
+function tearDown() {
   configurations=()
   BASE_EXPECTED_CMD_ARM_REMOTE=()
   BASE_EXPECTED_CMD_X86_REMOTE=()
@@ -152,58 +149,47 @@ function tearDown()
 # Some of the functions invoked by kw need to be mocked; otherwise, we cannot
 # test all the elements in the function. The following functions try to mimic
 # some of these functions behaviour.
-function which_distro_mock()
-{
+function which_distro_mock() {
   printf '%s\n' 'debian'
 }
 
-function which_distro_none_mock()
-{
+function which_distro_none_mock() {
   printf '%s\n' 'none'
 }
 
-function detect_distro_arch_mock()
-{
+function detect_distro_arch_mock() {
   printf '%s\n' 'arch'
 }
 
-function get_kernel_release_mock()
-{
+function get_kernel_release_mock() {
   printf '%s\n' '5.4.0-rc7-test'
 }
 
-function get_kernel_version_mock()
-{
+function get_kernel_version_mock() {
   printf '%s\n' '5.4.0-rc7'
 }
 
-function root_id_mock()
-{
+function root_id_mock() {
   printf '%s\n' '0'
 }
 
-function date_mock()
-{
+function date_mock() {
   printf '12/31/2021-09:49:21\n'
 }
 
-function collect_deploy_info_mock()
-{
+function collect_deploy_info_mock() {
   printf '[bootloader]=GRUB [distro]=arch'
 }
 
-function collect_deploy_info_other_mock()
-{
+function collect_deploy_info_other_mock() {
   printf '[bootloader]=LILO [distro]=fedora'
 }
 
-function sudo_mock()
-{
+function sudo_mock() {
   printf '%s\n' "$*"
 }
 
-function find_kernels_mock()
-{
+function find_kernels_mock() {
   printf 'vmlinuz-1\n'
   printf 'vmlinuz-2\n'
   printf 'vmlinuz-3\n'
@@ -212,8 +198,7 @@ function find_kernels_mock()
 }
 
 # Function that we must replace
-function test_setup_remote_ssh_with_passwordless()
-{
+function test_setup_remote_ssh_with_passwordless() {
   local output
   declare -a expected_cmd=(
     '-> Trying to set up passwordless access'
@@ -229,13 +214,11 @@ function test_setup_remote_ssh_with_passwordless()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function detect_filesystem_type_mock_ext4()
-{
+function detect_filesystem_type_mock_ext4() {
   printf '%s\n' 'ext4'
 }
 
-function test_prepare_distro_for_deploy_ext4()
-{
+function test_prepare_distro_for_deploy_ext4() {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
   local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
@@ -274,18 +257,15 @@ function test_prepare_distro_for_deploy_ext4()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function detect_filesystem_type_mock_btrfs()
-{
+function detect_filesystem_type_mock_btrfs() {
   printf '%s\n' 'btrfs'
 }
 
-function btrfs_property_get_root_ro_mock()
-{
+function btrfs_property_get_root_ro_mock() {
   printf '%s' 'ro=false'
 }
 
-function test_prepare_distro_for_deploy_btrfs()
-{
+function test_prepare_distro_for_deploy_btrfs() {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
   local cmd="bash $REMOTE_KW_DEPLOY/remote_deploy.sh"
@@ -327,8 +307,7 @@ function test_prepare_distro_for_deploy_btrfs()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_update_status_log_remote_target()
-{
+function test_update_status_log_remote_target() {
   local output
   local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
   local cmd
@@ -340,8 +319,7 @@ function test_update_status_log_remote_target()
   assert_equals_helper 'Status file remote' "$LINENO" "${ssh_prefix} ${cmd}" "$output"
 }
 
-function test_update_status_log_local_target()
-{
+function test_update_status_log_local_target() {
   local output
   local expected_cmd
 
@@ -351,8 +329,7 @@ function test_update_status_log_local_target()
   assert_equals_helper 'Local deploy command' "$LINENO" "$expected_cmd" "$output"
 }
 
-function test_check_setup_status()
-{
+function test_check_setup_status() {
   local output
   local expected_cmd
   local cmd_check="test -f ${KW_STATUS_BASE_PATH}/kw_status"
@@ -376,8 +353,7 @@ function test_check_setup_status()
   assert_equals_helper 'Wrong return value' "($LINENO)" 0 "$?"
 }
 
-function test_modules_install_to()
-{
+function test_modules_install_to() {
   local output
   local original="$PWD"
   local make_cmd="make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=$test_path modules_install"
@@ -403,8 +379,7 @@ function test_modules_install_to()
   }
 }
 
-function test_modules_install_to_no_strip_and_config_debug_info_enabled()
-{
+function test_modules_install_to_no_strip_and_config_debug_info_enabled() {
   local output
   local original="$PWD"
 
@@ -427,8 +402,7 @@ function test_modules_install_to_no_strip_and_config_debug_info_enabled()
   }
 }
 
-function test_modules_install_to_with_env()
-{
+function test_modules_install_to_with_env() {
   local output
   local original="$PWD"
   local make_cmd="make INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=${test_path} modules_install"
@@ -459,8 +433,7 @@ function test_modules_install_to_with_env()
   }
 }
 
-function test_modules_install_to_with_env_local()
-{
+function test_modules_install_to_with_env_local() {
   local output
   local original="$PWD"
   local make_cmd="sudo true && sudo -E make INSTALL_MOD_STRIP=1 modules_install"
@@ -491,8 +464,7 @@ function test_modules_install_to_with_env_local()
   }
 }
 
-function test_compose_copy_source_parameter_for_dtb_no_pattern()
-{
+function test_compose_copy_source_parameter_for_dtb_no_pattern() {
   local output
   local expected_result
 
@@ -503,8 +475,7 @@ function test_compose_copy_source_parameter_for_dtb_no_pattern()
   assert_equals_helper 'Expected *.dtb pattern' "$LINENO" "$expected_result" "$output"
 }
 
-function test_compose_copy_source_parameter_for_dtb_multiple_folder()
-{
+function test_compose_copy_source_parameter_for_dtb_multiple_folder() {
   local output
   local expected_result
 
@@ -515,8 +486,7 @@ function test_compose_copy_source_parameter_for_dtb_multiple_folder()
   assert_equals_helper 'Expected {} pattern' "$LINENO" "$expected_result" "$output"
 }
 
-function test_compose_copy_source_parameter_for_dtb_wildcard()
-{
+function test_compose_copy_source_parameter_for_dtb_wildcard() {
   local output
   local expected_result
 
@@ -533,8 +503,7 @@ function test_compose_copy_source_parameter_for_dtb_wildcard()
   assert_equals_helper 'Expected * pattern' "$LINENO" "$expected_result" "$output"
 }
 
-function test_compose_copy_source_parameter_for_dtb_any_other_pattern()
-{
+function test_compose_copy_source_parameter_for_dtb_any_other_pattern() {
   local output
   local expected_result
 
@@ -545,8 +514,7 @@ function test_compose_copy_source_parameter_for_dtb_any_other_pattern()
   assert_equals_helper 'Expected folder name' "$LINENO" "$expected_result" "$output"
 }
 
-function test_kernel_modules()
-{
+function test_kernel_modules() {
   local count=0
   local remote_path="$KW_DEPLOY_TMP_FILE"
   local kernel_install_path="$SHUNIT_TMPDIR/kernel_install"
@@ -623,8 +591,7 @@ function test_kernel_modules()
   }
 }
 
-function test_prepare_local_dir()
-{
+function test_prepare_local_dir() {
   declare -a expected_out=(
     "rm --preserve-root=all --recursive --force ${KW_DEPLOY_TMP_FILE}"
     "mkdir --parents ${KW_DEPLOY_TMP_FILE}"
@@ -639,8 +606,7 @@ function test_prepare_local_dir()
 # by checking the expected command sequence; It is important to highlight that
 # we are not testing the actual kernel list code, this part is validated on
 # another test file.
-function test_list_remote_kernels()
-{
+function test_list_remote_kernels() {
   # Rsync script command
   local remote_list_cmd="$CONFIG_SSH $CONFIG_REMOTE sudo"
   local output
@@ -652,8 +618,7 @@ function test_list_remote_kernels()
   assert_equals_helper 'Standard list' "$LINENO" "$remote_list_cmd" "$output"
 }
 
-function test_kernel_uninstall()
-{
+function test_kernel_uninstall() {
   local remote_path="$REMOTE_KW_DEPLOY"
   local kernel_list='5.5.0-rc7,5.6.0-rc8,5.7.0-rc2'
   local single_kernel='5.7.0-rc2'
@@ -694,8 +659,7 @@ function test_kernel_uninstall()
 
 }
 
-function test_cleanup()
-{
+function test_cleanup() {
   local output=''
   local cmd_remote="rm -rf $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR/*"
   local cmd_to_deploy="rm -rf $KW_CACHE_DIR/$LOCAL_REMOTE_DIR/*"
@@ -713,8 +677,7 @@ function test_cleanup()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_parse_deploy_options()
-{
+function test_parse_deploy_options() {
   unset options_values
   unset remote_parameters
   declare -gA options_values
@@ -861,8 +824,7 @@ function test_parse_deploy_options()
   assert_equals_helper 'Option composition failed on REMOTE_IP' "($LINENO)" '127.0.2.1' "${remote_parameters['REMOTE_IP']}"
 }
 
-function test_prepare_host_deploy_dir()
-{
+function test_prepare_host_deploy_dir() {
   local output
   local ret
 
@@ -876,15 +838,13 @@ function test_prepare_host_deploy_dir()
   assertTrue "($LINENO): Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR ]]'
 }
 
-function prepare_remote_list_of_files()
-{
+function prepare_remote_list_of_files() {
   local distro="$1"
 
   printf '{remote_deploy.sh,utils.sh,%s.sh,bootloader_utils.sh,grub.sh,rpi_bootloader.sh}' "$distro"
 }
 
-function test_prepare_remote_dir()
-{
+function test_prepare_remote_dir() {
   local scripts_path="$KW_PLUGINS_DIR/kernel_install"
   local debian_sync_files_cmd
   local arch_sync_files_cmd
@@ -942,8 +902,7 @@ function test_prepare_remote_dir()
   assert_equals_helper 'Wrong return value' "($LINENO)" 95 "$?"
 }
 
-function test_collect_target_info_for_deploy()
-{
+function test_collect_target_info_for_deploy() {
   local output
 
   # Avoid alias overwrite
@@ -957,8 +916,7 @@ function test_collect_target_info_for_deploy()
   assert_equals_helper 'Check distro' "($LINENO)" 'fedora' "${target_deploy_info[distro]}"
 
   # REMOTE
-  function cmd_remotely()
-  {
+  function cmd_remotely() {
     # shellcheck disable=SC2317
     printf '[bootloader]=syslinux [distro]=chrome'
   }
@@ -967,8 +925,7 @@ function test_collect_target_info_for_deploy()
   assert_equals_helper 'Check distro' "($LINENO)" 'chrome' "${target_deploy_info[distro]}"
 }
 
-function test_get_kernel_binary_name_outside_env()
-{
+function test_get_kernel_binary_name_outside_env() {
   local original="$PWD"
   local output
 
@@ -991,8 +948,7 @@ function test_get_kernel_binary_name_outside_env()
   }
 }
 
-function test_get_kernel_binary_name_inside_env()
-{
+function test_get_kernel_binary_name_inside_env() {
   local output
 
   options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$FAKE_KERNEL"
@@ -1006,16 +962,14 @@ function test_get_kernel_binary_name_inside_env()
   assert_equals_helper 'Expected bzImage for x86' "($LINENO)" 'bzImage' "$output"
 }
 
-function test_get_kernel_binary_name_invalid_operation()
-{
+function test_get_kernel_binary_name_invalid_operation() {
   local output
 
   output=$(get_kernel_binary_name)
   assert_equals_helper 'It should not find a kernel image' "($LINENO)" 125 "$?"
 }
 
-function test_get_config_file_for_deploy_local_config()
-{
+function test_get_config_file_for_deploy_local_config() {
   local original="$PWD"
   local fake_cache_path
 
@@ -1039,8 +993,7 @@ function test_get_config_file_for_deploy_local_config()
   }
 }
 
-function test_get_config_file_for_deploy_no_kernel_name()
-{
+function test_get_config_file_for_deploy_no_kernel_name() {
   local original="$PWD"
   local fake_cache_path
 
@@ -1063,8 +1016,7 @@ function test_get_config_file_for_deploy_no_kernel_name()
   }
 }
 
-function test_get_config_file_for_deploy_inside_env()
-{
+function test_get_config_file_for_deploy_inside_env() {
   local original="$PWD"
   local fake_cache_path
 
@@ -1079,8 +1031,7 @@ function test_get_config_file_for_deploy_inside_env()
   assertFileEquals "$STD_CONFIG_FILE" "${fake_cache_path}/config-test"
 }
 
-function test_get_config_file_for_deploy_warning_message()
-{
+function test_get_config_file_for_deploy_warning_message() {
   local output
   local original="$PWD"
   local fake_cache_path
@@ -1097,8 +1048,7 @@ function test_get_config_file_for_deploy_warning_message()
   assert_equals_helper 'Expected a warning' "($LINENO)" "$expected_str" "$output"
 }
 
-function test_get_kernel_image_for_deploy_no_env_x86()
-{
+function test_get_kernel_image_for_deploy_no_env_x86() {
   local original="$PWD"
   local final_kernel_binary_image_name
 
@@ -1121,8 +1071,7 @@ function test_get_kernel_image_for_deploy_no_env_x86()
   }
 }
 
-function test_get_kernel_image_for_deploy_no_env_arm()
-{
+function test_get_kernel_image_for_deploy_no_env_arm() {
   local original="$PWD"
   local final_kernel_binary_image_name
 
@@ -1145,8 +1094,7 @@ function test_get_kernel_image_for_deploy_no_env_arm()
   }
 }
 
-function test_get_kernel_image_for_deploy_inside_env()
-{
+function test_get_kernel_image_for_deploy_inside_env() {
   local original="$PWD"
   local fake_cache
   local final_kernel_binary_image_name
@@ -1163,8 +1111,7 @@ function test_get_kernel_image_for_deploy_inside_env()
   assertFileEquals "${FAKE_KERNEL}/arch/arm64/boot/Image" "${fake_cache}/Image-test"
 }
 
-function test_get_kernel_image_for_deploy_kernel_image_does_not_exist()
-{
+function test_get_kernel_image_for_deploy_kernel_image_does_not_exist() {
   local original="$PWD"
   local fake_cache
   local final_kernel_binary_image_name
@@ -1174,8 +1121,7 @@ function test_get_kernel_image_for_deploy_kernel_image_does_not_exist()
 }
 
 # TODO: Move this function to mk_fake_kernel_root
-function create_fake_dts_folder()
-{
+function create_fake_dts_folder() {
   local base_path
 
   mkdir -p "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays"
@@ -1187,8 +1133,7 @@ function create_fake_dts_folder()
   touch "${FAKE_KERNEL}/arch/arm64/boot/dts/overlays/something.dtbo"
 }
 
-function test_get_dts_and_dtb_files_for_deploy_copy_overlay_and_dtbo()
-{
+function test_get_dts_and_dtb_files_for_deploy_copy_overlay_and_dtbo() {
   local original="$PWD"
 
   cd "$FAKE_KERNEL" || {
@@ -1210,8 +1155,7 @@ function test_get_dts_and_dtb_files_for_deploy_copy_overlay_and_dtbo()
   }
 }
 
-function test_get_dts_and_dtb_files_for_deploy_copy_only_dtbo()
-{
+function test_get_dts_and_dtb_files_for_deploy_copy_only_dtbo() {
   local original="$PWD"
 
   cd "$FAKE_KERNEL" || {
@@ -1236,8 +1180,7 @@ function test_get_dts_and_dtb_files_for_deploy_copy_only_dtbo()
   }
 }
 
-function test_get_dts_and_dtb_files_for_deploy_inside_env()
-{
+function test_get_dts_and_dtb_files_for_deploy_inside_env() {
   local fake_cache
 
   # Mini-setup
@@ -1253,8 +1196,7 @@ function test_get_dts_and_dtb_files_for_deploy_inside_env()
   assertTrue "($LINENO): Expted dtb files" '[[ -f ${FAKE_KERNEL}/TEST/bcm2710-rpi-2-b.dtb ]]'
 }
 
-function test_create_pkg_metadata_file_for_deploy()
-{
+function test_create_pkg_metadata_file_for_deploy() {
   local original="$PWD"
   local output
 
@@ -1281,8 +1223,7 @@ function test_create_pkg_metadata_file_for_deploy()
   }
 }
 
-function test_run_commands_outside_kernel_tree()
-{
+function test_run_commands_outside_kernel_tree() {
   local output
   local original="$PWD"
 

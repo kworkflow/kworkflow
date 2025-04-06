@@ -3,8 +3,7 @@
 include './src/config.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   export KW_CONFIG_BASE_PATH="${SHUNIT_TMPDIR}/.kw"
   export ORIGINAL_PATH="$PWD"
 
@@ -26,8 +25,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   cd "$ORIGINAL_PATH" || {
     fail "($LINENO): tearDown: It was not possible to move into ${ORIGINAL_PATH}"
     return
@@ -38,13 +36,11 @@ function tearDown()
 
 # Show configurations WITHOUT the prefixes [GLOBAL]/[LOCAL].
 # The tests do not expect the output to have source indicators prefixes.
-function show_raw_configurations()
-{
+function show_raw_configurations() {
   show_configurations "$@" | sed 's;\[[A-Z ]\+\] ;;'
 }
 
-function test_is_config_file_valid()
-{
+function test_is_config_file_valid() {
   is_config_file_valid 'invalid'
   assertEquals "($LINENO)" 22 "$?"
 
@@ -62,8 +58,7 @@ function test_is_config_file_valid()
   assertEquals "($LINENO)" 0 "$?"
 }
 
-function test_is_a_valid_config_option_only_valid_options()
-{
+function test_is_a_valid_config_option_only_valid_options() {
   is_a_valid_config_option 'build' 'cross_compile'
   assertEquals "($LINENO)" 0 "$?"
 
@@ -71,8 +66,7 @@ function test_is_a_valid_config_option_only_valid_options()
   assertEquals "($LINENO)" 0 "$?"
 }
 
-function test_is_a_valid_config_invalid_parameters()
-{
+function test_is_a_valid_config_invalid_parameters() {
   local output
 
   output=$(is_a_valid_config_option 'build')
@@ -88,8 +82,7 @@ function test_is_a_valid_config_invalid_parameters()
   assertEquals "($LINENO)" 95 "$?"
 }
 
-function test_set_config_check_if_file_still_a_link_after_change()
-{
+function test_set_config_check_if_file_still_a_link_after_change() {
   local output
 
   # Create fake env
@@ -102,8 +95,7 @@ function test_set_config_check_if_file_still_a_link_after_change()
   assertTrue "($LINENO): Cache dir not created" '[[ -L  ${KW_CONFIG_BASE_PATH}/build.config ]]'
 }
 
-function test_set_config_value_changing_default_value()
-{
+function test_set_config_value_changing_default_value() {
   local output
 
   set_config_value 'use_llvm' 'lala' "${KW_CONFIG_BASE_PATH}/build.config"
@@ -115,8 +107,7 @@ function test_set_config_value_changing_default_value()
   assert_equals_helper 'Change llvm' "($LINENO)" 'menu_config=menuconfig' "$output"
 }
 
-function test_set_config_value_with_dot_in_the_value()
-{
+function test_set_config_value_with_dot_in_the_value() {
   validate_option_parameter 'this.is valid'
   assertEquals "($LINENO)" 0 "$?"
 
@@ -127,8 +118,7 @@ function test_set_config_value_with_dot_in_the_value()
   assertEquals "($LINENO)" 22 "$?"
 }
 
-function test_set_config_with_a_path_as_value()
-{
+function test_set_config_with_a_path_as_value() {
   local output
 
   set_config_value 'qemu_path_image' '/DATA/QEMU_VMS/virty.qcow2' "${KW_CONFIG_BASE_PATH}/vm.config"
@@ -136,8 +126,7 @@ function test_set_config_with_a_path_as_value()
   assert_equals_helper 'Change llvm' "($LINENO)" 'qemu_path_image=/DATA/QEMU_VMS/virty.qcow2' "$output"
 }
 
-function test_set_config_with_verbose_mode()
-{
+function test_set_config_with_verbose_mode() {
   local output
   local expected
 
@@ -148,8 +137,7 @@ function test_set_config_with_verbose_mode()
   assert_equals_helper 'Wrong verbose output' "$LINENO" "$expected" "$output"
 }
 
-function test_check_if_target_config_exist()
-{
+function test_check_if_target_config_exist() {
   check_if_target_config_exist 'vm' 'vm.config'
   assertEquals "($LINENO)" 0 "$?"
 
@@ -157,11 +145,9 @@ function test_check_if_target_config_exist()
   assertEquals "($LINENO)" 2 "$?"
 }
 
-function test_parse_config_options()
-{
+function test_parse_config_options() {
   # shellcheck disable=SC2317
-  function reset_options_values()
-  {
+  function reset_options_values() {
     unset options_values
     declare -gA options_values
   }
@@ -196,8 +182,7 @@ function test_parse_config_options()
   assertEquals "($LINENO):" '1' "${options_values['VERBOSE']}"
 }
 
-function test_show_configurations_without_parameters()
-{
+function test_show_configurations_without_parameters() {
   local output
 
   # The config files are expected to be inside of a .kw folder so we need to go
@@ -255,8 +240,7 @@ function test_show_configurations_without_parameters()
   }
 }
 
-function test_show_configurations_with_parameters()
-{
+function test_show_configurations_with_parameters() {
   local output
 
   # The config files are expected to be inside of a .kw folder so we need to go
@@ -288,8 +272,7 @@ function test_show_configurations_with_parameters()
   }
 }
 
-function test_show_configurations_invalid_target()
-{
+function test_show_configurations_invalid_target() {
   local output
 
   output=$(show_configurations invalid_target)

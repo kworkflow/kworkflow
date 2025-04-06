@@ -1,7 +1,6 @@
 include "${KW_LIB_DIR}/lib/kwio.sh"
 
-function get_valid_signals()
-{
+function get_valid_signals() {
   local -r signal_list="$(trap -l | grep -oE 'SIG\S+')"
   declare -gA SIGNAL_MANAGER_VALID_SIGNALS
 
@@ -13,8 +12,7 @@ function get_valid_signals()
 get_valid_signals
 
 # This functions prints the default message when interrupting kw
-function default_interrupt_handler()
-{
+function default_interrupt_handler() {
   say $'\nOh no! An interruption! See ya...'
 }
 
@@ -27,8 +25,7 @@ function default_interrupt_handler()
 # If command is empty, use the default handler
 # If the signal is empty, use the default signals
 
-function signal_manager()
-{
+function signal_manager() {
   local command="$1"
   shift
   local -a signals=("$@")
@@ -56,8 +53,7 @@ function signal_manager()
 
 # This function resets all signal handlers to their system defaults and
 # sets kw's default signal handler for SIGINT and SIGTERM
-function signal_manager_reset()
-{
+function signal_manager_reset() {
   local traps
 
   traps=$(trap -p | grep -o '[^ ]*$')

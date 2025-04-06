@@ -5,18 +5,15 @@ include './src/plugins/kernel_install/fedora.sh'
 include './src/lib/kwio.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   mk_fake_boot "$SHUNIT_TMPDIR"
 }
 
-function tearDown()
-{
+function tearDown() {
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function test_update_fedora_boot_loader()
-{
+function test_update_fedora_boot_loader() {
 
   declare -a cmd_sequence=(
     'grub2-editenv - unset menu_auto_hide'

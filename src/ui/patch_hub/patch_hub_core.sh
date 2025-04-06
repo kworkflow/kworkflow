@@ -35,8 +35,7 @@ declare -gA screen_sequence=(
 
 # This function is the main loop of the state-machine that represents the feature.
 # It delegates the processing of states and state transitions to other functions.
-function patch_hub_main_loop()
-{
+function patch_hub_main_loop() {
   local ret
 
   # Load UI variables that define screen size, layout and others.
@@ -92,8 +91,7 @@ function patch_hub_main_loop()
 
 # Show Dashboard of patch-hub feature. This is the default starting state and main
 # menu of the feature.
-function show_dashboard()
-{
+function show_dashboard() {
   local message_box
   local -a menu_list_string_array
   local message_box
@@ -134,8 +132,7 @@ function show_dashboard()
 
 # The bookmarked screen it is just a list of patches previously saved by the
 # developer. For this reason, we just need to display the save patches.
-function show_bookmarked_patches()
-{
+function show_bookmarked_patches() {
   local fallback_message
 
   get_bookmarked_series bookmarked_series
@@ -148,8 +145,7 @@ function show_bookmarked_patches()
 # Show mailing lists available in lore.kernel.org that the user has registered.
 # A registered mailing list is one that was selected in the 'Register/Unregister
 # Mailing Lists'.
-function show_registered_mailing_lists()
-{
+function show_registered_mailing_lists() {
   local -a registered_mailing_lists
   local message_box
   local ret
@@ -197,8 +193,7 @@ function show_registered_mailing_lists()
 # @message_box: Text description to the list of patches
 # @_target_array_list: List of patches to be displayed
 # @fallback_message: Message for when there are no patches to display
-function list_patches()
-{
+function list_patches() {
   local menu_title="$1"
   local -n _target_array_list="$2"
   local fallback_message="$3"

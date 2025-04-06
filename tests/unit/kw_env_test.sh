@@ -3,8 +3,7 @@
 include './src/kw_env.sh'
 include './tests/unit/utils.sh'
 
-setUp()
-{
+setUp() {
   export ORIGINAL_PATH="$PWD"
   export TEST_PATH="$SHUNIT_TMPDIR"
   export KW_CACHE_DIR="${SHUNIT_TMPDIR}/.cache"
@@ -27,8 +26,7 @@ setUp()
   cp "$STD_CONFIG_FILE" ./
 }
 
-tearDown()
-{
+tearDown() {
   cd "$ORIGINAL_PATH" || {
     fail "($LINENO): tearDown: It was not possible to move into ${ORIGINAL_PATH}"
     return 22
@@ -38,8 +36,7 @@ tearDown()
   return 0
 }
 
-function test_create_new_env_create_multiple_envs_from_current_configs()
-{
+function test_create_new_env_create_multiple_envs_from_current_configs() {
   local new_env_name
 
   options_values['CREATE']='xpto'
@@ -65,8 +62,7 @@ function test_create_new_env_create_multiple_envs_from_current_configs()
   done
 }
 
-function test_create_new_env_outside_of_a_repo_without_init()
-{
+function test_create_new_env_outside_of_a_repo_without_init() {
   local output
 
   # Let's remove the default .kw created in the setUp to force an error
@@ -77,8 +73,7 @@ function test_create_new_env_outside_of_a_repo_without_init()
   assertEquals "($LINENO) We should hit a fail condition" 22 "$?"
 }
 
-function test_create_new_env_missing_config()
-{
+function test_create_new_env_missing_config() {
   mv .kw/remote.config ./
   export KW_ETC_DIR="$TEST_PATH"
 
@@ -89,8 +84,7 @@ function test_create_new_env_missing_config()
   rm ./remote.config
 }
 
-function test_create_new_env_check_if_target_env_name_already_exists()
-{
+function test_create_new_env_check_if_target_env_name_already_exists() {
   local output
 
   options_values['CREATE']='tapioca'
@@ -101,8 +95,7 @@ function test_create_new_env_check_if_target_env_name_already_exists()
   assertEquals "($LINENO) We should be able to create two env with the same name" 22 "$?"
 }
 
-function test_show_available_envs()
-{
+function test_show_available_envs() {
   local output
 
   options_values['CREATE']='tapioca'
@@ -121,8 +114,7 @@ function test_show_available_envs()
   compare_command_sequence 'Did not list all envs correctly' "$LINENO" 'expected' "$output"
 }
 
-function test_show_available_envs_when_we_dont_kw_folder()
-{
+function test_show_available_envs_when_we_dont_kw_folder() {
   local output
 
   # Let's remove the default .kw created in the setUp to force an error
@@ -132,8 +124,7 @@ function test_show_available_envs_when_we_dont_kw_folder()
   assertEquals "($LINENO) We should hit a fail condition" 22 "$?"
 }
 
-function test_show_available_envs_when_there_is_no_env()
-{
+function test_show_available_envs_when_there_is_no_env() {
   local output
 
   local expected=(
@@ -146,8 +137,7 @@ function test_show_available_envs_when_there_is_no_env()
   compare_command_sequence 'Should not list anything' "$LINENO" 'expected' "$output"
 }
 
-function test_use_target_env()
-{
+function test_use_target_env() {
   local output
   local real_path
   local expected_path
@@ -178,8 +168,7 @@ function test_use_target_env()
   assertEquals "($LINENO) It looks like that the env did not switch" "$expected_path" "$real_path"
 }
 
-function test_use_target_env_invalid_env()
-{
+function test_use_target_env_invalid_env() {
   local output
   local real_path
   local expected_path
@@ -197,16 +186,14 @@ function test_use_target_env_invalid_env()
   assertEquals "($LINENO) Env does not exists" 22 "$?"
 }
 
-function test_validate_env_before_switch_invalid_case_with_config()
-{
+function test_validate_env_before_switch_invalid_case_with_config() {
   # In this case we don't care about the user output for the test, for this
   # reason, move to dev/null
   validate_env_before_switch > /dev/null
   assert_equals_helper 'It should not allow switch to a new env due to .config file.' "$LINENO" 22 "$?"
 }
 
-function test_validate_env_before_switch_invalid_case_with_object_file()
-{
+function test_validate_env_before_switch_invalid_case_with_object_file() {
   # Remove the .cofig file
   mv '.config' 'config'
 
@@ -220,8 +207,7 @@ function test_validate_env_before_switch_invalid_case_with_object_file()
   assert_equals_helper 'It should not allow switch to a new env due to object files.' "$LINENO" 22 "$?"
 }
 
-function test_validate_env_before_switch_no_config_and_no_object_files()
-{
+function test_validate_env_before_switch_no_config_and_no_object_files() {
   # Remove the .cofig file
   mv '.config' 'config'
 
@@ -229,8 +215,7 @@ function test_validate_env_before_switch_no_config_and_no_object_files()
   assert_equals_helper 'It should allow switch to a new env.' "$LINENO" 0 "$?"
 }
 
-function test_parse_env_options()
-{
+function test_parse_env_options() {
   local output
   unset options_values
   declare -gA options_values
@@ -272,8 +257,7 @@ function test_parse_env_options()
   assertEquals "($LINENO) Invalid option" 22 "$?"
 }
 
-function test_exit_env_checking_files()
-{
+function test_exit_env_checking_files() {
   local output
 
   # Creating an env
@@ -291,8 +275,7 @@ function test_exit_env_checking_files()
   assertFalse "$LINENO: We didn't expect a symbolic link in (${PWD}/.kw/build.config)" '[[ -L "${PWD}/.kw/build.config" ]]'
 }
 
-function test_destroy_env_checking_the_existence_of_a_directory()
-{
+function test_destroy_env_checking_the_existence_of_a_directory() {
   local output
   local real_path
   local expected_path
@@ -331,8 +314,7 @@ function test_destroy_env_checking_the_existence_of_a_directory()
   assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_C" ]]'
 }
 
-function test_create_and_destroy_env()
-{
+function test_create_and_destroy_env() {
   local output
   options_values['CREATE']='MACHINE_E'
   create_new_env

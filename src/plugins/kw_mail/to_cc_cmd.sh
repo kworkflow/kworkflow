@@ -14,8 +14,7 @@
 #
 # Returns:
 # Relevant list of recipients to the patch
-function to_cc_main()
-{
+function to_cc_main() {
   local kw_cache="$1"
   local to_cc="$2"
   local patch_path="$3"

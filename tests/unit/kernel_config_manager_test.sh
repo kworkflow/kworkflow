@@ -3,8 +3,7 @@
 include './src/kernel_config_manager.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   # Common values used in suite
   readonly NAME_1='test_save_1'
   readonly NAME_2='test_save_2'
@@ -29,8 +28,7 @@ function oneTimeSetUp()
   KW_DB_DIR="$(realpath './database')"
 }
 
-function setUp()
-{
+function setUp() {
   cd "${SHUNIT_TMPDIR}" || {
     fail "($LINENO) It was not possible to move to temporary directory"
     return
@@ -44,8 +42,7 @@ function setUp()
   printf '%s\n' "$CONTENT" > '.config'
 }
 
-function tearDown()
-{
+function tearDown() {
   if is_safe_path_to_remove "${dot_configs_dir}"; then
     rm -rf "${dot_configs_dir}"
   fi
@@ -60,21 +57,18 @@ function tearDown()
   }
 }
 
-function setupDatabase()
-{
+function setupDatabase() {
   execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
 }
 
-function teardownDatabase()
-{
+function teardownDatabase() {
   is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
   if [[ "$?" == 0 ]]; then
     rm "${KW_DATA_DIR}/kw.db"
   fi
 }
 
-function test_kernel_config_manager_main_SAVE_fails()
-{
+function test_kernel_config_manager_main_SAVE_fails() {
   local output
 
   output=$(kernel_config_manager_main '--save' > /dev/null)
@@ -99,8 +93,7 @@ function test_kernel_config_manager_main_SAVE_fails()
   assert_equals_helper ' --save -f' "$LINENO" 'Invalid argument' "$output"
 }
 
-function test_save_config_file_check_save_failures()
-{
+function test_save_config_file_check_save_failures() {
   if is_safe_path_to_remove '.config'; then
     rm '.config'
   fi
@@ -115,15 +108,13 @@ function test_save_config_file_check_save_failures()
   fi
 }
 
-function test_save_config_file_check_directories_creation()
-{
+function test_save_config_file_check_directories_creation() {
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
 
   assertTrue "${LINENO}: The configs dir was not created" '[[ -d ${dot_configs_dir} ]]'
 }
 
-function test_save_config_file_check_saved_config()
-{
+function test_save_config_file_check_saved_config() {
   local output
   declare -A condition_array
 
@@ -143,8 +134,7 @@ function test_save_config_file_check_saved_config()
   assert_equals_helper 'Content in the file does not match' "$LINENO" "$CONTENT" "$output"
 }
 
-function test_save_config_file_check_description()
-{
+function test_save_config_file_check_description() {
   local output
   declare -A condition_array
 
@@ -159,8 +149,7 @@ function test_save_config_file_check_description()
   assert_equals_helper "The description content for ${NAME_2} does not match" "$LINENO" "$DESCRIPTION_2" "$output"
 }
 
-function test_save_config_file_check_force()
-{
+function test_save_config_file_check_force() {
   local output
   local expected
 
@@ -169,16 +158,14 @@ function test_save_config_file_check_force()
   assert_equals_helper 'Wrong output' "$LINENO" "Saved kernel config '${NAME_2}'" "$output"
 }
 
-function test_list_config_check_when_there_is_no_config()
-{
+function test_list_config_check_when_there_is_no_config() {
   local output
 
   output=$(list_configs)
   assert_equals_helper 'Wrong output' "$LINENO" 'There are no .config files managed by kw' "$output"
 }
 
-function test_list_config_normal_output()
-{
+function test_list_config_normal_output() {
   local output
   local msg
 
@@ -194,8 +181,7 @@ function test_list_config_normal_output()
   assertTrue "${LINENO}: We expected ${DESCRIPTION_2} in the output, but we got ${output}" '[[ ${output} =~ ${DESCRIPTION_2} ]]'
 }
 
-function test_kernel_config_manager_main_get_config_invalid_option()
-{
+function test_kernel_config_manager_main_get_config_invalid_option() {
   local output
 
   output=$(kernel_config_manager_main '--get' > /dev/null)
@@ -205,8 +191,7 @@ function test_kernel_config_manager_main_get_config_invalid_option()
   assert_equals_helper ' --get' "$LINENO" 'Couldn'"'"'t find config file named: something_wrong' "$output"
 }
 
-function test_get_config()
-{
+function test_get_config() {
   local output
 
   declare -a expected_output=(
@@ -230,8 +215,7 @@ function test_get_config()
   assert_equals_helper "We expected ${CONTENT}, but we got ${output}" "$LINENO" "$CONTENT" "$output"
 }
 
-function test_get_config_with_force()
-{
+function test_get_config_with_force() {
   local output
 
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
@@ -251,8 +235,7 @@ function test_get_config_with_force()
   assert_equals_helper "We expected ${CONTENT}, but we got ${output}" "$LINENO" "$CONTENT" "$output"
 }
 
-function test_get_config_with_file_and_without_database_entry()
-{
+function test_get_config_with_file_and_without_database_entry() {
   local output
   local expected
 
@@ -271,8 +254,7 @@ function test_get_config_with_file_and_without_database_entry()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-function test_kernel_config_manager_main_remove_that_should_fail()
-{
+function test_kernel_config_manager_main_remove_that_should_fail() {
   local output
 
   output=$(kernel_config_manager_main '--remove' 2>&1 > /dev/null)
@@ -282,8 +264,7 @@ function test_kernel_config_manager_main_remove_that_should_fail()
   assert_equals_helper ' --remove' "$LINENO" 'Couldn'"'"'t find config file named: something_wrong' "$output"
 }
 
-function test_remove_config()
-{
+function test_remove_config() {
   local output
 
   save_config_file "$NO_FORCE" "$NAME_1" "$DESCRIPTION_1" > /dev/null
@@ -310,8 +291,7 @@ function test_remove_config()
   assert_equals_helper "We expected no entry in the db but got ${output}" "$LINENO" 0 "$output"
 }
 
-function test_cleanup()
-{
+function test_cleanup() {
   local output
 
   mkdir -p "$KW_CACHE_DIR/config"
@@ -329,8 +309,7 @@ function test_cleanup()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_get_config_from_proc()
-{
+function test_get_config_from_proc() {
   local output
   declare -la expected_cmd=()
 
@@ -382,8 +361,7 @@ function test_get_config_from_proc()
   fi
 }
 
-function test_get_config_from_proc_inside_env_remote()
-{
+function test_get_config_from_proc_inside_env_remote() {
   local output
   declare -la expected_cmd=()
 
@@ -403,11 +381,9 @@ function test_get_config_from_proc_inside_env_remote()
   compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_get_config_from_boot()
-{
+function test_get_config_from_boot() {
   # shellcheck disable=SC2317
-  function uname()
-  {
+  function uname() {
     printf '%s\n' '5.5.0-rc2-VKMS+'
   }
 
@@ -426,8 +402,7 @@ function test_get_config_from_boot()
   assert_equals_helper 'We did not copy the target file' "$LINENO" 0 "$?"
 }
 
-function test_get_config_from_boot_inside_env_remote()
-{
+function test_get_config_from_boot_inside_env_remote() {
   options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']='/tmp/something'
   remote_parameters['REMOTE_IP']='127.0.0.1'
   remote_parameters['REMOTE_PORT']='3333'
@@ -444,8 +419,7 @@ function test_get_config_from_boot_inside_env_remote()
   compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
 }
 
-function test_get_config_from_defconfig()
-{
+function test_get_config_from_defconfig() {
   local output
   local single_cmd
 
@@ -475,8 +449,7 @@ function test_get_config_from_defconfig()
   assert_equals_helper 'No arch' "$LINENO" "$single_cmd" "$output"
 }
 
-function test_fetch_config()
-{
+function test_fetch_config() {
   local output
   local current_path="$PWD"
   local LOCAL_TARGET=2
@@ -490,8 +463,7 @@ function test_fetch_config()
   mkdir -p "$KW_CACHE_DIR"
 
   # shellcheck disable=SC2317
-  function uname()
-  {
+  function uname() {
     printf '%s\n' 'x86'
   }
 
@@ -616,8 +588,7 @@ function test_fetch_config()
   }
 }
 
-function test_get_config_with_env()
-{
+function test_get_config_with_env() {
   local output
 
   # Create a fake env folder
@@ -635,8 +606,7 @@ function test_get_config_with_env()
   assertTrue "${LINENO}: config file was not added to the env" '[[ -f "./fake_env/.config" ]]'
 }
 
-function test_kernel_config_manager_parser()
-{
+function test_kernel_config_manager_parser() {
   unset options_values
   declare -gA options_values
   local expected

@@ -3,28 +3,24 @@
 include './src/lib/signal_manager.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   declare -gr test_phrase="This is a phrase."
   declare -gr file_name="out.tmp"
   declare -gr original_dir="$PWD"
 }
 
-function setUp()
-{
+function setUp() {
   cd "$SHUNIT_TMPDIR" || {
     fail "($LINENO): It was not possible to cd into temporary directory"
     return
   }
 }
 
-function write_to_file()
-{
+function write_to_file() {
   printf '%s\n' "$test_phrase" > "$file_name"
 }
 
-function test_default_handler()
-{
+function test_default_handler() {
   local -r expected=$'\nOh no! An interruption! See ya...'
 
   trap 'kill -s SIGTERM $!' SIGUSR1
@@ -56,8 +52,7 @@ function test_default_handler()
   assertEquals "($LINENO)" "$expected" "$(cat "$file_name")"
 }
 
-function test_non_signal()
-{
+function test_non_signal() {
   local ret
 
   signal_manager : SIGNONEXISTENT
@@ -69,8 +64,7 @@ function test_non_signal()
   assertFalse "($LINENO) Should have received an error." "$ret"
 }
 
-function test_new_signal()
-{
+function test_new_signal() {
   # Enable job control. This allows us to send a SIGINT signal to this
   # very process without it being interrupted. The special parameter $$,
   # used below, is used to get the current process's PID
@@ -87,8 +81,7 @@ function test_new_signal()
   set +m
 }
 
-function test_signal_reset()
-{
+function test_signal_reset() {
   local ret
   local output
 
@@ -105,8 +98,7 @@ function test_signal_reset()
   assertTrue "($LINENO) Default handler not set." "$ret"
 }
 
-function test_add_two_signals()
-{
+function test_add_two_signals() {
   signal_manager write_to_file SIGINT SIGTERM
   local -r output="$(trap)"
   local ret
@@ -120,8 +112,7 @@ function test_add_two_signals()
   assertTrue "($LINENO) Trap not set" "$ret"
 }
 
-function test_compound_signal()
-{
+function test_compound_signal() {
   signal_manager 'printf "%s\n" something; ls'
   ret="$?"
   assertFalse "($LINENO) Compound command accepted" "$ret"

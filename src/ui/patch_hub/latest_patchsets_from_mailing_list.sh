@@ -5,8 +5,7 @@ declare -ga formatted_patchsets_list
 
 # This function displays a list of the latest patchsets from a target mailing list.
 # These patchsets are ordered by their recieved time in the lore.kernel.org servers.
-function show_latest_patchsets_from_mailing_list()
-{
+function show_latest_patchsets_from_mailing_list() {
   local starting_index
   local ending_index
   local box_title

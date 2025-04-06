@@ -3,8 +3,7 @@
 include './tests/unit/utils.sh'
 include './src/lib/kw_db.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   declare -gr ORIGINAL_DIR="$PWD"
   declare -gr FAKE_DATA="$SHUNIT_TMPDIR/db_testing"
 
@@ -18,13 +17,11 @@ function oneTimeSetUp()
   KW_DB_DIR="$(realpath './database')"
 }
 
-function oneTimeTearDown()
-{
+function oneTimeTearDown() {
   rm -rf "$FAKE_DATA"
 }
 
-function test_execute_sql_script()
-{
+function test_execute_sql_script() {
   local output
   local expected
   local ret
@@ -62,8 +59,7 @@ function test_execute_sql_script()
   assert_equals_helper 'Expected 4 statistic entries' "$LINENO" 4 "$output"
 }
 
-function test_format_values_db()
-{
+function test_format_values_db() {
   local output
   local expected
   local ret
@@ -105,8 +101,7 @@ function test_format_values_db()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-function test_execute_command_db()
-{
+function test_execute_command_db() {
   local output
   local expected
   local ret
@@ -145,8 +140,7 @@ function test_execute_command_db()
   assert_equals_helper 'Testing with concatenate_with_commas' "$LINENO" "$expected" "$output"
 }
 
-function test_insert_into()
-{
+function test_insert_into() {
   local output
   local expected
   local ret
@@ -220,8 +214,7 @@ function test_insert_into()
   assert_equals_helper 'Testing with format functions' "$LINENO" "$expected" "$output"
 }
 
-function test_select_from()
-{
+function test_select_from() {
   local output
   local expected
   local ret
@@ -306,8 +299,7 @@ function test_select_from()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-test_replace_into()
-{
+test_replace_into() {
   local output
   local expected
   local ret
@@ -350,8 +342,7 @@ test_replace_into()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-function test_remove_from()
-{
+function test_remove_from() {
   local columnns
   local values
   declare -A condition_array
@@ -497,8 +488,7 @@ function test_remove_from()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
-function test_update_into()
-{
+function test_update_into() {
   local columnns
   local values
   declare -A condition_array
@@ -576,8 +566,7 @@ function test_update_into()
   assert_equals_helper 'Expected no error' "$LINENO" 0 "$ret"
 }
 
-function test_generate_where_clause()
-{
+function test_generate_where_clause() {
   declare -A condition_array
   local output
   local expected
@@ -605,8 +594,7 @@ function test_generate_where_clause()
   assert_equals_helper 'Expected no error' "$LINENO" 0 "$ret"
 }
 
-function test_generate_set_clause()
-{
+function test_generate_set_clause() {
   declare -A condition_array
   local output
   local expected

@@ -4,8 +4,7 @@ include './src/lib/kwio.sh'
 include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   # The VERBOSE variable is set and exported in the run_tests.sh script based
   # on the command-line options provided by the user. It controls the verbosity
   # of the output during the test runs.
@@ -20,8 +19,7 @@ function oneTimeSetUp()
 # Return:
 # Return 0: On success.
 # Return 1: If it fails to get the branch name, head commit hash, or base version.
-function kw_version_check_version()
-{
+function kw_version_check_version() {
   local container="$1"
   local head_hash
   local branch_name
@@ -60,8 +58,7 @@ function kw_version_check_version()
 # Function to test the kw version feature across different distributions inside
 # containers, using the three forms of the feature: kw version, kw --version,
 # and kw -v.
-function test_kw_version()
-{
+function test_kw_version() {
   local container
   local distro
   local output

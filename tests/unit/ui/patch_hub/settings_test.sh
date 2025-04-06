@@ -3,8 +3,7 @@
 include './src/ui/patch_hub/settings.sh'
 include './tests/unit/utils.sh'
 
-function setUp()
-{
+function setUp() {
   screen_sequence['SHOW_SCREEN']=''
 
   export ORIGINAL_PATH="$PWD"
@@ -18,8 +17,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   rm "$lore_config_path"
 
   cd "${ORIGINAL_PATH}" || {
@@ -28,13 +26,11 @@ function tearDown()
   }
 }
 
-function test_show_settings_screen()
-{
+function test_show_settings_screen() {
   declare -A screen_sequence=(['SHOW_SCREEN']='')
 
   # shellcheck disable=SC2317
-  function create_menu_options()
-  {
+  function create_menu_options() {
     # 'Settings' sub-menu chosen
     menu_return_string=0
   }
@@ -43,14 +39,12 @@ function test_show_settings_screen()
   assert_equals_helper 'Should set next screen to "lore_mailing_lists"' "$LINENO" 'lore_mailing_lists' "${screen_sequence['SHOW_SCREEN']}"
 }
 
-function test_change_patchsets_per_page_setting()
-{
+function test_change_patchsets_per_page_setting() {
   local output
   local expected
 
   # shellcheck disable=SC2317
-  function create_choice_list_screen()
-  {
+  function create_choice_list_screen() {
     # 'Settings' sub-menu chosen
     menu_return_string=60
     return 0
@@ -64,14 +58,12 @@ function test_change_patchsets_per_page_setting()
   assert_equals_helper 'Wrong value in config file' "$LINENO" "$expected" "$output"
 }
 
-function test_change_lore_requests_timeframe_setting()
-{
+function test_change_lore_requests_timeframe_setting() {
   local output
   local expected
 
   # shellcheck disable=SC2317
-  function create_choice_list_screen()
-  {
+  function create_choice_list_screen() {
     # 'Settings' sub-menu chosen
     menu_return_string=180
     return 0

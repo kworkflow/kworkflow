@@ -17,8 +17,7 @@ declare -ga config_file_list=(
 
 declare -gr ENV_CURRENT_FILE='env.current'
 
-function env_main()
-{
+function env_main() {
   parse_env_options "$@"
   if [[ $? -gt 0 ]]; then
     complain "Invalid option: ${options_values['ERROR']}"
@@ -64,8 +63,7 @@ function env_main()
 #
 # Return:
 # Return 22 in case of error
-function validate_env_before_switch()
-{
+function validate_env_before_switch() {
   local should_fail=0
   local list_of_object_file
 
@@ -95,8 +93,7 @@ function validate_env_before_switch()
 #
 # Return:
 # Return 22 in case of error
-function use_target_env()
-{
+function use_target_env() {
   local target_env="${options_values['USE']}"
   local local_kw_configs="${PWD}/.kw"
   local tmp_trash
@@ -133,8 +130,7 @@ function use_target_env()
 
 # This function allows users to "exit" a specific env if they no longer
 # want to use it.
-function exit_env()
-{
+function exit_env() {
   local current_env
   local local_kw_configs="${PWD}/.kw"
   local cmd
@@ -177,8 +173,7 @@ function exit_env()
 #
 # Return:
 # Return 22 in case of error
-function create_new_env()
-{
+function create_new_env() {
   local local_kw_configs="${PWD}/.kw"
   local local_kw_build_config="${local_kw_configs}/build.config"
   local local_kw_deploy_config="${local_kw_configs}/deploy.config"
@@ -256,8 +251,7 @@ function create_new_env()
 }
 
 # This Function gives the user the feature to destroy an environment.
-function destroy_env()
-{
+function destroy_env() {
   local local_kw_configs="${PWD}/.kw"
   local cache_build_path="$KW_CACHE_DIR"
   local current_env
@@ -293,8 +287,7 @@ function destroy_env()
   success "The \"${env_name}\" environment has been destroyed."
 }
 
-function no_env_message()
-{
+function no_env_message() {
   say 'Kw did not find any environment. You can create a new one with the --create option.'
   say 'See kw env --help'
 }
@@ -304,8 +297,7 @@ function no_env_message()
 #
 # Return:
 # Return 22 if .kw folder does not exists
-function list_env_available_envs()
-{
+function list_env_available_envs() {
   local local_kw_configs="${PWD}/.kw"
   local current_env
   declare -a all_envs
@@ -341,8 +333,7 @@ function list_env_available_envs()
   done
 }
 
-function parse_env_options()
-{
+function parse_env_options() {
   local long_options='help,list,create:,use:,exit-env,destroy:,verbose'
   local short_options='h,l,c:,u:,e,d:'
   local count
@@ -415,8 +406,7 @@ function parse_env_options()
   done
 }
 
-function env_help()
-{
+function env_help() {
   if [[ "$1" == --help ]]; then
     include "${KW_LIB_DIR}/help.sh"
     kworkflow_man 'env'

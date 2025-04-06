@@ -5,8 +5,7 @@ include './src/lib/kw_config_loader.sh'
 
 KWORKFLOW='kw'
 
-function setUp()
-{
+function setUp() {
   original_dir="$PWD"
   export TMPDIR_KW_FOLDER="$SHUNIT_TMPDIR/.kw"
   mkdir -p "$TMPDIR_KW_FOLDER"
@@ -31,8 +30,7 @@ function setUp()
   }
 }
 
-function tearDown()
-{
+function tearDown() {
   # Get back to kw dir
   cd "$original_dir" || {
     fail "($LINENO) It was not possible to move to temporary directory"
@@ -62,14 +60,12 @@ function tearDown()
   fi
 }
 
-function test_parse_configuration_success_exit_code()
-{
+function test_parse_configuration_success_exit_code() {
   parse_configuration "$KW_CONFIG_SAMPLE"
   assertTrue 'kw failed to load a regular config file' "[ 0 -eq $? ]"
 }
 
-function test_parse_configuration_config_with_spaces_and_comments()
-{
+function test_parse_configuration_config_with_spaces_and_comments() {
   parse_configuration 'kworkflow_space_comments.config'
   assertEquals "($LINENO): Kw failed to load a regular config file" 0 "$?"
 
@@ -79,15 +75,13 @@ function test_parse_configuration_config_with_spaces_and_comments()
   assertEquals "($LINENO)" 'no' "${configurations['reboot_after_deploy']}"
 }
 
-function test_parser_configuration_failed_exit_code()
-{
+function test_parser_configuration_failed_exit_code() {
   parse_configuration 'tests/unit/foobarpotato'
   assertEquals "($LINENO)" 22 "$?"
 }
 
 # Helper function used to compare expected config agaist the populated data.
-function assert_configurations_helper()
-{
+function assert_configurations_helper() {
   declare -n configurations_ref="$1"
   declare -n expected_configurations_ref="$2"
   local lineno=${3:-LINENO}
@@ -110,8 +104,7 @@ function assert_configurations_helper()
 }
 
 # Test if parse_configuration correctly parses all settings in a file
-function test_parse_configuration_check_parser_values_only_for_kworkflow_config_file()
-{
+function test_parse_configuration_check_parser_values_only_for_kworkflow_config_file() {
   # shellcheck disable=2016
   declare -A expected_configurations=(
     [ssh_user]='juca'
@@ -132,8 +125,7 @@ function test_parse_configuration_check_parser_values_only_for_kworkflow_config_
 }
 
 # Test if etc/init_templates/kworkflow_template.config contains all the expected settings
-function test_parse_configuration_standard_config()
-{
+function test_parse_configuration_standard_config() {
   declare -A expected_configurations=(
     [ssh_user]='root'
     [ssh_ip]='localhost'
@@ -151,8 +143,7 @@ function test_parse_configuration_standard_config()
   assert_configurations_helper configurations expected_configurations "$LINENO"
 }
 
-function test_parse_configuration_file_without_final_newline()
-{
+function test_parse_configuration_file_without_final_newline() {
   local config_key
   local config_val
   local config_ref
@@ -184,8 +175,7 @@ function test_parse_configuration_file_without_final_newline()
 # To test the order of config file loading, we will put a file named
 # kworkflow.config in each place, in order, and remove the previous one.
 # The order is: PWD, XDG_CONFIG_HOME, XDG_CONFIG_DIRS, KW_ETC_DIR
-function test_parse_configuration_files_loading_order()
-{
+function test_parse_configuration_files_loading_order() {
   local expected
   local original_dir="$PWD"
 
@@ -208,8 +198,7 @@ function test_parse_configuration_files_loading_order()
   )
 
   output="$(
-    function parse_configuration()
-    {
+    function parse_configuration() {
       printf '%s\n' "$1"
     }
     load_configuration 'kworkflow'
@@ -229,8 +218,7 @@ function test_parse_configuration_files_loading_order()
   )
 
   output="$(
-    function parse_configuration()
-    {
+    function parse_configuration() {
       printf '%s\n' "$1"
     }
     load_configuration 'kworkflow'
@@ -244,8 +232,7 @@ function test_parse_configuration_files_loading_order()
   }
 }
 
-function get_all_assigned_options_to_string_helper()
-{
+function get_all_assigned_options_to_string_helper() {
   local config_path="$1"
   local output
 
@@ -255,13 +242,11 @@ function get_all_assigned_options_to_string_helper()
   printf '%s' "$output"
 }
 
-function test_load_configuration()
-{
+function test_load_configuration() {
   local msg='We will stop supporting kworkflow.config in the kernel root directory in favor of using a .kw/ directory.'
   local -a expected
 
-  function parse_configuration()
-  {
+  function parse_configuration() {
     :
   }
 
@@ -296,8 +281,7 @@ function test_load_configuration()
   )
 
   output="$(
-    function parse_configuration()
-    {
+    function parse_configuration() {
       printf '%s\n' "$1"
     }
     load_configuration 'kworkflow'

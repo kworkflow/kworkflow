@@ -24,8 +24,7 @@ declare -gA shared_data=(['deploy']='' ['build']='' ['list']='' ['uninstall']=''
 #
 # Note: Bash only support integer, if you pass a float point value you should
 # expect a syntax error.
-function calculate_average()
-{
+function calculate_average() {
   local list_of_values="$1"
   local count=0
   local sum=0
@@ -47,8 +46,7 @@ function calculate_average()
 #
 # Return:
 # Return the total of elements in a list
-function calculate_total_of_data()
-{
+function calculate_total_of_data() {
   local list_of_values="$1"
 
   printf '%s\n' "$list_of_values" | wc -w
@@ -60,8 +58,7 @@ function calculate_total_of_data()
 #
 # Return:
 # Return the max value from a list
-function max_value()
-{
+function max_value() {
   local list_of_values="$1"
   local max=0
 
@@ -79,8 +76,7 @@ function max_value()
 #
 # Return:
 # Return the minimun value from a list
-function min_value()
-{
+function min_value() {
   local list_of_values="$1"
   local min="$2"
 
@@ -95,8 +91,7 @@ function min_value()
 #
 # Note: This function relies on a global variable named shared_data.
 #shellcheck disable=SC2059,SC2086
-function print_basic_data()
-{
+function print_basic_data() {
   local header_format='%20s %4s %8s %12s\n'
   local row_format='%-14s %5d %s %s %s\n'
 
@@ -117,8 +112,7 @@ function print_basic_data()
 #
 # Return:
 # This function fill out the shared array `shared_data`
-function basic_data_process()
-{
+function basic_data_process() {
   local all_data="$*"
   # Calculate values from each operation
   local avg_operation
@@ -150,8 +144,7 @@ function basic_data_process()
 #
 # @date Target day
 # @day_path Path to the target day
-function day_statistics()
-{
+function day_statistics() {
   local date="$1"
   local day_path="$KW_DATA_DIR/statistics/$date"
 
@@ -177,8 +170,7 @@ function day_statistics()
 # terminal.
 #
 # @first First day of the week
-function week_statistics()
-{
+function week_statistics() {
   local first="$1"
   local all_data=''
 
@@ -205,8 +197,7 @@ function week_statistics()
   print_basic_data
 }
 
-function month_statistics()
-{
+function month_statistics() {
   local month="$1"
   local month_path="$KW_DATA_DIR/statistics/$month"
   local all_data=''
@@ -240,8 +231,7 @@ function month_statistics()
   print_basic_data
 }
 
-function year_statistics()
-{
+function year_statistics() {
   local year="$1"
   local year_path="$KW_DATA_DIR/statistics/$year"
   local all_year_file

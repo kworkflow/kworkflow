@@ -4,8 +4,7 @@ include "${KW_LIB_DIR}/lib/kwlib.sh"
 declare -g PREFIX='/'
 declare -gA options_values
 
-function vm_main()
-{
+function vm_main() {
   if [[ "$#" -eq 0 ]]; then
     complain 'Expected string or parameter. See man for detail.'
     exit 22 # EINVAL
@@ -45,8 +44,7 @@ function vm_main()
   fi
 }
 
-function vm_mount()
-{
+function vm_mount() {
   local flag="$1"
   local qemu_img_path="$2"
   local mount_point_path="$3"
@@ -90,8 +88,7 @@ function vm_mount()
   return 0
 }
 
-function vm_umount()
-{
+function vm_umount() {
   local flag="$1"
   local qemu_img_path="$2"
   local mount_point_path="$3"
@@ -118,8 +115,7 @@ function vm_umount()
   return 125 #ECANCELED
 }
 
-function vm_up()
-{
+function vm_up() {
   local cmd
   local flag=${1:-'SILENT'}
 
@@ -136,8 +132,7 @@ function vm_up()
   cmd_manager "$flag" "$cmd"
 }
 
-function parse_vm_options()
-{
+function parse_vm_options() {
   local long_options='mount,umount,up,alert:'
   local short_options='m,n,u'
 
@@ -186,8 +181,7 @@ function parse_vm_options()
   done
 }
 
-function vm_help()
-{
+function vm_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'vm'

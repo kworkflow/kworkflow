@@ -17,8 +17,7 @@ declare -r app_name='kw'
 declare -r datadir="${XDG_DATA_HOME:-"${HOME}/.local/share"}/${app_name}"
 declare -gr KW_DATA_DIR=${KW_DATA_DIR:-"$datadir"}
 
-function db_migration_main()
-{
+function db_migration_main() {
   execute_sql_script "${KW_DB_DIR}/kwdb.sql"
   if [[ "$?" != 0 ]]; then
     complain 'Creation of database schema has failed. Aborting migration.'
@@ -43,8 +42,7 @@ function db_migration_main()
   execute_command_db 'PRAGMA optimize;'
 }
 
-function migrate_statistics()
-{
+function migrate_statistics() {
   local -a file_list
   local start_date
   local label_name
@@ -103,8 +101,7 @@ function migrate_statistics()
   fi
 }
 
-function migrate_pomodoro()
-{
+function migrate_pomodoro() {
   local -a file_list
   local line
   local tag_name
@@ -165,8 +162,7 @@ function migrate_pomodoro()
   fi
 }
 
-function migrate_kernel_configs()
-{
+function migrate_kernel_configs() {
   local -a file_list
   local line
   local name

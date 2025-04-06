@@ -5,8 +5,7 @@ include './src/lib/kwlib.sh'
 include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   local kw_repo_url='https://github.com/kworkflow/kworkflow'
   local ret
   declare -ar KW_BRANCHES=('master' 'unstable')
@@ -37,8 +36,7 @@ function oneTimeSetUp()
   setup_container_environment "$VERBOSE" 'self-update'
 }
 
-function oneTimeTearDown()
-{
+function oneTimeTearDown() {
   # Check if the path is safe to remove
   if is_safe_path_to_remove "$HOST_TEMP_DIR"; then
     rm --recursive --force "$HOST_TEMP_DIR"
@@ -51,8 +49,7 @@ function oneTimeTearDown()
 # @kw_cloned_container_path: Temporary directory inside the container where kworkflow is cloned.
 # @kw_branch: The branch of kworkflow to be used.
 # @commit_point: The specific commit to be checked out.
-function setup_outdated_kworkflow_environment()
-{
+function setup_outdated_kworkflow_environment() {
   local container="$1"
   local kw_cloned_container_path="$2"
   local kw_branch="$3"
@@ -114,8 +111,7 @@ function setup_outdated_kworkflow_environment()
 # Return:
 # Return 0: On success. Prints a formatted string that includes the branch name,
 # the commit hash of the branch, and the base version of the branch.
-function generate_formatted_branch_info()
-{
+function generate_formatted_branch_info() {
   local container="$1"
   local kw_cloned_container_path="$2"
   local kw_branch="$3"
@@ -144,8 +140,7 @@ function generate_formatted_branch_info()
 
 # This function tests the self-update functionality of kworkflow for the master
 # branch.
-function test_self_update_from_master_branch()
-{
+function test_self_update_from_master_branch() {
   local kw_cloned_container_path
   local container
   local distro
@@ -170,8 +165,7 @@ function test_self_update_from_master_branch()
 
 # This function tests the self-update functionality of kworkflow for the
 # unstable branch.
-function test_self_update_from_unstable_branch()
-{
+function test_self_update_from_unstable_branch() {
   local kw_cloned_container_path
   local container
   local distro
@@ -196,8 +190,7 @@ function test_self_update_from_unstable_branch()
 
 # This function tests the self-update functionality of kworkflow for
 # the master branch with an old version of kworkflow.
-function test_self_update_with_kw_old_version_of_master_branch()
-{
+function test_self_update_with_kw_old_version_of_master_branch() {
   local kw_commit_point='HEAD~4'
   local kw_cloned_container_path
   local container
@@ -220,8 +213,7 @@ function test_self_update_with_kw_old_version_of_master_branch()
 
 # This function tests the self-update functionality of kworkflow for
 # the unstable branch with an old version of kworkflow.
-function test_self_update_with_kw_old_version_of_unstable_branch()
-{
+function test_self_update_with_kw_old_version_of_unstable_branch() {
   local kw_commit_point='HEAD~3'
   local kw_cloned_container_path
   local container

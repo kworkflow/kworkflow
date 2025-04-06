@@ -4,8 +4,7 @@ include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 # and actions available.
 #
 # @raw_patchset: Raw data of patchset to be displayed
-function show_patchset_details_and_actions()
-{
+function show_patchset_details_and_actions() {
   local raw_patchset="$1"
   declare -A patchset
   local -a actions_list=('Download to specific directory' 'Bookmark')
@@ -65,8 +64,7 @@ function show_patchset_details_and_actions()
 # @_actions_starting_status: Array reference that stores the starting statuses
 #   of actions.
 # @selected_actions: String containing actions with a set status
-function get_actions_to_take()
-{
+function get_actions_to_take() {
   local -n _actions_starting_status="$1"
   local selected_actions="$2"
   local actions_to_take
@@ -94,8 +92,7 @@ function get_actions_to_take()
 # patchset without the cover letter to a user-chosen directory.
 #
 # @_patchset: Associative array reference with metadata of patchset
-function handle_download_action()
-{
+function handle_download_action() {
   local -n _patchset="$1"
   local download_dir_path
   local output
@@ -145,8 +142,7 @@ function handle_download_action()
 #
 # @_patchset: Associative array reference with metadata of patchset
 # @raw_patchset: String with raw data of patchset
-function handle_bookmark_action()
-{
+function handle_bookmark_action() {
   local -n _patchset="$1"
   local raw_patchset="$2"
   local message_box
@@ -180,8 +176,7 @@ function handle_bookmark_action()
 # from the local bookmarked database managed by kw.
 #
 # @_patchset: Associative array reference with metadata of patchset
-function handle_remove_bookmark_action()
-{
+function handle_remove_bookmark_action() {
   local -n _patchset="$1"
   local message_box
 

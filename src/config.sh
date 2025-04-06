@@ -19,8 +19,7 @@ declare -gA config_file_list=(
                  blocked_emails checkpatch_opts get_maintainer_opts'
 )
 
-function config_main()
-{
+function config_main() {
   local flag
   local parameters
   local target_config_file
@@ -107,8 +106,7 @@ function config_main()
   set_config_value "$option" "$value" "$base_path" "$flag"
 }
 
-function validate_option_parameter()
-{
+function validate_option_parameter() {
   local parameters="$*"
   local raw_target
   local dot_separator
@@ -128,8 +126,7 @@ function validate_option_parameter()
 #
 # Return:
 # In case of success return 0, otherwise, return 22.
-function is_config_file_valid()
-{
+function is_config_file_valid() {
   local target_config_file="$1"
 
   if [[ ! "${!config_file_list[*]}" =~ ${target_config_file} ]]; then
@@ -148,8 +145,7 @@ function is_config_file_valid()
 #
 # Return:
 # In case of success return 0, otherwise, return 22.
-function is_a_valid_config_option()
-{
+function is_a_valid_config_option() {
   local target_config_file="$1"
   local option="$2"
   local config_options
@@ -168,8 +164,7 @@ function is_a_valid_config_option()
   fi
 }
 
-function check_if_target_config_exist()
-{
+function check_if_target_config_exist() {
   local target_config_file="$1"
   local base_path="$2"
   local path
@@ -188,8 +183,7 @@ function check_if_target_config_exist()
 #
 # Return:
 # In case of success return 0, otherwise, return 22.
-function set_config_value()
-{
+function set_config_value() {
   local option="$1"
   local value="$2"
   local path="$3"
@@ -207,8 +201,7 @@ function set_config_value()
   cmd_manager "$flag" "sed --in-place --regexp-extended --follow-symlinks \"s<\#\s*${option}<${option}<\" \"${path}\""
 }
 
-function parse_config_options()
-{
+function parse_config_options() {
   local long_options='help,global,local,show,verbose'
   local short_options='h,g,l,s'
 
@@ -276,8 +269,7 @@ function parse_config_options()
 #
 # Return:
 # In case of success return 0, otherwise, return 22.
-function show_configurations()
-{
+function show_configurations() {
   local -a target_config_files="$1"
   local -a configs
   local -a options
@@ -358,8 +350,7 @@ function show_configurations()
   return 0
 }
 
-function config_help()
-{
+function config_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'config'

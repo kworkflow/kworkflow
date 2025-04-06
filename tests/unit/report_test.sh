@@ -4,16 +4,14 @@ include './src/report.sh'
 include './src/lib/kw_db.sh'
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   declare -g DB_FILES
   DB_FILES="$(realpath './tests/unit/samples/db_files/report')"
   export KW_DATA_DIR="${SHUNIT_TMPDIR}"
   KW_DB_DIR="$(realpath './database')"
 }
 
-function setUp()
-{
+function setUp() {
   declare -gA options_values
   declare -g target_period
 
@@ -29,8 +27,7 @@ function setUp()
   setupDatabase
 }
 
-function tearDown()
-{
+function tearDown() {
   unset options_values
   unset target_period
   unset statistics_raw_data
@@ -42,21 +39,18 @@ function tearDown()
   teardownDatabase
 }
 
-function setupDatabase()
-{
+function setupDatabase() {
   execute_sql_script "${KW_DB_DIR}/kwdb.sql" > /dev/null 2>&1
 }
 
-function teardownDatabase()
-{
+function teardownDatabase() {
   is_safe_path_to_remove "${KW_DATA_DIR}/kw.db"
   if [[ "$?" == 0 ]]; then
     rm "${KW_DATA_DIR}/kw.db"
   fi
 }
 
-function test_parse_report_options()
-{
+function test_parse_report_options() {
   local output
   local expected_result
   local ref_date
@@ -123,8 +117,7 @@ function test_parse_report_options()
   assert_equals_helper 'Invalid date' "$LINENO" 22 "$ret"
 }
 
-function test_statistics()
-{
+function test_statistics() {
   local msg
   local start_target_week
   local current_day
@@ -171,8 +164,7 @@ function test_statistics()
   assertEquals "($LINENO)" "$msg" "$output"
 }
 
-function test_pomodoro()
-{
+function test_pomodoro() {
   local start_target_week
   local current_day
   local current_month
@@ -207,8 +199,7 @@ function test_pomodoro()
   assert_equals_helper 'Wrong error output' "$LINENO" "$expected" "$output"
 }
 
-function test_set_raw_data_target_period_setting()
-{
+function test_set_raw_data_target_period_setting() {
 
   # Test setting of target period for day
   options_values['DAY']='1970/01/01'
@@ -235,8 +226,7 @@ function test_set_raw_data_target_period_setting()
   assert_equals_helper 'Wrong set of target period' "$LINENO" 'year 1970' "${target_period}"
 }
 
-function test_set_raw_data_setting_raw_data()
-{
+function test_set_raw_data_setting_raw_data() {
   local expected
 
   # See the file tests/unit/samples/db-files/report/statistics_and_pomodoro_insert.sql
@@ -295,8 +285,7 @@ function test_set_raw_data_setting_raw_data()
   assert_equals_helper 'Wrong statistics_raw_data set for year 1923' "$LINENO" "$expected" "${statistics_raw_data}"
 }
 
-function test_get_raw_data_from_period_of_time()
-{
+function test_get_raw_data_from_period_of_time() {
   local output
   local expected
 
@@ -321,16 +310,14 @@ function test_get_raw_data_from_period_of_time()
   assert_equals_helper 'Wrong output for any day of year 1945' "$LINENO" "$expected" "$output"
 }
 
-function test_process_and_format_statistics_raw_data_without_data()
-{
+function test_process_and_format_statistics_raw_data_without_data() {
   target_period='1998/04/17'
   statistics_raw_data=''
   process_and_format_statistics_raw_data
   assert_equals_helper 'Should result in an error code' "$LINENO" 2 "$?"
 }
 
-function test_process_and_format_statistics_raw_data_with_data()
-{
+function test_process_and_format_statistics_raw_data_with_data() {
   local expected
 
   # Add 'list' entries
@@ -382,16 +369,14 @@ function test_process_and_format_statistics_raw_data_with_data()
   assert_equals_helper 'Wrong processing and formatting for Uninstall' "$LINENO" "$expected" "${statistics['uninstall']}"
 }
 
-function test_process_and_format_pomodoro_raw_data_without_data()
-{
+function test_process_and_format_pomodoro_raw_data_without_data() {
   target_period='day 1998/04/17'
   pomodoro_raw_data=''
   process_and_format_pomodoro_raw_data
   assert_equals_helper 'Should result in an error code' "$LINENO" 2 "$?"
 }
 
-function test_process_and_format_pomodoro_raw_data_with_data()
-{
+function test_process_and_format_pomodoro_raw_data_with_data() {
   local expected
   local yellow
   local green
@@ -425,8 +410,7 @@ function test_process_and_format_pomodoro_raw_data_with_data()
   assert_equals_helper 'Wrong processing and formatting for all tags metadata' "$LINENO" "$expected" "${pomodoro_metadata['ALL_TAGS']}"
 }
 
-function test_show_report()
-{
+function test_show_report() {
   local output
   local expected
   local expected_statistics
@@ -491,8 +475,7 @@ function test_show_report()
   assert_equals_helper 'Wrong statistics and Pomodoro output' "$LINENO" "$expected" "$output"
 }
 
-function test_save_data_to()
-{
+function test_save_data_to() {
   local output
   local expected
   local ret

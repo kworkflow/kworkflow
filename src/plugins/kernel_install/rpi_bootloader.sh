@@ -14,8 +14,7 @@ RPI_CONFIG_TXT_PATH="${BOOT_PATH}/config.txt"
 # installed, this function adds it to the config.txt and comments on the
 # previous kernel. If there is an entry to a kernel image that does not exist,
 # this function removes it.
-function run_bootloader_update()
-{
+function run_bootloader_update() {
   local flag="$1"
   local target="$2"
   local name="$3"

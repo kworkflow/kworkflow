@@ -5,8 +5,7 @@
 #
 # Returns:
 # 0 on a succesful import, 1 if the file can't be read and 2 if it can´t be found
-function include()
-{
+function include() {
   local filepath="$1"
   local fullpath
 

@@ -12,8 +12,7 @@ declare -gA options_values
 #   (--command|-c) and (--script|-s). If this parameter receives a null value
 #   this function will perform a simple ssh connection; otherwise, it will
 #   attempt to execute a command or script on the remote host.
-function kw_ssh_main()
-{
+function kw_ssh_main() {
   local flag
   local port
   local script_path
@@ -79,8 +78,7 @@ function kw_ssh_main()
   return "$?"
 }
 
-function handle_ssh()
-{
+function handle_ssh() {
   local user
   local port
   local remote
@@ -110,8 +108,7 @@ function handle_ssh()
   printf '%s' "$ssh_compose"
 }
 
-function run_command_in_the_remote()
-{
+function run_command_in_the_remote() {
   local cmd
   local flag="$1"
   local ssh_compose
@@ -139,8 +136,7 @@ function run_command_in_the_remote()
 # Returns:
 # return 2 (ENOENT): Indicates source file/directory doesn't exist.
 # return 125 (ECANCELED): Indicates user-cancelled operation.
-function ssh_transfer_file()
-{
+function ssh_transfer_file() {
   local flag="$1"
   local transfer_type="$2"
   local user
@@ -247,8 +243,7 @@ function ssh_transfer_file()
   esac
 }
 
-function run_script_in_the_remote()
-{
+function run_script_in_the_remote() {
   local script_path
   local ssh_compose
   local ssh_script
@@ -269,8 +264,7 @@ function run_script_in_the_remote()
   cmd_manager "$flag" "$ssh_compose"
 }
 
-function ssh_remote()
-{
+function ssh_remote() {
   local ssh_compose
   local flag="$1"
 
@@ -281,8 +275,7 @@ function ssh_remote()
   cmd_manager "$flag" "$ssh_compose"
 }
 
-function parser_ssh_options()
-{
+function parser_ssh_options() {
   local options
   local long_options='help,test_mode,script:,command:,remote:,verbose,send:,get:,to:'
   local short_options='h,s:,c:,r:'
@@ -363,8 +356,7 @@ function parser_ssh_options()
   done
 }
 
-function ssh_help()
-{
+function ssh_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'ssh'

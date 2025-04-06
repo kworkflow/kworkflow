@@ -2,8 +2,7 @@
 
 include './tests/unit/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   declare -gr ORIGINAL_DIR="$PWD"
   declare -gr FAKE_CACHE="${SHUNIT_TMPDIR}/cache"
   declare -gr PATCH_CACHE="${FAKE_CACHE}/patches"
@@ -21,13 +20,11 @@ function oneTimeSetUp()
   printf '%s\n' "$CC_LIST" >> "${PATCH_CACHE}/to/cover-letter"
 }
 
-function oneTimeTearDown()
-{
+function oneTimeTearDown() {
   rm -rf "$FAKE_CACHE"
 }
 
-function test_to_cc_main()
-{
+function test_to_cc_main() {
   local to_cc_cmd="${ORIGINAL_DIR}/src/plugins/kw_mail/to_cc_cmd.sh"
   local expected
   local output

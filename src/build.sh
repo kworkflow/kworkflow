@@ -12,8 +12,7 @@ declare -gA options_values
 #
 # Return:
 # In case of successful return 0, otherwise, return 22 or 125.
-function build_kernel_main()
-{
+function build_kernel_main() {
   local flag="$1"
   shift 1
   local command
@@ -191,8 +190,7 @@ function build_kernel_main()
 
 # This function retrieves and prints information related to the kernel that
 # will be compiled.
-function build_info()
-{
+function build_info() {
   local flag="$1"
   local kernel_name
   local kernel_version
@@ -218,8 +216,7 @@ function build_info()
 # This function runs the make command under the hood, which in this
 # context is used to build and configure the linux kernel using the
 # "menuconfig" interface.
-function build_menu_config()
-{
+function build_menu_config() {
   local flag="$1"
   local env_path="$2"
   local menu_config="$3"
@@ -234,8 +231,7 @@ function build_menu_config()
 }
 
 # This function builds kernel-doc, by default it will create htmldocs.
-function build_doc()
-{
+function build_doc() {
   local flag="$1"
   local env_path="$2"
   local optimizations="$3"
@@ -259,8 +255,7 @@ function build_doc()
 #
 # @output_kbuild_flag: Will point to the current env path that
 # the user is using.
-function build_clean()
-{
+function build_clean() {
   local flag="$1"
   local env_path="$2"
   local cmd
@@ -274,8 +269,7 @@ function build_clean()
 # This function runs the 'make distclean' command under the hood, with
 # the advantage of checking if the user is using an env or not.
 # In other words, it integrates env with the full-cleanup option.
-function full_cleanup()
-{
+function full_cleanup() {
   local flag="$1"
   local env_path="$2"
   local cmd
@@ -294,8 +288,7 @@ function full_cleanup()
 #
 # Return:
 # 0 if successfully compiled patchset, 125 (ECANCELED) otherwise.
-function build_from_sha()
-{
+function build_from_sha() {
   local flag="$1"
   local sha="$2"
   local cmd
@@ -310,8 +303,7 @@ function build_from_sha()
   fi
 }
 
-function parse_build_options()
-{
+function parse_build_options() {
   local long_options='help,info,menu,doc,ccache,cpu-scaling:,warnings::,save-log-to:,llvm,clean,full-cleanup,verbose,cflags:,from-sha:'
   local short_options='h,i,n,d,S:,w::,s:,c,f'
   local doc_type
@@ -442,8 +434,7 @@ function parse_build_options()
 
 }
 
-function build_help()
-{
+function build_help() {
   if [[ "$1" == --help ]]; then
     include "$KW_LIB_DIR/help.sh"
     kworkflow_man 'build'

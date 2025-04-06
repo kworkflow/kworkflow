@@ -3,8 +3,7 @@
 include './tests/unit/utils.sh'
 include './tests/integration/utils.sh'
 
-function oneTimeSetUp()
-{
+function oneTimeSetUp() {
   local distro
 
   # The VERBOSE variable is set and exported in the run_tests.sh script based
@@ -20,8 +19,7 @@ function oneTimeSetUp()
 
 # The current workaround is this: we are using specially crafted config files
 # that overwrite all global options in the same order displayed by kw.
-function local_config_test_helper()
-{
+function local_config_test_helper() {
   local config="$1"
   local config_file
   local container
@@ -56,28 +54,23 @@ function local_config_test_helper()
   done
 }
 
-function test_build_config()
-{
+function test_build_config() {
   local_config_test_helper 'build'
 }
 
-function test_deploy_config()
-{
+function test_deploy_config() {
   local_config_test_helper 'deploy'
 }
 
-function test_send_patch_config()
-{
+function test_send_patch_config() {
   local_config_test_helper 'send_patch'
 }
 
-function test_notification_config()
-{
+function test_notification_config() {
   local_config_test_helper 'notification'
 }
 
-function test_vm_config()
-{
+function test_vm_config() {
   local_config_test_helper 'vm'
 }
 

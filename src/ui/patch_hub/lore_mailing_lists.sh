@@ -2,8 +2,7 @@ include "${KW_LIB_DIR}/ui/patch_hub/patch_hub_core.sh"
 
 # This function displays a checklist menu of the available mailing lists from lore.kernel.org
 # sorted by lexicographic order for the user to define the set of registered lists.
-function show_lore_mailing_lists()
-{
+function show_lore_mailing_lists() {
   local -a available_lore_mailing_lists_array
   local -a lists_check_status=()
   local menu_title
@@ -65,8 +64,7 @@ function show_lore_mailing_lists()
 #
 # @_available_lore_mailing_lists: Associative array reference to lore mailing lists
 # @_available_lore_mailing_lists_array: Array reference to store sorted lore mailing lists
-function convert_available_lore_mailing_lists_to_array()
-{
+function convert_available_lore_mailing_lists_to_array() {
   local -n _available_lore_mailing_lists="$1"
   local -n _available_lore_mailing_lists_array="$2"
 
@@ -83,8 +81,7 @@ function convert_available_lore_mailing_lists_to_array()
 # @_lists_check_status: Array reference to the check statuses of the lists
 # @registered_lists_string: String containing the registered lists (which are
 #   considered checked) separated by comma
-function get_lists_check_status()
-{
+function get_lists_check_status() {
   local -n _lists="$1"
   local -n _lists_check_status="$2"
   local registered_lists_string="$3"

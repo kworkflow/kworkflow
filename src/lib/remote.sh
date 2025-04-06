@@ -33,8 +33,7 @@ declare -gA remote_parameters
 # 101 - Network is not reachable
 # 125 - The operation was canceled
 # 255 - Unknown error
-function is_ssh_connection_configured()
-{
+function is_ssh_connection_configured() {
   local flag=${1:-'SILENT'}
   local remote=${2:-${remote_parameters['REMOTE_IP']}}
   local port=${3:-${remote_parameters['REMOTE_PORT']}}
@@ -95,8 +94,7 @@ function is_ssh_connection_configured()
 # Return:
 # 0 - If does not find anything
 # 111 - If remote host identification has changed
-function ssh_error_handling()
-{
+function ssh_error_handling() {
   local error_message="$1"
   local remote_host_change_message='.*WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED.*'
 
@@ -119,8 +117,7 @@ function ssh_error_handling()
 # 0 - If everything is ok
 # 125 - if the user cancel the operation or the result code from ssh-keygen
 #       command.
-function remove_key_from_kwown_hosts()
-{
+function remove_key_from_kwown_hosts() {
   local flag=${1:-'SILENT'}
   local ssh_cmd="$2"
   local remove_key_cmd='ssh-keygen -q -f'
@@ -150,8 +147,7 @@ function remove_key_from_kwown_hosts()
 #
 # @remote_file_host: Hostname in the ssh file
 # @remote_file: Path to the remote file
-function extract_remote_info_from_config_file()
-{
+function extract_remote_info_from_config_file() {
   local remote_file_host=${1:-${remote_parameters['REMOTE_FILE_HOST']}}
   local remote_file=${2:-${remote_parameters['REMOTE_FILE']}}
   local trimmed_remote_file
@@ -192,8 +188,7 @@ function extract_remote_info_from_config_file()
   remote_parameters['REMOTE_USER']="$user"
 }
 
-function ssh_connection_failure_message()
-{
+function ssh_connection_failure_message() {
   local remote=${remote_parameters['REMOTE_IP']}
   local port=${remote_parameters['REMOTE_PORT']}
   local user=${remote_parameters['REMOTE_USER']}
@@ -244,8 +239,7 @@ function ssh_connection_failure_message()
 #
 # Returns:
 # If no command is specified, we finish the execution and return 22
-function cmd_remotely()
-{
+function cmd_remotely() {
   local flag=${1:-'HIGHLIGHT_CMD'}
   local command="$2"
   local remote=${3:-${remote_parameters['REMOTE_IP']}}
@@ -291,8 +285,7 @@ function cmd_remotely()
 # @flag How to display a command, the default value is "HIGHLIGHT_CMD". For
 #   more options see `src/lib/kwlib.sh` function `cmd_manager`
 # @rsync_params Additional optional flags and parameters to be passed directly to rsync
-function cp2remote()
-{
+function cp2remote() {
   local flag=${1:-'HIGHLIGHT_CMD'}
   local src=${2:-"${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}/*"}
   local dst=${3:-"${REMOTE_KW_DEPLOY}"}
@@ -328,8 +321,7 @@ function cp2remote()
 # @ip: IP or domain name
 # @port: TCP port
 # @user: User in the remote machine
-function remote2host()
-{
+function remote2host() {
   local flag=${1:-"HIGHLIGHT_CMD"}
   local src="$2"
   local dst="$3"
@@ -362,8 +354,7 @@ function remote2host()
 # Return:
 # Return the distro name. The caller should call this function inside of
 # subshell and save it to a variable.
-function which_distro()
-{
+function which_distro() {
   local remote=${1:-${remote_parameters[ssh_ip]}}
   local port=${2:-${remote_parameters[ssh_port]}}
   local user=${3:-${remote_parameters[ssh_user]}}
@@ -389,8 +380,7 @@ function which_distro()
 # This function populates the variables REMOTE_IP, REMOTE_PORT, REMOTE_USER,
 # REMOTE_FILE, and REMOTE_FILE_HOST of the remote_parameters array based on the
 # config file or command line. If it cannot retrieve those data, it returns 22.
-function populate_remote_info()
-{
+function populate_remote_info() {
   local ip="$1"
   local temp_ip
   local port=22
