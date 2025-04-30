@@ -449,6 +449,7 @@ function deploy_setup()
   local check_ssh='ssh -q -o BatchMode=yes '
   local cmd
   local ret
+  local force_setup="${options_values['FORCE_SETUP']}"
 
   flag=${flag:-'SILENT'}
 
@@ -461,14 +462,16 @@ function deploy_setup()
       [[ "$?" != 0 ]] && return "$ret"
     fi
   fi
-
   [[ "$target" == "$LOCAL_TARGET" ]] && prepare_local_dir "$flag"
 
-  check_setup_status "$target" "$flag"
-  if [[ "$?" == 0 ]]; then
-    [[ "$target" == "$REMOTE_TARGET" ]] && prepare_remote_dir # Update files
-    # We are good, there is no reason to setup anything else
-    return 0
+  # Only check setup status if we're not forcing setup
+  if [[ -z "$force_setup" ]]; then
+    check_setup_status "$target" "$flag"
+    if [[ "$?" == 0 ]]; then
+      [[ "$target" == "$REMOTE_TARGET" ]] && prepare_remote_dir # Update files
+      # We are good, there is no reason to setup anything else
+      return 0
+    fi
   fi
 
   # First setup cannot rely on rsync
@@ -1371,7 +1374,7 @@ function parse_deploy_options()
   local options
   local after_options
   local long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall::'
-  long_options+=',list-all,force,setup,verbose,create-package,from-package:'
+  long_options+=',list-all,force,setup,force-setup,verbose,create-package,from-package:'
   long_options+=',boot-into-new-kernel-once'
   local short_options='r,m,l,s,u::,a,f,v,p,F:,n'
 
@@ -1395,6 +1398,7 @@ function parse_deploy_options()
   options_values['MENU_CONFIG']='nconfig'
   options_values['LS_ALL']=''
   options_values['SETUP']=''
+  options_values['FORCE_SETUP']=''
   options_values['VERBOSE']=''
   options_values['CREATE_PACKAGE']=''
   options_values['FROM_PACKAGE']=''
@@ -1476,6 +1480,11 @@ function parse_deploy_options()
         options_values['SETUP']=1
         shift
         ;;
+      --force-setup)
+        options_values['SETUP']=1
+        options_values['FORCE_SETUP']=1
+        shift
+        ;;
       --uninstall | -u)
         if [[ "$2" =~ ^-- ]]; then
           options_values['ERROR']='Uninstall requires a kernel name'
@@ -1554,6 +1563,7 @@ function deploy_help()
     '  deploy (--boot-into-new-kernel-once | -n) - Next boot into the new kernel' \
     '  deploy (--verbose | -v) - show a detailed output' \
     '  deploy (--setup) - set up target machine for deploy' \
+    '  deploy (--force-setup) - force setup target machine for deploy' \
     '  deploy (--modules | -m) - install only modules' \
     '  deploy (--uninstall | -u) [(--force | -f)] [<kernel-name>,...] - uninstall kernels' \
     '  deploy (--list | -l) - list kernels' \
