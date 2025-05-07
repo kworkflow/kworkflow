@@ -242,7 +242,8 @@ function create_new_env()
     return
   fi
 
-  warning "You don't have a config file, get it from default paths"
+  say "Environment was created without a kernel .config file. Use kw env --use ${env_name} to switch to the new env."
+  warning "The new env does not have a default .config; you must provide it for a correct kernel compilation. It is recommended to use kw kernel-config-manager."
   if [[ -e /proc/config.gz ]]; then
     cmd="zcat /proc/config.gz > ${cache_build_path}/${ENV_DIR}/${env_name}/.config"
     cmd_manager "$flag" "$cmd"
