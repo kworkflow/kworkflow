@@ -41,8 +41,12 @@ function generate_debian_temporary_root_file_system()
     prefix="${path_prefix}"
   fi
 
-  # We do not support initramfs outside grub scope
-  [[ "$bootloader_type" != 'GRUB' && "$bootloader_type" != 'RPI_BOOTLOADER' ]] && return
+  case "$bootloader_type" in
+    'GRUB' | 'RPI_BOOTLOADER' | 'SYSTEMD_BOOT') ;;
+    *)
+      return
+      ;;
+  esac
 
   cmd+=" ${name}"
 

@@ -34,6 +34,7 @@ declare -gar SUPPORTED_BOOTLOADER=(
   'GRUB'
   'SYSLINUX'
   'RPI_BOOTLOADER'
+  'SYSTEMD_BOOT'
 )
 
 # Update bootloader API
@@ -89,6 +90,9 @@ function update_bootloader()
     RPI_BOOTLOADER)
       bootloader_path_prefix+='rpi_bootloader.sh'
       ;;
+    SYSTEMD_BOOT)
+      bootloader_path_prefix+='systemd_boot.sh'
+      ;;
     *)
       return 95 # ENOTSUP
       ;;
@@ -141,7 +145,7 @@ function collect_deploy_info()
   local distro
   local bootloader
 
-  bootloader=$(identify_bootloader_from_files "$prefix" "$target")
+  bootloader=$(identify_bootloader "$prefix" "$target")
   bootloader="[bootloader]=${bootloader}"
 
   # Get distro
@@ -153,6 +157,31 @@ function collect_deploy_info()
   printf '%s' "${bootloader} ${distro}"
 }
 
+# Check if bootctl is available and active
+#
+# Return:
+# Return 0 if bootctl is valid and 22 otherwise.
+function is_bootctl_the_default()
+{
+  local systemd_boot
+  local systemd_product
+
+  # Check if it is a systemd-boot system
+  if command_exists 'bootctl'; then
+    systemd_boot=$(bootctl is-installed)
+    if [[ "$systemd_boot" == 'yes' ]]; then
+      # Systemd-boot may be installed but not active.
+      systemd_product=$(bootctl status | grep --ignore-case 'product' | cut --delimiter ':' --fields=2)
+      systemd_product=$(str_strip "$systemd_product")
+      systemd_product=$(printf '%s' "$systemd_product" | cut --delimiter ' ' --fields=1)
+      systemd_product=$(str_strip "$systemd_product")
+      [[ "$systemd_product" == 'systemd-boot' ]] && return 0
+    fi
+  fi
+
+  return 22 # EINVAL
+}
+
 # Based on a set of common files, this function tries to identify the
 # bootloader in the target machine.
 #
@@ -160,13 +189,22 @@ function collect_deploy_info()
 #
 # Return:
 # Return a string with the bootloader type or an empty result
-function identify_bootloader_from_files()
+function identify_bootloader()
 {
   local path_prefix="$1"
   local target="$2"
   local bootloader=''
+  local systemd_boot
+  local systemd_product
 
   path_prefix=${path_prefix:-'/'}
+
+  # Check if it is a systemd-boot system
+  is_bootctl_the_default
+  if [[ "$?" == 0 ]]; then
+    printf '%s' 'SYSTEMD_BOOT'
+    return 0
+  fi
 
   for bootloader_target in "${SUPPORTED_BOOTLOADER[@]}"; do
     declare -n bootloader_files="$bootloader_target"

@@ -28,7 +28,7 @@ function oneTimeSetUp()
 
   # Mock functions
   shopt -s expand_aliases
-  alias identify_bootloader_from_files='identify_bootloader_from_files_mock'
+  alias identify_bootloader_from_files='identify_bootloader_mock'
   alias findmnt='findmnt_mock'
 
   . ./src/plugins/kernel_install/utils.sh --source-only
@@ -65,7 +65,7 @@ function tearDown()
   mkdir --parents "$SHUNIT_TMPDIR"
 }
 
-function identify_bootloader_from_files_mock()
+function identify_bootloader_mock()
 {
   printf 'GRUB'
 }

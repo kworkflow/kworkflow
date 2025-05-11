@@ -126,8 +126,8 @@ function generate_arch_temporary_root_file_system()
     fi
   fi
 
-  # We do not support initramfs outside grub scope
-  [[ "$bootloader_type" != 'GRUB' ]] && return
+  # We do not support initramfs outside grub and systemd scope
+  [[ "$bootloader_type" != 'GRUB' && "$bootloader_type" != 'SYSTEMD_BOOT' ]] && return
 
   [[ "$target" == 'local' ]] && sudo_cmd='sudo --preserve-env '
 
