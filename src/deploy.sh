@@ -625,7 +625,7 @@ function run_list_installed_kernels()
   case "$target" in
     2) # LOCAL_TARGET
       include "${KW_PLUGINS_DIR}/kernel_install/utils.sh"
-      list_installed_kernels "$flag" "$single_line" "$all"
+      list_installed_kernels "$flag" "$single_line" "$all" "$target"
       ;;
     3) # REMOTE_TARGET
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
@@ -736,19 +736,22 @@ function run_kernel_uninstall()
 
       # TODO: Rename kernel_uninstall in the plugin, this name is super
       # confusing
-      kernel_uninstall "$reboot" 'local' "$kernels_target_list" "$flag" "$force"
+      kernel_uninstall "$distro" "$reboot" 'local' "$kernels_target_list" "$flag" "$force"
       ;;
     3) # REMOTE_TARGET
       remote="${remote_parameters['REMOTE_IP']}"
       port="${remote_parameters['REMOTE_PORT']}"
       user="${remote_parameters['REMOTE_USER']}"
 
+      distro=$(which_distro "$remote" "$port" "$user")
+      distro=$(detect_distro '/' "$distro")
+
       # Deploy
       # TODO
       # It would be better if `cmd_remotely` handle the extra space added by
       # line break with `\`; this may allow us to break a huge line like this.
       local cmd="$REMOTE_INTERACE_CMD_PREFIX"
-      cmd+=" --uninstall-kernels '${reboot}' 'remote' '${kernels_target_list}' '${flag}' '${force}'"
+      cmd+=" --uninstall-kernels '${distro}' '${reboot}' 'remote' '${kernels_target_list}' '${flag}' '${force}'"
       cmd_remotely "$flag" "$cmd"
       ;;
   esac

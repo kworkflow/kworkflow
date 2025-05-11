@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 include './src/plugins/kernel_install/bootloader.sh'
+include './src/plugins/kernel_install/utils.sh'
 include './src/lib/kwlib.sh'
 include './tests/unit/utils.sh'
 
@@ -116,64 +117,6 @@ function test_identify_bootloader()
     identify_bootloader ${SHUNIT_TMPDIR}
   )"
   assertEquals "(${LINENO}): Expected systemd-boot" 'SYSTEMD_BOOT' "$output"
-}
-
-function test_is_bootctl_the_default_bootctl_installed_but_not_enabled()
-{
-  local output
-
-  output="$(
-    function command_exists()
-    {
-      return 0
-    }
-
-    function bootctl()
-    {
-      case "$1" in
-        'is-installed')
-          printf 'yes\n'
-          ;;
-        'status')
-          printf 'Product: GRUB 3.3\n'
-          ;;
-      esac
-    }
-
-    is_bootctl_the_default
-  )"
-  ret="$?"
-
-  assert_equals_helper 'Return error:' "(${LINENO})" 22 "$ret"
-}
-
-function test_is_bootctl_the_default_bootctl_installed_and_enabled()
-{
-  local output
-
-  output="$(
-    function command_exists()
-    {
-      return 0
-    }
-
-    function bootctl()
-    {
-      case "$1" in
-        'is-installed')
-          printf 'yes\n'
-          ;;
-        'status')
-          printf 'Product: systemd-boot 257.5-2\n'
-          ;;
-      esac
-    }
-
-    is_bootctl_the_default
-  )"
-  ret="$?"
-
-  assert_equals_helper 'Return error:' "(${LINENO})" 0 "$ret"
 }
 
 invoke_shunit

@@ -16,6 +16,7 @@ declare -ag required_packages=(
   'xz-utils'
   'lzop'
   'zstd'
+  'jq'
 )
 
 # Debian package manager command
@@ -40,6 +41,8 @@ function generate_debian_temporary_root_file_system()
   if [[ -n "$path_prefix" ]]; then
     prefix="${path_prefix}"
   fi
+
+  [[ -z "$name" ]] && name="all"
 
   case "$bootloader_type" in
     'GRUB' | 'RPI_BOOTLOADER' | 'SYSTEMD_BOOT') ;;

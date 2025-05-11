@@ -16,6 +16,7 @@ declare -ag required_packages=(
   'xz'
   'lzop'
   'zstd'
+  'jq'
 )
 
 # Fedora package manager command

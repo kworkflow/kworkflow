@@ -254,7 +254,7 @@ function test_prepare_distro_for_deploy_ext4()
     'sudo -E pacman-key --init'
     'sudo -E pacman-key --populate'
     'yes | sudo -E pacman -Syu'
-    'sudo --preserve-env yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools'
+    'sudo --preserve-env yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools jq'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
@@ -306,7 +306,7 @@ function test_prepare_distro_for_deploy_btrfs()
     'sudo -E pacman-key --init'
     'sudo -E pacman-key --populate'
     'yes | sudo -E pacman -Syu'
-    'sudo --preserve-env yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools'
+    'sudo --preserve-env yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools jq'
   )
 
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
@@ -646,7 +646,7 @@ function test_kernel_uninstall()
   local run_kernel_uninstall_cmd="${CONFIG_SSH} ${CONFIG_REMOTE}"
 
   # Rsync script command
-  deploy_remote_cmd+=" --uninstall-kernels '0' 'remote' '$kernel_list' 'TEST_MODE' ''"
+  deploy_remote_cmd+=" --uninstall-kernels 'debian' '0' 'remote' '$kernel_list' 'TEST_MODE' ''"
 
   run_kernel_uninstall_cmd+=" sudo \"${deploy_remote_cmd}\""
 
@@ -657,7 +657,7 @@ function test_kernel_uninstall()
   # Reboot
   output=$(run_kernel_uninstall 3 1 "$kernel_list" '' 'TEST_MODE')
   deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
-  deploy_remote_cmd+=" --uninstall-kernels '1' 'remote' '$kernel_list' 'TEST_MODE' ''"
+  deploy_remote_cmd+=" --uninstall-kernels 'debian' '1' 'remote' '$kernel_list' 'TEST_MODE' ''"
 
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"${deploy_remote_cmd}\""
   assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
@@ -666,14 +666,14 @@ function test_kernel_uninstall()
   output=$(run_kernel_uninstall 3 1 "$single_kernel" '' 'TEST_MODE')
 
   deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
-  deploy_remote_cmd+=" --uninstall-kernels '1' 'remote' '${single_kernel}' 'TEST_MODE' ''"
+  deploy_remote_cmd+=" --uninstall-kernels 'debian' '1' 'remote' '${single_kernel}' 'TEST_MODE' ''"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"${deploy_remote_cmd}\""
   assert_equals_helper 'Reboot option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 
   # Kernel with regex
   output=$(run_kernel_uninstall 3 1 "regex:(5.*-rc7)" '' 'TEST_MODE' '' 1)
   deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
-  deploy_remote_cmd+=" --uninstall-kernels '1' 'remote' 'regex:(5.*-rc7)' 'TEST_MODE' ''"
+  deploy_remote_cmd+=" --uninstall-kernels 'debian' '1' 'remote' 'regex:(5.*-rc7)' 'TEST_MODE' ''"
   run_kernel_uninstall_cmd="ssh -p 3333 juca@127.0.0.1 sudo \"${deploy_remote_cmd}\""
   assert_equals_helper 'Regex option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 }

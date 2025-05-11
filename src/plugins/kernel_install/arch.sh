@@ -16,6 +16,7 @@ declare -ga required_packages=(
   'zstd'
   'xz'
   'rng-tools'
+  'jq'
 )
 
 # ArchLinux package manager

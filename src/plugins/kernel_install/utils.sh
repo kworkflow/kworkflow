@@ -145,6 +145,7 @@ function list_installed_kernels()
   local single_line="$2"
   local all="$3"
   local prefix="$4"
+  local target="$5"
   local -a available_kernels=()
   local cmd
   local file_system_type
@@ -187,6 +188,38 @@ function list_installed_kernels()
   return "${#available_kernels}"
 }
 
+# Check if bootctl is available and active
+#
+# Return:
+# Return 0 if bootctl is valid and 22 otherwise.
+function is_bootctl_the_default()
+{
+  local target="$1"
+  local systemd_boot
+  local systemd_product
+  local sudo_cmd=''
+  local cmd=''
+
+  [[ "$target" == 2 || "$target" == 'local' ]] && sudo_cmd='sudo --preserve-env '
+
+  # Check if it is a systemd-boot system
+  if command_exists 'bootctl'; then
+    cmd="${sudo_cmd}bootctl is-installed --graceful"
+    systemd_boot=$(cmd_manager 'SILENT' "$cmd")
+    if [[ "$systemd_boot" == 'yes' ]]; then
+      # Systemd-boot may be installed but not active.
+      cmd="${sudo_cmd}bootctl status | grep --ignore-case 'product' | cut --delimiter ':' --fields=2"
+      systemd_product=$(cmd_manager 'SILENT' "$cmd")
+      systemd_product=$(str_strip "$systemd_product")
+      systemd_product=$(printf '%s' "$systemd_product" | cut --delimiter ' ' --fields=1)
+      systemd_product=$(str_strip "$systemd_product")
+      [[ "$systemd_product" == 'systemd-boot' ]] && return 0
+    fi
+  fi
+
+  return 22 # EINVAL
+}
+
 # Based on  the kernel name pattern (vmlinuz), list all installed kernels.
 #
 # @prefix: Set a base prefix for searching for kernels.
@@ -198,6 +231,7 @@ function list_all_kernels()
   local prefix="$1"
   local -n _available_kernels="$2"
   local flag="$3"
+  local is_systemd_boot=0
   local cmd_get_kernels
   local output
   local index=0
@@ -207,17 +241,29 @@ function list_all_kernels()
 
   [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd_get_kernels"
 
-  cmd_get_kernels="find ${prefix}/boot/ -regextype posix-egrep -regex '.*(linuz|kernel).*' -printf '%f\n' | sort --dictionary"
+  is_bootctl_the_default "$target"
+  ret="$?"
+  if [[ "$ret" == 0 ]]; then
+    cmd_get_kernels="bootctl list --json=short | jq --raw-output '.[].version' | grep --invert null"
+    # Process raw output from bootctl
+    output=$(cmd_manager 'SILENT' "$cmd_get_kernels")
+    is_systemd_boot=1
+  else
+    cmd_get_kernels="find ${prefix}/boot/ -regextype posix-egrep -regex '.*(linuz|kernel).*' -printf '%f\n' | sort --dictionary"
+    output=$(cmd_manager 'SILENT' "$cmd_get_kernels")
+  fi
 
-  output=$(cmd_manager 'SILENT' "$cmd_get_kernels")
   readarray -t raw_kernel_name_list <<< "$output"
 
   for element in "${raw_kernel_name_list[@]}"; do
     extension="${element##*.}"
     [[ "$extension" == 'old' ]] && continue
 
+    kernel_name="$element"
     # Remove kernel prefix (vmlinuz)
-    kernel_name=$(printf '%s' "$element" | cut --delimiter='-' --fields=2-)
+    if [[ "$is_systemd_boot" -eq 0 ]]; then
+      kernel_name=$(printf '%s' "$element" | cut --delimiter='-' --fields=2-)
+    fi
 
     _available_kernels["$index"]="$kernel_name"
     ((index++))

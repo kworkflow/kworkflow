@@ -111,6 +111,11 @@ function test_human_list_installed_kernels()
   printf '%s\n' "${expected_out[@]:1}" > "$INSTALLED_KERNELS_PATH"
 
   output="$(
+    function is_bootctl_the_default()
+    {
+      return 22
+    }
+
     function is_filesystem_writable()
     {
       return 0
@@ -157,6 +162,11 @@ function test_list_unmanaged_kernels()
   )
 
   output="$(
+    function is_bootctl_the_default()
+    {
+      return 22
+    }
+
     function is_filesystem_writable()
     {
       return 0
@@ -164,6 +174,7 @@ function test_list_unmanaged_kernels()
     list_installed_kernels 'TEST_MODE' '1' '1' "${SHUNIT_TMPDIR}"
   )"
   compare_command_sequence '' "$LINENO" 'expected' "$output"
+
 }
 
 function test_list_all_kernels_no_match()
@@ -323,6 +334,64 @@ function test_make_root_partition_writable()
     'btrfs property set / ro false'
   )
   compare_command_sequence 'Wrong sequence' "$LINENO" 'expected_sequence' "$output"
+}
+
+function test_is_bootctl_the_default_bootctl_installed_but_not_enabled()
+{
+  local output
+
+  output="$(
+    function command_exists()
+    {
+      return 0
+    }
+
+    function bootctl()
+    {
+      case "$1" in
+        'is-installed')
+          printf 'yes\n'
+          ;;
+        'status')
+          printf 'Product: GRUB 3.3\n'
+          ;;
+      esac
+    }
+
+    is_bootctl_the_default
+  )"
+  ret="$?"
+
+  assert_equals_helper 'Return error:' "(${LINENO})" 22 "$ret"
+}
+
+function test_is_bootctl_the_default_bootctl_installed_and_enabled()
+{
+  local output
+
+  output="$(
+    function command_exists()
+    {
+      return 0
+    }
+
+    function bootctl()
+    {
+      case "$1" in
+        'is-installed')
+          printf 'yes\n'
+          ;;
+        'status')
+          printf 'Product: systemd-boot 257.5-2\n'
+          ;;
+      esac
+    }
+
+    is_bootctl_the_default
+  )"
+  ret="$?"
+
+  assert_equals_helper 'Return error:' "(${LINENO})" 0 "$ret"
 }
 
 invoke_shunit

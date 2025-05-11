@@ -15,21 +15,23 @@
 # @prefix: Add a prefix for the boot folder.
 function kernel_uninstall()
 {
-  local reboot="$1"
-  local target="$2"
-  local kernel_list_string_or_regex="$3"
-  local flag="$4"
-  local force="$5"
-  local prefix="$6"
+  local distro="$1"
+  local reboot="$2"
+  local target="$3"
+  local kernel_list_string_or_regex="$4"
+  local flag="$5"
+  local force="$6"
+  local prefix="$7"
   local update_grub=0
   local index=0
+  local cmd=''
   local -a all_installed_kernels
   local -a kw_managed_kernels
   local total_of_kw_kernels
   local regex_expression
   local total_kernels_managed_by_kw
+  local deploy_data_string
   local ret
-
   # From user request, this array keeps the list of kernels to be removed
   declare -a kernel_to_remove
 
@@ -43,9 +45,8 @@ function kernel_uninstall()
 
   cmd_manager "$flag" "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
   cmd_manager "$flag" "sudo touch '${INSTALLED_KERNELS_PATH}'"
-
-  process_installed_kernels 1 "$prefix" 'all_installed_kernels'
-  process_installed_kernels '' "$prefix" 'kw_managed_kernels'
+  process_installed_kernels 1 "$prefix" 'all_installed_kernels' "$target"
+  process_installed_kernels '' "$prefix" 'kw_managed_kernels' "$target"
   total_kernels_managed_by_kw="$?"
 
   IFS=', ' read -r -a kernel_names_array <<< "$kernel_list_string_or_regex"
@@ -77,12 +78,17 @@ function kernel_uninstall()
     ((update_grub++))
   done
 
-  # Each distro script should implement update_bootloader
-  if [[ "$update_grub" -gt 0 ]]; then
-    #printf '%s\n' "update_bootloader $kernel $target $flag"
-    update_bootloader "$flag" "$kernel" "$target" "$kernel_image_name" '' "$path_prefix" '' "$force"
+  deploy_data_string=$(collect_deploy_info "$flag" "$target" "$prefix")
 
-    # Reboot
+  declare -A deploy_data="(${deploy_data_string})"
+
+  cmd="generate_${distro}_temporary_root_file_system"
+  cmd+=" ${flag} '' ${target} ${deploy_data['bootloader']}"
+  cmd_manager "$flag" "$cmd"
+
+  # Reboot
+  if [[ "$reboot" == '1' ]]; then
+    cmd="${sudo_cmd} reboot"
     reboot_machine "$reboot" "$target" "$flag"
   fi
 }
@@ -98,10 +104,10 @@ function kernel_uninstall()
 # array with all kernels that must be removed.
 function kernel_to_be_removed_based_on_user_input()
 {
-  local input_string
   local -n _kernel_names_array="$1"
   local -n _all_installed_kernels="$2"
   local -n _kernel_to_remove="$3"
+  local input_string
   local index=0
 
   for input_string in "${_kernel_names_array[@]}"; do
@@ -161,17 +167,70 @@ function process_installed_kernels()
   local all_kernels="$1"
   local prefix="$2"
   local -n _processed_installed_kernels="$3"
+  local target="$4"
   local kernels
   local total_kernels
 
   _processed_installed_kernels=()
-  kernels=$(list_installed_kernels 'SILENT' 1 "$all_kernels" "$prefix")
+  kernels=$(list_installed_kernels 'SILENT' 1 "$all_kernels" "$prefix" "$target")
   total_kernels="$?"
 
   IFS=, read -r -a available_kernels <<< "$kernels"
   mapfile -t _processed_installed_kernels <<< "$(printf "%s\n" "${available_kernels[@]}" | sort --unique)"
 
   return "$total_kernels"
+}
+
+# Remove systemd-boot files for the custom kernel
+#
+# @target: Remote our Local.
+# @kernel_name: Kernel name set by the user.
+#
+# Return:
+# Return 0 in case of success or 22 otherwise
+function remove_systemd_kernel_files()
+{
+  local target="$1"
+  local kernel_name="$2"
+  local flag="$3"
+  local sudo_cmd
+  local cmd
+
+  if [[ -z "${kernel_name}" || "${#kernel_name}" -lt 3 ]]; then
+    printf '%s\n' "ERROR: The '${kernel_name}' is invalid (empty) or too small."
+    return 22 # EINVAL
+  fi
+
+  [[ "$target" == 'local' ]] && sudo_cmd='sudo --preserve-env '
+
+  # Remove all the main files
+  cmd="kernel-install remove '${kernel_name}'"
+  cmd_manager "$flag" "${sudo_cmd}${cmd}"
+}
+
+function remove_kernel_files_from_boot()
+{
+  local kernel_name="$1"
+  local prefix="$2"
+  local flag="$3"
+  local sudo_cmd=''
+  local element=''
+  local to_remove_from_boot=''
+
+  if [[ "$target" == 'local' ]]; then
+    sudo_cmd='sudo --preserve-env '
+  fi
+
+  to_remove_from_boot=$(find "${prefix}/boot/" -name "*${kernel_name}*" | sort)
+  # shellcheck disable=SC2068
+  for element in ${to_remove_from_boot[@]}; do
+    if [[ -f "$element" ]]; then
+      printf ' %s\n' "Removing: ${element}"
+      cmd_manager "$flag" "${sudo_cmd}rm ${element}"
+    else
+      printf ' %s\n' "Can't find ${element}"
+    fi
+  done
 }
 
 # Do the actual removal of kernel files.
@@ -191,6 +250,7 @@ function do_uninstall()
   local prefix="$3"
   local flag="$4"
   local sudo_cmd=''
+  local to_remove_from_boot
   local modules_lib_path="${prefix}/lib/modules/${kernel_name}"
   local -a files_to_be_removed=(
     "${prefix}/etc/mkinitcpio.d/${kernel_name}.preset"
@@ -206,16 +266,16 @@ function do_uninstall()
     exit 22 # EINVAL
   fi
 
-  to_remove_from_boot=$(find "${prefix}/boot/" -name "*${kernel_name}*" | sort)
-  # shellcheck disable=SC2068
-  for element in ${to_remove_from_boot[@]}; do
-    if [[ -f "$element" ]]; then
-      printf ' %s\n' "Removing: ${element}"
-      cmd_manager "$flag" "${sudo_cmd}rm ${element}"
-    else
-      printf ' %s\n' "Can't find ${element}"
+  is_bootctl_the_default "$target"
+  if [[ "$?" == 0 ]]; then
+    remove_systemd_kernel_files "$target" "$kernel_name" "$flag"
+    if [[ "$?" != 0 ]]; then
+      printf 'ERROR: Something went wrong when trying to get the ESP base path.\n'
+      return 22 # EINVAL
     fi
-  done
+  else
+    remove_kernel_files_from_boot "$kernel_name" "$prefix" "$flag"
+  fi
 
   for del_file in "${files_to_be_removed[@]}"; do
     if [[ -f "$del_file" ]]; then
