@@ -18,13 +18,6 @@ function build_and_deploy_main()
     exit 0
   fi
 
-  parse_build_and_deploy_options "$@"
-  if [[ "$?" -gt 0 ]]; then
-    complain "${options_values['ERROR']}"
-    build_and_deploy_help
-    return 22 # EINVAL
-  fi
-
   build_kernel_main
   if [[ "$?" != 0 ]]; then
     complain 'kernel build failed\n'
@@ -38,32 +31,6 @@ function build_and_deploy_main()
     exit 22 # EINVAL
   fi
   return 0
-}
-
-function parse_build_and_deploy_options()
-{
-  local long_options=''
-  local short_options=''
-
-  options="$(kw_parse "$short_options" "$long_options" "$@")"
-  if [[ "$?" != 0 ]]; then
-    options_values['ERROR']="$(kw_parse_get_errors 'kw bd' "$short_options" \
-      "$long_options" "$@")"
-    return 22 # EINVAL
-  fi
-
-  eval "set -- ${options}"
-
-  while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-      --)
-        shift
-        ;;
-      *)
-        shift
-        ;;
-    esac
-  done
 }
 
 function build_and_deploy_help()
