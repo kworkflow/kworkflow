@@ -80,10 +80,10 @@ function kernel_uninstall()
   # Each distro script should implement update_bootloader
   if [[ "$update_grub" -gt 0 ]]; then
     #printf '%s\n' "update_bootloader $kernel $target $flag"
-    update_bootloader "$flag" "$kernel" "$target" "$kernel_image_name" '' "$path_prefix" '' "$force"
+    update_bootloader "$flag" "$kernel" "$target" "$kernel_image_name" '' '' '' "$force"
 
     # Reboot
-    reboot_machine "$reboot" "$target" "$flag"
+    reboot_machine "$reboot" "$target" "$flag"  
   fi
 }
 
