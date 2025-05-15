@@ -83,7 +83,7 @@ function kernel_uninstall()
     update_bootloader "$flag" "$kernel" "$target" "$kernel_image_name" '' '' '' "$force"
 
     # Reboot
-    reboot_machine "$reboot" "$target" "$flag"  
+    reboot_machine "$reboot" "$target" "$flag"
   fi
 }
 
