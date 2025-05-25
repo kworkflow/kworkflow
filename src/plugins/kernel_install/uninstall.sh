@@ -82,10 +82,6 @@ function kernel_uninstall()
 
   declare -A deploy_data="(${deploy_data_string})"
 
-  cmd="generate_${distro}_temporary_root_file_system"
-  cmd+=" ${flag} '' ${target} ${deploy_data['bootloader']}"
-  cmd_manager "$flag" "$cmd"
-
   # Reboot
   if [[ "$reboot" == '1' ]]; then
     cmd="${sudo_cmd} reboot"
