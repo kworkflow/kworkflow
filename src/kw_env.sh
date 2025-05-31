@@ -72,15 +72,26 @@ function validate_env_before_switch()
   load_module_text "${KW_ETC_DIR}/strings/env.txt"
 
   # Check if there is a .config file
-  [[ -f "${PWD}/.config" ]] && should_fail=1
+  if [[ -f "${PWD}/.config" ]]; then
+    should_fail=1
+    complain ".config file at: ${PWD}/.config"
+  fi
 
   # Check if there is any object file
   list_of_object_file=$(find "${PWD}" -name '*.o')
-  [[ "$?" != 0 || -n ${list_of_object_file} ]] && should_fail=1
+  if [[ "$?" != 0 || -n ${list_of_object_file} ]]; then
+    should_fail=1
+    complain 'Kw identified some object files in the tree, please check:'
+    complain "$list_of_object_file"
+  fi
 
   # Check for ko files
   list_of_object_file=$(find "${PWD}" -name '*.ko')
-  [[ "$?" != 0 || -n ${list_of_object_file} ]] && should_fail=1
+  if [[ "$?" != 0 || -n ${list_of_object_file} ]]; then
+    should_fail=1
+    complain 'Kw identified some .ko files in the tree, please check:'
+    complain "$list_of_object_file"
+  fi
 
   if [[ "$should_fail" == 1 ]]; then
     complain "${module_text_dictionary[use_failure_explanation]}"
