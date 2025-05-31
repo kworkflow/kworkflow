@@ -157,6 +157,31 @@ function collect_deploy_info()
   printf '%s' "${bootloader} ${distro}"
 }
 
+# get_esp_base_path - If bootctl is available, return the base path.
+#
+# @target: If set to local, add sudo
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Return a string with ESP path
+function get_esp_base_path()
+{
+  local target="$1"
+  local flag="$2"
+  local sudo_cmd=''
+  local esp_base_path=''
+
+  [[ "$target" == 'local' ]] && sudo_cmd='sudo --preserve-env '
+
+  is_bootctl_the_default "$target"
+  [[ "$?" != 0 ]] && return 95 # EOPNOTSUPP
+
+  esp_path=$(cmd_manager "$flag" "${sudo_cmd}bootctl --print-esp-path")
+
+  printf '%s' "$esp_path"
+}
+
 # Based on a set of common files, this function tries to identify the
 # bootloader in the target machine.
 #

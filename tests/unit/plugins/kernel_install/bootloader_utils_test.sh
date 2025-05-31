@@ -119,4 +119,38 @@ function test_identify_bootloader()
   assertEquals "(${LINENO}): Expected systemd-boot" 'SYSTEMD_BOOT' "$output"
 }
 
+function test_get_esp_base_path_call_bootctl_command()
+{
+  local output
+  local expected_cmd='bootctl --print-esp-path'
+
+  output="$(
+    function is_bootctl_the_default()
+    {
+      return 0
+    }
+
+    get_esp_base_path 'remote' 'TEST_MODE'
+  )"
+
+  assertEquals "(${LINENO}): Expected bootctl command" "$expected_cmd" "$output"
+}
+
+function test_get_esp_base_path_not_supported()
+{
+  local output
+  local expected_cmd='bootctl --print-esp-path'
+
+  output="$(
+    function is_bootctl_the_default()
+    {
+      return 22
+    }
+
+    get_esp_base_path 'remote' 'TEST_MODE'
+  )"
+
+  assertEquals "(${LINENO}): It should be unsupported" "$?" 95
+}
+
 invoke_shunit

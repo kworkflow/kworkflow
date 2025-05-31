@@ -11,14 +11,63 @@ function run_bootloader_update()
   local name="$3"
   local kernel_image_name="$4"
   local boot_into_new_kernel_once="$5"
+  local specific_entry_path
+  local esp_base_path
+  local cmd
 
   flag=${flag:-'SILENT'}
   [[ "$target" == 'local' ]] && sudo_cmd='sudo '
+
+  esp_base_path=$(get_esp_base_path "$target" "$flag")
+  [[ "$?" == 95 ]] && return 95 # EOPNOTSUPP
+
+  cmd="${sudo_cmd}find '${esp_base_path}/${LOADER_ENTRIES_PATH}' -name '*${name}.conf'"
+  specific_entry_path=$(cmd_manager 'SILENT' "$cmd")
+  # In some OSes, the kernel-install runs by default, while in others, it does
+  # not. In the cases where kernel-install does not run, the new entry does get
+  # created; kw leverages this behavior to check if it is necessary to run
+  # kernel-install manually.
+  if [[ -z "$specific_entry_path" ]]; then
+    execute_systemd_kernel_install "$flag" "$target" "$name"
+  fi
 
   # Setup systemd to boot the new kernel
   if [[ "$boot_into_new_kernel_once" == 1 ]]; then
     setup_systemd_reboot_for_new_kernel "$name" "$sudo_cmd" "$flag"
   fi
+}
+
+# Systemd uses kernel-install as the official tool for adding a new kernel.
+# This function serves as a wrapper to call kernel-install when necessary.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
+# @target: Remote our Local.
+# @name Kernel name used during the deploy
+#
+# Return:
+# Return 0 in case of success and 2 in case of failure.
+function execute_systemd_kernel_install()
+{
+  local flag="$1"
+  local target="$2"
+  local name="$3"
+  local prefix="$4"
+  local cmd
+  local initram_path
+
+  flag=${flag:-'SILENT'}
+  [[ "$target" == 'local' ]] && sudo_cmd='sudo '
+
+  cmd="${sudo_cmd}find '${prefix}/boot/' -name 'init*${name}*'"
+  initram_path=$(cmd_manager 'SILENT' "$cmd")
+
+  if [[ -z "$initram_path" || ! -f "$initram_path" ]]; then
+    printf '%s\n' "Error: kw did not find initramfs: path='${initram_path}'"
+    return 2 # ENOENT
+  fi
+  cmd="${sudo_cmd}kernel-install add '${name}' '${prefix}/boot/vmlinuz-${name}' '${prefix}${initram_path}'"
+  cmd_manager "$flag" "$cmd"
 }
 
 # Setup systemd to boot in the new kernel.
