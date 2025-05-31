@@ -207,7 +207,7 @@ function list_all_kernels()
 
   [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd_get_kernels"
 
-  cmd_get_kernels="find ${prefix}/boot/ -name '*linuz*' -printf '%f\n' | sort --dictionary"
+  cmd_get_kernels="find ${prefix}/boot/ -regextype posix-egrep -regex '.*(linuz|kernel).*' -printf '%f\n' | sort --dictionary"
 
   output=$(cmd_manager 'SILENT' "$cmd_get_kernels")
   readarray -t raw_kernel_name_list <<< "$output"
