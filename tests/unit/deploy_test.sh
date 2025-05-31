@@ -22,7 +22,6 @@ function setUp()
   export DEPLOY_SCRIPT="${test_path}/${kernel_install_path}/deploy.sh"
   export KW_PLUGINS_DIR="${PWD}/src/plugins"
   export KW_SRC_LIB_DIR="${PWD}/src/lib"
-  export REMOTE_KW_DEPLOY='/opt/kw'
   export KW_STATUS_BASE_PATH="$SHUNIT_TMPDIR"
 
   KW_LIB_DIR="${PWD}/${SAMPLES_DIR}"
@@ -36,6 +35,10 @@ function setUp()
   parse_configuration "$KW_BUILD_CONFIG_SAMPLE" build_config
   parse_configuration "$KW_DEPLOY_CONFIG_SAMPLE" deploy_config
   parse_configuration "$KW_VM_CONFIG_SAMPLE" vm_config
+
+  REMOTE_KW_DEPLOY="${deploy_config[remote_kw_deploy]}"
+  KW_DEPLOY_TMP_FILE="${deploy_config[kw_deploy_tmp_file]}"
+  REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
 
   # Usually, we call populate_remote_info to fill out remote info. However, to
   # keep the test more reliable, we manually set this values here
