@@ -25,15 +25,16 @@ include "${KW_LIB_DIR}/lib/signal_manager.sh"
 # To make the deploy to a remote machine straightforward, we create a directory
 # on the host that will be used for centralizing files required for the new
 # deploy.
-REMOTE_KW_DEPLOY='/opt/kw'
-KW_STATUS_BASE_PATH='/boot'
-KW_DEPLOY_TMP_FILE='/tmp/kw'
-REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
+declare REMOTE_KW_DEPLOY
+declare KW_STATUS_BASE_PATH
+declare KW_DEPLOY_TMP_FILE
+declare REMOTE_INTERACE_CMD_PREFIX
 
 # We now have a kw directory visible for users in the home directory, which is
 # used for saving temporary files to be deployed in the target machine.
-LOCAL_TO_DEPLOY_DIR='to_deploy'
-LOCAL_REMOTE_DIR='remote'
+declare LOCAL_TO_DEPLOY_DIR
+declare LOCAL_REMOTE_DIR
+
 
 # Hash containing user options
 declare -gA options_values
@@ -90,6 +91,13 @@ function deploy_main()
     deploy_help "$1"
     exit 0
   fi
+
+  REMOTE_KW_DEPLOY="${deploy_config[remote_kw_deploy]}"
+  KW_STATUS_BASE_PATH="${deploy_config[kw_status_base_path]}"
+  KW_DEPLOY_TMP_FILE="${deploy_config[kw_deploy_tmp_file]}"
+  REMOTE_INTERACE_CMD_PREFIX="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
+  LOCAL_TO_DEPLOY_DIR="${deploy_config[local_to_deploy_dir]}"
+  LOCAL_REMOTE_DIR="${deploy_config[local_remote_dir]}"
 
   parse_deploy_options "$@"
   if [[ "$?" -gt 0 ]]; then
@@ -1563,7 +1571,11 @@ function deploy_help()
     '  deploy (--from-package | -F) - Deploy from kw package'
 }
 
+
+
 load_build_config
 load_deploy_config
 load_kworkflow_config
 load_notification_config
+#echo "teste: ${LOCAL_TO_DEPLOY_DIR}"
+#echo "teste: ${LOCAL_REMOTE_DIR}"
