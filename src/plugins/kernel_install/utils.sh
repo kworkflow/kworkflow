@@ -223,6 +223,18 @@ function is_bootctl_the_default()
   return 22 # EINVAL
 }
 
+function get_bootctl_version()
+{
+  local sudo_cmd="$1"
+  local version
+  local cmd
+
+  cmd="${sudo_cmd}bootctl --version | head -1 | grep --only-matching --perl-regexp 'systemd \K\d*'"
+
+  version=$(cmd_manager 'SILENT' "$cmd")
+  printf '%s' "$version"
+}
+
 # Based on  the kernel name pattern (vmlinuz), list all installed kernels.
 #
 # @prefix: Set a base prefix for searching for kernels.
@@ -241,6 +253,7 @@ function list_all_kernels()
   local index=0
   local extension
   local kernel_name
+  local version
   declare -a raw_kernel_name_list
 
   [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd_get_kernels"
@@ -249,6 +262,14 @@ function list_all_kernels()
   ret="$?"
   if [[ "$ret" == 0 ]]; then
     cmd_get_kernels="${sudo_cmd}bootctl list --json=short | jq --raw-output '.[].version' | grep --invert null"
+
+    # TODO: At some point, when LTS distros adopts bootctl newer then 257,
+    # remove this.
+    version=$(get_bootctl_version "$sudo_cmd")
+    if [[ "$version" -le 257 ]]; then
+      cmd_get_kernels="${sudo_cmd}bootctl list | grep --only-matching --perl-regexp 'version: \K.*'"
+    fi
+
     # Process raw output from bootctl
     output=$(cmd_manager 'SILENT' "$cmd_get_kernels")
     is_systemd_boot=1

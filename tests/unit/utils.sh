@@ -261,7 +261,6 @@ function mk_fake_boot_efi()
   touch "${FAKE_BOOT_DIR}/${boot_efi_path}/${fake_sha}/6.14.0-PLAY-WITH-KW+/initrd.img-6.14.0-PLAY-WITH-KW+"
   touch "${FAKE_BOOT_DIR}/${boot_efi_path}/${fake_sha}/6.14.0-PLAY-WITH-KW+/linux"
 
-
   mkdir --parents "${FAKE_BOOT_DIR}/${boot_efi_path}/loader"
   touch "${FAKE_BOOT_DIR}/${boot_efi_path}/loader/entries.srel"
   touch "${FAKE_BOOT_DIR}/${boot_efi_path}/loader/loader.conf"
@@ -458,15 +457,17 @@ function assert_equals_helper()
   local line="$2"
   local expected="$3"
   local result_to_compare="$4"
+  local ret=0
 
   line=${line:-'Unknown line'}
 
   if ! assertEquals "$expected" "$result_to_compare" &> /dev/null; then
+    ret="$?"
     printf '%bASSERT:%b line %s: %s\n  %bExpected Result:%b %b%s%b\n  %b  Actual Result:%b %b%s%b\n' \
       "$KW_COLOR_RED" "$KW_COLOR_NONE" "$line" "${msg}" \
       "$KW_COLOR_GREEN" "$KW_COLOR_NONE" "$KW_COLOR_GREEN" "${expected}" "$KW_COLOR_NONE" \
       "$KW_COLOR_RED" "$KW_COLOR_NONE" "$KW_COLOR_RED" "${result_to_compare}" "$KW_COLOR_NONE"
-    return "$?"
+    return "$ret"
   fi
 }
 

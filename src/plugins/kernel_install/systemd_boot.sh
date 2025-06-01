@@ -35,10 +35,94 @@ function run_bootloader_update()
     execute_systemd_kernel_install "$flag" "$target" "$name"
   fi
 
+  # FIXME: PopOS workaround
+  grep --quiet --ignore-case 'name="pop!_os"' /etc/os-release
+  if [[ "$?" == 0 ]]; then
+    execute_popos_workaround "$flag" "$target" "$name"
+  fi
+
   # Setup systemd to boot the new kernel
   if [[ "$boot_into_new_kernel_once" == 1 ]]; then
     setup_systemd_reboot_for_new_kernel "$name" "$sudo_cmd" "$flag"
   fi
+}
+
+# PopOS uses Kernelstub instead of kernel-install. Additionally, this OS
+# features a partition system with A and B partitions, where any newly deployed
+# kernel becomes the default kernel, and the old kernel remains in the boot
+# system. The problem with this approach is that multiple deploys will
+# eventually cause the distro kernel to be lost from the boot. I did not find
+# any good solution that respects the PopOS way of doing things. To mitigate
+# part of this problem, kw still uses kernel-install in PopOS (even though this
+# is not the recommended way) and does one manual change to the entry file to
+# make the new kernel visible in the systemd-boot menu. This approach does not
+# mess with the A and B partition systems used by PopOs.
+#
+# This workaround has 3 steps:
+# 1) Update the new entry file to use the custom kernel name.
+# 2) Identify the latest generic kernel.
+# 3) Ensure that the generic kernel is the main one.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
+# @target: Remote our Local.
+# @name: Kernel name used during the deploy.
+function execute_popos_workaround()
+{
+  local flag="$1"
+  local target="$2"
+  local name="$3"
+  local prefix="$4"
+  local esp_base_path=''
+  local loader_entries_path=''
+  local target_entry_path=''
+  local current_kernel=''
+  local vmlinuz_path=''
+  local initrd_path=''
+  local cmd=''
+  local sudo_cmd
+
+  [[ "$target" == 'local' ]] && sudo_cmd='sudo '
+
+  esp_base_path=$(get_esp_base_path "$target" 'SILENT')
+  loader_entries_path="${esp_base_path}${LOADER_ENTRIES_PATH}"
+
+  cmd="${sudo_cmd}find '$loader_entries_path' -name '*${name}.conf'"
+  [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd"
+  target_entry_path=$(cmd_manager 'SILENT' "$cmd")
+  cmd="${sudo_cmd}sed --in-place 's/^title .*$/title ${name}/' '$target_entry_path'"
+  [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd"
+  cmd_manager 'SILENT' "$cmd"
+
+  current_kernel=$(uname --kernel-release)
+  printf '%s' "$current_kernel" | grep --quiet --ignore-case '\-generic$'
+  if [[ "$?" != 0 ]]; then
+    # TODO: Can we find a better way to handle this?
+    cmd="${sudo_cmd}find ${prefix}/boot/ -name 'vmlinuz*-generic' | "
+    cmd+='sort --version-sort --reverse | head -1 | '
+    cmd+="cut --delimiter 'z' --field=2 | cut --characters=2-"
+    current_kernel=$(cmd_manager 'SILENT' "$cmd")
+  fi
+
+  vmlinuz_path="${prefix}/boot/vmlinuz-${current_kernel}"
+  initrd_path="${prefix}/boot/initrd.img-${current_kernel}"
+
+  if [[ -z "$current_kernel" ]]; then
+    vmlinuz_path='<PATH TO GENERIC KERNEL>'
+    initrd_path='<PATH TO GENERIC INITRD>'
+  fi
+
+  cmd="${sudo_cmd}kernelstub --kernel-path ${vmlinuz_path} --initrd-path ${initrd_path}"
+
+  if [[ -z "$current_kernel" ]]; then
+    printf 'WARNING: kw was not able to identify the generic kernel. Consider run:'
+    printf '%s\n' "$cmd"
+    return 22 # EINVAL
+  fi
+
+  cmd_manager "$flag" "$cmd"
+
+  printf '%s\n' 'WARNING: Due to some limitations in supporting PopOS, the after-reboot feature may not working as expected.'
 }
 
 # Systemd uses kernel-install as the official tool for adding a new kernel.
@@ -86,9 +170,22 @@ function setup_systemd_reboot_for_new_kernel()
   local name="$1"
   local cmd_sudo="$2"
   local flag="$3"
+  local target="$4"
   local target_id
   local cmd_bootctl_oneshot="${cmd_sudo}bootctl set-oneshot "
-  local cmd_bootctl_id="${cmd_sudo}bootctl list --json=short | jq --raw-output '.[].id' | grep --ignore-case ${name}.conf"
+  local cmd_bootctl_id="${cmd_sudo}bootctl list --json=short | jq --raw-output '.[].id'"
+  local version
+
+  # It looks like that the json option was only available from v257
+  # (https://github.com/systemd/systemd/releases/tag/v257) onward, and popos
+  # still in version 249.
+  version=$(get_bootctl_version "$cmd_sudo")
+  if [[ "$version" -le 257 ]]; then
+    printf 'WARNING: bootctl version %s is old.\n' "$version"
+    cmd_bootctl_id="${cmd_sudo}bootctl list | grep --only-matching --perl-regexp 'id: \K.*.conf'"
+  fi
+
+  cmd_bootctl_id+=" | grep --ignore-case ${name}.conf"
 
   [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd_bootctl_id"
   target_id=$(cmd_manager 'SILENT' "$cmd_bootctl_id")
