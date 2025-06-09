@@ -917,7 +917,7 @@ function test_get_current_env_name()
   }
 }
 
-function test_get_env_name_encoded_with_pwd()
+function test_encode_env_name_with_pwd()
 {
   local result expected base64_pwd
 
@@ -927,12 +927,12 @@ function test_get_env_name_encoded_with_pwd()
   }
 
   # Test when no argument is passed
-  get_env_name_encoded_with_pwd
+  encode_env_name_with_pwd
   assertEquals "($LINENO) - Should return 1 if no env_name is passed" 1 "$?"
 
   # Test when a valid env_name is passed
   base64_pwd=$(printf '%s' "$PWD" | base64)
-  result=$(get_env_name_encoded_with_pwd "dev")
+  result=$(encode_env_name_with_pwd "dev")
   expected="dev-${base64_pwd}"
   assertEquals "($LINENO) - Should return env_name-base64(PWD)" "$expected" "$result"
 

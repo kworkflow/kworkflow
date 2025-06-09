@@ -109,7 +109,7 @@ function validate_env_before_switch()
 function use_target_env()
 {
   local target_env="${options_values['USE']}"
-  local encoded_target_env=$(get_env_name_encoded_with_pwd "$target_env")
+  local encoded_target_env=$(encode_env_name_with_pwd "$target_env")
   local local_kw_configs="${PWD}/.kw"
   local tmp_trash
   local cmd
@@ -197,7 +197,7 @@ function create_new_env()
   local local_kw_build_config="${local_kw_configs}/build.config"
   local local_kw_deploy_config="${local_kw_configs}/deploy.config"
   local env_name=${options_values['CREATE']}
-  local encoded_env_name=$(get_env_name_encoded_with_pwd "$env_name")
+  local encoded_env_name=$(encode_env_name_with_pwd "$env_name")
   local cache_build_path="$KW_CACHE_DIR"
   local current_env_name
   local output
@@ -280,7 +280,7 @@ function destroy_env()
   local cache_build_path="$KW_CACHE_DIR"
   local current_env
   local env_name=${options_values['DESTROY']}
-  local encoded_env_name=$(get_env_name_encoded_with_pwd "$env_name")
+  local encoded_env_name=$(encode_env_name_with_pwd "$env_name")
   local cmd
 
   flag=${flag:-'SILENT'}

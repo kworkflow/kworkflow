@@ -702,7 +702,7 @@ function get_current_env_name()
 # Return:
 # Returns 0 and prints ${current_env}-base64(${PWD}) if env_name is provided.
 # Returns 1 if env_name is not provided.
-get_env_name_encoded_with_pwd() {
+encode_env_name_with_pwd() {
   local env_name="$1"
 
   if [[ -z "$env_name" ]]; then
