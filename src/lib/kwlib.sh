@@ -695,6 +695,25 @@ function get_current_env_name()
   return "$ret"
 }
 
+# This function returns "${current_env}-base64(${PWD})".
+#
+# @env_name: The name of the environment to encode
+#
+# Return:
+# Returns 0 and prints ${current_env}-base64(${PWD}) if env_name is provided.
+# Returns 1 if env_name is not provided.
+get_env_name_encoded_with_pwd() {
+  local env_name="$1"
+
+  if [[ -z "$env_name" ]]; then
+    return 1
+  fi
+
+  local encoded_pwd=$(printf '%s' "$PWD" | base64)
+
+  printf '%s-%s' "$env_name" "$encoded_pwd"
+}
+
 # A common task is to remove files/directories. This function is a predicate
 # to check if a given path is safe to remove (e.g. is not the '/')
 #
