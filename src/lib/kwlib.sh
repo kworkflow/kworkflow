@@ -714,6 +714,25 @@ get_env_name_encoded_with_pwd() {
   printf '%s-%s' "$env_name" "$encoded_pwd"
 }
 
+# Extracts the environment name from a string of the format "env_name-base64(PWD)".
+# Assumes env_name may contain hyphens.
+#
+# @encoded: The encoded string (e.g., "my-env-L2hvbWUvYXBvbG8y")
+#
+# Return:
+# Returns 0 if successful, 1 if input is empty or malformed.
+# Prints the env_name (everything before the last hyphen) if successful.
+decode_env_name_with_pwd() {
+  local encoded_env_name="$1"
+
+  if [[ -z "$encoded_env_name" || "$encoded_env_name" != *-* ]]; then
+    return 1
+  fi
+
+  local env_name="${encoded_env_name%-*}"
+  printf '%s' "$env_name"
+}
+
 # A common task is to remove files/directories. This function is a predicate
 # to check if a given path is safe to remove (e.g. is not the '/')
 #
