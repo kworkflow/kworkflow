@@ -917,6 +917,60 @@ function test_get_current_env_name()
   }
 }
 
+function test_get_env_name_encoded_with_pwd()
+{
+  local result expected base64_pwd
+
+  cd "${SHUNIT_TMPDIR}" || {
+    fail "($LINENO): It was not possible to move into ${SHUNIT_TMPDIR}"
+    return
+  }
+
+  # Test when no argument is passed
+  get_env_name_encoded_with_pwd
+  assertEquals "($LINENO) - Should return 1 if no env_name is passed" 1 "$?"
+
+  # Test when a valid env_name is passed
+  base64_pwd=$(printf '%s' "$PWD" | base64)
+  result=$(get_env_name_encoded_with_pwd "dev")
+  expected="dev-${base64_pwd}"
+  assertEquals "($LINENO) - Should return env_name-base64(PWD)" "$expected" "$result"
+
+  cd "${ORIGINAL_DIR}" || {
+    fail "($LINENO): It was not possible to move back to original directory"
+    return
+  }
+}
+
+function test_decode_env_name_with_pwd() {
+  local result expected base64_pwd encoded
+
+  cd "${SHUNIT_TMPDIR}" || {
+    fail "($LINENO): It was not possible to move into ${SHUNIT_TMPDIR}"
+    return
+  }
+
+  # Test when no argument is passed
+  decode_env_name_with_pwd
+  assertEquals "($LINENO) - Should return 1 if no encoded string is passed" 1 "$?"
+
+  # Test when there is no hyphen
+  decode_env_name_with_pwd "foobar"
+  assertEquals "($LINENO) - Should return 1 if no hyphen is present" 1 "$?"
+
+  # Test with a valid encoded string
+  base64_pwd=$(printf '%s' "$PWD" | base64)
+  encoded="some-env-name-${base64_pwd}"
+  result=$(decode_env_name_with_pwd "$encoded")
+  expected="some-env-name"
+  assertEquals "($LINENO) - Should return env_name extracted from encoded string" "$expected" "$result"
+
+  cd "${ORIGINAL_DIR}" || {
+    fail "($LINENO): It was not possible to move back to original directory"
+    return
+  }
+}
+
 function test_is_safe_path_to_remove()
 {
   local path
