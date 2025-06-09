@@ -52,16 +52,16 @@ function test_create_new_env_create_multiple_envs_from_current_configs()
 
   # Other checks
   # 1. Do we have the env folder?
-  new_env_name=$(find ".kw/${ENV_DIR}" -type d -name 'xpto')
-  assertEquals "($LINENO) We did not find the new folder name" ".kw/${ENV_DIR}/xpto" "$new_env_name"
+  new_env_name=$(find ".kw/${ENV_DIR}" -type d -name $(get_env_name_encoded_with_pwd 'xpto'))
+  assertEquals "($LINENO) We did not find the new folder name" ".kw/${ENV_DIR}/$(get_env_name_encoded_with_pwd 'xpto')" "$new_env_name"
 
-  new_env_name=$(find ".kw/${ENV_DIR}" -type d -name 'abc')
-  assertEquals "($LINENO) We did not find the new folder name" ".kw/${ENV_DIR}/abc" "$new_env_name"
+  new_env_name=$(find ".kw/${ENV_DIR}" -type d -name $(get_env_name_encoded_with_pwd 'abc'))
+  assertEquals "($LINENO) We did not find the new folder name" ".kw/${ENV_DIR}/$(get_env_name_encoded_with_pwd 'abc')" "$new_env_name"
 
   # 2. Check for config files
   for config in "${config_file_list[@]}"; do
-    assertTrue "${LINENO}: ${config} config not find " '[[ -f .kw/${ENV_DIR}/xpto/${config}.config ]]'
-    assertTrue "${LINENO}: ${config} config not find " '[[ -f .kw/${ENV_DIR}/abc/${config}.config ]]'
+    assertTrue "${LINENO}: ${config} config not find " '[[ -f .kw/${ENV_DIR}/$(get_env_name_encoded_with_pwd "xpto")/${config}.config ]]'
+    assertTrue "${LINENO}: ${config} config not find " '[[ -f .kw/${ENV_DIR}/$(get_env_name_encoded_with_pwd "abc")/${config}.config ]]'
   done
 }
 
@@ -84,7 +84,7 @@ function test_create_new_env_missing_config()
 
   options_values['CREATE']='xlr8'
   create_new_env > /dev/null
-  assertTrue "${LINENO}: missing config not created" '[[ -e .kw/${ENV_DIR}/xlr8/remote.config ]]'
+  assertTrue "${LINENO}: missing config not created" '[[ -e .kw/${ENV_DIR}/$(get_env_name_encoded_with_pwd "xlr8")/remote.config ]]'
 
   rm ./remote.config
 }
@@ -113,8 +113,8 @@ function test_show_available_envs()
 
   local expected=(
     'Other kw environments:'
-    "* farofa: ${KW_CACHE_DIR}/${ENV_DIR}/farofa"
-    "* tapioca: ${KW_CACHE_DIR}/${ENV_DIR}/tapioca"
+    "* farofa: ${KW_CACHE_DIR}/${ENV_DIR}/$(get_env_name_encoded_with_pwd 'farofa')"
+    "* tapioca: ${KW_CACHE_DIR}/${ENV_DIR}/$(get_env_name_encoded_with_pwd 'tapioca')"
   )
 
   output=$(list_env_available_envs)
@@ -164,7 +164,7 @@ function test_use_target_env()
   use_target_env
 
   real_path=$(readlink "${PWD}/.kw/build.config")
-  expected_path="${PWD}/.kw/${ENV_DIR}/farofa/build.config"
+  expected_path="${PWD}/.kw/${ENV_DIR}/$(get_env_name_encoded_with_pwd 'farofa')/build.config"
 
   assertEquals "($LINENO) It looks like that the env did not switch" "$expected_path" "$real_path"
 
@@ -173,7 +173,7 @@ function test_use_target_env()
   use_target_env
 
   real_path=$(readlink "${PWD}/.kw/build.config")
-  expected_path="${PWD}/.kw/${ENV_DIR}/tapioca/build.config"
+  expected_path="${PWD}/.kw/${ENV_DIR}/$(get_env_name_encoded_with_pwd 'tapioca')/build.config"
 
   assertEquals "($LINENO) It looks like that the env did not switch" "$expected_path" "$real_path"
 }
@@ -323,8 +323,8 @@ function test_destroy_env_checking_the_existence_of_a_directory()
   assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_A) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_A" ]]'
 
   # MACHINE_B
-  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/envs/MACHINE_B)" '[[ -d "${PWD}/.kw/envs/MACHINE_B" ]]'
-  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/envs/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_B" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/envs/MACHINE_B)" '[[ -d "${PWD}/.kw/envs/$(get_env_name_encoded_with_pwd 'MACHINE_B')" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/envs/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/envs/$(get_env_name_encoded_with_pwd 'MACHINE_B')" ]]'
 
   # MACHINE_C
   assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/envs/MACHINE_C) since the env was destroyed." '[[ -d "${PWD}/.kw/envs/MACHINE_C" ]]'
