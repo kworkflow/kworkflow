@@ -109,13 +109,14 @@ function validate_env_before_switch()
 function use_target_env()
 {
   local target_env="${options_values['USE']}"
+  local encoded_target_env=$(get_env_name_encoded_with_pwd "$target_env")
   local local_kw_configs="${PWD}/.kw"
   local tmp_trash
   local cmd
 
   flag=${flag:-'SILENT'}
 
-  if [[ ! -d "${local_kw_configs}/${ENV_DIR}/${target_env}" ]]; then
+  if [[ ! -d "${local_kw_configs}/${ENV_DIR}/${encoded_target_env}" ]]; then
     return 22 # EINVAL
   fi
 
@@ -133,13 +134,13 @@ function use_target_env()
     fi
 
     # Create symbolic link
-    cmd="ln --symbolic --force ${local_kw_configs}/${ENV_DIR}/${target_env}/${config}.config ${local_kw_configs}/${config}.config"
+    cmd="ln --symbolic --force ${local_kw_configs}/${ENV_DIR}/${encoded_target_env}/${config}.config ${local_kw_configs}/${config}.config"
     cmd_manager "$flag" "$cmd"
   done
 
   cmd="touch ${local_kw_configs}/${ENV_CURRENT_FILE}"
   cmd_manager "$flag" "$cmd"
-  printf '%s\n' "$target_env" > "${local_kw_configs}/${ENV_CURRENT_FILE}"
+  printf '%s\n' "$encoded_target_env" > "${local_kw_configs}/${ENV_CURRENT_FILE}"
 }
 
 # This function allows users to "exit" a specific env if they no longer
@@ -159,7 +160,9 @@ function exit_env()
 
   current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
 
-  warning "You are about to leave the env setup, and ${current_env} config files will be used as a default."
+  local decoded_current_env=$(decode_env_name_with_pwd "$current_env")
+
+  warning "You are about to leave the env setup, and ${decoded_current_env} config files will be used as a default."
   if [[ $(ask_yN 'Do you really want to proceed?') =~ '1' ]]; then
     for config in "${config_file_list[@]}"; do
       # All symbolic links will be removed, and the current env configuration files
@@ -194,6 +197,7 @@ function create_new_env()
   local local_kw_build_config="${local_kw_configs}/build.config"
   local local_kw_deploy_config="${local_kw_configs}/deploy.config"
   local env_name=${options_values['CREATE']}
+  local encoded_env_name=$(get_env_name_encoded_with_pwd "$env_name")
   local cache_build_path="$KW_CACHE_DIR"
   local current_env_name
   local output
@@ -213,7 +217,7 @@ function create_new_env()
   cmd_manager "$flag" "$cmd"
 
   # Check if the env name was not created
-  output=$(find "${local_kw_configs}/${ENV_DIR}" -type d -name "$env_name")
+  output=$(find "${local_kw_configs}/${ENV_DIR}" -type d -name "$encoded_env_name")
   if [[ -n "$output" ]]; then
     warning "It looks that you already have '$env_name' environment"
     warning 'Please, choose a new environment name.'
@@ -221,34 +225,34 @@ function create_new_env()
   fi
 
   # Create env folder
-  cmd="mkdir -p ${local_kw_configs}/${ENV_DIR}/${env_name}"
+  cmd="mkdir -p ${local_kw_configs}/${ENV_DIR}/${encoded_env_name}"
   cmd_manager "$flag" "$cmd"
 
   # Copy local configs
   for config in "${config_file_list[@]}"; do
     if [[ ! -e "${local_kw_configs}/${config}.config" ]]; then
       say "${config}.config does not exist. Creating a default one."
-      cmd="cp ${KW_ETC_DIR}/${config}.config ${local_kw_configs}/${ENV_DIR}/${env_name}"
+      cmd="cp ${KW_ETC_DIR}/${config}.config ${local_kw_configs}/${ENV_DIR}/${encoded_env_name}"
       cmd_manager "$flag" "$cmd"
     else
-      cmd="cp ${local_kw_configs}/${config}.config ${local_kw_configs}/${ENV_DIR}/${env_name}"
+      cmd="cp ${local_kw_configs}/${config}.config ${local_kw_configs}/${ENV_DIR}/${encoded_env_name}"
       cmd_manager "$flag" "$cmd"
     fi
   done
 
   # Handle build and config folder
-  cmd="mkdir -p ${cache_build_path}/${ENV_DIR}/${env_name}"
+  cmd="mkdir -p ${cache_build_path}/${ENV_DIR}/${encoded_env_name}"
   cmd_manager "$flag" "$cmd"
 
   current_env_name=$(get_current_env_name)
   ret="$?"
   # If we already have an env, we should copy the config file from it.
   if [[ "$ret" == 0 ]]; then
-    cmd="cp ${cache_build_path}/${ENV_DIR}/${current_env_name}/.config ${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd="cp ${cache_build_path}/${ENV_DIR}/${current_env_name}/.config ${cache_build_path}/${ENV_DIR}/${encoded_env_name}/.config"
     cmd_manager "$flag" "$cmd"
     return
   elif [[ -f "${PWD}/.config" ]]; then
-    cmd="cp ${PWD}/.config ${cache_build_path}/${ENV_DIR}/${env_name}"
+    cmd="cp ${PWD}/.config ${cache_build_path}/${ENV_DIR}/${encoded_env_name}"
     cmd_manager "$flag" "$cmd"
     return
   fi
@@ -258,10 +262,10 @@ function create_new_env()
   warning 'It is recommended to use kw kernel-config-manager.'
 
   if [[ -e /proc/config.gz ]]; then
-    cmd="zcat /proc/config.gz > ${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd="zcat /proc/config.gz > ${cache_build_path}/${ENV_DIR}/${encoded_env_name}/.config"
     cmd_manager "$flag" "$cmd"
   elif [[ -e "/boot/config-$(uname -r)" ]]; then
-    cmd="cp /boot/config-$(uname -r) ${cache_build_path}/${ENV_DIR}/${env_name}/.config"
+    cmd="cp /boot/config-$(uname -r) ${cache_build_path}/${ENV_DIR}/${encoded_env_name}/.config"
     cmd_manager "$flag" "$cmd"
   else
     warning 'kw was not able to find any valid config file for the new env'
@@ -276,6 +280,7 @@ function destroy_env()
   local cache_build_path="$KW_CACHE_DIR"
   local current_env
   local env_name=${options_values['DESTROY']}
+  local encoded_env_name=$(get_env_name_encoded_with_pwd "$env_name")
   local cmd
 
   flag=${flag:-'SILENT'}
@@ -286,7 +291,7 @@ function destroy_env()
     return 22 # EINVAL
   fi
 
-  if [[ ! -d "${local_kw_configs}/${ENV_DIR}/${env_name}" ]]; then
+  if [[ ! -d "${local_kw_configs}/${ENV_DIR}/${encoded_env_name}" ]]; then
     complain "The environment '${env_name}' does not exist."
     return 22 # EINVAL
   fi
@@ -297,12 +302,12 @@ function destroy_env()
 
   if [[ -f "${local_kw_configs}/${ENV_CURRENT_FILE}" ]]; then
     current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
-    if [[ "$current_env" == "$env_name" ]]; then
+    if [[ "$current_env" == "$encoded_env_name" ]]; then
       exit_env
     fi
   fi
 
-  cmd="rm -rf ${local_kw_configs:?}/${ENV_DIR}/${env_name} && rm -rf ${cache_build_path:?}/${ENV_DIR}/${env_name}"
+  cmd="rm -rf ${local_kw_configs:?}/${ENV_DIR}/${encoded_env_name} && rm -rf ${cache_build_path:?}/${ENV_DIR}/${encoded_env_name}"
   cmd_manager "$flag" "$cmd"
   success "The \"${env_name}\" environment has been destroyed."
 }
@@ -344,14 +349,16 @@ function list_env_available_envs()
   if [[ -f "${local_kw_configs}/${ENV_CURRENT_FILE}" ]]; then
     current_env=$(< "${local_kw_configs}/${ENV_CURRENT_FILE}")
     say 'Current env:'
-    printf ' -> %s: %s\n\n' "$current_env" "${KW_CACHE_DIR}/${ENV_DIR}/${current_env}"
+    local decoded_current_env=$(decode_env_name_with_pwd "$current_env")
+    printf ' -> %s: %s\n\n' "$decoded_current_env" "${KW_CACHE_DIR}/${ENV_DIR}/${current_env}"
   fi
 
   warning 'Other kw environments:'
   # For the below loop, we want to split the array
   # shellcheck disable=SC2068
   for env in ${all_envs[@]}; do
-    printf ' * %s: %s\n' "$env" "${KW_CACHE_DIR}/${ENV_DIR}/${env}"
+    local decoded_env=$(decode_env_name_with_pwd "$env")
+    printf ' * %s: %s\n' "$decoded_env" "${KW_CACHE_DIR}/${ENV_DIR}/${env}"
   done
 }
 
