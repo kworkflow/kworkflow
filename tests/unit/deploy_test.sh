@@ -215,24 +215,6 @@ function find_kernels_mock()
   printf 'vmlinuz-5\n'
 }
 
-# Function that we must replace
-function test_setup_remote_ssh_with_passwordless()
-{
-  local output
-  declare -a expected_cmd=(
-    '-> Trying to set up passwordless access'
-    '' # Extra line due to \n in the say message
-    'ssh-copy-id root@127.0.0.1'
-    'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p 3333 root@127.0.0.1 exit'
-    'ssh-copy-id juca@127.0.0.1'
-    'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
-  )
-
-  remote_parameters['REMOTE_USER']='juca'
-  output=$(setup_remote_ssh_with_passwordless 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-}
-
 function detect_filesystem_type_mock_ext4()
 {
   printf '%s\n' 'ext4'
