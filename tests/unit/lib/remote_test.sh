@@ -534,4 +534,23 @@ function test_which_distro()
   assert_equals_helper 'Command did not match' "$LINENO" "$expected_str" "$output"
 }
 
+function test_setup_remote_ssh_with_passwordless()
+{
+  local output
+  declare -a expected_cmd=(
+    '-> Trying to set up passwordless access'
+    '' # Extra line due to \n in the say message
+    'ssh-copy-id root@127.0.0.1'
+    'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p 3333 root@127.0.0.1 exit'
+    'ssh-copy-id juca@127.0.0.1'
+    'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -p 3333 juca@127.0.0.1 exit'
+  )
+
+  remote_parameters['REMOTE_USER']='juca'
+  remote_parameters['REMOTE_IP']='127.0.0.1'
+  remote_parameters['REMOTE_PORT']='3333'
+  output=$(setup_remote_ssh_with_passwordless 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
 invoke_shunit

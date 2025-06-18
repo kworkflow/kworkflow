@@ -276,51 +276,6 @@ function deploy_main()
   cleanup
 }
 
-# This function is responsible for setting up the ssh key for users, including
-# the root user.
-#
-# @flag How to display a command, the default value is
-#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`
-#
-# Return:
-# If everything is alright, it returns 0, otherwise, it can return:
-# - 103: ssh-copy-id failed
-# - 101: ssh to the target machine failed
-function setup_remote_ssh_with_passwordless()
-{
-  local flag="$1"
-  local copy_key_cmd
-  local users="root ${remote_parameters['REMOTE_USER']}"
-  local root_user_setup=0
-
-  flag=${flag:-'SILENT'}
-
-  say '-> Trying to set up passwordless access'$'\n'
-
-  for user in $users; do
-    # Just avoid setup root twice
-    [[ "$user" == 'root' && "$root_user_setup" == 1 ]] && continue
-    [[ "$user" == 'root' ]] && ((root_user_setup++))
-
-    # Use config file or ip info
-    if [[ -n ${remote_parameters['REMOTE_FILE']} && -n ${remote_parameters['REMOTE_FILE_HOST']} ]]; then
-      copy_key_cmd="ssh-copy-id -F ${remote_parameters['REMOTE_FILE']} ${remote_parameters['REMOTE_FILE_HOST']}"
-    else
-      copy_key_cmd="ssh-copy-id ${user}@${remote_parameters['REMOTE_IP']}"
-    fi
-
-    # Try to copy-ssh-id
-    cmd_manager "$flag" "$copy_key_cmd"
-    [[ "$?" != 0 ]] && return 103 # ECONNABORTED
-
-    # Check if we can connect without password
-    is_ssh_connection_configured "$flag" '' '' "$user"
-    if [[ "$?" != 0 ]]; then
-      return 101 # ENETUNREACH
-    fi
-  done
-}
-
 # Every distro family has its specific idiosyncrasy; for this reason, in the
 # plugin folder, we have a code per distro supported by kw. This function is
 # the entry point to call the specific code for the target distro.
