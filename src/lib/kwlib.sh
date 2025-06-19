@@ -695,6 +695,17 @@ function get_current_env_name()
   return "$ret"
 }
 
+# This function returns ${PWD}, base64-encoded.
+#
+# Return:
+# Returns 0 and prints ${PWD}, base64-encoded
+function get_encoded_pwd()
+{
+  printf '%s' "$PWD" | base64 --wrap=0
+
+  return 0
+}
+
 # A common task is to remove files/directories. This function is a predicate
 # to check if a given path is safe to remove (e.g. is not the '/')
 #

@@ -917,6 +917,27 @@ function test_get_current_env_name()
   }
 }
 
+function test_get_encoded_pwd()
+{
+  local result
+  local expected
+  local base64_pwd
+
+  cd "${SHUNIT_TMPDIR}" || {
+    fail "(${LINENO}): It was not possible to move into ${SHUNIT_TMPDIR}"
+    return
+  }
+
+  result=$(get_encoded_pwd)
+  expected="$(printf '%s' "$PWD" | base64 --wrap=0)"
+  assertEquals "(${LINENO}) - Should return base64(PWD)" "$expected" "$result"
+
+  cd "${ORIGINAL_DIR}" || {
+    fail "($LINENO): It was not possible to move back to original directory"
+    return
+  }
+}
+
 function test_is_safe_path_to_remove()
 {
   local path
