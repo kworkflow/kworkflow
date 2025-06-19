@@ -113,8 +113,8 @@ function test_show_available_envs()
 
   local expected=(
     'Other kw environments:'
-    "* farofa: ${KW_CACHE_DIR}/${ENV_DIR}/farofa"
-    "* tapioca: ${KW_CACHE_DIR}/${ENV_DIR}/tapioca"
+    "* farofa: ${KW_CACHE_DIR}/${ENV_DIR}/$(get_encoded_pwd)/farofa"
+    "* tapioca: ${KW_CACHE_DIR}/${ENV_DIR}/$(get_encoded_pwd)/tapioca"
   )
 
   output=$(list_env_available_envs)
@@ -323,12 +323,12 @@ function test_destroy_env_checking_the_existence_of_a_directory()
   assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_A) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_A" ]]'
 
   # MACHINE_B
-  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/envs/MACHINE_B)" '[[ -d "${PWD}/.kw/envs/MACHINE_B" ]]'
-  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/envs/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_B" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/envs/MACHINE_B)" '[[ -d "${PWD}/.kw/envs/$(encode_env_name_with_pwd 'MACHINE_B')" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/envs/$(get_encoded_pwd)/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/envs/$(get_encoded_pwd)/MACHINE_B" ]]'
 
   # MACHINE_C
   assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/envs/MACHINE_C) since the env was destroyed." '[[ -d "${PWD}/.kw/envs/MACHINE_C" ]]'
-  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_C" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/$(get_encoded_pwd)/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/$(get_encoded_pwd)/MACHINE_C" ]]'
 }
 
 function test_create_and_destroy_env()
