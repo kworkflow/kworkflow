@@ -102,7 +102,7 @@ function test_human_list_installed_kernels()
   local output
 
   declare -a expected_out=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
     '5.5.0-rc2-VKMS+'
     '5.6.0-rc2-AMDGPU+'
     'linux'
@@ -131,7 +131,7 @@ function test_command_list_installed_kernels()
   local output
 
   declare -a expected_out=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 
@@ -157,7 +157,7 @@ function test_list_unmanaged_kernels()
   printf '%s' '' > "$INSTALLED_KERNELS_PATH"
 
   expected=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
     '5.5.0-rc2-VKMS+,5.6.0-rc2-AMDGPU+,linux'
   )
 

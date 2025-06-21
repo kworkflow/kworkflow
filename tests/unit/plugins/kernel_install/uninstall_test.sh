@@ -142,8 +142,8 @@ function test_kernel_uninstall_regex_one_kernel()
 
   # Composing expected command sequence
   local -a cmd_sequence=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
-    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "touch '${INSTALLED_KERNELS_PATH}'"
     "Removing: ${kernel_name}"
   )
 
@@ -153,14 +153,14 @@ function test_kernel_uninstall_regex_one_kernel()
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$((index++))"]="Removing: ${file}"
-    cmd_sequence["$((index++))"]="sudo --preserve-env rm ${file}"
+    cmd_sequence["$((index++))"]="rm ${file}"
   done
 
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name}"
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name}"
-  cmd_sequence["$((index++))"]="sudo sed --in-place '/${kernel_name}/d' '$INSTALLED_KERNELS_PATH'"
-  cmd_sequence["$((index++))"]="sudo --preserve-env update-grub"
+  cmd_sequence["$((index++))"]="sed --in-place '/${kernel_name}/d' '$INSTALLED_KERNELS_PATH'"
+  cmd_sequence["$((index++))"]="update-grub"
 
   # Check
   output="$(
@@ -179,7 +179,7 @@ function test_kernel_uninstall_regex_one_kernel()
       return 0
     }
 
-    kernel_uninstall 'debian' 0 'local' 'regex:.*VKMS.*' 'TEST_MODE' '' "$SHUNIT_TMPDIR"
+    kernel_uninstall 'debian' 0 'remote' 'regex:.*VKMS.*' 'TEST_MODE' '' "$SHUNIT_TMPDIR"
   )"
 
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
@@ -206,8 +206,8 @@ function test_kernel_uninstall_remove_first_kw_managed_kernel_empty_list()
 
   # Composing expected command sequence
   local -a cmd_sequence=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
-    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "touch '${INSTALLED_KERNELS_PATH}'"
     "There is no kernel managed by kw."
   )
 
@@ -230,7 +230,7 @@ function test_kernel_uninstall_remove_first_kw_managed_kernel_empty_list()
       local -n _processed_installed_kernels="$3"
     }
 
-    kernel_uninstall 'debian' 0 'local' "''" 'TEST_MODE' '' "$SHUNIT_TMPDIR"
+    kernel_uninstall 'debian' 0 'remote' "''" 'TEST_MODE' '' "$SHUNIT_TMPDIR"
   )"
 
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
@@ -257,8 +257,8 @@ function test_kernel_uninstall_remove_first_kw_managed_kernel()
 
   # Composing expected command sequence
   local -a cmd_sequence=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
-    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "touch '${INSTALLED_KERNELS_PATH}'"
     "Removing: ${kernel_name}"
   )
 
@@ -268,14 +268,14 @@ function test_kernel_uninstall_remove_first_kw_managed_kernel()
   # shellcheck disable=SC2068
   for file in ${boot_files[@]}; do
     cmd_sequence["$((index++))"]="Removing: ${file}"
-    cmd_sequence["$((index++))"]="sudo --preserve-env rm ${file}"
+    cmd_sequence["$((index++))"]="rm ${file}"
   done
 
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name}"
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name}"
-  cmd_sequence["$((index++))"]="sudo sed --in-place '/${kernel_name}/d' '$INSTALLED_KERNELS_PATH'"
-  cmd_sequence["$((index++))"]="sudo --preserve-env update-grub"
+  cmd_sequence["$((index++))"]="sed --in-place '/${kernel_name}/d' '$INSTALLED_KERNELS_PATH'"
+  cmd_sequence["$((index++))"]="update-grub"
   cmd_sequence["$((index++))"]='reboot'
 
   # Check
@@ -311,7 +311,7 @@ function test_kernel_uninstall_remove_first_kw_managed_kernel()
       printf 'reboot\n'
     }
 
-    kernel_uninstall 'debian' 0 'local' "''" 'TEST_MODE' '' "$SHUNIT_TMPDIR"
+    kernel_uninstall 'debian' 0 'remote' "''" 'TEST_MODE' '' "$SHUNIT_TMPDIR"
   )"
 
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
@@ -333,8 +333,8 @@ function test_kernel_uninstall_unmanaged()
   # Notice that we are only testing the force feature, we did not create fake
   # files, as a result we can't find files.
   local -a cmd_sequence=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
-    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "touch '${INSTALLED_KERNELS_PATH}'"
     "generate_debian_temporary_root_file_system TEST_MODE '' local SYSTEMD_BOOT"
   )
 
@@ -357,7 +357,7 @@ function test_kernel_uninstall_unmanaged()
       return 95
     }
 
-    kernel_uninstall 'debian' 0 'local' '5.5.0-rc2-NOTMANAGED' 'TEST_MODE' '' "$TARGET_PATH"
+    kernel_uninstall 'debian' 0 'remote' '5.5.0-rc2-NOTMANAGED' 'TEST_MODE' '' "$TARGET_PATH"
   )"
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }
@@ -511,19 +511,19 @@ function test_kernel_force_uninstall_unmanaged()
   # Notice that we are only testing the force feature, we did not create fake
   # files, as a result we can't find files.
   local -a cmd_sequence=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
-    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "touch '${INSTALLED_KERNELS_PATH}'"
     "Removing: ${target}"
     "Removing: ${boot_path}"
-    "sudo --preserve-env rm ${boot_path}"
+    "rm ${boot_path}"
     "Removing: ${mkinitcpio_d_path}"
-    "sudo --preserve-env rm ${mkinitcpio_d_path}"
+    "rm ${mkinitcpio_d_path}"
     "Removing: ${initramfs_tools_var_path}"
-    "sudo --preserve-env rm ${initramfs_tools_var_path}"
+    "rm ${initramfs_tools_var_path}"
     "Removing: ${modules_lib_path}"
-    "sudo --preserve-env rm --recursive --force ${modules_lib_path}"
-    "sudo sed --in-place '/${target}/d' '${INSTALLED_KERNELS_PATH}'"
-    "sudo --preserve-env update-grub"
+    "rm --recursive --force ${modules_lib_path}"
+    "sed --in-place '/${target}/d' '${INSTALLED_KERNELS_PATH}'"
+    "update-grub"
   )
 
   mkdir --parents "${TARGET_PATH}/boot"
@@ -560,7 +560,7 @@ function test_kernel_force_uninstall_unmanaged()
       return 0
     }
 
-    kernel_uninstall 'debian' 0 'local' '5.5.0-rc2-NOTMANAGED' 'TEST_MODE' 1 "$TARGET_PATH"
+    kernel_uninstall 'debian' 0 'remote' '5.5.0-rc2-NOTMANAGED' 'TEST_MODE' 1 "$TARGET_PATH"
   )"
 
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
@@ -598,8 +598,8 @@ function test_remove_managed_kernel_local()
 
   # Composing command sequence list
   local -a cmd_sequence=(
-    "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
-    "sudo touch '${INSTALLED_KERNELS_PATH}'"
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "touch '${INSTALLED_KERNELS_PATH}'"
     "Removing: ${kernel_name}"
   )
 
@@ -609,8 +609,8 @@ function test_remove_managed_kernel_local()
     "Can't find ${TARGET_PATH}//${mkinitcpio_d_path}"
     "Can't find ${TARGET_PATH}//var/lib/initramfs-tools/${kernel_name}"
     "Can't find ${TARGET_PATH}//lib/modules/${kernel_name}"
-    "sudo sed --in-place '/${kernel_name}/d' '${INSTALLED_KERNELS_PATH}'"
-    'sudo --preserve-env update-grub'
+    "sed --in-place '/${kernel_name}/d' '${INSTALLED_KERNELS_PATH}'"
+    'update-grub'
   )
 
   boot_files=$(find "${TARGET_PATH}//boot/" -name "*${kernel_name}*" | sort)
@@ -619,7 +619,7 @@ function test_remove_managed_kernel_local()
   for file in ${boot_files[@]}; do
     cmd_sequence["$index"]="Removing: ${file}"
     ((index++))
-    cmd_sequence["$index"]="sudo --preserve-env rm ${file}"
+    cmd_sequence["$index"]="rm ${file}"
     ((index++))
   done
 
@@ -650,7 +650,7 @@ function test_remove_managed_kernel_local()
       return 0
     }
 
-    kernel_uninstall 'debian' 0 'local' '5.5.0-rc2-VKMS+' 'TEST_MODE' 1 "${SHUNIT_TMPDIR}/"
+    kernel_uninstall 'debian' 0 'remote' '5.5.0-rc2-VKMS+' 'TEST_MODE' 1 "${SHUNIT_TMPDIR}/"
   )"
   compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
 }

@@ -35,6 +35,8 @@ function kernel_uninstall()
   # From user request, this array keeps the list of kernels to be removed
   declare -a kernel_to_remove
 
+  [[ "$target" == 2 || "$target" == 'local' ]] && sudo_cmd='sudo '
+
   if [[ -z "$kernel_list_string_or_regex" ]]; then
     printf '%s\n' 'Invalid argument'
     exit 22 #EINVAL
@@ -43,8 +45,8 @@ function kernel_uninstall()
   # TODO: Drop me in the future
   migrate_old_kernel_list
 
-  cmd_manager "$flag" "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
-  cmd_manager "$flag" "sudo touch '${INSTALLED_KERNELS_PATH}'"
+  cmd_manager "$flag" "${sudo_cmd}mkdir --parents ${REMOTE_KW_DEPLOY}"
+  cmd_manager "$flag" "${sudo_cmd}touch '${INSTALLED_KERNELS_PATH}'"
   process_installed_kernels 1 "$prefix" 'all_installed_kernels' "$target"
   process_installed_kernels '' "$prefix" 'kw_managed_kernels' "$target"
   total_kernels_managed_by_kw="$?"
@@ -74,7 +76,7 @@ function kernel_uninstall()
     do_uninstall "$target" "$kernel" "$prefix" "$flag"
 
     # Clean from the log
-    cmd_manager "$flag" "sudo sed --in-place '/${kernel}/d' '${INSTALLED_KERNELS_PATH}'"
+    cmd_manager "$flag" "${sudo_cmd}sed --in-place '/${kernel}/d' '${INSTALLED_KERNELS_PATH}'"
     ((update_grub++))
   done
 

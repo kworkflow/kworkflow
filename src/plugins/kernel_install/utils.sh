@@ -147,9 +147,12 @@ function list_installed_kernels()
   local prefix="$4"
   local target="$5"
   local -a available_kernels=()
-  local cmd
   local file_system_type
+  local sudo_cmd=''
+  local cmd=''
   local ret=0
+
+  [[ "$target" == 2 || "$target" == 'local' ]] && sudo_cmd='sudo '
 
   # TODO: Drop me in the future
   migrate_old_kernel_list
@@ -162,13 +165,13 @@ function list_installed_kernels()
   fi
 
   if [[ ! -f "${INSTALLED_KERNELS_PATH}" ]]; then
-    [[ "$ret" != 30 ]] && cmd_manager "$flag" "sudo touch ${INSTALLED_KERNELS_PATH}"
+    [[ "$ret" != 30 ]] && cmd_manager "$flag" "${sudo_cmd}touch ${INSTALLED_KERNELS_PATH}"
   fi
 
-  cmd_manager "$flag" "sudo mkdir --parents ${REMOTE_KW_DEPLOY}"
+  cmd_manager "$flag" "${sudo_cmd}mkdir --parents ${REMOTE_KW_DEPLOY}"
 
   if [[ -n "$all" ]]; then
-    list_all_kernels "$prefix" available_kernels "$flag"
+    list_all_kernels "$prefix" available_kernels "$flag" "$sudo_cmd"
   else
     readarray -t available_kernels < "$INSTALLED_KERNELS_PATH"
     if [[ "${#available_kernels[@]}" -eq 0 ]]; then
@@ -231,6 +234,7 @@ function list_all_kernels()
   local prefix="$1"
   local -n _available_kernels="$2"
   local flag="$3"
+  local sudo_cmd="$4"
   local is_systemd_boot=0
   local cmd_get_kernels
   local output
@@ -244,12 +248,12 @@ function list_all_kernels()
   is_bootctl_the_default "$target"
   ret="$?"
   if [[ "$ret" == 0 ]]; then
-    cmd_get_kernels="bootctl list --json=short | jq --raw-output '.[].version' | grep --invert null"
+    cmd_get_kernels="${sudo_cmd}bootctl list --json=short | jq --raw-output '.[].version' | grep --invert null"
     # Process raw output from bootctl
     output=$(cmd_manager 'SILENT' "$cmd_get_kernels")
     is_systemd_boot=1
   else
-    cmd_get_kernels="find ${prefix}/boot/ -regextype posix-egrep -regex '.*(linuz|kernel).*' -printf '%f\n' | sort --dictionary"
+    cmd_get_kernels="${sudo_cmd}find ${prefix}/boot/ -regextype posix-egrep -regex '.*(linuz|kernel).*' -printf '%f\n' | sort --dictionary"
     output=$(cmd_manager 'SILENT' "$cmd_get_kernels")
   fi
 
