@@ -44,6 +44,8 @@ function run_bootloader_update()
   local cmd_sudo
   local total_count
 
+  flag=${flag:-'SILENT'}
+
   if [[ "$target" == 'local' ]]; then
     cmd_sudo='sudo --preserve-env '
     cmd_grub+="$cmd_sudo"
@@ -56,13 +58,6 @@ function run_bootloader_update()
   fi
 
   cmd_grub+="$DEFAULT_GRUB_CMD_UPDATE"
-
-  if [[ "$flag" != 'VERBOSE' ]]; then
-    total_count=$(total_of_installed_kernels "$flag" "$target")
-    total_count=$((total_count * 2 + 7))
-    # TODO: For some reason, this is not working via ssh
-    #cmd_grub+=" |& pv -p --line-mode --size $total_count > /dev/null"
-  fi
 
   cmd_manager "$flag" "$cmd_grub"
 

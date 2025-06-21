@@ -21,6 +21,10 @@ function run_bootloader_update()
   esp_base_path=$(get_esp_base_path "$target" "$flag")
   [[ "$?" == 95 ]] && return 95 # EOPNOTSUPP
 
+  if [[ -z "$name" ]]; then
+    return
+  fi
+
   cmd="${sudo_cmd}find '${esp_base_path}/${LOADER_ENTRIES_PATH}' -name '*${name}.conf'"
   specific_entry_path=$(cmd_manager 'SILENT' "$cmd")
   # In some OSes, the kernel-install runs by default, while in others, it does

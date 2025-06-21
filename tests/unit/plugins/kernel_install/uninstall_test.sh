@@ -160,7 +160,7 @@ function test_kernel_uninstall_regex_one_kernel()
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name}"
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name}"
   cmd_sequence["$((index++))"]="sudo sed --in-place '/${kernel_name}/d' '$INSTALLED_KERNELS_PATH'"
-  cmd_sequence["$((index++))"]="generate_debian_temporary_root_file_system TEST_MODE '' local GRUB"
+  cmd_sequence["$((index++))"]="sudo --preserve-env update-grub"
 
   # Check
   output="$(
@@ -275,7 +275,7 @@ function test_kernel_uninstall_remove_first_kw_managed_kernel()
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name}"
   cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name}"
   cmd_sequence["$((index++))"]="sudo sed --in-place '/${kernel_name}/d' '$INSTALLED_KERNELS_PATH'"
-  cmd_sequence["$((index++))"]="generate_debian_temporary_root_file_system TEST_MODE '' local GRUB"
+  cmd_sequence["$((index++))"]="sudo --preserve-env update-grub"
   cmd_sequence["$((index++))"]='reboot'
 
   # Check
@@ -523,7 +523,7 @@ function test_kernel_force_uninstall_unmanaged()
     "Removing: ${modules_lib_path}"
     "sudo --preserve-env rm --recursive --force ${modules_lib_path}"
     "sudo sed --in-place '/${target}/d' '${INSTALLED_KERNELS_PATH}'"
-    "generate_debian_temporary_root_file_system TEST_MODE '' local GRUB"
+    "sudo --preserve-env update-grub"
   )
 
   mkdir --parents "${TARGET_PATH}/boot"
@@ -610,7 +610,7 @@ function test_remove_managed_kernel_local()
     "Can't find ${TARGET_PATH}//var/lib/initramfs-tools/${kernel_name}"
     "Can't find ${TARGET_PATH}//lib/modules/${kernel_name}"
     "sudo sed --in-place '/${kernel_name}/d' '${INSTALLED_KERNELS_PATH}'"
-    "generate_debian_temporary_root_file_system TEST_MODE '' local GRUB"
+    'sudo --preserve-env update-grub'
   )
 
   boot_files=$(find "${TARGET_PATH}//boot/" -name "*${kernel_name}*" | sort)

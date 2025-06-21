@@ -82,6 +82,8 @@ function kernel_uninstall()
 
   declare -A deploy_data="(${deploy_data_string})"
 
+  update_bootloader "$flag" '' "$target"
+
   # Reboot
   if [[ "$reboot" == '1' ]]; then
     cmd="${sudo_cmd} reboot"

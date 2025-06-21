@@ -26,6 +26,10 @@ function run_bootloader_update()
 
   [[ "$target" == 'local' ]] && sudo_cmd='sudo'
 
+  if [[ -z "$name" ]]; then
+    return
+  fi
+
   move_kernel_files_to_firmware_folder "$kernel_image_name" "$BOOT_FIRMWARE_PATH" "$name" "$sudo_cmd" '/boot' "$flag"
   ret="$?"
   if [[ "$ret" != 0 ]]; then
