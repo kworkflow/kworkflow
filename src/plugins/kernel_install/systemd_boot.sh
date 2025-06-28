@@ -100,7 +100,13 @@ function execute_popos_workaround()
     # TODO: Can we find a better way to handle this?
     cmd="${sudo_cmd}find ${prefix}/boot/ -name 'vmlinuz*-generic' | "
     cmd+='sort --version-sort --reverse | head -1 | '
-    cmd+="cut --delimiter 'z' --field=2 | cut --characters=2-"
+    # \K is a fascinating trick from Perl, in a few words, it gets the match
+    # output from the \K onword. For example, without \K, the output would be
+    # vmlinuz-6.12.10-76061203-generic; however, with \K, we get
+    # 6.12.10-76061203-generic.
+    # Ref:
+    # https://perldoc.perl.org/perlre#%5CK
+    cmd+="grep --only-matching --perl-regexp 'vmlinuz-\K.*-generic$'"
     current_kernel=$(cmd_manager 'SILENT' "$cmd")
   fi
 
