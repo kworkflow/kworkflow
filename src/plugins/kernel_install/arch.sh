@@ -100,12 +100,16 @@ function generate_arch_temporary_root_file_system()
   local path_prefix="$5"
   local prefered_root_file_system="$6"
   local cmd=''
-  local sudo_cmd
+  local sudo_cmd=''
   # mkinitcpio still the default on ArchLinux
   local root_file_system_tool='mkinitcpio'
   local mkinitcpio_output=''
   local log_message
   local ret=0
+
+  if [[ "$target" == 2 ]]; then
+    sudo_cmd='sudo --preserve-env '
+  fi
 
   # If the user specify which rootfs they want to use, let's use it then...
   if [[ -n "$prefered_root_file_system" ]]; then
@@ -156,7 +160,7 @@ function generate_arch_temporary_root_file_system()
       return "$ret"
       ;;
     'dracut')
-      cmd='DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid '
+      cmd="${sudo_cmd}DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid "
       cmd+="--hostonly /boot/initramfs-${name}.img ${name}"
       cmd_manager "$flag" "$cmd"
       ;;
