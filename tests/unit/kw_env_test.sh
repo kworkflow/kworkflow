@@ -113,8 +113,8 @@ function test_show_available_envs()
 
   local expected=(
     'Other kw environments:'
-    "* farofa: ${KW_CACHE_DIR}/${ENV_DIR}/farofa"
-    "* tapioca: ${KW_CACHE_DIR}/${ENV_DIR}/tapioca"
+    "* farofa: ${KW_CACHE_DIR}/${ENV_DIR}/$(get_encoded_pwd)/farofa"
+    "* tapioca: ${KW_CACHE_DIR}/${ENV_DIR}/$(get_encoded_pwd)/tapioca"
   )
 
   output=$(list_env_available_envs)
@@ -323,12 +323,12 @@ function test_destroy_env_checking_the_existence_of_a_directory()
   assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_A) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_A" ]]'
 
   # MACHINE_B
-  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/envs/MACHINE_B)" '[[ -d "${PWD}/.kw/envs/MACHINE_B" ]]'
-  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/envs/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_B" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${PWD}/.kw/envs/MACHINE_B)" '[[ -d "${PWD}/.kw/envs/$(encode_env_name_with_pwd 'MACHINE_B')" ]]'
+  assertTrue "$LINENO: We expected to find this folder(${KW_CACHE_DIR}/envs/$(get_encoded_pwd)/MACHINE_B)" '[[ -d "${KW_CACHE_DIR}/envs/$(get_encoded_pwd)/MACHINE_B" ]]'
 
   # MACHINE_C
   assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/envs/MACHINE_C) since the env was destroyed." '[[ -d "${PWD}/.kw/envs/MACHINE_C" ]]'
-  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/MACHINE_C" ]]'
+  assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/envs/$(get_encoded_pwd)/MACHINE_C) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/envs/$(get_encoded_pwd)/MACHINE_C" ]]'
 }
 
 function test_create_and_destroy_env()
@@ -344,6 +344,97 @@ function test_create_and_destroy_env()
   # MACHINE_E
   assertFalse "($LINENO) We didn't expect to find this folder (${PWD}/.kw/MACHINE_E) since the env was destroyed." '[[ -d "${PWD}/.kw/MACHINE_E" ]]'
   assertFalse "($LINENO) We didn't expect to find this folder in .cache (${KW_CACHE_DIR}/MACHINE_E) since the env was destroyed." '[[ -d "${KW_CACHE_DIR}/MACHINE_E" ]]'
+}
+
+function test_migrate_old_envs_to_base64()
+{
+  local old_env_path="${KW_CACHE_DIR}/${ENV_DIR}"
+  local encoded_pwd=$(get_encoded_pwd)
+  local new_env_path="${old_env_path}/${encoded_pwd}"
+
+  # Create old-style env structure in cache
+  mkdir --parents "${old_env_path}/env1"
+  mkdir --parents "${old_env_path}/env2"
+  echo "test config 1" > "${old_env_path}/env1/build.config"
+  echo "test config 2" > "${old_env_path}/env2/build.config"
+
+  # Create corresponding local .kw/envs structure
+  mkdir --parents ".kw/${ENV_DIR}/env1"
+  mkdir --parents ".kw/${ENV_DIR}/env2"
+
+  # Verify old structure exists
+  assertTrue "(${LINENO}) Old env1 should exist before migration" '[[ -d "${old_env_path}/env1" ]]'
+  assertTrue "(${LINENO}) Old env2 should exist before migration" '[[ -d "${old_env_path}/env2" ]]'
+  assertFalse "(${LINENO}) New structure should not exist before migration" '[[ -d "${new_env_path}" ]]'
+
+  # Run migration
+  migrate_old_envs_to_base64
+
+  # Verify migration completed successfully
+  assertTrue "(${LINENO}) New base64 directory should be created" '[[ -d "${new_env_path}" ]]'
+  assertTrue "(${LINENO}) env1 should be migrated to new location" '[[ -d "${new_env_path}/env1" ]]'
+  assertTrue "(${LINENO}) env2 should be migrated to new location" '[[ -d "${new_env_path}/env2" ]]'
+  assertTrue "(${LINENO}) env1 config should be preserved" '[[ -f "${new_env_path}/env1/build.config" ]]'
+  assertTrue "(${LINENO}) env2 config should be preserved" '[[ -f "${new_env_path}/env2/build.config" ]]'
+
+  # Verify old structure is removed
+  assertFalse "(${LINENO}) Old env1 should be moved" '[[ -d "${old_env_path}/env1" ]]'
+  assertFalse "(${LINENO}) Old env2 should be moved" '[[ -d "${old_env_path}/env2" ]]'
+
+  # Verify config content is preserved
+  local content1=$(cat "${new_env_path}/env1/build.config")
+  local content2=$(cat "${new_env_path}/env2/build.config")
+  assertEquals "(${LINENO}) env1 config content should be preserved" "test config 1" "$content1"
+  assertEquals "(${LINENO}) env2 config content should be preserved" "test config 2" "$content2"
+}
+
+function test_migrate_old_envs_to_base64_no_local_envs()
+{
+  local old_env_path="${KW_CACHE_DIR}/${ENV_DIR}"
+
+  # Create cache envs but no local .kw/envs directory
+  mkdir --parents "${old_env_path}/env1"
+  # Don't create .kw/envs directory
+
+  # Migration should not run
+  migrate_old_envs_to_base64
+  assertEquals "(${LINENO}) Migration should skip when no local envs directory" 0 "$?"
+
+  # Old structure should remain unchanged
+  assertTrue "(${LINENO}) Old env should remain when migration skipped" '[[ -d "${old_env_path}/env1" ]]'
+}
+
+function test_migrate_old_envs_to_base64_already_migrated()
+{
+  local old_env_path="${KW_CACHE_DIR}/${ENV_DIR}"
+  local encoded_pwd=$(get_encoded_pwd)
+  local new_env_path="${old_env_path}/${encoded_pwd}"
+
+  # Create both old and new structure (simulating already migrated)
+  mkdir --parents "${old_env_path}/env1"
+  mkdir --parents "${new_env_path}/existing_env"
+  mkdir --parents ".kw/${ENV_DIR}/env1"
+
+  # Migration should not run when new structure already exists
+  migrate_old_envs_to_base64
+  assertEquals "(${LINENO}) Migration should skip when already migrated" 0 "$?"
+
+  # Both structures should remain (no changes)
+  assertTrue "(${LINENO}) Old env should remain when already migrated" '[[ -d "${old_env_path}/env1" ]]'
+  assertTrue "(${LINENO}) New structure should remain when already migrated" '[[ -d "${new_env_path}/existing_env" ]]'
+}
+
+function test_migrate_old_envs_to_base64_no_envs_to_migrate()
+{
+  local old_env_path="${KW_CACHE_DIR}/${ENV_DIR}"
+
+  # Create empty directories
+  mkdir --parents "${old_env_path}"
+  mkdir --parents ".kw/${ENV_DIR}"
+
+  # Migration should not run when no envs exist
+  migrate_old_envs_to_base64
+  assertEquals "(${LINENO}) Migration should skip when no envs to migrate" 0 "$?"
 }
 
 invoke_shunit
