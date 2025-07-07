@@ -152,7 +152,7 @@ function list_installed_kernels()
   local cmd=''
   local ret=0
 
-  [[ "$target" == 2 || "$target" == 'local' ]] && sudo_cmd='sudo '
+  [[ "$target" == 2 || "$target" == 'local' ]] && sudo_cmd='sudo --preserve-env '
 
   # TODO: Drop me in the future
   migrate_old_kernel_list
