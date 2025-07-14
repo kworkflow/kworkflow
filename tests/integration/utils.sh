@@ -46,6 +46,7 @@ function setup_container_environment()
 {
   local verbose="$1"
   local feature="$2"
+  local target_distros="$3"
   local working_directory # working directory in the container
   local container_name
   local container_img
@@ -56,6 +57,10 @@ function setup_container_environment()
 
   if [[ "$verbose" -eq 1 ]]; then
     say "Preparing environment for kw ${feature} integration tests..."
+  fi
+
+  if [[ -n "$target_distros" ]]; then
+    IFS=',' read -r -a DISTROS <<< "$target_distros"
   fi
 
   distros_ok=()
@@ -468,4 +473,17 @@ function generate_temporary_directory_in_container()
     fail 'Failed to create a temporary directory inside the container'
     return "$ret"
   fi
+}
+
+# Using a function to randomly select a distro from the DISTROS array. This
+# ensures that we use a different distro each time the script is run, which
+# helps in testing the build feature across various environments while reducing
+# the consumption of resources by not looping through all distros.
+function select_random_distro()
+{
+  local random_index
+
+  random_index=$((RANDOM % ${#DISTROS[@]}))
+
+  printf "%s\n" "${DISTROS[$random_index]}"
 }

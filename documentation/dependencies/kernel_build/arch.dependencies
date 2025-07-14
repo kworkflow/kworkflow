@@ -15,3 +15,6 @@ cpio
 perl
 tar
 xz
+clang
+lld
+llvm
