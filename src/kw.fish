@@ -78,6 +78,9 @@ complete -c kw -n "__fish_seen_subcommand_from drm" -l remote -l local -l gui-on
 complete -c kw -n "__fish_kw_no_commands" -a "vm" -d "VM helpers"
 complete -c kw -n "__fish_seen_subcommand_from vm" -l mount -l umount -l up -l alert -l help
 
+complete -c kw -n "__fish_kw_no_commands" -a "kernel-tag" -d "Write commit and patch trailer lines"
+complete -c kw -n "__fish_seen_subcommand_from kernel-tag" -l add-signed-off-by -l add-reviewed-by -l add-acked-by -l add-fixes -l add-tested-by -l add-co-developed-by -l add-reported-by -l verbose -l help
+
 complete -c kw -n "__fish_kw_no_commands" -a "clear-cache" -d "Clear cache"
 complete -c kw -n "__fish_seen_subcommand_from clear-cache" -l verbose
 

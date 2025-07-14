@@ -289,6 +289,13 @@ function kw()
         vm_main "$@"
       )
       ;;
+    kernel-tag)
+      (
+        include "${KW_LIB_DIR}/kernel-tag.sh"
+
+        kernel_tag_main "$@"
+      )
+      ;;
     version | --version | -v)
       (
         include "${KW_LIB_DIR}/help.sh"
