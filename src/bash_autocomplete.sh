@@ -27,7 +27,7 @@ function _kw_autocomplete()
 
   kw_options['deploy']='--remote --local --reboot --no-reboot --modules --list
                         --list-all --ls-line --setup --uninstall --verbose
-                        --force --create-package --from-package'
+                        --force --create-package --from-package --boot-into-new-kernel-once'
   kw_options['d']="${kw_options['deploy']}"
 
   kw_options['bd']='--verbose'
@@ -50,6 +50,7 @@ function _kw_autocomplete()
   kw_options['k']="${kw_options['kernel-config-manager']}"
 
   kw_options['config']='--local --global --show --help --verbose'
+  kw_options['g']="${kw_options['config']}"
 
   kw_options['remote']='--add --remove --rename --list --global --set-default --verbose'
 

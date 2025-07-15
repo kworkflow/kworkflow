@@ -1,0 +1,16 @@
+==> Using drop-in configuration file: '20-steamdeck.conf'
+==> Starting build: '6.10.0-asdn-dec-9+'
+  -> Running build hook: [base]
+  -> Running build hook: [udev]
+  -> Running build hook: [steamos]
+  -> Running build hook: [steam-deck]
+==> WARNING: Possibly missing firmware for module: 'xhci_pci'
+  -> Running build hook: [modconf]
+  -> Running build hook: [keyboard]
+  -> Running build hook: [block]
+  -> Running build hook: [filesystems]
+==> WARNING: Possibly missing '/bin/bash' for script: /usr/bin/mount.steamos
+  -> Running build hook: [resume]
+==> Generating module dependencies
+==> Creating zstd-compressed initcpio image: '/boot/initramfs-6.10.0-asdn-dec-9+.img'
+==> WARNING: errors were encountered during the build. The image may not be complete.

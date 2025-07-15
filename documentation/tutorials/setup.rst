@@ -137,7 +137,7 @@ Then, you might want to deploy (see ``kw deploy``) it, that is, install
 it in some machine. Unless you know what you are doing, you shouldn't do
 that to your own main machine (locally). Instead, configure a virtual
 machine following `this tutorial
-<https://flusp.ime.usp.br/others/use-qemu-to-play-with-linux/>`_.
+<https://flusp.ime.usp.br/kernel/use-qemu-to-play-with-linux/>`_.
 Another alternative is to use an external machine, with which you can
 communicate through ssh. By the way, these three possible ways to deploy a
 kernel (local, VM and remote) correspond to the options ``kw deploy``

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-include './src/plugins/kernel_install/bootloader_utils.sh'
+include './src/plugins/kernel_install/bootloader.sh'
+include './src/plugins/kernel_install/utils.sh'
+include './src/lib/kwlib.sh'
 include './tests/unit/utils.sh'
 
 declare -r TEST_ROOT_PATH="$PWD"
@@ -68,18 +70,87 @@ function tearDown()
   rm -rf "$SHUNIT_TMPDIR"
 }
 
-function test_identify_bootloader_from_files()
+function test_identify_bootloader()
 {
   local output
 
-  output=$(identify_bootloader_from_files "${SHUNIT_TMPDIR}/GRUB_FILES")
-  assertEquals "($LINENO): Expected Grub" 'GRUB' "$output"
+  output="$(
+    function bootctl()
+    {
+      printf 'no\n'
+    }
+    identify_bootloader ${SHUNIT_TMPDIR}/GRUB_FILES
+  )"
+  assertEquals "(${LINENO}): Expected Grub" 'GRUB' "$output"
 
-  output=$(identify_bootloader_from_files "${SHUNIT_TMPDIR}/SYSLINUX_FILES")
-  assertEquals "($LINENO): Expected Syslinux" 'SYSLINUX' "$output"
+  output="$(
+    function bootctl()
+    {
+      printf 'no\n'
+    }
 
-  output=$(identify_bootloader_from_files "${SHUNIT_TMPDIR}/RPI_FILES")
-  assertEquals "($LINENO): Expected Raspberry Pi" 'RPI_BOOTLOADER' "$output"
+    identify_bootloader ${SHUNIT_TMPDIR}/SYSLINUX_FILES
+  )"
+  assertEquals "(${LINENO}): Expected Syslinux" 'SYSLINUX' "$output"
+
+  output="$(
+    function bootctl()
+    {
+      printf 'no\n'
+    }
+
+    identify_bootloader ${SHUNIT_TMPDIR}/RPI_FILES
+  )"
+  assertEquals "(${LINENO}): Expected Raspberry Pi" 'RPI_BOOTLOADER' "$output"
+
+  output="$(
+    function bootctl()
+    {
+      printf 'yes\n'
+    }
+
+    function is_bootctl_the_default()
+    {
+      return 0
+    }
+
+    identify_bootloader ${SHUNIT_TMPDIR}
+  )"
+  assertEquals "(${LINENO}): Expected systemd-boot" 'SYSTEMD_BOOT' "$output"
+}
+
+function test_get_esp_base_path_call_bootctl_command()
+{
+  local output
+  local expected_cmd='bootctl --print-esp-path'
+
+  output="$(
+    function is_bootctl_the_default()
+    {
+      return 0
+    }
+
+    get_esp_base_path 'remote' 'TEST_MODE'
+  )"
+
+  assertEquals "(${LINENO}): Expected bootctl command" "$expected_cmd" "$output"
+}
+
+function test_get_esp_base_path_not_supported()
+{
+  local output
+  local expected_cmd='bootctl --print-esp-path'
+
+  output="$(
+    function is_bootctl_the_default()
+    {
+      return 22
+    }
+
+    get_esp_base_path 'remote' 'TEST_MODE'
+  )"
+
+  assertEquals "(${LINENO}): It should be unsupported" "$?" 95
 }
 
 invoke_shunit

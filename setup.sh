@@ -22,12 +22,11 @@ declare -r app_name='kw'
 declare -r kwbinpath="$HOME/.local/bin/$app_name"
 declare -r binpath="$HOME/.local/bin"
 declare -r libdir="$HOME/.local/lib/$app_name"
-declare -r sharedir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
-declare -r docdir="$sharedir/doc"
-declare -r mandir="$sharedir/man"
-declare -r sounddir="$sharedir/sound"
-declare -r databasedir="$sharedir/database"
 declare -r datadir="${XDG_DATA_HOME:-"$HOME/.local/share"}/$app_name"
+declare -r docdir="${datadir}/doc"
+declare -r mandir="${datadir}/man"
+declare -r sounddir="${datadir}/sound"
+declare -r databasedir="${datadir}/database"
 declare -r etcdir="${XDG_CONFIG_HOME:-"$HOME/.config"}/$app_name"
 declare -r cachedir="${XDG_CACHE_HOME:-"$HOME/.cache/$app_name"}"
 declare -r tracingdir="${datadir}/tracing"
@@ -48,6 +47,8 @@ declare -r BASH_AUTOCOMPLETE='bash_autocomplete'
 declare -r DOCUMENTATION='documentation'
 
 declare -r CONFIGS_PATH='configs'
+declare -r FISH_CONFIG_PATH="${HOME}/.config/fish"
+declare -r FISH_COMPLETION_PATH="${FISH_CONFIG_PATH}/completions"
 
 declare -r DOCS_VIRTUAL_ENV='docs_virtual_env'
 
@@ -455,6 +456,20 @@ function clean_legacy()
   remove_kw_from_PATH_variable
 }
 
+function synchronize_fish()
+{
+  local kw_fish_path="set -gx PATH ${PATH}:${binpath}"
+
+  say 'Fish detected. Setting up fish support.'
+  mkdir --parents "${FISH_COMPLETION_PATH}"
+  cmd_output_manager "rsync --verbose --recursive ${SRCDIR}/kw.fish ${FISH_COMPLETION_PATH}/kw.fish"
+
+  grep --fixed-strings --silent "${kw_fish_path}" "${FISH_CONFIG_PATH}/config.fish"
+  if [[ "$?" != 0 ]]; then
+    printf '%s\n' "${kw_fish_path}" >> "${FISH_CONFIG_PATH}/config.fish"
+  fi
+}
+
 function ASSERT_IF_NOT_EQ_ZERO()
 {
   local msg="$1"
@@ -575,6 +590,10 @@ function synchronize_files()
     else
       warning 'Unable to find a .zshrc file.'
     fi
+  fi
+
+  if command_exists 'fish'; then
+    synchronize_fish
   fi
 
   say "$SEPARATOR"

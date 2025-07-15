@@ -16,6 +16,7 @@ declare -ag required_packages=(
   'xz-utils'
   'lzop'
   'zstd'
+  'jq'
 )
 
 # Debian package manager command
@@ -41,13 +42,19 @@ function generate_debian_temporary_root_file_system()
     prefix="${path_prefix}"
   fi
 
-  # We do not support initramfs outside grub scope
-  [[ "$bootloader_type" != 'GRUB' ]] && return
+  [[ -z "$name" ]] && name="all"
 
-  cmd+=" $name"
+  case "$bootloader_type" in
+    'GRUB' | 'RPI_BOOTLOADER' | 'SYSTEMD_BOOT') ;;
+    *)
+      return
+      ;;
+  esac
+
+  cmd+=" ${name}"
 
   if [[ "$target" == 'local' ]]; then
-    cmd="sudo -E $cmd"
+    cmd="sudo --preserve-env ${cmd}"
   fi
 
   # Update initramfs

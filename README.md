@@ -1,7 +1,6 @@
 <img src="images/kw_logo.png" width="600" alt="kworkflow">
 
 ![Build Status](https://github.com/kworkflow/kworkflow/actions/workflows/unit_tests.yml/badge.svg?branch=master)
-[![codecov](https://codecov.io/gh/kworkflow/kworkflow/branch/unstable/graph/badge.svg?token=ZQ52EK8VWF)](https://codecov.io/gh/kworkflow/kworkflow)
 
 # About
 
@@ -44,7 +43,7 @@ firefox build/index.html
 
 We are happy that you want to help us! If you are looking for a good starting
 point, check
-[those issues](https://github.com/kworkflow/kworkflow/labels/good%20first%20issue)
+[those issues](https://github.com/kworkflow/kworkflow/issues?q=is%3Aopen+label%3A%22good+first+issue%22+-label%3A%22done%3A+wait+for+stable%22)
 and don't forget to read our
 [Contribuitor's Guide](https://kworkflow.org/content/howtocontribute.html)
 (or [howtocontribute file](documentation/content/howtocontribute.rst)).
@@ -55,10 +54,6 @@ The best way to get help or make suggestions is by creating
 [issues](https://github.com/kworkflow/kworkflow/issues) or making a
 [pull request](https://github.com/kworkflow/kworkflow/pulls), someone is
 likely to reply to these in little time.
-You can also reach out to us at the `#kw-devel` channel on the
-[OFTC](https://www.oftc.net/) IRC server (**irc.of</span>tc.n</span>et**), or
-by joining or opening a new discussion on the
-[discussions](https://github.com/kworkflow/kworkflow/discussions) page.
 
 # License
 

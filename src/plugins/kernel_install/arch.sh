@@ -16,10 +16,13 @@ declare -ga required_packages=(
   'zstd'
   'xz'
   'rng-tools'
+  'jq'
 )
 
 # ArchLinux package manager
 declare -g package_manager_cmd='yes | pacman -Syu'
+
+declare -g boot_prefix='/boot'
 
 # Some distros might require some basic setup before a package installation or
 # configure some service before. For some distros based on ArchLinux, we might
@@ -55,6 +58,39 @@ function distro_pre_setup()
   cmd_manager "$flag" "$cmd"
 }
 
+# This function expects the mkinitcpio log message as an input, and from this
+# log, it extracts warnings and errors.
+#
+# @log: mkinticpio log message to be processed
+#
+# Return:
+# If this function identifies any errors, it returns 68. If it finds any
+# warning, it returns 42. If there are no warnings or errors, 0 is returned.
+function process_mkinitcpio_message()
+{
+  local log="$1"
+  local errors=''
+  local warnings=''
+
+  errors=$(grep --word-regexp 'ERROR' <<< "$log")
+  warnings=$(grep --word-regexp 'WARNING' <<< "$log")
+
+  if [[ -n "$errors" ]]; then
+    printf '%s\n' "$errors"
+    printf '%s' "$warnings"
+
+    return 68 # EADV
+  fi
+
+  if [[ -n "$warnings" ]]; then
+    printf '%s' "$warnings"
+
+    return 42 # ENOMSG
+  fi
+
+  return 0
+}
+
 function generate_arch_temporary_root_file_system()
 {
   local flag="$1"
@@ -64,9 +100,16 @@ function generate_arch_temporary_root_file_system()
   local path_prefix="$5"
   local prefered_root_file_system="$6"
   local cmd=''
-  local sudo_cmd
+  local sudo_cmd=''
   # mkinitcpio still the default on ArchLinux
   local root_file_system_tool='mkinitcpio'
+  local mkinitcpio_output=''
+  local log_message
+  local ret=0
+
+  if [[ "$target" == 2 ]]; then
+    sudo_cmd='sudo --preserve-env '
+  fi
 
   # If the user specify which rootfs they want to use, let's use it then...
   if [[ -n "$prefered_root_file_system" ]]; then
@@ -88,10 +131,10 @@ function generate_arch_temporary_root_file_system()
     fi
   fi
 
-  # We do not support initramfs outside grub scope
-  [[ "$bootloader_type" != 'GRUB' ]] && return
+  # We do not support initramfs outside grub and systemd scope
+  [[ "$bootloader_type" != 'GRUB' && "$bootloader_type" != 'SYSTEMD_BOOT' ]] && return
 
-  [[ "$target" == 'local' ]] && sudo_cmd='sudo -E '
+  [[ "$target" == 'local' ]] && sudo_cmd='sudo --preserve-env '
 
   # Step 2: Make sure that we are generating a consistent modules.dep and map
   cmd="${sudo_cmd}depmod --all ${name}"
@@ -101,10 +144,23 @@ function generate_arch_temporary_root_file_system()
   case "$root_file_system_tool" in
     'mkinitcpio')
       cmd="${sudo_cmd}mkinitcpio --generate /boot/initramfs-${name}.img --kernel ${name}"
-      cmd_manager "$flag" "$cmd"
+      [[ "$flag" == 'TEST_MODE' ]] && printf "$cmd"
+      mkinitcpio_output=$(cmd_manager "$flag" "$cmd" 2>&1)
+
+      # If the initramfs file does not exist, it means mkinitcpio failed.
+      [[ ! -f "${boot_prefix}/initramfs-${name}.img" ]] && return 2 # ENOENT
+
+      log_message=$(process_mkinitcpio_message "$mkinitcpio_output")
+      ret="$?"
+
+      if [[ "$ret" != 0 ]]; then
+        printf '%s' "$log_message"
+      fi
+
+      return "$ret"
       ;;
     'dracut')
-      cmd='DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid '
+      cmd="${sudo_cmd}DRACUT_NO_XATTR=1 dracut --force --persistent-policy by-partuuid "
       cmd+="--hostonly /boot/initramfs-${name}.img ${name}"
       cmd_manager "$flag" "$cmd"
       ;;
