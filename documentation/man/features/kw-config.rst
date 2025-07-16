@@ -49,9 +49,9 @@ use::
   cd <kernel-path>
   kw config build.use_llvm yes
 
-Let's say you want to enable the visual and sonorous alert. You can use::
+Let's say you want to enable the visual and sonorous alert (vs). You can use::
 
-  kw config kworkflow.alert vs
+  kw config notification.alert vs
 
 If you want to display all configurations you could use::
 
@@ -63,4 +63,4 @@ If you want to display deploy configurations you could use::
 
 In case of any issue, you can try to enable the verbose option::
 
-  kw config --verbose kworkflow.alert vs
+  kw config --verbose notification.alert vs
