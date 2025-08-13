@@ -286,7 +286,7 @@ function test_kernel_build_html_doc_with_ccache()
   parse_configuration "$SAMPLES_DIR/build_no_log.config" build_config
 
   output=$(build_kernel_main 'TEST_MODE' --doc --ccache)
-  expected_result="make CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} htmldocs"
+  expected_result="make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
@@ -621,21 +621,21 @@ function test_kernel_build_kernel_ccache_cpu_scaling_warning()
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 
   output=$(build_kernel_main 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} ARCH=x86_64 W=123 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} ARCH=x86_64 W=123 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
@@ -648,7 +648,7 @@ function test_kernel_build_kernel_ccache_cpu_scaling_save_log_to()
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -661,7 +661,7 @@ function test_kernel_build_ccache_warning_save_log_to()
   output=$(build_kernel_main 'TEST_MODE' --ccache --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} ARCH=x86_64 W=123 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} ARCH=x86_64 W=123 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -700,7 +700,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm()
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --llvm | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -713,7 +713,7 @@ function test_kernel_build_ccache_cpu_scaling_warning()
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123"
   )
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
@@ -726,7 +726,7 @@ function test_kernel_build_ccache_cpu_scaling_save_log_to()
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -739,7 +739,7 @@ function test_kernel_build_ccache_llvm_warning()
   output=$(build_kernel_main 'TEST_MODE' --ccache --llvm --warnings 123 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 W=123"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 W=123"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -752,7 +752,7 @@ function test_kernel_build_ccache_llvm_save_log_to()
   output=$(build_kernel_main 'TEST_MODE' --ccache --llvm --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -804,7 +804,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm_warning()
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --llvm --warnings 123 | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64 W=123"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64 W=123"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -817,7 +817,7 @@ function test_kernel_build_ccache_cpu_scaling_llvm_save_log_to()
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --llvm --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache clang -fdiagnostics-color\" -j${SCALING} LLVM=1 ARCH=x86_64 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }
@@ -830,7 +830,7 @@ function test_kernel_build_ccache_cpu_scaling_warning_save_log_to()
   output=$(build_kernel_main 'TEST_MODE' --ccache --cpu-scaling 50 --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_cmd=(
     'make -j ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${SCALING} ARCH=x86_64 W=123 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_cmd' "$output"
 }
@@ -843,7 +843,7 @@ function test_kernel_build_ccache_llvm_warning_save_log_to()
   output=$(build_kernel_main 'TEST_MODE' --ccache --llvm --warnings 123 --save-log-to log.out | tail -n +1 | head -2)
   declare -a expected_result=(
     'make -j LLVM=1 ARCH=x86_64 --silent olddefconfig'
-    "make CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 W=123 2>&1 | tee log.out"
+    "make KBUILD_BUILD_TIMESTAMP= CC=\"ccache clang -fdiagnostics-color\" -j${PARALLEL_CORES} LLVM=1 ARCH=x86_64 W=123 2>&1 | tee log.out"
   )
   compare_command_sequence '' "($LINENO)" 'expected_result' "$output"
 }

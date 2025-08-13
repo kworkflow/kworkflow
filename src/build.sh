@@ -120,7 +120,7 @@ function build_kernel_main()
 
   if [[ -n "${options_values['CCACHE']}" ]]; then
     [[ -n "$llvm" ]] && compiler='clang' || compiler='gcc'
-    optimizations="CC=\"ccache ${compiler} -fdiagnostics-color\" ${optimizations}"
+    optimizations="KBUILD_BUILD_TIMESTAMP= CC=\"ccache ${compiler} -fdiagnostics-color\" ${optimizations}"
   fi
 
   if [[ -n "$doc_type" ]]; then
