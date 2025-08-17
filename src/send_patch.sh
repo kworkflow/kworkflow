@@ -225,7 +225,7 @@ function generate_kernel_recipients()
   local default_to_recipients="${send_patch_config[default_to_recipients]}"
   local default_cc_recipients="${send_patch_config[default_cc_recipients]}"
   local get_maintainer_cmd="perl ${kernel_root}/scripts/get_maintainer.pl"
-  get_maintainer_cmd+=" --nogit --nogit-fallback --no-r --no-n --multiline"
+  get_maintainer_cmd+=" --nogit --nogit-fallback --no-n --multiline"
   get_maintainer_cmd+=" --nokeywords --norolestats --remove-duplicates"
 
   mkdir -p "${patch_cache}/to/" "${patch_cache}/cc/"
