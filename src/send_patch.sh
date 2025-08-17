@@ -96,11 +96,15 @@ function mail_send()
   local extra_opts="${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
   local private="${options_values['PRIVATE']}"
   local rfc="${options_values['RFC']}"
+  local use_default_to_cc_approach="${send_patch_config['use_default_to_cc_approach']}"
   local kernel_root
   local patch_count=0
   local cmd='git send-email'
+  local cover_letter='cover-letter'
 
   flag=${flag:-'SILENT'}
+
+  [[ "$use_default_to_cc_approach" == 'yes' ]] && cover_letter=''
 
   [[ -n "$dryrun" ]] && cmd+=" $dryrun"
 
@@ -118,14 +122,15 @@ function mail_send()
   patch_count="$(pre_generate_patches "$commit_range" "$version")"
   if [[ "$patch_count" -eq 1 ]]; then
     opts="$(sed 's/--cover-letter//g' <<< "$opts")"
+    cover_letter=''
   fi
 
   kernel_root="$(find_kernel_root "$PWD")"
   # if inside a kernel repo use get_maintainer to populate recipients
   if [[ -z "$private" && -n "$kernel_root" ]]; then
     generate_kernel_recipients "$kernel_root"
-    cmd+=" --to-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} to'"
-    cmd+=" --cc-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} cc'"
+    cmd+=" --to-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} to ${cover_letter}'"
+    cmd+=" --cc-cmd='bash ${KW_PLUGINS_DIR}/kw_mail/to_cc_cmd.sh ${KW_CACHE_DIR} cc ${cover_letter}'"
   fi
 
   [[ -n "$opts" ]] && cmd+=" $opts"
@@ -247,10 +252,15 @@ function generate_kernel_recipients()
       cc="$(remove_blocked_recipients "$cc" "$blocked")"
     fi
 
-    printf '%s\n' "$to" > "${patch_cache}/to/${patch}"
-    printf '%s\n' "$to" >> "$cover_letter_to"
-    printf '%s\n' "$cc" > "${patch_cache}/cc/${patch}"
-    printf '%s\n' "$cc" >> "$cover_letter_cc"
+    if [[ -n "$to" ]]; then
+      printf '%s\n' "$to" > "${patch_cache}/to/${patch}"
+      printf '%s\n' "$to" >> "$cover_letter_to"
+    fi
+
+    if [[ -n "$cc" ]]; then
+      printf '%s\n' "$cc" > "${patch_cache}/cc/${patch}"
+      printf '%s\n' "$cc" >> "$cover_letter_cc"
+    fi
   done
 
   to_list="$(sort -u "$cover_letter_to")"
