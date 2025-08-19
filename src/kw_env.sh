@@ -70,12 +70,14 @@ function migrate_old_envs_to_base64()
   local local_kw_configs="${PWD}/.kw"
   local cache_build_path="${KW_CACHE_DIR}"
   local encoded_pwd=$(get_encoded_pwd)
+  local target_env="${options_values['USE']}"
   local old_path
   local new_path
   local cmd
   declare -a all_envs
 
   flag=${flag:-'SILENT'}
+  [[ "$flag" == 'VERBOSE' ]] && printf 'Migrate legacy envs.\n'
 
   # We don't need to migrate if:
   # - .kw/envs folder does not exist
@@ -84,23 +86,29 @@ function migrate_old_envs_to_base64()
   # - we have no env to migrate
   if [[ ! -d "${local_kw_configs}/${ENV_DIR}" ||
     ! -d "${cache_build_path}/${ENV_DIR}" ||
-    -d "${cache_build_path}/${ENV_DIR}/${encoded_pwd}" ]]; then
+    -d "${cache_build_path}/${ENV_DIR}/${encoded_pwd}/${target_env}" ]]; then
+    [[ "$flag" == 'VERBOSE' ]] && printf 'No migration required.\n'
     return 0
   fi
 
   readarray -t all_envs < <(find "${local_kw_configs}/${ENV_DIR}" -mindepth 1 -maxdepth 1 -type d -printf '%P\n' | sort --dictionary-order)
   if [[ "${#all_envs[@]}" -eq 0 ]]; then
+    [[ "$flag" == 'VERBOSE' ]] && printf 'No envs identified for migration.\n'
     return 0
   fi
 
   # Create the new env cache build path for the current tree and migrate the envs
-  cmd="mkdir --parents ${cache_build_path}/${ENV_DIR}/${encoded_pwd}"
+  cmd='mkdir '
+  [[ "$flag" == 'VERBOSE' ]] && cmd+='--verbose '
+  cmd+="--parents ${cache_build_path}/${ENV_DIR}/${encoded_pwd}"
   cmd_manager "$flag" "$cmd"
 
   for env_name in "${all_envs[@]}"; do
     old_path="${cache_build_path}/${ENV_DIR}/${env_name}"
     new_path="${cache_build_path}/${ENV_DIR}/${encoded_pwd}/${env_name}"
-    cmd="mv ${old_path} ${new_path}"
+    cmd='mv '
+    [[ "$flag" == 'VERBOSE' ]] && cmd+='--verbose '
+    cmd+="${old_path} ${new_path}"
     cmd_manager "$flag" "$cmd"
   done
 }
