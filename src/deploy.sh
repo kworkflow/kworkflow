@@ -82,6 +82,7 @@ function deploy_main()
   local cache_to_deploy_path
   local boot_into_new_kernel_once
   local force
+  local encoded_pwd=$(get_encoded_pwd)
 
   # Drop build_and_deploy flag
   shift
@@ -113,7 +114,7 @@ function deploy_main()
 
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
-    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${env_name}"
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${encoded_pwd}/${env_name}"
     output_kbuild_path=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']} --silent"
   fi
 

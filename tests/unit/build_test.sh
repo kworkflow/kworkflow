@@ -967,7 +967,8 @@ function test_kernel_build_inside_an_env()
 {
   local output
   local expected_result
-  local env_output="${KW_CACHE_DIR}/envs/fake_env"
+  local encoded_pwd=$(get_encoded_pwd)
+  local env_output="${KW_CACHE_DIR}/envs/${encoded_pwd}/fake_env"
   build_config=()
 
   mk_fake_kw_env
@@ -988,7 +989,8 @@ function test_kernel_build_html_doc_inside_env()
 {
   local expected_result
   local output
-  local env_output="${KW_CACHE_DIR}/envs/fake_env"
+  local encoded_pwd=$(get_encoded_pwd)
+  local env_output="${KW_CACHE_DIR}/envs/${encoded_pwd}/fake_env"
   build_config=()
 
   mk_fake_kw_env
@@ -1004,7 +1006,8 @@ function test_kernel_build_menu_inside_env()
 {
   local expected_result
   local output
-  local env_output="${KW_CACHE_DIR}/envs/fake_env"
+  local encoded_pwd=$(get_encoded_pwd)
+  local env_output="${KW_CACHE_DIR}/envs/${encoded_pwd}/fake_env"
   build_config=()
 
   mk_fake_kw_env
@@ -1020,7 +1023,8 @@ function test_kernel_build_clean_inside_env()
 {
   local expected_result
   local output
-  local env_output="${KW_CACHE_DIR}/envs/fake_env"
+  local encoded_pwd=$(get_encoded_pwd)
+  local env_output="${KW_CACHE_DIR}/envs/${encoded_pwd}/fake_env"
   build_config=()
 
   mk_fake_kw_env
@@ -1036,7 +1040,8 @@ function test_kernel_build_full_cleanup_inside_env()
 {
   local expected_result
   local output
-  local env_output="${KW_CACHE_DIR}/envs/fake_env"
+  local encoded_pwd=$(get_encoded_pwd)
+  local env_output="${KW_CACHE_DIR}/envs/${encoded_pwd}/fake_env"
   build_config=()
 
   mk_fake_kw_env
@@ -1072,7 +1077,8 @@ function test_kernel_build_cflags_inside_env()
   local expected_result
   local output
   local flag_name='DMY_BEAUTIFUL_FLAG'
-  local env_output="${KW_CACHE_DIR}/envs/fake_env"
+  local encoded_pwd=$(get_encoded_pwd)
+  local env_output="${KW_CACHE_DIR}/envs/${encoded_pwd}/fake_env"
   build_config=()
 
   mk_fake_kw_env

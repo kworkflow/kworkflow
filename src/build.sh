@@ -36,6 +36,7 @@ function build_kernel_main()
   local from_sha_arg
   local sha_base
   local merge_base
+  local encoded_pwd=$(get_encoded_pwd)
 
   parse_build_options "$@"
 
@@ -47,7 +48,7 @@ function build_kernel_main()
 
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
-    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${env_name}"
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${encoded_pwd}/${env_name}"
     output_kbuild_flag=" O=${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
   fi
 

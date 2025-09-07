@@ -26,6 +26,7 @@ function kernel_config_manager_main()
   local ip
   local port
   local env_name
+  local encoded_pwd
 
   flag=${flag:-'SILENT'}
 
@@ -47,9 +48,10 @@ function kernel_config_manager_main()
 
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
 
+  encoded_pwd=$(get_encoded_pwd)
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
-    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${env_name}"
+    options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${KW_CACHE_DIR}/${ENV_DIR}/${encoded_pwd}/${env_name}"
   fi
 
   name_config="${options_values['SAVE']}"
