@@ -909,7 +909,7 @@ function compose_copy_source_parameter_for_dtb()
     return
   fi
 
-  # Pattern 2: Mupliple dts folder, e.g., copy_pattern={broadcom,rockchip,arm}
+  # Pattern 2: Multiple dts folder, e.g., copy_pattern={broadcom,rockchip,arm}
   char_count=$(str_count_char_repetition "$copy_pattern" ',')
   if [[ "$char_count" -ge 1 ]]; then
     printf ' -r %s/{%s}' "$dts_base_path" "$copy_pattern"
