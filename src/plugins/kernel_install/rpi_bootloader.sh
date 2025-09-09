@@ -215,6 +215,11 @@ function move_kernel_files_to_firmware_folder()
     cmd_manager "$flag" "$cmd"
   fi
 
+  if [[ -d "${KW_DEPLOY_TMP_FILE}/kw_pkg/overlays" ]]; then
+    cmd="${sudo_cmd}cp --recursive ${KW_DEPLOY_TMP_FILE}/kw_pkg/overlays ${BOOT_FIRMWARE_PATH}"
+    cmd_manager "$flag" "$cmd"
+  fi
+
   # If there is no errors, move files to the right place
   cmd="${sudo_cmd}mv ${base_src_path}/${kernel_image_name} ${kernel_target_folder}/${kernel_image_name}"
   cmd_manager "$flag" "$cmd"
