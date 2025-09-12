@@ -90,7 +90,7 @@ available templates, just use::
 
 If you know the template name, you can use::
 
-  kw init --template=rpi4-raspbian-64-cross-x86-arm
+  kw init --template=rpi4-and-5-raspbian-64-cross-x86-arm
 
 Compile!
 --------

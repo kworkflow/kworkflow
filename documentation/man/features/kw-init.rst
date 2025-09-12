@@ -68,9 +68,9 @@ Users can see and interactively select the target option by using::
 
 Alternatively, if the user knows which template they want to use::
 
-  kw init --template=rpi4-raspbian-64-cross-x86-arm
+  kw init --template=rpi4-and-5-raspbian-64-cross-x86-arm
 
 Keep in mind that you are still able to combine other parameters with the
 template feature, for example::
 
-  kw init --template=rpi4-raspbian-64-cross-x86-arm --remote mary@localhost:1234 --target remote
+  kw init --template=rpi4-and-5-raspbian-64-cross-x86-arm --remote mary@localhost:1234 --target remote

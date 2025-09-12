@@ -24,7 +24,9 @@ Anyway, we also assume the following tasks are completed:
 * You have a working `.config` file
 * You will use remote deploy. Remember, to deploy remotely, you need to
   have root access to the target machine via ssh.
-* All commands in this tutorial must be executed inside a kernel tree. If you want to work with Raspberry Pi, use this `repository <https://github.com/raspberrypi/linux>`.
+* All commands in this tutorial must be executed inside a kernel tree. If you
+  want to work with Raspberry Pi, use this `repository
+  <https://github.com/raspberrypi/linux>`.
 
 We also assume that you have a Raspberry Pi (RPI) with Rasbian (it could be 32
 or 64 bits), but keep in mind that the steps described here are generic, and we
@@ -38,9 +40,9 @@ Some architectures require Device Tree Binary (dtb) and Device Tree Binary
 Overlay (dtbo) files, and Raspberry Pi falls into this category. We usually
 need to add these files in a specific location for a functional boot. For
 example, in the case of RPI 4 32 bits, it should be under the ``/boot`` folder,
-and for RPI 4 64 bits, it is ``/boot/broadcom``. However, these locations may
-vary, so we need to tell kw how to handle these files, but don't worry, this is
-a trivial task. Open your ``.kw/deploy.config`` and search for::
+and for RPI 4 and 5 64 bits, it is ``/boot/broadcom``. However, these locations
+may vary, so we need to tell kw how to handle these files, but don't worry,
+this is a trivial task. Open your ``.kw/deploy.config`` and search for::
 
   dtb_copy_pattern=
 
@@ -48,16 +50,17 @@ Use this parameter to configure how kw will handle the dtb files. You have
 three different options:
 
 1. Empty: It will assume ``*.dtb``, which means that kw will copy all dtb files
-to the target ``/boot`` folder. For example, RPI 4 32 bits requires this
-option.
+   to the target ``/boot`` folder. For example, RPI 4 32 bits requires this
+   option.
 
 2. Folder pattern: You can specify something like
-``dtb_copy_pattern=broadcom/*``, which means kw will copy all dtb files inside
-the broadcom folder. This is the required option for RPI 4 64 bits.
+   ``dtb_copy_pattern=broadcom/*.dtb``, which means kw will copy all dtb files
+   inside the broadcom folder. This is the required option for RPI 4 and 5 64
+   bits.
 
 3. Multiple folder copy: Finally, you can tell kw that you want to copy
-multiple folders by using a pattern like this
-``dtb_copy_pattern=broadcom,rockchip,arm``.
+   multiple folders by using a pattern like this
+   ``dtb_copy_pattern=broadcom,rockchip,arm``.
 
 As you can see, kw is really flexible about handling the dtb files.
 
@@ -70,9 +73,9 @@ bits, you can use the following template::
 
   kw init --template=rpi4-raspbian-32-cross-x86-arm
 
-Or if you want to deploy your kernel to an RPI 4 64 bits, you can use::
+Or if you want to deploy your kernel to an RPI 4 or 5 64 bits, you can use::
 
-  kw init --template=rpi4-raspbian-64-cross-x86-arm
+  kw init --template=rpi4-and-5-raspbian-64-cross-x86-arm
 
 Build and deploy
 ----------------
