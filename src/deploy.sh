@@ -152,7 +152,7 @@ function deploy_main()
       statistics_manager 'list' "$start" "$runtime" 'failure' "$flag"
     fi
 
-    exit "$?"
+    return "$?"
   fi
 
   # Uninstall option
@@ -281,6 +281,7 @@ function deploy_main()
 
   #shellcheck disable=SC2119
   cleanup
+  return "$?"
 }
 
 # Every distro family has its specific idiosyncrasy; for this reason, in the
@@ -788,7 +789,7 @@ function cleanup()
   fi
 
   say 'Exiting...'
-  exit 0
+  return 0
 }
 
 # This function expects a parameter that specifies the target machine;
