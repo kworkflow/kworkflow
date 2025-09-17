@@ -698,9 +698,9 @@ function collect_target_info_for_deploy()
 # @reboot If this value is equal 1, it means reboot machine after kernel
 #         installation.
 # @kernels_target_list String containing kernels name separated by comma
-# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 # @force If this value is equal to 1, try to uninstall kernels even if they are
 #        not managed by kw
+# @flag How to display a command, see `src/lib/kwlib.sh` function `cmd_manager`
 #
 # Return:
 # Return 0 if everything is correct or an error in case of failure
