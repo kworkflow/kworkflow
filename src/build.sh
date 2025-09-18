@@ -1,6 +1,7 @@
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
 include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
+include "${KW_LIB_DIR}/transition_functions.sh"
 
 declare -gA options_values
 
@@ -45,6 +46,8 @@ function build_kernel_main()
     build_help
     exit 22 # EINVAL
   fi
+
+  migrate_old_envs_to_base64 'SILENT' 1
 
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then

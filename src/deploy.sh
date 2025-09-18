@@ -21,6 +21,7 @@ declare ENV_DIR='envs'
 include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 include "${KW_LIB_DIR}/lib/signal_manager.sh"
+include "${KW_LIB_DIR}/transition_functions.sh"
 
 # To make the deploy to a remote machine straightforward, we create a directory
 # on the host that will be used for centralizing files required for the new
@@ -111,6 +112,8 @@ function deploy_main()
       exit 125 # ECANCELED
     fi
   fi
+
+  migrate_old_envs_to_base64 'SILENT' 1
 
   env_name=$(get_current_env_name)
   if [[ "$?" == 0 ]]; then
