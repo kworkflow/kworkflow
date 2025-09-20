@@ -42,28 +42,10 @@ function build_and_deploy_main()
 
 function parse_build_and_deploy_options()
 {
-  local long_options=''
-  local short_options=''
-
-  options="$(kw_parse "$short_options" "$long_options" "$@")"
-  if [[ "$?" != 0 ]]; then
-    options_values['ERROR']="$(kw_parse_get_errors 'kw bd' "$short_options" \
-      "$long_options" "$@")"
+  shared_parse_deploy_options "$@"
+  if [[ "$?" == 22 ]]; then
     return 22 # EINVAL
   fi
-
-  eval "set -- ${options}"
-
-  while [[ "$#" -gt 0 ]]; do
-    case "$1" in
-      --)
-        shift
-        ;;
-      *)
-        shift
-        ;;
-    esac
-  done
 }
 
 function build_and_deploy_help()
@@ -75,4 +57,5 @@ function build_and_deploy_help()
   fi
   printf '%s\n' 'kw bd:' \
     '  bd - build and deploy kernel and modules:'
+  deploy_shared_help 'bd'
 }
