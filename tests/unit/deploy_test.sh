@@ -833,6 +833,10 @@ function test_parse_deploy_options()
   parse_deploy_options 'TEST_MODE'
   assert_equals_helper 'Could not set deploy TEST_MODE' "(${LINENO})" 'TEST_MODE' "${options_values['TEST_MODE']}"
 
+  # test invalid options
+  parse_deploy_options --an-invalid-option
+  assert_equals_helper 'Wrong return value' "(${LINENO})" '22' "$?"
+
   # test integration of options
   unset options_values
   declare -gA options_values

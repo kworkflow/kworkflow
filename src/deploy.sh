@@ -35,6 +35,11 @@ declare REMOTE_INTERACE_CMD_PREFIX
 declare LOCAL_TO_DEPLOY_DIR
 declare LOCAL_REMOTE_DIR
 
+all_long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall::,list-all,force,setup,verbose,create-package,from-package:,boot-into-new-kernel-once'
+all_short_options='r,m,l,s,u::,a,f,v,p,F:,n'
+
+deploy_unprocess_param=''
+
 # Hash containing user options
 declare -gA options_values
 
@@ -1322,50 +1327,24 @@ function run_kernel_install()
   esac
 }
 
-# This function gets raw data and based on that fill out the options values to
-# be used in another function.
-#
-# @raw_options String with all user options
-#
-# Return:
-# In case of successful return 0, otherwise, return 22.
-#
-function parse_deploy_options()
+function shared_parse_deploy_options()
 {
-  local enable_collect_param=0
   local remote
   local options
   local after_options
-  local long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall::'
-  long_options+=',list-all,force,setup,verbose,create-package,from-package:'
-  long_options+=',boot-into-new-kernel-once'
-  local short_options='r,m,l,s,u::,a,f,v,p,F:,n'
+  local long_options='remote:,local,reboot,no-reboot,modules,force,verbose,create-package'
+  long_options+=',boot-into-new-kernel-once,verbose'
+  local short_options='r,m,f,v,p,n'
 
   options="$(kw_parse "$short_options" "$long_options" "$@")"
 
-  if [[ "$?" != 0 ]]; then
-    options_values['ERROR']="$(kw_parse_get_errors 'kw deploy' "$short_options" \
-      "$long_options" "$@")"
-    return 22 # EINVAL
-  fi
-
-  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
-  options_values['TEST_MODE']='SILENT'
-  options_values['UNINSTALL']=''
   options_values['FORCE']=0
   options_values['MODULES']=0
-  options_values['LS_LINE']=0
-  options_values['LS']=0
   # 0: not specified in cmd options   1: --reboot   2: --no-reboot
   options_values['REBOOT']=0
-  options_values['MENU_CONFIG']='nconfig'
-  options_values['LS_ALL']=''
-  options_values['SETUP']=''
   options_values['VERBOSE']=''
   options_values['CREATE_PACKAGE']=''
-  options_values['FROM_PACKAGE']=''
   options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
-  options_values['UNINSTALL_REMOVE_FIRST']=''
   options_values['BOOT_INTO_NEW_KERNEL_ONCE']=1
 
   remote_parameters['REMOTE_IP']=''
@@ -1423,6 +1402,106 @@ function parse_deploy_options()
         options_values['MODULES']=1
         shift
         ;;
+      --verbose | -v)
+        options_values['VERBOSE']=1
+        shift
+        ;;
+      --force | -f)
+        options_values['FORCE']=1
+        shift
+        ;;
+      --create-package | -p)
+        options_values['CREATE_PACKAGE']=1
+        shift
+        ;;
+      --boot-into-new-kernel-once | -n)
+        options_values['BOOT_INTO_NEW_KERNEL_ONCE']=1
+        shift
+        ;;
+      --) # End of options, beginning of arguments
+        # The uninstall command already handled parameters after --
+        after_options=${options##*'--'}
+        after_options=$(str_strip "$after_options")
+        if [[ "$after_options" == "'TEST_MODE'" ]]; then
+          options_values['TEST_MODE']='TEST_MODE'
+        fi
+        shift "${#@}"
+        ;;
+      *)
+        options_values['ERROR']="Unrecognized argument: $1"
+        shift
+        return 22 # EINVAL
+        ;;
+    esac
+  done
+
+  case "${options_values['TARGET']}" in
+    1 | 2 | 3) ;;
+
+    *)
+      options_values['ERROR']="Invalid target value: ${options_values['TARGET']}"
+      return 22 # EINVAL
+      ;;
+  esac
+
+  deploy_unprocess_param="${options##*'--'}"
+}
+
+# This function gets raw data and based on that fill out the options values to
+# be used in another function.
+#
+# @raw_options String with all user options
+#
+# Return:
+# In case of successful return 0, otherwise, return 22.
+#
+function parse_deploy_options()
+{
+  local enable_collect_param=0
+  local remote
+  local options
+  local all_options
+  local after_options
+  local long_options='list,ls-line,uninstall::'
+  long_options+=',list-all,setup,verbose,from-package:'
+  long_options+=',boot-into-new-kernel-once'
+  local short_options='r,m,l,s,u::,a,f,v,p,F:,n'
+  local ret_options
+
+  all_options="$(kw_parse "$all_short_options" "$all_long_options" "$@")"
+  if [[ "$?" != 0 ]]; then
+    options_values['ERROR']="$(kw_parse_get_errors 'kw deploy' "$all_short_options" \
+      "$all_long_options" "$@")"
+    return 22 # EINVAL
+  fi
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']=''
+  options_values['TEST_MODE']='SILENT'
+  options_values['UNINSTALL']=''
+  options_values['LS_LINE']=0
+  options_values['LS']=0
+  # 0: not specified in cmd options   1: --reboot   2: --no-reboot
+  options_values['MENU_CONFIG']='nconfig'
+  options_values['LS_ALL']=''
+  options_values['SETUP']=''
+  options_values['FROM_PACKAGE']=''
+  options_values['UNINSTALL_REMOVE_FIRST']=''
+
+  shared_parse_deploy_options "$@"
+  if [[ "$?" == 22 ]]; then
+    return 22
+  fi
+
+  options="$(kw_parse "$short_options" "$long_options" "$@")"
+  # Extracts only the options before the substring --
+  options="${options%"${options##*'--'}"}"
+  # Compose the deploy_unprocess_param from shared_parse_deploy_options in the
+  # missing options
+  options="${options}${deploy_unprocess_param}"
+
+  eval "set -- ${options}"
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
       --list | -l)
         options_values['LS']=1
         options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
@@ -1457,26 +1536,10 @@ function parse_deploy_options()
         options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift 2
         ;;
-      --verbose | -v)
-        options_values['VERBOSE']=1
-        shift
-        ;;
-      --force | -f)
-        options_values['FORCE']=1
-        shift
-        ;;
-      --create-package | -p)
-        options_values['CREATE_PACKAGE']=1
-        shift
-        ;;
       --from-package | -F)
         options_values['FROM_PACKAGE']+="$2"
         options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift 2
-        ;;
-      --boot-into-new-kernel-once | -n)
-        options_values['BOOT_INTO_NEW_KERNEL_ONCE']=1
-        shift
         ;;
       --) # End of options, beginning of arguments
         # The uninstall command already handled parameters after --
@@ -1488,21 +1551,13 @@ function parse_deploy_options()
         shift "${#@}"
         ;;
       *)
-        options_values['ERROR']="Unrecognized argument: $1"
+        # Potential parameters that were processed in the
+        # shared_parse_deploy_options. At this point, kw expects that the
+        # invalid option has already been filtered out.
         shift
-        return 22 # EINVAL
         ;;
     esac
   done
-
-  case "${options_values['TARGET']}" in
-    1 | 2 | 3) ;;
-
-    *)
-      options_values['ERROR']="Invalid target value: ${options_values['TARGET']}"
-      return 22 # EINVAL
-      ;;
-  esac
 }
 
 function deploy_help()
