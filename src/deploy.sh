@@ -1560,6 +1560,18 @@ function parse_deploy_options()
   done
 }
 
+function deploy_shared_help()
+{
+  local feature_name="$1"
+
+  printf '%s\n' "  ${feature_name} (--create-package | -p) - Create kw package" \
+    "  ${feature_name} (--reboot | -r) - reboot machine after deploy" \
+    "  ${feature_name} (--no-reboot) - do not reboot machine after deploy" \
+    "  ${feature_name} (--boot-into-new-kernel-once | -n) - Next boot into the new kernel" \
+    "  ${feature_name} (--remote <remote>:<port> | --local) - choose target" \
+    "  ${feature_name} (--verbose | -v) - show a detailed output"
+}
+
 function deploy_help()
 {
   if [[ "$1" == --help ]]; then
@@ -1569,19 +1581,13 @@ function deploy_help()
   fi
   printf '%s\n' 'kw deploy:' \
     '  deploy - installs kernel and modules:' \
-    '  deploy (--remote <remote>:<port> | --local) - choose target' \
-    '  deploy (--reboot | -r) - reboot machine after deploy' \
-    '  deploy (--no-reboot) - do not reboot machine after deploy' \
-    '  deploy (--boot-into-new-kernel-once | -n) - Next boot into the new kernel' \
-    '  deploy (--verbose | -v) - show a detailed output' \
     '  deploy (--setup) - set up target machine for deploy' \
-    '  deploy (--modules | -m) - install only modules' \
     '  deploy (--uninstall | -u) [(--force | -f)] [<kernel-name>,...] - uninstall kernels' \
     '  deploy (--list | -l) - list kernels' \
     '  deploy (--ls-line | -s) - list kernels separeted by commas' \
     '  deploy (--list-all | -a) - list all available kernels' \
-    '  deploy (--create-package | -p) - Create kw package' \
     '  deploy (--from-package | -F) - Deploy from kw package'
+  deploy_shared_help 'deploy'
 }
 
 load_build_config
