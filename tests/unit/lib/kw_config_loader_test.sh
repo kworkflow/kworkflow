@@ -135,9 +135,6 @@ function test_parse_configuration_check_parser_values_only_for_kworkflow_config_
 function test_parse_configuration_standard_config()
 {
   declare -A expected_configurations=(
-    [ssh_user]='root'
-    [ssh_ip]='localhost'
-    [ssh_port]='22'
     [alert]='n'
     [sound_alert_command]='paplay SOUNDPATH/bell.wav'
     [visual_alert_command]='notify-send -i checkbox -t 10000 "kw" "Command: \"$COMMAND\" completed!"'

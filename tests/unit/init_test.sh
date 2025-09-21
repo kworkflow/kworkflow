@@ -123,22 +123,6 @@ function test_force_unsupported_arch()
   assertEquals "($LINENO):" 'arch=baroque' "$kworkflow_content"
 }
 
-function test_set_remote()
-{
-  local output
-  local kworkflow_content
-
-  output=$(init_main --remote juca@123.456.789.123:2222)
-  kworkflow_content=$(grep ssh_user= "$PATH_TO_KW_CONFIG")
-  assertEquals "($LINENO)" 'ssh_user=juca' "$kworkflow_content"
-
-  kworkflow_content=$(grep ssh_ip= "$PATH_TO_KW_CONFIG")
-  assertEquals "($LINENO)" 'ssh_ip=123.456.789.123' "$kworkflow_content"
-
-  kworkflow_content=$(grep ssh_port= "$PATH_TO_KW_CONFIG")
-  assertEquals "($LINENO)" 'ssh_port=2222' "$kworkflow_content"
-}
-
 function test_try_to_set_wrong_arch()
 {
   local output
