@@ -123,7 +123,13 @@ function build_kernel_main()
   optimizations="-j$((parallel_cores * cpu_scaling_factor / 100))"
 
   if [[ -n "${options_values['CCACHE']}" ]]; then
-    [[ -n "$llvm" ]] && compiler='clang' || compiler='gcc'
+    if [[ -n "$cross_compile" ]]; then
+      # Cross-compilation: use cross-compiler with ccache
+      [[ -n "$llvm" ]] && compiler="${cross_compile}clang" || compiler="${cross_compile}gcc"
+    else
+      # Native compilation: use host compiler with ccache
+      [[ -n "$llvm" ]] && compiler='clang' || compiler='gcc'
+    fi
     optimizations="KBUILD_BUILD_TIMESTAMP= CC=\"ccache ${compiler} -fdiagnostics-color\" ${optimizations}"
   fi
 

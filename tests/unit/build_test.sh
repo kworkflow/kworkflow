@@ -286,7 +286,7 @@ function test_kernel_build_html_doc_with_ccache()
   parse_configuration "$SAMPLES_DIR/build_no_log.config" build_config
 
   output=$(build_kernel_main 'TEST_MODE' --doc --ccache)
-  expected_result="make KBUILD_BUILD_TIMESTAMP= CC=\"ccache gcc -fdiagnostics-color\" -j${PARALLEL_CORES} htmldocs"
+  expected_result="make KBUILD_BUILD_TIMESTAMP= CC=\"ccache aarch64-linux-gnu-gcc -fdiagnostics-color\" -j${PARALLEL_CORES} htmldocs"
   assertEquals "($LINENO)" "$expected_result" "$output"
 }
 
