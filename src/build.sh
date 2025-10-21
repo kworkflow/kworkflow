@@ -335,7 +335,7 @@ function parse_build_options()
   options_values['ARCH']="${build_config[arch]:-$arch_fallback}"
   options_values['MENU_CONFIG']=''
   options_values['CROSS_COMPILE']="${build_config[cross_compile]}"
-  options_values['CCACHE']="${build_config[ccache]}"
+  options_values['CCACHE']="${build_config[enable_ccache]:-no}"
   options_values['CPU_SCALING_FACTOR']="${build_config[cpu_scaling_factor]:-100}"
   options_values['INFO']=''
   options_values['DOC_TYPE']=''
@@ -353,6 +353,13 @@ function parse_build_options()
     options_values['USE_LLVM_TOOLCHAIN']=1
   else
     options_values['USE_LLVM_TOOLCHAIN']=''
+  fi
+
+  # Check ccache option
+  if [[ ${options_values['CCACHE']} == 'yes' ]]; then
+    options_values['CCACHE']=1
+  else
+    options_values['CCACHE']=''
   fi
 
   while [[ "$#" -gt 0 ]]; do
