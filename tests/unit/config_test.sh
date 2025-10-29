@@ -219,7 +219,7 @@ function test_show_configurations_without_parameters()
   assert_line_match "$LINENO" 'build.menu_config=nconfig' "$output"
   assert_line_match "$LINENO" 'build.doc_type=htmldocs' "$output"
   assert_line_match "$LINENO" 'build.cpu_scaling_factor=100' "$output"
-  assert_line_match "$LINENO" 'build.enable_ccache=true' "$output"
+  assert_line_match "$LINENO" 'build.enable_ccache=yes' "$output"
   assert_line_match "$LINENO" 'build.warning_level=2' "$output"
   assert_line_match "$LINENO" 'build.use_llvm=yes' "$output"
 
