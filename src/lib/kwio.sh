@@ -54,6 +54,8 @@ function alert_completion()
 #   - the option '-n', to not output the trailing newline
 #   - text message to be printed
 #shellcheck disable=SC2059
+# Print colored message safely (EPIPE-protected)
+#shellcheck disable=SC2059
 function colored_print()
 {
   local message="${*:2}"
