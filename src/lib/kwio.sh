@@ -6,15 +6,8 @@ declare -gr GREENCOLOR='\033[1;32;49m%s\033[m'
 declare -gr SEPARATOR='========================================================='
 
 # Alerts command completion to the user.
-#
-# @COMMAND First argument should be the kw command string which the user wants
-#          to get notified about. It can be printed in visual notification if
-#          ${notification_config[visual_alert_command]} uses it.
-# @ALERT_OPT Second argument is the string with the "--alert=" option or "" if
-#            no alert option was given by the user.
 function alert_completion()
 {
-
   local COMMAND=$1
   local ALERT_OPT=$2
   local opts
@@ -46,13 +39,7 @@ function alert_completion()
   done <<< "$opts"
 }
 
-# Print colored message. This function verifies if stdout
-# is open and print it with color, otherwise print it without color.
-#
-# @param $1 [${@:2}] [-n ${@:3}] it receives the variable defining
-# the color to be used and two optional params:
-#   - the option '-n', to not output the trailing newline
-#   - text message to be printed
+# Print colored message safely (EPIPE-protected)
 #shellcheck disable=SC2059
 function colored_print()
 {
@@ -64,55 +51,35 @@ function colored_print()
     if [ -t 1 ]; then
       printf "$colored_format" "$message"
     else
-      printf '%s' "$message" || true
+      printf '%s' "$message" 2> /dev/null || true
     fi
   else
     if [ -t 1 ]; then
       printf "$colored_format\n" "$message"
     else
-      printf '%s\n' "$message" || true
+      printf '%s\n' "$message" 2> /dev/null || true
     fi
   fi
 }
 
-# Print normal message (e.g info messages).
 function say()
 {
   colored_print BLUECOLOR "$@"
 }
-
-# Print error message.
 function complain()
 {
   colored_print REDCOLOR "$@"
 }
-
-# Warning error message.
 function warning()
 {
   colored_print YELLOWCOLOR "$@"
 }
-
-# Print success message.
 function success()
 {
   colored_print GREENCOLOR "$@"
 }
 
-# Allows the user to select a given question with yes or no answers. Shows a
-# default option (as a capitalized letter). If the user inserts anything
-# different from a "y" or a "yes" (capitalization doesn't matter here) it will
-# be treated as a "no".
-#
-# @message A string with the message to be displayed for the user.
-# @default_option A string (simply y or n) to set the default answer for the
-#                 user. If this parameter is not given, or if it is invalid, 'n'
-#                 will be used.
-#
-# Return:
-# Return "1" if the user accept the question, otherwise, return "0"
-# Note: ask_yN return the string '1' and '0', you have to handle it by
-# yourself in the code.
+# Yes/No helper
 function ask_yN()
 {
   local message="$1"
@@ -135,16 +102,7 @@ function ask_yN()
   fi
 }
 
-# This function option is to be used over SSH; if you need to ask for user
-# input in a code deployed in the remote, use this simplified version to avoid
-# weird issues with an interactive terminal via SSH.
-#
-# @message: This is a string with the message to be displayed for the user.
-#   This function add " [y/N]: " as a prefix for the provided message.
-#
-# Return:
-# Return 1 if user say anything that matches [yY][eE][sS]|[yY], otherwise,
-# return 0.
+# asks via ssh
 function ask_yN_ssh()
 {
   local message="$*"
@@ -158,19 +116,7 @@ function ask_yN_ssh()
   fi
 }
 
-# Asks for user input
-#
-# @message A string with the message to be displayed to the user.
-# @default_option String with default answer to be used if no input is given.
-# @show_default A string that defines if the default value will be printed to
-#               the user. Any non-empty value causes this behavior to be false.
-# @flag String to mark special conditions in this function. To activate the test
-#       mode, set this to 'TEST_MODE'.
-#
-# Return:
-# The user answer, guaranteed not to be empty.
-# Note: this function does not verify the given answer. You have to handle this
-# somewhere else.
+# ask with default
 function ask_with_default()
 {
   local message="$1"
@@ -196,61 +142,38 @@ function ask_with_default()
   printf '%s\n' "$response"
 }
 
-# Load text from a file into a dictionary. The file that will be read must have
-# a key before a text body to name that particular text as part of the key, for
-# example:
-#
-#  [KEY]:
-#  text
-#
-# [KEY] must be non-empty, alphanumeric and between square brackets followed by
-# a colon. The global array string_file can then be queried by key as in
-# ${string_file[<key>]} to obtain the string. <key> should be named according
-# to its respective module for compatibility. That is, if we have modules A and
-# B, name A's keys as [KEY_A] and B's keys as [KEY_B]. This makes it so the
-# module's keys are compatible with each other
-#
-# @text_file_to_be_loaded_path  The full path of the text file to be loaded as
-#   the first argument.
-#
-# Return:
-# SUCCESS      : In case of success.
-# EKEYREJECTED : If an invalid key is found, prints the line with a bad key.
-# ENOKEY       : If a key is not found.
-# ENOENT       : If @text_file_to_be_loaded_path is invalid, or is not a text file.
-# ENODATA      : If the file given in @text_file_to_be_loaded_path is empty.
+# Load text blocks from file
 function load_module_text()
 {
   local text_file_to_be_loaded_path="$1"
   local key=''
   local line_counter=0
-  local error=0 # SUCCESS
+  local error=0
   local key_set=0
   local first_line=0
 
-  # Associative array to read strings from files
   unset module_text_dictionary
   declare -gA module_text_dictionary
 
   if [[ ! -f "$text_file_to_be_loaded_path" ]]; then
     complain "[ERROR]:$text_file_to_be_loaded_path: Does not exist or is not a text file."
-    return 2 # ENOENT
+    return 2
   fi
 
   if [[ ! -s "$text_file_to_be_loaded_path" ]]; then
     complain "[ERROR]:$text_file_to_be_loaded_path: File is empty."
-    return 61 # ENODATA
+    return 61
   fi
 
   while read -r line; do
     ((line_counter++))
-    # Match [VALUE]:
+
     if [[ "$line" =~ ^\[(.*)\]:$ ]]; then
       key=''
-      # Match to check if VALUE is composed of alphanumeric and underscores only
       [[ "${BASH_REMATCH[1]}" =~ (^[A-Za-z0-9_][A-Za-z0-9_]*$) ]] && key="${BASH_REMATCH[1]}"
+
       if [[ -z "$key" ]]; then
-        error=129 # EKEYREJECTED
+        error=129
         complain "[ERROR]:$text_file_to_be_loaded_path:$line_counter: Keys should be alphanum chars."
         continue
       fi
@@ -262,7 +185,6 @@ function load_module_text()
       key_set=1
       first_line=1
       module_text_dictionary["$key"]=''
-    # If we are inside a text block, collect the current line
     elif [[ -n "$key" ]]; then
       if [[ "$first_line" -eq 1 ]]; then
         first_line=0
@@ -274,7 +196,7 @@ function load_module_text()
   done < "$text_file_to_be_loaded_path"
 
   if [[ "$key_set" -eq 0 ]]; then
-    error=126 # ENOKEY
+    error=126
     complain "[ERROR]:$text_file_to_be_loaded_path: No key found."
   fi
 
