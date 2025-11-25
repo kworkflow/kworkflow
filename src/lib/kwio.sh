@@ -14,20 +14,25 @@ declare -gr SEPARATOR='=========================================================
 #            no alert option was given by the user.
 function alert_completion()
 {
-
-  local COMMAND=$1
-  local ALERT_OPT=$2
+  local COMMAND="$1"
+  local ALERT_OPT="$2"
   local opts
+  local output=""
 
+  # If --alert option is provided, just return it and don't process alerts
   if [[ $# -gt 1 && "$ALERT_OPT" =~ ^--alert= ]]; then
     printf '%s\n' "$ALERT_OPT" 2> /dev/null || true
-  else
-    opts="${notification_config[alert]}"
+    return
   fi
+
+  # Only process visual/sound alerts if no --alert option was provided
+  opts="${notification_config[alert]}"
 
   while read -rN 1 option; do
     if [ "$option" == 'v' ]; then
       if command_exists "${notification_config[visual_alert_command]}"; then
+        # Export COMMAND for use in the alert command
+        export COMMAND="$COMMAND"
         eval "${notification_config[visual_alert_command]} &"
       else
         warning 'The following command set in the visual_alert_command variable could not be run:'
@@ -36,6 +41,8 @@ function alert_completion()
       fi
     elif [ "$option" == 's' ]; then
       if command_exists "${notification_config[sound_alert_command]}"; then
+        # Export COMMAND for use in the alert command  
+        export COMMAND="$COMMAND"
         eval "${notification_config[sound_alert_command]} &"
       else
         warning 'The following command set in the sound_alert_command variable could not be run:'
@@ -53,8 +60,6 @@ function alert_completion()
 # the color to be used and two optional params:
 #   - the option '-n', to not output the trailing newline
 #   - text message to be printed
-#shellcheck disable=SC2059
-# Print colored message safely (EPIPE-protected)
 #shellcheck disable=SC2059
 function colored_print()
 {
@@ -179,7 +184,7 @@ function ask_with_default()
   local default_option="$2"
   local show_default="$3"
   local flag="$4"
-  local value
+  local response
 
   if [[ -z "$show_default" ]]; then
     message+=" ($default_option)"
@@ -191,11 +196,11 @@ function ask_with_default()
   read -r -p "$message" response
 
   if [[ "$?" -ne 0 || -z "$response" ]]; then
-    printf '%s\n' 2> /dev/null || true "$default_option"
+    printf '%s\n' "$default_option" 2> /dev/null || true
     return
   fi
 
-  printf '%s\n' 2> /dev/null || true "$response"
+  printf '%s\n' "$response" 2> /dev/null || true
 }
 
 # Load text from a file into a dictionary. The file that will be read must have
