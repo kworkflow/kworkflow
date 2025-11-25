@@ -431,11 +431,11 @@ function parse_drm_options()
     return 22 # EINVAL
   fi
 
-
+  # Check default target
   if [[ -n ${deploy_config[default_deploy_target]} ]]; then
     config_file_deploy_target=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
- 
+
     if [[ "${options_values['TARGET']}" == "$VM_TARGET" ]]; then
       options_values['TARGET']="$LOCAL_TARGET"
     fi

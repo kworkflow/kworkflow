@@ -64,13 +64,13 @@ function colored_print()
     if [ -t 1 ]; then
       printf "$colored_format" "$message"
     else
-      printf '%s' "$message"
+      printf '%s' "$message" || true
     fi
   else
     if [ -t 1 ]; then
       printf "$colored_format\n" "$message"
     else
-      printf '%s\n' "$message"
+      printf '%s\n' "$message" || true
     fi
   fi
 }
