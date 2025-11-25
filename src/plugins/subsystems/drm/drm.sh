@@ -219,6 +219,7 @@ function gui_control()
   local unformatted_remote="$3"
   local flag="$4"
   local gui_control_cmd
+  local bind_control_cmd
   local vt_console
   local isolate_target
   local remote
@@ -260,12 +261,12 @@ function gui_control()
   fi
 
   gui_control_cmd=${gui_control_cmd:-"${default_command}"}
-  bind_control_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" '$vt_console' > $i; done; sleep 0.5' # is this right?
+  bind_control_cmd="for i in /sys/class/vtconsole/*/bind; do printf '%s\n' ${vt_console} > \$i; done; sleep 0.5"
 
   case "$target" in
     2) # LOCAL TARGET
       gui_control_cmd="sudo -- sh -c '${gui_control_cmd}'"
-      bind_control_cmd="sudo -- sh -c '${bind_control_cmd}'"
+      bind_control_cmd="sudo bash -c '${bind_control_cmd}'"
       cmd_manager "$flag" "$gui_control_cmd"
       cmd_manager "$flag" "$bind_control_cmd"
       ;;
@@ -430,11 +431,11 @@ function parse_drm_options()
     return 22 # EINVAL
   fi
 
-  # Check default target
+
   if [[ -n ${deploy_config[default_deploy_target]} ]]; then
     config_file_deploy_target=${deploy_config[default_deploy_target]}
     options_values['TARGET']=${deploy_target_opt[$config_file_deploy_target]}
-    # VM is not a valid case for drm option
+ 
     if [[ "${options_values['TARGET']}" == "$VM_TARGET" ]]; then
       options_values['TARGET']="$LOCAL_TARGET"
     fi
