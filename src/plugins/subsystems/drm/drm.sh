@@ -260,7 +260,7 @@ function gui_control()
   fi
 
   gui_control_cmd=${gui_control_cmd:-"${default_command}"}
-  bind_control_cmd="for i in /sys/class/vtconsole/*/bind; do printf '%s\n' $vt_console > \$i; done; sleep 0.5"
+  bind_control_cmd="for i in /sys/class/vtconsole/*/bind; do printf "%s\n" $vt_console > \$i; done; sleep 0.5"
 
   case "$target" in
     2) # LOCAL TARGET
