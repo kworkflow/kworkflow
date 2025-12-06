@@ -242,6 +242,11 @@ function ssh_connection_failure_message()
 #   code in the remote by using a string.
 # @save_output_path This command implies that the user wants to capture the
 #   output in a specific path.
+# @disable_sudo: Do not add sudo as part of the command
+#
+# FIXME: Using sudo in this function is problematic; ideally, we should remove
+# it from here, but many tasks around kw use it, and removing it can cause some
+# weird issues. For now, let's add one extra flag as a workaround.
 #
 # Returns:
 # If no command is specified, we finish the execution and return 22
@@ -254,13 +259,18 @@ function cmd_remotely()
   local user=${5:-${remote_parameters['REMOTE_USER']}}
   local bash_code="$6"
   local save_output_path="$7"
+  # FIXME: This is a bridge to elimitate sudo from this function.
+  local disable_sudo="$8"
   local composed_cmd="ssh -p ${port} ${user}@${remote}"
   local redirect_mode=''
+  local sudo_cmd='sudo '
 
   if [[ -z "$command" ]]; then
     warning 'No command specified'
     exit 22
   fi
+
+  [[ -n "$disable_sudo" ]] && sudo_cmd=''
 
   # If all parameters are empty, we must try the config file
   if [[ -z "$remote" && -z "$port" && -z "$user" ]]; then
@@ -274,9 +284,9 @@ function cmd_remotely()
   fi
 
   if [[ -n "$bash_code" ]]; then
-    composed_cmd="$composed_cmd 'sudo bash -c '\''$command'\'"
+    composed_cmd="${composed_cmd} '${sudo_cmd}bash -c '\''$command'\'"
   else
-    composed_cmd="$composed_cmd sudo \"$command\""
+    composed_cmd="${composed_cmd} ${sudo_cmd}\"$command\""
   fi
 
   cmd_manager "$flag" "$composed_cmd" "$redirect_mode" "$save_output_path"
