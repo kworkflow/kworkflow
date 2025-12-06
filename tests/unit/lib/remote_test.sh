@@ -501,39 +501,6 @@ function test_ssh_error_handling()
   assert_equals_helper 'Remote host change' "$LINENO" 111 "$?"
 }
 
-function test_which_distro()
-{
-  local cmd='cat /etc/os-release'
-  local remote='172.16.224.1'
-  local user='xpto'
-  local port='2222'
-  local flag='TEST_MODE'
-  local expected_str
-
-  remote_parameters['REMOTE_IP']='127.0.0.1'
-  remote_parameters['REMOTE_PORT']='3333'
-  remote_parameters['REMOTE_USER']='juca'
-
-  output=$(which_distro "$remote" "$port" "$user" "$flag")
-  expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
-  assertEquals "($LINENO):" "$expected_str" "$output"
-
-  user='juca'
-  output=$(which_distro "$remote" "$port" '' "$flag")
-  expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
-  assertEquals "($LINENO)" "$expected_str" "$output"
-
-  port=3333
-  output=$(which_distro "$remote" '' '' "$flag")
-  expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
-  assertEquals "($LINENO)" "$expected_str" "$output"
-
-  remote='127.0.0.1'
-  output=$(which_distro '' '' '' "$flag")
-  expected_str="ssh -p $port $user@$remote sudo \"$cmd\""
-  assert_equals_helper 'Command did not match' "$LINENO" "$expected_str" "$output"
-}
-
 function test_setup_remote_ssh_with_passwordless()
 {
   local output

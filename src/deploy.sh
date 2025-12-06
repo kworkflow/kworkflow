@@ -21,6 +21,7 @@ declare ENV_DIR='envs'
 include "${KW_LIB_DIR}/lib/kw_config_loader.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 include "${KW_LIB_DIR}/lib/signal_manager.sh"
+include "${KW_LIB_DIR}/lib/distros.sh"
 include "${KW_LIB_DIR}/transition_functions.sh"
 
 # To make the deploy to a remote machine straightforward, we create a directory

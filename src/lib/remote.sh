@@ -363,35 +363,6 @@ function remote2host()
   cmd_manager "$flag" "rsync $progress_flag -e $rsync_target -LrlptD --rsync-path='sudo rsync' $rsync_params"
 }
 
-# Access the target device and query the distro name.
-#
-# @remote Origin of the file to be send
-# @port Destination for sending the file
-# @user User in the host machine. Default value is "root"
-# @flag How to display a command, default is SILENT
-#
-# Return:
-# Return the distro name. The caller should call this function inside of
-# subshell and save it to a variable.
-function which_distro()
-{
-  local remote=${1:-${remote_parameters[ssh_ip]}}
-  local port=${2:-${remote_parameters[ssh_port]}}
-  local user=${3:-${remote_parameters[ssh_user]}}
-  local flag=${4:-'SILENT'}
-  local output
-
-  cmd='cat /etc/os-release'
-  output=$(cmd_remotely "$flag" "$cmd" "$remote" "$port" "$user")
-  # TODO: I think we can find a better way to test this...
-  if [[ "$flag" =~ 'TEST_MODE' ]]; then
-    printf '%s' "$output"
-    return
-  fi
-
-  detect_distro '' '' "$output"
-}
-
 # Populate remote info
 #
 # @parameters: Command line parameter to be parsed

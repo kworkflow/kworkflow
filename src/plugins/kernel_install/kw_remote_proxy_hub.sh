@@ -125,6 +125,7 @@ include "${REMOTE_KW_DEPLOY}/utils.sh"
 include "${REMOTE_KW_DEPLOY}/bootloader.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/kwio.sh"
+include "${KW_LIB_DIR}/lib/distros.sh"
 
 # Identify which distro this script will run, and load the correct file (e.g.,
 # ArchLinux should load arch.sh, Fedora should load fedora.sh, etc)
