@@ -520,4 +520,41 @@ function test_setup_remote_ssh_with_passwordless()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
+function test_command_exists_in_remote()
+{
+  local log_path="${SHUNIT_TMPDIR}/cmd_remote_test.log"
+  local command='ls -lah'
+  local remote='178.31.38.12'
+  local port='2222'
+  local user='kw'
+  local flag='TEST_MODE'
+  local cmd='dont_exist'
+  local output
+  local expected_command
+  local ret
+
+  output="$(
+    function cmd_remotely()
+    {
+      return 0
+    }
+
+    command_exists_in_remote ${flag} ${cmd} ${remote} ${port} ${user}
+  )"
+
+  assertEquals "(${LINENO}) Should exist" 0 "$?"
+
+  output="$(
+    function cmd_remotely()
+    {
+      return 3
+    }
+
+    command_exists_in_remote ${flag} ${cmd} ${remote} ${port} ${user}
+  )"
+
+  assertEquals "(${LINENO}) Should have an error" 22 "$?"
+
+}
+
 invoke_shunit

@@ -292,6 +292,49 @@ function cmd_remotely()
   cmd_manager "$flag" "$composed_cmd" "$redirect_mode" "$save_output_path"
 }
 
+# Check if a command exists in the remote.
+#
+# @flag How to display a command, the default value is
+# @cmd Command to be checked inside the remote machine
+#   "HIGHLIGHT_CMD". For more options see `src/lib/kwlib.sh` function `cmd_manager`
+# @remote IP or domain name.
+# @port TCP Port. Default value is 22.
+# @user User in the host machine. Default value is "root"
+#
+# Return:
+# Return 0 if the command exists in the remote, otherwise, return 22.
+function command_exists_in_remote()
+{
+  local flag="$1"
+  local cmd="$2"
+  local remote=${3:-${remote_parameters['REMOTE_IP']}}
+  local port=${4:-${remote_parameters['REMOTE_PORT']}}
+  local user=${5:-${remote_parameters['REMOTE_USER']}}
+  local cmd_name=${cmd%% *}
+  local compose_cmd
+  local cmd_path
+  local ret
+
+  flag=${flag:-'SILENT'}
+
+  cmd_path=$(cmd_remotely 'SILENT' "command -v ${cmd_name}" "$remote" "$port" "$user" '' '' '1')
+  if [[ "$?" -eq 0 ]]; then
+    cmd_remotely "$flag" "test -x ${cmd_path}"
+    ret="$?"
+  else
+    # Fallback
+    # TODO: Right now, this fallback is a workaround that will work until some
+    # distro removes the r-x permission from /usr/sbin. We must find a more
+    # definitive solution to this problem.
+    cmd_remotely "$flag" "test -x /usr/sbin/${cmd_name}"
+    ret="$?"
+  fi
+
+  [[ "$ret" -eq 0 ]] && return 0
+
+  return 22 # EINVAL
+}
+
 # This function copy files from host to the remote machine. kw has its
 # directory for copying data from the host to remote and vice-versa; for this
 # reason, this function uses these directories as a default behavior (for more
