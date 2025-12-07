@@ -260,12 +260,12 @@ function gui_control()
   fi
 
   gui_control_cmd=${gui_control_cmd:-"${default_command}"}
-  bind_control_cmd='for i in /sys/class/vtconsole/*/bind; do printf "%s\n" '$vt_console' > $i; done; sleep 0.5' # is this right?
+  bind_control_cmd="for i in /sys/class/vtconsole/*/bind; do printf \"%s\\n\" $vt_console > \$i; done; sleep 0.5"
 
   case "$target" in
     2) # LOCAL TARGET
-      gui_control_cmd="sudo -- sh -c '${gui_control_cmd}'"
-      bind_control_cmd="sudo -- sh -c '${bind_control_cmd}'"
+      gui_control_cmd="sudo bash -c '${gui_control_cmd}'"
+      bind_control_cmd="sudo bash -c '${bind_control_cmd}'"
       cmd_manager "$flag" "$gui_control_cmd"
       cmd_manager "$flag" "$bind_control_cmd"
       ;;
