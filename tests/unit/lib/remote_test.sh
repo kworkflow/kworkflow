@@ -386,12 +386,11 @@ function test_cp2remote()
   assert_equals_helper 'Default src' "$LINENO" "$expected_cmd_str" "$output"
 
   # Default src and dst
-  dst="$REMOTE_KW_DEPLOY"
+  dst="$REMOTE_DEPLOY_FILES"
   expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS"
 
   output=$(cp2remote "$flag" '' '' '' "$remote" "$port" "$user")
   assert_equals_helper 'Default src and dst' "$LINENO" "$expected_cmd_str" "$output"
-
   # Default src, dst, and remote
   remote='127.0.0.1'
   expected_cmd_str="$RSYNC_PREFIX 'ssh -p $port' $src $user@$remote:$dst $RSYNC_FLAGS"

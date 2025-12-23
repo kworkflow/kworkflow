@@ -11,7 +11,7 @@ LOCAL_TO_DEPLOY_DIR='to_deploy'
 # For making the deploy in the remote machine straightforward, we create a
 # directory on the host that will be used for centralizing files required for
 # the new deploy.
-REMOTE_KW_DEPLOY='/root/kw_deploy'
+REMOTE_DEPLOY_FILES='/root/kw_deploy'
 
 declare -gA remote_parameters
 
@@ -349,7 +349,7 @@ function cp2remote()
 {
   local flag=${1:-'HIGHLIGHT_CMD'}
   local src=${2:-"${KW_CACHE_DIR}/${LOCAL_TO_DEPLOY_DIR}/*"}
-  local dst=${3:-"${REMOTE_KW_DEPLOY}"}
+  local dst=${3:-"${REMOTE_DEPLOY_FILES}"}
   local rsync_params="$4"
   local remote=${5:-${remote_parameters['REMOTE_IP']}}
   local port=${6:-${remote_parameters['REMOTE_PORT']}}
