@@ -7,7 +7,7 @@ kw-deploy - Deploy kernel
 SYNOPSIS
 ========
 *kw* (*d* | *deploy*) [\--remote <remote>:<port> | \--local]
-                      [\--setup]
+                      [\--setup] [\--force-setup]
                       [-r | \--reboot] [\--no-reboot]
                       [-m | \--modules] [-s | \--ls-line]
                       [-l | \--list] [-a | \--list-all]
@@ -72,6 +72,11 @@ OPTIONS
 \--setup:
   This command runs a basic setup in the target machine, including installing
   packages and preparing the distro for the deploy.
+
+\--force-setup:
+  Force the setup command to run, even if the target machine appears to be
+  already configured. Useful when kw-related files were manually deleted
+  from the remote server.
 
 -m, \--modules:
   Only install/update modules.

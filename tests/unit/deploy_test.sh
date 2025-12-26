@@ -820,6 +820,17 @@ function test_parse_deploy_options()
 
   unset options_values
   declare -gA options_values
+  parse_deploy_options --setup
+  assert_equals_helper 'Could not set deploy SETUP' "(${LINENO})" '1' "${options_values['SETUP']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --force-setup
+  assert_equals_helper 'Could not set deploy SETUP with --force-setup' "(${LINENO})" '1' "${options_values['SETUP']}"
+  assert_equals_helper 'Could not set deploy FORCE_SETUP' "(${LINENO})" '1' "${options_values['FORCE_SETUP']}"
+
+  unset options_values
+  declare -gA options_values
   parse_deploy_options --uninstall 'kernel_xpto'
   assert_equals_helper 'Could not set deploy UNINSTALL' "(${LINENO})" "'kernel_xpto'" "${options_values['UNINSTALL']}"
 

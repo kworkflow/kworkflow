@@ -215,9 +215,10 @@ _kw_deploy()
       $force \
       '(-l --list -u --uninstall --setup -p --create-package -F --from-package -r --reboot --no-reboot -m --modules)'{-l,--list}'[list kernels]' \
       '(-s --ls-line -u --uninstall --setup -p --create-package -F --from-package -r --reboot --no-reboot -m --modules)'{-s,--ls-line}'[list kernels separeted by commas]' \
-      '(-l --list -s --ls-line -u --uninstall -p --create-package -F --from-package -r --reboot --no-reboot -m --modules)--setup[set up target machine for deploy]' \
-      '(-p --create-package -l --list -s --ls-line -u --uninstall --setup -F --from-package -r --reboot --no-reboot -m --modules)'{-p,--create-package}'[create kw package]' \
-      '(-F --from-package -l --list -s --ls-line -u --uninstall --setup -p --create-package)'{-F,--from-package}'[deploy from kw package]: : '
+      '(-l --list -s --ls-line -u --uninstall -p --create-package -F --from-package -r --reboot --no-reboot -m --modules --force-setup)--setup[set up target machine for deploy]' \
+      '(-l --list -s --ls-line -u --uninstall -p --create-package -F --from-package -r --reboot --no-reboot -m --modules --setup)--force-setup[force setup target machine for deploy]' \
+      '(-p --create-package -l --list -s --ls-line -u --uninstall --setup --force-setup -F --from-package -r --reboot --no-reboot -m --modules)'{-p,--create-package}'[create kw package]' \
+      '(-F --from-package -l --list -s --ls-line -u --uninstall --setup --force-setup -p --create-package)'{-F,--from-package}'[deploy from kw package]: : '
   fi
 }
 
