@@ -167,7 +167,6 @@ function execute_systemd_kernel_install()
 # Setup systemd to boot in the new kernel.
 #
 # @name: Kernel name used during the deploy.
-# @kernel_img_name: Kernel image file name, it usually has an intersection with the kernel name.
 # @cmd_sudo: Sudo command
 # @flag: How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`.
@@ -177,28 +176,32 @@ function setup_systemd_reboot_for_new_kernel()
   local cmd_sudo="$2"
   local flag="$3"
   local target="$4"
-  local target_id
-  local cmd_bootctl_oneshot="${cmd_sudo}bootctl set-oneshot "
-  local cmd_bootctl_id="${cmd_sudo}bootctl list --json=short | jq --raw-output '.[].id'"
-  local version
+  # Entry ID usually matches the kernel name in systemd-boot
+  local entry_id="${name}.conf"
+  local cmd_check_entry
+  local cmd_set_oneshot
 
-  # It looks like that the json option was only available from v257
-  # (https://github.com/systemd/systemd/releases/tag/v257) onward, and popos
-  # still in version 249.
-  version=$(get_bootctl_version "$cmd_sudo")
-  if [[ "$version" -le 257 ]]; then
-    printf 'WARNING: bootctl version %s is old.\n' "$version"
-    cmd_bootctl_id="${cmd_sudo}bootctl list | grep --only-matching --perl-regexp 'id: \K.*.conf'"
+  # Verify the entry exists before attempting to set it
+  # We use grep to check if the entry ID appears in the list
+  cmd_check_entry="${cmd_sudo}bootctl list | grep --quiet '^${entry_id}'"
+  
+  if [[ "$flag" == 'VERBOSE' ]]; then
+    printf 'Checking for existence of boot entry: %s\n' "$entry_id"
   fi
 
-  cmd_bootctl_id+=" | grep --ignore-case ${name}.conf"
-
-  [[ "$flag" == 'VERBOSE' ]] && printf '%s\n' "$cmd_bootctl_id"
-  target_id=$(cmd_manager 'SILENT' "$cmd_bootctl_id")
+  cmd_manager 'SILENT' "$cmd_check_entry"
   if [[ "$?" -ne 0 ]]; then
-    printf 'WARNING: Unable to identify kernel ID. "%s" failed.\n' "$cmd_bootctl_id"
+    # Fallback: try checking without .conf if it wasn't found
+    entry_id="${name}"
+    cmd_check_entry="${cmd_sudo}bootctl list | grep --quiet '^${entry_id}'"
+    cmd_manager 'SILENT' "$cmd_check_entry"
+    if [[ "$?" -ne 0 ]]; then
+       printf 'WARNING: systemd-boot entry for %s not found. Cannot set one-shot boot.\n' "$name"
+       return 1
+    fi
   fi
 
-  cmd_bootctl_oneshot+="$target_id"
-  cmd_manager "$flag" "${sudo_cmd}${cmd_bootctl_oneshot}"
+  # Set one-shot boot
+  cmd_set_oneshot="${cmd_sudo}bootctl set-oneshot ${entry_id}"
+  cmd_manager "$flag" "$cmd_set_oneshot"
 }

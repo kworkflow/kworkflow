@@ -4,7 +4,6 @@ declare -gar GRUB=(
   'boot/grub2/grub.conf'
   'boot/grub2/grub.cfg'
   'boot/efi/EFI/ubuntu/'
-  'boot/efi/EFI/steamos'
   'NST/menu.lst'
   'boot/grub/menu.lst'
   'ubuntu/disks/boot/grub/menu.lst'
@@ -198,6 +197,14 @@ function identify_bootloader()
   local systemd_product
 
   path_prefix=${path_prefix:-'/'}
+
+  # SteamOS detection: explicit check overrides heuristics
+  if [[ -f "${path_prefix}/etc/os-release" ]]; then
+    if grep --quiet --ignore-case 'ID=steamos' "${path_prefix}/etc/os-release"; then
+      printf '%s' 'SYSTEMD_BOOT'
+      return 0
+    fi
+  fi
 
   # Check if it is a systemd-boot system
   is_bootctl_the_default "$target"
