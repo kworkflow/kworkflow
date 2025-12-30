@@ -173,16 +173,26 @@ function execute_systemd_kernel_install()
 function setup_systemd_reboot_for_new_kernel()
 {
   local name="$1"
+# Setup systemd to boot in the new kernel.
+#
+# @name: Kernel name used during the deploy.
+# @cmd_sudo: Sudo command
+# @flag: How to display a command, the default value is
+#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`.
+function setup_systemd_reboot_for_new_kernel()
+{
+  local name="$1"
   local cmd_sudo="$2"
   local flag="$3"
   local target="$4"
-  # Entry ID usually matches the kernel name in systemd-boot
-  local entry_id="${name}.conf"
+  # Entry ID usually matches the kernel name in systemd-boot (no .conf)
+  local entry_id="${name}"
   local cmd_check_entry
   local cmd_set_oneshot
 
   # Verify the entry exists before attempting to set it
-  # We use grep to check if the entry ID appears in the list
+  # We use grep to check if the entry ID appears in the list (start of line)
+  # Prioritize ID first:
   cmd_check_entry="${cmd_sudo}bootctl list | grep --quiet '^${entry_id}'"
   
   if [[ "$flag" == 'VERBOSE' ]]; then
@@ -191,8 +201,8 @@ function setup_systemd_reboot_for_new_kernel()
 
   cmd_manager 'SILENT' "$cmd_check_entry"
   if [[ "$?" -ne 0 ]]; then
-    # Fallback: try checking without .conf if it wasn't found
-    entry_id="${name}"
+    # Fallback: try checking with .conf if ID check failed (filename match)
+    entry_id="${name}.conf"
     cmd_check_entry="${cmd_sudo}bootctl list | grep --quiet '^${entry_id}'"
     cmd_manager 'SILENT' "$cmd_check_entry"
     if [[ "$?" -ne 0 ]]; then
