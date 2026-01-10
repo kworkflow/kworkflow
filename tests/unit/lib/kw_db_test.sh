@@ -244,64 +244,64 @@ function test_select_from()
   # valid
   output=$(select_from 'pomodoro' "$entries" '' '')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT * FROM "pomodoro" ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch 'SELECT * FROM "pomodoro" ;')
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
   entries=$(concatenate_with_commas '"start_date"' '"start_time"' '"description"')
-  condition_array=(['start_time']='2021-11-18')
+  condition_array=(['start_date']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT \"start_date\",\"start_time\",\"description\" FROM \"pomodoro\" WHERE start_date = '2021-11-18' ;")
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
-  condition_array=(['start_time,=']='2021-11-18')
+  condition_array=(['start_date,=']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time = '2021-11-18' ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT \"start_date\",\"start_time\",\"description\" FROM \"pomodoro\" WHERE start_date = '2021-11-18' ;")
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
-  condition_array=(['start_time,<']='2021-11-18')
+  condition_array=(['start_date,<']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time < '2021-11-18' ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT \"start_date\",\"start_time\",\"description\" FROM \"pomodoro\" WHERE start_date < '2021-11-18' ;")
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
-  condition_array=(['start_time,<=']='2021-11-18')
+  condition_array=(['start_date,<=']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <= '2021-11-18' ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT \"start_date\",\"start_time\",\"description\" FROM \"pomodoro\" WHERE start_date <= '2021-11-18' ;")
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
-  condition_array=(['start_time,>']='2021-11-18')
+  condition_array=(['start_date,>']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time > '2021-11-18' ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT \"start_date\",\"start_time\",\"description\" FROM \"pomodoro\" WHERE start_date > '2021-11-18' ;")
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
-  condition_array=(['start_time,>=']='2021-11-18')
+  condition_array=(['start_date,>=']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time >= '2021-11-18' ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT \"start_date\",\"start_time\",\"description\" FROM \"pomodoro\" WHERE start_date >= '2021-11-18' ;")
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
-  condition_array=(['start_time,!=']='2021-11-18')
+  condition_array=(['start_date,!=']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time != '2021-11-18' ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT \"start_date\",\"start_time\",\"description\" FROM \"pomodoro\" WHERE start_date != '2021-11-18' ;")
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 
-  condition_array=(['start_time,<>']='2021-11-18')
+  condition_array=(['start_date,<>']='2021-11-18')
   output=$(select_from 'pomodoro' "$entries" '' 'condition_array')
   ret="$?"
-  expected=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT "start_date","start_time","description" FROM "pomodoro" WHERE start_time <> '2021-11-18' ;')
+  expected=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch "SELECT \"start_date\",\"start_time\",\"description\" FROM \"pomodoro\" WHERE start_date <> '2021-11-18' ;")
   assert_equals_helper 'No error expected' "$LINENO" 0 "$ret"
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
