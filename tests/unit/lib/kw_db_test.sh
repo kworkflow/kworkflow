@@ -23,11 +23,22 @@ function oneTimeTearDown()
   rm -rf "$FAKE_DATA"
 }
 
+function setUp()
+{
+  # Ensure each test starts from a clean, deterministic db state
+  rm -f "${KW_DATA_DIR}/kw.db"
+  execute_sql_script "${DB_FILES}/init.sql" > /dev/null 2>&1
+  execute_sql_script "${DB_FILES}/insert.sql" > /dev/null 2>&1
+}
+
 function test_execute_sql_script()
 {
   local output
   local expected
   local ret
+
+  # This test validates db creation messaging, start from no db file
+  rm -f "${KW_DATA_DIR}/kw.db"
 
   output=$(execute_sql_script 'wrong/path/invalid_script.sql')
   ret="$?"
