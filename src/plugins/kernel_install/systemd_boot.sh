@@ -198,8 +198,8 @@ function setup_systemd_reboot_for_new_kernel()
     cmd_check_entry="${cmd_sudo}bootctl list | grep --quiet '^${entry_id}'"
     cmd_manager 'SILENT' "$cmd_check_entry"
     if [[ "$?" -ne 0 ]]; then
-       printf 'WARNING: systemd-boot entry for %s not found. Cannot set one-shot boot.\n' "$name"
-       return 1
+      printf 'WARNING: systemd-boot entry for %s not found. Cannot set one-shot boot.\n' "$name"
+      return 1
     fi
   fi
 
