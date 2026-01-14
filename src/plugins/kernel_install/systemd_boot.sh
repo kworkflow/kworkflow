@@ -173,15 +173,7 @@ function execute_systemd_kernel_install()
 function setup_systemd_reboot_for_new_kernel()
 {
   local name="$1"
-# Setup systemd to boot in the new kernel.
-#
-# @name: Kernel name used during the deploy.
-# @cmd_sudo: Sudo command
-# @flag: How to display a command, the default value is
-#   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`.
-function setup_systemd_reboot_for_new_kernel()
-{
-  local name="$1"
+
   local cmd_sudo="$2"
   local flag="$3"
   local target="$4"
