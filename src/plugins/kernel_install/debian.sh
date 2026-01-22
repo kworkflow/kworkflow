@@ -17,6 +17,7 @@ declare -ag required_packages=(
   'lzop'
   'zstd'
   'jq'
+  'inxi'
 )
 
 # Debian package manager command
