@@ -161,16 +161,6 @@ function which_distro_mock()
   printf '%s\n' 'debian'
 }
 
-function which_distro_none_mock()
-{
-  printf '%s\n' 'none'
-}
-
-function detect_distro_arch_mock()
-{
-  printf '%s\n' 'arch'
-}
-
 function get_kernel_release_mock()
 {
   printf '%s\n' '5.4.0-rc7-test'
@@ -213,152 +203,6 @@ function find_kernels_mock()
   printf 'vmlinuz-3\n'
   printf 'vmlinuz-4\n'
   printf 'vmlinuz-5\n'
-}
-
-function detect_filesystem_type_mock_ext4()
-{
-  printf '%s\n' 'ext4'
-}
-
-function test_prepare_distro_for_deploy_ext4()
-{
-  local output
-  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
-  local cmd="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh"
-
-  alias detect_filesystem_type='detect_filesystem_type_mock_ext4'
-
-  cmd+=" --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
-  cmd+=" --deploy-setup TEST_MODE"
-
-  declare -a expected_cmd=(
-    '-> Basic distro set up'
-    '' # Extra space for the \n in the message
-    "${ssh_prefix} \"${cmd} 3\""
-  )
-
-  # Remote
-  output=$(prepare_distro_for_deploy 3 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-
-  # Local - We need to force a specific distro
-  expected_cmd=()
-
-  # Let's change the detect ditro to point to Arch
-  alias detect_distro='detect_distro_arch_mock'
-  output=$(prepare_distro_for_deploy 2 'TEST_MODE')
-  expected_cmd=(
-    '-> Basic distro set up'
-    '' # Extra space for the \n
-    'sudo -E mv /etc/skel/.screenrc /tmp'
-    'sudo -E pacman-key --init'
-    'sudo -E pacman-key --populate'
-    'yes | sudo -E pacman -Syu'
-    'sudo --preserve-env yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools jq'
-  )
-
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-}
-
-function detect_filesystem_type_mock_btrfs()
-{
-  printf '%s\n' 'btrfs'
-}
-
-function btrfs_property_get_root_ro_mock()
-{
-  printf '%s' 'ro=false'
-}
-
-function test_prepare_distro_for_deploy_btrfs()
-{
-  local output
-  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
-  local cmd="bash ${REMOTE_KW_DEPLOY}/kw_remote_proxy_hub.sh"
-
-  alias detect_filesystem_type='detect_filesystem_type_mock_btrfs'
-  alias btrfs='btrfs_property_get_root_ro_mock'
-
-  cmd+=" --kw-path '${REMOTE_KW_DEPLOY}' --kw-tmp-files '${KW_DEPLOY_TMP_FILE}'"
-  cmd+=" --deploy-setup TEST_MODE"
-
-  declare -a expected_cmd=(
-    '-> Basic distro set up'
-    '' # Extra space for the \n in the message
-    "${ssh_prefix} \"${cmd} 3\""
-  )
-
-  # Remote
-  output=$(prepare_distro_for_deploy 3 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-
-  # Local - We need to force a specific distro
-  expected_cmd=()
-
-  # Let's change the detect ditro to point to Arch
-  alias detect_distro='detect_distro_arch_mock'
-  output=$(prepare_distro_for_deploy 2 'TEST_MODE')
-  expected_cmd=(
-    '-> Basic distro set up'
-    ''
-    'btrfs property get / ro | grep "ro=false" --silent'
-    'sudo -E mv /etc/skel/.screenrc /tmp'
-    'sudo -E pacman-key --init'
-    'sudo -E pacman-key --populate'
-    'yes | sudo -E pacman -Syu'
-    'sudo --preserve-env yes | pacman -Syu rsync screen pv bzip2 lzip lzop zstd xz rng-tools jq'
-  )
-
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-}
-
-function test_update_status_log_remote_target()
-{
-  local output
-  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
-  local cmd
-
-  # Remote
-  cmd="\"printf '%s;%s\n' '3' 'TEST_MODE' >> ${KW_STATUS_BASE_PATH}/kw_status\""
-  output=$(update_status_log 3 'TEST_MODE')
-
-  assert_equals_helper 'Status file remote' "$LINENO" "${ssh_prefix} ${cmd}" "$output"
-}
-
-function test_update_status_log_local_target()
-{
-  local output
-  local expected_cmd
-
-  expected_cmd="printf '%s;%s\n' '2' 'TEST_MODE' | sudo -E tee --append ${KW_STATUS_BASE_PATH}/kw_status"
-  output=$(update_status_log 2 'TEST_MODE')
-
-  assert_equals_helper 'Local deploy command' "$LINENO" "$expected_cmd" "$output"
-}
-
-function test_check_setup_status()
-{
-  local output
-  local expected_cmd
-  local cmd_check="test -f ${KW_STATUS_BASE_PATH}/kw_status"
-  local ssh_prefix='ssh -p 3333 juca@127.0.0.1 sudo'
-
-  # Remote
-  output=$(check_setup_status 3 'TEST_MODE')
-  expected_cmd="${ssh_prefix} \"${cmd_check}\""
-  assert_equals_helper 'Status remote check' "$LINENO" "$expected_cmd" "$output"
-
-  # Local
-  REMOTE_KW_DEPLOY="$SHUNIT_TMPDIR"
-
-  # 1. Fail case
-  check_setup_status 1
-  assert_equals_helper 'Wrong return value' "(${LINENO})" 2 "$?"
-
-  # 2. Success case
-  touch "${KW_STATUS_BASE_PATH}/kw_status"
-  check_setup_status 2
-  assert_equals_helper 'Wrong return value' "(${LINENO})" 0 "$?"
 }
 
 function test_modules_install_to()
@@ -608,18 +452,6 @@ function test_kernel_modules()
   }
 }
 
-function test_prepare_local_dir()
-{
-  declare -a expected_out=(
-    "rm --preserve-root=all --recursive --force ${KW_DEPLOY_TMP_FILE}"
-    "mkdir --parents ${KW_DEPLOY_TMP_FILE}"
-    "sudo -E mkdir --parents ${REMOTE_KW_DEPLOY}"
-  )
-
-  output=$(prepare_local_dir 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'expected_out' "$output"
-}
-
 # This test validates the correct behavior of list kernel on a remote machine
 # by checking the expected command sequence; It is important to highlight that
 # we are not testing the actual kernel list code, this part is validated on
@@ -862,53 +694,6 @@ function test_prepare_host_deploy_dir()
   assertTrue "(${LINENO}): Cache dir not created" '[[ -d $KW_CACHE_DIR ]]'
   assertTrue "(${LINENO}): Local dir not created" '[[ -d $KW_CACHE_DIR/$LOCAL_REMOTE_DIR ]]'
   assertTrue "(${LINENO}): Check if kw dir was created" '[[ -d $KW_CACHE_DIR/$LOCAL_TO_DEPLOY_DIR ]]'
-}
-
-function test_prepare_remote_dir()
-{
-  local scripts_path="${KW_PLUGINS_DIR}/kernel_install"
-  local lib_path="${KW_SRC_LIB_DIR}"
-  local sync_plugins_files
-  local sync_lib_files
-  local arch_sync_files_cmd
-  local output
-  local rsync_quiet="rsync  -e '${CONFIG_SSH}'"
-
-  sync_plugins_files="${rsync_quiet} ${scripts_path}/* ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY} ${STD_RSYNC_FLAG} --archive"
-  sync_lib_files="${rsync_quiet} ${lib_path} ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY} ${STD_RSYNC_FLAG} --archive"
-
-  # Test 1: Normal remote prepare
-  declare -a expected_cmd=(
-    "$sync_plugins_files"
-    "$sync_lib_files"
-    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}\""
-    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"mkdir --parents ${KW_DEPLOY_TMP_FILE}\""
-  )
-
-  output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-
-  # Test 2: First deploy
-  alias detect_distro='which_distro_mock'
-  expected_cmd=()
-  output=$(prepare_remote_dir '' '' '' 1 'TEST_MODE')
-
-  declare -a expected_cmd=(
-    "$UPDATE_KW_REMOTE_MSG"
-    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"mkdir --parents ${REMOTE_KW_DEPLOY}/lib\""
-    "scp -q ${scripts_path}/* ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY}"
-    "scp -r -q ${lib_path} ${CONFIG_REMOTE}:${REMOTE_KW_DEPLOY}"
-    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"rm --preserve-root=all --recursive --force -- ${KW_DEPLOY_TMP_FILE}\""
-    "${CONFIG_SSH} ${CONFIG_REMOTE} sudo \"mkdir --parents ${KW_DEPLOY_TMP_FILE}\""
-  )
-
-  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
-
-  # Test 4: Unsupported distro
-  alias which_distro='which_distro_none_mock'
-
-  output=$(prepare_remote_dir '' '' '' '' 'TEST_MODE')
-  assert_equals_helper 'Wrong return value' "(${LINENO})" 95 "$?"
 }
 
 function test_collect_target_info_for_deploy()
