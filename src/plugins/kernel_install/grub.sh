@@ -159,7 +159,7 @@ function setup_grub_reboot_for_new_kernel()
     return 2
   fi
 
-  grub_file_raw=$(cmd_manager 'SILENT' "${sudo_cmd}cat ${grub_cfg_path}")
+  grub_file_raw=$(cmd_manager 'SILENT' "${cmd_sudo}cat ${grub_cfg_path}")
 
   [[ -z "$grub_file_raw" ]] && return 22
 
