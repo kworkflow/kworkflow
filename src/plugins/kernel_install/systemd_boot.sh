@@ -168,27 +168,27 @@ function execute_systemd_kernel_install()
 #
 # @name: Kernel name used during the deploy.
 # @kernel_img_name: Kernel image file name, it usually has an intersection with the kernel name.
-# @cmd_sudo: Sudo command
+# @sudo_cmd: Sudo command
 # @flag: How to display a command, the default value is
 #   "SILENT". For more options see `src/lib/kwlib.sh` function `cmd_manager`.
 function setup_systemd_reboot_for_new_kernel()
 {
   local name="$1"
-  local cmd_sudo="$2"
+  local sudo_cmd="$2"
   local flag="$3"
   local target="$4"
   local target_id
-  local cmd_bootctl_oneshot="${cmd_sudo}bootctl set-oneshot "
-  local cmd_bootctl_id="${cmd_sudo}bootctl list --json=short | jq --raw-output '.[].id'"
+  local cmd_bootctl_oneshot="${sudo_cmd}bootctl set-oneshot "
+  local cmd_bootctl_id="${sudo_cmd}bootctl list --json=short | jq --raw-output '.[].id'"
   local version
 
   # It looks like that the json option was only available from v257
   # (https://github.com/systemd/systemd/releases/tag/v257) onward, and popos
   # still in version 249.
-  version=$(get_bootctl_version "$cmd_sudo")
+  version=$(get_bootctl_version "$sudo_cmd")
   if [[ "$version" -le 257 ]]; then
     printf 'WARNING: bootctl version %s is old.\n' "$version"
-    cmd_bootctl_id="${cmd_sudo}bootctl list | grep --only-matching --perl-regexp 'id: \K.*.conf'"
+    cmd_bootctl_id="${sudo_cmd}bootctl list | grep --only-matching --perl-regexp 'id: \K.*.conf'"
   fi
 
   cmd_bootctl_id+=" | grep --ignore-case ${name}.conf"

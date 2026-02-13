@@ -43,14 +43,14 @@ function run_bootloader_update()
   local kernel_image_name="$4"
   local boot_into_new_kernel_once="$5"
   local cmd_grub
-  local cmd_sudo
+  local sudo_cmd
   local total_count
 
   flag=${flag:-'SILENT'}
 
   if [[ "$target" == 'local' ]]; then
-    cmd_sudo='sudo --preserve-env '
-    cmd_grub+="$cmd_sudo"
+    sudo_cmd='sudo --preserve-env '
+    cmd_grub+="$sudo_cmd"
   fi
 
   define_grub_cmd_update
@@ -65,7 +65,7 @@ function run_bootloader_update()
 
   # Setup grub to boot the new kernel
   if [[ "$boot_into_new_kernel_once" == 1 ]]; then
-    setup_grub_reboot_for_new_kernel "$name" "$kernel_image_name" "$cmd_sudo" "$flag"
+    setup_grub_reboot_for_new_kernel "$name" "$kernel_image_name" "$sudo_cmd" "$flag"
     if [[ "$?" == 2 ]]; then
       warning 'kw was unable to set up the first boot to the new kernel.'
     fi
@@ -143,7 +143,7 @@ function setup_grub_reboot_for_new_kernel()
 {
   local name="$1"
   local kernel_image_name="$2"
-  local cmd_sudo="$3"
+  local sudo_cmd="$3"
   local flag="$4"
   local cmd
   local grub_file_raw
@@ -159,7 +159,7 @@ function setup_grub_reboot_for_new_kernel()
     return 2
   fi
 
-  grub_file_raw=$(cmd_manager 'SILENT' "${cmd_sudo}cat ${grub_cfg_path}")
+  grub_file_raw=$(cmd_manager 'SILENT' "${sudo_cmd}cat ${grub_cfg_path}")
 
   [[ -z "$grub_file_raw" ]] && return 22
 
@@ -191,7 +191,7 @@ function setup_grub_reboot_for_new_kernel()
   fi
 
   cmd="${BASE_GRUB_CMD}-reboot"
-  cmd_manager "$flag" "${cmd_sudo}${cmd} '${submenu}${menuentry}'"
+  cmd_manager "$flag" "${sudo_cmd}${cmd} '${submenu}${menuentry}'"
 }
 
 function total_of_installed_kernels()
