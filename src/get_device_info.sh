@@ -4,6 +4,7 @@ include "${KW_LIB_DIR}/lib/kw_string.sh"
 include "${KW_LIB_DIR}/lib/remote.sh"
 include "${KW_LIB_DIR}/lib/kwlib.sh"
 include "${KW_LIB_DIR}/lib/distros.sh"
+include "${KW_LIB_DIR}/utils.sh"
 
 declare -gA device_info_data=(['ram_total']='' # RAM memory in GiB
   ['ram_available']=''                         # Available RAM
@@ -66,6 +67,8 @@ function device_info_main()
   [[ -n "${options_values['VERBOSE']}" ]] && flag='VERBOSE'
   flag=${flag:-'SILENT'}
 
+  handle_inxi_dependence "$flag" "${options_values['TARGET']}"
+
   if [[ "${options_values['TARGET']}" == "$REMOTE_TARGET" ]]; then
     # Check connection before try to work with remote
     is_ssh_connection_configured "$flag"
@@ -77,6 +80,39 @@ function device_info_main()
 
   learn_device "${options_values['TARGET']}" "$flag"
   show_data "$flag"
+}
+
+# Check if inxi is installed, if not, install it.
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# Return 0 if inxi is available. If it is not available, setup the target
+# machine and install inxi in the process. If the target is unknown, return 22.
+function handle_inxi_dependence()
+{
+  local flag="$1"
+  local target="$2"
+  local ret
+
+  case "$target" in
+    2) # LOCAL_TARGET
+      command_exists 'inxi'
+      ret="$?"
+      ;;
+    3) # REMOTE_TARGET
+      command_exists_in_remote "$flag" 'inxi' "${remote_parameters['REMOTE_IP']}" \
+        "${remote_parameters['REMOTE_PORT']}" "${remote_parameters['REMOTE_USER']}"
+      ret="$?"
+      ;;
+    *)
+      return 22
+      ;;
+  esac
+
+  [[ "$ret" -eq 0 ]] && return 0
+
+  target_machine_setup "${options_values['TARGET']}" "$flag"
 }
 
 # This function populates the ram element from the device_info_data global
