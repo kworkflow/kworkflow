@@ -795,7 +795,7 @@ function test_get_encoded_pwd()
   }
 
   result=$(get_encoded_pwd)
-  expected="$(printf '%s' "$PWD" | base64 --wrap=0)"
+  expected="$(printf '%s' "$PWD" | base64 --wrap=0 | tr --delete '=')"
   assertEquals "(${LINENO}) - Should return base64(PWD)" "$expected" "$result"
 
   cd "${ORIGINAL_DIR}" || {

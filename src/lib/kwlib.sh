@@ -654,7 +654,7 @@ function get_current_env_name()
 # Returns 0 and prints ${PWD}, base64-encoded
 function get_encoded_pwd()
 {
-  printf '%s' "$PWD" | base64 --wrap=0
+  printf '%s' "$PWD" | base64 --wrap=0 | tr --delete '='
 
   return 0
 }
