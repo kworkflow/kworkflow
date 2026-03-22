@@ -43,6 +43,8 @@ declare -ga monitors
 
 declare -gA options_values
 
+declare -g RAW_JSON
+
 # This function calls other functions to process and display the hardware
 # information of a target machine.
 #
@@ -115,6 +117,82 @@ function handle_inxi_dependence()
   target_machine_setup "${options_values['TARGET']}" "$flag"
 }
 
+# Collect all hardware information from the target machine in a single inxi
+# invocation using JSON output, and store the result in the global RAW_JSON
+# variable. This avoids the overhead of one SSH connection per data category
+# when querying a remote target.
+#
+# If inxi >= 3.3.34 is not available on the target, this function is not called
+# and RAW_JSON remains empty; each data-gathering function then falls back to
+# its own per-command inxi text-parsing path.
+#
+# @flag How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
+#
+# Return:
+# In TEST_MODE, prints the raw JSON string to stdout. Otherwise, populates the
+# global RAW_JSON variable and returns 0.
+function get_all_info_json()
+{
+  local flag="$1"
+  local target="$2"
+  local cmd
+
+  cmd='inxi --tty --memory-short --graphics --expanded -xx --filter --output json --output-file=print'
+
+  case "$target" in
+    2) # LOCAL_TARGET
+      show_verbose "$flag" "$cmd"
+      RAW_JSON=$(cmd_manager 'SILENT' "$cmd")
+      ;;
+    3) # REMOTE_TARGET
+      show_verbose "$flag" "$cmd"
+      RAW_JSON=$(cmd_remotely 'SILENT' "$cmd")
+      ;;
+  esac
+
+  if [[ "$flag" == 'TEST_MODE' ]]; then
+    printf '%s\n' "$RAW_JSON"
+    return 0
+  fi
+}
+
+# This function builds and returns a jq command string that extracts a specific
+# value from the inxi JSON output stored in RAW_JSON.
+#
+# The generated command traverses the inxi JSON output in five steps:
+#   1. '.. | objects': recursively descend into every object in the JSON tree
+#   2. 'with_entries(select(.key | endswith("$section")))': keep only the
+#      entries whose key ends with the requested section name (e.g. "Memory").
+#   3. 'values[] | select(type == "array")[]': unwrap the section value, which
+#      is an array of objects, and iterate over each element.
+#   4. 'to_entries[] | select(.key | endswith("$value"))': convert each object
+#      to key/value pairs and keep only the entry whose key ends with the
+#      requested field name (e.g. "total").
+#   5. '.value': emit the matched value.
+#
+# @section The top-level inxi section to search in (e.g. 'Memory', 'CPU')
+# @value   The key name whose value should be extracted (e.g. 'total', 'model')
+#
+# Return:
+# The generated jq command string is printed to stdout. The caller is
+# responsible for appending the JSON input (e.g. via <<< or a file argument)
+# and evaluating the result.
+function get_jq_cmd()
+{
+  local section="$1"
+  local value="$2"
+  local jq_cmd
+
+  jq_cmd="jq --raw-output '.. | objects | with_entries(select(.key | "
+  jq_cmd+="endswith(\"$section\"))) |"
+  jq_cmd+="values[] | select(type == \"array\")[] | to_entries[] | "
+  jq_cmd+="select(.key | endswith(\"$value\")) | "
+  jq_cmd+=".value'"
+
+  printf '%s' "${jq_cmd}"
+}
+
 # This function populates the ram element from the device_info_data global
 # variable with the total RAM memory from the target machine in kB.
 #
@@ -127,26 +205,67 @@ function get_ram()
   local flag="$2"
   local ram
   local cmd
+  local ram_total
+  local ram_available
+  local ram_type
+  local ram_capacity
+  local ram_installed
 
   flag=${flag:-'SILENT'}
-  cmd='inxi --tty --width 1 --color 0 --memory-short'
 
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd"
-      ram=$(cmd_manager 'SILENT' "$cmd")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd"
-      ram=$(cmd_remotely 'SILENT' "$cmd")
-      ;;
-  esac
+  # TODO: This manual data request can be removed once inxi >= 3.3.34 becomes
+  # more widely available.
+  if [[ -z "$RAW_JSON" ]]; then
+    cmd='inxi --tty --width 1 --color 0 --memory-short'
 
-  device_info_data['ram_total']="$(get_string_after_delimiter "$ram" 'total: ')"
-  device_info_data['ram_available']="$(get_string_after_delimiter "$ram" 'available: ')"
-  device_info_data['ram_type']="$(get_string_after_delimiter "$ram" 'type: ')"
-  device_info_data['ram_capacity']="$(get_string_after_delimiter "$ram" 'capacity: ')"
-  device_info_data['ram_installed']="$(get_string_after_delimiter "$ram" 'installed: ')"
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd"
+        ram=$(cmd_manager 'SILENT' "$cmd")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd"
+        ram=$(cmd_remotely 'SILENT' "$cmd")
+        ;;
+    esac
+
+    if [[ "$flag" == 'TEST_MODE' ]]; then
+      printf '%s\n' "$ram"
+      return 0
+    fi
+
+    ram_total="$(get_string_after_delimiter "$ram" 'total: ')"
+    ram_available="$(get_string_after_delimiter "$ram" 'available: ')"
+    ram_type="$(get_string_after_delimiter "$ram" 'type: ')"
+    ram_capacity="$(get_string_after_delimiter "$ram" 'capacity: ')"
+    ram_installed="$(get_string_after_delimiter "$ram" 'installed: ')"
+  else
+    cmd=$(get_jq_cmd 'Memory' 'total')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    ram_total=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'Memory' 'available')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    ram_available=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'Memory' 'capacity')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    ram_capacity=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'Memory' 'type')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    ram_type=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'Memory' 'installed')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    ram_installed=$(cmd_manager 'SILENT' "$cmd")
+  fi
+
+  device_info_data['ram_total']="$ram_total"
+  device_info_data['ram_available']="$ram_available"
+  device_info_data['ram_type']="$ram_type"
+  device_info_data['ram_capacity']="$ram_capacity"
+  device_info_data['ram_installed']="$ram_installed"
 }
 
 # This function provides the model and frequency of the CPU from a machine
@@ -169,36 +288,55 @@ function get_cpu()
   local test_flag='SILENT'
 
   flag=${flag:-'SILENT'}
-  cmd_cpu_info='inxi --tty --width 1 --color 0 --cpu'
-  cmd_architecture='uname --machine'
 
-  if [[ "$flag" == 'TEST_MODE' ]]; then
-    test_flag='TEST_MODE'
+
+  if [[ -z "$RAW_JSON" ]]; then
+    cmd_cpu_info='inxi --tty --width 1 --color 0 --cpu'
+    cmd_architecture='uname --machine'
+
+    if [[ "$flag" == 'TEST_MODE' ]]; then
+      test_flag='TEST_MODE'
+    fi
+
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd_cpu_info"
+        cpu_info_output=$(cmd_manager "$test_flag" "$cmd_cpu_info")
+
+        show_verbose "$flag" "$cmd_architecture"
+        cpu_architecture=$(cmd_manager "$test_flag" "$cmd_architecture")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd_cpu_info"
+        cpu_info_output=$(cmd_remotely "$test_flag" "$cmd_cpu_info")
+
+        show_verbose "$flag" "$cmd_architecture"
+        cpu_architecture=$(cmd_remotely "$test_flag" "$cmd_architecture")
+        ;;
+    esac
+
+    cpu_vendor_name=$(get_string_after_delimiter "$cpu_info_output" 'model: ')
+    cpu_speed=$(get_string_after_delimiter "$cpu_info_output" 'avg: ')
+    cpu_total_cores=$(printf '%s' "$cpu_info_output" | tail -2 | head -1)
+    cpu_total_cores=$(printf '%s' "$cpu_total_cores" | cut --delimiter ':' --fields=1)
+    cpu_total_cores=$(str_strip "$cpu_total_cores")
+  else
+    cmd=$(get_jq_cmd 'CPU' 'model')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    cpu_vendor_name=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'CPU' 'avg')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    cpu_speed=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'CPU' 'Info')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    cpu_total_cores=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'System' 'arch')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    cpu_architecture=$(cmd_manager 'SILENT' "$cmd")
   fi
-
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd_cpu_info"
-      cpu_info_output=$(cmd_manager "$test_flag" "$cmd_cpu_info")
-
-      show_verbose "$flag" "$cmd_architecture"
-      cpu_architecture=$(cmd_manager "$test_flag" "$cmd_architecture")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd_cpu_info"
-      cpu_info_output=$(cmd_remotely "$test_flag" "$cmd_cpu_info")
-
-      show_verbose "$flag" "$cmd_architecture"
-      cpu_architecture=$(cmd_remotely "$test_flag" "$cmd_architecture")
-      ;;
-  esac
-
-  cpu_vendor_name=$(get_string_after_delimiter "$cpu_info_output" 'model: ')
-  cpu_speed=$(get_string_after_delimiter "$cpu_info_output" 'avg: ')
-  cpu_total_cores=$(printf '%s' "$cpu_info_output" | tail -2 | head -1)
-  cpu_total_cores=$(printf '%s' "$cpu_total_cores" | cut --delimiter ':' --fields=1)
-  cpu_total_cores=$(str_strip "$cpu_total_cores")
-
   device_info_data['cpu_model_name']="$cpu_vendor_name"
   device_info_data['cpu_speed']="$cpu_speed"
   device_info_data['cpu_total_cores']="$cpu_total_cores"
@@ -227,26 +365,39 @@ function get_disk()
   flag=${flag:-'SILENT'}
   [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
-  cmd='inxi --tty --width 1 --color 0 --partitions-full'
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd"
-      partition_info=$(cmd_manager "$test_flag" "$cmd")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd"
-      partition_info=$(cmd_remotely "$test_flag" "$cmd")
-      ;;
-  esac
+  # TODO: This manual data request can be removed once inxi >= 3.3.34 becomes
+  # more widely available.
+  if [[ -z "$RAW_JSON" ]]; then
+    cmd='inxi --tty --width 1 --color 0 --partitions-full'
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd"
+        partition_info=$(cmd_manager "$test_flag" "$cmd")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd"
+        partition_info=$(cmd_remotely "$test_flag" "$cmd")
+        ;;
+    esac
 
-  partition_info=$(printf '%s' "$partition_info" | grep --extended-regexp --after-context=4 ': /$')
-  mount=$(printf '%s' "$partition_info" | head -1)
-  mount=$(get_string_after_delimiter "$mount" ':')
+    partition_info=$(printf '%s' "$partition_info" | grep --extended-regexp --after-context=4 ': /$')
+    mount=$(printf '%s' "$partition_info" | head -1)
+    mount=$(get_string_after_delimiter "$mount" ':')
 
-  fs=$(get_string_after_delimiter "$partition_info" 'fs: ')
-  size=$(get_string_after_delimiter "$partition_info" 'size: ')
-  used_size=$(get_string_after_delimiter "$partition_info" 'used: ')
-  dev=$(get_string_after_delimiter "$partition_info" 'dev: ')
+    fs=$(get_string_after_delimiter "$partition_info" 'fs: ')
+    size=$(get_string_after_delimiter "$partition_info" 'size: ')
+    used_size=$(get_string_after_delimiter "$partition_info" 'used: ')
+    dev=$(get_string_after_delimiter "$partition_info" 'dev: ')
+  else
+    cmd=$(get_jq_cmd 'Drives' 'total')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    size=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'Drives' 'used')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    used_size=$(cmd_manager 'SILENT' "$cmd")
+    # TODO: When using inxi we need some extra processing here. Check this later.
+  fi
 
   device_info_data['disk_size']="$size"
   device_info_data['root_path']="$dev"
@@ -273,21 +424,33 @@ function get_os()
   flag=${flag:-'SILENT'}
   [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
-  target=${target:-"${options_values['TARGET']}"}
+  # TODO: This manual data request can be removed once inxi >= 3.3.34 becomes
+  # more widely available.
+  if [[ -z "$RAW_JSON" ]]; then
+    target=${target:-"${options_values['TARGET']}"}
 
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd"
-      raw_system_info=$(cmd_manager "$test_flag" "$cmd")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd"
-      raw_system_info=$(cmd_remotely "$test_flag" "$cmd")
-      ;;
-  esac
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd"
+        raw_system_info=$(cmd_manager "$test_flag" "$cmd")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd"
+        raw_system_info=$(cmd_remotely "$test_flag" "$cmd")
+        ;;
+    esac
 
-  os_name=$(get_string_after_delimiter "$raw_system_info" 'Distro: ')
-  desktop=$(get_string_after_delimiter "$raw_system_info" 'Desktop: ')
+    os_name=$(get_string_after_delimiter "$raw_system_info" 'Distro: ')
+    desktop=$(get_string_after_delimiter "$raw_system_info" 'Desktop: ')
+  else
+    cmd=$(get_jq_cmd 'System' 'Distro')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    os_name=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'Graphics' 'compositor')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    desktop=$(cmd_manager 'SILENT' "$cmd")
+  fi
 
   device_info_data['os_name']="$os_name"
   device_info_data['desktop_environment']="$desktop"
@@ -313,19 +476,27 @@ function get_desktop_environment()
   target=${target:-"${options_values['TARGET']}"}
   cmd="ps -A | grep --invert-match dev | grep --ignore-case --only-matching --extended-regexp --max-count=1 ${ux_regx}"
 
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd"
-      desktop_env=$(cmd_manager 'SILENT' "$cmd")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd"
-      desktop_env=$(cmd_remotely 'SILENT' "$cmd")
-      ;;
-  esac
+  # TODO: This manual data request can be removed once inxi >= 3.3.34 becomes
+  # more widely available.
+  if [[ -z "$RAW_JSON" ]]; then
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd"
+        desktop_env=$(cmd_manager 'SILENT' "$cmd")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd"
+        desktop_env=$(cmd_remotely 'SILENT' "$cmd")
+        ;;
+    esac
+  else
+    cmd=$(get_jq_cmd 'Graphics' 'compositor')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    desktop_env=$(cmd_manager 'SILENT' "$cmd")
+  fi
 
   case "$desktop_env" in
-    gnome-shell)
+    gnome-shell | mutter)
       formatted_de='gnome'
       ;;
     lxsession)
@@ -334,19 +505,31 @@ function get_desktop_environment()
     openbox)
       formatted_de='openbox'
       ;;
-    kde)
+    xfwm4)
+      formatted_de='xfce'
+      ;;
+    kde | kwin_wayland | kwin_x11)
       formatted_de='kde'
       ;;
     mate)
       formatted_de='mate'
       ;;
-    cinnamon)
+    cinnamon | muffin)
       formatted_de='cinnamon'
       ;;
     gamescope)
       formatted_de='gamescope'
       ;;
+    marco)
+      formatted_de='Mate'
+      ;;
+    sway)
+      formatted_de='sway'
+      ;;
   esac
+
+  # TODO: This should be changed to desktop_environment, and we should add the
+  # compositor information as an extra info
 
   device_info_data['compositor']="$formatted_de"
 }
@@ -370,39 +553,51 @@ function get_kernel_info()
   local kernel_release
   local kernel_machine_type
 
-  cmd_name='uname --kernel-name'
-  cmd_release='uname --kernel-release'
-  cmd_version='uname --kernel-version'
-  cmd_machine='uname --machine'
+  # TODO: This manual data request can be removed once inxi >= 3.3.34 becomes
+  # more widely available.
+  if [[ -z "$RAW_JSON" ]]; then
+    cmd_name='uname --kernel-name'
+    cmd_release='uname --kernel-release'
+    cmd_version='uname --kernel-version'
+    cmd_machine='uname --machine'
 
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd_name"
-      kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd_name"
+        kernel_name=$(cmd_manager 'SILENT' "$cmd_name")
 
-      show_verbose "$flag" "$cmd_release"
-      kernel_release=$(cmd_manager 'SILENT' "$cmd_release")
+        show_verbose "$flag" "$cmd_release"
+        kernel_release=$(cmd_manager 'SILENT' "$cmd_release")
 
-      show_verbose "$flag" "$cmd_version"
-      kernel_version=$(cmd_manager 'SILENT' "$cmd_version")
+        show_verbose "$flag" "$cmd_version"
+        kernel_version=$(cmd_manager 'SILENT' "$cmd_version")
 
-      show_verbose "$flag" "$cmd_machine"
-      kernel_machine=$(cmd_manager 'SILENT' "$cmd_machine")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd_name"
-      kernel_name=$(cmd_remotely 'SILENT' "$cmd_name")
+        show_verbose "$flag" "$cmd_machine"
+        kernel_machine=$(cmd_manager 'SILENT' "$cmd_machine")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd_name"
+        kernel_name=$(cmd_remotely 'SILENT' "$cmd_name")
 
-      show_verbose "$flag" "$cmd_release"
-      kernel_release=$(cmd_remotely 'SILENT' "$cmd_release")
+        show_verbose "$flag" "$cmd_release"
+        kernel_release=$(cmd_remotely 'SILENT' "$cmd_release")
 
-      show_verbose "$flag" "$cmd_version"
-      kernel_version=$(cmd_remotely 'SILENT' "$cmd_version")
+        show_verbose "$flag" "$cmd_version"
+        kernel_version=$(cmd_remotely 'SILENT' "$cmd_version")
 
-      show_verbose "$flag" "$cmd_machine"
-      kernel_machine=$(cmd_remotely 'SILENT' "$cmd_machine")
-      ;;
-  esac
+        show_verbose "$flag" "$cmd_machine"
+        kernel_machine=$(cmd_remotely 'SILENT' "$cmd_machine")
+        ;;
+    esac
+  else
+    cmd=$(get_jq_cmd 'System' 'Kernel')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    kernel_release=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'System' 'arch')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    kernel_machine=$(cmd_manager 'SILENT' "$cmd")
+  fi
 
   if [[ "$flag" == 'TEST_MODE' ]]; then
     printf '%s\n%s\n' "$cmd_name" "$cmd_release" "$cmd_version" "$cmd_machine"
@@ -425,7 +620,7 @@ function get_graphics()
 {
   local target="$1"
   local flag="$2"
-  local cmd='inxi --tty --width 1 --color 0 --graphics'
+  local cmd
   local -a _device_names=()
   local -a _driver_names=()
   local gpu_count
@@ -439,27 +634,53 @@ function get_graphics()
   flag=${flag:-'SILENT'}
   [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd"
-      graphics_data=$(cmd_manager "$test_flag" "$cmd")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd"
-      graphics_data=$(cmd_remotely "$test_flag" "$cmd")
-  esac
+  # TODO: This manual data request can be removed once inxi >= 3.3.34 becomes
+  # more widely available.
+  if [[ -z "$RAW_JSON" ]]; then
+    cmd='inxi --tty --width 1 --color 0 --graphics'
 
-  display_data=$(printf '%s' "$graphics_data" | grep --extended-regexp --after-context=10 'Display: ')
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd"
+        graphics_data=$(cmd_manager "$test_flag" "$cmd")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd"
+        graphics_data=$(cmd_remotely "$test_flag" "$cmd")
+    esac
 
-  while IFS= read -r line; do
-    _device_names+=("$line")
-  done < <(printf '%s' "$graphics_data" | grep --only-matching --perl-regexp 'Device-[0-9]+: \K.*')
+    display_data=$(printf '%s' "$graphics_data" | grep --extended-regexp --after-context=10 'Display: ')
 
-  while IFS= read -r line; do
-    _driver_names+=("$line")
-  done < <(printf '%s' "$graphics_data" | grep --only-matching --perl-regexp 'driver: \K.*')
+    while IFS= read -r line; do
+      _device_names+=("$line")
+    done < <(printf '%s' "$graphics_data" | grep --only-matching --perl-regexp 'Device-[0-9]+: \K.*')
 
-  window_system=$(get_string_after_delimiter "$display_data" 'Display: ')
+    while IFS= read -r line; do
+      _driver_names+=("$line")
+    done < <(printf '%s' "$graphics_data" | grep --only-matching --perl-regexp 'driver: \K.*')
+
+    window_system=$(get_string_after_delimiter "$display_data" 'Display: ')
+  else
+    cmd=$(get_jq_cmd 'Graphics' 'Device')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    raw_devices=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'Graphics' 'driver')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    raw_drivers=$(cmd_manager 'SILENT' "$cmd")
+
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && _device_names+=("$line")
+    done <<< "$raw_devices"
+
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && _driver_names+=("$line")
+    done <<< "$raw_drivers"
+
+    cmd=$(get_jq_cmd 'Graphics' 'Display')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    window_system=$(cmd_manager 'SILENT' "$cmd")
+  fi
 
   gpu_count="${#_device_names[@]}"
   for ((i = 0; i < gpu_count; i++)); do
@@ -488,19 +709,31 @@ function get_motherboard()
   flag=${flag:-'SILENT'}
   [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd"
-      inxi_machine_output=$(cmd_manager "$test_flag" "$cmd")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd"
-      inxi_machine_output=$(cmd_remotely "$test_flag" "$cmd")
-      ;;
-  esac
+  # TODO: This manual data request can be removed once inxi >= 3.3.34 becomes
+  # more widely available.
+  if [[ -z "$RAW_JSON" ]]; then
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd"
+        inxi_machine_output=$(cmd_manager "$test_flag" "$cmd")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd"
+        inxi_machine_output=$(cmd_remotely "$test_flag" "$cmd")
+        ;;
+    esac
 
-  motherboard_vendor=$(get_string_after_delimiter "$inxi_machine_output" 'Mobo: ')
-  motherboard_model=$(get_string_after_delimiter "$inxi_machine_output" 'model: ')
+    motherboard_vendor=$(get_string_after_delimiter "$inxi_machine_output" 'Mobo: ')
+    motherboard_model=$(get_string_after_delimiter "$inxi_machine_output" 'model: ')
+  else
+    cmd=$(get_jq_cmd 'Machine' 'Mobo')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    motherboard_vendor=$(cmd_manager 'SILENT' "$cmd")
+
+    cmd=$(get_jq_cmd 'Machine' 'model')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    motherboard_model=$(cmd_manager 'SILENT' "$cmd")
+  fi
 
   device_info_data['motherboard_vendor']="$motherboard_vendor"
   device_info_data['motherboard_name']="$motherboard_model"
@@ -518,22 +751,34 @@ function get_chassis()
   local cmd='inxi --tty --width 1 --color 0 --machine'
   local inxi_machine_output
   local test_flag='SILENT'
+  local chassis
 
   flag=${flag:-'SILENT'}
   [[ "$flag" == 'TEST_MODE' ]] && test_flag='TEST_MODE'
 
-  case "$target" in
-    2) # LOCAL_TARGET
-      show_verbose "$flag" "$cmd"
-      inxi_machine_output=$(cmd_manager "$test_flag" "$cmd")
-      ;;
-    3) # REMOTE_TARGET
-      show_verbose "$flag" "$cmd"
-      inxi_machine_output=$(cmd_remotely "$test_flag" "$cmd")
-      ;;
-  esac
+  # TODO: This manual data request can be removed once inxi >= 3.3.34 becomes
+  # more widely available.
+  if [[ -z "$RAW_JSON" ]]; then
 
-  device_info_data['chassis']=$(get_string_after_delimiter "$inxi_machine_output" 'Type: ')
+    case "$target" in
+      2) # LOCAL_TARGET
+        show_verbose "$flag" "$cmd"
+        inxi_machine_output=$(cmd_manager "$test_flag" "$cmd")
+        ;;
+      3) # REMOTE_TARGET
+        show_verbose "$flag" "$cmd"
+        inxi_machine_output=$(cmd_remotely "$test_flag" "$cmd")
+        ;;
+    esac
+
+    chassis=$(get_string_after_delimiter "$inxi_machine_output" 'Type: ')
+  else
+    cmd=$(get_jq_cmd 'Machine' 'Type')
+    cmd="${cmd} <<< '${RAW_JSON}'"
+    chassis=$(cmd_manager 'SILENT' "$cmd")
+  fi
+
+  device_info_data['chassis']="$chassis"
 }
 
 function get_monitors()
@@ -738,6 +983,43 @@ function get_img_info()
   device_info_data['img_type']="$img_type"
 }
 
+# This function checks whether the inxi version on the target machine meets the
+# minimum required version (3.3.34) for JSON output support.
+#
+# TODO: this function is temporary and should be removed once inxi >= 3.3.34
+# becomes widely available across common distributions.
+#
+# @flag   How to display a command, the default value is
+#   "SILENT". For more options, see `src/lib/kwlib.sh` function `cmd_manager`
+# @target Target can be 2 (LOCAL_TARGET) and 3 (REMOTE_TARGET)
+#
+# Return:
+# Returns 0 if the installed version is >= 3.3.34, 1 otherwise.
+function check_inxi_version()
+{
+  local flag="$1"
+  local target="$2"
+  local inxi_version
+  local minimum_version='3.3.34'
+  local version_for_cmp
+  local cmd="inxi --version | head -1 | cut --delimiter ' ' --fields=2"
+
+  case "$target" in
+    2) # LOCAL_TARGET
+      show_verbose "$flag" "$cmd"
+      inxi_version=$(cmd_manager 'SILENT' "$cmd")
+      ;;
+    3) # REMOTE_TARGET
+      show_verbose "$flag" "$cmd"
+      inxi_version=$(cmd_remotely 'SILENT' "$cmd")
+      ;;
+  esac
+
+  version_for_cmp=$(printf '%s\n%s' "$minimum_version" "$inxi_version" | sort --version-sort | head -1)
+  [[ "$version_for_cmp" == "$minimum_version" ]] && return 0
+  return 1
+}
+
 # This function calls other functions to populate the device_info_data variable
 # with the data related to the hardware from the target machine.
 #
@@ -753,15 +1035,20 @@ function learn_device()
 
   target=${target:-"${options_values['TARGET']}"}
 
-  get_ram "$target" "$flag"
+  # TODO: At some point we can drop the version check and fully rely on inxi
+  check_inxi_version "$flag" "$target"
+  if [[ "$?" -eq 0 ]]; then
+    get_all_info_json "$flag" "$target"
+  fi
+
+  get_ram "$flag"
   get_cpu "$target" "$flag"
-  get_disk "$target" "$flag"
   get_os "$target" "$flag"
-  get_desktop_environment "$target" "$flag"
   get_kernel_info "$target" "$flag"
   get_graphics "$target" "$flag"
   get_motherboard "$target" "$flag"
   get_chassis "$target" "$flag"
+  get_desktop_environment "$target" "$flag"
   get_monitors "$target" "$flag"
   get_modesetting "$target" "$flag"
 }
