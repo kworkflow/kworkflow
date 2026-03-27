@@ -75,6 +75,10 @@ Package install
 - Arch Linux:
    Available at AUR: https://aur.archlinux.org/packages/kworkflow-git/
 
+- **Debian**::
+
+   sudo apt install kworkflow
+
 Update
 ------
 
