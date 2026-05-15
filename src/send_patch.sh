@@ -1119,7 +1119,7 @@ function parse_mail_options()
             pass_option_to_send_email+=" ${i}"
           fi
         done
-        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "$pass_option_to_send_email ${options_values['PATCH_VERSION']}")"
+        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PATCH_VERSION']}${pass_option_to_send_email}")"
         options_values['COMMIT_RANGE']+="$(find_commit_references "${options_values['PASS_OPTION_TO_SEND_EMAIL']}")"
         rev_ret="$?"
         shift "$#"

@@ -305,6 +305,18 @@ function test_mail_parser()
   assert_equals_helper 'Set version option' "$LINENO" "$expected" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
   assert_equals_helper 'Set version option' "$LINENO" '@^' "${options_values['COMMIT_RANGE']}"
 
+  # version flag must precede commit count so git send-email accepts it
+  parse_mail_options -8 -v3
+  expected='-v3'
+  assert_equals_helper 'Set version with commit count: PATCH_VERSION' "$LINENO" "$expected" "${options_values['PATCH_VERSION']}"
+  expected='-v3 -8'
+  assert_equals_helper 'Set version with commit count: PASS_OPTION_TO_SEND_EMAIL' "$LINENO" "$expected" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
+
+  # The trailing space in '-8 ' comes from send_patch.sh appending a space after the commit count
+  # (options_values['COMMIT_RANGE']+="$commit_count "). reposition_commit_count_arg injects '--'
+  # before '-8' when no '--' is explicitly passed, which triggers that code path.
+  assert_equals_helper 'Set version with commit count: COMMIT_RANGE' "$LINENO" '-8 ' "${options_values['COMMIT_RANGE']}"
+
   parse_mail_options '--send'
   assert_equals_helper 'Set send flag' "$LINENO" 1 "${options_values['SEND']}"
 
@@ -491,7 +503,7 @@ function test_mail_send()
   parse_mail_options '--to=mail@test.com' -13 -v2 extra_args -- --other_arg
 
   output=$(mail_send 'TEST_MODE')
-  expected='git send-email --to="mail@test.com" extra_args --other_arg -13 -v2'
+  expected='git send-email --to="mail@test.com" -v2 extra_args --other_arg -13'
   assert_equals_helper 'Testing no options option' "$LINENO" "$expected" "$output"
 
   parse_mail_options '--to=mail@test.com'
