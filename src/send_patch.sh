@@ -1152,12 +1152,12 @@ function send_patch_help()
     exit
   fi
   printf '%s\n' 'kw send-patch:' \
-    '  send-patch (-s | --send) [<options>] - Send patches via e-mail' \
-    '  send-patch (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
-    '  send-patch (-i | --interactive) - Setup interactively' \
+    '  send-patch (-s | --send) [--simulate] [--private] [--rfc] [--to=<recipient>] [--cc=<recipient>] [<rev-range>] [-v<n>] [-- <extra>] - Send patches via e-mail' \
+    '  send-patch (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)... - Configure send-email options' \
+    '  send-patch (-i | --interactive) [--local | --global] - Setup interactively' \
     '  send-patch (-l | --list) - List the configurable options' \
-    '  send-patch --verify - Check if required configurations are set' \
-    '  send-patch --template[=<template>] [-n] - Set send-email configs based on <template>' \
+    '  send-patch --verify [--local | --global] - Check if required configurations are set' \
+    '  send-patch --template[=<template>] [-n | --no-interactive] [--local | --global] [-f | --force] - Set send-email configs based on <template>' \
     '  send-patch --verbose - Show a detailed output'
 }
 
