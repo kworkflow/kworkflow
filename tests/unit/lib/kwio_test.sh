@@ -126,6 +126,19 @@ function test_alert_completion_sound_alert()
   assertEquals 'Variable s should exist.' "$expected" "$output"
 }
 
+function test_alert_completion_empty_alert_commands()
+{
+  local output
+
+  notification_config['sound_alert_command']=''
+  notification_config['visual_alert_command']=''
+
+  output="$(alert_completion '' '--alert=vs' 2>&1)"
+
+  assert_line_match "$LINENO" 'Visual alert command is not configured.' "$output"
+  assert_line_match "$LINENO" 'Sound alert command is not configured.' "$output"
+}
+
 function test_ask_with_default()
 {
   local output=''
