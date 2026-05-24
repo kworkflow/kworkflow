@@ -17,6 +17,7 @@ _kw()
   local -a commands
 
   commands=(
+    'apply-patch:Apply a patch from a URL'
     'backup:Save or restore kw data'
     'bd:Build and install modules'
     'build:Build kernel'
@@ -406,7 +407,7 @@ _kw_maintainers()
 _kw_man()
 {
   _values 'kw commands' \
-    'backup' 'bd' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
+    'apply-patch' 'backup' 'bd' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
     'explore' 'init' 'send-patch' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
     'patch-hub' 
 }
