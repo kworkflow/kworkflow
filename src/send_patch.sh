@@ -77,6 +77,56 @@ function send_patch_main()
   return 0
 }
 
+# Runs checkpatch.pl on all patches in the patch cache.
+#
+# @kernel_root: Path to the root of the kernel tree
+# @flag: Flag to control the behavior of 'cmd_manager'
+#
+# Returns:
+# 0 if all patches pass checkpatch; 1 if any patch fails
+function run_checkpatch_on_patches()
+{
+  local kernel_root="$1"
+  local flag="$2"
+  local checkpatch_options="${configurations[checkpatch_opts]}"
+  local patch_cache="${KW_CACHE_DIR}/patches"
+  local patch_basename
+  local checkpatch
+  local ret=0
+  local cmd
+  local checkpatch_ret
+
+  checkpatch="$(join_path "$kernel_root" 'scripts/checkpatch.pl')"
+  if [[ ! -f "$checkpatch" ]]; then
+    warning 'checkpatch.pl not found, skipping style check.'
+    return 0
+  fi
+
+  cmd="perl ${checkpatch}"
+  [[ -n "$checkpatch_options" ]] && cmd+=" ${checkpatch_options}"
+
+  for patch_path in "${patch_cache}/"*; do
+    if ! is_a_patch "$patch_path"; then
+      continue
+    fi
+
+    patch_basename=$(basename "${patch_path}")
+    say "Running checkpatch on: ${patch_basename}"
+    cmd_manager "$flag" "${cmd} ${patch_path}"
+    
+    checkpatch_ret="$?"
+    if [[ "$checkpatch_ret" == 2 ]]; then
+      complain 'checkpatch.pl could not find the kernel tree root.'
+      ret=1
+    elif [[ "$checkpatch_ret" == 1 ]]; then
+      warning "checkpatch.pl detected issues in: ${patch_basename}"
+      ret=1
+    fi
+  done
+
+  return "$ret"
+}
+
 # This function prepares the appropriate options to send patches using
 # `git send-email`.
 #
@@ -126,6 +176,17 @@ function mail_send()
   fi
 
   kernel_root="$(find_kernel_root "$PWD")"
+
+  if [[ -z "${options_values['NO_CHECKPATCH']}" ]]; then
+    if [[ -n "$kernel_root" && "${send_patch_config[checkpatch_before_send]}" != 'no' ]]; then
+      run_checkpatch_on_patches "$kernel_root" "$flag"
+      if [[ "$?" != 0 ]]; then
+        complain 'Patches failed checkpatch, aborting send.'
+        return 1
+      fi
+    fi
+  fi
+
   # if inside a kernel repo use get_maintainer to populate recipients
   if [[ -z "$private" && -n "$kernel_root" ]]; then
     generate_kernel_recipients "$kernel_root"
@@ -962,7 +1023,7 @@ function parse_mail_options()
   local commit_count=''
   local short_options='s,t,f,v:,i,l,n,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,verbose,'
-  long_options+='template::,interactive,no-interactive,list,private,rfc,'
+  long_options+='template::,interactive,no-interactive,no-checkpatch,list,private,rfc,'
   local pass_option_to_send_email
 
   long_options+='email:,name:,'
@@ -1000,6 +1061,7 @@ function parse_mail_options()
   options_values['COMMIT_RANGE']=''
   options_values['PRIVATE']=''
   options_values['VERBOSE']=''
+  options_values['NO_CHECKPATCH']=''
 
   while [[ "$#" -gt 0 ]]; do
     case "$1" in
@@ -1092,6 +1154,10 @@ function parse_mail_options()
         options_values['NO_INTERACTIVE']=1
         shift
         ;;
+      --no-checkpatch)
+        options_values['NO_CHECKPATCH']=1
+        shift
+        ;;
       --rfc)
         options_values['RFC']='--rfc'
         shift
@@ -1152,7 +1218,7 @@ function send_patch_help()
     exit
   fi
   printf '%s\n' 'kw send-patch:' \
-    '  send-patch (-s | --send) [<options>] - Send patches via e-mail' \
+    '  send-patch (-s | --send) [<options>] [--no-checkpatch] - Send patches via e-mail' \
     '  send-patch (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
     '  send-patch (-i | --interactive) - Setup interactively' \
     '  send-patch (-l | --list) - List the configurable options' \
@@ -1161,4 +1227,5 @@ function send_patch_help()
     '  send-patch --verbose - Show a detailed output'
 }
 
+load_kworkflow_config
 load_send_patch_config
