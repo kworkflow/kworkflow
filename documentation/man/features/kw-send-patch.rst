@@ -6,7 +6,7 @@ kw send-patch - Send patches through mail
 
 SYNOPSIS
 ========
-| *kw send-patch* (-s | \--send) [\--simulate] [\--private] [\--rfc] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\-- <extra-args>...]
+| *kw send-patch* (-s | \--send) [\--simulate] [\--private] [\--rfc] [\--to='<recipient>,...'] [\--cc='<recipient>,...'] [<rev-range>...] [-v<version>] [\--no-checkpatch] [\-- <extra-args>...]
 | *kw send-patch* (-t | \--setup) [\--local | \--global] [-f | \--force] (<config> <value>)...
 | *kw send-patch* (-i | \--interactive) [\--local | \--global]
 | *kw send-patch* (-l | \--list)
@@ -39,6 +39,18 @@ the union of the recipients of each patch as the recipients of the cover-letter.
 .. note::
   Any option recognized by ``git send-email`` can be passed directly to it if
   placed after the double dash (``--``) argument.
+
+.. note::
+  When used inside a Linux kernel tree, **send-patch** automatically runs
+  ``checkpatch.pl`` on all generated patches before sending them. Every patch
+  in the series is checked and all style issues are reported before the
+  operation is aborted, so you can fix everything at once instead of
+  discovering problems one at a time. The check is skipped if
+  ``checkpatch.pl`` is not found at ``scripts/checkpatch.pl`` in the kernel
+  tree. You can pass extra options to ``checkpatch.pl`` via the
+  ``checkpatch_opts`` setting in ``kworkflow.config``. To disable this
+  validation for a single invocation use ``--no-checkpatch``; to disable it
+  permanently set ``checkpatch_before_send=no`` in ``send_patch.config``.
 
 OPTIONS
 =======
@@ -79,6 +91,11 @@ OPTIONS
 
 -v<version>:
   Specify a number *<version>* for your patch.
+
+\--no-checkpatch:
+  Skip the ``checkpatch.pl`` style validation that normally runs before
+  sending patches. Useful when you intentionally want to bypass the check
+  for a specific invocation.
 
 -t, \--setup:
   Initialize and configure **mail** functionality. Each argument specifies a

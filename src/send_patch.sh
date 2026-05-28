@@ -1221,7 +1221,7 @@ function send_patch_help()
     exit
   fi
   printf '%s\n' 'kw send-patch:' \
-    '  send-patch (-s | --send) [<options>] [--no-checkpatch] - Send patches via e-mail' \
+    '  send-patch (-s | --send) [--simulate] [--private] [--rfc] [--to=<recipient>] [--cc=<recipient>] [<rev-range>] [-v<n>] [--no-checkpatch] [-- <extra>] - Send patches via e-mail' \
     '  send-patch (-t | --setup) [--local | --global] [-f | --force] (<config> <value>)...' \
     '  send-patch (-i | --interactive) - Setup interactively' \
     '  send-patch (-l | --list) - List the configurable options' \
