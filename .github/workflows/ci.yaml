@@ -1,0 +1,133 @@
+name: CI ⚙
+
+on:
+  push:
+    paths-ignore:
+      - '.github/**'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 3
+
+      - name: Update the system
+        run: |
+          sudo apt update -y
+
+      - name: Install dependencies
+        run: |
+          sudo apt install -y shunit2 bc sqlite3 bsdmainutils libxml-xpath-perl fish
+
+      - name: Prepare for tests
+        run: |
+          ./run_tests.sh prepare
+          git config --global user.email "kw@kworkflow.net"
+          git config --global user.name "Kworkflow"
+
+      - name: Unit tests
+        run: |
+          ./run_tests.sh --unit
+
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Update the system
+        run: |
+          sudo apt update -y
+
+      - name: Install dependencies
+        run: |
+          sudo apt install -y shunit2 podman
+
+      - name: Integration tests
+        run: |
+          ./run_tests.sh --integration
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: shellcheck
+        uses: reviewdog/action-shellcheck@v1
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          level: info
+          filter_mode: added # This determines the scope of what reviewdog will report
+          fail_level: any # Possible values: [none, any, info, warning, error]
+          path: "."
+          pattern: "*.sh"
+          shellcheck_flags: "--external-sources --shell=bash --exclude=SC2016,SC2181,SC2034,SC2154,SC2001,SC1090,SC1091,SC2120"
+
+  sh-checker:
+    name: sh-checker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run the sh-checker
+        uses: luizm/action-sh-checker@v0.10.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHFMT_OPTS: -i=2 -ln=bash -fn -ci -sr # arguments to shfmt.
+        with:
+          sh_checker_comment: true
+          sh_checker_exclude: "documentation images sounds etc"
+          sh_checker_shfmt_disable: false
+          sh_checker_shellcheck_disable: true
+          sh_checker_checkbashisms_enable: false
+
+  setup-and-doc-build:
+    name: Setup and documentation build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # This is here just because git-email cannot be
+      # installed in the Github CI otherwise.
+      - name: Add git-core PPA for git-email
+        run: |
+          sudo add-apt-repository ppa:git-core/ppa -y
+
+      - name: Update the system
+        run: |
+          sudo apt update -y
+
+      - name: Install dependencies
+        run: |
+          sudo apt install -y python3-docutils python3-sphinx graphviz
+
+      - name: Check documentation
+        run: |
+          ./setup.sh --docs --force
+
+      - name: Check installation
+        run: |
+          ./setup.sh -i --force
