@@ -113,7 +113,7 @@ function run_checkpatch_on_patches()
     patch_basename=$(basename "${patch_path}")
     say "Running checkpatch on: ${patch_basename}"
     cmd_manager "$flag" "${cmd} ${patch_path}"
-    
+
     checkpatch_ret="$?"
     if [[ "$checkpatch_ret" == 2 ]]; then
       complain 'checkpatch.pl could not find the kernel tree root.'
@@ -181,8 +181,11 @@ function mail_send()
     if [[ -n "$kernel_root" && "${send_patch_config[checkpatch_before_send]}" != 'no' ]]; then
       run_checkpatch_on_patches "$kernel_root" "$flag"
       if [[ "$?" != 0 ]]; then
-        complain 'Patches failed checkpatch, aborting send.'
-        return 1
+        warning 'Patches failed checkpatch.'
+        if [[ "$(ask_yN 'Do you wish to proceed with sending anyway?')" == 0 ]]; then
+          complain 'Aborting send.'
+          return 1
+        fi
       fi
     fi
   fi
