@@ -307,6 +307,7 @@ function mk_fake_git()
   git config --local user.name 'Xpto Lala'
   git config --local user.email 'test@email.com'
   git config --local test.config value
+  git config --local commit.gpgsign false
 
   git add first_file
   git commit -q -m 'Initial commit'
