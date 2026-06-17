@@ -59,3 +59,20 @@ kw_git_is_ancestor()
     return 22 # EINVAL
   fi
 }
+
+kw_git_get_current_commit_hash()
+{
+  git rev-parse HEAD
+}
+
+kw_git_am()
+{
+  local content="$1"
+
+  cmd_manager 'SILENT' 'git am --quiet 2>&1 <<< "$content"'
+}
+
+kw_git_am_abort()
+{
+  cmd_manager 'SILENT' 'git am --abort 2>/dev/null'
+}
