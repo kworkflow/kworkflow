@@ -143,6 +143,7 @@ include "${REMOTE_KW_DEPLOY}/${distro}.sh"
 
 case "$action" in
   'modules')
+    include "${REMOTE_KW_DEPLOY}/install.sh"
     # shellcheck disable=SC2068
     install_modules ${action_parameters[@]}
     ;;
