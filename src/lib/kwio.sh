@@ -18,6 +18,7 @@ function alert_completion()
   local COMMAND=$1
   local ALERT_OPT=$2
   local opts
+  local alert_command
 
   if [[ $# -gt 1 && "$ALERT_OPT" =~ ^--alert= ]]; then
     opts="$(printf '%s\n' "$ALERT_OPT" | sed s/--alert=//)"
@@ -27,19 +28,25 @@ function alert_completion()
 
   while read -rN 1 option; do
     if [ "$option" == 'v' ]; then
-      if command_exists "${notification_config[visual_alert_command]}"; then
-        eval "${notification_config[visual_alert_command]} &"
+      alert_command="${notification_config[visual_alert_command]}"
+      if [[ -z "$alert_command" ]]; then
+        warning 'Visual alert enabled, but "visual_alert_command" is not configured. Check `kw config --show notification`.'
+      elif command_exists "$alert_command"; then
+        eval "${alert_command} &"
       else
         warning 'The following command set in the visual_alert_command variable could not be run:'
-        warning "${notification_config[visual_alert_command]}"
+        warning "$alert_command"
         warning 'Check if the necessary packages are installed.'
       fi
     elif [ "$option" == 's' ]; then
-      if command_exists "${notification_config[sound_alert_command]}"; then
-        eval "${notification_config[sound_alert_command]} &"
+      alert_command="${notification_config[sound_alert_command]}"
+      if [[ -z "$alert_command" ]]; then
+        warning 'Sound alert enabled, but "sound_alert_command" is not configured. Check `kw config --show notification`.'
+      elif command_exists "$alert_command"; then
+        eval "${alert_command} &"
       else
         warning 'The following command set in the sound_alert_command variable could not be run:'
-        warning "${notification_config[sound_alert_command]}"
+        warning "$alert_command"
         warning 'Check if the necessary packages are installed.'
       fi
     fi

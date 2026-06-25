@@ -32,6 +32,51 @@ function execute_sql_script()
   sqlite3 -init "$KW_DB_DIR/pre_cmd.sql" "$db_path" < "$sql_path"
 }
 
+# This function creates the default user database when it is missing.
+#
+# Return:
+# 0 if the database exists or was created
+# 1 if the database directory could not be created
+# 2 if the database SQL file is missing
+# non-zero from execute_sql_script if database creation fails
+function ensure_default_database_exists()
+{
+  local db_path
+  local sql_path="${KW_DB_DIR}/kwdb.sql"
+
+  db_path="$(join_path "$KW_DATA_DIR" "$DB_NAME")"
+
+  [[ -f "$db_path" ]] && return 0
+
+  if [[ ! -f "$sql_path" ]]; then
+    complain "Could not find the file: ${sql_path}"
+    return 2 # ENOENT
+  fi
+
+  mkdir --parents "$KW_DATA_DIR"
+  if [[ "$?" != 0 ]]; then
+    complain "Could not create database directory: ${KW_DATA_DIR}"
+    return 1 # EPERM
+  fi
+
+  execute_sql_script "$sql_path" "$DB_NAME" "$KW_DATA_DIR" > /dev/null
+}
+
+# This function checks if the given database target is kw's default database.
+#
+# @db:        Name of the database file
+# @db_folder: Path to the folder that contains @db
+#
+# Return:
+# 0 if the target is the default database; non-zero otherwise
+function is_default_database_target()
+{
+  local db="$1"
+  local db_folder="$2"
+
+  [[ "$db" == "$DB_NAME" && "$db_folder" == "$KW_DATA_DIR" ]]
+}
+
 # This function reads and executes a SQL script in the database
 #
 # @sql_cmd:   SQL command to be executed on @db
@@ -49,6 +94,10 @@ function execute_command_db()
   local db_path
 
   db_path="$(join_path "$db_folder" "$db")"
+
+  if [[ ! -f "$db_path" ]] && is_default_database_target "$db" "$db_folder"; then
+    ensure_default_database_exists
+  fi
 
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'
@@ -81,6 +130,10 @@ function insert_into()
   local cmd
 
   db_path="$(join_path "$db_folder" "$db")"
+
+  if [[ ! -f "$db_path" ]] && is_default_database_target "$db" "$db_folder"; then
+    ensure_default_database_exists
+  fi
 
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'
@@ -124,6 +177,10 @@ function replace_into()
 
   db_path="$(join_path "$db_folder" "$db")"
 
+  if [[ ! -f "$db_path" ]] && is_default_database_target "$db" "$db_folder"; then
+    ensure_default_database_exists
+  fi
+
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'
     return 2 # ENOENT
@@ -163,6 +220,10 @@ function remove_from()
   local db_path
 
   db_path="$(join_path "${db_folder}" "$db")"
+
+  if [[ ! -f "$db_path" ]] && is_default_database_target "$db" "$db_folder"; then
+    ensure_default_database_exists
+  fi
 
   if [[ ! -f "${db_path}" ]]; then
     complain 'Database does not exist'
@@ -212,6 +273,10 @@ function select_from()
   local query
 
   db_path="$(join_path "$db_folder" "$db")"
+
+  if [[ ! -f "$db_path" ]] && is_default_database_target "$db" "$db_folder"; then
+    ensure_default_database_exists
+  fi
 
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'
@@ -267,6 +332,10 @@ function update_into()
   local query
 
   db_path="$(join_path "$db_folder" "$db")"
+
+  if [[ ! -f "$db_path" ]] && is_default_database_target "$db" "$db_folder"; then
+    ensure_default_database_exists
+  fi
 
   if [[ ! -f "$db_path" ]]; then
     complain 'Database does not exist'

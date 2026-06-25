@@ -26,7 +26,7 @@ function oneTimeTearDown()
 function setUp()
 {
   # Ensure each test starts from a clean, deterministic db state
-  rm -f "${KW_DATA_DIR}/kw.db"
+  rm --force "${KW_DATA_DIR}/kw.db"
   execute_sql_script "${DB_FILES}/init.sql" > /dev/null 2>&1
   execute_sql_script "${DB_FILES}/insert.sql" > /dev/null 2>&1
 }
@@ -38,7 +38,7 @@ function test_execute_sql_script()
   local ret
 
   # This test validates db creation messaging, start from no db file
-  rm -f "${KW_DATA_DIR}/kw.db"
+  rm --force "${KW_DATA_DIR}/kw.db"
 
   output=$(execute_sql_script 'wrong/path/invalid_script.sql')
   ret="$?"
@@ -71,6 +71,44 @@ function test_execute_sql_script()
 
   output=$(sqlite3 "$KW_DATA_DIR/kw.db" -batch 'SELECT count(rowid) FROM statistics;')
   assert_equals_helper 'Expected 4 statistic entries' "$LINENO" 4 "$output"
+}
+
+function test_default_database_is_created_on_insert()
+{
+  local columns='("label_name","status","date","time","elapsed_time_in_secs")'
+  local rows="('build','success','2026-05-16','12:00:00','1')"
+  local output
+  local ret
+
+  rm --force "${KW_DATA_DIR}/kw.db"
+
+  output=$(insert_into '"statistics_report"' "$columns" "$rows")
+  ret="$?"
+
+  assert_equals_helper 'Default database should be created on demand' "$LINENO" 0 "$ret"
+  assertTrue "(${LINENO}) DB file should be created" '[[ -f "${KW_DATA_DIR}/kw.db" ]]'
+
+  output=$(sqlite3 "${KW_DATA_DIR}/kw.db" -batch 'SELECT count(*) FROM "statistics_report" ;')
+  assert_equals_helper 'Expected one statistics entry' "$LINENO" 1 "$output"
+}
+
+function test_insert_into_non_default_database_is_not_created()
+{
+  local columns='("label_name","status","date","time","elapsed_time_in_secs")'
+  local rows="('build','success','2026-05-16','12:00:00','1')"
+  local output
+  local expected
+  local ret
+
+  rm --force "${KW_DATA_DIR}/custom.db"
+
+  output=$(insert_into '"statistics_report"' "$columns" "$rows" 'custom.db')
+  ret="$?"
+  expected='Database does not exist'
+
+  assert_equals_helper 'Non-default database should not be created on demand' "$LINENO" 2 "$ret"
+  assert_equals_helper 'Expected old missing database error' "$LINENO" "$expected" "$output"
+  assertFalse "(${LINENO}) Custom DB file should not be created" '[[ -f "${KW_DATA_DIR}/custom.db" ]]'
 }
 
 function test_format_values_db()
