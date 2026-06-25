@@ -14,7 +14,7 @@ function oneTimeSetUp()
   export KW_CACHE_DIR="$SHUNIT_TMPDIR/cache/"
 
   mk_fake_kernel_root "$FAKE_KERNEL"
-  mkdir -p "$KW_ETC_DIR/mail_templates/"
+  mkdir --parents "$KW_ETC_DIR/mail_templates/"
 
   touch "$KW_ETC_DIR/mail_templates/test1"
   printf '%s\n' 'sendemail.smtpserver=smtp.test1.com' > "$KW_ETC_DIR/mail_templates/test1"
@@ -39,19 +39,25 @@ function oneTimeSetUp()
 
 function oneTimeTearDown()
 {
-  rm -rf "$FAKE_GIT"
+  rm --recursive --force "$FAKE_GIT"
 }
 
 function setUp()
 {
   declare -gA options_values
   declare -gA set_confs
+  declare -g _original_kw_cache_dir="$KW_CACHE_DIR"
+  declare -g _checkpatch_test_cache="${SHUNIT_TMPDIR}/checkpatch_test_cache"
+  mkdir --parents "${_checkpatch_test_cache}/patches"
 }
 
 function tearDown()
 {
   unset options_values
   unset set_confs
+  rm --force "${FAKE_KERNEL}/scripts/checkpatch.pl"
+  rm --recursive --force "$_checkpatch_test_cache"
+  export KW_CACHE_DIR="$_original_kw_cache_dir"
 }
 
 function test_validate_encryption()
@@ -305,6 +311,9 @@ function test_mail_parser()
   assert_equals_helper 'Set version option' "$LINENO" "$expected" "${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
   assert_equals_helper 'Set version option' "$LINENO" '@^' "${options_values['COMMIT_RANGE']}"
 
+  parse_mail_options '--no-checkpatch'
+  assert_equals_helper 'Set no-checkpatch flag' "$LINENO" 1 "${options_values['NO_CHECKPATCH']}"
+
   parse_mail_options '--send'
   assert_equals_helper 'Set send flag' "$LINENO" 1 "${options_values['SEND']}"
 
@@ -507,6 +516,173 @@ function test_mail_send()
   output=$(mail_send 'TEST_MODE')
   expected='git send-email --to="mail@test.com" --annotate --cover-letter --no-chain-reply-to --thread @^^'
   assert_equals_helper 'Testing default option' "$LINENO" "$expected" "$output"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to move back to original dir"
+    exit "$ret"
+  }
+}
+
+function test_run_checkpatch_on_patches_missing_script()
+{
+  export KW_CACHE_DIR="$_checkpatch_test_cache"
+  configurations['checkpatch_opts']=''
+
+  run_checkpatch_on_patches "$FAKE_KERNEL" 'TEST_MODE' &> /dev/null
+  assert_equals_helper 'Missing checkpatch.pl should return 0' "$LINENO" 0 "$?"
+}
+
+function test_run_checkpatch_on_patches_empty_cache()
+{
+  local fake_checkpatch="${FAKE_KERNEL}/scripts/checkpatch.pl"
+
+  export KW_CACHE_DIR="$_checkpatch_test_cache"
+  configurations['checkpatch_opts']=''
+
+  cp "${SAMPLES_DIR}/scripts/checkpatch_pass.pl" "$fake_checkpatch"
+  chmod +x "$fake_checkpatch"
+
+  run_checkpatch_on_patches "$FAKE_KERNEL" 'TEST_MODE' &> /dev/null
+  assert_equals_helper 'No patches should return 0' "$LINENO" 0 "$?"
+}
+
+function test_run_checkpatch_on_patches_passing()
+{
+  local output
+  local fake_checkpatch="${FAKE_KERNEL}/scripts/checkpatch.pl"
+  local fake_patch="${_checkpatch_test_cache}/patches/0001-fake.patch"
+  local expected_checkpatch="$(join_path "$FAKE_KERNEL" 'scripts/checkpatch.pl')"
+
+  export KW_CACHE_DIR="$_checkpatch_test_cache"
+  configurations['checkpatch_opts']=''
+
+  cp "${SAMPLES_DIR}/scripts/checkpatch_pass.pl" "$fake_checkpatch"
+  chmod +x "$fake_checkpatch"
+
+  printf 'Subject: [PATCH] fake patch\n---\ndiff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1 +1 @@\n' > "$fake_patch"
+  output=$(run_checkpatch_on_patches "$FAKE_KERNEL" 'TEST_MODE')
+  assert_equals_helper 'Should call checkpatch on patch' "$LINENO" \
+    "Running checkpatch on: 0001-fake.patch"$'\n'"perl $expected_checkpatch $fake_patch" "$output"
+}
+
+function test_run_checkpatch_on_patches_with_opts()
+{
+  local output
+  local fake_checkpatch="${FAKE_KERNEL}/scripts/checkpatch.pl"
+  local fake_patch="${_checkpatch_test_cache}/patches/0001-fake.patch"
+  local expected_checkpatch="$(join_path "$FAKE_KERNEL" 'scripts/checkpatch.pl')"
+
+  export KW_CACHE_DIR="$_checkpatch_test_cache"
+  configurations['checkpatch_opts']='--no-tree'
+
+  cp "${SAMPLES_DIR}/scripts/checkpatch_pass.pl" "$fake_checkpatch"
+  chmod +x "$fake_checkpatch"
+
+  printf 'Subject: [PATCH] fake patch\n---\ndiff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1 +1 @@\n' > "$fake_patch"
+  output=$(run_checkpatch_on_patches "$FAKE_KERNEL" 'TEST_MODE')
+  assert_equals_helper 'Should pass checkpatch_opts to checkpatch' "$LINENO" \
+    "Running checkpatch on: 0001-fake.patch"$'\n'"perl $expected_checkpatch --no-tree $fake_patch" "$output"
+}
+
+function test_run_checkpatch_on_patches_with_multiple_opts()
+{
+  local output
+  local fake_checkpatch="${FAKE_KERNEL}/scripts/checkpatch.pl"
+  local fake_patch="${_checkpatch_test_cache}/patches/0001-fake.patch"
+  local expected_checkpatch="$(join_path "$FAKE_KERNEL" 'scripts/checkpatch.pl')"
+
+  export KW_CACHE_DIR="$_checkpatch_test_cache"
+  configurations['checkpatch_opts']='--no-tree --quiet'
+
+  cp "${SAMPLES_DIR}/scripts/checkpatch_pass.pl" "$fake_checkpatch"
+  chmod +x "$fake_checkpatch"
+
+  printf 'Subject: [PATCH] fake patch\n---\ndiff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1 +1 @@\n' > "$fake_patch"
+  output=$(run_checkpatch_on_patches "$FAKE_KERNEL" 'TEST_MODE')
+  assert_equals_helper 'Should pass multiple checkpatch_opts to checkpatch' "$LINENO" \
+    "Running checkpatch on: 0001-fake.patch"$'\n'"perl $expected_checkpatch --no-tree --quiet $fake_patch" "$output"
+}
+
+function test_run_checkpatch_on_patches_failing()
+{
+  local fake_checkpatch="${FAKE_KERNEL}/scripts/checkpatch.pl"
+  local fake_patch="${_checkpatch_test_cache}/patches/0001-fake.patch"
+
+  export KW_CACHE_DIR="$_checkpatch_test_cache"
+  configurations['checkpatch_opts']=''
+
+  cp "${SAMPLES_DIR}/scripts/checkpatch_fail.pl" "$fake_checkpatch"
+  chmod +x "$fake_checkpatch"
+
+  printf 'Subject: [PATCH] fake patch\n---\ndiff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1 +1 @@\n' > "$fake_patch"
+  run_checkpatch_on_patches "$FAKE_KERNEL" 'SILENT' &> /dev/null
+  assert_equals_helper 'Failing checkpatch should return 1' "$LINENO" 1 "$?"
+}
+
+function test_run_checkpatch_on_patches_multiple_failing()
+{
+  local output
+  local fake_checkpatch="${FAKE_KERNEL}/scripts/checkpatch.pl"
+  local fake_patch="${_checkpatch_test_cache}/patches/0001-fake.patch"
+  local fake_patch2="${_checkpatch_test_cache}/patches/0002-fake.patch"
+
+  export KW_CACHE_DIR="$_checkpatch_test_cache"
+  configurations['checkpatch_opts']=''
+
+  cp "${SAMPLES_DIR}/scripts/checkpatch_fail.pl" "$fake_checkpatch"
+  chmod +x "$fake_checkpatch"
+
+  printf 'Subject: [PATCH] fake patch\n---\ndiff --git a/f b/f\n--- a/f\n+++ b/f\n@@ -1 +1 @@\n' > "$fake_patch"
+  printf 'Subject: [PATCH 2/2] second fake patch\n---\ndiff --git a/g b/g\n--- a/g\n+++ b/g\n@@ -1 +1 @@\n' > "$fake_patch2"
+
+  output=$(run_checkpatch_on_patches "$FAKE_KERNEL" 'SILENT')
+  assert_equals_helper 'Multiple failing patches should return 1' "$LINENO" 1 "$?"
+  assertTrue "(${LINENO}) First patch should be checked" '[[ "${output}" =~ "0001-fake.patch" ]]'
+  assertTrue "(${LINENO}) Second patch should be checked" '[[ "${output}" =~ "0002-fake.patch" ]]'
+}
+
+function test_mail_send_checkpatch()
+{
+  local output
+  local ret
+  local fake_checkpatch="${FAKE_KERNEL}/scripts/checkpatch.pl"
+
+  cd "$FAKE_KERNEL" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake kernel"
+    exit "$ret"
+  }
+
+  cp "${SAMPLES_DIR}/scripts/checkpatch_fail.pl" "$fake_checkpatch"
+  chmod +x "$fake_checkpatch"
+
+  # Failing checkpatch: user declines to proceed, should abort
+  parse_mail_options '--private' '@^'
+  send_patch_config['checkpatch_before_send']='yes'
+  printf 'n\n' | mail_send 'SILENT' &> /dev/null
+  assert_equals_helper 'Should abort when checkpatch fails and user says no' "$LINENO" 1 "$?"
+
+  # Failing checkpatch: user chooses to proceed anyway, send should go through
+  parse_mail_options '--private' '@^'
+  send_patch_config['checkpatch_before_send']='yes'
+  output=$(printf 'y\n' | mail_send 'TEST_MODE' 2> /dev/null)
+  assertTrue "(${LINENO}) Should proceed when checkpatch fails and user says yes" \
+    '[[ "${output}" =~ "git send-email" ]]'
+
+  # --no-checkpatch should bypass checkpatch and proceed to send
+  parse_mail_options '--private' '--no-checkpatch' '@^'
+  send_patch_config['checkpatch_before_send']='yes'
+  output=$(mail_send 'TEST_MODE')
+  assertTrue "(${LINENO}) --no-checkpatch should bypass checkpatch and proceed" \
+    '[[ "${output}" =~ "git send-email" ]]'
+
+  # checkpatch_before_send=no should bypass checkpatch and proceed to send
+  parse_mail_options '--private' '@^'
+  send_patch_config['checkpatch_before_send']='no'
+  output=$(mail_send 'TEST_MODE')
+  assertTrue "(${LINENO}) checkpatch_before_send=no should bypass checkpatch and proceed" \
+    '[[ "${output}" =~ "git send-email" ]]'
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
@@ -1013,7 +1189,7 @@ function test_mail_verify()
   declare -gA set_confs
 
   # test custom local smtpserver
-  mkdir -p ./fake_server
+  mkdir --parents ./fake_server
 
   expected_results=(
     'It appears you are using a local smtpserver with custom configurations.'
@@ -1028,7 +1204,7 @@ function test_mail_verify()
   output=$(mail_verify)
   compare_command_sequence '' "$LINENO" 'expected_results' "$output"
 
-  rm -rf ./fake_server
+  rm --recursive --force ./fake_server
 
   cd "$ORIGINAL_DIR" || {
     ret="$?"
