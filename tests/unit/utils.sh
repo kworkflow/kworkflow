@@ -368,6 +368,8 @@ function mk_fake_kw_env()
 # @line $LINENO variable
 # @expected_res Name of the array variable containing expected strings
 # @result_to_compare A raw output from the string
+# Compare a sequence of commands output
+# Note: For single-line outputs, the use of assertEquals is highly recommended over compare_command_sequence.
 function compare_command_sequence()
 {
   local msg="$1"
@@ -386,7 +388,7 @@ function compare_command_sequence()
           "$KW_COLOR_RED" "$KW_COLOR_NONE" "$KW_COLOR_RED" "${f}" "$KW_COLOR_NONE"
       fi
     fi
-    ((count++))
+    ((++count))
   done <<< "$result_to_compare"
 }
 
