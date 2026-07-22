@@ -167,7 +167,7 @@ man_pages = [
     ('man/features/kw-remote', 'kw-remote', 'Manage set of tracked test machines', [author], 1),
     ('man/features/kw-debug', 'kw-debug', 'kernel debug', [author], 1),
     ('man/features/kw-deploy', 'kw-deploy', 'deploy the kernel', [author], 1),
-    ('man/features/kw-device', 'kw-device', 'hardware information', [author], 1),
+    ('man/features/kw-get-device-info', 'kw-get-device-info', 'hardware information', [author], 1),
     ('man/features/kw-diff', 'kw-diff', 'useful diff wrapper', [author], 1),
     ('man/features/kw-drm', 'kw-drm', 'drm subsystem support', [author], 1),
     ('man/features/kw-explore', 'kw-explore', 'git grep wrapper', [author], 1),

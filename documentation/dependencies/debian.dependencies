@@ -32,3 +32,4 @@ procps
 pciutils
 libnotify-bin
 python3-sphinx
+inxi

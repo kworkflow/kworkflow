@@ -864,12 +864,12 @@ function test_get_git_repository_branches()
   teardownGitRepository
 }
 
-function test_show_verbose_no_verbose()
+function test_show_verbose_with_test_mode_should_work()
 {
   local output
 
-  output=$(show_verbose 'TEST_MODE' 'it shoud not display anything')
-  assert_equals_helper 'Expected an empty string' "$LINENO" '' "$output"
+  output=$(show_verbose 'TEST_MODE' 'display something')
+  assert_equals_helper 'Expected that the output display some message' "${LINENO}" 'display something' "${output}"
 }
 
 function test_show_verbose()

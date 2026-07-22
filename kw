@@ -227,11 +227,11 @@ function kw()
         report_main "$@"
       )
       ;;
-    device)
+    get-device-info | i)
       (
-        include "${KW_LIB_DIR}/device_info.sh"
+        include "${KW_LIB_DIR}/get_device_info.sh"
 
-        device_main "$@"
+        device_info_main "$@"
       )
       ;;
     backup)

@@ -127,7 +127,7 @@ function show_verbose()
   local flag="$1"
   local cmd="$2"
 
-  [[ "$flag" == 'VERBOSE' ]] && say "$cmd"
+  [[ "$flag" == 'VERBOSE' || "$flag" == 'TEST_MODE' ]] && say "$cmd"
 }
 
 # This function creates a temporary shared memory directory to be used by

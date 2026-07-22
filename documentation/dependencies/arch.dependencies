@@ -30,3 +30,4 @@ procps-ng
 pciutils
 libnotify
 python-sphinx
+inxi

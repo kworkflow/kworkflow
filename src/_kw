@@ -25,7 +25,7 @@ _kw()
     'config:Set kw config options'
     'debug:Linux kernel debug utilities'
     'deploy:Deploy a new kernel image to a target machine'
-    'device:Show basic hardware information'
+    'get-device-info:Show basic hardware information'
     'diff:Diff files'
     'drm:Set of commands to work with DRM drivers '
     'env:Handle kw envs'
@@ -221,7 +221,7 @@ _kw_deploy()
   fi
 }
 
-_kw_device()
+_kw_get_device_info()
 {
   _arguments : \
     '(--verbose)--verbose[enable verbose mode]' \
@@ -406,7 +406,7 @@ _kw_maintainers()
 _kw_man()
 {
   _values 'kw commands' \
-    'backup' 'bd' 'build' 'codestyle' 'config' 'debug' 'deploy' 'device' 'diff' 'drm' 'env' \
+    'backup' 'bd' 'build' 'codestyle' 'config' 'debug' 'deploy' 'get-device-info' 'diff' 'drm' 'env' \
     'explore' 'init' 'send-patch' 'maintainers' 'pomodoro' 'remote' 'report' 'self-update' 'ssh' \
     'patch-hub' 
 }

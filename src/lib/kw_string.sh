@@ -268,6 +268,81 @@ function str_escape_single_quotes()
   printf '%s' "$string" | sed "s/'/\\\'/g"
 }
 
+# This function converts a string into an array based on the delimiter provided
+# by the user. If no delimiter is passed, $'\n' is assumed, which is ideal for
+# handling multiple-line command output.
+#
+# @string: String to be processed
+# @_array: Array reference to be filled in this function
+#
+# @string:    The input string to split.
+# @_array:    Name-ref to the target array; it will be populated with elements.
+# @delimiter: The delimiter character or string. Defaults to newline.
+#
+# Return:
+# Split a string into an indexed array using a given delimiter.
+function convert_string_to_array_based_on_delimiter()
+{
+  local string="$1"
+  local -n _array="$2"
+  local delimiter="$3"
+
+  delimiter=${delimiter:-$'\n'}
+
+  if [[ "$delimiter" == $'\n' ]]; then
+    string=$(tr '\n' ',' <<< "$string")
+    delimiter=","
+  fi
+
+  IFS="$delimiter" read -ra _array <<< "$string"
+}
+
+# This function gets the first match of whatever string is between the other
+# two strings. If the input marks have spaces, this will be take in
+# consideration.
+#
+# @raw_string: Target string to be parsed.
+# @first_delimiter: First string delimiter.
+# @second_delimiter: Second string delimiter
+#
+# Return:
+# Return string between other strings.
+function get_string_between_strings_delimiters()
+{
+  local raw_string="$1"
+  local first_delimiter="$2"
+  local second_delimiter="$3"
+  local match
+
+  if [[ -z "$first_delimiter" || -z "$second_delimiter" || -z "$raw_string" ]]; then
+    return 22 # EINVAL
+  fi
+
+  match=$(grep --only-matching --perl-regexp \
+              "(?<=${first_delimiter}).*?(?=${second_delimiter})" <<< "$raw_string")
+
+  printf '%s\n' "$match" | head -1
+}
+
+# Get all the strings after a delimiter. Note that delimiter can be a character
+# or an string.
+#
+# @raw_string: Target string to be parsed.
+# @prefix: String delimiter.
+#
+# Return:
+# If there is a delimiter match, return everything after that. If there is no
+# match, return an empty string.
+function get_string_after_delimiter()
+{
+  local raw_string="$1"
+  local prefix="$2"
+  local match
+
+  match=$(grep --only-matching --perl-regexp "(?<=${prefix}).*" <<< "$raw_string")
+  printf '%s' "$match"
+}
+
 # Convert arbitrary string to Unix-friendly filename.
 #
 # @string: String to be processed

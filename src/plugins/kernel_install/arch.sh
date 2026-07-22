@@ -17,6 +17,7 @@ declare -ga required_packages=(
   'xz'
   'rng-tools'
   'jq'
+  'inxi'
 )
 
 # ArchLinux package manager

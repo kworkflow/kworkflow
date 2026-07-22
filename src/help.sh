@@ -25,7 +25,7 @@ function kworkflow_help()
     '  explore,e - Explore string patterns' \
     '  pomodoro,p - kw pomodoro support' \
     '  report,r - Show kw pomodoro reports and kw usage statistics' \
-    '  device - Show basic hardware information' \
+    '  get-device-info, i - Show basic hardware information' \
     '  backup - Save or restore kw data' \
     '  debug - Linux kernel debug utilities' \
     '  send-patch - Send patches via email' \

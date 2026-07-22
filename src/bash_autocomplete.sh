@@ -15,7 +15,7 @@ function _kw_autocomplete()
 
   kw_options['kw']='init build deploy bd diff ssh codestyle self-update
                     maintainers kernel-config-manager config remote explore
-                    pomodoro report device backup debug send-patch env patch-hub
+                    pomodoro report get-device-info backup debug send-patch env patch-hub
                     clear-cache drm vm version man help'
 
   kw_options['init']='--arch --remote --target --force --template --verbose'
@@ -63,7 +63,7 @@ function _kw_autocomplete()
   kw_options['report']='--day --week --month --year --output --statistics --pomodoro --all --verbose'
   kw_options['r']="${kw_options['report']}"
 
-  kw_options['device']='--local --remote --vm --verbose'
+  kw_options['get-device-info']='--local --remote --vm --verbose'
 
   kw_options['backup']='--restore --force --verbose --help'
 
