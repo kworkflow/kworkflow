@@ -11,6 +11,7 @@ function kworkflow_help()
     '' \
     'Commands:' \
     '  init - Initialize kworkflow config file' \
+    '  apply-patch,ap - Apply a patch from a URL' \
     '  build,b - Build kernel' \
     '  deploy,d - Deploy a new kernel image to a target machine' \
     '  bd - Build and install kernel image/modules' \
