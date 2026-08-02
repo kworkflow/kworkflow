@@ -29,11 +29,11 @@ function to_cc_main()
   patch="$(basename "$patch_path")"
 
   if [[ "$patch" =~ cover-letter ]]; then
-    cat "${patch_cache}/cover-letter"
+    [[ -f "${patch_cache}/cover-letter" ]] && cat "${patch_cache}/cover-letter"
     exit 0
   fi
 
-  cat "${patch_cache}/${patch}"
+  [[ -f "${patch_cache}/${patch}" ]] && cat "${patch_cache}/${patch}"
   exit 0
 }
 

@@ -149,12 +149,20 @@ function mail_send()
   local use_default_to_cc_approach="${send_patch_config['use_default_to_cc_approach']}"
   local kernel_root
   local patch_count=0
+  local patch_files_from_opts=''
   local cmd='git send-email'
   local cover_letter='cover-letter'
 
   flag=${flag:-'SILENT'}
 
   [[ "$use_default_to_cc_approach" == 'yes' ]] && cover_letter=''
+
+  eval "set -- $extra_opts"
+  for word in "$@"; do
+    [[ "$word" == -* ]] && continue
+    [[ ! -f "$word" ]] && continue
+    patch_files_from_opts+=" $word"
+  done
 
   [[ -n "$dryrun" ]] && cmd+=" $dryrun"
 
@@ -168,9 +176,38 @@ function mail_send()
     cmd+=" --cc=\"$cc_recipients\""
   fi
 
-  # Don't generate a cover letter when sending only one patch
-  patch_count="$(pre_generate_patches "$commit_range" "$version")"
-  if [[ "$patch_count" -eq 1 ]]; then
+  if [[ -n "$patch_files_from_opts" && -n "$commit_range" ]]; then
+    # Allow cover-letter-only files alongside a commit range
+    local non_cover_files=''
+    for pf in $patch_files_from_opts; do
+      [[ ! "$(basename "$pf")" =~ cover-letter ]] && non_cover_files+=" $pf"
+    done
+    if [[ -n "$non_cover_files" ]]; then
+      complain 'Cannot combine a commit range with existing patch files.'
+      complain 'Use a <rev-range> (e.g. -3) or pass patch files after --, not both.'
+      return 22
+    fi
+  fi
+
+  if [[ -n "$patch_files_from_opts" ]]; then
+    if [[ -n "$commit_range" ]]; then
+      # Generate patches first, then copy cover-letter files alongside
+      patch_count="$(pre_generate_patches "$commit_range" "$version")"
+      for cl in $patch_files_from_opts; do
+        cp "$cl" "${KW_CACHE_DIR}/patches/"
+        ((patch_count++))
+      done
+    else
+      patch_count="$(prepare_existing_patches "$patch_files_from_opts")" || return 22
+    fi
+  elif [[ -n "$commit_range" ]]; then
+    patch_count="$(pre_generate_patches "$commit_range" "$version")"
+  fi
+
+  # Don't generate a cover letter when sending only one patch, or
+  # when a cover-letter file is already provided among existing patches
+  if [[ "$patch_count" -eq 1 ]] ||
+    [[ -n "$patch_files_from_opts" && "$patch_files_from_opts" =~ cover-letter ]]; then
     opts="$(sed 's/--cover-letter//g' <<< "$opts")"
     cover_letter=''
   fi
@@ -261,6 +298,50 @@ function pre_generate_patches()
       ((count++))
     fi
   done
+
+  printf '%s\n' "$count"
+}
+
+# This function prepares the existing patches, copying them to the cache folder.
+# these are used to count the number of patches and later to generate the
+# appropriate recipients
+#
+# @patch_files: The list of revisions used to generate the patches
+#
+# Returns:
+# The count of how many patches were created
+function prepare_existing_patches()
+{
+  local patch_files="$1"
+  local patch_cache="${KW_CACHE_DIR}/patches"
+  local count=0
+
+  if [[ -d "$patch_cache" && ! "$patch_cache" =~ ^(~|/|"$HOME")$ ]]; then
+    rm -rf "$patch_cache"
+  fi
+  mkdir -p "$patch_cache"
+
+  if [[ -n "$patch_files" ]]; then
+    for patch_file in $patch_files; do
+      if [[ ! -f "$patch_file" ]]; then
+        continue
+      fi
+
+      if [[ "$(basename "$patch_file")" =~ cover-letter ]]; then
+        cp "$patch_file" "$patch_cache/"
+        ((count++))
+        continue
+      fi
+
+      if ! is_a_patch "$patch_file"; then
+        complain "Not a valid patch file: $patch_file" >&2
+        return 22
+      fi
+
+      cp "$patch_file" "$patch_cache/"
+      ((count++))
+    done
+  fi
 
   printf '%s\n' "$count"
 }
@@ -1024,6 +1105,7 @@ function parse_mail_options()
   local setup_token=0
   local patch_version=''
   local commit_count=''
+  local rev_ret=-1
   local short_options='s,t,f,v:,i,l,n,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,verbose,'
   long_options+='template::,interactive,no-interactive,no-checkpatch,list,private,rfc,'
@@ -1205,9 +1287,18 @@ function parse_mail_options()
   fi
 
   # assume last commit if none given
-  if [[ -z "${options_values['COMMIT_RANGE']}" && "$rev_ret" == 22 ]]; then
-    options_values['COMMIT_RANGE']='@^'
-    options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
+  if [[ -z "${options_values['COMMIT_RANGE']}" ]]; then
+    if [[ "$rev_ret" == -1 ]]; then
+      # -- was not encountered; default to @^ (original behaviour)
+      options_values['COMMIT_RANGE']='@^'
+      options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
+    elif [[ "$rev_ret" == 22 ]]; then
+      # -- was encountered, no commit refs; only default @^ if no .patch files
+      if [[ ! "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" =~ \.patch(\ |$) ]]; then
+        options_values['COMMIT_RANGE']='@^'
+        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
+      fi
+    fi
   fi
 
   return 0

@@ -1282,4 +1282,375 @@ function test_add_recipients()
   assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
 }
 
+function test_prepare_existing_patches()
+{
+  local count
+  local ret
+  local test_dir="$SHUNIT_TMPDIR/test_patches/"
+
+  mkdir -p "$test_dir"
+
+  cat > "$test_dir/0001-real.patch" << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test User <test@example.com>
+Subject: [PATCH] test patch
+
+diff --git a/file.txt b/file.txt
+index 0000000..1111111 100644
+--- a/file.txt
++++ b/file.txt
+@@ -1 +1 @@
+-old
++new
+EOF
+
+  echo 'not a patch' > "$test_dir/not-a-patch.txt"
+
+  count=$(prepare_existing_patches "$test_dir/0001-real.patch")
+  assert_equals_helper 'Should copy valid patch and return count 1' "$LINENO" 1 "$count"
+  assertTrue "($LINENO) Valid patch should exist in cache" \
+    '[[ -f "${KW_CACHE_DIR}/patches/0001-real.patch" ]]'
+
+  ret=0
+  count=$(prepare_existing_patches "$test_dir/not-a-patch.txt") || ret="$?"
+  assert_equals_helper 'Should abort on invalid file' "$LINENO" 22 "$ret"
+
+  ret=0
+  count=$(prepare_existing_patches "$test_dir/nonexistent.patch") || ret="$?"
+  assert_equals_helper 'Should return 0 for nonexistent files' "$LINENO" 0 "$count"
+}
+
+function test_prepare_existing_patches_cover_letter()
+{
+  local count
+  local test_dir="$SHUNIT_TMPDIR/test_patches/"
+
+  mkdir -p "$test_dir"
+
+  cat > "$test_dir/0000-cover-letter.patch" << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH 0/1] cover test
+
+cover letter body
+EOF
+
+  count=$(prepare_existing_patches "$test_dir/0000-cover-letter.patch")
+  assert_equals_helper 'Should accept cover-letter patch' "$LINENO" 1 "$count"
+  assertTrue "($LINENO) Cover-letter should exist in cache" \
+    '[[ -f "${KW_CACHE_DIR}/patches/0000-cover-letter.patch" ]]'
+}
+
+function test_mail_send_with_patch_files()
+{
+  local output
+  local expected
+  local ret
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    return "$ret"
+  }
+
+  cat > '0001-fake.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH] test
+
+diff --git a/file b/file
+index 0000000..1111111 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-old
++new
+EOF
+
+  parse_mail_options -s -- 0001-fake.patch
+
+  output=$(mail_send 'TEST_MODE')
+  assertTrue "($LINENO) Should not include @^" '! grep -q "@^" <<< "$output"'
+  assertTrue "($LINENO) Should include the .patch file" '[[ "$output" =~ 0001-fake\.patch ]]'
+
+  assertTrue "($LINENO) Patch should be copied to cache" \
+    '[[ -f "${KW_CACHE_DIR}/patches/0001-fake.patch" ]]'
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to return to original dir"
+    return "$ret"
+  }
+}
+
+function test_mail_send_with_invalid_patch_file()
+{
+  local output
+  local ret
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    return "$ret"
+  }
+
+  echo 'not a valid patch - no diff markers' > 'bogus.patch'
+
+  parse_mail_options -s -- bogus.patch
+
+  output=$(mail_send 'TEST_MODE' 2>&1)
+  ret="$?"
+  assert_equals_helper 'Should exit with EINVAL' "$LINENO" 22 "$ret"
+  assertTrue "($LINENO) Should complain about invalid patch" \
+    '[[ "$output" =~ bogus\.patch ]]'
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to return to original dir"
+    return "$ret"
+  }
+}
+
+function test_mail_send_with_mixed_passthrough_args()
+{
+  local output
+  local ret
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    return "$ret"
+  }
+
+  cat > '0001-fake.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH] test
+
+diff --git a/file b/file
+index 0000000..1111111 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-old
++new
+EOF
+
+  parse_mail_options -s -- --subject-prefix='PATCH v2' 0001-fake.patch -v3
+
+  output=$(mail_send 'TEST_MODE')
+  assertTrue "($LINENO) Should not include @^" '! grep -q "@^" <<< "$output"'
+  assertTrue "($LINENO) Should include subject-prefix" '[[ "$output" =~ subject-prefix ]]'
+  assertTrue "($LINENO) Should include the .patch file" '[[ "$output" =~ 0001-fake\.patch ]]'
+  assertTrue "($LINENO) Should include version" '[[ "$output" =~ -v3 ]]'
+
+  assertTrue "($LINENO) Patch should be copied to cache" \
+    '[[ -f "${KW_CACHE_DIR}/patches/0001-fake.patch" ]]'
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to return to original dir"
+    return "$ret"
+  }
+}
+
+function test_mail_send_with_invalid_file_in_glob()
+{
+  local output
+  local ret
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    return "$ret"
+  }
+
+  cat > '0001-good.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH] test
+
+diff --git a/file b/file
+index 0000000..1111111 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-old
++new
+EOF
+
+  echo 'not a patch' > 'other.txt'
+
+  parse_mail_options -s -- 0001-good.patch other.txt
+
+  output=$(mail_send 'TEST_MODE' 2>&1)
+  ret="$?"
+  assert_equals_helper 'Should exit with EINVAL for invalid file' "$LINENO" 22 "$ret"
+  assertTrue "($LINENO) Should reference invalid file in error" \
+    '[[ "$output" =~ other\.txt ]]'
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to return to original dir"
+    return "$ret"
+  }
+}
+
+function test_mail_send_rejects_cover_letter_patch()
+{
+  local output
+  local ret
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    return "$ret"
+  }
+
+  cat > '0000-cover-letter.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH 0/1] cover test
+
+cover letter body
+EOF
+  cat > '0001-real.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH] test
+
+diff --git a/file b/file
+index 0000000..1111111 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-old
++new
+EOF
+
+  parse_mail_options -s -- 0000-cover-letter.patch 0001-real.patch
+
+  output=$(mail_send 'TEST_MODE' 2>&1)
+  ret="$?"
+  assert_equals_helper 'Should NOT reject cover letter patch' "$LINENO" 0 "$ret"
+  assertTrue "($LINENO) Should include cover letter patch in command" \
+    '[[ "$output" =~ 0000-cover-letter\.patch ]]'
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to return to original dir"
+    return "$ret"
+  }
+}
+
+function test_mail_send_cover_letter_among_existing_patches()
+{
+  local output
+  local ret
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    return "$ret"
+  }
+
+  cat > '0000-cover-letter.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH 0/1] cover test
+
+cover letter body
+EOF
+
+  cat > '0001-real.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH] test
+
+diff --git a/file b/file
+index 0000000..1111111 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-old
++new
+EOF
+
+  parse_mail_options -s -- 0000-cover-letter.patch 0001-real.patch
+
+  parse_configuration "$KW_MAIL_CONFIG_SAMPLE" send_patch_config
+  output=$(mail_send 'TEST_MODE' 2>&1)
+  ret="$?"
+
+  assert_equals_helper 'Should succeed' "$LINENO" 0 "$ret"
+  assertTrue "($LINENO) Should not generate a new cover-letter" \
+    '! [[ "$output" =~ --cover-letter ]]'
+  assertTrue "($LINENO) Should include cover-letter patch in command" \
+    '[[ "$output" =~ 0000-cover-letter\.patch ]]'
+  assertTrue "($LINENO) Should include real patch in command" \
+    '[[ "$output" =~ 0001-real\.patch ]]'
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to return to original dir"
+    return "$ret"
+  }
+}
+
+function test_mail_send_rejects_range_with_patch_files()
+{
+  local output
+  local ret
+
+  cd "$FAKE_GIT" || {
+    ret="$?"
+    fail "($LINENO): Failed to move to fake git repo"
+    return "$ret"
+  }
+
+  cat > '0000-cover-letter.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH 0/1] cover test
+
+cover letter body
+EOF
+
+  cat > '0001-real.patch' << 'EOF'
+From abc123 Mon Sep 17 00:00:00 2001
+From: Test <test@test.com>
+Subject: [PATCH] test
+
+diff --git a/file b/file
+index 0000000..1111111 100644
+--- a/file
++++ b/file
+@@ -1 +1 @@
+-old
++new
+EOF
+
+  # Reject range + non-cover-letter patch files
+  parse_mail_options -s --simulate -3 -- 0001-real.patch
+
+  output=$(mail_send 'TEST_MODE' 2>&1)
+  ret="$?"
+  assert_equals_helper 'Should reject range + non-cover-letter patches' "$LINENO" 22 "$ret"
+  assertTrue "($LINENO) Should mention commit range" \
+    '[[ "$output" =~ commit\ range ]]'
+
+  # Allow range + cover-letter-only files
+  parse_mail_options -s --simulate -3 -- 0000-cover-letter.patch
+
+  output=$(mail_send 'TEST_MODE' 2>&1)
+  ret="$?"
+  assert_equals_helper 'Should allow range + cover-letter' "$LINENO" 0 "$ret"
+
+  cd "$ORIGINAL_DIR" || {
+    ret="$?"
+    fail "($LINENO): Failed to return to original dir"
+    return "$ret"
+  }
+}
+
 invoke_shunit
