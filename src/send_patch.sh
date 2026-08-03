@@ -127,6 +127,102 @@ function run_checkpatch_on_patches()
   return "$ret"
 }
 
+# Resolves the editor to use for git send-email cover letter editing.
+#
+# Returns:
+# The editor command string
+function get_git_editor()
+{
+  local editor editor_cmd
+
+  if editor=$(git var GIT_EDITOR 2> /dev/null) && [[ -n "$editor" ]]; then
+    editor_cmd="${editor%% *}"
+    if command -v "$editor_cmd" > /dev/null 2>&1; then
+      printf '%s' "$editor"
+      return 0
+    fi
+  fi
+
+  for candidate in vim vi nano; do
+    if command -v "$candidate" > /dev/null 2>&1; then
+      printf '%s' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+# After git send-email completes, checks if the cover letter was captured
+# by the GIT_EDITOR wrapper and saves it on simulate or failure.
+#
+# @dryrun:      Non-empty if --simulate was used
+# @send_ret:    Exit code of git send-email
+# @cover_letter: Non-empty if cover letter was expected
+# @edited_cov:  Path to captured post-edit cover letter file
+# @template_cov: Path to pre-edit cover letter template
+# @save_path:   Where to save the cover letter ($PWD/0000-cover-letter.patch)
+# @flags_repr:  Human-readable re-creation of the user's send flags
+# @cov_from_user: 1 if cover-letter file was provided by the user, 0 otherwise
+#
+# Returns:
+# 0 if cover letter was saved, 1 otherwise
+function handle_cover_letter_post_send()
+{
+  local dryrun="$1"
+  local send_ret="$2"
+  local cover_letter="$3"
+  local edited_cov="$4"
+  local template_cov="$5"
+  local save_path="$6"
+  local flags_repr="$7"
+  local cov_from_user="$8"
+
+  if [[ -z "$cover_letter" || ! -f "$edited_cov" ]]; then
+    return 1
+  fi
+
+  local was_edited=0
+  if [[ -f "$template_cov" ]]; then
+    if ! cmp -s "$edited_cov" "$template_cov"; then
+      was_edited=1
+    fi
+  fi
+
+  if [[ "$was_edited" -eq 0 ]]; then
+    return 1
+  fi
+
+  if [[ -f "$save_path" ]]; then
+    if [[ "$cov_from_user" -eq 1 ]]; then
+      :
+    else
+      local ts_name ts_path
+      ts_name="0000-cover-letter.kw-$(date +%y-%m-%d_%H%M%S).patch"
+      ts_path="${save_path%/*}/${ts_name}"
+      local override
+      override=$(ask_yN "override existing $(basename "$save_path") file? Will save cover letter as '${ts_name}' otherwise")
+      if [[ "$override" == '0' ]]; then
+        save_path="$ts_path"
+      fi
+    fi
+  fi
+
+  if [[ -n "$dryrun" ]]; then
+    cp "$edited_cov" "$save_path" 2> /dev/null || return 1
+    say "cover letter written in --simulate mode saved to ${save_path}. To use it, copy the contents into a new one, or pass it as an extra arg: kw send-patch -s${flags_repr} -- ${save_path}"
+    return 0
+  fi
+
+  if [[ "$send_ret" -ne 0 ]]; then
+    cp "$edited_cov" "$save_path" 2> /dev/null || return 1
+    say "sending failed. Cover letter saved to ${save_path}"
+    return 0
+  fi
+
+  return 1
+}
+
 # This function prepares the appropriate options to send patches using
 # `git send-email`.
 #
@@ -146,15 +242,38 @@ function mail_send()
   local extra_opts="${options_values['PASS_OPTION_TO_SEND_EMAIL']}"
   local private="${options_values['PRIVATE']}"
   local rfc="${options_values['RFC']}"
+  local keep_patch_files="${options_values['KEEP_PATCH_FILES']}"
   local use_default_to_cc_approach="${send_patch_config['use_default_to_cc_approach']}"
   local kernel_root
   local patch_count=0
+  local patch_files_from_opts=''
   local cmd='git send-email'
   local cover_letter='cover-letter'
+  local _real_editor _wrapper _template_cov _edited_cov
+  local _save_path _cov_save_ret _send_ret _flags_repr
+  local _cov_from_user=0
+  local _cov_to_file=''
+  _cov_save_ret=1
 
   flag=${flag:-'SILENT'}
 
   [[ "$use_default_to_cc_approach" == 'yes' ]] && cover_letter=''
+
+  eval "set -- $extra_opts"
+  for word in "$@"; do
+    [[ "$word" == -* ]] && continue
+    [[ ! -f "$word" ]] && continue
+    patch_files_from_opts+=" $word"
+  done
+
+  if [[ "$patch_files_from_opts" =~ cover-letter ]]; then
+    for pf in $patch_files_from_opts; do
+      if [[ "$(basename "$pf")" =~ cover-letter ]]; then
+        _cov_to_file="$(realpath "$pf")"
+        break
+      fi
+    done
+  fi
 
   [[ -n "$dryrun" ]] && cmd+=" $dryrun"
 
@@ -168,11 +287,44 @@ function mail_send()
     cmd+=" --cc=\"$cc_recipients\""
   fi
 
+  if [[ -n "$patch_files_from_opts" && -n "$commit_range" ]]; then
+    # Allow cover-letter-only files alongside a commit range
+    local non_cover_files=''
+    for pf in $patch_files_from_opts; do
+      [[ ! "$(basename "$pf")" =~ cover-letter ]] && non_cover_files+=" $pf"
+    done
+    if [[ -n "$non_cover_files" ]]; then
+      complain 'Cannot combine a commit range with existing patch files.'
+      complain 'Use a <rev-range> (e.g. -3) or pass patch files after --, not both.'
+      return 22
+    fi
+  fi
+
+  if [[ -n "$patch_files_from_opts" ]]; then
+    if [[ -n "$commit_range" ]]; then
+      # Generate patches first, then copy cover-letter files alongside
+      patch_count="$(pre_generate_patches "$commit_range" "$version")"
+      for cl in $patch_files_from_opts; do
+        cp "$cl" "${KW_CACHE_DIR}/patches/"
+        ((patch_count++))
+      done
+    else
+      patch_count="$(prepare_existing_patches "$patch_files_from_opts")" || return 22
+    fi
+  elif [[ -n "$commit_range" ]]; then
+    patch_count="$(pre_generate_patches "$commit_range" "$version")"
+  fi
+
+  # Track user-provided cover-letter files before clearing cover_letter
+  if [[ -n "$_cov_to_file" ]]; then
+    _cov_from_user=1
+    opts="$(sed 's/--cover-letter//g' <<< "$opts")"
+  fi
+
   # Don't generate a cover letter when sending only one patch
-  patch_count="$(pre_generate_patches "$commit_range" "$version")"
   if [[ "$patch_count" -eq 1 ]]; then
     opts="$(sed 's/--cover-letter//g' <<< "$opts")"
-    cover_letter=''
+    [[ "$_cov_from_user" -eq 0 ]] && cover_letter=''
   fi
 
   kernel_root="$(find_kernel_root "$PWD")"
@@ -202,7 +354,84 @@ function mail_send()
   [[ -n "$rfc" ]] && cmd+=" $rfc"
   [[ -n "$extra_opts" ]] && cmd+=" $extra_opts"
 
+  # Set up GIT_EDITOR wrapper to capture cover letter on simulate/failure
+  if [[ -n "$cover_letter" ]]; then
+    _edited_cov="${KW_CACHE_DIR}/.cov_letter_edited"
+    _template_cov="${KW_CACHE_DIR}/.cov_letter_template"
+
+    _real_editor="$(get_git_editor)" || true
+    if [[ -z "$_real_editor" ]]; then
+      if [[ "$flag" != 'TEST_MODE' ]]; then
+        warning 'No editor found. Cover letter auto-save is disabled.'
+        warning 'Install vim, vi, or nano, or set core.editor in your git config.'
+      fi
+    else
+      _wrapper="${KW_CACHE_DIR}/.editor_wrapper.sh"
+
+      cat > "$_wrapper" << HEOF
+#!/usr/bin/env bash
+file="\$1"
+if [[ "\$file" =~ cover-letter ]]; then
+  cp "\$file" "${_template_cov}"
+  ${_real_editor} "\$file"
+  cp "\$file" "${_edited_cov}"
+else
+  ${_real_editor} "\$file"
+fi
+HEOF
+      chmod +x "$_wrapper" 2> /dev/null || true
+      export GIT_EDITOR="$_wrapper"
+    fi
+  fi
+
   cmd_manager "$flag" "$cmd"
+  _send_ret="$?"
+
+  # Auto-save cover letter on --simulate or failure
+  if [[ -n "$cover_letter" ]]; then
+    if [[ -n "$_cov_to_file" ]]; then
+      _save_path="$_cov_to_file"
+    else
+      _save_path="${PWD}/0000-cover-letter.patch"
+    fi
+    _flags_repr=''
+    if [[ -n "${options_values['TO']}" ]]; then
+      _flags_repr+=" --to='${options_values['TO']}'"
+    fi
+    if [[ -n "${options_values['CC']}" ]]; then
+      _flags_repr+=" --cc='${options_values['CC']}'"
+    fi
+    if [[ -n "${options_values['PRIVATE']}" ]]; then
+      _flags_repr+=" --private"
+    fi
+    if [[ -n "${options_values['RFC']}" ]]; then
+      _flags_repr+=" --rfc"
+    fi
+    if [[ -n "${options_values['PATCH_VERSION']}" ]]; then
+      _flags_repr+=" ${options_values['PATCH_VERSION']}"
+    fi
+
+    handle_cover_letter_post_send "$dryrun" "$_send_ret" "$cover_letter" \
+      "$_edited_cov" "$_template_cov" "$_save_path" "$_flags_repr" "$_cov_from_user"
+    _cov_save_ret="$?"
+  fi
+
+  if [[ -n "$keep_patch_files" ]]; then
+    local format_patch_cmd="git format-patch --output-directory=$PWD"
+    if [[ "$_cov_save_ret" -ne 0 ]]; then
+      [[ -n "$cover_letter" ]] && format_patch_cmd+=" --cover-letter"
+    fi
+    [[ -n "$version" ]] && format_patch_cmd+=" $version"
+    format_patch_cmd+=" $commit_range"
+    cmd_manager "$flag" "$format_patch_cmd"
+    say "Patch files saved to $PWD"
+  fi
+
+  # Clean up GIT_EDITOR wrapper and temp files
+  if [[ -n "$_wrapper" ]]; then
+    unset GIT_EDITOR
+    rm -f "$_wrapper" "$_template_cov" "$_edited_cov"
+  fi
 }
 
 # Validates the recipient list given by the user to the options `--to` and
@@ -261,6 +490,50 @@ function pre_generate_patches()
       ((count++))
     fi
   done
+
+  printf '%s\n' "$count"
+}
+
+# This function prepares the existing patches, copying them to the cache folder.
+# these are used to count the number of patches and later to generate the
+# appropriate recipients
+#
+# @patch_files: The list of revisions used to generate the patches
+#
+# Returns:
+# The count of how many patches were created
+function prepare_existing_patches()
+{
+  local patch_files="$1"
+  local patch_cache="${KW_CACHE_DIR}/patches"
+  local count=0
+
+  if [[ -d "$patch_cache" && ! "$patch_cache" =~ ^(~|/|"$HOME")$ ]]; then
+    rm -rf "$patch_cache"
+  fi
+  mkdir -p "$patch_cache"
+
+  if [[ -n "$patch_files" ]]; then
+    for patch_file in $patch_files; do
+      if [[ ! -f "$patch_file" ]]; then
+        continue
+      fi
+
+      if [[ "$(basename "$patch_file")" =~ cover-letter ]]; then
+        cp "$patch_file" "$patch_cache/"
+        ((count++))
+        continue
+      fi
+
+      if ! is_a_patch "$patch_file"; then
+        complain "Not a valid patch file: $patch_file" >&2
+        return 22
+      fi
+
+      cp "$patch_file" "$patch_cache/"
+      ((count++))
+    done
+  fi
 
   printf '%s\n' "$count"
 }
@@ -1024,9 +1297,10 @@ function parse_mail_options()
   local setup_token=0
   local patch_version=''
   local commit_count=''
-  local short_options='s,t,f,v:,i,l,n,'
+  local rev_ret=-1
+  local short_options='s,t,f,v:,i,l,n,k,'
   local long_options='send,simulate,to:,cc:,setup,local,global,force,verify,verbose,'
-  long_options+='template::,interactive,no-interactive,no-checkpatch,list,private,rfc,'
+  long_options+='template::,interactive,no-interactive,no-checkpatch,list,private,rfc,keep-patch-files,'
   local pass_option_to_send_email
 
   long_options+='email:,name:,'
@@ -1063,6 +1337,7 @@ function parse_mail_options()
   options_values['RFC']=''
   options_values['COMMIT_RANGE']=''
   options_values['PRIVATE']=''
+  options_values['KEEP_PATCH_FILES']=''
   options_values['VERBOSE']=''
   options_values['NO_CHECKPATCH']=''
 
@@ -1145,6 +1420,10 @@ function parse_mail_options()
         options_values['PRIVATE']='--suppress-cc=all'
         shift
         ;;
+      --keep-patch-files | -k)
+        options_values['KEEP_PATCH_FILES']=1
+        shift
+        ;;
       --verify)
         options_values['VERIFY']=1
         shift
@@ -1175,11 +1454,11 @@ function parse_mail_options()
         ;;
       --)
         shift
-        # if a reference is passed after the -- we need to account for it
-        if [[ "$*" =~ -[[:digit:]]+ ]]; then
-          commit_count="${BASH_REMATCH[0]}"
-          options_values['COMMIT_RANGE']+="$commit_count "
-        fi
+        for i in "$@"; do
+          if [[ "$i" =~ ^-[[:digit:]]+$ ]]; then
+            options_values['COMMIT_RANGE']+="$i "
+          fi
+        done
         # TODO: find a better way to handle spaces inside pass_option_to_send_email
         for i in "$@"; do
           if [[ "${i}" =~ ' ' ]]; then
@@ -1205,9 +1484,18 @@ function parse_mail_options()
   fi
 
   # assume last commit if none given
-  if [[ -z "${options_values['COMMIT_RANGE']}" && "$rev_ret" == 22 ]]; then
-    options_values['COMMIT_RANGE']='@^'
-    options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
+  if [[ -z "${options_values['COMMIT_RANGE']}" ]]; then
+    if [[ "$rev_ret" == -1 ]]; then
+      # -- was not encountered; default to @^ (original behaviour)
+      options_values['COMMIT_RANGE']='@^'
+      options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
+    elif [[ "$rev_ret" == 22 ]]; then
+      # -- was encountered, no commit refs; only default @^ if no .patch files
+      if [[ ! "${options_values['PASS_OPTION_TO_SEND_EMAIL']}" =~ \.patch(\ |$) ]]; then
+        options_values['COMMIT_RANGE']='@^'
+        options_values['PASS_OPTION_TO_SEND_EMAIL']="$(str_strip "${options_values['PASS_OPTION_TO_SEND_EMAIL']} @^")"
+      fi
+    fi
   fi
 
   return 0
