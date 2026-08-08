@@ -26,7 +26,7 @@ function _kw_autocomplete()
   kw_options['b']="${kw_options['build']}"
 
   kw_options['deploy']='--remote --local --reboot --no-reboot --modules --list
-                        --list-all --ls-line --setup --uninstall --verbose
+                        --list-all --ls-line --setup --uninstall --uninstall-all --verbose
                         --force --create-package --from-package --boot-into-new-kernel-once'
   kw_options['d']="${kw_options['deploy']}"
 

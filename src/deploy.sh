@@ -37,8 +37,8 @@ declare REMOTE_INTERACE_CMD_PREFIX
 declare LOCAL_TO_DEPLOY_DIR
 declare LOCAL_REMOTE_DIR
 
-all_long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall::,list-all,force,setup,verbose,create-package,from-package:,boot-into-new-kernel-once'
-all_short_options='r,m,l,s,u::,a,f,v,p,F:,n'
+all_long_options='remote:,local,reboot,no-reboot,modules,list,ls-line,uninstall::,list-all,force,setup,verbose,create-package,from-package:,boot-into-new-kernel-once,uninstall-all'
+all_short_options='r,m,l,s,u::,a,f,v,p,F:,n,U'
 
 deploy_unprocess_param=''
 
@@ -74,6 +74,7 @@ function deploy_main()
   local single_line=0
   local uninstall=''
   local uninstall_remove_first=''
+  local uninstall_all=''
   local start=0
   local end=0
   local runtime=0
@@ -89,7 +90,9 @@ function deploy_main()
   local cache_to_deploy_path
   local boot_into_new_kernel_once
   local force
-  local encoded_pwd=$(get_encoded_pwd)
+  local encoded_pwd
+
+  encoded_pwd=$(get_encoded_pwd)
 
   # Drop build_and_deploy flag
   shift
@@ -136,6 +139,7 @@ function deploy_main()
   list="${options_values['LS']}"
   uninstall="${options_values['UNINSTALL']}"
   uninstall_remove_first="${options_values['UNINSTALL_REMOVE_FIRST']}"
+  uninstall_all="${options_values['UNINSTALL_ALL']}"
   force="${options_values['FORCE']}"
   setup="${options_values['SETUP']}"
   boot_into_new_kernel_once="${options_values['BOOT_INTO_NEW_KERNEL_ONCE']}"
@@ -165,21 +169,9 @@ function deploy_main()
     return "$?"
   fi
 
-  # Uninstall option
-  if [[ -n "$uninstall" || -n "$uninstall_remove_first" ]]; then
-    start=$(date +%s)
-    run_kernel_uninstall "$target" "$reboot" "$uninstall" "$force" "$flag"
-    ret="$?"
-    end=$(date +%s)
-    runtime=$((end - start))
-
-    if [[ "$ret" == 0 ]]; then
-      statistics_manager 'uninstall' "$start" "$runtime" '' "$flag"
-    else
-      statistics_manager 'uninstall' "$start" "$runtime" 'failure' "$flag"
-    fi
-
-    return "$?"
+  if [[ -n "$uninstall_all" ]]; then
+    options_values['UNINSTALL']='__kw_uninstall_all__'
+    uninstall='__kw_uninstall_all__'
   fi
 
   prepare_host_deploy_dir
@@ -210,6 +202,23 @@ function deploy_main()
     fi
 
     collect_target_info_for_deploy "$target" "$flag"
+  fi
+
+  # Uninstall option
+  if [[ -n "$uninstall" || -n "$uninstall_remove_first" ]]; then
+    start=$(date +%s)
+    run_kernel_uninstall "$target" "$reboot" "$uninstall" "$force" "$flag"
+    ret="$?"
+    end=$(date +%s)
+    runtime=$((end - start))
+
+    if [[ "$ret" == 0 ]]; then
+      statistics_manager 'uninstall' "$start" "$runtime" '' "$flag"
+    else
+      statistics_manager 'uninstall' "$start" "$runtime" 'failure' "$flag"
+    fi
+
+    return "$?"
   fi
 
   # NOTE: If we deploy a new kernel image that does not match with the modules,
@@ -1469,8 +1478,8 @@ function parse_deploy_options()
   local after_options
   local long_options='list,ls-line,uninstall::'
   long_options+=',list-all,setup,verbose,from-package:'
-  long_options+=',boot-into-new-kernel-once'
-  local short_options='r,m,l,s,u::,a,f,v,p,F:,n'
+  long_options+=',boot-into-new-kernel-once,uninstall-all'
+  local short_options='r,m,l,s,u::,a,f,v,p,F:,n,U'
   local ret_options
 
   all_options="$(kw_parse "$all_short_options" "$all_long_options" "$@")"
@@ -1546,6 +1555,11 @@ function parse_deploy_options()
         options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
         shift 2
         ;;
+      --uninstall-all | -U)
+        options_values['UNINSTALL_ALL']=1
+        options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=1
+        shift
+        ;;
       --) # End of options, beginning of arguments
         # The uninstall command already handled parameters after --
         after_options=${options##*'--'}
@@ -1588,6 +1602,7 @@ function deploy_help()
     '  deploy - installs kernel and modules:' \
     '  deploy (--setup) - set up target machine for deploy' \
     '  deploy (--uninstall | -u) [(--force | -f)] [<kernel-name>,...] - uninstall kernels' \
+    '  deploy (--uninstall-all | -U) - uninstall all kernels' \
     '  deploy (--list | -l) - list kernels' \
     '  deploy (--ls-line | -s) - list kernels separeted by commas' \
     '  deploy (--list-all | -a) - list all available kernels' \

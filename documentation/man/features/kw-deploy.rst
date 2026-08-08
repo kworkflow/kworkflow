@@ -11,7 +11,7 @@ SYNOPSIS
                       [-r | \--reboot] [\--no-reboot]
                       [-m | \--modules] [-s | \--ls-line]
                       [-l | \--list] [-a | \--list-all]
-                      [(-u | \--uninstall) [<kernel-name>[,...]]] [-f \--force]
+                      [(-u | \--uninstall) [<kernel-name>[,...]]] [(-U | \--uninstall-all)] [-f \--force]
                       [\--alert=(s | v | (sv | vs) | n)]
                       [-p | \--create-package]
                       [(-F | \--from-package) <kw-package-path>]
@@ -90,6 +90,10 @@ OPTIONS
   multiple kernels it is necessary to separate them with comma. A regex pattern
   can also be passed as input, prefixed with 'regex:'. If no kernel name is
   provided, remove the first kernel managed by kw it encounters.
+
+-U, \--uninstall-all:
+  Remove all kernels installed by kw. Before proceeding, a confirmation
+  prompt lists every kernel to be removed and waits for user approval.
 
 -f, \--force:
   Remove kernels even if they were not installed by kw (only valid with
@@ -173,3 +177,13 @@ Below are examples of how to use `kw deploy --uninstall`:
 4) Removes the first kernel managed by kw:
 
   kw deploy --uninstall
+
+Below are examples of how to use `kw deploy --uninstall-all`:
+
+5) Remove all kw-managed kernels
+
+  kw deploy --uninstall-all
+
+6) Remove all kw-managed kernels and reboot
+
+  kw deploy --uninstall-all --reboot

@@ -51,17 +51,35 @@ function kernel_uninstall()
   process_installed_kernels '' "$prefix" 'kw_managed_kernels' "$target"
   total_kernels_managed_by_kw="$?"
 
-  IFS=', ' read -r -a kernel_names_array <<< "$kernel_list_string_or_regex"
-
-  if [[ "$kernel_list_string_or_regex" != "''" ]]; then
-    kernel_to_be_removed_based_on_user_input 'kernel_names_array' 'all_installed_kernels' 'kernel_to_remove'
-    ret="$?"
-  # If user does not provide any input, remove the first kernel managed by kw
-  else
-    kernel_to_remove[0]="${kw_managed_kernels[0]}"
+  if [[ "$kernel_list_string_or_regex" == '__kw_uninstall_all__' ]]; then
     if [[ "$total_kernels_managed_by_kw" -eq 0 ]]; then
       printf '%s\n' 'There is no kernel managed by kw.'
-      return 0 # There is no kernel managed by kw, in this case ignore -u with no parameter
+      return 0
+    fi
+    printf '%s\n' 'The following kernels installed with kw will be removed:'
+    for kernel in "${kw_managed_kernels[@]}"; do
+      printf '  %s\n' "$kernel"
+    done
+    printf 'Uninstalling %s kw deployed kernels. Continue? [y/N] ' "$total_kernels_managed_by_kw"
+    read -r reply
+    printf '\n'
+    if [[ ! "$reply" =~ ^[Yy]$ ]]; then
+      printf '%s\n' 'Aborting...'
+      return 0
+    fi
+    kernel_to_remove=("${kw_managed_kernels[@]}")
+  else
+    IFS=', ' read -r -a kernel_names_array <<< "$kernel_list_string_or_regex"
+
+    if [[ "$kernel_list_string_or_regex" != "''" ]]; then
+      kernel_to_be_removed_based_on_user_input 'kernel_names_array' 'all_installed_kernels' 'kernel_to_remove'
+      ret="$?"
+    else
+      kernel_to_remove[0]="${kw_managed_kernels[0]}"
+      if [[ "$total_kernels_managed_by_kw" -eq 0 ]]; then
+        printf '%s\n' 'There is no kernel managed by kw.'
+        return 0 # There is no kernel managed by kw, in this case ignore -u with no parameter
+      fi
     fi
   fi
 

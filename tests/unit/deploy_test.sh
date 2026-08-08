@@ -678,6 +678,19 @@ function test_kernel_uninstall()
   assert_equals_helper 'Regex option' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
 }
 
+function test_kernel_uninstall_all_remote()
+{
+  local deploy_remote_cmd="$DEPLOY_REMOTE_PREFIX"
+  local run_kernel_uninstall_cmd="${CONFIG_SSH} ${CONFIG_REMOTE}"
+
+  deploy_remote_cmd+=" --uninstall-kernels 'debian' '0' 'remote' '__kw_uninstall_all__' 'TEST_MODE' ''"
+
+  run_kernel_uninstall_cmd+=" sudo \"${deploy_remote_cmd}\""
+
+  output=$(run_kernel_uninstall 3 0 '__kw_uninstall_all__' '' 'TEST_MODE')
+  assert_equals_helper 'Uninstall-all sends sentinel to remote' "$LINENO" "$run_kernel_uninstall_cmd" "$output"
+}
+
 function test_cleanup()
 {
   local output=''
@@ -832,6 +845,19 @@ function test_parse_deploy_options()
   declare -gA options_values
   parse_deploy_options 'TEST_MODE'
   assert_equals_helper 'Could not set deploy TEST_MODE' "(${LINENO})" 'TEST_MODE' "${options_values['TEST_MODE']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options --uninstall-all
+  assert_equals_helper 'Could not set deploy UNINSTALL_ALL' "(${LINENO})" '1' "${options_values['UNINSTALL_ALL']}"
+
+  unset options_values
+  declare -gA options_values
+  parse_deploy_options -U
+  assert_equals_helper 'Could not set deploy UNINSTALL_ALL with -U' "(${LINENO})" '1' "${options_values['UNINSTALL_ALL']}"
+
+  parse_deploy_options --uninstall-all
+  assertTrue "(${LINENO}) - Should allow outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
 
   # test invalid options
   parse_deploy_options --an-invalid-option
@@ -1275,6 +1301,10 @@ function test_run_commands_outside_kernel_tree()
   options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
   parse_deploy_options --uninstall 'some_kernel'
   assertTrue "(${LINENO}) - Should uninstall outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
+
+  options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']=''
+  parse_deploy_options --uninstall-all
+  assertTrue "(${LINENO}) - Should uninstall-all outside kernel tree" "[[ -n ${options_values['CAN_RUN_OUTSIDE_KERNEL_TREE']} ]]"
 
   cd "$original" || {
     fail "(${LINENO}) It was not possible to move back from temp directory"

@@ -875,4 +875,148 @@ function test_remove_systemd_kernel_files()
   assert_equals_helper 'Wrong kernel-install remove command' "$LINENO" "$expected_cmd" "$output"
 }
 
+function test_kernel_uninstall_all_with_sentinel()
+{
+  local kernel_name_1='5.5.0-rc2-VKMS+'
+  local kernel_name_2='5.6.0-rc2-AMDGPU+'
+  local mkinitcpio_d_path_1="etc/mkinitcpio.d/${kernel_name_1}.preset"
+  local mkinitcpio_d_path_2="etc/mkinitcpio.d/${kernel_name_2}.preset"
+  local boot_files_1
+  local boot_files_2
+  local output
+  local index
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "(${LINENO}) It was not possible to move to temporary directory"
+    return
+  }
+
+  # Composing expected command sequence
+  local -a cmd_sequence=(
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "touch '${INSTALLED_KERNELS_PATH}'"
+    'The following kernels installed with kw will be removed:'
+    "${kernel_name_1}"
+    "${kernel_name_2}"
+    "Uninstalling 2 kw deployed kernels. Continue? [y/N]"
+    "Removing: ${kernel_name_1}"
+  )
+
+  index=${#cmd_sequence[@]}
+
+  mapfile -t boot_files_1 < <(find "${TARGET_PATH}/boot/" -name "*${kernel_name_1}*" | sort --dictionary)
+  for file in "${boot_files_1[@]}"; do
+    cmd_sequence["$((index++))"]="Removing: ${file}"
+    cmd_sequence["$((index++))"]="rm ${file}"
+  done
+
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_1}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name_1}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name_1}"
+  cmd_sequence["$((index++))"]="sed --in-place '/${kernel_name_1}/d' '$INSTALLED_KERNELS_PATH'"
+
+  cmd_sequence["$((index++))"]="Removing: ${kernel_name_2}"
+
+  mapfile -t boot_files_2 < <(find "${TARGET_PATH}/boot/" -name "*${kernel_name_2}*" | sort --dictionary)
+  for file in "${boot_files_2[@]}"; do
+    cmd_sequence["$((index++))"]="Removing: ${file}"
+    cmd_sequence["$((index++))"]="rm ${file}"
+  done
+
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/${mkinitcpio_d_path_2}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/var/lib/initramfs-tools/${kernel_name_2}"
+  cmd_sequence["$((index++))"]="Can't find ${TARGET_PATH}/lib/modules/${kernel_name_2}"
+  cmd_sequence["$((index++))"]="sed --in-place '/${kernel_name_2}/d' '$INSTALLED_KERNELS_PATH'"
+  cmd_sequence["$((index++))"]="update-grub"
+
+  # Check
+  output="$(
+    reply='y'
+
+    function read()
+    {
+      :
+    }
+
+    function does_the_system_uses_systemd()
+    {
+      return 95
+    }
+
+    function is_filesystem_writable()
+    {
+      return 0
+    }
+
+    function migrate_old_kernel_list()
+    {
+      return 0
+    }
+
+    function process_installed_kernels()
+    {
+      local all_kernels="$1"
+      local prefix="$2"
+      local -n _mock_kernels="$3"
+
+      _mock_kernels[0]="$kernel_name_1"
+      _mock_kernels[1]="$kernel_name_2"
+      return 2
+    }
+
+    kernel_uninstall 'debian' 0 'remote' '__kw_uninstall_all__' 'TEST_MODE' '' "$SHUNIT_TMPDIR"
+  )"
+
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "(${LINENO}) It was not possible to move back from temp directory"
+    return
+  }
+}
+
+function test_kernel_uninstall_all_sentinel_empty_list()
+{
+  local output
+
+  cd "$SHUNIT_TMPDIR" || {
+    fail "(${LINENO}) It was not possible to move to temporary directory"
+    return
+  }
+
+  local -a cmd_sequence=(
+    "mkdir --parents ${REMOTE_KW_DEPLOY}"
+    "touch '${INSTALLED_KERNELS_PATH}'"
+    'There is no kernel managed by kw.'
+  )
+
+  output="$(
+    function migrate_old_kernel_list()
+    {
+      return 0
+    }
+
+    function is_filesystem_writable()
+    {
+      return 0
+    }
+
+    function process_installed_kernels()
+    {
+      local all_kernels="$1"
+      local prefix="$2"
+      local -n _mock_registry="$3"
+    }
+
+    kernel_uninstall 'debian' 0 'remote' '__kw_uninstall_all__' 'TEST_MODE' '' "$SHUNIT_TMPDIR"
+  )"
+
+  compare_command_sequence '' "$LINENO" 'cmd_sequence' "$output"
+
+  cd "$TEST_ROOT_PATH" || {
+    fail "(${LINENO}) It was not possible to move back from temp directory"
+    return
+  }
+}
+
 invoke_shunit
