@@ -43,14 +43,14 @@ function run_bootloader_update()
   local kernel_image_name="$4"
   local boot_into_new_kernel_once="$5"
   local cmd_grub
-  local cmd_sudo
+  local sudo_cmd
   local total_count
 
   flag=${flag:-'SILENT'}
 
   if [[ "$target" == 'local' ]]; then
-    cmd_sudo='sudo --preserve-env '
-    cmd_grub+="$cmd_sudo"
+    sudo_cmd='sudo --preserve-env '
+    cmd_grub+="$sudo_cmd"
   fi
 
   define_grub_cmd_update
@@ -65,7 +65,7 @@ function run_bootloader_update()
 
   # Setup grub to boot the new kernel
   if [[ "$boot_into_new_kernel_once" == 1 ]]; then
-    setup_grub_reboot_for_new_kernel "$name" "$kernel_image_name" "$cmd_sudo" "$flag"
+    setup_grub_reboot_for_new_kernel "$name" "$kernel_image_name" "$sudo_cmd" "$flag"
     if [[ "$?" == 2 ]]; then
       warning 'kw was unable to set up the first boot to the new kernel.'
     fi
@@ -77,23 +77,24 @@ function get_grub_cfg_path()
 {
   local name="$1"
   local prefix="$2"
-  local grub_cfg_path="${GRUB_CFG_PATH}"
+  local sudo_cmd="$3"
+  local grub_cfg_path="${sudo_cmd}${GRUB_CFG_PATH}"
   local grub_cfg_to_return
   local total_matches
   local menuentry
   local efi_path
 
-  if [[ -f "$grub_cfg_path" ]]; then
+  if $sudo_cmd test -f "$grub_cfg_path"; then
     printf '%s\n' "$grub_cfg_path"
     return 0
   fi
 
   # Check in the /efi folder
   if [[ -d "${prefix}/efi" ]]; then
-    grub_cfg_path=$(find "${prefix}/efi/" -name 'grub.cfg')
+    grub_cfg_path=$(${sudo_cmd}find "${prefix}/efi/" -name 'grub.cfg')
   # Check in the /boot folder
   elif [[ -d "${prefix}/boot" ]]; then
-    grub_cfg_path=$(find "${prefix}/boot/" -name 'grub.cfg')
+    grub_cfg_path=$(${sudo_cmd}find "${prefix}/boot/" -name 'grub.cfg')
   else
     return 2 # ENOENT
   fi
@@ -102,25 +103,20 @@ function get_grub_cfg_path()
   # Disambiguate between multiple grub.cfg files.
   if [[ "$total_matches" -gt 1 ]]; then
     while IFS=$'\n' read -r line; do
-      [[ -f "$grub_cfg_path" ]] && continue
+      $sudo_cmd test -f "$grub_cfg_path" && continue
 
-      grub_file_raw=$(cat "$line")
+      grub_file_raw=$(${sudo_cmd}cat "$line")
 
       # Check if it is a valid config
-      menuentry=$(grep --max-count 1 --ignore-case ".*menuentry.*${name}" "$line")
-      [[ -z "$menuentry" ]] && continue
-
-      # TODO:
-      # If there is more than one valid file, for now, we just get the latest.
-      # Right now I don't see any issue, but I can see this to be a problem in
-      # the future.
-      grub_cfg_to_return="$line"
+      if $sudo_cmd grep -qi "menuentry.*${name}" "$line"; then
+        grub_cfg_to_return="$line"
+      fi
     done <<< "$grub_cfg_path"
 
     grub_cfg_path="$grub_cfg_to_return"
   fi
 
-  if [[ -f "$grub_cfg_path" ]]; then
+  if [[ -n "$grub_cfg_path" ]] && $sudo_cmd test -f "$grub_cfg_path"; then
     printf '%s\n' "$grub_cfg_path"
     return 0
   fi
@@ -143,7 +139,7 @@ function setup_grub_reboot_for_new_kernel()
 {
   local name="$1"
   local kernel_image_name="$2"
-  local cmd_sudo="$3"
+  local sudo_cmd="$3"
   local flag="$4"
   local cmd
   local grub_file_raw
@@ -153,7 +149,7 @@ function setup_grub_reboot_for_new_kernel()
   local submenu_line_position
   local grub_cfg_path
 
-  grub_cfg_path=$(get_grub_cfg_path "$name")
+  grub_cfg_path=$(get_grub_cfg_path "$name" "" "$sudo_cmd")
   if [[ "$?" == 2 ]]; then
     printf 'kw did not find grub.cfg\n'
     return 2
@@ -191,7 +187,7 @@ function setup_grub_reboot_for_new_kernel()
   fi
 
   cmd="${BASE_GRUB_CMD}-reboot"
-  cmd_manager "$flag" "${cmd_sudo}${cmd} '${submenu}${menuentry}'"
+  cmd_manager "$flag" "${sudo_cmd}${cmd} '${submenu}${menuentry}'"
 }
 
 function total_of_installed_kernels()
