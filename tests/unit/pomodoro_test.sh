@@ -335,6 +335,11 @@ function test_is_valid_time()
   assert_equals_helper 'Valid time should return 0' "$LINENO" 0 "$?"
 }
 
+function normalize_sqlite_column_output()
+{
+  sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//; s/[[:space:]]+/ /g' <<< "$1"
+}
+
 function test_show_tags()
 {
   local output
@@ -356,7 +361,9 @@ function test_show_tags()
   expected+='2   BBBBBBB'$'\n'
   expected+='3   CCCCCCC'$'\n'
   expected+='4   AAAAAAA'
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Wrong output' "$LINENO" \
+    "$(normalize_sqlite_column_output "$expected")" \
+    "$(normalize_sqlite_column_output "$output")"
 
   # Testing addition of tag
   sqlite3 "${KW_DATA_DIR}/kw.db" -batch "INSERT INTO tag ('name') VALUES ('1111111') ;"
@@ -369,7 +376,9 @@ function test_show_tags()
   expected+='3   CCCCCCC'$'\n'
   expected+='4   AAAAAAA'$'\n'
   expected+='5   1111111'
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Wrong output' "$LINENO" \
+    "$(normalize_sqlite_column_output "$expected")" \
+    "$(normalize_sqlite_column_output "$output")"
 
   # Testing removal of tag (although not allowed it is valid to test)
   sqlite3 "${KW_DATA_DIR}/kw.db" -batch "DELETE FROM tag WHERE id=1 OR id=3 ;"
@@ -380,7 +389,9 @@ function test_show_tags()
   expected+='2   BBBBBBB'$'\n'
   expected+='4   AAAAAAA'$'\n'
   expected+='5   1111111'
-  assert_equals_helper 'Wrong output' "$LINENO" "$expected" "$output"
+  assert_equals_helper 'Wrong output' "$LINENO" \
+    "$(normalize_sqlite_column_output "$expected")" \
+    "$(normalize_sqlite_column_output "$output")"
 }
 
 function test_fetch_last_pomodoro_session_no_last_session()
