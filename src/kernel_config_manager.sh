@@ -199,12 +199,18 @@ function save_config_file()
 function cleanup()
 {
   local flag=${1:-'SILENT'}
+  local config_base_path="$PWD"
+
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+  fi
+
   say 'Cleaning up and retrieving files...'
 
   # Setting dotglob to include hidden files when running 'mv'
   shopt -s dotglob
   if [[ -d "${KW_CACHE_DIR}/config" ]]; then
-    cmd_manager "$flag" "mv ${KW_CACHE_DIR}/config/* ${PWD}"
+    cmd_manager "$flag" "mv ${KW_CACHE_DIR}/config/* ${config_base_path}"
     cmd_manager "$flag" "rmdir ${KW_CACHE_DIR}/config"
   fi
 
@@ -235,12 +241,18 @@ function get_config_from_proc()
   local target="$3"
   local ret
   local -r CMD_LOAD_CONFIG_MODULE="modprobe --quiet configs && [ -s ${PROC_CONFIG_PATH} ]"
-  local CMD_GET_CONFIG="zcat /proc/config.gz > ${output}"
+  local CMD_GET_CONFIG
   local config_base_path="$PWD"
+  local output_path="$output"
 
+  # When an env is in use, the config file belongs to the env folder instead of
+  # the kernel source tree.
   if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
     config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+    output_path="${config_base_path}/${output}"
   fi
+
+  CMD_GET_CONFIG="zcat /proc/config.gz > ${output_path}"
 
   # If remote, change where the config will be saved
   [[ "$target" == 3 ]] && CMD_GET_CONFIG="zcat /proc/config.gz > /tmp/${output}"
@@ -303,9 +315,11 @@ function get_config_from_boot()
   local port="${remote_parameters['REMOTE_PORT']}"
   local cmd
   local config_base_path="$PWD"
+  local output_path="$output"
 
   if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
     config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+    output_path="${config_base_path}/${output}"
   fi
 
   case "$target" in
@@ -313,7 +327,7 @@ function get_config_from_boot()
       return 95
       ;;
     2) # LOCAL
-      cmd="cp ${root}boot/config-$(uname --kernel-release) ${output} 2>/dev/null"
+      cmd="cp ${root}boot/config-$(uname --kernel-release) ${output_path} 2>/dev/null"
       cmd_manager "$flag" "$cmd"
       [[ "$?" != 0 ]] && return 95 # ENOTSUP
       return 0
@@ -354,6 +368,8 @@ function get_config_from_defconfig()
   local arch
   local ret
   local cmd='make defconfig'
+  local config_base_path="$PWD"
+  local output_path="$output"
 
   if ! is_kernel_root "$PWD"; then
     complain 'This command should be run in a kernel tree.'
@@ -367,10 +383,18 @@ function get_config_from_defconfig()
   [[ -n "$arch" ]] && cmd+=" ARCH=${arch}"
   [[ -n "$cross_compile" ]] && cmd+=" CROSS_COMPILE=${cross_compile}"
 
+  # When an env is in use, 'make defconfig' must generate the config file in the
+  # env folder; otherwise, we end up with a .config in the kernel source tree.
+  if [[ -n "${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}" ]]; then
+    config_base_path="${options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']}"
+    output_path="${config_base_path}/${output}"
+    cmd+=" O=${config_base_path}"
+  fi
+
   # If the --output option is passed, we don't want to override the current
   # config
-  if [[ -f "${PWD}/.config" && "$output" != '.config' ]]; then
-    cmd+=" && mv ${PWD}/.config ${output} && mv ${KW_CACHE_DIR}/config/.config ${PWD}/.config"
+  if [[ -f "${config_base_path}/.config" && "$output" != '.config' ]]; then
+    cmd+=" && mv ${config_base_path}/.config ${output_path} && mv ${KW_CACHE_DIR}/config/.config ${config_base_path}/.config"
   fi
 
   cmd_manager "$flag" "$cmd"

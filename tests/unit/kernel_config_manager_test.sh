@@ -329,6 +329,26 @@ function test_cleanup()
   compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
 }
 
+function test_cleanup_inside_env()
+{
+  local output
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']='/tmp/something'
+  mkdir -p "$KW_CACHE_DIR/config"
+  touch "$KW_CACHE_DIR/lsmod"
+
+  declare -a expected_cmd=(
+    'Cleaning up and retrieving files...'
+    "mv $KW_CACHE_DIR/config/* /tmp/something"
+    "rmdir $KW_CACHE_DIR/config"
+    "rm $KW_CACHE_DIR/lsmod"
+    'Exiting...'
+  )
+
+  output=$(cleanup 'TEST_MODE')
+  compare_command_sequence '' "$LINENO" 'expected_cmd' "$output"
+}
+
 function test_get_config_from_proc()
 {
   local output
@@ -403,6 +423,37 @@ function test_get_config_from_proc_inside_env_remote()
   compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
 }
 
+function test_get_config_from_proc_inside_env_local()
+{
+  local output
+  declare -la expected_cmd=()
+
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']='/tmp/something'
+
+  # Mocking an available proc
+  mkdir 'proc'
+  touch 'proc/config.gz'
+  export PROC_CONFIG_PATH='proc/config.gz'
+
+  expected_cmd=(
+    'zcat /proc/config.gz > /tmp/something/.config'
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' '.config' 2)
+  compare_command_sequence 'Config should be saved in the env' "$LINENO" 'expected_cmd' "$output"
+
+  expected_cmd=(
+    'zcat /proc/config.gz > /tmp/something/newconfig'
+  )
+
+  output=$(get_config_from_proc 'TEST_MODE' 'newconfig' 2)
+  compare_command_sequence 'Output should be saved in the env' "$LINENO" 'expected_cmd' "$output"
+
+  if is_safe_path_to_remove 'proc'; then
+    rm -rf 'proc'
+  fi
+}
+
 function test_get_config_from_boot()
 {
   # shellcheck disable=SC2317
@@ -444,6 +495,39 @@ function test_get_config_from_boot_inside_env_remote()
   compare_command_sequence 'Wrong command issued' "$LINENO" 'expected_cmd' "$output"
 }
 
+function test_get_config_from_boot_inside_env_local()
+{
+  local output
+
+  # shellcheck disable=SC2317
+  function uname()
+  {
+    printf '%s\n' '5.5.0-rc2-VKMS+'
+  }
+
+  export root='./'
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']='/tmp/something'
+
+  declare -a expected_cmd=(
+    'cp ./boot/config-5.5.0-rc2-VKMS+ /tmp/something/.config 2>/dev/null'
+  )
+
+  output=$(get_config_from_boot 'TEST_MODE' '.config' 2)
+  compare_command_sequence 'Config should be copied to the env' "$LINENO" 'expected_cmd' "$output"
+
+  # Copy the config to a real env folder to make sure nothing lands in the
+  # kernel source tree
+  rm -f "${PWD}/.config"
+  mk_fake_boot
+  mkdir -p 'fake_env'
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="${PWD}/fake_env"
+
+  get_config_from_boot 'SILENT' '.config' 2
+  assert_equals_helper 'We did not copy the target file' "$LINENO" 0 "$?"
+  assertTrue "${LINENO}: config file was not copied to the env" '[[ -f "./fake_env/.config" ]]'
+  assertFalse "${LINENO}: config file should not be in the source tree" '[[ -f "./.config" ]]'
+}
+
 function test_get_config_from_defconfig()
 {
   local output
@@ -473,6 +557,37 @@ function test_get_config_from_defconfig()
   output=$(get_config_from_defconfig 'TEST_MODE' '.config')
   single_cmd='make defconfig'
   assert_equals_helper 'No arch' "$LINENO" "$single_cmd" "$output"
+}
+
+function test_get_config_from_defconfig_inside_env()
+{
+  local output
+  local single_cmd
+  local env_path="${PWD}/fake_env"
+  local old_arch="${build_config[arch]}"
+  local old_cross_compile="${build_config[cross_compile]}"
+
+  build_config[arch]='arm64'
+  build_config[cross_compile]='aarch64-linux-gnu-'
+
+  mk_fake_kernel_root "$PWD"
+  mkdir -p "$env_path"
+  options_values['ENV_PATH_KBUILD_OUTPUT_FLAG']="$env_path"
+
+  # The config must be generated in the env
+  single_cmd="make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=${env_path}"
+  output=$(get_config_from_defconfig 'TEST_MODE' '.config')
+  assert_equals_helper 'defconfig should use the env' "$LINENO" "$single_cmd" "$output"
+
+  # With --output, the backup and restore must happen in the env
+  touch "${env_path}/.config"
+  single_cmd="make defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=${env_path}"
+  single_cmd+=" && mv ${env_path}/.config ${env_path}/lala && mv ${KW_CACHE_DIR}/config/.config ${env_path}/.config"
+  output=$(get_config_from_defconfig 'TEST_MODE' 'lala')
+  assert_equals_helper 'Config file backup inside env' "$LINENO" "$single_cmd" "$output"
+
+  build_config[arch]="$old_arch"
+  build_config[cross_compile]="$old_cross_compile"
 }
 
 function test_fetch_config()
